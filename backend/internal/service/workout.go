@@ -367,14 +367,14 @@ func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *
 			SELECT COALESCE(workout_type, 'A') FROM sessions 
 			ORDER BY started_at DESC LIMIT 1
 		`).Scan(&lastWorkoutType)
-		
+
 		// Alternate: if last was A, this is B; if last was B (or no previous), this is A
 		if err == nil && lastWorkoutType == "A" {
 			workoutType = "B"
 		} else {
 			workoutType = "A"
 		}
-		
+
 		// Create new session with determined workout type
 		sessionID = fmt.Sprintf("session-%d", time.Now().UnixNano())
 		startedAt = time.Now()
