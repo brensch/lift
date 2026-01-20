@@ -52,13 +52,13 @@ func (s *WorkoutService) GetWorkoutState(
 	}
 
 	// Get or create today's session
-	sessionID, sessionStartedAt, err := s.getOrCreateTodaySession(ctx, database)
+	sessionID, sessionStartedAt, workoutType, err := s.getOrCreateTodaySession(ctx, database)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	// Calculate plan
-	plan, err := s.calculateNextWorkout(database, username)
+	plan, err := s.calculateNextWorkout(database, username, workoutType)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -304,12 +304,12 @@ func (s *WorkoutService) GetNextWorkout(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	plan, err := s.calculateNextWorkout(database, username)
+	sessionID, _, workoutType, err := s.getOrCreateTodaySession(ctx, database)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	sessionID, _, err := s.getOrCreateTodaySession(ctx, database)
+	plan, err := s.calculateNextWorkout(database, username, workoutType)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -348,32 +348,47 @@ func (s *WorkoutService) LogSet(
 
 // Helper functions
 
-func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB) (string, time.Time, error) {
+func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB) (string, time.Time, string, error) {
 	today := time.Now().Truncate(24 * time.Hour)
 
 	var sessionID string
 	var startedAt time.Time
+	var workoutType string
 	err := database.QueryRowContext(ctx, `
-		SELECT id, started_at FROM sessions 
+		SELECT id, started_at, COALESCE(workout_type, 'A') FROM sessions 
 		WHERE started_at >= ? 
 		ORDER BY started_at DESC LIMIT 1
-	`, today).Scan(&sessionID, &startedAt)
+	`, today).Scan(&sessionID, &startedAt, &workoutType)
 
 	if err == sql.ErrNoRows {
-		// Create new session
+		// Determine workout type based on last session's type
+		var lastWorkoutType string
+		err = database.QueryRowContext(ctx, `
+			SELECT COALESCE(workout_type, 'A') FROM sessions 
+			ORDER BY started_at DESC LIMIT 1
+		`).Scan(&lastWorkoutType)
+		
+		// Alternate: if last was A, this is B; if last was B (or no previous), this is A
+		if err == nil && lastWorkoutType == "A" {
+			workoutType = "B"
+		} else {
+			workoutType = "A"
+		}
+		
+		// Create new session with determined workout type
 		sessionID = fmt.Sprintf("session-%d", time.Now().UnixNano())
 		startedAt = time.Now()
 		_, err = database.ExecContext(ctx, `
-			INSERT INTO sessions (id, started_at) VALUES (?, ?)
-		`, sessionID, startedAt)
+			INSERT INTO sessions (id, started_at, workout_type) VALUES (?, ?, ?)
+		`, sessionID, startedAt, workoutType)
 		if err != nil {
-			return "", time.Time{}, err
+			return "", time.Time{}, "", err
 		}
 	} else if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, "", err
 	}
 
-	return sessionID, startedAt, nil
+	return sessionID, startedAt, workoutType, nil
 }
 
 func (s *WorkoutService) getSessionActivities(ctx context.Context, database *sql.DB, sessionID string) ([]*workoutv1.Activity, error) {
@@ -466,26 +481,13 @@ func (s *WorkoutService) calculateRemainingSets(allSets []*workoutv1.PlannedSet,
 	return remaining
 }
 
-func (s *WorkoutService) calculateNextWorkout(database *sql.DB, username string) (*workoutv1.Plan, error) {
-	// Get the last workout to determine which exercises to do
+func (s *WorkoutService) calculateNextWorkout(database *sql.DB, username string, workoutType string) (*workoutv1.Plan, error) {
 	// 5x5 alternates between:
 	// Workout A: Squat, Bench, Row
 	// Workout B: Squat, OHP, Deadlift
+	// workoutType is determined once per session and stored in the sessions table
 
-	var lastExercise string
-	err := database.QueryRow(`
-		SELECT exercise FROM activities 
-		WHERE type = 'SET' AND ended_at IS NOT NULL
-		ORDER BY ended_at DESC 
-		LIMIT 1
-	`).Scan(&lastExercise)
-
-	isWorkoutA := true
-	if err == nil {
-		if lastExercise == "EXERCISE_BENCH" || lastExercise == "EXERCISE_ROW" {
-			isWorkoutA = false
-		}
-	}
+	isWorkoutA := workoutType == "A"
 
 	var exercises []workoutv1.Exercise
 	if isWorkoutA {

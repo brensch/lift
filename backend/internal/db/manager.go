@@ -73,7 +73,8 @@ func (m *Manager) migrate(db *sql.DB) error {
 CREATE TABLE IF NOT EXISTS sessions (
 id TEXT PRIMARY KEY,
 started_at DATETIME NOT NULL,
-completed_at DATETIME
+completed_at DATETIME,
+workout_type TEXT DEFAULT 'A'
 );
 
 CREATE TABLE IF NOT EXISTS activities (
@@ -113,7 +114,15 @@ CREATE INDEX IF NOT EXISTS idx_sets_completed ON sets(completed_at);
 `
 
 	_, err := db.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Migration: Add workout_type column to existing sessions table if it doesn't exist
+	// SQLite doesn't support IF NOT EXISTS for columns, so we try and ignore errors
+	db.Exec(`ALTER TABLE sessions ADD COLUMN workout_type TEXT DEFAULT 'A'`)
+
+	return nil
 }
 
 // Close closes all database connections
