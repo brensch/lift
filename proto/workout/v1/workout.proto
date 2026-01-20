@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package workout.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/brensch/lift/gen/workout/v1;workoutv1";
+
+// Exercise types for 5x5 program
+enum Exercise {
+  EXERCISE_UNSPECIFIED = 0;
+  EXERCISE_SQUAT = 1;
+  EXERCISE_BENCH = 2;
+  EXERCISE_DEADLIFT = 3;
+  EXERCISE_OHP = 4;
+  EXERCISE_ROW = 5;
+}
+
+// Activity types during a workout
+enum ActivityType {
+  ACTIVITY_TYPE_UNSPECIFIED = 0;
+  ACTIVITY_TYPE_SET = 1;   // Performing a set (timing how long it takes)
+  ACTIVITY_TYPE_REST = 2;  // Rest between sets (planned_duration vs actual derived from timestamps)
+}
+
+// A single activity in the workout timeline
+// Everything in a workout is an activity with a start time
+message Activity {
+  string id = 1;
+  ActivityType type = 2;
+  google.protobuf.Timestamp started_at = 3;
+  google.protobuf.Timestamp ended_at = 4;  // null/zero if ongoing
+  
+  // For SET activities
+  Exercise exercise = 5;
+  int32 set_number = 6;
+  float weight = 7;
+  int32 target_reps = 8;
+  int32 actual_reps = 9;  // filled after set completion
+  
+  // For REST activities - planned duration (actual = ended_at - started_at)
+  int32 planned_duration_seconds = 10;
+}
+
+// A planned set (before completion)
+message PlannedSet {
+  Exercise exercise = 1;
+  float target_weight = 2;
+  int32 target_reps = 3;
+  int32 set_number = 4; // 1-5 for 5x5
+}
+
+// A workout plan for a user
+message Plan {
+  string user_id = 1;
+  repeated PlannedSet sets = 2;
+}
+
+// Current workout state - everything the frontend needs
+message WorkoutState {
+  string session_id = 1;
+  google.protobuf.Timestamp session_started_at = 2;
+  repeated Activity timeline = 3;      // All completed activities
+  Activity current_activity = 4;       // What's happening now (null if nothing started)
+  PlannedSet next_set = 5;             // What set is coming up next
+  repeated PlannedSet remaining_sets = 6; // All sets left in the workout
+  bool is_complete = 7;                // True if workout is done
+}
+
+// Rest time configuration
+// Success (all reps): 3 minutes, Any failure: 5 minutes
+// TESTING MODE values can be set here
+message RestConfig {
+  int32 success_seconds = 1;  // Rest after hitting all reps (default 180)
+  int32 failure_seconds = 2;  // Rest after missing reps (default 300)
+}
+
+// ============ Request/Response Messages ============
+
+// Get or create today's workout state
+message GetWorkoutStateRequest {
+  string user_id = 1;
+}
+
+message GetWorkoutStateResponse {
+  WorkoutState state = 1;
+  Plan plan = 2;           // The full workout plan
+  RestConfig rest_config = 3;
+}
+
+// Start performing a set (begins timing)
+message StartSetRequest {
+  string session_id = 1;
+  Exercise exercise = 2;
+  int32 set_number = 3;
+  float weight = 4;
+  int32 target_reps = 5;
+}
+
+message StartSetResponse {
+  Activity activity = 1;  // The started set activity
+}
+
+// Finish any activity (set or rest)
+// For SET: provide actual_reps, creates a REST activity
+// For REST: just ends it (records actual duration from timestamps)
+message FinishActivityRequest {
+  string session_id = 1;
+  string activity_id = 2;  // The activity to finish
+  int32 actual_reps = 3;   // Only needed for SET activities
+}
+
+message FinishActivityResponse {
+  Activity finished_activity = 1;  // The activity that was finished
+  Activity next_activity = 2;      // The next activity (REST after SET, or null after REST)
+  WorkoutState state = 3;          // Updated full state
+}
+
+// Legacy messages for compatibility
+message GetNextWorkoutRequest {
+  string user_id = 1;
+}
+
+message GetNextWorkoutResponse {
+  Plan plan = 1;
+  google.protobuf.Timestamp last_set_completed_at = 2;
+  repeated Activity completed_sets = 3;
+  string active_session_id = 4;
+}
+
+message LogSetRequest {
+  string session_id = 1;
+  Activity set = 2;
+}
+
+message LogSetResponse {
+  bool success = 1;
+  google.protobuf.Timestamp completed_at = 2;
+}
+
+// ============ Service Definition ============
+
+service WorkoutService {
+  // Get current workout state (creates session if needed)
+  rpc GetWorkoutState(GetWorkoutStateRequest) returns (GetWorkoutStateResponse);
+  
+  // Start performing a set
+  rpc StartSet(StartSetRequest) returns (StartSetResponse);
+  
+  // Finish any activity (set with reps, or rest)
+  rpc FinishActivity(FinishActivityRequest) returns (FinishActivityResponse);
+  
+  // Legacy: Get the next recommended workout for a user
+  rpc GetNextWorkout(GetNextWorkoutRequest) returns (GetNextWorkoutResponse);
+  
+  // Legacy: Log a single set immediately
+  rpc LogSet(LogSetRequest) returns (LogSetResponse);
+}
