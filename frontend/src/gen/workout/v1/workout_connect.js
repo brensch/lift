@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, StartSetRequest, StartSetResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -54,6 +54,17 @@ export const WorkoutService = {
       name: "UpdatePlannedWeight",
       I: UpdatePlannedWeightRequest,
       O: UpdatePlannedWeightResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Set the exercise order for the current session
+     *
+     * @generated from rpc workout.v1.WorkoutService.SetExerciseOrder
+     */
+    setExerciseOrder: {
+      name: "SetExerciseOrder",
+      I: SetExerciseOrderRequest,
+      O: SetExerciseOrderResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -19,8 +20,8 @@ import (
 // Rest time configuration (in seconds)
 // TESTING MODE: Using short times
 const (
-	RestSuccessSeconds = 6  // Production: 180 (3 min)
-	RestFailureSeconds = 10 // Production: 300 (5 min)
+	RestSuccessSeconds = 180 // Production: 180 (3 min)
+	RestFailureSeconds = 300 // Production: 300 (5 min)
 )
 
 // WorkoutService implements the WorkoutService RPC handlers
@@ -52,7 +53,7 @@ func (s *WorkoutService) GetWorkoutState(
 	}
 
 	// Get or create today's session (this also populates planned_sets for new sessions)
-	sessionID, sessionStartedAt, _, err := s.getOrCreateTodaySession(ctx, database)
+	sessionID, sessionStartedAt, _, err := s.getOrCreateTodaySession(ctx, database, req.Msg.StartNewSession)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -366,7 +367,7 @@ func (s *WorkoutService) GetNextWorkout(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	sessionID, _, _, err := s.getOrCreateTodaySession(ctx, database)
+	sessionID, _, _, err := s.getOrCreateTodaySession(ctx, database, false)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -416,7 +417,27 @@ func (s *WorkoutService) LogSet(
 
 // Helper functions
 
-func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB) (string, time.Time, string, error) {
+// isSessionComplete checks if all planned sets in a session have been completed
+func (s *WorkoutService) isSessionComplete(ctx context.Context, database *sql.DB, sessionID string) bool {
+	// Get planned sets for the session
+	plannedSets, err := s.getPlannedSets(ctx, database, sessionID)
+	if err != nil || len(plannedSets) == 0 {
+		return false
+	}
+
+	// Get all completed set activities for this session
+	timeline, err := s.getSessionActivities(ctx, database, sessionID)
+	if err != nil {
+		return false
+	}
+
+	completedSets := s.countCompletedSets(timeline)
+	remainingSets := s.calculateRemainingSets(plannedSets, completedSets)
+
+	return len(remainingSets) == 0
+}
+
+func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB, startNewSession bool) (string, time.Time, string, error) {
 	today := time.Now().Truncate(24 * time.Hour)
 
 	var sessionID string
@@ -428,7 +449,14 @@ func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *
 		ORDER BY started_at DESC LIMIT 1
 	`, today).Scan(&sessionID, &startedAt, &workoutType)
 
-	if err == sql.ErrNoRows {
+	// Check if the existing session is complete (all sets done)
+	// Only create a new session if explicitly requested via startNewSession
+	sessionComplete := false
+	if err == nil && startNewSession {
+		sessionComplete = s.isSessionComplete(ctx, database, sessionID)
+	}
+
+	if err == sql.ErrNoRows || sessionComplete {
 		// Determine workout type based on last session's type
 		var lastWorkoutType string
 		err = database.QueryRowContext(ctx, `
@@ -508,20 +536,24 @@ func (s *WorkoutService) populatePlannedSets(ctx context.Context, database *sql.
 
 // getPlannedSets retrieves the planned sets for a session from the database
 func (s *WorkoutService) getPlannedSets(ctx context.Context, database *sql.DB, sessionID string) ([]*workoutv1.PlannedSet, error) {
-	rows, err := database.QueryContext(ctx, `
+	// First, check if there's a custom exercise order for this session
+	var exerciseOrder string
+	err := database.QueryRowContext(ctx, `SELECT exercise_order FROM sessions WHERE id = ?`, sessionID).Scan(&exerciseOrder)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	// Build the ORDER BY clause based on custom order or default
+	orderByClause := s.buildExerciseOrderClause(exerciseOrder)
+
+	query := fmt.Sprintf(`
 		SELECT exercise, set_number, target_weight, target_reps
 		FROM planned_sets
 		WHERE session_id = ?
-		ORDER BY 
-			CASE exercise 
-				WHEN 'EXERCISE_SQUAT' THEN 1 
-				WHEN 'EXERCISE_BENCH' THEN 2 
-				WHEN 'EXERCISE_ROW' THEN 3 
-				WHEN 'EXERCISE_OHP' THEN 2 
-				WHEN 'EXERCISE_DEADLIFT' THEN 3 
-			END,
-			set_number ASC
-	`, sessionID)
+		ORDER BY %s, set_number ASC
+	`, orderByClause)
+
+	rows, err := database.QueryContext(ctx, query, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -552,6 +584,41 @@ func (s *WorkoutService) getPlannedSets(ctx context.Context, database *sql.DB, s
 	}
 
 	return sets, nil
+}
+
+// buildExerciseOrderClause builds the SQL ORDER BY clause for exercises
+func (s *WorkoutService) buildExerciseOrderClause(exerciseOrder string) string {
+	if exerciseOrder == "" {
+		// Default order
+		return `CASE exercise 
+			WHEN 'EXERCISE_SQUAT' THEN 1 
+			WHEN 'EXERCISE_BENCH' THEN 2 
+			WHEN 'EXERCISE_ROW' THEN 3 
+			WHEN 'EXERCISE_OHP' THEN 2 
+			WHEN 'EXERCISE_DEADLIFT' THEN 3 
+		END`
+	}
+
+	// Parse custom order (comma-separated exercise names)
+	exercises := strings.Split(exerciseOrder, ",")
+	if len(exercises) == 0 {
+		return `CASE exercise 
+			WHEN 'EXERCISE_SQUAT' THEN 1 
+			WHEN 'EXERCISE_BENCH' THEN 2 
+			WHEN 'EXERCISE_ROW' THEN 3 
+			WHEN 'EXERCISE_OHP' THEN 2 
+			WHEN 'EXERCISE_DEADLIFT' THEN 3 
+		END`
+	}
+
+	// Build custom CASE statement
+	caseClause := "CASE exercise "
+	for i, ex := range exercises {
+		caseClause += fmt.Sprintf("WHEN '%s' THEN %d ", ex, i+1)
+	}
+	caseClause += "ELSE 999 END"
+
+	return caseClause
 }
 
 func (s *WorkoutService) getSessionActivities(ctx context.Context, database *sql.DB, sessionID string) ([]*workoutv1.Activity, error) {
@@ -726,4 +793,54 @@ func (s *WorkoutService) getTargetWeight(database *sql.DB, exercise workoutv1.Ex
 
 	// Not all sets were successful - keep the same weight
 	return float32(lastWeight)
+}
+
+// SetExerciseOrder sets the exercise order for a session
+func (s *WorkoutService) SetExerciseOrder(
+	ctx context.Context,
+	req *connect.Request[workoutv1.SetExerciseOrderRequest],
+) (*connect.Response[workoutv1.SetExerciseOrderResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Convert exercise order to comma-separated string of exercise names
+	var exerciseNames []string
+	for _, ex := range req.Msg.ExerciseOrder {
+		exerciseNames = append(exerciseNames, ex.String())
+	}
+	exerciseOrderStr := strings.Join(exerciseNames, ",")
+
+	// Update the session's exercise order
+	_, err = database.ExecContext(ctx, `
+		UPDATE sessions SET exercise_order = ? WHERE id = ?
+	`, exerciseOrderStr, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update exercise order: %w", err))
+	}
+
+	// Get updated planned sets with new order
+	plannedSets, err := s.getPlannedSets(ctx, database, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Get completed sets to calculate remaining
+	timeline, err := s.getSessionActivities(ctx, database, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	completedSets := s.countCompletedSets(timeline)
+	remainingSets := s.calculateRemainingSets(plannedSets, completedSets)
+
+	return connect.NewResponse(&workoutv1.SetExerciseOrderResponse{
+		RemainingSets: remainingSets,
+	}), nil
 }

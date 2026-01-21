@@ -44,6 +44,9 @@ const (
 	// WorkoutServiceUpdatePlannedWeightProcedure is the fully-qualified name of the WorkoutService's
 	// UpdatePlannedWeight RPC.
 	WorkoutServiceUpdatePlannedWeightProcedure = "/workout.v1.WorkoutService/UpdatePlannedWeight"
+	// WorkoutServiceSetExerciseOrderProcedure is the fully-qualified name of the WorkoutService's
+	// SetExerciseOrder RPC.
+	WorkoutServiceSetExerciseOrderProcedure = "/workout.v1.WorkoutService/SetExerciseOrder"
 	// WorkoutServiceGetNextWorkoutProcedure is the fully-qualified name of the WorkoutService's
 	// GetNextWorkout RPC.
 	WorkoutServiceGetNextWorkoutProcedure = "/workout.v1.WorkoutService/GetNextWorkout"
@@ -61,6 +64,8 @@ type WorkoutServiceClient interface {
 	FinishActivity(context.Context, *connect.Request[v1.FinishActivityRequest]) (*connect.Response[v1.FinishActivityResponse], error)
 	// Update the target weight for an exercise or specific set
 	UpdatePlannedWeight(context.Context, *connect.Request[v1.UpdatePlannedWeightRequest]) (*connect.Response[v1.UpdatePlannedWeightResponse], error)
+	// Set the exercise order for the current session
+	SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error)
 	// Legacy: Get the next recommended workout for a user
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
@@ -102,6 +107,12 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(workoutServiceMethods.ByName("UpdatePlannedWeight")),
 			connect.WithClientOptions(opts...),
 		),
+		setExerciseOrder: connect.NewClient[v1.SetExerciseOrderRequest, v1.SetExerciseOrderResponse](
+			httpClient,
+			baseURL+WorkoutServiceSetExerciseOrderProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("SetExerciseOrder")),
+			connect.WithClientOptions(opts...),
+		),
 		getNextWorkout: connect.NewClient[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse](
 			httpClient,
 			baseURL+WorkoutServiceGetNextWorkoutProcedure,
@@ -123,6 +134,7 @@ type workoutServiceClient struct {
 	startSet            *connect.Client[v1.StartSetRequest, v1.StartSetResponse]
 	finishActivity      *connect.Client[v1.FinishActivityRequest, v1.FinishActivityResponse]
 	updatePlannedWeight *connect.Client[v1.UpdatePlannedWeightRequest, v1.UpdatePlannedWeightResponse]
+	setExerciseOrder    *connect.Client[v1.SetExerciseOrderRequest, v1.SetExerciseOrderResponse]
 	getNextWorkout      *connect.Client[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse]
 	logSet              *connect.Client[v1.LogSetRequest, v1.LogSetResponse]
 }
@@ -147,6 +159,11 @@ func (c *workoutServiceClient) UpdatePlannedWeight(ctx context.Context, req *con
 	return c.updatePlannedWeight.CallUnary(ctx, req)
 }
 
+// SetExerciseOrder calls workout.v1.WorkoutService.SetExerciseOrder.
+func (c *workoutServiceClient) SetExerciseOrder(ctx context.Context, req *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error) {
+	return c.setExerciseOrder.CallUnary(ctx, req)
+}
+
 // GetNextWorkout calls workout.v1.WorkoutService.GetNextWorkout.
 func (c *workoutServiceClient) GetNextWorkout(ctx context.Context, req *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error) {
 	return c.getNextWorkout.CallUnary(ctx, req)
@@ -167,6 +184,8 @@ type WorkoutServiceHandler interface {
 	FinishActivity(context.Context, *connect.Request[v1.FinishActivityRequest]) (*connect.Response[v1.FinishActivityResponse], error)
 	// Update the target weight for an exercise or specific set
 	UpdatePlannedWeight(context.Context, *connect.Request[v1.UpdatePlannedWeightRequest]) (*connect.Response[v1.UpdatePlannedWeightResponse], error)
+	// Set the exercise order for the current session
+	SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error)
 	// Legacy: Get the next recommended workout for a user
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
@@ -204,6 +223,12 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		connect.WithSchema(workoutServiceMethods.ByName("UpdatePlannedWeight")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workoutServiceSetExerciseOrderHandler := connect.NewUnaryHandler(
+		WorkoutServiceSetExerciseOrderProcedure,
+		svc.SetExerciseOrder,
+		connect.WithSchema(workoutServiceMethods.ByName("SetExerciseOrder")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workoutServiceGetNextWorkoutHandler := connect.NewUnaryHandler(
 		WorkoutServiceGetNextWorkoutProcedure,
 		svc.GetNextWorkout,
@@ -226,6 +251,8 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 			workoutServiceFinishActivityHandler.ServeHTTP(w, r)
 		case WorkoutServiceUpdatePlannedWeightProcedure:
 			workoutServiceUpdatePlannedWeightHandler.ServeHTTP(w, r)
+		case WorkoutServiceSetExerciseOrderProcedure:
+			workoutServiceSetExerciseOrderHandler.ServeHTTP(w, r)
 		case WorkoutServiceGetNextWorkoutProcedure:
 			workoutServiceGetNextWorkoutHandler.ServeHTTP(w, r)
 		case WorkoutServiceLogSetProcedure:
@@ -253,6 +280,10 @@ func (UnimplementedWorkoutServiceHandler) FinishActivity(context.Context, *conne
 
 func (UnimplementedWorkoutServiceHandler) UpdatePlannedWeight(context.Context, *connect.Request[v1.UpdatePlannedWeightRequest]) (*connect.Response[v1.UpdatePlannedWeightResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.UpdatePlannedWeight is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.SetExerciseOrder is not implemented"))
 }
 
 func (UnimplementedWorkoutServiceHandler) GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error) {

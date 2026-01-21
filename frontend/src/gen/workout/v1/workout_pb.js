@@ -128,6 +128,7 @@ export const GetWorkoutStateRequest = /*@__PURE__*/ proto3.makeMessageType(
   "workout.v1.GetWorkoutStateRequest",
   () => [
     { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "start_new_session", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ],
 );
 
@@ -219,6 +220,29 @@ export const UpdatePlannedWeightResponse = /*@__PURE__*/ proto3.makeMessageType(
   "workout.v1.UpdatePlannedWeightResponse",
   () => [
     { no: 1, name: "updated_sets", kind: "message", T: PlannedSet, repeated: true },
+  ],
+);
+
+/**
+ * Set the exercise order for a session
+ *
+ * @generated from message workout.v1.SetExerciseOrderRequest
+ */
+export const SetExerciseOrderRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.SetExerciseOrderRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "exercise_order", kind: "enum", T: proto3.getEnumType(Exercise), repeated: true },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.SetExerciseOrderResponse
+ */
+export const SetExerciseOrderResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.SetExerciseOrderResponse",
+  () => [
+    { no: 1, name: "remaining_sets", kind: "message", T: PlannedSet, repeated: true },
   ],
 );
 
