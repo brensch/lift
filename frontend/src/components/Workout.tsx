@@ -10,6 +10,7 @@ import {
 import { BarbellCalculator } from "@/components/BarbellCalculator";
 import { RemainingSets } from "@/components/RemainingSets";
 import { Timeline } from "@/components/Timeline";
+import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { useUser } from "@/context/UserContext";
 import { WorkoutProvider, useWorkout } from "@/context/WorkoutContext";
 import {
@@ -129,53 +130,18 @@ function WorkoutContent() {
   if (phase === "complete" || workoutState?.isComplete) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl">🎉 Great Workout!</CardTitle>
-              <CardDescription>
-                You completed {workoutState?.timeline.filter(a => a.type === ActivityType.SET).length ?? 0} sets
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleStartNewWorkout} className="w-full">
-                Start Next Workout
-              </Button>
-              <Button onClick={logout} variant="outline" className="w-full">
-                Logout
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Final Summary */}
+        <div className="max-w-2xl mx-auto">
           {workoutState && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Workout Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  {workoutState.timeline
-                    .filter(a => a.type === ActivityType.SET)
-                    .map((activity, idx) => (
-                      <div key={idx} className="flex justify-between items-center py-1 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span>{exerciseEmoji(activity.exercise)}</span>
-                          <span>{exerciseToString(activity.exercise)}</span>
-                          <span className="text-muted-foreground">Set {activity.setNumber}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className={activity.actualReps < activity.targetReps ? "text-yellow-500" : "text-green-500"}>
-                            {activity.actualReps}/{activity.targetReps} reps
-                          </span>
-                          <span className="text-muted-foreground">{activity.weight} lbs</span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
+            <WorkoutSummary
+              timeline={workoutState.timeline}
+              sessionStartedAt={workoutState.sessionStartedAt}
+              onDismiss={handleStartNewWorkout}
+              showDismissButton={true}
+            />
           )}
+          <Button onClick={logout} variant="outline" className="w-full mt-4">
+            Logout
+          </Button>
         </div>
       </div>
     );

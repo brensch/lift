@@ -80,6 +80,7 @@ message RestConfig {
 // Get or create today's workout state
 message GetWorkoutStateRequest {
   string user_id = 1;
+  bool start_new_session = 2; // If true and current session is complete, start a new one
 }
 
 message GetWorkoutStateResponse {
@@ -128,6 +129,16 @@ message UpdatePlannedWeightResponse {
   repeated PlannedSet updated_sets = 1;  // The updated planned sets
 }
 
+// Set the exercise order for a session
+message SetExerciseOrderRequest {
+  string session_id = 1;
+  repeated Exercise exercise_order = 2;  // Exercises in the order they should be performed
+}
+
+message SetExerciseOrderResponse {
+  repeated PlannedSet remaining_sets = 1;  // Updated remaining sets in new order
+}
+
 // Legacy messages for compatibility
 message GetNextWorkoutRequest {
   string user_id = 1;
@@ -164,6 +175,9 @@ service WorkoutService {
   
   // Update the target weight for an exercise or specific set
   rpc UpdatePlannedWeight(UpdatePlannedWeightRequest) returns (UpdatePlannedWeightResponse);
+  
+  // Set the exercise order for the current session
+  rpc SetExerciseOrder(SetExerciseOrderRequest) returns (SetExerciseOrderResponse);
   
   // Legacy: Get the next recommended workout for a user
   rpc GetNextWorkout(GetNextWorkoutRequest) returns (GetNextWorkoutResponse);

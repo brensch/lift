@@ -337,6 +337,13 @@ export declare class GetWorkoutStateRequest extends Message<GetWorkoutStateReque
    */
   userId: string;
 
+  /**
+   * If true and current session is complete, start a new one
+   *
+   * @generated from field: bool start_new_session = 2;
+   */
+  startNewSession: boolean;
+
   constructor(data?: PartialMessage<GetWorkoutStateRequest>);
 
   static readonly runtime: typeof proto3;
@@ -613,6 +620,65 @@ export declare class UpdatePlannedWeightResponse extends Message<UpdatePlannedWe
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePlannedWeightResponse;
 
   static equals(a: UpdatePlannedWeightResponse | PlainMessage<UpdatePlannedWeightResponse> | undefined, b: UpdatePlannedWeightResponse | PlainMessage<UpdatePlannedWeightResponse> | undefined): boolean;
+}
+
+/**
+ * Set the exercise order for a session
+ *
+ * @generated from message workout.v1.SetExerciseOrderRequest
+ */
+export declare class SetExerciseOrderRequest extends Message<SetExerciseOrderRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * Exercises in the order they should be performed
+   *
+   * @generated from field: repeated workout.v1.Exercise exercise_order = 2;
+   */
+  exerciseOrder: Exercise[];
+
+  constructor(data?: PartialMessage<SetExerciseOrderRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.SetExerciseOrderRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetExerciseOrderRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetExerciseOrderRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetExerciseOrderRequest;
+
+  static equals(a: SetExerciseOrderRequest | PlainMessage<SetExerciseOrderRequest> | undefined, b: SetExerciseOrderRequest | PlainMessage<SetExerciseOrderRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.SetExerciseOrderResponse
+ */
+export declare class SetExerciseOrderResponse extends Message<SetExerciseOrderResponse> {
+  /**
+   * Updated remaining sets in new order
+   *
+   * @generated from field: repeated workout.v1.PlannedSet remaining_sets = 1;
+   */
+  remainingSets: PlannedSet[];
+
+  constructor(data?: PartialMessage<SetExerciseOrderResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.SetExerciseOrderResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetExerciseOrderResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetExerciseOrderResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetExerciseOrderResponse;
+
+  static equals(a: SetExerciseOrderResponse | PlainMessage<SetExerciseOrderResponse> | undefined, b: SetExerciseOrderResponse | PlainMessage<SetExerciseOrderResponse> | undefined): boolean;
 }
 
 /**

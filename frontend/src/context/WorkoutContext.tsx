@@ -51,6 +51,7 @@ interface WorkoutContextType {
   
   // Computed values
   remainingSetsGrouped: Record<number, PlannedSet[]>;
+  orderedExercises: Exercise[];
   nextSet: PlannedSet | undefined;
   totalWorkoutSeconds: number;
   setElapsedSeconds: number;
@@ -68,6 +69,7 @@ interface WorkoutContextType {
   handleSelectReps: (reps: number) => Promise<void>;
   handleStartNewWorkout: () => Promise<void>;
   handleUpdateWeight: (exercise: Exercise, newWeight: number) => Promise<void>;
+  setExerciseOrder: (exercises: Exercise[]) => void;
   setError: (error: string | null) => void;
 }
 
@@ -90,15 +92,18 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentRoast, setCurrentRoast] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Exercise order state (user-controlled ordering for remaining sets)
+  const [exerciseOrder, setExerciseOrder] = useState<Exercise[]>([]);
 
   // Fetch workout state from backend
-  const fetchWorkoutState = useCallback(async () => {
+  const fetchWorkoutState = useCallback(async (startNewSession: boolean = false) => {
     if (!client || !username) return;
 
     try {
       setLoading(true);
       setError(null);
-      const response = await client.getWorkoutState({ userId: username });
+      const response = await client.getWorkoutState({ userId: username, startNewSession });
       
       setWorkoutState(response.state ?? null);
       setRestConfig(response.restConfig ?? null);
@@ -219,7 +224,29 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     {} as Record<number, PlannedSet[]>
   ) ?? {};
 
-  const nextSet = workoutState?.nextSet;
+  // Get unique exercises from remaining sets, preserving the order from the backend
+  // (the backend returns sets in the user's preferred order)
+  const exercisesInRemaining: Exercise[] = [];
+  for (const set of workoutState?.remainingSets ?? []) {
+    if (!exercisesInRemaining.includes(set.exercise)) {
+      exercisesInRemaining.push(set.exercise);
+    }
+  }
+  
+  // Use local exerciseOrder if set (during drag), otherwise use backend order
+  // Only include exercises that are still in remaining sets
+  const orderedExercises = exerciseOrder.length > 0
+    ? exerciseOrder.filter(e => exercisesInRemaining.includes(e))
+    : exercisesInRemaining;
+  
+  // Add any new exercises that aren't in the order yet
+  const missingExercises = exercisesInRemaining.filter(e => !orderedExercises.includes(e));
+  const finalOrderedExercises = [...orderedExercises, ...missingExercises];
+
+  // Next set is determined by the first exercise in our order
+  const nextSet = finalOrderedExercises.length > 0 && remainingSetsGrouped[finalOrderedExercises[0]]
+    ? remainingSetsGrouped[finalOrderedExercises[0]][0]
+    : workoutState?.nextSet;
 
   // Start the workout (from preview)
   const startWorkout = () => {
@@ -244,9 +271,32 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update exercise order (persists to backend)
+  const handleSetExerciseOrder = async (exercises: Exercise[]) => {
+    // Optimistically update local state immediately for responsiveness
+    setExerciseOrder(exercises);
+    
+    if (!client || !workoutState) return;
+
+    try {
+      await client.setExerciseOrder({
+        sessionId: workoutState.sessionId,
+        exerciseOrder: exercises,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update exercise order");
+      // Optionally revert on error by refetching
+      await fetchWorkoutState();
+    }
+  };
+
   // Start a set (from ready, resting, or chatting phase)
   const handleStartSet = async () => {
-    if (!client || !workoutState?.nextSet) return;
+    if (!client || !workoutState) return;
+    
+    // Use our computed nextSet (respecting user's exercise order), fallback to backend's nextSet
+    const setToStart = nextSet ?? workoutState.nextSet;
+    if (!setToStart) return;
 
     try {
       // If there's a current rest activity, finish it first
@@ -258,13 +308,12 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const nextSet = workoutState.nextSet;
       const response = await client.startSet({
         sessionId: workoutState.sessionId,
-        exercise: nextSet.exercise,
-        setNumber: nextSet.setNumber,
-        weight: nextSet.targetWeight,
-        targetReps: nextSet.targetReps,
+        exercise: setToStart.exercise,
+        setNumber: setToStart.setNumber,
+        weight: setToStart.targetWeight,
+        targetReps: setToStart.targetReps,
       });
 
       if (response.activity) {
@@ -307,11 +356,12 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   // Start next workout
   const handleStartNewWorkout = async () => {
-    // Reset local state and refetch
+    // Reset local state and request a new session
     setPhase("preview");
     setCurrentActivity(null);
     setCurrentRoast("");
-    await fetchWorkoutState();
+    setExerciseOrder([]);
+    await fetchWorkoutState(true);
   };
 
   return (
@@ -326,6 +376,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         currentTime,
         currentRoast,
         remainingSetsGrouped,
+        orderedExercises: finalOrderedExercises,
         nextSet,
         totalWorkoutSeconds,
         setElapsedSeconds,
@@ -336,6 +387,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         handleSelectReps,
         handleStartNewWorkout,
         handleUpdateWeight,
+        setExerciseOrder: handleSetExerciseOrder,
         setError,
       }}
     >
