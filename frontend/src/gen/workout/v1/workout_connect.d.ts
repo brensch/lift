@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, StartSetRequest, StartSetResponse } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, StartSetRequest, StartSetResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -43,6 +43,17 @@ export declare const WorkoutService: {
       readonly name: "FinishActivity",
       readonly I: typeof FinishActivityRequest,
       readonly O: typeof FinishActivityResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Update the target weight for an exercise or specific set
+     *
+     * @generated from rpc workout.v1.WorkoutService.UpdatePlannedWeight
+     */
+    readonly updatePlannedWeight: {
+      readonly name: "UpdatePlannedWeight",
+      readonly I: typeof UpdatePlannedWeightRequest,
+      readonly O: typeof UpdatePlannedWeightResponse,
       readonly kind: MethodKind.Unary,
     },
     /**

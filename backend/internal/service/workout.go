@@ -51,16 +51,21 @@ func (s *WorkoutService) GetWorkoutState(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// Get or create today's session
-	sessionID, sessionStartedAt, workoutType, err := s.getOrCreateTodaySession(ctx, database)
+	// Get or create today's session (this also populates planned_sets for new sessions)
+	sessionID, sessionStartedAt, _, err := s.getOrCreateTodaySession(ctx, database)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// Calculate plan
-	plan, err := s.calculateNextWorkout(database, username, workoutType)
+	// Get the stored plan for this session
+	plannedSets, err := s.getPlannedSets(ctx, database, sessionID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	plan := &workoutv1.Plan{
+		UserId: username,
+		Sets:   plannedSets,
 	}
 
 	// Get all activities for this session
@@ -289,6 +294,63 @@ func (s *WorkoutService) FinishActivity(
 	}), nil
 }
 
+// UpdatePlannedWeight updates the target weight for an exercise (all sets) or a specific set
+func (s *WorkoutService) UpdatePlannedWeight(
+	ctx context.Context,
+	req *connect.Request[workoutv1.UpdatePlannedWeightRequest],
+) (*connect.Response[workoutv1.UpdatePlannedWeightResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	exerciseName := req.Msg.Exercise.String()
+	newWeight := req.Msg.NewWeight
+
+	if req.Msg.SetNumber != nil {
+		// Update only the specific set
+		_, err = database.ExecContext(ctx, `
+			UPDATE planned_sets 
+			SET target_weight = ? 
+			WHERE session_id = ? AND exercise = ? AND set_number = ?
+		`, newWeight, req.Msg.SessionId, exerciseName, *req.Msg.SetNumber)
+	} else {
+		// Update all sets for the exercise
+		_, err = database.ExecContext(ctx, `
+			UPDATE planned_sets 
+			SET target_weight = ? 
+			WHERE session_id = ? AND exercise = ?
+		`, newWeight, req.Msg.SessionId, exerciseName)
+	}
+
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Return the updated sets
+	updatedSets, err := s.getPlannedSets(ctx, database, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Filter to only return sets for the updated exercise
+	var filteredSets []*workoutv1.PlannedSet
+	for _, set := range updatedSets {
+		if set.Exercise == req.Msg.Exercise {
+			filteredSets = append(filteredSets, set)
+		}
+	}
+
+	return connect.NewResponse(&workoutv1.UpdatePlannedWeightResponse{
+		UpdatedSets: filteredSets,
+	}), nil
+}
+
 // GetNextWorkout is the legacy RPC for backwards compatibility
 func (s *WorkoutService) GetNextWorkout(
 	ctx context.Context,
@@ -304,14 +366,20 @@ func (s *WorkoutService) GetNextWorkout(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	sessionID, _, workoutType, err := s.getOrCreateTodaySession(ctx, database)
+	sessionID, _, _, err := s.getOrCreateTodaySession(ctx, database)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	plan, err := s.calculateNextWorkout(database, username, workoutType)
+	// Get the stored plan for this session
+	plannedSets, err := s.getPlannedSets(ctx, database, sessionID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	plan := &workoutv1.Plan{
+		UserId: username,
+		Sets:   plannedSets,
 	}
 
 	timeline, err := s.getSessionActivities(ctx, database, sessionID)
@@ -384,11 +452,106 @@ func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *
 		if err != nil {
 			return "", time.Time{}, "", err
 		}
+
+		// Populate planned_sets for this new session
+		if err := s.populatePlannedSets(ctx, database, sessionID, workoutType); err != nil {
+			return "", time.Time{}, "", err
+		}
 	} else if err != nil {
 		return "", time.Time{}, "", err
 	}
 
 	return sessionID, startedAt, workoutType, nil
+}
+
+// populatePlannedSets creates the planned sets for a new session based on workout type and previous performance
+func (s *WorkoutService) populatePlannedSets(ctx context.Context, database *sql.DB, sessionID string, workoutType string) error {
+	isWorkoutA := workoutType == "A"
+
+	var exercises []workoutv1.Exercise
+	if isWorkoutA {
+		exercises = []workoutv1.Exercise{
+			workoutv1.Exercise_EXERCISE_SQUAT,
+			workoutv1.Exercise_EXERCISE_BENCH,
+			workoutv1.Exercise_EXERCISE_ROW,
+		}
+	} else {
+		exercises = []workoutv1.Exercise{
+			workoutv1.Exercise_EXERCISE_SQUAT,
+			workoutv1.Exercise_EXERCISE_OHP,
+			workoutv1.Exercise_EXERCISE_DEADLIFT,
+		}
+	}
+
+	for _, exercise := range exercises {
+		weight := s.getTargetWeight(database, exercise)
+		reps := int32(5)
+		numSets := 5
+		if exercise == workoutv1.Exercise_EXERCISE_DEADLIFT {
+			numSets = 1
+		}
+
+		for setNum := 1; setNum <= numSets; setNum++ {
+			setID := uuid.New().String()
+			_, err := database.ExecContext(ctx, `
+				INSERT INTO planned_sets (id, session_id, exercise, set_number, target_weight, target_reps)
+				VALUES (?, ?, ?, ?, ?, ?)
+			`, setID, sessionID, exercise.String(), setNum, weight, reps)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// getPlannedSets retrieves the planned sets for a session from the database
+func (s *WorkoutService) getPlannedSets(ctx context.Context, database *sql.DB, sessionID string) ([]*workoutv1.PlannedSet, error) {
+	rows, err := database.QueryContext(ctx, `
+		SELECT exercise, set_number, target_weight, target_reps
+		FROM planned_sets
+		WHERE session_id = ?
+		ORDER BY 
+			CASE exercise 
+				WHEN 'EXERCISE_SQUAT' THEN 1 
+				WHEN 'EXERCISE_BENCH' THEN 2 
+				WHEN 'EXERCISE_ROW' THEN 3 
+				WHEN 'EXERCISE_OHP' THEN 2 
+				WHEN 'EXERCISE_DEADLIFT' THEN 3 
+			END,
+			set_number ASC
+	`, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sets []*workoutv1.PlannedSet
+	for rows.Next() {
+		var exerciseStr string
+		var setNumber int32
+		var weight float64
+		var reps int32
+
+		if err := rows.Scan(&exerciseStr, &setNumber, &weight, &reps); err != nil {
+			return nil, err
+		}
+
+		exercise := workoutv1.Exercise_EXERCISE_UNSPECIFIED
+		if v, ok := workoutv1.Exercise_value[exerciseStr]; ok {
+			exercise = workoutv1.Exercise(v)
+		}
+
+		sets = append(sets, &workoutv1.PlannedSet{
+			Exercise:     exercise,
+			SetNumber:    setNumber,
+			TargetWeight: float32(weight),
+			TargetReps:   reps,
+		})
+	}
+
+	return sets, nil
 }
 
 func (s *WorkoutService) getSessionActivities(ctx context.Context, database *sql.DB, sessionID string) ([]*workoutv1.Activity, error) {
@@ -481,67 +644,30 @@ func (s *WorkoutService) calculateRemainingSets(allSets []*workoutv1.PlannedSet,
 	return remaining
 }
 
-func (s *WorkoutService) calculateNextWorkout(database *sql.DB, username string, workoutType string) (*workoutv1.Plan, error) {
-	// 5x5 alternates between:
-	// Workout A: Squat, Bench, Row
-	// Workout B: Squat, OHP, Deadlift
-	// workoutType is determined once per session and stored in the sessions table
-
-	isWorkoutA := workoutType == "A"
-
-	var exercises []workoutv1.Exercise
-	if isWorkoutA {
-		exercises = []workoutv1.Exercise{
-			workoutv1.Exercise_EXERCISE_SQUAT,
-			workoutv1.Exercise_EXERCISE_BENCH,
-			workoutv1.Exercise_EXERCISE_ROW,
-		}
-	} else {
-		exercises = []workoutv1.Exercise{
-			workoutv1.Exercise_EXERCISE_SQUAT,
-			workoutv1.Exercise_EXERCISE_OHP,
-			workoutv1.Exercise_EXERCISE_DEADLIFT,
-		}
-	}
-
-	var plannedSets []*workoutv1.PlannedSet
-	for _, exercise := range exercises {
-		weight := s.getTargetWeight(database, exercise)
-		reps := int32(5)
-		numSets := 5
-		if exercise == workoutv1.Exercise_EXERCISE_DEADLIFT {
-			numSets = 1
-		}
-		for setNum := 1; setNum <= numSets; setNum++ {
-			plannedSets = append(plannedSets, &workoutv1.PlannedSet{
-				Exercise:     exercise,
-				TargetWeight: weight,
-				TargetReps:   reps,
-				SetNumber:    int32(setNum),
-			})
-		}
-	}
-
-	return &workoutv1.Plan{
-		UserId: username,
-		Sets:   plannedSets,
-	}, nil
-}
-
 func (s *WorkoutService) getTargetWeight(database *sql.DB, exercise workoutv1.Exercise) float32 {
 	exerciseName := exercise.String()
+	today := time.Now().Truncate(24 * time.Hour)
 
-	var lastWeight float64
-	var lastReps int
+	// Look at the last session before today that included this exercise.
+	// Check if ALL sets of that exercise hit 5 reps - only then increase weight.
+	// This ensures the working weight stays constant throughout the current workout.
+
+	// First, find the most recent session before today that had this exercise
+	var lastSessionID string
 	err := database.QueryRow(`
-		SELECT weight, actual_reps FROM activities 
-		WHERE exercise = ? AND type = 'SET' AND ended_at IS NOT NULL
-		ORDER BY ended_at DESC 
+		SELECT DISTINCT a.session_id 
+		FROM activities a
+		JOIN sessions s ON a.session_id = s.id
+		WHERE a.exercise = ? 
+		AND a.type = 'SET' 
+		AND a.ended_at IS NOT NULL
+		AND s.started_at < ?
+		ORDER BY a.ended_at DESC 
 		LIMIT 1
-	`, exerciseName).Scan(&lastWeight, &lastReps)
+	`, exerciseName, today).Scan(&lastSessionID)
 
 	if err != nil {
-		// Starting weights
+		// No previous session found - use starting weights
 		switch exercise {
 		case workoutv1.Exercise_EXERCISE_SQUAT:
 			return 45
@@ -558,13 +684,46 @@ func (s *WorkoutService) getTargetWeight(database *sql.DB, exercise workoutv1.Ex
 		}
 	}
 
-	// If they hit all 5 reps, increase weight
-	if lastReps >= 5 {
+	// Get the weight used and check if all sets hit 5 reps in that session
+	var lastWeight float64
+	var totalSets, successfulSets int
+	rows, err := database.Query(`
+		SELECT weight, actual_reps FROM activities 
+		WHERE session_id = ? 
+		AND exercise = ? 
+		AND type = 'SET' 
+		AND ended_at IS NOT NULL
+	`, lastSessionID, exerciseName)
+	if err != nil {
+		return 45 // fallback
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var weight float64
+		var reps int
+		if err := rows.Scan(&weight, &reps); err != nil {
+			continue
+		}
+		lastWeight = weight
+		totalSets++
+		if reps >= 5 {
+			successfulSets++
+		}
+	}
+
+	if totalSets == 0 {
+		return 45 // fallback
+	}
+
+	// Only increase weight if ALL sets were successful (hit 5 reps each)
+	if successfulSets == totalSets {
 		if exercise == workoutv1.Exercise_EXERCISE_DEADLIFT {
 			return float32(lastWeight + 10)
 		}
 		return float32(lastWeight + 5)
 	}
 
+	// Not all sets were successful - keep the same weight
 	return float32(lastWeight)
 }
