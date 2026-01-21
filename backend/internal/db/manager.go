@@ -134,7 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_sets_completed ON sets(completed_at);
 	// Migration: Add workout_type column to existing sessions table if it doesn't exist
 	// SQLite doesn't support IF NOT EXISTS for columns, so we try and ignore errors
 	db.Exec(`ALTER TABLE sessions ADD COLUMN workout_type TEXT DEFAULT 'A'`)
-	
+
 	// Migration: Add exercise_order column to sessions table for custom exercise ordering
 	db.Exec(`ALTER TABLE sessions ADD COLUMN exercise_order TEXT DEFAULT ''`)
 
