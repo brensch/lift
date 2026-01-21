@@ -116,6 +116,18 @@ message FinishActivityResponse {
   WorkoutState state = 3;          // Updated full state
 }
 
+// Update the target weight for an exercise (all sets) or a specific set
+message UpdatePlannedWeightRequest {
+  string session_id = 1;
+  Exercise exercise = 2;           // The exercise to update
+  float new_weight = 3;            // The new target weight
+  optional int32 set_number = 4;   // If provided, only update this set; otherwise update all sets for the exercise
+}
+
+message UpdatePlannedWeightResponse {
+  repeated PlannedSet updated_sets = 1;  // The updated planned sets
+}
+
 // Legacy messages for compatibility
 message GetNextWorkoutRequest {
   string user_id = 1;
@@ -149,6 +161,9 @@ service WorkoutService {
   
   // Finish any activity (set with reps, or rest)
   rpc FinishActivity(FinishActivityRequest) returns (FinishActivityResponse);
+  
+  // Update the target weight for an exercise or specific set
+  rpc UpdatePlannedWeight(UpdatePlannedWeightRequest) returns (UpdatePlannedWeightResponse);
   
   // Legacy: Get the next recommended workout for a user
   rpc GetNextWorkout(GetNextWorkoutRequest) returns (GetNextWorkoutResponse);

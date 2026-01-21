@@ -543,6 +543,79 @@ export declare class FinishActivityResponse extends Message<FinishActivityRespon
 }
 
 /**
+ * Update the target weight for an exercise (all sets) or a specific set
+ *
+ * @generated from message workout.v1.UpdatePlannedWeightRequest
+ */
+export declare class UpdatePlannedWeightRequest extends Message<UpdatePlannedWeightRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * The exercise to update
+   *
+   * @generated from field: workout.v1.Exercise exercise = 2;
+   */
+  exercise: Exercise;
+
+  /**
+   * The new target weight
+   *
+   * @generated from field: float new_weight = 3;
+   */
+  newWeight: number;
+
+  /**
+   * If provided, only update this set; otherwise update all sets for the exercise
+   *
+   * @generated from field: optional int32 set_number = 4;
+   */
+  setNumber?: number;
+
+  constructor(data?: PartialMessage<UpdatePlannedWeightRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdatePlannedWeightRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePlannedWeightRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePlannedWeightRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePlannedWeightRequest;
+
+  static equals(a: UpdatePlannedWeightRequest | PlainMessage<UpdatePlannedWeightRequest> | undefined, b: UpdatePlannedWeightRequest | PlainMessage<UpdatePlannedWeightRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.UpdatePlannedWeightResponse
+ */
+export declare class UpdatePlannedWeightResponse extends Message<UpdatePlannedWeightResponse> {
+  /**
+   * The updated planned sets
+   *
+   * @generated from field: repeated workout.v1.PlannedSet updated_sets = 1;
+   */
+  updatedSets: PlannedSet[];
+
+  constructor(data?: PartialMessage<UpdatePlannedWeightResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdatePlannedWeightResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePlannedWeightResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdatePlannedWeightResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdatePlannedWeightResponse;
+
+  static equals(a: UpdatePlannedWeightResponse | PlainMessage<UpdatePlannedWeightResponse> | undefined, b: UpdatePlannedWeightResponse | PlainMessage<UpdatePlannedWeightResponse> | undefined): boolean;
+}
+
+/**
  * Legacy messages for compatibility
  *
  * @generated from message workout.v1.GetNextWorkoutRequest

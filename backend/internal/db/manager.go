@@ -77,6 +77,19 @@ completed_at DATETIME,
 workout_type TEXT DEFAULT 'A'
 );
 
+CREATE TABLE IF NOT EXISTS planned_sets (
+id TEXT PRIMARY KEY,
+session_id TEXT NOT NULL,
+exercise TEXT NOT NULL,
+set_number INTEGER NOT NULL,
+target_weight REAL NOT NULL,
+target_reps INTEGER NOT NULL,
+FOREIGN KEY (session_id) REFERENCES sessions(id),
+UNIQUE(session_id, exercise, set_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_planned_sets_session ON planned_sets(session_id);
+
 CREATE TABLE IF NOT EXISTS activities (
 id TEXT PRIMARY KEY,
 session_id TEXT NOT NULL,

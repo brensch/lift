@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,12 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BarbellCalculator } from "@/components/BarbellCalculator";
+import { RemainingSets } from "@/components/RemainingSets";
+import { Timeline } from "@/components/Timeline";
 import { useUser } from "@/context/UserContext";
+import { WorkoutProvider, useWorkout } from "@/context/WorkoutContext";
 import {
-  type WorkoutState,
-  type Activity,
-  type PlannedSet,
-  type RestConfig,
   ActivityType,
   Exercise,
 } from "@/lib/api";
@@ -63,240 +63,42 @@ function formatTimestamp(date: Date): string {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-// Roasts for when you're past your rest time
-const CHAT_TIME_ROASTS = [
-  "Did you get lost? 🧭",
-  "The weights miss you 😢",
-  "Your muscles are getting cold 🥶",
-  "Netflix break? 📺",
-  "Making new friends? 👋",
-  "Did you fall asleep? 😴",
-  "The bar is getting lonely 💔",
-  "Is there a line for the water fountain? 🚰",
-  "Checking your DMs? 📱",
-  "Writing your memoir? 📖",
-];
-
-function getRandomRoast(): string {
-  return CHAT_TIME_ROASTS[Math.floor(Math.random() * CHAT_TIME_ROASTS.length)];
-}
-
-// UI phases for the workout flow
-type WorkoutPhase = 
-  | "preview"      // Before workout starts - show plan
-  | "ready"        // Ready to start a set - show "Start Set" button
-  | "performing"   // Currently doing a set - timer counting up, pick reps when done
-  | "resting"      // Resting between sets - timer counting down
-  | "chatting"     // Past rest time - timer counting up (unplanned rest)
-  | "complete";    // Workout finished
-
-export function Workout() {
-  const { username, client, logout } = useUser();
+function WorkoutContent() {
+  const { username, logout } = useUser();
+  const {
+    workoutState,
+    loading,
+    error,
+    phase,
+    currentActivity,
+    currentRoast,
+    remainingSetsGrouped,
+    nextSet,
+    totalWorkoutSeconds,
+    setElapsedSeconds,
+    restInfo,
+    fetchWorkoutState,
+    startWorkout,
+    handleStartSet,
+    handleSelectReps,
+    handleStartNewWorkout,
+    handleUpdateWeight,
+    setError,
+  } = useWorkout();
   
-  // State from backend
-  const [workoutState, setWorkoutState] = useState<WorkoutState | null>(null);
-  const [restConfig, setRestConfig] = useState<RestConfig | null>(null);
-  
-  // UI state
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<WorkoutPhase>("preview");
-  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-  
-  // Timer state
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentRoast, setCurrentRoast] = useState<string>("");
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Weight editing state (for barbell calculator modal)
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [editingCurrentWeight, setEditingCurrentWeight] = useState<number>(45);
 
-  // Fetch workout state from backend
-  const fetchWorkoutState = useCallback(async () => {
-    if (!client || !username) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await client.getWorkoutState({ userId: username });
-      
-      setWorkoutState(response.state ?? null);
-      setRestConfig(response.restConfig ?? null);
-      
-      // Determine phase from state
-      if (response.state) {
-        const state = response.state;
-        
-        if (state.isComplete) {
-          setPhase("complete");
-        } else if (state.currentActivity) {
-          const activity = state.currentActivity;
-          setCurrentActivity(activity);
-          
-          if (activity.type === ActivityType.SET) {
-            // Currently doing a set
-            setPhase("performing");
-          } else if (activity.type === ActivityType.REST) {
-            // Check if rest is over
-            const restStarted = activity.startedAt?.toDate() ?? new Date();
-            const restDuration = activity.plannedDurationSeconds * 1000;
-            const restEndsAt = new Date(restStarted.getTime() + restDuration);
-            
-            if (new Date() > restEndsAt) {
-              setPhase("chatting");
-              if (!currentRoast) setCurrentRoast(getRandomRoast());
-            } else {
-              setPhase("resting");
-            }
-          }
-        } else if (state.timeline.length === 0) {
-          // No activities yet - preview or ready phase
-          setPhase("preview");
-        } else {
-          // Activities exist but nothing current - ready for next
-          setPhase("ready");
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch workout");
-    } finally {
-      setLoading(false);
-    }
-  }, [client, username, currentRoast]);
-
-  useEffect(() => {
-    fetchWorkoutState();
-  }, [fetchWorkoutState]);
-
-  // Timer effect
-  useEffect(() => {
-    if (phase !== "preview" && phase !== "complete") {
-      timerRef.current = setInterval(() => {
-        const now = new Date();
-        setCurrentTime(now);
-        
-        // Check if rest just ended and we should switch to chatting
-        if (phase === "resting" && currentActivity && restConfig) {
-          const restStarted = currentActivity.startedAt?.toDate() ?? new Date();
-          const restDuration = currentActivity.plannedDurationSeconds * 1000;
-          const restEndsAt = new Date(restStarted.getTime() + restDuration);
-          
-          if (now > restEndsAt) {
-            setPhase("chatting");
-            setCurrentRoast(getRandomRoast());
-          }
-        }
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [phase, currentActivity, restConfig]);
-
-  // Calculate elapsed time for current set
-  const setElapsedSeconds = currentActivity?.startedAt
-    ? Math.floor((currentTime.getTime() - currentActivity.startedAt.toDate().getTime()) / 1000)
-    : 0;
-
-  // Calculate rest time remaining/overdue
-  const restInfo = currentActivity && (phase === "resting" || phase === "chatting")
-    ? (() => {
-        const restStarted = currentActivity.startedAt?.toDate() ?? new Date();
-        const restDuration = currentActivity.plannedDurationSeconds * 1000;
-        const restEndsAt = new Date(restStarted.getTime() + restDuration);
-        const msRemaining = restEndsAt.getTime() - currentTime.getTime();
-        return {
-          secondsRemaining: Math.floor(msRemaining / 1000),
-          isPastTarget: msRemaining < 0,
-          targetTime: restEndsAt,
-          plannedSeconds: currentActivity.plannedDurationSeconds,
-        };
-      })()
-    : null;
-
-  // Calculate total workout time
-  const totalWorkoutSeconds = workoutState?.sessionStartedAt
-    ? Math.floor((currentTime.getTime() - workoutState.sessionStartedAt.toDate().getTime()) / 1000)
-    : 0;
-
-  // Start the workout (from preview)
-  const startWorkout = () => {
-    setPhase("ready");
+  // Open the barbell calculator for an exercise
+  const openWeightEditor = (exercise: Exercise, currentWeight: number) => {
+    setEditingExercise(exercise);
+    setEditingCurrentWeight(currentWeight);
   };
 
-  // Start a set (from ready, resting, or chatting phase)
-  const handleStartSet = async () => {
-    if (!client || !workoutState?.nextSet) return;
-
-    try {
-      // If there's a current rest activity, finish it first
-      if (currentActivity && currentActivity.type === ActivityType.REST) {
-        await client.finishActivity({
-          sessionId: workoutState.sessionId,
-          activityId: currentActivity.id,
-          actualReps: 0, // Not needed for REST
-        });
-      }
-
-      const nextSet = workoutState.nextSet;
-      const response = await client.startSet({
-        sessionId: workoutState.sessionId,
-        exercise: nextSet.exercise,
-        setNumber: nextSet.setNumber,
-        weight: nextSet.targetWeight,
-        targetReps: nextSet.targetReps,
-      });
-
-      if (response.activity) {
-        setCurrentActivity(response.activity);
-        setPhase("performing");
-        setCurrentRoast("");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start set");
-    }
-  };
-
-  // Select actual reps completed
-  const handleSelectReps = async (reps: number) => {
-    if (!client || !currentActivity || !workoutState) return;
-
-    try {
-      const response = await client.finishActivity({
-        sessionId: workoutState.sessionId,
-        activityId: currentActivity.id,
-        actualReps: reps,
-      });
-
-      if (response.nextActivity) {
-        setCurrentActivity(response.nextActivity);
-        setPhase("resting");
-      }
-      
-      // Update state from response
-      if (response.state) {
-        setWorkoutState(response.state);
-        if (response.state.isComplete) {
-          setPhase("complete");
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to complete set");
-    }
-  };
-
-  // Start next workout
-  const handleStartNewWorkout = async () => {
-    // Reset local state and refetch
-    setPhase("preview");
-    setCurrentActivity(null);
-    setCurrentRoast("");
-    await fetchWorkoutState();
+  // Close the barbell calculator
+  const closeWeightEditor = () => {
+    setEditingExercise(null);
   };
 
   if (loading) {
@@ -379,20 +181,6 @@ export function Workout() {
     );
   }
 
-  // Get remaining sets grouped by exercise
-  const remainingSetsGrouped = workoutState?.remainingSets.reduce(
-    (acc, set) => {
-      if (!acc[set.exercise]) {
-        acc[set.exercise] = [];
-      }
-      acc[set.exercise].push(set);
-      return acc;
-    },
-    {} as Record<number, PlannedSet[]>
-  ) ?? {};
-
-  const nextSet = workoutState?.nextSet;
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -426,21 +214,34 @@ export function Workout() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(remainingSetsGrouped).map(([exercise, sets]) => (
-                <div key={exercise} className="flex items-center gap-3">
-                  <span className="text-2xl">
-                    {exerciseEmoji(Number(exercise) as Exercise)}
-                  </span>
-                  <div>
-                    <p className="font-medium">
-                      {exerciseToString(Number(exercise) as Exercise)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {sets.length}x{sets[0]?.targetReps} @ {sets[0]?.targetWeight} lbs
-                    </p>
+              {Object.entries(remainingSetsGrouped).map(([exercise, sets]) => {
+                const exerciseNum = Number(exercise) as Exercise;
+                
+                return (
+                  <div key={exercise} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {exerciseEmoji(exerciseNum)}
+                      </span>
+                      <div>
+                        <p className="font-medium">
+                          {exerciseToString(exerciseNum)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {sets.length}x{sets[0]?.targetReps} @ {sets[0]?.targetWeight} lbs
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => openWeightEditor(exerciseNum, sets[0]?.targetWeight ?? 45)}
+                    >
+                      ✏️
+                    </Button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <Button onClick={startWorkout} className="w-full mt-4">
                 Start Workout
               </Button>
@@ -460,9 +261,18 @@ export function Workout() {
                   <h2 className="text-2xl font-bold">
                     Do {nextSet.targetReps} {exerciseToString(nextSet.exercise)}
                   </h2>
-                  <p className="text-lg text-muted-foreground mt-1">
-                    Set {nextSet.setNumber} @ {nextSet.targetWeight} lbs
-                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    <p className="text-lg text-muted-foreground">
+                      Set {nextSet.setNumber} @ {nextSet.targetWeight} lbs
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => openWeightEditor(nextSet.exercise, nextSet.targetWeight)}
+                    >
+                      ✏️
+                    </Button>
+                  </div>
                 </div>
                 <Button 
                   onClick={handleStartSet} 
@@ -494,7 +304,7 @@ export function Workout() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-3">
-                    How many reps did you complete?
+                    Once done, select the number of reps you completed:
                   </p>
                   <div className="flex gap-3 justify-center flex-wrap">
                     {Array.from({ length: currentActivity.targetReps }, (_, i) => i + 1).map((reps) => (
@@ -553,6 +363,14 @@ export function Workout() {
                     <span className="text-muted-foreground">
                       @ {nextSet.targetWeight} lbs
                     </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => openWeightEditor(nextSet.exercise, nextSet.targetWeight)}
+                    >
+                      ✏️
+                    </Button>
                   </div>
                 </div>
 
@@ -607,6 +425,14 @@ export function Workout() {
                     <span className="text-muted-foreground">
                       @ {nextSet.targetWeight} lbs
                     </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => openWeightEditor(nextSet.exercise, nextSet.targetWeight)}
+                    >
+                      ✏️
+                    </Button>
                   </div>
                 </div>
 
@@ -629,100 +455,34 @@ export function Workout() {
           </div>
         )}
 
-        {/* Timeline */}
-        {phase !== "preview" && workoutState && workoutState.timeline.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
-                {[...workoutState.timeline].reverse().map((activity, idx) => (
-                  <div key={idx} className="py-2 border-b last:border-0">
-                    {activity.type === ActivityType.SET && activity.endedAt ? (
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{exerciseEmoji(activity.exercise)}</span>
-                          <div>
-                            <span className="font-medium">{exerciseToString(activity.exercise)}</span>
-                            <span className="text-muted-foreground ml-2">Set {activity.setNumber}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${activity.actualReps < activity.targetReps ? "text-yellow-500" : "text-green-500"}`}>
-                            {activity.actualReps}/{activity.targetReps}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatTimestamp(activity.endedAt.toDate())}
-                          </span>
-                        </div>
-                      </div>
-                    ) : activity.type === ActivityType.REST && activity.endedAt ? (
-                      (() => {
-                        const actualSeconds = activity.startedAt && activity.endedAt
-                          ? Math.floor((activity.endedAt.toDate().getTime() - activity.startedAt.toDate().getTime()) / 1000)
-                          : 0;
-                        const wentOver = actualSeconds > activity.plannedDurationSeconds;
-                        return (
-                          <div className={`flex justify-between items-center rounded px-2 py-1 ${
-                            wentOver ? "text-destructive bg-destructive/10" : "text-muted-foreground bg-muted/50"
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              <span>{wentOver ? "💬" : "⏱️"}</span>
-                              <span>{wentOver ? "Rest + Chat" : "Rest"}</span>
-                            </div>
-                            <div className="text-xs flex gap-2">
-                              <span>Actual: {formatTime(actualSeconds)}</span>
-                              {wentOver && (
-                                <span className="text-muted-foreground">(+{formatTime(actualSeconds - activity.plannedDurationSeconds)})</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Remaining Sets (above Timeline) */}
+        <RemainingSets />
 
-        {/* Remaining sets overview */}
-        {phase !== "preview" && workoutState && workoutState.remainingSets.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Remaining Sets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(remainingSetsGrouped).map(([exercise, sets]) => (
-                  <div key={exercise} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span>{exerciseEmoji(Number(exercise) as Exercise)}</span>
-                      <span>{exerciseToString(Number(exercise) as Exercise)}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {sets.map((set, idx) => (
-                        <div 
-                          key={idx}
-                          className={`w-8 h-8 rounded flex items-center justify-center text-sm ${
-                            set === nextSet 
-                              ? "bg-primary text-primary-foreground font-bold" 
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {set.setNumber}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Timeline */}
+        <Timeline />
+
+        {/* Barbell Calculator Modal */}
+        <BarbellCalculator
+          isOpen={editingExercise !== null}
+          onClose={closeWeightEditor}
+          currentWeight={editingCurrentWeight}
+          onSubmit={(newWeight) => {
+            if (editingExercise !== null) {
+              handleUpdateWeight(editingExercise, newWeight);
+              closeWeightEditor();
+            }
+          }}
+          exerciseName={editingExercise !== null ? exerciseToString(editingExercise) : ""}
+        />
       </main>
     </div>
+  );
+}
+
+export function Workout() {
+  return (
+    <WorkoutProvider>
+      <WorkoutContent />
+    </WorkoutProvider>
   );
 }

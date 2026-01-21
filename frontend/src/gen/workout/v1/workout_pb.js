@@ -198,6 +198,31 @@ export const FinishActivityResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * Update the target weight for an exercise (all sets) or a specific set
+ *
+ * @generated from message workout.v1.UpdatePlannedWeightRequest
+ */
+export const UpdatePlannedWeightRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdatePlannedWeightRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 3, name: "new_weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 4, name: "set_number", kind: "scalar", T: 5 /* ScalarType.INT32 */, opt: true },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.UpdatePlannedWeightResponse
+ */
+export const UpdatePlannedWeightResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdatePlannedWeightResponse",
+  () => [
+    { no: 1, name: "updated_sets", kind: "message", T: PlannedSet, repeated: true },
+  ],
+);
+
+/**
  * Legacy messages for compatibility
  *
  * @generated from message workout.v1.GetNextWorkoutRequest
