@@ -37,6 +37,24 @@ export const ActivityType = /*@__PURE__*/ proto3.makeEnum(
 );
 
 /**
+ * Types of updates that can occur
+ *
+ * @generated from enum workout.v1.UpdateType
+ */
+export const UpdateType = /*@__PURE__*/ proto3.makeEnum(
+  "workout.v1.UpdateType",
+  [
+    {no: 0, name: "UPDATE_TYPE_UNSPECIFIED", localName: "UNSPECIFIED"},
+    {no: 1, name: "UPDATE_TYPE_USER_JOINED", localName: "USER_JOINED"},
+    {no: 2, name: "UPDATE_TYPE_USER_LEFT", localName: "USER_LEFT"},
+    {no: 3, name: "UPDATE_TYPE_SET_STARTED", localName: "SET_STARTED"},
+    {no: 4, name: "UPDATE_TYPE_SET_COMPLETED", localName: "SET_COMPLETED"},
+    {no: 5, name: "UPDATE_TYPE_REST_STARTED", localName: "REST_STARTED"},
+    {no: 6, name: "UPDATE_TYPE_REST_SKIPPED", localName: "REST_SKIPPED"},
+  ],
+);
+
+/**
  * A single activity in the workout timeline
  * Everything in a workout is an activity with a start time
  *
@@ -101,6 +119,7 @@ export const WorkoutState = /*@__PURE__*/ proto3.makeMessageType(
     { no: 5, name: "next_set", kind: "message", T: PlannedSet },
     { no: 6, name: "remaining_sets", kind: "message", T: PlannedSet, repeated: true },
     { no: 7, name: "is_complete", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 8, name: "workout_started_at", kind: "message", T: Timestamp },
   ],
 );
 
@@ -141,6 +160,28 @@ export const GetWorkoutStateResponse = /*@__PURE__*/ proto3.makeMessageType(
     { no: 1, name: "state", kind: "message", T: WorkoutState },
     { no: 2, name: "plan", kind: "message", T: Plan },
     { no: 3, name: "rest_config", kind: "message", T: RestConfig },
+  ],
+);
+
+/**
+ * Start the workout (user explicitly begins, starts the workout timer)
+ *
+ * @generated from message workout.v1.StartWorkoutRequest
+ */
+export const StartWorkoutRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.StartWorkoutRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.StartWorkoutResponse
+ */
+export const StartWorkoutResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.StartWorkoutResponse",
+  () => [
+    { no: 1, name: "workout_started_at", kind: "message", T: Timestamp },
   ],
 );
 
@@ -290,6 +331,35 @@ export const LogSetResponse = /*@__PURE__*/ proto3.makeMessageType(
   () => [
     { no: 1, name: "success", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 2, name: "completed_at", kind: "message", T: Timestamp },
+  ],
+);
+
+/**
+ * Subscribe to real-time updates for a workout session
+ *
+ * @generated from message workout.v1.WatchWorkoutRequest
+ */
+export const WatchWorkoutRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.WatchWorkoutRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * Real-time update pushed to watching clients
+ *
+ * @generated from message workout.v1.WorkoutUpdate
+ */
+export const WorkoutUpdate = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.WorkoutUpdate",
+  () => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(UpdateType) },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "activity", kind: "message", T: Activity },
+    { no: 4, name: "state", kind: "message", T: WorkoutState },
+    { no: 5, name: "timestamp", kind: "message", T: Timestamp },
   ],
 );
 

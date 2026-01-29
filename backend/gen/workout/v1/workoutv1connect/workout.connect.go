@@ -36,6 +36,9 @@ const (
 	// WorkoutServiceGetWorkoutStateProcedure is the fully-qualified name of the WorkoutService's
 	// GetWorkoutState RPC.
 	WorkoutServiceGetWorkoutStateProcedure = "/workout.v1.WorkoutService/GetWorkoutState"
+	// WorkoutServiceStartWorkoutProcedure is the fully-qualified name of the WorkoutService's
+	// StartWorkout RPC.
+	WorkoutServiceStartWorkoutProcedure = "/workout.v1.WorkoutService/StartWorkout"
 	// WorkoutServiceStartSetProcedure is the fully-qualified name of the WorkoutService's StartSet RPC.
 	WorkoutServiceStartSetProcedure = "/workout.v1.WorkoutService/StartSet"
 	// WorkoutServiceFinishActivityProcedure is the fully-qualified name of the WorkoutService's
@@ -52,12 +55,17 @@ const (
 	WorkoutServiceGetNextWorkoutProcedure = "/workout.v1.WorkoutService/GetNextWorkout"
 	// WorkoutServiceLogSetProcedure is the fully-qualified name of the WorkoutService's LogSet RPC.
 	WorkoutServiceLogSetProcedure = "/workout.v1.WorkoutService/LogSet"
+	// WorkoutServiceWatchWorkoutProcedure is the fully-qualified name of the WorkoutService's
+	// WatchWorkout RPC.
+	WorkoutServiceWatchWorkoutProcedure = "/workout.v1.WorkoutService/WatchWorkout"
 )
 
 // WorkoutServiceClient is a client for the workout.v1.WorkoutService service.
 type WorkoutServiceClient interface {
 	// Get current workout state (creates session if needed)
 	GetWorkoutState(context.Context, *connect.Request[v1.GetWorkoutStateRequest]) (*connect.Response[v1.GetWorkoutStateResponse], error)
+	// Start the workout (user explicitly begins)
+	StartWorkout(context.Context, *connect.Request[v1.StartWorkoutRequest]) (*connect.Response[v1.StartWorkoutResponse], error)
 	// Start performing a set
 	StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error)
 	// Finish any activity (set with reps, or rest)
@@ -70,6 +78,9 @@ type WorkoutServiceClient interface {
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
 	LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error)
+	// Stream: Subscribe to real-time workout updates
+	// Returns updates whenever any user in the session performs an action
+	WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error)
 }
 
 // NewWorkoutServiceClient constructs a client for the workout.v1.WorkoutService service. By
@@ -87,6 +98,12 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+WorkoutServiceGetWorkoutStateProcedure,
 			connect.WithSchema(workoutServiceMethods.ByName("GetWorkoutState")),
+			connect.WithClientOptions(opts...),
+		),
+		startWorkout: connect.NewClient[v1.StartWorkoutRequest, v1.StartWorkoutResponse](
+			httpClient,
+			baseURL+WorkoutServiceStartWorkoutProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("StartWorkout")),
 			connect.WithClientOptions(opts...),
 		),
 		startSet: connect.NewClient[v1.StartSetRequest, v1.StartSetResponse](
@@ -125,23 +142,36 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(workoutServiceMethods.ByName("LogSet")),
 			connect.WithClientOptions(opts...),
 		),
+		watchWorkout: connect.NewClient[v1.WatchWorkoutRequest, v1.WorkoutUpdate](
+			httpClient,
+			baseURL+WorkoutServiceWatchWorkoutProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("WatchWorkout")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // workoutServiceClient implements WorkoutServiceClient.
 type workoutServiceClient struct {
 	getWorkoutState     *connect.Client[v1.GetWorkoutStateRequest, v1.GetWorkoutStateResponse]
+	startWorkout        *connect.Client[v1.StartWorkoutRequest, v1.StartWorkoutResponse]
 	startSet            *connect.Client[v1.StartSetRequest, v1.StartSetResponse]
 	finishActivity      *connect.Client[v1.FinishActivityRequest, v1.FinishActivityResponse]
 	updatePlannedWeight *connect.Client[v1.UpdatePlannedWeightRequest, v1.UpdatePlannedWeightResponse]
 	setExerciseOrder    *connect.Client[v1.SetExerciseOrderRequest, v1.SetExerciseOrderResponse]
 	getNextWorkout      *connect.Client[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse]
 	logSet              *connect.Client[v1.LogSetRequest, v1.LogSetResponse]
+	watchWorkout        *connect.Client[v1.WatchWorkoutRequest, v1.WorkoutUpdate]
 }
 
 // GetWorkoutState calls workout.v1.WorkoutService.GetWorkoutState.
 func (c *workoutServiceClient) GetWorkoutState(ctx context.Context, req *connect.Request[v1.GetWorkoutStateRequest]) (*connect.Response[v1.GetWorkoutStateResponse], error) {
 	return c.getWorkoutState.CallUnary(ctx, req)
+}
+
+// StartWorkout calls workout.v1.WorkoutService.StartWorkout.
+func (c *workoutServiceClient) StartWorkout(ctx context.Context, req *connect.Request[v1.StartWorkoutRequest]) (*connect.Response[v1.StartWorkoutResponse], error) {
+	return c.startWorkout.CallUnary(ctx, req)
 }
 
 // StartSet calls workout.v1.WorkoutService.StartSet.
@@ -174,10 +204,17 @@ func (c *workoutServiceClient) LogSet(ctx context.Context, req *connect.Request[
 	return c.logSet.CallUnary(ctx, req)
 }
 
+// WatchWorkout calls workout.v1.WorkoutService.WatchWorkout.
+func (c *workoutServiceClient) WatchWorkout(ctx context.Context, req *connect.Request[v1.WatchWorkoutRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error) {
+	return c.watchWorkout.CallServerStream(ctx, req)
+}
+
 // WorkoutServiceHandler is an implementation of the workout.v1.WorkoutService service.
 type WorkoutServiceHandler interface {
 	// Get current workout state (creates session if needed)
 	GetWorkoutState(context.Context, *connect.Request[v1.GetWorkoutStateRequest]) (*connect.Response[v1.GetWorkoutStateResponse], error)
+	// Start the workout (user explicitly begins)
+	StartWorkout(context.Context, *connect.Request[v1.StartWorkoutRequest]) (*connect.Response[v1.StartWorkoutResponse], error)
 	// Start performing a set
 	StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error)
 	// Finish any activity (set with reps, or rest)
@@ -190,6 +227,9 @@ type WorkoutServiceHandler interface {
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
 	LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error)
+	// Stream: Subscribe to real-time workout updates
+	// Returns updates whenever any user in the session performs an action
+	WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest], *connect.ServerStream[v1.WorkoutUpdate]) error
 }
 
 // NewWorkoutServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -203,6 +243,12 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		WorkoutServiceGetWorkoutStateProcedure,
 		svc.GetWorkoutState,
 		connect.WithSchema(workoutServiceMethods.ByName("GetWorkoutState")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceStartWorkoutHandler := connect.NewUnaryHandler(
+		WorkoutServiceStartWorkoutProcedure,
+		svc.StartWorkout,
+		connect.WithSchema(workoutServiceMethods.ByName("StartWorkout")),
 		connect.WithHandlerOptions(opts...),
 	)
 	workoutServiceStartSetHandler := connect.NewUnaryHandler(
@@ -241,10 +287,18 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		connect.WithSchema(workoutServiceMethods.ByName("LogSet")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workoutServiceWatchWorkoutHandler := connect.NewServerStreamHandler(
+		WorkoutServiceWatchWorkoutProcedure,
+		svc.WatchWorkout,
+		connect.WithSchema(workoutServiceMethods.ByName("WatchWorkout")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/workout.v1.WorkoutService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WorkoutServiceGetWorkoutStateProcedure:
 			workoutServiceGetWorkoutStateHandler.ServeHTTP(w, r)
+		case WorkoutServiceStartWorkoutProcedure:
+			workoutServiceStartWorkoutHandler.ServeHTTP(w, r)
 		case WorkoutServiceStartSetProcedure:
 			workoutServiceStartSetHandler.ServeHTTP(w, r)
 		case WorkoutServiceFinishActivityProcedure:
@@ -257,6 +311,8 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 			workoutServiceGetNextWorkoutHandler.ServeHTTP(w, r)
 		case WorkoutServiceLogSetProcedure:
 			workoutServiceLogSetHandler.ServeHTTP(w, r)
+		case WorkoutServiceWatchWorkoutProcedure:
+			workoutServiceWatchWorkoutHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -268,6 +324,10 @@ type UnimplementedWorkoutServiceHandler struct{}
 
 func (UnimplementedWorkoutServiceHandler) GetWorkoutState(context.Context, *connect.Request[v1.GetWorkoutStateRequest]) (*connect.Response[v1.GetWorkoutStateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.GetWorkoutState is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) StartWorkout(context.Context, *connect.Request[v1.StartWorkoutRequest]) (*connect.Response[v1.StartWorkoutResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.StartWorkout is not implemented"))
 }
 
 func (UnimplementedWorkoutServiceHandler) StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error) {
@@ -292,4 +352,8 @@ func (UnimplementedWorkoutServiceHandler) GetNextWorkout(context.Context, *conne
 
 func (UnimplementedWorkoutServiceHandler) LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.LogSet is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest], *connect.ServerStream[v1.WorkoutUpdate]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.WatchWorkout is not implemented"))
 }

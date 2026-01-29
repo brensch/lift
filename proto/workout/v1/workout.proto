@@ -59,12 +59,13 @@ message Plan {
 // Current workout state - everything the frontend needs
 message WorkoutState {
   string session_id = 1;
-  google.protobuf.Timestamp session_started_at = 2;
+  google.protobuf.Timestamp session_started_at = 2;  // When session was created
   repeated Activity timeline = 3;      // All completed activities
   Activity current_activity = 4;       // What's happening now (null if nothing started)
   PlannedSet next_set = 5;             // What set is coming up next
   repeated PlannedSet remaining_sets = 6; // All sets left in the workout
   bool is_complete = 7;                // True if workout is done
+  google.protobuf.Timestamp workout_started_at = 8;  // When user explicitly started (null = preview mode)
 }
 
 // Rest time configuration
@@ -87,6 +88,15 @@ message GetWorkoutStateResponse {
   WorkoutState state = 1;
   Plan plan = 2;           // The full workout plan
   RestConfig rest_config = 3;
+}
+
+// Start the workout (user explicitly begins, starts the workout timer)
+message StartWorkoutRequest {
+  string session_id = 1;
+}
+
+message StartWorkoutResponse {
+  google.protobuf.Timestamp workout_started_at = 1;
 }
 
 // Start performing a set (begins timing)
@@ -161,12 +171,43 @@ message LogSetResponse {
   google.protobuf.Timestamp completed_at = 2;
 }
 
+// ============ Streaming Messages ============
+
+// Subscribe to real-time updates for a workout session
+message WatchWorkoutRequest {
+  string session_id = 1;
+  string user_id = 2;  // The user subscribing to updates
+}
+
+// Types of updates that can occur
+enum UpdateType {
+  UPDATE_TYPE_UNSPECIFIED = 0;
+  UPDATE_TYPE_USER_JOINED = 1;     // A user joined the workout
+  UPDATE_TYPE_USER_LEFT = 2;       // A user left the workout
+  UPDATE_TYPE_SET_STARTED = 3;     // A user started a set
+  UPDATE_TYPE_SET_COMPLETED = 4;   // A user completed a set
+  UPDATE_TYPE_REST_STARTED = 5;    // A user started resting
+  UPDATE_TYPE_REST_SKIPPED = 6;    // A user skipped their rest
+}
+
+// Real-time update pushed to watching clients
+message WorkoutUpdate {
+  UpdateType type = 1;
+  string user_id = 2;              // Who triggered the update
+  Activity activity = 3;           // The activity that changed (if applicable)
+  WorkoutState state = 4;          // Full state of the user who changed (optional)
+  google.protobuf.Timestamp timestamp = 5;
+}
+
 // ============ Service Definition ============
 
 service WorkoutService {
   // Get current workout state (creates session if needed)
   rpc GetWorkoutState(GetWorkoutStateRequest) returns (GetWorkoutStateResponse);
-  
+
+  // Start the workout (user explicitly begins)
+  rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
+
   // Start performing a set
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   
@@ -184,4 +225,8 @@ service WorkoutService {
   
   // Legacy: Log a single set immediately
   rpc LogSet(LogSetRequest) returns (LogSetResponse);
+
+  // Stream: Subscribe to real-time workout updates
+  // Returns updates whenever any user in the session performs an action
+  rpc WatchWorkout(WatchWorkoutRequest) returns (stream WorkoutUpdate);
 }

@@ -64,7 +64,7 @@ interface WorkoutContextType {
   
   // Actions
   fetchWorkoutState: () => Promise<void>;
-  startWorkout: () => void;
+  startWorkout: () => Promise<void>;
   handleStartSet: () => Promise<void>;
   handleSelectReps: (reps: number) => Promise<void>;
   handleStartNewWorkout: () => Promise<void>;
@@ -135,8 +135,12 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
             }
           }
         } else if (state.timeline.length === 0) {
-          // No activities yet - preview or ready phase
-          setPhase("preview");
+          // No activities yet - check if workout was explicitly started
+          if (state.workoutStartedAt) {
+            setPhase("ready");
+          } else {
+            setPhase("preview");
+          }
         } else {
           // Activities exist but nothing current - ready for next
           setPhase("ready");
@@ -249,8 +253,15 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     : workoutState?.nextSet;
 
   // Start the workout (from preview)
-  const startWorkout = () => {
-    setPhase("ready");
+  const startWorkout = async () => {
+    if (!client || !workoutState?.sessionId) return;
+
+    try {
+      await client.startWorkout({ sessionId: workoutState.sessionId });
+      setPhase("ready");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start workout");
+    }
   };
 
   // Update weight for an exercise (all sets)

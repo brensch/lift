@@ -131,6 +131,68 @@ func (ActivityType) EnumDescriptor() ([]byte, []int) {
 	return file_workout_v1_workout_proto_rawDescGZIP(), []int{1}
 }
 
+// Types of updates that can occur
+type UpdateType int32
+
+const (
+	UpdateType_UPDATE_TYPE_UNSPECIFIED   UpdateType = 0
+	UpdateType_UPDATE_TYPE_USER_JOINED   UpdateType = 1 // A user joined the workout
+	UpdateType_UPDATE_TYPE_USER_LEFT     UpdateType = 2 // A user left the workout
+	UpdateType_UPDATE_TYPE_SET_STARTED   UpdateType = 3 // A user started a set
+	UpdateType_UPDATE_TYPE_SET_COMPLETED UpdateType = 4 // A user completed a set
+	UpdateType_UPDATE_TYPE_REST_STARTED  UpdateType = 5 // A user started resting
+	UpdateType_UPDATE_TYPE_REST_SKIPPED  UpdateType = 6 // A user skipped their rest
+)
+
+// Enum value maps for UpdateType.
+var (
+	UpdateType_name = map[int32]string{
+		0: "UPDATE_TYPE_UNSPECIFIED",
+		1: "UPDATE_TYPE_USER_JOINED",
+		2: "UPDATE_TYPE_USER_LEFT",
+		3: "UPDATE_TYPE_SET_STARTED",
+		4: "UPDATE_TYPE_SET_COMPLETED",
+		5: "UPDATE_TYPE_REST_STARTED",
+		6: "UPDATE_TYPE_REST_SKIPPED",
+	}
+	UpdateType_value = map[string]int32{
+		"UPDATE_TYPE_UNSPECIFIED":   0,
+		"UPDATE_TYPE_USER_JOINED":   1,
+		"UPDATE_TYPE_USER_LEFT":     2,
+		"UPDATE_TYPE_SET_STARTED":   3,
+		"UPDATE_TYPE_SET_COMPLETED": 4,
+		"UPDATE_TYPE_REST_STARTED":  5,
+		"UPDATE_TYPE_REST_SKIPPED":  6,
+	}
+)
+
+func (x UpdateType) Enum() *UpdateType {
+	p := new(UpdateType)
+	*p = x
+	return p
+}
+
+func (x UpdateType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UpdateType) Descriptor() protoreflect.EnumDescriptor {
+	return file_workout_v1_workout_proto_enumTypes[2].Descriptor()
+}
+
+func (UpdateType) Type() protoreflect.EnumType {
+	return &file_workout_v1_workout_proto_enumTypes[2]
+}
+
+func (x UpdateType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UpdateType.Descriptor instead.
+func (UpdateType) EnumDescriptor() ([]byte, []int) {
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{2}
+}
+
 // A single activity in the workout timeline
 // Everything in a workout is an activity with a start time
 type Activity struct {
@@ -377,12 +439,13 @@ func (x *Plan) GetSets() []*PlannedSet {
 type WorkoutState struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	SessionId        string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	SessionStartedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=session_started_at,json=sessionStartedAt,proto3" json:"session_started_at,omitempty"`
-	Timeline         []*Activity            `protobuf:"bytes,3,rep,name=timeline,proto3" json:"timeline,omitempty"`                                      // All completed activities
-	CurrentActivity  *Activity              `protobuf:"bytes,4,opt,name=current_activity,json=currentActivity,proto3" json:"current_activity,omitempty"` // What's happening now (null if nothing started)
-	NextSet          *PlannedSet            `protobuf:"bytes,5,opt,name=next_set,json=nextSet,proto3" json:"next_set,omitempty"`                         // What set is coming up next
-	RemainingSets    []*PlannedSet          `protobuf:"bytes,6,rep,name=remaining_sets,json=remainingSets,proto3" json:"remaining_sets,omitempty"`       // All sets left in the workout
-	IsComplete       bool                   `protobuf:"varint,7,opt,name=is_complete,json=isComplete,proto3" json:"is_complete,omitempty"`               // True if workout is done
+	SessionStartedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=session_started_at,json=sessionStartedAt,proto3" json:"session_started_at,omitempty"` // When session was created
+	Timeline         []*Activity            `protobuf:"bytes,3,rep,name=timeline,proto3" json:"timeline,omitempty"`                                           // All completed activities
+	CurrentActivity  *Activity              `protobuf:"bytes,4,opt,name=current_activity,json=currentActivity,proto3" json:"current_activity,omitempty"`      // What's happening now (null if nothing started)
+	NextSet          *PlannedSet            `protobuf:"bytes,5,opt,name=next_set,json=nextSet,proto3" json:"next_set,omitempty"`                              // What set is coming up next
+	RemainingSets    []*PlannedSet          `protobuf:"bytes,6,rep,name=remaining_sets,json=remainingSets,proto3" json:"remaining_sets,omitempty"`            // All sets left in the workout
+	IsComplete       bool                   `protobuf:"varint,7,opt,name=is_complete,json=isComplete,proto3" json:"is_complete,omitempty"`                    // True if workout is done
+	WorkoutStartedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=workout_started_at,json=workoutStartedAt,proto3" json:"workout_started_at,omitempty"` // When user explicitly started (null = preview mode)
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -464,6 +527,13 @@ func (x *WorkoutState) GetIsComplete() bool {
 		return x.IsComplete
 	}
 	return false
+}
+
+func (x *WorkoutState) GetWorkoutStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WorkoutStartedAt
+	}
+	return nil
 }
 
 // Rest time configuration
@@ -634,6 +704,95 @@ func (x *GetWorkoutStateResponse) GetRestConfig() *RestConfig {
 	return nil
 }
 
+// Start the workout (user explicitly begins, starts the workout timer)
+type StartWorkoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartWorkoutRequest) Reset() {
+	*x = StartWorkoutRequest{}
+	mi := &file_workout_v1_workout_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartWorkoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartWorkoutRequest) ProtoMessage() {}
+
+func (x *StartWorkoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_workout_v1_workout_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartWorkoutRequest.ProtoReflect.Descriptor instead.
+func (*StartWorkoutRequest) Descriptor() ([]byte, []int) {
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *StartWorkoutRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type StartWorkoutResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	WorkoutStartedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=workout_started_at,json=workoutStartedAt,proto3" json:"workout_started_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *StartWorkoutResponse) Reset() {
+	*x = StartWorkoutResponse{}
+	mi := &file_workout_v1_workout_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartWorkoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartWorkoutResponse) ProtoMessage() {}
+
+func (x *StartWorkoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_workout_v1_workout_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartWorkoutResponse.ProtoReflect.Descriptor instead.
+func (*StartWorkoutResponse) Descriptor() ([]byte, []int) {
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *StartWorkoutResponse) GetWorkoutStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WorkoutStartedAt
+	}
+	return nil
+}
+
 // Start performing a set (begins timing)
 type StartSetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -648,7 +807,7 @@ type StartSetRequest struct {
 
 func (x *StartSetRequest) Reset() {
 	*x = StartSetRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[7]
+	mi := &file_workout_v1_workout_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +819,7 @@ func (x *StartSetRequest) String() string {
 func (*StartSetRequest) ProtoMessage() {}
 
 func (x *StartSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[7]
+	mi := &file_workout_v1_workout_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,7 +832,7 @@ func (x *StartSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSetRequest.ProtoReflect.Descriptor instead.
 func (*StartSetRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{7}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StartSetRequest) GetSessionId() string {
@@ -720,7 +879,7 @@ type StartSetResponse struct {
 
 func (x *StartSetResponse) Reset() {
 	*x = StartSetResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[8]
+	mi := &file_workout_v1_workout_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -732,7 +891,7 @@ func (x *StartSetResponse) String() string {
 func (*StartSetResponse) ProtoMessage() {}
 
 func (x *StartSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[8]
+	mi := &file_workout_v1_workout_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -745,7 +904,7 @@ func (x *StartSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartSetResponse.ProtoReflect.Descriptor instead.
 func (*StartSetResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{8}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StartSetResponse) GetActivity() *Activity {
@@ -769,7 +928,7 @@ type FinishActivityRequest struct {
 
 func (x *FinishActivityRequest) Reset() {
 	*x = FinishActivityRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[9]
+	mi := &file_workout_v1_workout_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -781,7 +940,7 @@ func (x *FinishActivityRequest) String() string {
 func (*FinishActivityRequest) ProtoMessage() {}
 
 func (x *FinishActivityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[9]
+	mi := &file_workout_v1_workout_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +953,7 @@ func (x *FinishActivityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishActivityRequest.ProtoReflect.Descriptor instead.
 func (*FinishActivityRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{9}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FinishActivityRequest) GetSessionId() string {
@@ -829,7 +988,7 @@ type FinishActivityResponse struct {
 
 func (x *FinishActivityResponse) Reset() {
 	*x = FinishActivityResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[10]
+	mi := &file_workout_v1_workout_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -841,7 +1000,7 @@ func (x *FinishActivityResponse) String() string {
 func (*FinishActivityResponse) ProtoMessage() {}
 
 func (x *FinishActivityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[10]
+	mi := &file_workout_v1_workout_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -854,7 +1013,7 @@ func (x *FinishActivityResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FinishActivityResponse.ProtoReflect.Descriptor instead.
 func (*FinishActivityResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{10}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FinishActivityResponse) GetFinishedActivity() *Activity {
@@ -891,7 +1050,7 @@ type UpdatePlannedWeightRequest struct {
 
 func (x *UpdatePlannedWeightRequest) Reset() {
 	*x = UpdatePlannedWeightRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[11]
+	mi := &file_workout_v1_workout_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +1062,7 @@ func (x *UpdatePlannedWeightRequest) String() string {
 func (*UpdatePlannedWeightRequest) ProtoMessage() {}
 
 func (x *UpdatePlannedWeightRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[11]
+	mi := &file_workout_v1_workout_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +1075,7 @@ func (x *UpdatePlannedWeightRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlannedWeightRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePlannedWeightRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{11}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdatePlannedWeightRequest) GetSessionId() string {
@@ -956,7 +1115,7 @@ type UpdatePlannedWeightResponse struct {
 
 func (x *UpdatePlannedWeightResponse) Reset() {
 	*x = UpdatePlannedWeightResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[12]
+	mi := &file_workout_v1_workout_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1127,7 @@ func (x *UpdatePlannedWeightResponse) String() string {
 func (*UpdatePlannedWeightResponse) ProtoMessage() {}
 
 func (x *UpdatePlannedWeightResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[12]
+	mi := &file_workout_v1_workout_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1140,7 @@ func (x *UpdatePlannedWeightResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlannedWeightResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePlannedWeightResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{12}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdatePlannedWeightResponse) GetUpdatedSets() []*PlannedSet {
@@ -1002,7 +1161,7 @@ type SetExerciseOrderRequest struct {
 
 func (x *SetExerciseOrderRequest) Reset() {
 	*x = SetExerciseOrderRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[13]
+	mi := &file_workout_v1_workout_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1014,7 +1173,7 @@ func (x *SetExerciseOrderRequest) String() string {
 func (*SetExerciseOrderRequest) ProtoMessage() {}
 
 func (x *SetExerciseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[13]
+	mi := &file_workout_v1_workout_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1027,7 +1186,7 @@ func (x *SetExerciseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExerciseOrderRequest.ProtoReflect.Descriptor instead.
 func (*SetExerciseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{13}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SetExerciseOrderRequest) GetSessionId() string {
@@ -1053,7 +1212,7 @@ type SetExerciseOrderResponse struct {
 
 func (x *SetExerciseOrderResponse) Reset() {
 	*x = SetExerciseOrderResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[14]
+	mi := &file_workout_v1_workout_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +1224,7 @@ func (x *SetExerciseOrderResponse) String() string {
 func (*SetExerciseOrderResponse) ProtoMessage() {}
 
 func (x *SetExerciseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[14]
+	mi := &file_workout_v1_workout_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1237,7 @@ func (x *SetExerciseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetExerciseOrderResponse.ProtoReflect.Descriptor instead.
 func (*SetExerciseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{14}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SetExerciseOrderResponse) GetRemainingSets() []*PlannedSet {
@@ -1098,7 +1257,7 @@ type GetNextWorkoutRequest struct {
 
 func (x *GetNextWorkoutRequest) Reset() {
 	*x = GetNextWorkoutRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[15]
+	mi := &file_workout_v1_workout_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1110,7 +1269,7 @@ func (x *GetNextWorkoutRequest) String() string {
 func (*GetNextWorkoutRequest) ProtoMessage() {}
 
 func (x *GetNextWorkoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[15]
+	mi := &file_workout_v1_workout_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1123,7 +1282,7 @@ func (x *GetNextWorkoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNextWorkoutRequest.ProtoReflect.Descriptor instead.
 func (*GetNextWorkoutRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{15}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetNextWorkoutRequest) GetUserId() string {
@@ -1145,7 +1304,7 @@ type GetNextWorkoutResponse struct {
 
 func (x *GetNextWorkoutResponse) Reset() {
 	*x = GetNextWorkoutResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[16]
+	mi := &file_workout_v1_workout_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1157,7 +1316,7 @@ func (x *GetNextWorkoutResponse) String() string {
 func (*GetNextWorkoutResponse) ProtoMessage() {}
 
 func (x *GetNextWorkoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[16]
+	mi := &file_workout_v1_workout_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1170,7 +1329,7 @@ func (x *GetNextWorkoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNextWorkoutResponse.ProtoReflect.Descriptor instead.
 func (*GetNextWorkoutResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{16}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetNextWorkoutResponse) GetPlan() *Plan {
@@ -1211,7 +1370,7 @@ type LogSetRequest struct {
 
 func (x *LogSetRequest) Reset() {
 	*x = LogSetRequest{}
-	mi := &file_workout_v1_workout_proto_msgTypes[17]
+	mi := &file_workout_v1_workout_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1223,7 +1382,7 @@ func (x *LogSetRequest) String() string {
 func (*LogSetRequest) ProtoMessage() {}
 
 func (x *LogSetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[17]
+	mi := &file_workout_v1_workout_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1236,7 +1395,7 @@ func (x *LogSetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogSetRequest.ProtoReflect.Descriptor instead.
 func (*LogSetRequest) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{17}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LogSetRequest) GetSessionId() string {
@@ -1263,7 +1422,7 @@ type LogSetResponse struct {
 
 func (x *LogSetResponse) Reset() {
 	*x = LogSetResponse{}
-	mi := &file_workout_v1_workout_proto_msgTypes[18]
+	mi := &file_workout_v1_workout_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1275,7 +1434,7 @@ func (x *LogSetResponse) String() string {
 func (*LogSetResponse) ProtoMessage() {}
 
 func (x *LogSetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_workout_v1_workout_proto_msgTypes[18]
+	mi := &file_workout_v1_workout_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +1447,7 @@ func (x *LogSetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogSetResponse.ProtoReflect.Descriptor instead.
 func (*LogSetResponse) Descriptor() ([]byte, []int) {
-	return file_workout_v1_workout_proto_rawDescGZIP(), []int{18}
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LogSetResponse) GetSuccess() bool {
@@ -1301,6 +1460,136 @@ func (x *LogSetResponse) GetSuccess() bool {
 func (x *LogSetResponse) GetCompletedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CompletedAt
+	}
+	return nil
+}
+
+// Subscribe to real-time updates for a workout session
+type WatchWorkoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // The user subscribing to updates
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchWorkoutRequest) Reset() {
+	*x = WatchWorkoutRequest{}
+	mi := &file_workout_v1_workout_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchWorkoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchWorkoutRequest) ProtoMessage() {}
+
+func (x *WatchWorkoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_workout_v1_workout_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchWorkoutRequest.ProtoReflect.Descriptor instead.
+func (*WatchWorkoutRequest) Descriptor() ([]byte, []int) {
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *WatchWorkoutRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *WatchWorkoutRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+// Real-time update pushed to watching clients
+type WorkoutUpdate struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          UpdateType             `protobuf:"varint,1,opt,name=type,proto3,enum=workout.v1.UpdateType" json:"type,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // Who triggered the update
+	Activity      *Activity              `protobuf:"bytes,3,opt,name=activity,proto3" json:"activity,omitempty"`           // The activity that changed (if applicable)
+	State         *WorkoutState          `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`                 // Full state of the user who changed (optional)
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkoutUpdate) Reset() {
+	*x = WorkoutUpdate{}
+	mi := &file_workout_v1_workout_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkoutUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkoutUpdate) ProtoMessage() {}
+
+func (x *WorkoutUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_workout_v1_workout_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkoutUpdate.ProtoReflect.Descriptor instead.
+func (*WorkoutUpdate) Descriptor() ([]byte, []int) {
+	return file_workout_v1_workout_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *WorkoutUpdate) GetType() UpdateType {
+	if x != nil {
+		return x.Type
+	}
+	return UpdateType_UPDATE_TYPE_UNSPECIFIED
+}
+
+func (x *WorkoutUpdate) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *WorkoutUpdate) GetActivity() *Activity {
+	if x != nil {
+		return x.Activity
+	}
+	return nil
+}
+
+func (x *WorkoutUpdate) GetState() *WorkoutState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *WorkoutUpdate) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
 	}
 	return nil
 }
@@ -1337,7 +1626,7 @@ const file_workout_v1_workout_proto_rawDesc = "" +
 	"set_number\x18\x04 \x01(\x05R\tsetNumber\"K\n" +
 	"\x04Plan\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12*\n" +
-	"\x04sets\x18\x02 \x03(\v2\x16.workout.v1.PlannedSetR\x04sets\"\xfd\x02\n" +
+	"\x04sets\x18\x02 \x03(\v2\x16.workout.v1.PlannedSetR\x04sets\"\xc7\x03\n" +
 	"\fWorkoutState\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12H\n" +
@@ -1347,7 +1636,8 @@ const file_workout_v1_workout_proto_rawDesc = "" +
 	"\bnext_set\x18\x05 \x01(\v2\x16.workout.v1.PlannedSetR\anextSet\x12=\n" +
 	"\x0eremaining_sets\x18\x06 \x03(\v2\x16.workout.v1.PlannedSetR\rremainingSets\x12\x1f\n" +
 	"\vis_complete\x18\a \x01(\bR\n" +
-	"isComplete\"^\n" +
+	"isComplete\x12H\n" +
+	"\x12workout_started_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x10workoutStartedAt\"^\n" +
 	"\n" +
 	"RestConfig\x12'\n" +
 	"\x0fsuccess_seconds\x18\x01 \x01(\x05R\x0esuccessSeconds\x12'\n" +
@@ -1359,7 +1649,12 @@ const file_workout_v1_workout_proto_rawDesc = "" +
 	"\x05state\x18\x01 \x01(\v2\x18.workout.v1.WorkoutStateR\x05state\x12$\n" +
 	"\x04plan\x18\x02 \x01(\v2\x10.workout.v1.PlanR\x04plan\x127\n" +
 	"\vrest_config\x18\x03 \x01(\v2\x16.workout.v1.RestConfigR\n" +
-	"restConfig\"\xba\x01\n" +
+	"restConfig\"4\n" +
+	"\x13StartWorkoutRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"`\n" +
+	"\x14StartWorkoutResponse\x12H\n" +
+	"\x12workout_started_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x10workoutStartedAt\"\xba\x01\n" +
 	"\x0fStartSetRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x120\n" +
@@ -1412,7 +1707,17 @@ const file_workout_v1_workout_proto_rawDesc = "" +
 	"\x03set\x18\x02 \x01(\v2\x14.workout.v1.ActivityR\x03set\"i\n" +
 	"\x0eLogSetResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12=\n" +
-	"\fcompleted_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt*\x87\x01\n" +
+	"\fcompleted_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"M\n" +
+	"\x13WatchWorkoutRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"\xf0\x01\n" +
+	"\rWorkoutUpdate\x12*\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x16.workout.v1.UpdateTypeR\x04type\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x120\n" +
+	"\bactivity\x18\x03 \x01(\v2\x14.workout.v1.ActivityR\bactivity\x12.\n" +
+	"\x05state\x18\x04 \x01(\v2\x18.workout.v1.WorkoutStateR\x05state\x128\n" +
+	"\ttimestamp\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp*\x87\x01\n" +
 	"\bExercise\x12\x18\n" +
 	"\x14EXERCISE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eEXERCISE_SQUAT\x10\x01\x12\x12\n" +
@@ -1423,15 +1728,26 @@ const file_workout_v1_workout_proto_rawDesc = "" +
 	"\fActivityType\x12\x1d\n" +
 	"\x19ACTIVITY_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11ACTIVITY_TYPE_SET\x10\x01\x12\x16\n" +
-	"\x12ACTIVITY_TYPE_REST\x10\x022\xed\x04\n" +
+	"\x12ACTIVITY_TYPE_REST\x10\x02*\xd9\x01\n" +
+	"\n" +
+	"UpdateType\x12\x1b\n" +
+	"\x17UPDATE_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17UPDATE_TYPE_USER_JOINED\x10\x01\x12\x19\n" +
+	"\x15UPDATE_TYPE_USER_LEFT\x10\x02\x12\x1b\n" +
+	"\x17UPDATE_TYPE_SET_STARTED\x10\x03\x12\x1d\n" +
+	"\x19UPDATE_TYPE_SET_COMPLETED\x10\x04\x12\x1c\n" +
+	"\x18UPDATE_TYPE_REST_STARTED\x10\x05\x12\x1c\n" +
+	"\x18UPDATE_TYPE_REST_SKIPPED\x10\x062\x8e\x06\n" +
 	"\x0eWorkoutService\x12Z\n" +
-	"\x0fGetWorkoutState\x12\".workout.v1.GetWorkoutStateRequest\x1a#.workout.v1.GetWorkoutStateResponse\x12E\n" +
+	"\x0fGetWorkoutState\x12\".workout.v1.GetWorkoutStateRequest\x1a#.workout.v1.GetWorkoutStateResponse\x12Q\n" +
+	"\fStartWorkout\x12\x1f.workout.v1.StartWorkoutRequest\x1a .workout.v1.StartWorkoutResponse\x12E\n" +
 	"\bStartSet\x12\x1b.workout.v1.StartSetRequest\x1a\x1c.workout.v1.StartSetResponse\x12W\n" +
 	"\x0eFinishActivity\x12!.workout.v1.FinishActivityRequest\x1a\".workout.v1.FinishActivityResponse\x12f\n" +
 	"\x13UpdatePlannedWeight\x12&.workout.v1.UpdatePlannedWeightRequest\x1a'.workout.v1.UpdatePlannedWeightResponse\x12]\n" +
 	"\x10SetExerciseOrder\x12#.workout.v1.SetExerciseOrderRequest\x1a$.workout.v1.SetExerciseOrderResponse\x12W\n" +
 	"\x0eGetNextWorkout\x12!.workout.v1.GetNextWorkoutRequest\x1a\".workout.v1.GetNextWorkoutResponse\x12?\n" +
-	"\x06LogSet\x12\x19.workout.v1.LogSetRequest\x1a\x1a.workout.v1.LogSetResponseB\xa1\x01\n" +
+	"\x06LogSet\x12\x19.workout.v1.LogSetRequest\x1a\x1a.workout.v1.LogSetResponse\x12L\n" +
+	"\fWatchWorkout\x12\x1f.workout.v1.WatchWorkoutRequest\x1a\x19.workout.v1.WorkoutUpdate0\x01B\xa1\x01\n" +
 	"\x0ecom.workout.v1B\fWorkoutProtoP\x01Z8github.com/brensch/lift/backend/gen/workout/v1;workoutv1\xa2\x02\x03WXX\xaa\x02\n" +
 	"Workout.V1\xca\x02\n" +
 	"Workout\\V1\xe2\x02\x16Workout\\V1\\GPBMetadata\xea\x02\vWorkout::V1b\x06proto3"
@@ -1448,80 +1764,95 @@ func file_workout_v1_workout_proto_rawDescGZIP() []byte {
 	return file_workout_v1_workout_proto_rawDescData
 }
 
-var file_workout_v1_workout_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_workout_v1_workout_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_workout_v1_workout_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_workout_v1_workout_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_workout_v1_workout_proto_goTypes = []any{
 	(Exercise)(0),                       // 0: workout.v1.Exercise
 	(ActivityType)(0),                   // 1: workout.v1.ActivityType
-	(*Activity)(nil),                    // 2: workout.v1.Activity
-	(*PlannedSet)(nil),                  // 3: workout.v1.PlannedSet
-	(*Plan)(nil),                        // 4: workout.v1.Plan
-	(*WorkoutState)(nil),                // 5: workout.v1.WorkoutState
-	(*RestConfig)(nil),                  // 6: workout.v1.RestConfig
-	(*GetWorkoutStateRequest)(nil),      // 7: workout.v1.GetWorkoutStateRequest
-	(*GetWorkoutStateResponse)(nil),     // 8: workout.v1.GetWorkoutStateResponse
-	(*StartSetRequest)(nil),             // 9: workout.v1.StartSetRequest
-	(*StartSetResponse)(nil),            // 10: workout.v1.StartSetResponse
-	(*FinishActivityRequest)(nil),       // 11: workout.v1.FinishActivityRequest
-	(*FinishActivityResponse)(nil),      // 12: workout.v1.FinishActivityResponse
-	(*UpdatePlannedWeightRequest)(nil),  // 13: workout.v1.UpdatePlannedWeightRequest
-	(*UpdatePlannedWeightResponse)(nil), // 14: workout.v1.UpdatePlannedWeightResponse
-	(*SetExerciseOrderRequest)(nil),     // 15: workout.v1.SetExerciseOrderRequest
-	(*SetExerciseOrderResponse)(nil),    // 16: workout.v1.SetExerciseOrderResponse
-	(*GetNextWorkoutRequest)(nil),       // 17: workout.v1.GetNextWorkoutRequest
-	(*GetNextWorkoutResponse)(nil),      // 18: workout.v1.GetNextWorkoutResponse
-	(*LogSetRequest)(nil),               // 19: workout.v1.LogSetRequest
-	(*LogSetResponse)(nil),              // 20: workout.v1.LogSetResponse
-	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
+	(UpdateType)(0),                     // 2: workout.v1.UpdateType
+	(*Activity)(nil),                    // 3: workout.v1.Activity
+	(*PlannedSet)(nil),                  // 4: workout.v1.PlannedSet
+	(*Plan)(nil),                        // 5: workout.v1.Plan
+	(*WorkoutState)(nil),                // 6: workout.v1.WorkoutState
+	(*RestConfig)(nil),                  // 7: workout.v1.RestConfig
+	(*GetWorkoutStateRequest)(nil),      // 8: workout.v1.GetWorkoutStateRequest
+	(*GetWorkoutStateResponse)(nil),     // 9: workout.v1.GetWorkoutStateResponse
+	(*StartWorkoutRequest)(nil),         // 10: workout.v1.StartWorkoutRequest
+	(*StartWorkoutResponse)(nil),        // 11: workout.v1.StartWorkoutResponse
+	(*StartSetRequest)(nil),             // 12: workout.v1.StartSetRequest
+	(*StartSetResponse)(nil),            // 13: workout.v1.StartSetResponse
+	(*FinishActivityRequest)(nil),       // 14: workout.v1.FinishActivityRequest
+	(*FinishActivityResponse)(nil),      // 15: workout.v1.FinishActivityResponse
+	(*UpdatePlannedWeightRequest)(nil),  // 16: workout.v1.UpdatePlannedWeightRequest
+	(*UpdatePlannedWeightResponse)(nil), // 17: workout.v1.UpdatePlannedWeightResponse
+	(*SetExerciseOrderRequest)(nil),     // 18: workout.v1.SetExerciseOrderRequest
+	(*SetExerciseOrderResponse)(nil),    // 19: workout.v1.SetExerciseOrderResponse
+	(*GetNextWorkoutRequest)(nil),       // 20: workout.v1.GetNextWorkoutRequest
+	(*GetNextWorkoutResponse)(nil),      // 21: workout.v1.GetNextWorkoutResponse
+	(*LogSetRequest)(nil),               // 22: workout.v1.LogSetRequest
+	(*LogSetResponse)(nil),              // 23: workout.v1.LogSetResponse
+	(*WatchWorkoutRequest)(nil),         // 24: workout.v1.WatchWorkoutRequest
+	(*WorkoutUpdate)(nil),               // 25: workout.v1.WorkoutUpdate
+	(*timestamppb.Timestamp)(nil),       // 26: google.protobuf.Timestamp
 }
 var file_workout_v1_workout_proto_depIdxs = []int32{
 	1,  // 0: workout.v1.Activity.type:type_name -> workout.v1.ActivityType
-	21, // 1: workout.v1.Activity.started_at:type_name -> google.protobuf.Timestamp
-	21, // 2: workout.v1.Activity.ended_at:type_name -> google.protobuf.Timestamp
+	26, // 1: workout.v1.Activity.started_at:type_name -> google.protobuf.Timestamp
+	26, // 2: workout.v1.Activity.ended_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: workout.v1.Activity.exercise:type_name -> workout.v1.Exercise
 	0,  // 4: workout.v1.PlannedSet.exercise:type_name -> workout.v1.Exercise
-	3,  // 5: workout.v1.Plan.sets:type_name -> workout.v1.PlannedSet
-	21, // 6: workout.v1.WorkoutState.session_started_at:type_name -> google.protobuf.Timestamp
-	2,  // 7: workout.v1.WorkoutState.timeline:type_name -> workout.v1.Activity
-	2,  // 8: workout.v1.WorkoutState.current_activity:type_name -> workout.v1.Activity
-	3,  // 9: workout.v1.WorkoutState.next_set:type_name -> workout.v1.PlannedSet
-	3,  // 10: workout.v1.WorkoutState.remaining_sets:type_name -> workout.v1.PlannedSet
-	5,  // 11: workout.v1.GetWorkoutStateResponse.state:type_name -> workout.v1.WorkoutState
-	4,  // 12: workout.v1.GetWorkoutStateResponse.plan:type_name -> workout.v1.Plan
-	6,  // 13: workout.v1.GetWorkoutStateResponse.rest_config:type_name -> workout.v1.RestConfig
-	0,  // 14: workout.v1.StartSetRequest.exercise:type_name -> workout.v1.Exercise
-	2,  // 15: workout.v1.StartSetResponse.activity:type_name -> workout.v1.Activity
-	2,  // 16: workout.v1.FinishActivityResponse.finished_activity:type_name -> workout.v1.Activity
-	2,  // 17: workout.v1.FinishActivityResponse.next_activity:type_name -> workout.v1.Activity
-	5,  // 18: workout.v1.FinishActivityResponse.state:type_name -> workout.v1.WorkoutState
-	0,  // 19: workout.v1.UpdatePlannedWeightRequest.exercise:type_name -> workout.v1.Exercise
-	3,  // 20: workout.v1.UpdatePlannedWeightResponse.updated_sets:type_name -> workout.v1.PlannedSet
-	0,  // 21: workout.v1.SetExerciseOrderRequest.exercise_order:type_name -> workout.v1.Exercise
-	3,  // 22: workout.v1.SetExerciseOrderResponse.remaining_sets:type_name -> workout.v1.PlannedSet
-	4,  // 23: workout.v1.GetNextWorkoutResponse.plan:type_name -> workout.v1.Plan
-	21, // 24: workout.v1.GetNextWorkoutResponse.last_set_completed_at:type_name -> google.protobuf.Timestamp
-	2,  // 25: workout.v1.GetNextWorkoutResponse.completed_sets:type_name -> workout.v1.Activity
-	2,  // 26: workout.v1.LogSetRequest.set:type_name -> workout.v1.Activity
-	21, // 27: workout.v1.LogSetResponse.completed_at:type_name -> google.protobuf.Timestamp
-	7,  // 28: workout.v1.WorkoutService.GetWorkoutState:input_type -> workout.v1.GetWorkoutStateRequest
-	9,  // 29: workout.v1.WorkoutService.StartSet:input_type -> workout.v1.StartSetRequest
-	11, // 30: workout.v1.WorkoutService.FinishActivity:input_type -> workout.v1.FinishActivityRequest
-	13, // 31: workout.v1.WorkoutService.UpdatePlannedWeight:input_type -> workout.v1.UpdatePlannedWeightRequest
-	15, // 32: workout.v1.WorkoutService.SetExerciseOrder:input_type -> workout.v1.SetExerciseOrderRequest
-	17, // 33: workout.v1.WorkoutService.GetNextWorkout:input_type -> workout.v1.GetNextWorkoutRequest
-	19, // 34: workout.v1.WorkoutService.LogSet:input_type -> workout.v1.LogSetRequest
-	8,  // 35: workout.v1.WorkoutService.GetWorkoutState:output_type -> workout.v1.GetWorkoutStateResponse
-	10, // 36: workout.v1.WorkoutService.StartSet:output_type -> workout.v1.StartSetResponse
-	12, // 37: workout.v1.WorkoutService.FinishActivity:output_type -> workout.v1.FinishActivityResponse
-	14, // 38: workout.v1.WorkoutService.UpdatePlannedWeight:output_type -> workout.v1.UpdatePlannedWeightResponse
-	16, // 39: workout.v1.WorkoutService.SetExerciseOrder:output_type -> workout.v1.SetExerciseOrderResponse
-	18, // 40: workout.v1.WorkoutService.GetNextWorkout:output_type -> workout.v1.GetNextWorkoutResponse
-	20, // 41: workout.v1.WorkoutService.LogSet:output_type -> workout.v1.LogSetResponse
-	35, // [35:42] is the sub-list for method output_type
-	28, // [28:35] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	4,  // 5: workout.v1.Plan.sets:type_name -> workout.v1.PlannedSet
+	26, // 6: workout.v1.WorkoutState.session_started_at:type_name -> google.protobuf.Timestamp
+	3,  // 7: workout.v1.WorkoutState.timeline:type_name -> workout.v1.Activity
+	3,  // 8: workout.v1.WorkoutState.current_activity:type_name -> workout.v1.Activity
+	4,  // 9: workout.v1.WorkoutState.next_set:type_name -> workout.v1.PlannedSet
+	4,  // 10: workout.v1.WorkoutState.remaining_sets:type_name -> workout.v1.PlannedSet
+	26, // 11: workout.v1.WorkoutState.workout_started_at:type_name -> google.protobuf.Timestamp
+	6,  // 12: workout.v1.GetWorkoutStateResponse.state:type_name -> workout.v1.WorkoutState
+	5,  // 13: workout.v1.GetWorkoutStateResponse.plan:type_name -> workout.v1.Plan
+	7,  // 14: workout.v1.GetWorkoutStateResponse.rest_config:type_name -> workout.v1.RestConfig
+	26, // 15: workout.v1.StartWorkoutResponse.workout_started_at:type_name -> google.protobuf.Timestamp
+	0,  // 16: workout.v1.StartSetRequest.exercise:type_name -> workout.v1.Exercise
+	3,  // 17: workout.v1.StartSetResponse.activity:type_name -> workout.v1.Activity
+	3,  // 18: workout.v1.FinishActivityResponse.finished_activity:type_name -> workout.v1.Activity
+	3,  // 19: workout.v1.FinishActivityResponse.next_activity:type_name -> workout.v1.Activity
+	6,  // 20: workout.v1.FinishActivityResponse.state:type_name -> workout.v1.WorkoutState
+	0,  // 21: workout.v1.UpdatePlannedWeightRequest.exercise:type_name -> workout.v1.Exercise
+	4,  // 22: workout.v1.UpdatePlannedWeightResponse.updated_sets:type_name -> workout.v1.PlannedSet
+	0,  // 23: workout.v1.SetExerciseOrderRequest.exercise_order:type_name -> workout.v1.Exercise
+	4,  // 24: workout.v1.SetExerciseOrderResponse.remaining_sets:type_name -> workout.v1.PlannedSet
+	5,  // 25: workout.v1.GetNextWorkoutResponse.plan:type_name -> workout.v1.Plan
+	26, // 26: workout.v1.GetNextWorkoutResponse.last_set_completed_at:type_name -> google.protobuf.Timestamp
+	3,  // 27: workout.v1.GetNextWorkoutResponse.completed_sets:type_name -> workout.v1.Activity
+	3,  // 28: workout.v1.LogSetRequest.set:type_name -> workout.v1.Activity
+	26, // 29: workout.v1.LogSetResponse.completed_at:type_name -> google.protobuf.Timestamp
+	2,  // 30: workout.v1.WorkoutUpdate.type:type_name -> workout.v1.UpdateType
+	3,  // 31: workout.v1.WorkoutUpdate.activity:type_name -> workout.v1.Activity
+	6,  // 32: workout.v1.WorkoutUpdate.state:type_name -> workout.v1.WorkoutState
+	26, // 33: workout.v1.WorkoutUpdate.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 34: workout.v1.WorkoutService.GetWorkoutState:input_type -> workout.v1.GetWorkoutStateRequest
+	10, // 35: workout.v1.WorkoutService.StartWorkout:input_type -> workout.v1.StartWorkoutRequest
+	12, // 36: workout.v1.WorkoutService.StartSet:input_type -> workout.v1.StartSetRequest
+	14, // 37: workout.v1.WorkoutService.FinishActivity:input_type -> workout.v1.FinishActivityRequest
+	16, // 38: workout.v1.WorkoutService.UpdatePlannedWeight:input_type -> workout.v1.UpdatePlannedWeightRequest
+	18, // 39: workout.v1.WorkoutService.SetExerciseOrder:input_type -> workout.v1.SetExerciseOrderRequest
+	20, // 40: workout.v1.WorkoutService.GetNextWorkout:input_type -> workout.v1.GetNextWorkoutRequest
+	22, // 41: workout.v1.WorkoutService.LogSet:input_type -> workout.v1.LogSetRequest
+	24, // 42: workout.v1.WorkoutService.WatchWorkout:input_type -> workout.v1.WatchWorkoutRequest
+	9,  // 43: workout.v1.WorkoutService.GetWorkoutState:output_type -> workout.v1.GetWorkoutStateResponse
+	11, // 44: workout.v1.WorkoutService.StartWorkout:output_type -> workout.v1.StartWorkoutResponse
+	13, // 45: workout.v1.WorkoutService.StartSet:output_type -> workout.v1.StartSetResponse
+	15, // 46: workout.v1.WorkoutService.FinishActivity:output_type -> workout.v1.FinishActivityResponse
+	17, // 47: workout.v1.WorkoutService.UpdatePlannedWeight:output_type -> workout.v1.UpdatePlannedWeightResponse
+	19, // 48: workout.v1.WorkoutService.SetExerciseOrder:output_type -> workout.v1.SetExerciseOrderResponse
+	21, // 49: workout.v1.WorkoutService.GetNextWorkout:output_type -> workout.v1.GetNextWorkoutResponse
+	23, // 50: workout.v1.WorkoutService.LogSet:output_type -> workout.v1.LogSetResponse
+	25, // 51: workout.v1.WorkoutService.WatchWorkout:output_type -> workout.v1.WorkoutUpdate
+	43, // [43:52] is the sub-list for method output_type
+	34, // [34:43] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_workout_v1_workout_proto_init() }
@@ -1529,14 +1860,14 @@ func file_workout_v1_workout_proto_init() {
 	if File_workout_v1_workout_proto != nil {
 		return
 	}
-	file_workout_v1_workout_proto_msgTypes[11].OneofWrappers = []any{}
+	file_workout_v1_workout_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_workout_v1_workout_proto_rawDesc), len(file_workout_v1_workout_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   19,
+			NumEnums:      3,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

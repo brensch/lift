@@ -13,6 +13,7 @@ import (
 
 	"github.com/brensch/lift/backend/gen/workout/v1/workoutv1connect"
 	"github.com/brensch/lift/backend/internal/db"
+	"github.com/brensch/lift/backend/internal/hub"
 	"github.com/brensch/lift/backend/internal/interceptor"
 	"github.com/brensch/lift/backend/internal/service"
 )
@@ -37,8 +38,11 @@ func main() {
 	}
 	defer dbManager.Close()
 
+	// Create hub for real-time updates
+	workoutHub := hub.New()
+
 	// Create service
-	workoutService := service.NewWorkoutService(dbManager)
+	workoutService := service.NewWorkoutService(dbManager, workoutHub)
 
 	// Create interceptors
 	interceptors := connect.WithInterceptors(
