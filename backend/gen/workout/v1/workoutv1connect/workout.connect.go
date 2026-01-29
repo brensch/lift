@@ -48,6 +48,40 @@ const (
 	// WorkoutServiceUpdateUserPreferencesProcedure is the fully-qualified name of the WorkoutService's
 	// UpdateUserPreferences RPC.
 	WorkoutServiceUpdateUserPreferencesProcedure = "/workout.v1.WorkoutService/UpdateUserPreferences"
+	// WorkoutServiceCreateGroupSessionProcedure is the fully-qualified name of the WorkoutService's
+	// CreateGroupSession RPC.
+	WorkoutServiceCreateGroupSessionProcedure = "/workout.v1.WorkoutService/CreateGroupSession"
+	// WorkoutServiceJoinGroupSessionProcedure is the fully-qualified name of the WorkoutService's
+	// JoinGroupSession RPC.
+	WorkoutServiceJoinGroupSessionProcedure = "/workout.v1.WorkoutService/JoinGroupSession"
+	// WorkoutServiceGetGroupSessionProcedure is the fully-qualified name of the WorkoutService's
+	// GetGroupSession RPC.
+	WorkoutServiceGetGroupSessionProcedure = "/workout.v1.WorkoutService/GetGroupSession"
+	// WorkoutServiceUpdateMyPlanProcedure is the fully-qualified name of the WorkoutService's
+	// UpdateMyPlan RPC.
+	WorkoutServiceUpdateMyPlanProcedure = "/workout.v1.WorkoutService/UpdateMyPlan"
+	// WorkoutServiceSetReadyProcedure is the fully-qualified name of the WorkoutService's SetReady RPC.
+	WorkoutServiceSetReadyProcedure = "/workout.v1.WorkoutService/SetReady"
+	// WorkoutServiceStartGroupWorkoutProcedure is the fully-qualified name of the WorkoutService's
+	// StartGroupWorkout RPC.
+	WorkoutServiceStartGroupWorkoutProcedure = "/workout.v1.WorkoutService/StartGroupWorkout"
+	// WorkoutServiceLeaveGroupSessionProcedure is the fully-qualified name of the WorkoutService's
+	// LeaveGroupSession RPC.
+	WorkoutServiceLeaveGroupSessionProcedure = "/workout.v1.WorkoutService/LeaveGroupSession"
+	// WorkoutServiceInviteToGroupProcedure is the fully-qualified name of the WorkoutService's
+	// InviteToGroup RPC.
+	WorkoutServiceInviteToGroupProcedure = "/workout.v1.WorkoutService/InviteToGroup"
+	// WorkoutServiceRespondToInviteProcedure is the fully-qualified name of the WorkoutService's
+	// RespondToInvite RPC.
+	WorkoutServiceRespondToInviteProcedure = "/workout.v1.WorkoutService/RespondToInvite"
+	// WorkoutServiceGetGroupProcedure is the fully-qualified name of the WorkoutService's GetGroup RPC.
+	WorkoutServiceGetGroupProcedure = "/workout.v1.WorkoutService/GetGroup"
+	// WorkoutServiceLeaveGroupProcedure is the fully-qualified name of the WorkoutService's LeaveGroup
+	// RPC.
+	WorkoutServiceLeaveGroupProcedure = "/workout.v1.WorkoutService/LeaveGroup"
+	// WorkoutServiceGetGroupWorkoutPlanProcedure is the fully-qualified name of the WorkoutService's
+	// GetGroupWorkoutPlan RPC.
+	WorkoutServiceGetGroupWorkoutPlanProcedure = "/workout.v1.WorkoutService/GetGroupWorkoutPlan"
 	// WorkoutServiceStartSetProcedure is the fully-qualified name of the WorkoutService's StartSet RPC.
 	WorkoutServiceStartSetProcedure = "/workout.v1.WorkoutService/StartSet"
 	// WorkoutServiceFinishActivityProcedure is the fully-qualified name of the WorkoutService's
@@ -64,6 +98,9 @@ const (
 	WorkoutServiceGetNextWorkoutProcedure = "/workout.v1.WorkoutService/GetNextWorkout"
 	// WorkoutServiceLogSetProcedure is the fully-qualified name of the WorkoutService's LogSet RPC.
 	WorkoutServiceLogSetProcedure = "/workout.v1.WorkoutService/LogSet"
+	// WorkoutServiceWatchNotificationsProcedure is the fully-qualified name of the WorkoutService's
+	// WatchNotifications RPC.
+	WorkoutServiceWatchNotificationsProcedure = "/workout.v1.WorkoutService/WatchNotifications"
 	// WorkoutServiceWatchWorkoutProcedure is the fully-qualified name of the WorkoutService's
 	// WatchWorkout RPC.
 	WorkoutServiceWatchWorkoutProcedure = "/workout.v1.WorkoutService/WatchWorkout"
@@ -81,6 +118,20 @@ type WorkoutServiceClient interface {
 	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	// Update user preferences (workout days, etc.)
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
+	// Group session management (new)
+	CreateGroupSession(context.Context, *connect.Request[v1.CreateGroupSessionRequest]) (*connect.Response[v1.CreateGroupSessionResponse], error)
+	JoinGroupSession(context.Context, *connect.Request[v1.JoinGroupSessionRequest]) (*connect.Response[v1.JoinGroupSessionResponse], error)
+	GetGroupSession(context.Context, *connect.Request[v1.GetGroupSessionRequest]) (*connect.Response[v1.GetGroupSessionResponse], error)
+	UpdateMyPlan(context.Context, *connect.Request[v1.UpdateMyPlanRequest]) (*connect.Response[v1.UpdateMyPlanResponse], error)
+	SetReady(context.Context, *connect.Request[v1.SetReadyRequest]) (*connect.Response[v1.SetReadyResponse], error)
+	StartGroupWorkout(context.Context, *connect.Request[v1.StartGroupWorkoutRequest]) (*connect.Response[v1.StartGroupWorkoutResponse], error)
+	LeaveGroupSession(context.Context, *connect.Request[v1.LeaveGroupSessionRequest]) (*connect.Response[v1.LeaveGroupSessionResponse], error)
+	// Legacy group management (kept for compatibility)
+	InviteToGroup(context.Context, *connect.Request[v1.InviteToGroupRequest]) (*connect.Response[v1.InviteToGroupResponse], error)
+	RespondToInvite(context.Context, *connect.Request[v1.RespondToInviteRequest]) (*connect.Response[v1.RespondToInviteResponse], error)
+	GetGroup(context.Context, *connect.Request[v1.GetGroupRequest]) (*connect.Response[v1.GetGroupResponse], error)
+	LeaveGroup(context.Context, *connect.Request[v1.LeaveGroupRequest]) (*connect.Response[v1.LeaveGroupResponse], error)
+	GetGroupWorkoutPlan(context.Context, *connect.Request[v1.GetGroupWorkoutPlanRequest]) (*connect.Response[v1.GetGroupWorkoutPlanResponse], error)
 	// Start performing a set
 	StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error)
 	// Finish any activity (set with reps, or rest)
@@ -93,8 +144,10 @@ type WorkoutServiceClient interface {
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
 	LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error)
-	// Stream: Subscribe to real-time workout updates
-	// Returns updates whenever any user in the session performs an action
+	// Stream: Subscribe to real-time notifications for the current user
+	// Connect on login, receive invites, group updates, and activity from group members
+	WatchNotifications(context.Context, *connect.Request[v1.WatchNotificationsRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error)
+	// Legacy Stream: Subscribe to real-time workout updates (deprecated - use WatchNotifications)
 	WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error)
 }
 
@@ -139,6 +192,78 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(workoutServiceMethods.ByName("UpdateUserPreferences")),
 			connect.WithClientOptions(opts...),
 		),
+		createGroupSession: connect.NewClient[v1.CreateGroupSessionRequest, v1.CreateGroupSessionResponse](
+			httpClient,
+			baseURL+WorkoutServiceCreateGroupSessionProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("CreateGroupSession")),
+			connect.WithClientOptions(opts...),
+		),
+		joinGroupSession: connect.NewClient[v1.JoinGroupSessionRequest, v1.JoinGroupSessionResponse](
+			httpClient,
+			baseURL+WorkoutServiceJoinGroupSessionProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("JoinGroupSession")),
+			connect.WithClientOptions(opts...),
+		),
+		getGroupSession: connect.NewClient[v1.GetGroupSessionRequest, v1.GetGroupSessionResponse](
+			httpClient,
+			baseURL+WorkoutServiceGetGroupSessionProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("GetGroupSession")),
+			connect.WithClientOptions(opts...),
+		),
+		updateMyPlan: connect.NewClient[v1.UpdateMyPlanRequest, v1.UpdateMyPlanResponse](
+			httpClient,
+			baseURL+WorkoutServiceUpdateMyPlanProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("UpdateMyPlan")),
+			connect.WithClientOptions(opts...),
+		),
+		setReady: connect.NewClient[v1.SetReadyRequest, v1.SetReadyResponse](
+			httpClient,
+			baseURL+WorkoutServiceSetReadyProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("SetReady")),
+			connect.WithClientOptions(opts...),
+		),
+		startGroupWorkout: connect.NewClient[v1.StartGroupWorkoutRequest, v1.StartGroupWorkoutResponse](
+			httpClient,
+			baseURL+WorkoutServiceStartGroupWorkoutProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("StartGroupWorkout")),
+			connect.WithClientOptions(opts...),
+		),
+		leaveGroupSession: connect.NewClient[v1.LeaveGroupSessionRequest, v1.LeaveGroupSessionResponse](
+			httpClient,
+			baseURL+WorkoutServiceLeaveGroupSessionProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("LeaveGroupSession")),
+			connect.WithClientOptions(opts...),
+		),
+		inviteToGroup: connect.NewClient[v1.InviteToGroupRequest, v1.InviteToGroupResponse](
+			httpClient,
+			baseURL+WorkoutServiceInviteToGroupProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("InviteToGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		respondToInvite: connect.NewClient[v1.RespondToInviteRequest, v1.RespondToInviteResponse](
+			httpClient,
+			baseURL+WorkoutServiceRespondToInviteProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("RespondToInvite")),
+			connect.WithClientOptions(opts...),
+		),
+		getGroup: connect.NewClient[v1.GetGroupRequest, v1.GetGroupResponse](
+			httpClient,
+			baseURL+WorkoutServiceGetGroupProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("GetGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		leaveGroup: connect.NewClient[v1.LeaveGroupRequest, v1.LeaveGroupResponse](
+			httpClient,
+			baseURL+WorkoutServiceLeaveGroupProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("LeaveGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		getGroupWorkoutPlan: connect.NewClient[v1.GetGroupWorkoutPlanRequest, v1.GetGroupWorkoutPlanResponse](
+			httpClient,
+			baseURL+WorkoutServiceGetGroupWorkoutPlanProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("GetGroupWorkoutPlan")),
+			connect.WithClientOptions(opts...),
+		),
 		startSet: connect.NewClient[v1.StartSetRequest, v1.StartSetResponse](
 			httpClient,
 			baseURL+WorkoutServiceStartSetProcedure,
@@ -175,6 +300,12 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(workoutServiceMethods.ByName("LogSet")),
 			connect.WithClientOptions(opts...),
 		),
+		watchNotifications: connect.NewClient[v1.WatchNotificationsRequest, v1.WorkoutUpdate](
+			httpClient,
+			baseURL+WorkoutServiceWatchNotificationsProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("WatchNotifications")),
+			connect.WithClientOptions(opts...),
+		),
 		watchWorkout: connect.NewClient[v1.WatchWorkoutRequest, v1.WorkoutUpdate](
 			httpClient,
 			baseURL+WorkoutServiceWatchWorkoutProcedure,
@@ -191,12 +322,25 @@ type workoutServiceClient struct {
 	getWorkoutState       *connect.Client[v1.GetWorkoutStateRequest, v1.GetWorkoutStateResponse]
 	getUserPreferences    *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
 	updateUserPreferences *connect.Client[v1.UpdateUserPreferencesRequest, v1.UpdateUserPreferencesResponse]
+	createGroupSession    *connect.Client[v1.CreateGroupSessionRequest, v1.CreateGroupSessionResponse]
+	joinGroupSession      *connect.Client[v1.JoinGroupSessionRequest, v1.JoinGroupSessionResponse]
+	getGroupSession       *connect.Client[v1.GetGroupSessionRequest, v1.GetGroupSessionResponse]
+	updateMyPlan          *connect.Client[v1.UpdateMyPlanRequest, v1.UpdateMyPlanResponse]
+	setReady              *connect.Client[v1.SetReadyRequest, v1.SetReadyResponse]
+	startGroupWorkout     *connect.Client[v1.StartGroupWorkoutRequest, v1.StartGroupWorkoutResponse]
+	leaveGroupSession     *connect.Client[v1.LeaveGroupSessionRequest, v1.LeaveGroupSessionResponse]
+	inviteToGroup         *connect.Client[v1.InviteToGroupRequest, v1.InviteToGroupResponse]
+	respondToInvite       *connect.Client[v1.RespondToInviteRequest, v1.RespondToInviteResponse]
+	getGroup              *connect.Client[v1.GetGroupRequest, v1.GetGroupResponse]
+	leaveGroup            *connect.Client[v1.LeaveGroupRequest, v1.LeaveGroupResponse]
+	getGroupWorkoutPlan   *connect.Client[v1.GetGroupWorkoutPlanRequest, v1.GetGroupWorkoutPlanResponse]
 	startSet              *connect.Client[v1.StartSetRequest, v1.StartSetResponse]
 	finishActivity        *connect.Client[v1.FinishActivityRequest, v1.FinishActivityResponse]
 	updatePlannedWeight   *connect.Client[v1.UpdatePlannedWeightRequest, v1.UpdatePlannedWeightResponse]
 	setExerciseOrder      *connect.Client[v1.SetExerciseOrderRequest, v1.SetExerciseOrderResponse]
 	getNextWorkout        *connect.Client[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse]
 	logSet                *connect.Client[v1.LogSetRequest, v1.LogSetResponse]
+	watchNotifications    *connect.Client[v1.WatchNotificationsRequest, v1.WorkoutUpdate]
 	watchWorkout          *connect.Client[v1.WatchWorkoutRequest, v1.WorkoutUpdate]
 }
 
@@ -223,6 +367,66 @@ func (c *workoutServiceClient) GetUserPreferences(ctx context.Context, req *conn
 // UpdateUserPreferences calls workout.v1.WorkoutService.UpdateUserPreferences.
 func (c *workoutServiceClient) UpdateUserPreferences(ctx context.Context, req *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error) {
 	return c.updateUserPreferences.CallUnary(ctx, req)
+}
+
+// CreateGroupSession calls workout.v1.WorkoutService.CreateGroupSession.
+func (c *workoutServiceClient) CreateGroupSession(ctx context.Context, req *connect.Request[v1.CreateGroupSessionRequest]) (*connect.Response[v1.CreateGroupSessionResponse], error) {
+	return c.createGroupSession.CallUnary(ctx, req)
+}
+
+// JoinGroupSession calls workout.v1.WorkoutService.JoinGroupSession.
+func (c *workoutServiceClient) JoinGroupSession(ctx context.Context, req *connect.Request[v1.JoinGroupSessionRequest]) (*connect.Response[v1.JoinGroupSessionResponse], error) {
+	return c.joinGroupSession.CallUnary(ctx, req)
+}
+
+// GetGroupSession calls workout.v1.WorkoutService.GetGroupSession.
+func (c *workoutServiceClient) GetGroupSession(ctx context.Context, req *connect.Request[v1.GetGroupSessionRequest]) (*connect.Response[v1.GetGroupSessionResponse], error) {
+	return c.getGroupSession.CallUnary(ctx, req)
+}
+
+// UpdateMyPlan calls workout.v1.WorkoutService.UpdateMyPlan.
+func (c *workoutServiceClient) UpdateMyPlan(ctx context.Context, req *connect.Request[v1.UpdateMyPlanRequest]) (*connect.Response[v1.UpdateMyPlanResponse], error) {
+	return c.updateMyPlan.CallUnary(ctx, req)
+}
+
+// SetReady calls workout.v1.WorkoutService.SetReady.
+func (c *workoutServiceClient) SetReady(ctx context.Context, req *connect.Request[v1.SetReadyRequest]) (*connect.Response[v1.SetReadyResponse], error) {
+	return c.setReady.CallUnary(ctx, req)
+}
+
+// StartGroupWorkout calls workout.v1.WorkoutService.StartGroupWorkout.
+func (c *workoutServiceClient) StartGroupWorkout(ctx context.Context, req *connect.Request[v1.StartGroupWorkoutRequest]) (*connect.Response[v1.StartGroupWorkoutResponse], error) {
+	return c.startGroupWorkout.CallUnary(ctx, req)
+}
+
+// LeaveGroupSession calls workout.v1.WorkoutService.LeaveGroupSession.
+func (c *workoutServiceClient) LeaveGroupSession(ctx context.Context, req *connect.Request[v1.LeaveGroupSessionRequest]) (*connect.Response[v1.LeaveGroupSessionResponse], error) {
+	return c.leaveGroupSession.CallUnary(ctx, req)
+}
+
+// InviteToGroup calls workout.v1.WorkoutService.InviteToGroup.
+func (c *workoutServiceClient) InviteToGroup(ctx context.Context, req *connect.Request[v1.InviteToGroupRequest]) (*connect.Response[v1.InviteToGroupResponse], error) {
+	return c.inviteToGroup.CallUnary(ctx, req)
+}
+
+// RespondToInvite calls workout.v1.WorkoutService.RespondToInvite.
+func (c *workoutServiceClient) RespondToInvite(ctx context.Context, req *connect.Request[v1.RespondToInviteRequest]) (*connect.Response[v1.RespondToInviteResponse], error) {
+	return c.respondToInvite.CallUnary(ctx, req)
+}
+
+// GetGroup calls workout.v1.WorkoutService.GetGroup.
+func (c *workoutServiceClient) GetGroup(ctx context.Context, req *connect.Request[v1.GetGroupRequest]) (*connect.Response[v1.GetGroupResponse], error) {
+	return c.getGroup.CallUnary(ctx, req)
+}
+
+// LeaveGroup calls workout.v1.WorkoutService.LeaveGroup.
+func (c *workoutServiceClient) LeaveGroup(ctx context.Context, req *connect.Request[v1.LeaveGroupRequest]) (*connect.Response[v1.LeaveGroupResponse], error) {
+	return c.leaveGroup.CallUnary(ctx, req)
+}
+
+// GetGroupWorkoutPlan calls workout.v1.WorkoutService.GetGroupWorkoutPlan.
+func (c *workoutServiceClient) GetGroupWorkoutPlan(ctx context.Context, req *connect.Request[v1.GetGroupWorkoutPlanRequest]) (*connect.Response[v1.GetGroupWorkoutPlanResponse], error) {
+	return c.getGroupWorkoutPlan.CallUnary(ctx, req)
 }
 
 // StartSet calls workout.v1.WorkoutService.StartSet.
@@ -255,6 +459,11 @@ func (c *workoutServiceClient) LogSet(ctx context.Context, req *connect.Request[
 	return c.logSet.CallUnary(ctx, req)
 }
 
+// WatchNotifications calls workout.v1.WorkoutService.WatchNotifications.
+func (c *workoutServiceClient) WatchNotifications(ctx context.Context, req *connect.Request[v1.WatchNotificationsRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error) {
+	return c.watchNotifications.CallServerStream(ctx, req)
+}
+
 // WatchWorkout calls workout.v1.WorkoutService.WatchWorkout.
 func (c *workoutServiceClient) WatchWorkout(ctx context.Context, req *connect.Request[v1.WatchWorkoutRequest]) (*connect.ServerStreamForClient[v1.WorkoutUpdate], error) {
 	return c.watchWorkout.CallServerStream(ctx, req)
@@ -272,6 +481,20 @@ type WorkoutServiceHandler interface {
 	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	// Update user preferences (workout days, etc.)
 	UpdateUserPreferences(context.Context, *connect.Request[v1.UpdateUserPreferencesRequest]) (*connect.Response[v1.UpdateUserPreferencesResponse], error)
+	// Group session management (new)
+	CreateGroupSession(context.Context, *connect.Request[v1.CreateGroupSessionRequest]) (*connect.Response[v1.CreateGroupSessionResponse], error)
+	JoinGroupSession(context.Context, *connect.Request[v1.JoinGroupSessionRequest]) (*connect.Response[v1.JoinGroupSessionResponse], error)
+	GetGroupSession(context.Context, *connect.Request[v1.GetGroupSessionRequest]) (*connect.Response[v1.GetGroupSessionResponse], error)
+	UpdateMyPlan(context.Context, *connect.Request[v1.UpdateMyPlanRequest]) (*connect.Response[v1.UpdateMyPlanResponse], error)
+	SetReady(context.Context, *connect.Request[v1.SetReadyRequest]) (*connect.Response[v1.SetReadyResponse], error)
+	StartGroupWorkout(context.Context, *connect.Request[v1.StartGroupWorkoutRequest]) (*connect.Response[v1.StartGroupWorkoutResponse], error)
+	LeaveGroupSession(context.Context, *connect.Request[v1.LeaveGroupSessionRequest]) (*connect.Response[v1.LeaveGroupSessionResponse], error)
+	// Legacy group management (kept for compatibility)
+	InviteToGroup(context.Context, *connect.Request[v1.InviteToGroupRequest]) (*connect.Response[v1.InviteToGroupResponse], error)
+	RespondToInvite(context.Context, *connect.Request[v1.RespondToInviteRequest]) (*connect.Response[v1.RespondToInviteResponse], error)
+	GetGroup(context.Context, *connect.Request[v1.GetGroupRequest]) (*connect.Response[v1.GetGroupResponse], error)
+	LeaveGroup(context.Context, *connect.Request[v1.LeaveGroupRequest]) (*connect.Response[v1.LeaveGroupResponse], error)
+	GetGroupWorkoutPlan(context.Context, *connect.Request[v1.GetGroupWorkoutPlanRequest]) (*connect.Response[v1.GetGroupWorkoutPlanResponse], error)
 	// Start performing a set
 	StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error)
 	// Finish any activity (set with reps, or rest)
@@ -284,8 +507,10 @@ type WorkoutServiceHandler interface {
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
 	LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error)
-	// Stream: Subscribe to real-time workout updates
-	// Returns updates whenever any user in the session performs an action
+	// Stream: Subscribe to real-time notifications for the current user
+	// Connect on login, receive invites, group updates, and activity from group members
+	WatchNotifications(context.Context, *connect.Request[v1.WatchNotificationsRequest], *connect.ServerStream[v1.WorkoutUpdate]) error
+	// Legacy Stream: Subscribe to real-time workout updates (deprecated - use WatchNotifications)
 	WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest], *connect.ServerStream[v1.WorkoutUpdate]) error
 }
 
@@ -326,6 +551,78 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		connect.WithSchema(workoutServiceMethods.ByName("UpdateUserPreferences")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workoutServiceCreateGroupSessionHandler := connect.NewUnaryHandler(
+		WorkoutServiceCreateGroupSessionProcedure,
+		svc.CreateGroupSession,
+		connect.WithSchema(workoutServiceMethods.ByName("CreateGroupSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceJoinGroupSessionHandler := connect.NewUnaryHandler(
+		WorkoutServiceJoinGroupSessionProcedure,
+		svc.JoinGroupSession,
+		connect.WithSchema(workoutServiceMethods.ByName("JoinGroupSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceGetGroupSessionHandler := connect.NewUnaryHandler(
+		WorkoutServiceGetGroupSessionProcedure,
+		svc.GetGroupSession,
+		connect.WithSchema(workoutServiceMethods.ByName("GetGroupSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceUpdateMyPlanHandler := connect.NewUnaryHandler(
+		WorkoutServiceUpdateMyPlanProcedure,
+		svc.UpdateMyPlan,
+		connect.WithSchema(workoutServiceMethods.ByName("UpdateMyPlan")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceSetReadyHandler := connect.NewUnaryHandler(
+		WorkoutServiceSetReadyProcedure,
+		svc.SetReady,
+		connect.WithSchema(workoutServiceMethods.ByName("SetReady")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceStartGroupWorkoutHandler := connect.NewUnaryHandler(
+		WorkoutServiceStartGroupWorkoutProcedure,
+		svc.StartGroupWorkout,
+		connect.WithSchema(workoutServiceMethods.ByName("StartGroupWorkout")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceLeaveGroupSessionHandler := connect.NewUnaryHandler(
+		WorkoutServiceLeaveGroupSessionProcedure,
+		svc.LeaveGroupSession,
+		connect.WithSchema(workoutServiceMethods.ByName("LeaveGroupSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceInviteToGroupHandler := connect.NewUnaryHandler(
+		WorkoutServiceInviteToGroupProcedure,
+		svc.InviteToGroup,
+		connect.WithSchema(workoutServiceMethods.ByName("InviteToGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceRespondToInviteHandler := connect.NewUnaryHandler(
+		WorkoutServiceRespondToInviteProcedure,
+		svc.RespondToInvite,
+		connect.WithSchema(workoutServiceMethods.ByName("RespondToInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceGetGroupHandler := connect.NewUnaryHandler(
+		WorkoutServiceGetGroupProcedure,
+		svc.GetGroup,
+		connect.WithSchema(workoutServiceMethods.ByName("GetGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceLeaveGroupHandler := connect.NewUnaryHandler(
+		WorkoutServiceLeaveGroupProcedure,
+		svc.LeaveGroup,
+		connect.WithSchema(workoutServiceMethods.ByName("LeaveGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	workoutServiceGetGroupWorkoutPlanHandler := connect.NewUnaryHandler(
+		WorkoutServiceGetGroupWorkoutPlanProcedure,
+		svc.GetGroupWorkoutPlan,
+		connect.WithSchema(workoutServiceMethods.ByName("GetGroupWorkoutPlan")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workoutServiceStartSetHandler := connect.NewUnaryHandler(
 		WorkoutServiceStartSetProcedure,
 		svc.StartSet,
@@ -362,6 +659,12 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		connect.WithSchema(workoutServiceMethods.ByName("LogSet")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workoutServiceWatchNotificationsHandler := connect.NewServerStreamHandler(
+		WorkoutServiceWatchNotificationsProcedure,
+		svc.WatchNotifications,
+		connect.WithSchema(workoutServiceMethods.ByName("WatchNotifications")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workoutServiceWatchWorkoutHandler := connect.NewServerStreamHandler(
 		WorkoutServiceWatchWorkoutProcedure,
 		svc.WatchWorkout,
@@ -380,6 +683,30 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 			workoutServiceGetUserPreferencesHandler.ServeHTTP(w, r)
 		case WorkoutServiceUpdateUserPreferencesProcedure:
 			workoutServiceUpdateUserPreferencesHandler.ServeHTTP(w, r)
+		case WorkoutServiceCreateGroupSessionProcedure:
+			workoutServiceCreateGroupSessionHandler.ServeHTTP(w, r)
+		case WorkoutServiceJoinGroupSessionProcedure:
+			workoutServiceJoinGroupSessionHandler.ServeHTTP(w, r)
+		case WorkoutServiceGetGroupSessionProcedure:
+			workoutServiceGetGroupSessionHandler.ServeHTTP(w, r)
+		case WorkoutServiceUpdateMyPlanProcedure:
+			workoutServiceUpdateMyPlanHandler.ServeHTTP(w, r)
+		case WorkoutServiceSetReadyProcedure:
+			workoutServiceSetReadyHandler.ServeHTTP(w, r)
+		case WorkoutServiceStartGroupWorkoutProcedure:
+			workoutServiceStartGroupWorkoutHandler.ServeHTTP(w, r)
+		case WorkoutServiceLeaveGroupSessionProcedure:
+			workoutServiceLeaveGroupSessionHandler.ServeHTTP(w, r)
+		case WorkoutServiceInviteToGroupProcedure:
+			workoutServiceInviteToGroupHandler.ServeHTTP(w, r)
+		case WorkoutServiceRespondToInviteProcedure:
+			workoutServiceRespondToInviteHandler.ServeHTTP(w, r)
+		case WorkoutServiceGetGroupProcedure:
+			workoutServiceGetGroupHandler.ServeHTTP(w, r)
+		case WorkoutServiceLeaveGroupProcedure:
+			workoutServiceLeaveGroupHandler.ServeHTTP(w, r)
+		case WorkoutServiceGetGroupWorkoutPlanProcedure:
+			workoutServiceGetGroupWorkoutPlanHandler.ServeHTTP(w, r)
 		case WorkoutServiceStartSetProcedure:
 			workoutServiceStartSetHandler.ServeHTTP(w, r)
 		case WorkoutServiceFinishActivityProcedure:
@@ -392,6 +719,8 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 			workoutServiceGetNextWorkoutHandler.ServeHTTP(w, r)
 		case WorkoutServiceLogSetProcedure:
 			workoutServiceLogSetHandler.ServeHTTP(w, r)
+		case WorkoutServiceWatchNotificationsProcedure:
+			workoutServiceWatchNotificationsHandler.ServeHTTP(w, r)
 		case WorkoutServiceWatchWorkoutProcedure:
 			workoutServiceWatchWorkoutHandler.ServeHTTP(w, r)
 		default:
@@ -423,6 +752,54 @@ func (UnimplementedWorkoutServiceHandler) UpdateUserPreferences(context.Context,
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.UpdateUserPreferences is not implemented"))
 }
 
+func (UnimplementedWorkoutServiceHandler) CreateGroupSession(context.Context, *connect.Request[v1.CreateGroupSessionRequest]) (*connect.Response[v1.CreateGroupSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.CreateGroupSession is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) JoinGroupSession(context.Context, *connect.Request[v1.JoinGroupSessionRequest]) (*connect.Response[v1.JoinGroupSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.JoinGroupSession is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) GetGroupSession(context.Context, *connect.Request[v1.GetGroupSessionRequest]) (*connect.Response[v1.GetGroupSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.GetGroupSession is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) UpdateMyPlan(context.Context, *connect.Request[v1.UpdateMyPlanRequest]) (*connect.Response[v1.UpdateMyPlanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.UpdateMyPlan is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) SetReady(context.Context, *connect.Request[v1.SetReadyRequest]) (*connect.Response[v1.SetReadyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.SetReady is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) StartGroupWorkout(context.Context, *connect.Request[v1.StartGroupWorkoutRequest]) (*connect.Response[v1.StartGroupWorkoutResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.StartGroupWorkout is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) LeaveGroupSession(context.Context, *connect.Request[v1.LeaveGroupSessionRequest]) (*connect.Response[v1.LeaveGroupSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.LeaveGroupSession is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) InviteToGroup(context.Context, *connect.Request[v1.InviteToGroupRequest]) (*connect.Response[v1.InviteToGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.InviteToGroup is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) RespondToInvite(context.Context, *connect.Request[v1.RespondToInviteRequest]) (*connect.Response[v1.RespondToInviteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.RespondToInvite is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) GetGroup(context.Context, *connect.Request[v1.GetGroupRequest]) (*connect.Response[v1.GetGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.GetGroup is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) LeaveGroup(context.Context, *connect.Request[v1.LeaveGroupRequest]) (*connect.Response[v1.LeaveGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.LeaveGroup is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) GetGroupWorkoutPlan(context.Context, *connect.Request[v1.GetGroupWorkoutPlanRequest]) (*connect.Response[v1.GetGroupWorkoutPlanResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.GetGroupWorkoutPlan is not implemented"))
+}
+
 func (UnimplementedWorkoutServiceHandler) StartSet(context.Context, *connect.Request[v1.StartSetRequest]) (*connect.Response[v1.StartSetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.StartSet is not implemented"))
 }
@@ -445,6 +822,10 @@ func (UnimplementedWorkoutServiceHandler) GetNextWorkout(context.Context, *conne
 
 func (UnimplementedWorkoutServiceHandler) LogSet(context.Context, *connect.Request[v1.LogSetRequest]) (*connect.Response[v1.LogSetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.LogSet is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) WatchNotifications(context.Context, *connect.Request[v1.WatchNotificationsRequest], *connect.ServerStream[v1.WorkoutUpdate]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.WatchNotifications is not implemented"))
 }
 
 func (UnimplementedWorkoutServiceHandler) WatchWorkout(context.Context, *connect.Request[v1.WatchWorkoutRequest], *connect.ServerStream[v1.WorkoutUpdate]) error {

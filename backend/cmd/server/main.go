@@ -38,15 +38,22 @@ func main() {
 	}
 	defer dbManager.Close()
 
+	// Initialize group session database manager
+	groupManager, err := db.NewGroupManager(dataPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize group manager: %v", err)
+	}
+	defer groupManager.Close()
+
 	// Create hub for real-time updates
 	workoutHub := hub.New()
 
 	// Create service
-	workoutService := service.NewWorkoutService(dbManager, workoutHub)
+	workoutService := service.NewWorkoutService(dbManager, groupManager, workoutHub)
 
-	// Create interceptors
+	// Create interceptors (handles both unary and streaming calls)
 	interceptors := connect.WithInterceptors(
-		interceptor.UsernameInterceptor(dbManager),
+		interceptor.NewUsernameInterceptor(dbManager),
 	)
 
 	// Create handler

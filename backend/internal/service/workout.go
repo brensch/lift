@@ -28,15 +28,17 @@ const (
 // WorkoutService implements the WorkoutService RPC handlers
 type WorkoutService struct {
 	workoutv1connect.UnimplementedWorkoutServiceHandler
-	dbManager *db.Manager
-	hub       *hub.Hub
+	dbManager    *db.Manager
+	groupManager *db.GroupManager
+	hub          *hub.Hub
 }
 
 // NewWorkoutService creates a new workout service
-func NewWorkoutService(dbManager *db.Manager, h *hub.Hub) *WorkoutService {
+func NewWorkoutService(dbManager *db.Manager, groupManager *db.GroupManager, h *hub.Hub) *WorkoutService {
 	return &WorkoutService{
-		dbManager: dbManager,
-		hub:       h,
+		dbManager:    dbManager,
+		groupManager: groupManager,
+		hub:          h,
 	}
 }
 
@@ -91,6 +93,21 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 		}
 	}
 
+	// Get pending invites and active group (legacy system)
+	pendingInvites := s.getPendingInvites(ctx, database, username)
+	activeGroup := s.getActiveGroup(ctx, database, username)
+
+	// Check for active group session (new system)
+	var activeSession *workoutv1.GroupSession
+	var sessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&sessionID)
+	if sessionID.Valid && sessionID.String != "" {
+		groupDB, err := s.groupManager.GetSession(sessionID.String)
+		if err == nil {
+			activeSession = s.buildGroupSession(ctx, groupDB, sessionID.String)
+		}
+	}
+
 	return connect.NewResponse(&workoutv1.GetUpcomingWorkoutsResponse{
 		Workouts:      workouts,
 		ActiveWorkout: activeWorkout,
@@ -98,7 +115,10 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 			SuccessSeconds: RestSuccessSeconds,
 			FailureSeconds: RestFailureSeconds,
 		},
-		Preferences: preferences,
+		Preferences:    preferences,
+		PendingInvites: pendingInvites,
+		ActiveGroup:    activeGroup,
+		ActiveSession:  activeSession,
 	}), nil
 }
 
@@ -536,13 +556,45 @@ func (s *WorkoutService) StartSet(
 		TargetReps: req.Msg.TargetReps,
 	}
 
-	// Broadcast to other users in the session
-	s.hub.Broadcast(req.Msg.SessionId, &workoutv1.WorkoutUpdate{
-		Type:      workoutv1.UpdateType_UPDATE_TYPE_SET_STARTED,
-		UserId:    username,
-		Activity:  activity,
-		Timestamp: timestamppb.New(now),
-	}, username)
+	// Check for group (legacy system - sessions.group_id)
+	var groupID sql.NullString
+	database.QueryRowContext(ctx, `SELECT group_id FROM sessions WHERE id = ?`, req.Msg.SessionId).Scan(&groupID)
+	if groupID.Valid && groupID.String != "" {
+		s.hub.BroadcastToAll(hub.GroupChannel(groupID.String), &workoutv1.WorkoutUpdate{
+			Type:      workoutv1.UpdateType_UPDATE_TYPE_SET_STARTED,
+			UserId:    username,
+			Activity:  activity,
+			GroupId:   groupID.String,
+			Timestamp: timestamppb.New(now),
+		})
+	}
+
+	// Check for active group session (new system)
+	var groupSessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&groupSessionID)
+	if groupSessionID.Valid && groupSessionID.String != "" {
+		// Write to group session activity_log
+		groupDB, err := s.groupManager.GetSession(groupSessionID.String)
+		if err == nil {
+			groupDB.ExecContext(ctx, `
+				INSERT INTO activity_log (id, user_id, type, exercise, set_number, weight, target_reps, started_at)
+				VALUES (?, ?, 'set', ?, ?, ?, ?, ?)
+			`, activityID, username, req.Msg.Exercise.String(), req.Msg.SetNumber, req.Msg.Weight, req.Msg.TargetReps, now)
+
+			// Build updated session (recalculates next_up)
+			session := s.buildGroupSession(ctx, groupDB, groupSessionID.String)
+
+			// Broadcast to group session channel with updated session
+			s.hub.BroadcastToAll(hub.GroupChannel(groupSessionID.String), &workoutv1.WorkoutUpdate{
+				Type:      workoutv1.UpdateType_UPDATE_TYPE_SET_STARTED,
+				UserId:    username,
+				Activity:  activity,
+				Session:   session,
+				GroupId:   groupSessionID.String,
+				Timestamp: timestamppb.New(now),
+			})
+		}
+	}
 
 	return connect.NewResponse(&workoutv1.StartSetResponse{
 		Activity: activity,
@@ -671,7 +723,7 @@ func (s *WorkoutService) FinishActivity(
 		return nil, err
 	}
 
-	// Broadcast update to other users in the session
+	// Broadcast update to group if in one
 	var updateType workoutv1.UpdateType
 	if typeStr == "SET" {
 		updateType = workoutv1.UpdateType_UPDATE_TYPE_SET_COMPLETED
@@ -679,13 +731,60 @@ func (s *WorkoutService) FinishActivity(
 		updateType = workoutv1.UpdateType_UPDATE_TYPE_REST_SKIPPED
 	}
 
-	s.hub.Broadcast(req.Msg.SessionId, &workoutv1.WorkoutUpdate{
-		Type:      updateType,
-		UserId:    username,
-		Activity:  finishedActivity,
-		State:     stateResp.Msg.State,
-		Timestamp: timestamppb.Now(),
-	}, username)
+	// Check if session has a group (legacy) - broadcast to group channel if so
+	var groupID sql.NullString
+	database.QueryRowContext(ctx, `SELECT group_id FROM sessions WHERE id = ?`, req.Msg.SessionId).Scan(&groupID)
+	if groupID.Valid && groupID.String != "" {
+		s.hub.BroadcastToAll(hub.GroupChannel(groupID.String), &workoutv1.WorkoutUpdate{
+			Type:      updateType,
+			UserId:    username,
+			Activity:  finishedActivity,
+			State:     stateResp.Msg.State,
+			GroupId:   groupID.String,
+			Timestamp: timestamppb.Now(),
+		})
+	}
+
+	// Check for active group session (new system)
+	var groupSessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&groupSessionID)
+	if groupSessionID.Valid && groupSessionID.String != "" {
+		// Update activity_log in group session DB
+		groupDB, err := s.groupManager.GetSession(groupSessionID.String)
+		if err == nil {
+			if typeStr == "SET" {
+				// Update the set activity with completion info
+				groupDB.ExecContext(ctx, `
+					UPDATE activity_log SET ended_at = ?, actual_reps = ? WHERE id = ?
+				`, now, req.Msg.ActualReps, req.Msg.ActivityId)
+
+				// Create rest activity
+				if nextActivity != nil {
+					groupDB.ExecContext(ctx, `
+						INSERT INTO activity_log (id, user_id, type, planned_rest_seconds, started_at)
+						VALUES (?, ?, 'rest', ?, ?)
+					`, nextActivity.Id, username, nextActivity.PlannedDurationSeconds, now)
+				}
+			} else {
+				// Finishing REST - just update ended_at
+				groupDB.ExecContext(ctx, `UPDATE activity_log SET ended_at = ? WHERE id = ?`, now, req.Msg.ActivityId)
+			}
+
+			// Build updated session (recalculates next_up)
+			session := s.buildGroupSession(ctx, groupDB, groupSessionID.String)
+
+			// Broadcast to group session channel with updated session
+			s.hub.BroadcastToAll(hub.GroupChannel(groupSessionID.String), &workoutv1.WorkoutUpdate{
+				Type:      updateType,
+				UserId:    username,
+				Activity:  finishedActivity,
+				State:     stateResp.Msg.State,
+				Session:   session,
+				GroupId:   groupSessionID.String,
+				Timestamp: timestamppb.Now(),
+			})
+		}
+	}
 
 	return connect.NewResponse(&workoutv1.FinishActivityResponse{
 		FinishedActivity: finishedActivity,
@@ -1227,6 +1326,24 @@ func (s *WorkoutService) SetExerciseOrder(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update exercise order: %w", err))
 	}
 
+	// If user is in a group session, broadcast the update so next_up gets recalculated for everyone
+	var groupSessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&groupSessionID)
+	if groupSessionID.Valid && groupSessionID.String != "" {
+		if groupDB, err := s.groupManager.GetSession(groupSessionID.String); err == nil {
+			// Build updated session (this recalculates next_up)
+			session := s.buildGroupSession(ctx, groupDB, groupSessionID.String)
+			// Broadcast to all group members
+			s.hub.BroadcastToAll(hub.GroupChannel(groupSessionID.String), &workoutv1.WorkoutUpdate{
+				Type:      workoutv1.UpdateType_UPDATE_TYPE_SESSION_UPDATED,
+				UserId:    username,
+				Session:   session,
+				GroupId:   groupSessionID.String,
+				Timestamp: timestamppb.Now(),
+			})
+		}
+	}
+
 	// Get updated planned sets with new order
 	plannedSets, err := s.getPlannedSets(ctx, database, req.Msg.SessionId)
 	if err != nil {
@@ -1247,7 +1364,153 @@ func (s *WorkoutService) SetExerciseOrder(
 	}), nil
 }
 
-// WatchWorkout streams real-time updates for a workout session
+// WatchNotifications streams real-time notifications for a user
+// This is the main streaming endpoint - connect on login to receive all updates
+func (s *WorkoutService) WatchNotifications(
+	ctx context.Context,
+	req *connect.Request[workoutv1.WatchNotificationsRequest],
+	stream *connect.ServerStream[workoutv1.WorkoutUpdate],
+) error {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	// Create a merged channel for all updates
+	updates := make(chan *workoutv1.WorkoutUpdate, 20)
+	done := make(chan struct{})
+	defer close(done)
+
+	// Subscribe to the user's personal notification channel
+	userChannel := hub.UserChannel(username)
+	userClient := s.hub.Subscribe(userChannel, username)
+	defer s.hub.Unsubscribe(userChannel, username)
+
+	// Forward user channel updates to merged channel
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case update, ok := <-userClient.Send:
+				if !ok {
+					return
+				}
+				select {
+				case updates <- update:
+				case <-done:
+					return
+				}
+			}
+		}
+	}()
+
+	// Check if user has an active workout with a group
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Track current group subscription
+	var currentGroupID string
+	var groupDone chan struct{}
+
+	// Helper to subscribe to group channel
+	subscribeToGroup := func(groupID string) {
+		if groupID == currentGroupID {
+			return
+		}
+		// Stop forwarding from old group
+		if groupDone != nil {
+			close(groupDone)
+			groupDone = nil
+		}
+		// Unsubscribe from old group
+		if currentGroupID != "" {
+			s.hub.Unsubscribe(hub.GroupChannel(currentGroupID), username)
+		}
+		currentGroupID = groupID
+		// Subscribe to new group and forward updates
+		if groupID != "" {
+			groupClient := s.hub.Subscribe(hub.GroupChannel(groupID), username)
+			groupDone = make(chan struct{})
+			go func(gd chan struct{}) {
+				for {
+					select {
+					case <-done:
+						return
+					case <-gd:
+						return
+					case update, ok := <-groupClient.Send:
+						if !ok {
+							return
+						}
+						select {
+						case updates <- update:
+						case <-done:
+							return
+						case <-gd:
+							return
+						}
+					}
+				}
+			}(groupDone)
+		}
+	}
+
+	// Check for active group session (new system) or active workout group (legacy)
+	// First check new system - active_group_session table
+	var sessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&sessionID)
+	if sessionID.Valid && sessionID.String != "" {
+		// Check if this session exists in group manager
+		if s.groupManager.SessionExists(sessionID.String) {
+			subscribeToGroup(sessionID.String)
+		}
+	}
+	// Also check legacy system - group_id in sessions
+	activeState, _ := s.getActiveWorkout(ctx, database)
+	if activeState != nil && currentGroupID == "" {
+		var gid sql.NullString
+		database.QueryRowContext(ctx, `SELECT group_id FROM sessions WHERE id = ?`, activeState.SessionId).Scan(&gid)
+		if gid.Valid && gid.String != "" {
+			subscribeToGroup(gid.String)
+		}
+	}
+
+	// Cleanup on exit
+	defer func() {
+		if groupDone != nil {
+			close(groupDone)
+		}
+		if currentGroupID != "" {
+			s.hub.Unsubscribe(hub.GroupChannel(currentGroupID), username)
+		}
+	}()
+
+	// Stream updates to the client
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+
+		case update, ok := <-updates:
+			if !ok {
+				return nil
+			}
+			if err := stream.Send(update); err != nil {
+				return err
+			}
+			// If this update indicates joining a group, subscribe to that group
+			if update.GroupId != "" && (update.Type == workoutv1.UpdateType_UPDATE_TYPE_INVITE_ACCEPTED ||
+				update.Type == workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED) {
+				subscribeToGroup(update.GroupId)
+			}
+		}
+	}
+}
+
+// WatchWorkout streams real-time updates for a workout session (deprecated - use WatchNotifications)
 func (s *WorkoutService) WatchWorkout(
 	ctx context.Context,
 	req *connect.Request[workoutv1.WatchWorkoutRequest],
@@ -1263,6 +1526,29 @@ func (s *WorkoutService) WatchWorkout(
 	// Subscribe to updates for this session
 	client := s.hub.Subscribe(sessionID, userID)
 	defer s.hub.Unsubscribe(sessionID, userID)
+
+	// Check if this session belongs to a group - if so, also subscribe to group updates
+	var groupID string
+	if db, err := s.dbManager.GetDB(userID); err == nil {
+		var gid sql.NullString
+		db.QueryRowContext(ctx, `SELECT group_id FROM sessions WHERE id = ?`, sessionID).Scan(&gid)
+		if gid.Valid && gid.String != "" {
+			groupID = gid.String
+			// Subscribe to group channel for group-wide notifications
+			groupClient := s.hub.Subscribe(groupID, userID)
+			defer s.hub.Unsubscribe(groupID, userID)
+			// Forward group updates to the main client channel
+			go func() {
+				for update := range groupClient.Send {
+					select {
+					case client.Send <- update:
+					default:
+						// Buffer full, skip
+					}
+				}
+			}()
+		}
+	}
 
 	// Notify others that this user joined
 	s.hub.Broadcast(sessionID, &workoutv1.WorkoutUpdate{

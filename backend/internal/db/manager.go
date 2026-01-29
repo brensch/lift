@@ -154,7 +154,49 @@ CREATE INDEX IF NOT EXISTS idx_sets_completed ON sets(completed_at);
 	// Insert default preferences if not exists (Mon=1, Wed=3, Fri=5)
 	db.Exec(`INSERT OR IGNORE INTO user_preferences (id, workout_days) VALUES (1, '1,3,5')`)
 
+	// Create workout_groups table (shared across users via separate DB)
+	db.Exec(`
+		CREATE TABLE IF NOT EXISTS workout_groups (
+			id TEXT PRIMARY KEY,
+			created_by TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			is_active INTEGER DEFAULT 1
+		)
+	`)
+
+	// Create group_invites table
+	db.Exec(`
+		CREATE TABLE IF NOT EXISTS group_invites (
+			id TEXT PRIMARY KEY,
+			group_id TEXT NOT NULL,
+			from_user TEXT NOT NULL,
+			to_user TEXT NOT NULL,
+			status TEXT DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (group_id) REFERENCES workout_groups(id)
+		)
+	`)
+
+	// Add group_id to sessions
+	db.Exec(`ALTER TABLE sessions ADD COLUMN group_id TEXT`)
+
+	// Track active group session for this user
+	db.Exec(`
+		CREATE TABLE IF NOT EXISTS active_group_session (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			session_id TEXT NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+
 	return nil
+}
+
+// UserExists checks if a user's database file exists (without creating it)
+func (m *Manager) UserExists(username string) bool {
+	dbPath := filepath.Join(m.dataPath, username+".db")
+	_, err := os.Stat(dbPath)
+	return err == nil
 }
 
 // Close closes all database connections

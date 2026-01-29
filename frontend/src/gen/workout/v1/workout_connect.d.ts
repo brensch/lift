@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
+import { CreateGroupSessionRequest, CreateGroupSessionResponse, FinishActivityRequest, FinishActivityResponse, GetGroupRequest, GetGroupResponse, GetGroupSessionRequest, GetGroupSessionResponse, GetGroupWorkoutPlanRequest, GetGroupWorkoutPlanResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, InviteToGroupRequest, InviteToGroupResponse, JoinGroupSessionRequest, JoinGroupSessionResponse, LeaveGroupRequest, LeaveGroupResponse, LeaveGroupSessionRequest, LeaveGroupSessionResponse, LogSetRequest, LogSetResponse, RespondToInviteRequest, RespondToInviteResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, SetReadyRequest, SetReadyResponse, StartGroupWorkoutRequest, StartGroupWorkoutResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateMyPlanRequest, UpdateMyPlanResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchNotificationsRequest, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -65,6 +65,118 @@ export declare const WorkoutService: {
       readonly name: "UpdateUserPreferences",
       readonly I: typeof UpdateUserPreferencesRequest,
       readonly O: typeof UpdateUserPreferencesResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Group session management (new)
+     *
+     * @generated from rpc workout.v1.WorkoutService.CreateGroupSession
+     */
+    readonly createGroupSession: {
+      readonly name: "CreateGroupSession",
+      readonly I: typeof CreateGroupSessionRequest,
+      readonly O: typeof CreateGroupSessionResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.JoinGroupSession
+     */
+    readonly joinGroupSession: {
+      readonly name: "JoinGroupSession",
+      readonly I: typeof JoinGroupSessionRequest,
+      readonly O: typeof JoinGroupSessionResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.GetGroupSession
+     */
+    readonly getGroupSession: {
+      readonly name: "GetGroupSession",
+      readonly I: typeof GetGroupSessionRequest,
+      readonly O: typeof GetGroupSessionResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.UpdateMyPlan
+     */
+    readonly updateMyPlan: {
+      readonly name: "UpdateMyPlan",
+      readonly I: typeof UpdateMyPlanRequest,
+      readonly O: typeof UpdateMyPlanResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.SetReady
+     */
+    readonly setReady: {
+      readonly name: "SetReady",
+      readonly I: typeof SetReadyRequest,
+      readonly O: typeof SetReadyResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.StartGroupWorkout
+     */
+    readonly startGroupWorkout: {
+      readonly name: "StartGroupWorkout",
+      readonly I: typeof StartGroupWorkoutRequest,
+      readonly O: typeof StartGroupWorkoutResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.LeaveGroupSession
+     */
+    readonly leaveGroupSession: {
+      readonly name: "LeaveGroupSession",
+      readonly I: typeof LeaveGroupSessionRequest,
+      readonly O: typeof LeaveGroupSessionResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Legacy group management (kept for compatibility)
+     *
+     * @generated from rpc workout.v1.WorkoutService.InviteToGroup
+     */
+    readonly inviteToGroup: {
+      readonly name: "InviteToGroup",
+      readonly I: typeof InviteToGroupRequest,
+      readonly O: typeof InviteToGroupResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.RespondToInvite
+     */
+    readonly respondToInvite: {
+      readonly name: "RespondToInvite",
+      readonly I: typeof RespondToInviteRequest,
+      readonly O: typeof RespondToInviteResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.GetGroup
+     */
+    readonly getGroup: {
+      readonly name: "GetGroup",
+      readonly I: typeof GetGroupRequest,
+      readonly O: typeof GetGroupResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.LeaveGroup
+     */
+    readonly leaveGroup: {
+      readonly name: "LeaveGroup",
+      readonly I: typeof LeaveGroupRequest,
+      readonly O: typeof LeaveGroupResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc workout.v1.WorkoutService.GetGroupWorkoutPlan
+     */
+    readonly getGroupWorkoutPlan: {
+      readonly name: "GetGroupWorkoutPlan",
+      readonly I: typeof GetGroupWorkoutPlanRequest,
+      readonly O: typeof GetGroupWorkoutPlanResponse,
       readonly kind: MethodKind.Unary,
     },
     /**
@@ -134,8 +246,19 @@ export declare const WorkoutService: {
       readonly kind: MethodKind.Unary,
     },
     /**
-     * Stream: Subscribe to real-time workout updates
-     * Returns updates whenever any user in the session performs an action
+     * Stream: Subscribe to real-time notifications for the current user
+     * Connect on login, receive invites, group updates, and activity from group members
+     *
+     * @generated from rpc workout.v1.WorkoutService.WatchNotifications
+     */
+    readonly watchNotifications: {
+      readonly name: "WatchNotifications",
+      readonly I: typeof WatchNotificationsRequest,
+      readonly O: typeof WorkoutUpdate,
+      readonly kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Legacy Stream: Subscribe to real-time workout updates (deprecated - use WatchNotifications)
      *
      * @generated from rpc workout.v1.WorkoutService.WatchWorkout
      */

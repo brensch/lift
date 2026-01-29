@@ -81,14 +81,14 @@ export declare enum UpdateType {
   UNSPECIFIED = 0,
 
   /**
-   * A user joined the workout
+   * A user joined the group/workout
    *
    * @generated from enum value: UPDATE_TYPE_USER_JOINED = 1;
    */
   USER_JOINED = 1,
 
   /**
-   * A user left the workout
+   * A user left the group/workout
    *
    * @generated from enum value: UPDATE_TYPE_USER_LEFT = 2;
    */
@@ -121,6 +121,69 @@ export declare enum UpdateType {
    * @generated from enum value: UPDATE_TYPE_REST_SKIPPED = 6;
    */
   REST_SKIPPED = 6,
+
+  /**
+   * You received a group invite
+   *
+   * @generated from enum value: UPDATE_TYPE_INVITE_RECEIVED = 7;
+   */
+  INVITE_RECEIVED = 7,
+
+  /**
+   * Someone accepted your invite
+   *
+   * @generated from enum value: UPDATE_TYPE_INVITE_ACCEPTED = 8;
+   */
+  INVITE_ACCEPTED = 8,
+
+  /**
+   * Someone declined your invite
+   *
+   * @generated from enum value: UPDATE_TYPE_INVITE_DECLINED = 9;
+   */
+  INVITE_DECLINED = 9,
+
+  /**
+   * Group state changed (member status, etc.)
+   *
+   * @generated from enum value: UPDATE_TYPE_GROUP_UPDATED = 10;
+   */
+  GROUP_UPDATED = 10,
+
+  /**
+   * Someone updated their plan during planning
+   *
+   * @generated from enum value: UPDATE_TYPE_PLAN_UPDATED = 11;
+   */
+  PLAN_UPDATED = 11,
+
+  /**
+   * A user marked themselves ready
+   *
+   * @generated from enum value: UPDATE_TYPE_USER_READY = 12;
+   */
+  USER_READY = 12,
+
+  /**
+   * A user unmarked ready
+   *
+   * @generated from enum value: UPDATE_TYPE_USER_NOT_READY = 13;
+   */
+  USER_NOT_READY = 13,
+
+  /**
+   * Group workout started (planning complete)
+   *
+   * @generated from enum value: UPDATE_TYPE_WORKOUT_STARTED = 14;
+   */
+  WORKOUT_STARTED = 14,
+
+  /**
+   * General session state update
+   *
+   * @generated from enum value: UPDATE_TYPE_SESSION_UPDATED = 15;
+   */
+  SESSION_UPDATED = 15,
 }
 
 /**
@@ -467,6 +530,790 @@ export declare class UserPreferences extends Message<UserPreferences> {
 }
 
 /**
+ * A group workout session (each workout gets a new session, even with same people)
+ *
+ * @generated from message workout.v1.GroupSession
+ */
+export declare class GroupSession extends Message<GroupSession> {
+  /**
+   * Unique session ID
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * Who started the group
+   *
+   * @generated from field: string created_by = 2;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * planning, active, completed
+   *
+   * @generated from field: string status = 4;
+   */
+  status: string;
+
+  /**
+   * All members and their status
+   *
+   * @generated from field: repeated workout.v1.GroupSessionMember members = 5;
+   */
+  members: GroupSessionMember[];
+
+  /**
+   * The agreed workout plan
+   *
+   * @generated from field: workout.v1.GroupPlan plan = 6;
+   */
+  plan?: GroupPlan;
+
+  /**
+   * All activities from all users
+   *
+   * @generated from field: repeated workout.v1.GroupActivity timeline = 7;
+   */
+  timeline: GroupActivity[];
+
+  /**
+   * Who should go next
+   *
+   * @generated from field: workout.v1.NextUp next_up = 8;
+   */
+  nextUp?: NextUp;
+
+  constructor(data?: PartialMessage<GroupSession>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupSession";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupSession;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupSession;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupSession;
+
+  static equals(a: GroupSession | PlainMessage<GroupSession> | undefined, b: GroupSession | PlainMessage<GroupSession> | undefined): boolean;
+}
+
+/**
+ * A member in a group session
+ *
+ * @generated from message workout.v1.GroupSessionMember
+ */
+export declare class GroupSessionMember extends Message<GroupSessionMember> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * planning, ready (during planning phase)
+   *
+   * @generated from field: string status = 2;
+   */
+  status: string;
+
+  /**
+   * Currently connected to the stream
+   *
+   * @generated from field: bool is_connected = 3;
+   */
+  isConnected: boolean;
+
+  /**
+   * What this user wants to do
+   *
+   * @generated from field: workout.v1.UserPlan proposed_plan = 4;
+   */
+  proposedPlan?: UserPlan;
+
+  /**
+   * What they're doing right now (during workout)
+   *
+   * @generated from field: workout.v1.UserActivity current_activity = 5;
+   */
+  currentActivity?: UserActivity;
+
+  /**
+   * Sets this user has left to do
+   *
+   * @generated from field: repeated workout.v1.PlannedSet remaining_sets = 6;
+   */
+  remainingSets: PlannedSet[];
+
+  /**
+   * Sets this user has completed
+   *
+   * @generated from field: repeated workout.v1.PlannedSet completed_sets = 7;
+   */
+  completedSets: PlannedSet[];
+
+  constructor(data?: PartialMessage<GroupSessionMember>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupSessionMember";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupSessionMember;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupSessionMember;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupSessionMember;
+
+  static equals(a: GroupSessionMember | PlainMessage<GroupSessionMember> | undefined, b: GroupSessionMember | PlainMessage<GroupSessionMember> | undefined): boolean;
+}
+
+/**
+ * A user's proposed/agreed plan for the session
+ *
+ * @generated from message workout.v1.UserPlan
+ */
+export declare class UserPlan extends Message<UserPlan> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: repeated workout.v1.UserExercisePlan exercises = 2;
+   */
+  exercises: UserExercisePlan[];
+
+  constructor(data?: PartialMessage<UserPlan>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserPlan";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserPlan;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserPlan;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserPlan;
+
+  static equals(a: UserPlan | PlainMessage<UserPlan> | undefined, b: UserPlan | PlainMessage<UserPlan> | undefined): boolean;
+}
+
+/**
+ * A user's plan for a single exercise
+ *
+ * @generated from message workout.v1.UserExercisePlan
+ */
+export declare class UserExercisePlan extends Message<UserExercisePlan> {
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 1;
+   */
+  exercise: Exercise;
+
+  /**
+   * @generated from field: float target_weight = 2;
+   */
+  targetWeight: number;
+
+  /**
+   * @generated from field: int32 target_sets = 3;
+   */
+  targetSets: number;
+
+  /**
+   * @generated from field: int32 target_reps = 4;
+   */
+  targetReps: number;
+
+  constructor(data?: PartialMessage<UserExercisePlan>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserExercisePlan";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserExercisePlan;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserExercisePlan;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserExercisePlan;
+
+  static equals(a: UserExercisePlan | PlainMessage<UserExercisePlan> | undefined, b: UserExercisePlan | PlainMessage<UserExercisePlan> | undefined): boolean;
+}
+
+/**
+ * Current activity for a user (what they're doing right now)
+ *
+ * @generated from message workout.v1.UserActivity
+ */
+export declare class UserActivity extends Message<UserActivity> {
+  /**
+   * @generated from field: string activity_id = 1;
+   */
+  activityId: string;
+
+  /**
+   * set, rest
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 3;
+   */
+  exercise: Exercise;
+
+  /**
+   * @generated from field: int32 set_number = 4;
+   */
+  setNumber: number;
+
+  /**
+   * @generated from field: float weight = 5;
+   */
+  weight: number;
+
+  /**
+   * @generated from field: int32 target_reps = 6;
+   */
+  targetReps: number;
+
+  /**
+   * Filled when set complete
+   *
+   * @generated from field: int32 actual_reps = 7;
+   */
+  actualReps: number;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started_at = 8;
+   */
+  startedAt?: Timestamp;
+
+  /**
+   * For rest activities
+   *
+   * @generated from field: int32 rest_seconds_remaining = 9;
+   */
+  restSecondsRemaining: number;
+
+  constructor(data?: PartialMessage<UserActivity>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserActivity";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserActivity;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserActivity;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserActivity;
+
+  static equals(a: UserActivity | PlainMessage<UserActivity> | undefined, b: UserActivity | PlainMessage<UserActivity> | undefined): boolean;
+}
+
+/**
+ * An activity in the group timeline (from activity_log)
+ *
+ * @generated from message workout.v1.GroupActivity
+ */
+export declare class GroupActivity extends Message<GroupActivity> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string user_id = 2;
+   */
+  userId: string;
+
+  /**
+   * set, rest
+   *
+   * @generated from field: string type = 3;
+   */
+  type: string;
+
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 4;
+   */
+  exercise: Exercise;
+
+  /**
+   * @generated from field: int32 set_number = 5;
+   */
+  setNumber: number;
+
+  /**
+   * @generated from field: float weight = 6;
+   */
+  weight: number;
+
+  /**
+   * @generated from field: int32 target_reps = 7;
+   */
+  targetReps: number;
+
+  /**
+   * @generated from field: int32 actual_reps = 8;
+   */
+  actualReps: number;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started_at = 9;
+   */
+  startedAt?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp ended_at = 10;
+   */
+  endedAt?: Timestamp;
+
+  /**
+   * @generated from field: int32 planned_rest_seconds = 11;
+   */
+  plannedRestSeconds: number;
+
+  constructor(data?: PartialMessage<GroupActivity>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupActivity";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupActivity;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupActivity;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupActivity;
+
+  static equals(a: GroupActivity | PlainMessage<GroupActivity> | undefined, b: GroupActivity | PlainMessage<GroupActivity> | undefined): boolean;
+}
+
+/**
+ * Who should go next in the group
+ *
+ * @generated from message workout.v1.NextUp
+ */
+export declare class NextUp extends Message<NextUp> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 2;
+   */
+  exercise: Exercise;
+
+  /**
+   * @generated from field: float weight = 3;
+   */
+  weight: number;
+
+  /**
+   * @generated from field: int32 set_number = 4;
+   */
+  setNumber: number;
+
+  /**
+   * 0 if ready now, positive if still resting
+   *
+   * @generated from field: int32 seconds_until_ready = 5;
+   */
+  secondsUntilReady: number;
+
+  /**
+   * When their rest started (for client countdown)
+   *
+   * @generated from field: google.protobuf.Timestamp rest_started_at = 6;
+   */
+  restStartedAt?: Timestamp;
+
+  /**
+   * How long their rest was planned for
+   *
+   * @generated from field: int32 planned_rest_seconds = 7;
+   */
+  plannedRestSeconds: number;
+
+  constructor(data?: PartialMessage<NextUp>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.NextUp";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): NextUp;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): NextUp;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): NextUp;
+
+  static equals(a: NextUp | PlainMessage<NextUp> | undefined, b: NextUp | PlainMessage<NextUp> | undefined): boolean;
+}
+
+/**
+ * The group's agreed workout plan
+ *
+ * @generated from message workout.v1.GroupPlan
+ */
+export declare class GroupPlan extends Message<GroupPlan> {
+  /**
+   * Exercises in order
+   *
+   * @generated from field: repeated workout.v1.GroupExercisePlan exercises = 1;
+   */
+  exercises: GroupExercisePlan[];
+
+  /**
+   * Everyone has marked ready
+   *
+   * @generated from field: bool all_ready = 2;
+   */
+  allReady: boolean;
+
+  constructor(data?: PartialMessage<GroupPlan>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupPlan";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupPlan;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupPlan;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupPlan;
+
+  static equals(a: GroupPlan | PlainMessage<GroupPlan> | undefined, b: GroupPlan | PlainMessage<GroupPlan> | undefined): boolean;
+}
+
+/**
+ * Plan for one exercise across the group
+ *
+ * @generated from message workout.v1.GroupExercisePlan
+ */
+export declare class GroupExercisePlan extends Message<GroupExercisePlan> {
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 1;
+   */
+  exercise: Exercise;
+
+  /**
+   * Order in the workout
+   *
+   * @generated from field: int32 position = 2;
+   */
+  position: number;
+
+  /**
+   * Each user's slot (ordered by weight)
+   *
+   * @generated from field: repeated workout.v1.UserExerciseSlot user_slots = 3;
+   */
+  userSlots: UserExerciseSlot[];
+
+  constructor(data?: PartialMessage<GroupExercisePlan>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupExercisePlan";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupExercisePlan;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupExercisePlan;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupExercisePlan;
+
+  static equals(a: GroupExercisePlan | PlainMessage<GroupExercisePlan> | undefined, b: GroupExercisePlan | PlainMessage<GroupExercisePlan> | undefined): boolean;
+}
+
+/**
+ * A user's slot for an exercise (their weight + plate change from previous)
+ *
+ * @generated from message workout.v1.UserExerciseSlot
+ */
+export declare class UserExerciseSlot extends Message<UserExerciseSlot> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: float weight = 2;
+   */
+  weight: number;
+
+  /**
+   * @generated from field: int32 sets = 3;
+   */
+  sets: number;
+
+  /**
+   * @generated from field: int32 reps = 4;
+   */
+  reps: number;
+
+  /**
+   * e.g., "+2x25" from previous user
+   *
+   * @generated from field: string plate_change = 5;
+   */
+  plateChange: string;
+
+  constructor(data?: PartialMessage<UserExerciseSlot>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserExerciseSlot";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserExerciseSlot;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserExerciseSlot;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserExerciseSlot;
+
+  static equals(a: UserExerciseSlot | PlainMessage<UserExerciseSlot> | undefined, b: UserExerciseSlot | PlainMessage<UserExerciseSlot> | undefined): boolean;
+}
+
+/**
+ * An invite to join a group session
+ *
+ * @generated from message workout.v1.GroupInvite
+ */
+export declare class GroupInvite extends Message<GroupInvite> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The group session ID
+   *
+   * @generated from field: string session_id = 2;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: string from_user = 3;
+   */
+  fromUser: string;
+
+  /**
+   * @generated from field: string to_user = 4;
+   */
+  toUser: string;
+
+  /**
+   * pending, accepted, declined
+   *
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 6;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * Current session state for preview
+   *
+   * @generated from field: workout.v1.GroupSession session = 7;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<GroupInvite>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupInvite";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupInvite;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupInvite;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupInvite;
+
+  static equals(a: GroupInvite | PlainMessage<GroupInvite> | undefined, b: GroupInvite | PlainMessage<GroupInvite> | undefined): boolean;
+}
+
+/**
+ * Legacy compatibility
+ *
+ * @generated from message workout.v1.WorkoutGroup
+ */
+export declare class WorkoutGroup extends Message<WorkoutGroup> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string created_by = 2;
+   */
+  createdBy: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * @generated from field: repeated workout.v1.GroupMember members = 4;
+   */
+  members: GroupMember[];
+
+  constructor(data?: PartialMessage<WorkoutGroup>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.WorkoutGroup";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkoutGroup;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkoutGroup;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkoutGroup;
+
+  static equals(a: WorkoutGroup | PlainMessage<WorkoutGroup> | undefined, b: WorkoutGroup | PlainMessage<WorkoutGroup> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GroupMember
+ */
+export declare class GroupMember extends Message<GroupMember> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: workout.v1.WorkoutState state = 2;
+   */
+  state?: WorkoutState;
+
+  /**
+   * @generated from field: bool is_active = 3;
+   */
+  isActive: boolean;
+
+  /**
+   * @generated from field: int32 rest_seconds_remaining = 4;
+   */
+  restSecondsRemaining: number;
+
+  constructor(data?: PartialMessage<GroupMember>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupMember";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupMember;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupMember;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupMember;
+
+  static equals(a: GroupMember | PlainMessage<GroupMember> | undefined, b: GroupMember | PlainMessage<GroupMember> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.ExerciseOrder
+ */
+export declare class ExerciseOrder extends Message<ExerciseOrder> {
+  /**
+   * @generated from field: workout.v1.Exercise exercise = 1;
+   */
+  exercise: Exercise;
+
+  /**
+   * @generated from field: repeated workout.v1.UserWeight user_order = 2;
+   */
+  userOrder: UserWeight[];
+
+  constructor(data?: PartialMessage<ExerciseOrder>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.ExerciseOrder";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExerciseOrder;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExerciseOrder;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExerciseOrder;
+
+  static equals(a: ExerciseOrder | PlainMessage<ExerciseOrder> | undefined, b: ExerciseOrder | PlainMessage<ExerciseOrder> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.UserWeight
+ */
+export declare class UserWeight extends Message<UserWeight> {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: float weight = 2;
+   */
+  weight: number;
+
+  /**
+   * @generated from field: string plate_change = 3;
+   */
+  plateChange: string;
+
+  constructor(data?: PartialMessage<UserWeight>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserWeight";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserWeight;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserWeight;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserWeight;
+
+  static equals(a: UserWeight | PlainMessage<UserWeight> | undefined, b: UserWeight | PlainMessage<UserWeight> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GroupWorkoutPlan
+ */
+export declare class GroupWorkoutPlan extends Message<GroupWorkoutPlan> {
+  /**
+   * @generated from field: repeated workout.v1.ExerciseOrder exercises = 1;
+   */
+  exercises: ExerciseOrder[];
+
+  /**
+   * @generated from field: repeated workout.v1.GroupMember members = 2;
+   */
+  members: GroupMember[];
+
+  constructor(data?: PartialMessage<GroupWorkoutPlan>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GroupWorkoutPlan";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GroupWorkoutPlan;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GroupWorkoutPlan;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GroupWorkoutPlan;
+
+  static equals(a: GroupWorkoutPlan | PlainMessage<GroupWorkoutPlan> | undefined, b: GroupWorkoutPlan | PlainMessage<GroupWorkoutPlan> | undefined): boolean;
+}
+
+/**
  * Get or create today's workout state
  *
  * @generated from message workout.v1.GetWorkoutStateRequest
@@ -586,6 +1433,27 @@ export declare class GetUpcomingWorkoutsResponse extends Message<GetUpcomingWork
    */
   preferences?: UserPreferences;
 
+  /**
+   * Pending group invites for this user
+   *
+   * @generated from field: repeated workout.v1.GroupInvite pending_invites = 5;
+   */
+  pendingInvites: GroupInvite[];
+
+  /**
+   * Legacy: Group for current workout
+   *
+   * @generated from field: workout.v1.WorkoutGroup active_group = 6;
+   */
+  activeGroup?: WorkoutGroup;
+
+  /**
+   * New: Active group session if any
+   *
+   * @generated from field: workout.v1.GroupSession active_session = 7;
+   */
+  activeSession?: GroupSession;
+
   constructor(data?: PartialMessage<GetUpcomingWorkoutsResponse>);
 
   static readonly runtime: typeof proto3;
@@ -694,6 +1562,653 @@ export declare class UpdateUserPreferencesResponse extends Message<UpdateUserPre
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateUserPreferencesResponse;
 
   static equals(a: UpdateUserPreferencesResponse | PlainMessage<UpdateUserPreferencesResponse> | undefined, b: UpdateUserPreferencesResponse | PlainMessage<UpdateUserPreferencesResponse> | undefined): boolean;
+}
+
+/**
+ * Create a new group session and invite someone
+ *
+ * @generated from message workout.v1.CreateGroupSessionRequest
+ */
+export declare class CreateGroupSessionRequest extends Message<CreateGroupSessionRequest> {
+  /**
+   * First person to invite
+   *
+   * @generated from field: string invite_username = 1;
+   */
+  inviteUsername: string;
+
+  constructor(data?: PartialMessage<CreateGroupSessionRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.CreateGroupSessionRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateGroupSessionRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateGroupSessionRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateGroupSessionRequest;
+
+  static equals(a: CreateGroupSessionRequest | PlainMessage<CreateGroupSessionRequest> | undefined, b: CreateGroupSessionRequest | PlainMessage<CreateGroupSessionRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.CreateGroupSessionResponse
+ */
+export declare class CreateGroupSessionResponse extends Message<CreateGroupSessionResponse> {
+  /**
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  /**
+   * @generated from field: workout.v1.GroupInvite invite = 2;
+   */
+  invite?: GroupInvite;
+
+  constructor(data?: PartialMessage<CreateGroupSessionResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.CreateGroupSessionResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateGroupSessionResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateGroupSessionResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateGroupSessionResponse;
+
+  static equals(a: CreateGroupSessionResponse | PlainMessage<CreateGroupSessionResponse> | undefined, b: CreateGroupSessionResponse | PlainMessage<CreateGroupSessionResponse> | undefined): boolean;
+}
+
+/**
+ * Join a group session (accept invite)
+ *
+ * @generated from message workout.v1.JoinGroupSessionRequest
+ */
+export declare class JoinGroupSessionRequest extends Message<JoinGroupSessionRequest> {
+  /**
+   * @generated from field: string invite_id = 1;
+   */
+  inviteId: string;
+
+  constructor(data?: PartialMessage<JoinGroupSessionRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.JoinGroupSessionRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): JoinGroupSessionRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): JoinGroupSessionRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): JoinGroupSessionRequest;
+
+  static equals(a: JoinGroupSessionRequest | PlainMessage<JoinGroupSessionRequest> | undefined, b: JoinGroupSessionRequest | PlainMessage<JoinGroupSessionRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.JoinGroupSessionResponse
+ */
+export declare class JoinGroupSessionResponse extends Message<JoinGroupSessionResponse> {
+  /**
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<JoinGroupSessionResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.JoinGroupSessionResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): JoinGroupSessionResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): JoinGroupSessionResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): JoinGroupSessionResponse;
+
+  static equals(a: JoinGroupSessionResponse | PlainMessage<JoinGroupSessionResponse> | undefined, b: JoinGroupSessionResponse | PlainMessage<JoinGroupSessionResponse> | undefined): boolean;
+}
+
+/**
+ * Get current group session state
+ *
+ * @generated from message workout.v1.GetGroupSessionRequest
+ */
+export declare class GetGroupSessionRequest extends Message<GetGroupSessionRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  constructor(data?: PartialMessage<GetGroupSessionRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupSessionRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupSessionRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupSessionRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupSessionRequest;
+
+  static equals(a: GetGroupSessionRequest | PlainMessage<GetGroupSessionRequest> | undefined, b: GetGroupSessionRequest | PlainMessage<GetGroupSessionRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetGroupSessionResponse
+ */
+export declare class GetGroupSessionResponse extends Message<GetGroupSessionResponse> {
+  /**
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<GetGroupSessionResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupSessionResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupSessionResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupSessionResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupSessionResponse;
+
+  static equals(a: GetGroupSessionResponse | PlainMessage<GetGroupSessionResponse> | undefined, b: GetGroupSessionResponse | PlainMessage<GetGroupSessionResponse> | undefined): boolean;
+}
+
+/**
+ * Update your plan for the session (during planning phase)
+ *
+ * @generated from message workout.v1.UpdateMyPlanRequest
+ */
+export declare class UpdateMyPlanRequest extends Message<UpdateMyPlanRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: repeated workout.v1.UserExercisePlan exercises = 2;
+   */
+  exercises: UserExercisePlan[];
+
+  constructor(data?: PartialMessage<UpdateMyPlanRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdateMyPlanRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateMyPlanRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateMyPlanRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateMyPlanRequest;
+
+  static equals(a: UpdateMyPlanRequest | PlainMessage<UpdateMyPlanRequest> | undefined, b: UpdateMyPlanRequest | PlainMessage<UpdateMyPlanRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.UpdateMyPlanResponse
+ */
+export declare class UpdateMyPlanResponse extends Message<UpdateMyPlanResponse> {
+  /**
+   * Updated session with new plan
+   *
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<UpdateMyPlanResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdateMyPlanResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateMyPlanResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateMyPlanResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateMyPlanResponse;
+
+  static equals(a: UpdateMyPlanResponse | PlainMessage<UpdateMyPlanResponse> | undefined, b: UpdateMyPlanResponse | PlainMessage<UpdateMyPlanResponse> | undefined): boolean;
+}
+
+/**
+ * Mark yourself as ready (during planning phase)
+ *
+ * @generated from message workout.v1.SetReadyRequest
+ */
+export declare class SetReadyRequest extends Message<SetReadyRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: bool ready = 2;
+   */
+  ready: boolean;
+
+  constructor(data?: PartialMessage<SetReadyRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.SetReadyRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReadyRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetReadyRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetReadyRequest;
+
+  static equals(a: SetReadyRequest | PlainMessage<SetReadyRequest> | undefined, b: SetReadyRequest | PlainMessage<SetReadyRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.SetReadyResponse
+ */
+export declare class SetReadyResponse extends Message<SetReadyResponse> {
+  /**
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<SetReadyResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.SetReadyResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReadyResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetReadyResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetReadyResponse;
+
+  static equals(a: SetReadyResponse | PlainMessage<SetReadyResponse> | undefined, b: SetReadyResponse | PlainMessage<SetReadyResponse> | undefined): boolean;
+}
+
+/**
+ * Start the group workout (when all ready)
+ *
+ * @generated from message workout.v1.StartGroupWorkoutRequest
+ */
+export declare class StartGroupWorkoutRequest extends Message<StartGroupWorkoutRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  constructor(data?: PartialMessage<StartGroupWorkoutRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.StartGroupWorkoutRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartGroupWorkoutRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StartGroupWorkoutRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StartGroupWorkoutRequest;
+
+  static equals(a: StartGroupWorkoutRequest | PlainMessage<StartGroupWorkoutRequest> | undefined, b: StartGroupWorkoutRequest | PlainMessage<StartGroupWorkoutRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.StartGroupWorkoutResponse
+ */
+export declare class StartGroupWorkoutResponse extends Message<StartGroupWorkoutResponse> {
+  /**
+   * @generated from field: workout.v1.GroupSession session = 1;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<StartGroupWorkoutResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.StartGroupWorkoutResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartGroupWorkoutResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StartGroupWorkoutResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StartGroupWorkoutResponse;
+
+  static equals(a: StartGroupWorkoutResponse | PlainMessage<StartGroupWorkoutResponse> | undefined, b: StartGroupWorkoutResponse | PlainMessage<StartGroupWorkoutResponse> | undefined): boolean;
+}
+
+/**
+ * Leave a group session
+ *
+ * @generated from message workout.v1.LeaveGroupSessionRequest
+ */
+export declare class LeaveGroupSessionRequest extends Message<LeaveGroupSessionRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  constructor(data?: PartialMessage<LeaveGroupSessionRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.LeaveGroupSessionRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LeaveGroupSessionRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LeaveGroupSessionRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LeaveGroupSessionRequest;
+
+  static equals(a: LeaveGroupSessionRequest | PlainMessage<LeaveGroupSessionRequest> | undefined, b: LeaveGroupSessionRequest | PlainMessage<LeaveGroupSessionRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.LeaveGroupSessionResponse
+ */
+export declare class LeaveGroupSessionResponse extends Message<LeaveGroupSessionResponse> {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+
+  constructor(data?: PartialMessage<LeaveGroupSessionResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.LeaveGroupSessionResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LeaveGroupSessionResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LeaveGroupSessionResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LeaveGroupSessionResponse;
+
+  static equals(a: LeaveGroupSessionResponse | PlainMessage<LeaveGroupSessionResponse> | undefined, b: LeaveGroupSessionResponse | PlainMessage<LeaveGroupSessionResponse> | undefined): boolean;
+}
+
+/**
+ * Legacy invite messages (kept for compatibility)
+ *
+ * @generated from message workout.v1.InviteToGroupRequest
+ */
+export declare class InviteToGroupRequest extends Message<InviteToGroupRequest> {
+  /**
+   * @generated from field: string username = 1;
+   */
+  username: string;
+
+  constructor(data?: PartialMessage<InviteToGroupRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.InviteToGroupRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): InviteToGroupRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): InviteToGroupRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): InviteToGroupRequest;
+
+  static equals(a: InviteToGroupRequest | PlainMessage<InviteToGroupRequest> | undefined, b: InviteToGroupRequest | PlainMessage<InviteToGroupRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.InviteToGroupResponse
+ */
+export declare class InviteToGroupResponse extends Message<InviteToGroupResponse> {
+  /**
+   * @generated from field: workout.v1.GroupInvite invite = 1;
+   */
+  invite?: GroupInvite;
+
+  /**
+   * @generated from field: workout.v1.GroupWorkoutPlan plan = 2;
+   */
+  plan?: GroupWorkoutPlan;
+
+  /**
+   * New: the session that was created
+   *
+   * @generated from field: workout.v1.GroupSession session = 3;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<InviteToGroupResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.InviteToGroupResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): InviteToGroupResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): InviteToGroupResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): InviteToGroupResponse;
+
+  static equals(a: InviteToGroupResponse | PlainMessage<InviteToGroupResponse> | undefined, b: InviteToGroupResponse | PlainMessage<InviteToGroupResponse> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.RespondToInviteRequest
+ */
+export declare class RespondToInviteRequest extends Message<RespondToInviteRequest> {
+  /**
+   * @generated from field: string invite_id = 1;
+   */
+  inviteId: string;
+
+  /**
+   * @generated from field: bool accept = 2;
+   */
+  accept: boolean;
+
+  constructor(data?: PartialMessage<RespondToInviteRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.RespondToInviteRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RespondToInviteRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RespondToInviteRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RespondToInviteRequest;
+
+  static equals(a: RespondToInviteRequest | PlainMessage<RespondToInviteRequest> | undefined, b: RespondToInviteRequest | PlainMessage<RespondToInviteRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.RespondToInviteResponse
+ */
+export declare class RespondToInviteResponse extends Message<RespondToInviteResponse> {
+  /**
+   * @generated from field: workout.v1.WorkoutGroup group = 1;
+   */
+  group?: WorkoutGroup;
+
+  /**
+   * @generated from field: workout.v1.GroupWorkoutPlan plan = 2;
+   */
+  plan?: GroupWorkoutPlan;
+
+  /**
+   * @generated from field: workout.v1.WorkoutState state = 3;
+   */
+  state?: WorkoutState;
+
+  /**
+   * New: the session if accepted
+   *
+   * @generated from field: workout.v1.GroupSession session = 4;
+   */
+  session?: GroupSession;
+
+  constructor(data?: PartialMessage<RespondToInviteResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.RespondToInviteResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RespondToInviteResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RespondToInviteResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RespondToInviteResponse;
+
+  static equals(a: RespondToInviteResponse | PlainMessage<RespondToInviteResponse> | undefined, b: RespondToInviteResponse | PlainMessage<RespondToInviteResponse> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetGroupRequest
+ */
+export declare class GetGroupRequest extends Message<GetGroupRequest> {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+
+  constructor(data?: PartialMessage<GetGroupRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupRequest;
+
+  static equals(a: GetGroupRequest | PlainMessage<GetGroupRequest> | undefined, b: GetGroupRequest | PlainMessage<GetGroupRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetGroupResponse
+ */
+export declare class GetGroupResponse extends Message<GetGroupResponse> {
+  /**
+   * @generated from field: workout.v1.WorkoutGroup group = 1;
+   */
+  group?: WorkoutGroup;
+
+  /**
+   * @generated from field: workout.v1.GroupWorkoutPlan plan = 2;
+   */
+  plan?: GroupWorkoutPlan;
+
+  constructor(data?: PartialMessage<GetGroupResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupResponse;
+
+  static equals(a: GetGroupResponse | PlainMessage<GetGroupResponse> | undefined, b: GetGroupResponse | PlainMessage<GetGroupResponse> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.LeaveGroupRequest
+ */
+export declare class LeaveGroupRequest extends Message<LeaveGroupRequest> {
+  constructor(data?: PartialMessage<LeaveGroupRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.LeaveGroupRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LeaveGroupRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LeaveGroupRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LeaveGroupRequest;
+
+  static equals(a: LeaveGroupRequest | PlainMessage<LeaveGroupRequest> | undefined, b: LeaveGroupRequest | PlainMessage<LeaveGroupRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.LeaveGroupResponse
+ */
+export declare class LeaveGroupResponse extends Message<LeaveGroupResponse> {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+
+  constructor(data?: PartialMessage<LeaveGroupResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.LeaveGroupResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LeaveGroupResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LeaveGroupResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LeaveGroupResponse;
+
+  static equals(a: LeaveGroupResponse | PlainMessage<LeaveGroupResponse> | undefined, b: LeaveGroupResponse | PlainMessage<LeaveGroupResponse> | undefined): boolean;
+}
+
+/**
+ * Get the group workout plan (who does what when)
+ *
+ * @generated from message workout.v1.GetGroupWorkoutPlanRequest
+ */
+export declare class GetGroupWorkoutPlanRequest extends Message<GetGroupWorkoutPlanRequest> {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+
+  constructor(data?: PartialMessage<GetGroupWorkoutPlanRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupWorkoutPlanRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupWorkoutPlanRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupWorkoutPlanRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupWorkoutPlanRequest;
+
+  static equals(a: GetGroupWorkoutPlanRequest | PlainMessage<GetGroupWorkoutPlanRequest> | undefined, b: GetGroupWorkoutPlanRequest | PlainMessage<GetGroupWorkoutPlanRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetGroupWorkoutPlanResponse
+ */
+export declare class GetGroupWorkoutPlanResponse extends Message<GetGroupWorkoutPlanResponse> {
+  /**
+   * @generated from field: workout.v1.GroupWorkoutPlan plan = 1;
+   */
+  plan?: GroupWorkoutPlan;
+
+  constructor(data?: PartialMessage<GetGroupWorkoutPlanResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetGroupWorkoutPlanResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetGroupWorkoutPlanResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetGroupWorkoutPlanResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetGroupWorkoutPlanResponse;
+
+  static equals(a: GetGroupWorkoutPlanResponse | PlainMessage<GetGroupWorkoutPlanResponse> | undefined, b: GetGroupWorkoutPlanResponse | PlainMessage<GetGroupWorkoutPlanResponse> | undefined): boolean;
 }
 
 /**
@@ -1167,7 +2682,29 @@ export declare class LogSetResponse extends Message<LogSetResponse> {
 }
 
 /**
- * Subscribe to real-time updates for a workout session
+ * Subscribe to real-time notifications for a user
+ * This is the main streaming endpoint - connects on login, receives all updates
+ *
+ * @generated from message workout.v1.WatchNotificationsRequest
+ */
+export declare class WatchNotificationsRequest extends Message<WatchNotificationsRequest> {
+  constructor(data?: PartialMessage<WatchNotificationsRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.WatchNotificationsRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchNotificationsRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchNotificationsRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchNotificationsRequest;
+
+  static equals(a: WatchNotificationsRequest | PlainMessage<WatchNotificationsRequest> | undefined, b: WatchNotificationsRequest | PlainMessage<WatchNotificationsRequest> | undefined): boolean;
+}
+
+/**
+ * Legacy: Subscribe to real-time updates for a workout session
  *
  * @generated from message workout.v1.WatchWorkoutRequest
  */
@@ -1235,6 +2772,34 @@ export declare class WorkoutUpdate extends Message<WorkoutUpdate> {
    * @generated from field: google.protobuf.Timestamp timestamp = 5;
    */
   timestamp?: Timestamp;
+
+  /**
+   * For invite-related updates
+   *
+   * @generated from field: workout.v1.GroupInvite invite = 6;
+   */
+  invite?: GroupInvite;
+
+  /**
+   * Legacy: For group-related updates
+   *
+   * @generated from field: workout.v1.WorkoutGroup group = 7;
+   */
+  group?: WorkoutGroup;
+
+  /**
+   * New: Full session state for session updates
+   *
+   * @generated from field: workout.v1.GroupSession session = 9;
+   */
+  session?: GroupSession;
+
+  /**
+   * Group ID for group updates
+   *
+   * @generated from field: string group_id = 8;
+   */
+  groupId: string;
 
   constructor(data?: PartialMessage<WorkoutUpdate>);
 
