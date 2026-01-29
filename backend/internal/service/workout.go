@@ -811,7 +811,24 @@ func (s *WorkoutService) FinishActivity(
 				GroupId:   groupSessionID.String,
 				Timestamp: timestamppb.Now(),
 			})
+
+			// If workout is complete, notify group that user left
+			if stateResp.Msg.State.IsComplete {
+				session = s.buildGroupSession(ctx, groupDB, groupSessionID.String)
+				s.hub.BroadcastToAll(hub.GroupChannel(groupSessionID.String), &workoutv1.WorkoutUpdate{
+					Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
+					UserId:    username,
+					Session:   session,
+					GroupId:   groupSessionID.String,
+					Timestamp: timestamppb.Now(),
+				})
+			}
 		}
+	}
+
+	// If workout is complete, always clear the group session reference
+	if stateResp.Msg.State.IsComplete {
+		database.ExecContext(ctx, `DELETE FROM active_group_session WHERE id = 1`)
 	}
 
 	return connect.NewResponse(&workoutv1.FinishActivityResponse{

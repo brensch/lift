@@ -326,7 +326,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           case UpdateType.USER_LEFT:
             // Someone left the group
             console.log("User left group:", update.userId);
-            if (update.session) {
+            if (update.userId === username) {
+              // Current user left - clear the session entirely
+              setActiveSession(null);
+            } else if (update.session) {
+              // Another user left - update session state
               setActiveSession(update.session);
             }
             refresh();
@@ -612,6 +616,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         setWorkoutState(response.state);
         if (response.state.isComplete) {
           setPhase("complete");
+          setActiveSession(null);  // Leave group session when workout completes
         }
       }
     } catch (err) {
@@ -628,6 +633,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setExerciseOrder([]);
     setSelectedWorkoutIndex(0);
     setActiveGroup(null);
+    setActiveSession(null);
     setGroupWorkoutPlan(null);
     await refresh();
   };
