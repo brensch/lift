@@ -89,6 +89,148 @@ message UserPreferences {
   repeated int32 workout_days = 1;  // Days of week (1=Mon, 2=Tue, ..., 7=Sun)
 }
 
+// ============ Group Session Messages ============
+
+// A group workout session (each workout gets a new session, even with same people)
+message GroupSession {
+  string id = 1;                              // Unique session ID
+  string created_by = 2;                      // Who started the group
+  google.protobuf.Timestamp created_at = 3;
+  string status = 4;                          // planning, active, completed
+  repeated GroupSessionMember members = 5;    // All members and their status
+  GroupPlan plan = 6;                         // The agreed workout plan
+  repeated GroupActivity timeline = 7;        // All activities from all users
+  NextUp next_up = 8;                         // Who should go next
+}
+
+// A member in a group session
+message GroupSessionMember {
+  string user_id = 1;
+  string status = 2;           // planning, ready (during planning phase)
+  bool is_connected = 3;       // Currently connected to the stream
+  UserPlan proposed_plan = 4;  // What this user wants to do
+  UserActivity current_activity = 5;  // What they're doing right now (during workout)
+  repeated PlannedSet remaining_sets = 6;  // Sets this user has left to do
+  repeated PlannedSet completed_sets = 7;  // Sets this user has completed
+}
+
+// A user's proposed/agreed plan for the session
+message UserPlan {
+  string user_id = 1;
+  repeated UserExercisePlan exercises = 2;
+}
+
+// A user's plan for a single exercise
+message UserExercisePlan {
+  Exercise exercise = 1;
+  float target_weight = 2;
+  int32 target_sets = 3;
+  int32 target_reps = 4;
+}
+
+// Current activity for a user (what they're doing right now)
+message UserActivity {
+  string activity_id = 1;
+  string type = 2;              // set, rest
+  Exercise exercise = 3;
+  int32 set_number = 4;
+  float weight = 5;
+  int32 target_reps = 6;
+  int32 actual_reps = 7;        // Filled when set complete
+  google.protobuf.Timestamp started_at = 8;
+  int32 rest_seconds_remaining = 9;  // For rest activities
+}
+
+// An activity in the group timeline (from activity_log)
+message GroupActivity {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;              // set, rest
+  Exercise exercise = 4;
+  int32 set_number = 5;
+  float weight = 6;
+  int32 target_reps = 7;
+  int32 actual_reps = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp ended_at = 10;
+  int32 planned_rest_seconds = 11;
+}
+
+// Who should go next in the group
+message NextUp {
+  string user_id = 1;
+  Exercise exercise = 2;
+  float weight = 3;
+  int32 set_number = 4;
+  int32 seconds_until_ready = 5;  // 0 if ready now, positive if still resting
+  google.protobuf.Timestamp rest_started_at = 6;  // When their rest started (for client countdown)
+  int32 planned_rest_seconds = 7;  // How long their rest was planned for
+}
+
+// The group's agreed workout plan
+message GroupPlan {
+  repeated GroupExercisePlan exercises = 1;  // Exercises in order
+  bool all_ready = 2;                         // Everyone has marked ready
+}
+
+// Plan for one exercise across the group
+message GroupExercisePlan {
+  Exercise exercise = 1;
+  int32 position = 2;                        // Order in the workout
+  repeated UserExerciseSlot user_slots = 3;  // Each user's slot (ordered by weight)
+}
+
+// A user's slot for an exercise (their weight + plate change from previous)
+message UserExerciseSlot {
+  string user_id = 1;
+  float weight = 2;
+  int32 sets = 3;
+  int32 reps = 4;
+  string plate_change = 5;  // e.g., "+2x25" from previous user
+}
+
+// An invite to join a group session
+message GroupInvite {
+  string id = 1;
+  string session_id = 2;        // The group session ID
+  string from_user = 3;
+  string to_user = 4;
+  string status = 5;            // pending, accepted, declined
+  google.protobuf.Timestamp created_at = 6;
+  GroupSession session = 7;     // Current session state for preview
+}
+
+// Legacy compatibility
+message WorkoutGroup {
+  string id = 1;
+  string created_by = 2;
+  google.protobuf.Timestamp created_at = 3;
+  repeated GroupMember members = 4;
+}
+
+message GroupMember {
+  string user_id = 1;
+  WorkoutState state = 2;
+  bool is_active = 3;
+  int32 rest_seconds_remaining = 4;
+}
+
+message ExerciseOrder {
+  Exercise exercise = 1;
+  repeated UserWeight user_order = 2;
+}
+
+message UserWeight {
+  string user_id = 1;
+  float weight = 2;
+  string plate_change = 3;
+}
+
+message GroupWorkoutPlan {
+  repeated ExerciseOrder exercises = 1;
+  repeated GroupMember members = 2;
+}
+
 // ============ Request/Response Messages ============
 
 // Get or create today's workout state
@@ -111,6 +253,9 @@ message GetUpcomingWorkoutsResponse {
   WorkoutState active_workout = 2;           // Current in-progress workout, if any
   RestConfig rest_config = 3;
   UserPreferences preferences = 4;           // User's scheduling preferences
+  repeated GroupInvite pending_invites = 5;  // Pending group invites for this user
+  WorkoutGroup active_group = 6;             // Legacy: Group for current workout
+  GroupSession active_session = 7;           // New: Active group session if any
 }
 
 // Get user preferences
@@ -127,6 +272,121 @@ message UpdateUserPreferencesRequest {
 
 message UpdateUserPreferencesResponse {
   UserPreferences preferences = 1;
+}
+
+// ============ Group Session RPCs ============
+
+// Create a new group session and invite someone
+message CreateGroupSessionRequest {
+  string invite_username = 1;  // First person to invite
+}
+
+message CreateGroupSessionResponse {
+  GroupSession session = 1;
+  GroupInvite invite = 2;
+}
+
+// Join a group session (accept invite)
+message JoinGroupSessionRequest {
+  string invite_id = 1;
+}
+
+message JoinGroupSessionResponse {
+  GroupSession session = 1;
+}
+
+// Get current group session state
+message GetGroupSessionRequest {
+  string session_id = 1;
+}
+
+message GetGroupSessionResponse {
+  GroupSession session = 1;
+}
+
+// Update your plan for the session (during planning phase)
+message UpdateMyPlanRequest {
+  string session_id = 1;
+  repeated UserExercisePlan exercises = 2;
+}
+
+message UpdateMyPlanResponse {
+  GroupSession session = 1;  // Updated session with new plan
+}
+
+// Mark yourself as ready (during planning phase)
+message SetReadyRequest {
+  string session_id = 1;
+  bool ready = 2;
+}
+
+message SetReadyResponse {
+  GroupSession session = 1;
+}
+
+// Start the group workout (when all ready)
+message StartGroupWorkoutRequest {
+  string session_id = 1;
+}
+
+message StartGroupWorkoutResponse {
+  GroupSession session = 1;
+}
+
+// Leave a group session
+message LeaveGroupSessionRequest {
+  string session_id = 1;
+}
+
+message LeaveGroupSessionResponse {
+  bool success = 1;
+}
+
+// Legacy invite messages (kept for compatibility)
+message InviteToGroupRequest {
+  string username = 1;
+}
+
+message InviteToGroupResponse {
+  GroupInvite invite = 1;
+  GroupWorkoutPlan plan = 2;
+  GroupSession session = 3;  // New: the session that was created
+}
+
+message RespondToInviteRequest {
+  string invite_id = 1;
+  bool accept = 2;
+}
+
+message RespondToInviteResponse {
+  WorkoutGroup group = 1;
+  GroupWorkoutPlan plan = 2;
+  WorkoutState state = 3;
+  GroupSession session = 4;  // New: the session if accepted
+}
+
+message GetGroupRequest {
+  string group_id = 1;
+}
+
+message GetGroupResponse {
+  WorkoutGroup group = 1;
+  GroupWorkoutPlan plan = 2;
+}
+
+message LeaveGroupRequest {}
+
+message LeaveGroupResponse {
+  bool success = 1;
+}
+
+// Get the group workout plan (who does what when)
+message GetGroupWorkoutPlanRequest {
+  string group_id = 1;
+}
+
+message GetGroupWorkoutPlanResponse {
+  GroupWorkoutPlan plan = 1;
 }
 
 // Start the workout with a specific plan
@@ -213,7 +473,11 @@ message LogSetResponse {
 
 // ============ Streaming Messages ============
 
-// Subscribe to real-time updates for a workout session
+// Subscribe to real-time notifications for a user
+// This is the main streaming endpoint - connects on login, receives all updates
+message WatchNotificationsRequest {}
+
+// Legacy: Subscribe to real-time updates for a workout session
 message WatchWorkoutRequest {
   string session_id = 1;
   string user_id = 2;  // The user subscribing to updates
@@ -222,12 +486,21 @@ message WatchWorkoutRequest {
 // Types of updates that can occur
 enum UpdateType {
   UPDATE_TYPE_UNSPECIFIED = 0;
-  UPDATE_TYPE_USER_JOINED = 1;     // A user joined the workout
-  UPDATE_TYPE_USER_LEFT = 2;       // A user left the workout
-  UPDATE_TYPE_SET_STARTED = 3;     // A user started a set
-  UPDATE_TYPE_SET_COMPLETED = 4;   // A user completed a set
-  UPDATE_TYPE_REST_STARTED = 5;    // A user started resting
-  UPDATE_TYPE_REST_SKIPPED = 6;    // A user skipped their rest
+  UPDATE_TYPE_USER_JOINED = 1;       // A user joined the group/workout
+  UPDATE_TYPE_USER_LEFT = 2;         // A user left the group/workout
+  UPDATE_TYPE_SET_STARTED = 3;       // A user started a set
+  UPDATE_TYPE_SET_COMPLETED = 4;     // A user completed a set
+  UPDATE_TYPE_REST_STARTED = 5;      // A user started resting
+  UPDATE_TYPE_REST_SKIPPED = 6;      // A user skipped their rest
+  UPDATE_TYPE_INVITE_RECEIVED = 7;   // You received a group invite
+  UPDATE_TYPE_INVITE_ACCEPTED = 8;   // Someone accepted your invite
+  UPDATE_TYPE_INVITE_DECLINED = 9;   // Someone declined your invite
+  UPDATE_TYPE_GROUP_UPDATED = 10;    // Group state changed (member status, etc.)
+  UPDATE_TYPE_PLAN_UPDATED = 11;     // Someone updated their plan during planning
+  UPDATE_TYPE_USER_READY = 12;       // A user marked themselves ready
+  UPDATE_TYPE_USER_NOT_READY = 13;   // A user unmarked ready
+  UPDATE_TYPE_WORKOUT_STARTED = 14;  // Group workout started (planning complete)
+  UPDATE_TYPE_SESSION_UPDATED = 15;  // General session state update
 }
 
 // Real-time update pushed to watching clients
@@ -237,6 +510,10 @@ message WorkoutUpdate {
   Activity activity = 3;           // The activity that changed (if applicable)
   WorkoutState state = 4;          // Full state of the user who changed (optional)
   google.protobuf.Timestamp timestamp = 5;
+  GroupInvite invite = 6;          // For invite-related updates
+  WorkoutGroup group = 7;          // Legacy: For group-related updates
+  GroupSession session = 9;        // New: Full session state for session updates
+  string group_id = 8;             // Group ID for group updates
 }
 
 // ============ Service Definition ============
@@ -257,6 +534,22 @@ service WorkoutService {
   // Update user preferences (workout days, etc.)
   rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
 
+  // Group session management (new)
+  rpc CreateGroupSession(CreateGroupSessionRequest) returns (CreateGroupSessionResponse);
+  rpc JoinGroupSession(JoinGroupSessionRequest) returns (JoinGroupSessionResponse);
+  rpc GetGroupSession(GetGroupSessionRequest) returns (GetGroupSessionResponse);
+  rpc UpdateMyPlan(UpdateMyPlanRequest) returns (UpdateMyPlanResponse);
+  rpc SetReady(SetReadyRequest) returns (SetReadyResponse);
+  rpc StartGroupWorkout(StartGroupWorkoutRequest) returns (StartGroupWorkoutResponse);
+  rpc LeaveGroupSession(LeaveGroupSessionRequest) returns (LeaveGroupSessionResponse);
+
+  // Legacy group management (kept for compatibility)
+  rpc InviteToGroup(InviteToGroupRequest) returns (InviteToGroupResponse);
+  rpc RespondToInvite(RespondToInviteRequest) returns (RespondToInviteResponse);
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
+  rpc LeaveGroup(LeaveGroupRequest) returns (LeaveGroupResponse);
+  rpc GetGroupWorkoutPlan(GetGroupWorkoutPlanRequest) returns (GetGroupWorkoutPlanResponse);
+
   // Start performing a set
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   
@@ -275,7 +568,10 @@ service WorkoutService {
   // Legacy: Log a single set immediately
   rpc LogSet(LogSetRequest) returns (LogSetResponse);
 
-  // Stream: Subscribe to real-time workout updates
-  // Returns updates whenever any user in the session performs an action
+  // Stream: Subscribe to real-time notifications for the current user
+  // Connect on login, receive invites, group updates, and activity from group members
+  rpc WatchNotifications(WatchNotificationsRequest) returns (stream WorkoutUpdate);
+
+  // Legacy Stream: Subscribe to real-time workout updates (deprecated - use WatchNotifications)
   rpc WatchWorkout(WatchWorkoutRequest) returns (stream WorkoutUpdate);
 }

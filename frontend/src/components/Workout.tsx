@@ -10,6 +10,8 @@ import { BarbellCalculator } from "@/components/BarbellCalculator";
 import { RemainingSets } from "@/components/RemainingSets";
 import { Timeline } from "@/components/Timeline";
 import { WorkoutSummary } from "@/components/WorkoutSummary";
+import { WorkoutGroupBar } from "@/components/WorkoutGroupBar";
+import { GroupPlanningModal } from "@/components/GroupPlanningModal";
 import { useUser } from "@/context/UserContext";
 import { WorkoutProvider, useWorkout } from "@/context/WorkoutContext";
 import {
@@ -194,6 +196,11 @@ function WorkoutContent() {
           </Button>
         </div>
       </header>
+
+      {/* Group workout bar */}
+      <div className="p-4 max-w-2xl mx-auto">
+        <WorkoutGroupBar />
+      </div>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
         {/* Preview Phase - Show upcoming workouts calendar */}
@@ -493,7 +500,7 @@ function WorkoutContent() {
         {/* Remaining Sets (above Timeline) */}
         {phase !== "preview" && <RemainingSets />}
 
-        {/* Timeline */}
+        {/* Timeline - shows individual or group activity depending on context */}
         {phase !== "preview" && <Timeline />}
 
         {/* Barbell Calculator Modal */}
@@ -518,6 +525,7 @@ export function Workout() {
   return (
     <WorkoutProvider>
       <WorkoutContent />
+      <GroupPlanningModal />
     </WorkoutProvider>
   );
 }

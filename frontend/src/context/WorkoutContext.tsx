@@ -7,8 +7,16 @@ import {
   type RestConfig,
   type ProposedWorkout,
   type UserPreferences,
+  type WorkoutGroup,
+  type GroupInvite,
+  type GroupWorkoutPlan,
+  type WorkoutUpdate,
+  type GroupSession,
+  type UserExercisePlan,
   ActivityType,
   Exercise,
+  UpdateType,
+  watchNotifications,
 } from "@/lib/api";
 
 // Roasts for when you're past your rest time
@@ -46,6 +54,13 @@ interface WorkoutContextType {
   restConfig: RestConfig | null;
   preferences: UserPreferences | null;
 
+  // Group state
+  activeGroup: WorkoutGroup | null;
+  activeSession: GroupSession | null;  // New group session system
+  pendingInvites: GroupInvite[];
+  groupWorkoutPlan: GroupWorkoutPlan | null;
+  showPlanningModal: boolean;
+
   // UI state
   loading: boolean;
   error: string | null;
@@ -79,18 +94,39 @@ interface WorkoutContextType {
   updatePreferences: (workoutDays: number[]) => Promise<void>;
   setExerciseOrder: (exercises: Exercise[]) => void;
   setError: (error: string | null) => void;
+
+  // Group actions
+  inviteToGroup: (username: string) => Promise<{ plan: GroupWorkoutPlan | null; error: string | null }>;
+  respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
+  leaveGroup: () => Promise<void>;
+
+  // New group session actions
+  createGroupSession: (inviteUsername: string) => Promise<{ session: GroupSession | null; error: string | null }>;
+  joinGroupSession: (inviteId: string) => Promise<{ session: GroupSession | null; error: string | null }>;
+  updateMyPlan: (exercises: UserExercisePlan[]) => Promise<void>;
+  setReady: (ready: boolean) => Promise<void>;
+  startGroupWorkout: () => Promise<void>;
+  leaveGroupSession: () => Promise<void>;
+  closePlanningModal: () => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
-  const { client } = useUser();
+  const { client, username } = useUser();
 
   // State from backend
   const [workoutState, setWorkoutState] = useState<WorkoutState | null>(null);
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<ProposedWorkout[]>([]);
   const [restConfig, setRestConfig] = useState<RestConfig | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+
+  // Group state
+  const [activeGroup, setActiveGroup] = useState<WorkoutGroup | null>(null);
+  const [activeSession, setActiveSession] = useState<GroupSession | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>([]);
+  const [groupWorkoutPlan, setGroupWorkoutPlan] = useState<GroupWorkoutPlan | null>(null);
+  const [showPlanningModal, setShowPlanningModal] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(true);
@@ -152,6 +188,19 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       setUpcomingWorkouts(response.workouts);
       setRestConfig(response.restConfig ?? null);
       setPreferences(response.preferences ?? null);
+      setPendingInvites(response.pendingInvites ?? []);
+      setActiveGroup(response.activeGroup ?? null);
+
+      // New group session system
+      if (response.activeSession) {
+        setActiveSession(response.activeSession);
+        // Show planning modal if session is in planning phase
+        if (response.activeSession.status === "planning") {
+          setShowPlanningModal(true);
+        }
+      } else {
+        setActiveSession(null);
+      }
 
       // Check if there's an active workout
       if (response.activeWorkout) {
@@ -213,6 +262,123 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [phase, currentActivity, restConfig]);
+
+  // Real-time streaming subscription - connect when logged in
+  useEffect(() => {
+    if (!username) return;
+
+    console.log("Connecting to notification stream for:", username);
+
+    const abortController = watchNotifications(
+      username,
+      (update: WorkoutUpdate) => {
+        console.log("Received update:", update.type, update);
+
+        // Handle different update types
+        switch (update.type) {
+          case UpdateType.INVITE_RECEIVED:
+            // Someone invited us - refresh to show the pending invite
+            console.log("Received invite from:", update.userId);
+            refresh();
+            break;
+          case UpdateType.INVITE_ACCEPTED:
+            // Someone accepted our invite - refresh to show them in the group
+            console.log("Invite accepted by:", update.userId);
+            if (update.group) {
+              setActiveGroup(update.group);
+            }
+            refresh();
+            break;
+          case UpdateType.INVITE_DECLINED:
+            // Someone declined our invite
+            console.log("Invite declined by:", update.userId);
+            break;
+          case UpdateType.USER_JOINED:
+            // Someone joined the group
+            console.log("User joined group:", update.userId);
+            if (update.group) {
+              setActiveGroup(update.group);
+            }
+            if (update.session) {
+              setActiveSession(update.session);
+              // Show planning modal when joining a new session (if in planning phase)
+              if (update.session.status === "planning") {
+                setShowPlanningModal(true);
+              }
+            }
+            refresh();
+            break;
+          case UpdateType.USER_LEFT:
+            // Someone left the group
+            console.log("User left group:", update.userId);
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            refresh();
+            break;
+          case UpdateType.SET_STARTED:
+          case UpdateType.SET_COMPLETED:
+          case UpdateType.REST_STARTED:
+          case UpdateType.REST_SKIPPED:
+          case UpdateType.GROUP_UPDATED:
+            // Activity update from another user - update session if provided
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            refresh();
+            break;
+          case UpdateType.PLAN_UPDATED:
+            // Someone updated their plan during planning phase
+            console.log("Plan updated by:", update.userId);
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            break;
+          case UpdateType.USER_READY:
+            console.log("User marked ready:", update.userId);
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            break;
+          case UpdateType.USER_NOT_READY:
+            console.log("User unmarked ready:", update.userId);
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            break;
+          case UpdateType.WORKOUT_STARTED:
+            // Planning complete, workout is starting
+            console.log("Group workout started");
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            setShowPlanningModal(false);
+            refresh(); // Refresh to get the new personal workout state
+            break;
+          case UpdateType.SESSION_UPDATED:
+            if (update.session) {
+              setActiveSession(update.session);
+            }
+            break;
+          default:
+            // Unknown update type - refresh to be safe
+            refresh();
+        }
+      },
+      (error) => {
+        console.error("Notification stream error:", error);
+        // Could implement reconnection logic here
+      },
+      () => {
+        console.log("Notification stream closed");
+      }
+    );
+
+    return () => {
+      console.log("Disconnecting notification stream");
+      abortController.abort();
+    };
+  }, [username, refresh]);
 
   // Calculate elapsed time for current set
   const setElapsedSeconds = currentActivity?.startedAt
@@ -427,7 +593,173 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setCurrentRoast("");
     setExerciseOrder([]);
     setSelectedWorkoutIndex(0);
+    setActiveGroup(null);
+    setGroupWorkoutPlan(null);
     await refresh();
+  };
+
+  // Invite a user to join your workout group
+  // Returns { plan, error } - plan is set on success, error message on failure
+  const inviteToGroup = async (username: string): Promise<{ plan: GroupWorkoutPlan | null; error: string | null }> => {
+    if (!client) return { plan: null, error: "Not connected" };
+
+    try {
+      const response = await client.inviteToGroup({ username });
+      if (response.plan) {
+        setGroupWorkoutPlan(response.plan);
+      }
+      return { plan: response.plan ?? null, error: null };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to invite user";
+      return { plan: null, error: errorMessage };
+    }
+  };
+
+  // Respond to a group invite (accept or decline)
+  const respondToInvite = async (inviteId: string, accept: boolean): Promise<void> => {
+    if (!client) return;
+
+    try {
+      const response = await client.respondToInvite({ inviteId, accept });
+      if (accept && response.group) {
+        setActiveGroup(response.group);
+        if (response.plan) {
+          setGroupWorkoutPlan(response.plan);
+        }
+        if (response.state) {
+          setWorkoutState(response.state);
+          setPhase(determinePhase(response.state));
+        }
+      }
+      // Remove the invite from pending list
+      setPendingInvites(prev => prev.filter(inv => inv.id !== inviteId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to respond to invite");
+    }
+  };
+
+  // Leave the current workout group
+  const leaveGroup = async (): Promise<void> => {
+    if (!client) return;
+
+    try {
+      await client.leaveGroup({});
+      setActiveGroup(null);
+      setGroupWorkoutPlan(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to leave group");
+    }
+  };
+
+  // === New Group Session Functions ===
+
+  // Create a new group session and invite someone
+  const createGroupSession = async (inviteUsername: string): Promise<{ session: GroupSession | null; error: string | null }> => {
+    if (!client) return { session: null, error: "Not connected" };
+
+    try {
+      const response = await client.createGroupSession({ inviteUsername });
+      if (response.session) {
+        setActiveSession(response.session);
+        setShowPlanningModal(true);
+      }
+      return { session: response.session ?? null, error: null };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create group session";
+      return { session: null, error: errorMessage };
+    }
+  };
+
+  // Join a group session (accept invite)
+  const joinGroupSession = async (inviteId: string): Promise<{ session: GroupSession | null; error: string | null }> => {
+    if (!client) return { session: null, error: "Not connected" };
+
+    try {
+      const response = await client.joinGroupSession({ inviteId });
+      if (response.session) {
+        setActiveSession(response.session);
+        setShowPlanningModal(true);
+      }
+      // Remove the invite from pending list
+      setPendingInvites(prev => prev.filter(inv => inv.id !== inviteId));
+      return { session: response.session ?? null, error: null };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to join group session";
+      return { session: null, error: errorMessage };
+    }
+  };
+
+  // Update my plan during planning phase
+  const updateMyPlan = async (exercises: UserExercisePlan[]): Promise<void> => {
+    if (!client || !activeSession) return;
+
+    try {
+      const response = await client.updateMyPlan({
+        sessionId: activeSession.id,
+        exercises,
+      });
+      if (response.session) {
+        setActiveSession(response.session);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update plan");
+    }
+  };
+
+  // Mark self as ready
+  const setReady = async (ready: boolean): Promise<void> => {
+    if (!client || !activeSession) return;
+
+    try {
+      const response = await client.setReady({
+        sessionId: activeSession.id,
+        ready,
+      });
+      if (response.session) {
+        setActiveSession(response.session);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set ready status");
+    }
+  };
+
+  // Start the group workout (when all ready)
+  const startGroupWorkout = async (): Promise<void> => {
+    if (!client || !activeSession) return;
+
+    try {
+      const response = await client.startGroupWorkout({
+        sessionId: activeSession.id,
+      });
+      if (response.session) {
+        setActiveSession(response.session);
+        setShowPlanningModal(false);
+        // Refresh to get the new personal workout state
+        await refresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start group workout");
+    }
+  };
+
+  // Leave the group session
+  const leaveGroupSession = async (): Promise<void> => {
+    if (!client || !activeSession) return;
+
+    try {
+      await client.leaveGroupSession({ sessionId: activeSession.id });
+      setActiveSession(null);
+      setShowPlanningModal(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to leave group session");
+    }
+  };
+
+  // Close planning modal
+  const closePlanningModal = () => {
+    setShowPlanningModal(false);
   };
 
   return (
@@ -437,6 +769,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         upcomingWorkouts,
         restConfig,
         preferences,
+        activeGroup,
+        activeSession,
+        pendingInvites,
+        groupWorkoutPlan,
+        showPlanningModal,
         loading,
         error,
         phase,
@@ -460,6 +797,16 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         updatePreferences,
         setExerciseOrder: handleSetExerciseOrder,
         setError,
+        inviteToGroup,
+        respondToInvite,
+        leaveGroup,
+        createGroupSession,
+        joinGroupSession,
+        updateMyPlan,
+        setReady,
+        startGroupWorkout,
+        leaveGroupSession,
+        closePlanningModal,
       }}
     >
       {children}

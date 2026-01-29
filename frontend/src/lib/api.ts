@@ -21,8 +21,53 @@ export function createWorkoutClient(username: string) {
   }));
 }
 
-// Subscribe to workout updates (server streaming)
+// Subscribe to user notifications (server streaming)
+// This is the main streaming endpoint - connect on login
 // Returns an AbortController to cancel the subscription
+export function watchNotifications(
+  username: string,
+  onUpdate: (update: WorkoutUpdate) => void,
+  onError?: (error: Error) => void,
+  onClose?: () => void
+): AbortController {
+  const abortController = new AbortController();
+
+  // Create client with auth header
+  const authInterceptor: Interceptor = (next) => async (req) => {
+    req.header.set("X-Username", username);
+    return next(req);
+  };
+
+  const transport = createConnectTransport({
+    baseUrl: API_BASE_URL,
+    interceptors: [authInterceptor],
+  });
+
+  const client = createPromiseClient(WorkoutService, transport);
+
+  // Start the streaming call
+  (async () => {
+    try {
+      for await (const update of client.watchNotifications(
+        {},
+        { signal: abortController.signal }
+      )) {
+        onUpdate(update);
+      }
+      onClose?.();
+    } catch (err) {
+      if (abortController.signal.aborted) {
+        onClose?.();
+      } else {
+        onError?.(err instanceof Error ? err : new Error(String(err)));
+      }
+    }
+  })();
+
+  return abortController;
+}
+
+// Legacy: Subscribe to workout updates (deprecated - use watchNotifications)
 export function watchWorkout(
   sessionId: string,
   userId: string,

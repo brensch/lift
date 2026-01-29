@@ -51,6 +51,15 @@ export const UpdateType = /*@__PURE__*/ proto3.makeEnum(
     {no: 4, name: "UPDATE_TYPE_SET_COMPLETED", localName: "SET_COMPLETED"},
     {no: 5, name: "UPDATE_TYPE_REST_STARTED", localName: "REST_STARTED"},
     {no: 6, name: "UPDATE_TYPE_REST_SKIPPED", localName: "REST_SKIPPED"},
+    {no: 7, name: "UPDATE_TYPE_INVITE_RECEIVED", localName: "INVITE_RECEIVED"},
+    {no: 8, name: "UPDATE_TYPE_INVITE_ACCEPTED", localName: "INVITE_ACCEPTED"},
+    {no: 9, name: "UPDATE_TYPE_INVITE_DECLINED", localName: "INVITE_DECLINED"},
+    {no: 10, name: "UPDATE_TYPE_GROUP_UPDATED", localName: "GROUP_UPDATED"},
+    {no: 11, name: "UPDATE_TYPE_PLAN_UPDATED", localName: "PLAN_UPDATED"},
+    {no: 12, name: "UPDATE_TYPE_USER_READY", localName: "USER_READY"},
+    {no: 13, name: "UPDATE_TYPE_USER_NOT_READY", localName: "USER_NOT_READY"},
+    {no: 14, name: "UPDATE_TYPE_WORKOUT_STARTED", localName: "WORKOUT_STARTED"},
+    {no: 15, name: "UPDATE_TYPE_SESSION_UPDATED", localName: "SESSION_UPDATED"},
   ],
 );
 
@@ -166,6 +175,254 @@ export const UserPreferences = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * A group workout session (each workout gets a new session, even with same people)
+ *
+ * @generated from message workout.v1.GroupSession
+ */
+export const GroupSession = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupSession",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "created_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "created_at", kind: "message", T: Timestamp },
+    { no: 4, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "members", kind: "message", T: GroupSessionMember, repeated: true },
+    { no: 6, name: "plan", kind: "message", T: GroupPlan },
+    { no: 7, name: "timeline", kind: "message", T: GroupActivity, repeated: true },
+    { no: 8, name: "next_up", kind: "message", T: NextUp },
+  ],
+);
+
+/**
+ * A member in a group session
+ *
+ * @generated from message workout.v1.GroupSessionMember
+ */
+export const GroupSessionMember = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupSessionMember",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "is_connected", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "proposed_plan", kind: "message", T: UserPlan },
+    { no: 5, name: "current_activity", kind: "message", T: UserActivity },
+    { no: 6, name: "remaining_sets", kind: "message", T: PlannedSet, repeated: true },
+    { no: 7, name: "completed_sets", kind: "message", T: PlannedSet, repeated: true },
+  ],
+);
+
+/**
+ * A user's proposed/agreed plan for the session
+ *
+ * @generated from message workout.v1.UserPlan
+ */
+export const UserPlan = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserPlan",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "exercises", kind: "message", T: UserExercisePlan, repeated: true },
+  ],
+);
+
+/**
+ * A user's plan for a single exercise
+ *
+ * @generated from message workout.v1.UserExercisePlan
+ */
+export const UserExercisePlan = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserExercisePlan",
+  () => [
+    { no: 1, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 2, name: "target_weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 3, name: "target_sets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "target_reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ],
+);
+
+/**
+ * Current activity for a user (what they're doing right now)
+ *
+ * @generated from message workout.v1.UserActivity
+ */
+export const UserActivity = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserActivity",
+  () => [
+    { no: 1, name: "activity_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 4, name: "set_number", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 6, name: "target_reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 7, name: "actual_reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 8, name: "started_at", kind: "message", T: Timestamp },
+    { no: 9, name: "rest_seconds_remaining", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ],
+);
+
+/**
+ * An activity in the group timeline (from activity_log)
+ *
+ * @generated from message workout.v1.GroupActivity
+ */
+export const GroupActivity = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupActivity",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 5, name: "set_number", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 7, name: "target_reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 8, name: "actual_reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 9, name: "started_at", kind: "message", T: Timestamp },
+    { no: 10, name: "ended_at", kind: "message", T: Timestamp },
+    { no: 11, name: "planned_rest_seconds", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ],
+);
+
+/**
+ * Who should go next in the group
+ *
+ * @generated from message workout.v1.NextUp
+ */
+export const NextUp = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.NextUp",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 3, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 4, name: "set_number", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "seconds_until_ready", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: "rest_started_at", kind: "message", T: Timestamp },
+    { no: 7, name: "planned_rest_seconds", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ],
+);
+
+/**
+ * The group's agreed workout plan
+ *
+ * @generated from message workout.v1.GroupPlan
+ */
+export const GroupPlan = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupPlan",
+  () => [
+    { no: 1, name: "exercises", kind: "message", T: GroupExercisePlan, repeated: true },
+    { no: 2, name: "all_ready", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * Plan for one exercise across the group
+ *
+ * @generated from message workout.v1.GroupExercisePlan
+ */
+export const GroupExercisePlan = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupExercisePlan",
+  () => [
+    { no: 1, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 2, name: "position", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "user_slots", kind: "message", T: UserExerciseSlot, repeated: true },
+  ],
+);
+
+/**
+ * A user's slot for an exercise (their weight + plate change from previous)
+ *
+ * @generated from message workout.v1.UserExerciseSlot
+ */
+export const UserExerciseSlot = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserExerciseSlot",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 3, name: "sets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "reps", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "plate_change", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * An invite to join a group session
+ *
+ * @generated from message workout.v1.GroupInvite
+ */
+export const GroupInvite = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupInvite",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "from_user", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "to_user", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "created_at", kind: "message", T: Timestamp },
+    { no: 7, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Legacy compatibility
+ *
+ * @generated from message workout.v1.WorkoutGroup
+ */
+export const WorkoutGroup = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.WorkoutGroup",
+  () => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "created_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "created_at", kind: "message", T: Timestamp },
+    { no: 4, name: "members", kind: "message", T: GroupMember, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GroupMember
+ */
+export const GroupMember = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupMember",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "state", kind: "message", T: WorkoutState },
+    { no: 3, name: "is_active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "rest_seconds_remaining", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.ExerciseOrder
+ */
+export const ExerciseOrder = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.ExerciseOrder",
+  () => [
+    { no: 1, name: "exercise", kind: "enum", T: proto3.getEnumType(Exercise) },
+    { no: 2, name: "user_order", kind: "message", T: UserWeight, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.UserWeight
+ */
+export const UserWeight = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserWeight",
+  () => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
+    { no: 3, name: "plate_change", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GroupWorkoutPlan
+ */
+export const GroupWorkoutPlan = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GroupWorkoutPlan",
+  () => [
+    { no: 1, name: "exercises", kind: "message", T: ExerciseOrder, repeated: true },
+    { no: 2, name: "members", kind: "message", T: GroupMember, repeated: true },
+  ],
+);
+
+/**
  * Get or create today's workout state
  *
  * @generated from message workout.v1.GetWorkoutStateRequest
@@ -210,6 +467,9 @@ export const GetUpcomingWorkoutsResponse = /*@__PURE__*/ proto3.makeMessageType(
     { no: 2, name: "active_workout", kind: "message", T: WorkoutState },
     { no: 3, name: "rest_config", kind: "message", T: RestConfig },
     { no: 4, name: "preferences", kind: "message", T: UserPreferences },
+    { no: 5, name: "pending_invites", kind: "message", T: GroupInvite, repeated: true },
+    { no: 6, name: "active_group", kind: "message", T: WorkoutGroup },
+    { no: 7, name: "active_session", kind: "message", T: GroupSession },
   ],
 );
 
@@ -252,6 +512,272 @@ export const UpdateUserPreferencesResponse = /*@__PURE__*/ proto3.makeMessageTyp
   "workout.v1.UpdateUserPreferencesResponse",
   () => [
     { no: 1, name: "preferences", kind: "message", T: UserPreferences },
+  ],
+);
+
+/**
+ * Create a new group session and invite someone
+ *
+ * @generated from message workout.v1.CreateGroupSessionRequest
+ */
+export const CreateGroupSessionRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.CreateGroupSessionRequest",
+  () => [
+    { no: 1, name: "invite_username", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.CreateGroupSessionResponse
+ */
+export const CreateGroupSessionResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.CreateGroupSessionResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+    { no: 2, name: "invite", kind: "message", T: GroupInvite },
+  ],
+);
+
+/**
+ * Join a group session (accept invite)
+ *
+ * @generated from message workout.v1.JoinGroupSessionRequest
+ */
+export const JoinGroupSessionRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.JoinGroupSessionRequest",
+  () => [
+    { no: 1, name: "invite_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.JoinGroupSessionResponse
+ */
+export const JoinGroupSessionResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.JoinGroupSessionResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Get current group session state
+ *
+ * @generated from message workout.v1.GetGroupSessionRequest
+ */
+export const GetGroupSessionRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupSessionRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GetGroupSessionResponse
+ */
+export const GetGroupSessionResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupSessionResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Update your plan for the session (during planning phase)
+ *
+ * @generated from message workout.v1.UpdateMyPlanRequest
+ */
+export const UpdateMyPlanRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdateMyPlanRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "exercises", kind: "message", T: UserExercisePlan, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.UpdateMyPlanResponse
+ */
+export const UpdateMyPlanResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdateMyPlanResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Mark yourself as ready (during planning phase)
+ *
+ * @generated from message workout.v1.SetReadyRequest
+ */
+export const SetReadyRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.SetReadyRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "ready", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.SetReadyResponse
+ */
+export const SetReadyResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.SetReadyResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Start the group workout (when all ready)
+ *
+ * @generated from message workout.v1.StartGroupWorkoutRequest
+ */
+export const StartGroupWorkoutRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.StartGroupWorkoutRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.StartGroupWorkoutResponse
+ */
+export const StartGroupWorkoutResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.StartGroupWorkoutResponse",
+  () => [
+    { no: 1, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * Leave a group session
+ *
+ * @generated from message workout.v1.LeaveGroupSessionRequest
+ */
+export const LeaveGroupSessionRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.LeaveGroupSessionRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.LeaveGroupSessionResponse
+ */
+export const LeaveGroupSessionResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.LeaveGroupSessionResponse",
+  () => [
+    { no: 1, name: "success", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * Legacy invite messages (kept for compatibility)
+ *
+ * @generated from message workout.v1.InviteToGroupRequest
+ */
+export const InviteToGroupRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.InviteToGroupRequest",
+  () => [
+    { no: 1, name: "username", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.InviteToGroupResponse
+ */
+export const InviteToGroupResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.InviteToGroupResponse",
+  () => [
+    { no: 1, name: "invite", kind: "message", T: GroupInvite },
+    { no: 2, name: "plan", kind: "message", T: GroupWorkoutPlan },
+    { no: 3, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.RespondToInviteRequest
+ */
+export const RespondToInviteRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.RespondToInviteRequest",
+  () => [
+    { no: 1, name: "invite_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "accept", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.RespondToInviteResponse
+ */
+export const RespondToInviteResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.RespondToInviteResponse",
+  () => [
+    { no: 1, name: "group", kind: "message", T: WorkoutGroup },
+    { no: 2, name: "plan", kind: "message", T: GroupWorkoutPlan },
+    { no: 3, name: "state", kind: "message", T: WorkoutState },
+    { no: 4, name: "session", kind: "message", T: GroupSession },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GetGroupRequest
+ */
+export const GetGroupRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupRequest",
+  () => [
+    { no: 1, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GetGroupResponse
+ */
+export const GetGroupResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupResponse",
+  () => [
+    { no: 1, name: "group", kind: "message", T: WorkoutGroup },
+    { no: 2, name: "plan", kind: "message", T: GroupWorkoutPlan },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.LeaveGroupRequest
+ */
+export const LeaveGroupRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.LeaveGroupRequest",
+  [],
+);
+
+/**
+ * @generated from message workout.v1.LeaveGroupResponse
+ */
+export const LeaveGroupResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.LeaveGroupResponse",
+  () => [
+    { no: 1, name: "success", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ],
+);
+
+/**
+ * Get the group workout plan (who does what when)
+ *
+ * @generated from message workout.v1.GetGroupWorkoutPlanRequest
+ */
+export const GetGroupWorkoutPlanRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupWorkoutPlanRequest",
+  () => [
+    { no: 1, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.GetGroupWorkoutPlanResponse
+ */
+export const GetGroupWorkoutPlanResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetGroupWorkoutPlanResponse",
+  () => [
+    { no: 1, name: "plan", kind: "message", T: GroupWorkoutPlan },
   ],
 );
 
@@ -428,7 +954,18 @@ export const LogSetResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
- * Subscribe to real-time updates for a workout session
+ * Subscribe to real-time notifications for a user
+ * This is the main streaming endpoint - connects on login, receives all updates
+ *
+ * @generated from message workout.v1.WatchNotificationsRequest
+ */
+export const WatchNotificationsRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.WatchNotificationsRequest",
+  [],
+);
+
+/**
+ * Legacy: Subscribe to real-time updates for a workout session
  *
  * @generated from message workout.v1.WatchWorkoutRequest
  */
@@ -453,6 +990,10 @@ export const WorkoutUpdate = /*@__PURE__*/ proto3.makeMessageType(
     { no: 3, name: "activity", kind: "message", T: Activity },
     { no: 4, name: "state", kind: "message", T: WorkoutState },
     { no: 5, name: "timestamp", kind: "message", T: Timestamp },
+    { no: 6, name: "invite", kind: "message", T: GroupInvite },
+    { no: 7, name: "group", kind: "message", T: WorkoutGroup },
+    { no: 9, name: "session", kind: "message", T: GroupSession },
+    { no: 8, name: "group_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
