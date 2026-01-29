@@ -141,6 +141,19 @@ CREATE INDEX IF NOT EXISTS idx_sets_completed ON sets(completed_at);
 	// Migration: Add workout_started_at column to track when user explicitly starts the workout
 	db.Exec(`ALTER TABLE sessions ADD COLUMN workout_started_at DATETIME`)
 
+	// Create user_preferences table
+	db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_preferences (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			workout_days TEXT NOT NULL DEFAULT '1,3,5',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+
+	// Insert default preferences if not exists (Mon=1, Wed=3, Fri=5)
+	db.Exec(`INSERT OR IGNORE INTO user_preferences (id, workout_days) VALUES (1, '1,3,5')`)
+
 	return nil
 }
 

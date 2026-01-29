@@ -390,6 +390,83 @@ export declare class RestConfig extends Message<RestConfig> {
 }
 
 /**
+ * A proposed workout that hasn't been started yet
+ *
+ * @generated from message workout.v1.ProposedWorkout
+ */
+export declare class ProposedWorkout extends Message<ProposedWorkout> {
+  /**
+   * 1-5, order in the upcoming list
+   *
+   * @generated from field: int32 sequence = 1;
+   */
+  sequence: number;
+
+  /**
+   * "A" or "B"
+   *
+   * @generated from field: string workout_type = 2;
+   */
+  workoutType: string;
+
+  /**
+   * The exercises and weights for this workout
+   *
+   * @generated from field: repeated workout.v1.PlannedSet sets = 3;
+   */
+  sets: PlannedSet[];
+
+  /**
+   * Scheduled date for this workout
+   *
+   * @generated from field: google.protobuf.Timestamp target_date = 4;
+   */
+  targetDate?: Timestamp;
+
+  constructor(data?: PartialMessage<ProposedWorkout>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.ProposedWorkout";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProposedWorkout;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProposedWorkout;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProposedWorkout;
+
+  static equals(a: ProposedWorkout | PlainMessage<ProposedWorkout> | undefined, b: ProposedWorkout | PlainMessage<ProposedWorkout> | undefined): boolean;
+}
+
+/**
+ * User preferences for workout scheduling
+ *
+ * @generated from message workout.v1.UserPreferences
+ */
+export declare class UserPreferences extends Message<UserPreferences> {
+  /**
+   * Days of week (1=Mon, 2=Tue, ..., 7=Sun)
+   *
+   * @generated from field: repeated int32 workout_days = 1;
+   */
+  workoutDays: number[];
+
+  constructor(data?: PartialMessage<UserPreferences>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UserPreferences";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserPreferences;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserPreferences;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserPreferences;
+
+  static equals(a: UserPreferences | PlainMessage<UserPreferences> | undefined, b: UserPreferences | PlainMessage<UserPreferences> | undefined): boolean;
+}
+
+/**
  * Get or create today's workout state
  *
  * @generated from message workout.v1.GetWorkoutStateRequest
@@ -459,15 +536,185 @@ export declare class GetWorkoutStateResponse extends Message<GetWorkoutStateResp
 }
 
 /**
- * Start the workout (user explicitly begins, starts the workout timer)
+ * Get upcoming proposed workouts (calculated based on progression)
+ *
+ * @generated from message workout.v1.GetUpcomingWorkoutsRequest
+ */
+export declare class GetUpcomingWorkoutsRequest extends Message<GetUpcomingWorkoutsRequest> {
+  constructor(data?: PartialMessage<GetUpcomingWorkoutsRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetUpcomingWorkoutsRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUpcomingWorkoutsRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUpcomingWorkoutsRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUpcomingWorkoutsRequest;
+
+  static equals(a: GetUpcomingWorkoutsRequest | PlainMessage<GetUpcomingWorkoutsRequest> | undefined, b: GetUpcomingWorkoutsRequest | PlainMessage<GetUpcomingWorkoutsRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetUpcomingWorkoutsResponse
+ */
+export declare class GetUpcomingWorkoutsResponse extends Message<GetUpcomingWorkoutsResponse> {
+  /**
+   * Next 5 workouts
+   *
+   * @generated from field: repeated workout.v1.ProposedWorkout workouts = 1;
+   */
+  workouts: ProposedWorkout[];
+
+  /**
+   * Current in-progress workout, if any
+   *
+   * @generated from field: workout.v1.WorkoutState active_workout = 2;
+   */
+  activeWorkout?: WorkoutState;
+
+  /**
+   * @generated from field: workout.v1.RestConfig rest_config = 3;
+   */
+  restConfig?: RestConfig;
+
+  /**
+   * User's scheduling preferences
+   *
+   * @generated from field: workout.v1.UserPreferences preferences = 4;
+   */
+  preferences?: UserPreferences;
+
+  constructor(data?: PartialMessage<GetUpcomingWorkoutsResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetUpcomingWorkoutsResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUpcomingWorkoutsResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUpcomingWorkoutsResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUpcomingWorkoutsResponse;
+
+  static equals(a: GetUpcomingWorkoutsResponse | PlainMessage<GetUpcomingWorkoutsResponse> | undefined, b: GetUpcomingWorkoutsResponse | PlainMessage<GetUpcomingWorkoutsResponse> | undefined): boolean;
+}
+
+/**
+ * Get user preferences
+ *
+ * @generated from message workout.v1.GetUserPreferencesRequest
+ */
+export declare class GetUserPreferencesRequest extends Message<GetUserPreferencesRequest> {
+  constructor(data?: PartialMessage<GetUserPreferencesRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetUserPreferencesRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUserPreferencesRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUserPreferencesRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUserPreferencesRequest;
+
+  static equals(a: GetUserPreferencesRequest | PlainMessage<GetUserPreferencesRequest> | undefined, b: GetUserPreferencesRequest | PlainMessage<GetUserPreferencesRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.GetUserPreferencesResponse
+ */
+export declare class GetUserPreferencesResponse extends Message<GetUserPreferencesResponse> {
+  /**
+   * @generated from field: workout.v1.UserPreferences preferences = 1;
+   */
+  preferences?: UserPreferences;
+
+  constructor(data?: PartialMessage<GetUserPreferencesResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.GetUserPreferencesResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetUserPreferencesResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetUserPreferencesResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetUserPreferencesResponse;
+
+  static equals(a: GetUserPreferencesResponse | PlainMessage<GetUserPreferencesResponse> | undefined, b: GetUserPreferencesResponse | PlainMessage<GetUserPreferencesResponse> | undefined): boolean;
+}
+
+/**
+ * Update user preferences
+ *
+ * @generated from message workout.v1.UpdateUserPreferencesRequest
+ */
+export declare class UpdateUserPreferencesRequest extends Message<UpdateUserPreferencesRequest> {
+  /**
+   * @generated from field: workout.v1.UserPreferences preferences = 1;
+   */
+  preferences?: UserPreferences;
+
+  constructor(data?: PartialMessage<UpdateUserPreferencesRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdateUserPreferencesRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateUserPreferencesRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateUserPreferencesRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateUserPreferencesRequest;
+
+  static equals(a: UpdateUserPreferencesRequest | PlainMessage<UpdateUserPreferencesRequest> | undefined, b: UpdateUserPreferencesRequest | PlainMessage<UpdateUserPreferencesRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.UpdateUserPreferencesResponse
+ */
+export declare class UpdateUserPreferencesResponse extends Message<UpdateUserPreferencesResponse> {
+  /**
+   * @generated from field: workout.v1.UserPreferences preferences = 1;
+   */
+  preferences?: UserPreferences;
+
+  constructor(data?: PartialMessage<UpdateUserPreferencesResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.UpdateUserPreferencesResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateUserPreferencesResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateUserPreferencesResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateUserPreferencesResponse;
+
+  static equals(a: UpdateUserPreferencesResponse | PlainMessage<UpdateUserPreferencesResponse> | undefined, b: UpdateUserPreferencesResponse | PlainMessage<UpdateUserPreferencesResponse> | undefined): boolean;
+}
+
+/**
+ * Start the workout with a specific plan
  *
  * @generated from message workout.v1.StartWorkoutRequest
  */
 export declare class StartWorkoutRequest extends Message<StartWorkoutRequest> {
   /**
-   * @generated from field: string session_id = 1;
+   * The sets to use for this workout
+   *
+   * @generated from field: repeated workout.v1.PlannedSet sets = 1;
    */
-  sessionId: string;
+  sets: PlannedSet[];
+
+  /**
+   * "A" or "B"
+   *
+   * @generated from field: string workout_type = 2;
+   */
+  workoutType: string;
 
   constructor(data?: PartialMessage<StartWorkoutRequest>);
 
@@ -489,9 +736,11 @@ export declare class StartWorkoutRequest extends Message<StartWorkoutRequest> {
  */
 export declare class StartWorkoutResponse extends Message<StartWorkoutResponse> {
   /**
-   * @generated from field: google.protobuf.Timestamp workout_started_at = 1;
+   * The newly created workout state
+   *
+   * @generated from field: workout.v1.WorkoutState state = 1;
    */
-  workoutStartedAt?: Timestamp;
+  state?: WorkoutState;
 
   constructor(data?: PartialMessage<StartWorkoutResponse>);
 

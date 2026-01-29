@@ -76,6 +76,19 @@ message RestConfig {
   int32 failure_seconds = 2;  // Rest after missing reps (default 300)
 }
 
+// A proposed workout that hasn't been started yet
+message ProposedWorkout {
+  int32 sequence = 1;              // 1-5, order in the upcoming list
+  string workout_type = 2;          // "A" or "B"
+  repeated PlannedSet sets = 3;     // The exercises and weights for this workout
+  google.protobuf.Timestamp target_date = 4;  // Scheduled date for this workout
+}
+
+// User preferences for workout scheduling
+message UserPreferences {
+  repeated int32 workout_days = 1;  // Days of week (1=Mon, 2=Tue, ..., 7=Sun)
+}
+
 // ============ Request/Response Messages ============
 
 // Get or create today's workout state
@@ -90,13 +103,40 @@ message GetWorkoutStateResponse {
   RestConfig rest_config = 3;
 }
 
-// Start the workout (user explicitly begins, starts the workout timer)
+// Get upcoming proposed workouts (calculated based on progression)
+message GetUpcomingWorkoutsRequest {}
+
+message GetUpcomingWorkoutsResponse {
+  repeated ProposedWorkout workouts = 1;    // Next 5 workouts
+  WorkoutState active_workout = 2;           // Current in-progress workout, if any
+  RestConfig rest_config = 3;
+  UserPreferences preferences = 4;           // User's scheduling preferences
+}
+
+// Get user preferences
+message GetUserPreferencesRequest {}
+
+message GetUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Update user preferences
+message UpdateUserPreferencesRequest {
+  UserPreferences preferences = 1;
+}
+
+message UpdateUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Start the workout with a specific plan
 message StartWorkoutRequest {
-  string session_id = 1;
+  repeated PlannedSet sets = 1;             // The sets to use for this workout
+  string workout_type = 2;                   // "A" or "B"
 }
 
 message StartWorkoutResponse {
-  google.protobuf.Timestamp workout_started_at = 1;
+  WorkoutState state = 1;                    // The newly created workout state
 }
 
 // Start performing a set (begins timing)
@@ -202,11 +242,20 @@ message WorkoutUpdate {
 // ============ Service Definition ============
 
 service WorkoutService {
-  // Get current workout state (creates session if needed)
+  // Get upcoming proposed workouts and any active workout
+  rpc GetUpcomingWorkouts(GetUpcomingWorkoutsRequest) returns (GetUpcomingWorkoutsResponse);
+
+  // Start a workout with a specific plan (creates new session)
+  rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
+
+  // Get current workout state (for an active session)
   rpc GetWorkoutState(GetWorkoutStateRequest) returns (GetWorkoutStateResponse);
 
-  // Start the workout (user explicitly begins)
-  rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
+  // Get user preferences
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+
+  // Update user preferences (workout days, etc.)
+  rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
 
   // Start performing a set
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
