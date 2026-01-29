@@ -138,6 +138,9 @@ CREATE INDEX IF NOT EXISTS idx_sets_completed ON sets(completed_at);
 	// Migration: Add exercise_order column to sessions table for custom exercise ordering
 	db.Exec(`ALTER TABLE sessions ADD COLUMN exercise_order TEXT DEFAULT ''`)
 
+	// Migration: Add workout_started_at column to track when user explicitly starts the workout
+	db.Exec(`ALTER TABLE sessions ADD COLUMN workout_started_at DATETIME`)
+
 	return nil
 }
 

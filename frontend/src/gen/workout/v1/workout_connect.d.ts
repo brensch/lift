@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -21,6 +21,17 @@ export declare const WorkoutService: {
       readonly name: "GetWorkoutState",
       readonly I: typeof GetWorkoutStateRequest,
       readonly O: typeof GetWorkoutStateResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Start the workout (user explicitly begins)
+     *
+     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     */
+    readonly startWorkout: {
+      readonly name: "StartWorkout",
+      readonly I: typeof StartWorkoutRequest,
+      readonly O: typeof StartWorkoutResponse,
       readonly kind: MethodKind.Unary,
     },
     /**
@@ -88,6 +99,18 @@ export declare const WorkoutService: {
       readonly I: typeof LogSetRequest,
       readonly O: typeof LogSetResponse,
       readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Stream: Subscribe to real-time workout updates
+     * Returns updates whenever any user in the session performs an action
+     *
+     * @generated from rpc workout.v1.WorkoutService.WatchWorkout
+     */
+    readonly watchWorkout: {
+      readonly name: "WatchWorkout",
+      readonly I: typeof WatchWorkoutRequest,
+      readonly O: typeof WorkoutUpdate,
+      readonly kind: MethodKind.ServerStreaming,
     },
   }
 };

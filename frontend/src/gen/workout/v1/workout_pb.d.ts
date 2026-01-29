@@ -70,6 +70,60 @@ export declare enum ActivityType {
 }
 
 /**
+ * Types of updates that can occur
+ *
+ * @generated from enum workout.v1.UpdateType
+ */
+export declare enum UpdateType {
+  /**
+   * @generated from enum value: UPDATE_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A user joined the workout
+   *
+   * @generated from enum value: UPDATE_TYPE_USER_JOINED = 1;
+   */
+  USER_JOINED = 1,
+
+  /**
+   * A user left the workout
+   *
+   * @generated from enum value: UPDATE_TYPE_USER_LEFT = 2;
+   */
+  USER_LEFT = 2,
+
+  /**
+   * A user started a set
+   *
+   * @generated from enum value: UPDATE_TYPE_SET_STARTED = 3;
+   */
+  SET_STARTED = 3,
+
+  /**
+   * A user completed a set
+   *
+   * @generated from enum value: UPDATE_TYPE_SET_COMPLETED = 4;
+   */
+  SET_COMPLETED = 4,
+
+  /**
+   * A user started resting
+   *
+   * @generated from enum value: UPDATE_TYPE_REST_STARTED = 5;
+   */
+  REST_STARTED = 5,
+
+  /**
+   * A user skipped their rest
+   *
+   * @generated from enum value: UPDATE_TYPE_REST_SKIPPED = 6;
+   */
+  REST_SKIPPED = 6,
+}
+
+/**
  * A single activity in the workout timeline
  * Everything in a workout is an activity with a start time
  *
@@ -235,6 +289,8 @@ export declare class WorkoutState extends Message<WorkoutState> {
   sessionId: string;
 
   /**
+   * When session was created
+   *
    * @generated from field: google.protobuf.Timestamp session_started_at = 2;
    */
   sessionStartedAt?: Timestamp;
@@ -273,6 +329,13 @@ export declare class WorkoutState extends Message<WorkoutState> {
    * @generated from field: bool is_complete = 7;
    */
   isComplete: boolean;
+
+  /**
+   * When user explicitly started (null = preview mode)
+   *
+   * @generated from field: google.protobuf.Timestamp workout_started_at = 8;
+   */
+  workoutStartedAt?: Timestamp;
 
   constructor(data?: PartialMessage<WorkoutState>);
 
@@ -393,6 +456,56 @@ export declare class GetWorkoutStateResponse extends Message<GetWorkoutStateResp
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetWorkoutStateResponse;
 
   static equals(a: GetWorkoutStateResponse | PlainMessage<GetWorkoutStateResponse> | undefined, b: GetWorkoutStateResponse | PlainMessage<GetWorkoutStateResponse> | undefined): boolean;
+}
+
+/**
+ * Start the workout (user explicitly begins, starts the workout timer)
+ *
+ * @generated from message workout.v1.StartWorkoutRequest
+ */
+export declare class StartWorkoutRequest extends Message<StartWorkoutRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  constructor(data?: PartialMessage<StartWorkoutRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.StartWorkoutRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartWorkoutRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StartWorkoutRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StartWorkoutRequest;
+
+  static equals(a: StartWorkoutRequest | PlainMessage<StartWorkoutRequest> | undefined, b: StartWorkoutRequest | PlainMessage<StartWorkoutRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.StartWorkoutResponse
+ */
+export declare class StartWorkoutResponse extends Message<StartWorkoutResponse> {
+  /**
+   * @generated from field: google.protobuf.Timestamp workout_started_at = 1;
+   */
+  workoutStartedAt?: Timestamp;
+
+  constructor(data?: PartialMessage<StartWorkoutResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.StartWorkoutResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartWorkoutResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): StartWorkoutResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): StartWorkoutResponse;
+
+  static equals(a: StartWorkoutResponse | PlainMessage<StartWorkoutResponse> | undefined, b: StartWorkoutResponse | PlainMessage<StartWorkoutResponse> | undefined): boolean;
 }
 
 /**
@@ -802,5 +915,90 @@ export declare class LogSetResponse extends Message<LogSetResponse> {
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LogSetResponse;
 
   static equals(a: LogSetResponse | PlainMessage<LogSetResponse> | undefined, b: LogSetResponse | PlainMessage<LogSetResponse> | undefined): boolean;
+}
+
+/**
+ * Subscribe to real-time updates for a workout session
+ *
+ * @generated from message workout.v1.WatchWorkoutRequest
+ */
+export declare class WatchWorkoutRequest extends Message<WatchWorkoutRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * The user subscribing to updates
+   *
+   * @generated from field: string user_id = 2;
+   */
+  userId: string;
+
+  constructor(data?: PartialMessage<WatchWorkoutRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.WatchWorkoutRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WatchWorkoutRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WatchWorkoutRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WatchWorkoutRequest;
+
+  static equals(a: WatchWorkoutRequest | PlainMessage<WatchWorkoutRequest> | undefined, b: WatchWorkoutRequest | PlainMessage<WatchWorkoutRequest> | undefined): boolean;
+}
+
+/**
+ * Real-time update pushed to watching clients
+ *
+ * @generated from message workout.v1.WorkoutUpdate
+ */
+export declare class WorkoutUpdate extends Message<WorkoutUpdate> {
+  /**
+   * @generated from field: workout.v1.UpdateType type = 1;
+   */
+  type: UpdateType;
+
+  /**
+   * Who triggered the update
+   *
+   * @generated from field: string user_id = 2;
+   */
+  userId: string;
+
+  /**
+   * The activity that changed (if applicable)
+   *
+   * @generated from field: workout.v1.Activity activity = 3;
+   */
+  activity?: Activity;
+
+  /**
+   * Full state of the user who changed (optional)
+   *
+   * @generated from field: workout.v1.WorkoutState state = 4;
+   */
+  state?: WorkoutState;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp timestamp = 5;
+   */
+  timestamp?: Timestamp;
+
+  constructor(data?: PartialMessage<WorkoutUpdate>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.WorkoutUpdate";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkoutUpdate;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkoutUpdate;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkoutUpdate;
+
+  static equals(a: WorkoutUpdate | PlainMessage<WorkoutUpdate> | undefined, b: WorkoutUpdate | PlainMessage<WorkoutUpdate> | undefined): boolean;
 }
 

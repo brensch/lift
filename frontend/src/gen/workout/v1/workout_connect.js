@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -21,6 +21,17 @@ export const WorkoutService = {
       name: "GetWorkoutState",
       I: GetWorkoutStateRequest,
       O: GetWorkoutStateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start the workout (user explicitly begins)
+     *
+     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     */
+    startWorkout: {
+      name: "StartWorkout",
+      I: StartWorkoutRequest,
+      O: StartWorkoutResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -88,6 +99,18 @@ export const WorkoutService = {
       I: LogSetRequest,
       O: LogSetResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * Stream: Subscribe to real-time workout updates
+     * Returns updates whenever any user in the session performs an action
+     *
+     * @generated from rpc workout.v1.WorkoutService.WatchWorkout
+     */
+    watchWorkout: {
+      name: "WatchWorkout",
+      I: WatchWorkoutRequest,
+      O: WorkoutUpdate,
+      kind: MethodKind.ServerStreaming,
     },
   }
 };

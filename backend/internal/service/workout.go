@@ -13,6 +13,7 @@ import (
 	workoutv1 "github.com/brensch/lift/backend/gen/workout/v1"
 	"github.com/brensch/lift/backend/gen/workout/v1/workoutv1connect"
 	"github.com/brensch/lift/backend/internal/db"
+	"github.com/brensch/lift/backend/internal/hub"
 	"github.com/brensch/lift/backend/internal/interceptor"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -28,12 +29,14 @@ const (
 type WorkoutService struct {
 	workoutv1connect.UnimplementedWorkoutServiceHandler
 	dbManager *db.Manager
+	hub       *hub.Hub
 }
 
 // NewWorkoutService creates a new workout service
-func NewWorkoutService(dbManager *db.Manager) *WorkoutService {
+func NewWorkoutService(dbManager *db.Manager, h *hub.Hub) *WorkoutService {
 	return &WorkoutService{
 		dbManager: dbManager,
+		hub:       h,
 	}
 }
 
@@ -53,7 +56,7 @@ func (s *WorkoutService) GetWorkoutState(
 	}
 
 	// Get or create today's session (this also populates planned_sets for new sessions)
-	sessionID, sessionStartedAt, _, err := s.getOrCreateTodaySession(ctx, database, req.Msg.StartNewSession)
+	sessionID, sessionStartedAt, workoutStartedAt, _, err := s.getOrCreateTodaySession(ctx, database, req.Msg.StartNewSession)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -104,6 +107,9 @@ func (s *WorkoutService) GetWorkoutState(
 		RemainingSets:    remainingSets,
 		IsComplete:       isComplete,
 	}
+	if workoutStartedAt.Valid {
+		state.WorkoutStartedAt = timestamppb.New(workoutStartedAt.Time)
+	}
 
 	return connect.NewResponse(&workoutv1.GetWorkoutStateResponse{
 		State: state,
@@ -112,6 +118,36 @@ func (s *WorkoutService) GetWorkoutState(
 			SuccessSeconds: RestSuccessSeconds,
 			FailureSeconds: RestFailureSeconds,
 		},
+	}), nil
+}
+
+// StartWorkout marks the workout as explicitly started by the user
+func (s *WorkoutService) StartWorkout(
+	ctx context.Context,
+	req *connect.Request[workoutv1.StartWorkoutRequest],
+) (*connect.Response[workoutv1.StartWorkoutResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	now := time.Now()
+
+	// Set workout_started_at for this session
+	_, err = database.ExecContext(ctx, `
+		UPDATE sessions SET workout_started_at = ? WHERE id = ?
+	`, now, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&workoutv1.StartWorkoutResponse{
+		WorkoutStartedAt: timestamppb.New(now),
 	}), nil
 }
 
@@ -160,6 +196,14 @@ func (s *WorkoutService) StartSet(
 		Weight:     req.Msg.Weight,
 		TargetReps: req.Msg.TargetReps,
 	}
+
+	// Broadcast to other users in the session
+	s.hub.Broadcast(req.Msg.SessionId, &workoutv1.WorkoutUpdate{
+		Type:      workoutv1.UpdateType_UPDATE_TYPE_SET_STARTED,
+		UserId:    username,
+		Activity:  activity,
+		Timestamp: timestamppb.New(now),
+	}, username)
 
 	return connect.NewResponse(&workoutv1.StartSetResponse{
 		Activity: activity,
@@ -288,6 +332,22 @@ func (s *WorkoutService) FinishActivity(
 		return nil, err
 	}
 
+	// Broadcast update to other users in the session
+	var updateType workoutv1.UpdateType
+	if typeStr == "SET" {
+		updateType = workoutv1.UpdateType_UPDATE_TYPE_SET_COMPLETED
+	} else {
+		updateType = workoutv1.UpdateType_UPDATE_TYPE_REST_SKIPPED
+	}
+
+	s.hub.Broadcast(req.Msg.SessionId, &workoutv1.WorkoutUpdate{
+		Type:      updateType,
+		UserId:    username,
+		Activity:  finishedActivity,
+		State:     stateResp.Msg.State,
+		Timestamp: timestamppb.Now(),
+	}, username)
+
 	return connect.NewResponse(&workoutv1.FinishActivityResponse{
 		FinishedActivity: finishedActivity,
 		NextActivity:     nextActivity,
@@ -367,7 +427,7 @@ func (s *WorkoutService) GetNextWorkout(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	sessionID, _, _, err := s.getOrCreateTodaySession(ctx, database, false)
+	sessionID, _, _, _, err := s.getOrCreateTodaySession(ctx, database, false)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -437,17 +497,18 @@ func (s *WorkoutService) isSessionComplete(ctx context.Context, database *sql.DB
 	return len(remainingSets) == 0
 }
 
-func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB, startNewSession bool) (string, time.Time, string, error) {
+func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *sql.DB, startNewSession bool) (string, time.Time, sql.NullTime, string, error) {
 	today := time.Now().Truncate(24 * time.Hour)
 
 	var sessionID string
 	var startedAt time.Time
+	var workoutStartedAt sql.NullTime
 	var workoutType string
 	err := database.QueryRowContext(ctx, `
-		SELECT id, started_at, COALESCE(workout_type, 'A') FROM sessions 
-		WHERE started_at >= ? 
+		SELECT id, started_at, workout_started_at, COALESCE(workout_type, 'A') FROM sessions
+		WHERE started_at >= ?
 		ORDER BY started_at DESC LIMIT 1
-	`, today).Scan(&sessionID, &startedAt, &workoutType)
+	`, today).Scan(&sessionID, &startedAt, &workoutStartedAt, &workoutType)
 
 	// Check if the existing session is complete (all sets done)
 	// Only create a new session if explicitly requested via startNewSession
@@ -478,18 +539,20 @@ func (s *WorkoutService) getOrCreateTodaySession(ctx context.Context, database *
 			INSERT INTO sessions (id, started_at, workout_type) VALUES (?, ?, ?)
 		`, sessionID, startedAt, workoutType)
 		if err != nil {
-			return "", time.Time{}, "", err
+			return "", time.Time{}, sql.NullTime{}, "", err
 		}
 
 		// Populate planned_sets for this new session
 		if err := s.populatePlannedSets(ctx, database, sessionID, workoutType); err != nil {
-			return "", time.Time{}, "", err
+			return "", time.Time{}, sql.NullTime{}, "", err
 		}
+		// New session - workoutStartedAt is not set yet
+		workoutStartedAt = sql.NullTime{}
 	} else if err != nil {
-		return "", time.Time{}, "", err
+		return "", time.Time{}, sql.NullTime{}, "", err
 	}
 
-	return sessionID, startedAt, workoutType, nil
+	return sessionID, startedAt, workoutStartedAt, workoutType, nil
 }
 
 // populatePlannedSets creates the planned sets for a new session based on workout type and previous performance
@@ -843,4 +906,52 @@ func (s *WorkoutService) SetExerciseOrder(
 	return connect.NewResponse(&workoutv1.SetExerciseOrderResponse{
 		RemainingSets: remainingSets,
 	}), nil
+}
+
+// WatchWorkout streams real-time updates for a workout session
+func (s *WorkoutService) WatchWorkout(
+	ctx context.Context,
+	req *connect.Request[workoutv1.WatchWorkoutRequest],
+	stream *connect.ServerStream[workoutv1.WorkoutUpdate],
+) error {
+	userID := req.Msg.UserId
+	sessionID := req.Msg.SessionId
+
+	if userID == "" || sessionID == "" {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id and session_id are required"))
+	}
+
+	// Subscribe to updates for this session
+	client := s.hub.Subscribe(sessionID, userID)
+	defer s.hub.Unsubscribe(sessionID, userID)
+
+	// Notify others that this user joined
+	s.hub.Broadcast(sessionID, &workoutv1.WorkoutUpdate{
+		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED,
+		UserId:    userID,
+		Timestamp: timestamppb.Now(),
+	}, userID)
+
+	// Send updates to the client until they disconnect
+	for {
+		select {
+		case <-ctx.Done():
+			// Client disconnected - notify others
+			s.hub.Broadcast(sessionID, &workoutv1.WorkoutUpdate{
+				Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
+				UserId:    userID,
+				Timestamp: timestamppb.Now(),
+			}, userID)
+			return nil
+
+		case update, ok := <-client.Send:
+			if !ok {
+				// Channel closed (user reconnected elsewhere)
+				return nil
+			}
+			if err := stream.Send(update); err != nil {
+				return err
+			}
+		}
+	}
 }
