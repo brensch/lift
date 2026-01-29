@@ -50,9 +50,12 @@ func (m *Manager) GetDB(username string) (*sql.DB, error) {
 		return db, nil
 	}
 
-	// Create or open the database
+	// Create or open the database with WAL mode
+	// WAL mode allows concurrent reads during writes
+	// Use short busy_timeout - if we're blocked, we want to know quickly
 	dbPath := filepath.Join(m.dataPath, username+".db")
-	db, err := sql.Open("sqlite3", dbPath)
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=100&_synchronous=NORMAL", dbPath)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database for user %s: %w", username, err)
 	}

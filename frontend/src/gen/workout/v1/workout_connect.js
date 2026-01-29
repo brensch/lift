@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateGroupSessionRequest, CreateGroupSessionResponse, FinishActivityRequest, FinishActivityResponse, GetGroupRequest, GetGroupResponse, GetGroupSessionRequest, GetGroupSessionResponse, GetGroupWorkoutPlanRequest, GetGroupWorkoutPlanResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, InviteToGroupRequest, InviteToGroupResponse, JoinGroupSessionRequest, JoinGroupSessionResponse, LeaveGroupRequest, LeaveGroupResponse, LeaveGroupSessionRequest, LeaveGroupSessionResponse, LogSetRequest, LogSetResponse, RespondToInviteRequest, RespondToInviteResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, SetReadyRequest, SetReadyResponse, StartGroupWorkoutRequest, StartGroupWorkoutResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateMyPlanRequest, UpdateMyPlanResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchNotificationsRequest, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
+import { CreateGroupSessionRequest, CreateGroupSessionResponse, FinishActivityRequest, FinishActivityResponse, FinishWorkoutEarlyRequest, FinishWorkoutEarlyResponse, GetGroupRequest, GetGroupResponse, GetGroupSessionRequest, GetGroupSessionResponse, GetGroupWorkoutPlanRequest, GetGroupWorkoutPlanResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, InviteToGroupRequest, InviteToGroupResponse, JoinGroupSessionRequest, JoinGroupSessionResponse, LeaveGroupRequest, LeaveGroupResponse, LeaveGroupSessionRequest, LeaveGroupSessionResponse, LogSetRequest, LogSetResponse, RespondToInviteRequest, RespondToInviteResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, SetReadyRequest, SetReadyResponse, StartGroupWorkoutRequest, StartGroupWorkoutResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateMyPlanRequest, UpdateMyPlanResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchNotificationsRequest, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -221,6 +221,17 @@ export const WorkoutService = {
       name: "SetExerciseOrder",
       I: SetExerciseOrderRequest,
       O: SetExerciseOrderResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Finish a workout early (before all sets completed)
+     *
+     * @generated from rpc workout.v1.WorkoutService.FinishWorkoutEarly
+     */
+    finishWorkoutEarly: {
+      name: "FinishWorkoutEarly",
+      I: FinishWorkoutEarlyRequest,
+      O: FinishWorkoutEarlyResponse,
       kind: MethodKind.Unary,
     },
     /**

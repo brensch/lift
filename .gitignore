@@ -1,3 +1,5 @@
 *.db
 backend/tmp/
 
+*wal
+*shm

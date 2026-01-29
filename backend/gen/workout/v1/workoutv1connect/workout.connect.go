@@ -93,6 +93,9 @@ const (
 	// WorkoutServiceSetExerciseOrderProcedure is the fully-qualified name of the WorkoutService's
 	// SetExerciseOrder RPC.
 	WorkoutServiceSetExerciseOrderProcedure = "/workout.v1.WorkoutService/SetExerciseOrder"
+	// WorkoutServiceFinishWorkoutEarlyProcedure is the fully-qualified name of the WorkoutService's
+	// FinishWorkoutEarly RPC.
+	WorkoutServiceFinishWorkoutEarlyProcedure = "/workout.v1.WorkoutService/FinishWorkoutEarly"
 	// WorkoutServiceGetNextWorkoutProcedure is the fully-qualified name of the WorkoutService's
 	// GetNextWorkout RPC.
 	WorkoutServiceGetNextWorkoutProcedure = "/workout.v1.WorkoutService/GetNextWorkout"
@@ -140,6 +143,8 @@ type WorkoutServiceClient interface {
 	UpdatePlannedWeight(context.Context, *connect.Request[v1.UpdatePlannedWeightRequest]) (*connect.Response[v1.UpdatePlannedWeightResponse], error)
 	// Set the exercise order for the current session
 	SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error)
+	// Finish a workout early (before all sets completed)
+	FinishWorkoutEarly(context.Context, *connect.Request[v1.FinishWorkoutEarlyRequest]) (*connect.Response[v1.FinishWorkoutEarlyResponse], error)
 	// Legacy: Get the next recommended workout for a user
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
@@ -288,6 +293,12 @@ func NewWorkoutServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(workoutServiceMethods.ByName("SetExerciseOrder")),
 			connect.WithClientOptions(opts...),
 		),
+		finishWorkoutEarly: connect.NewClient[v1.FinishWorkoutEarlyRequest, v1.FinishWorkoutEarlyResponse](
+			httpClient,
+			baseURL+WorkoutServiceFinishWorkoutEarlyProcedure,
+			connect.WithSchema(workoutServiceMethods.ByName("FinishWorkoutEarly")),
+			connect.WithClientOptions(opts...),
+		),
 		getNextWorkout: connect.NewClient[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse](
 			httpClient,
 			baseURL+WorkoutServiceGetNextWorkoutProcedure,
@@ -338,6 +349,7 @@ type workoutServiceClient struct {
 	finishActivity        *connect.Client[v1.FinishActivityRequest, v1.FinishActivityResponse]
 	updatePlannedWeight   *connect.Client[v1.UpdatePlannedWeightRequest, v1.UpdatePlannedWeightResponse]
 	setExerciseOrder      *connect.Client[v1.SetExerciseOrderRequest, v1.SetExerciseOrderResponse]
+	finishWorkoutEarly    *connect.Client[v1.FinishWorkoutEarlyRequest, v1.FinishWorkoutEarlyResponse]
 	getNextWorkout        *connect.Client[v1.GetNextWorkoutRequest, v1.GetNextWorkoutResponse]
 	logSet                *connect.Client[v1.LogSetRequest, v1.LogSetResponse]
 	watchNotifications    *connect.Client[v1.WatchNotificationsRequest, v1.WorkoutUpdate]
@@ -449,6 +461,11 @@ func (c *workoutServiceClient) SetExerciseOrder(ctx context.Context, req *connec
 	return c.setExerciseOrder.CallUnary(ctx, req)
 }
 
+// FinishWorkoutEarly calls workout.v1.WorkoutService.FinishWorkoutEarly.
+func (c *workoutServiceClient) FinishWorkoutEarly(ctx context.Context, req *connect.Request[v1.FinishWorkoutEarlyRequest]) (*connect.Response[v1.FinishWorkoutEarlyResponse], error) {
+	return c.finishWorkoutEarly.CallUnary(ctx, req)
+}
+
 // GetNextWorkout calls workout.v1.WorkoutService.GetNextWorkout.
 func (c *workoutServiceClient) GetNextWorkout(ctx context.Context, req *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error) {
 	return c.getNextWorkout.CallUnary(ctx, req)
@@ -503,6 +520,8 @@ type WorkoutServiceHandler interface {
 	UpdatePlannedWeight(context.Context, *connect.Request[v1.UpdatePlannedWeightRequest]) (*connect.Response[v1.UpdatePlannedWeightResponse], error)
 	// Set the exercise order for the current session
 	SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error)
+	// Finish a workout early (before all sets completed)
+	FinishWorkoutEarly(context.Context, *connect.Request[v1.FinishWorkoutEarlyRequest]) (*connect.Response[v1.FinishWorkoutEarlyResponse], error)
 	// Legacy: Get the next recommended workout for a user
 	GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error)
 	// Legacy: Log a single set immediately
@@ -647,6 +666,12 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 		connect.WithSchema(workoutServiceMethods.ByName("SetExerciseOrder")),
 		connect.WithHandlerOptions(opts...),
 	)
+	workoutServiceFinishWorkoutEarlyHandler := connect.NewUnaryHandler(
+		WorkoutServiceFinishWorkoutEarlyProcedure,
+		svc.FinishWorkoutEarly,
+		connect.WithSchema(workoutServiceMethods.ByName("FinishWorkoutEarly")),
+		connect.WithHandlerOptions(opts...),
+	)
 	workoutServiceGetNextWorkoutHandler := connect.NewUnaryHandler(
 		WorkoutServiceGetNextWorkoutProcedure,
 		svc.GetNextWorkout,
@@ -715,6 +740,8 @@ func NewWorkoutServiceHandler(svc WorkoutServiceHandler, opts ...connect.Handler
 			workoutServiceUpdatePlannedWeightHandler.ServeHTTP(w, r)
 		case WorkoutServiceSetExerciseOrderProcedure:
 			workoutServiceSetExerciseOrderHandler.ServeHTTP(w, r)
+		case WorkoutServiceFinishWorkoutEarlyProcedure:
+			workoutServiceFinishWorkoutEarlyHandler.ServeHTTP(w, r)
 		case WorkoutServiceGetNextWorkoutProcedure:
 			workoutServiceGetNextWorkoutHandler.ServeHTTP(w, r)
 		case WorkoutServiceLogSetProcedure:
@@ -814,6 +841,10 @@ func (UnimplementedWorkoutServiceHandler) UpdatePlannedWeight(context.Context, *
 
 func (UnimplementedWorkoutServiceHandler) SetExerciseOrder(context.Context, *connect.Request[v1.SetExerciseOrderRequest]) (*connect.Response[v1.SetExerciseOrderResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.SetExerciseOrder is not implemented"))
+}
+
+func (UnimplementedWorkoutServiceHandler) FinishWorkoutEarly(context.Context, *connect.Request[v1.FinishWorkoutEarlyRequest]) (*connect.Response[v1.FinishWorkoutEarlyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("workout.v1.WorkoutService.FinishWorkoutEarly is not implemented"))
 }
 
 func (UnimplementedWorkoutServiceHandler) GetNextWorkout(context.Context, *connect.Request[v1.GetNextWorkoutRequest]) (*connect.Response[v1.GetNextWorkoutResponse], error) {

@@ -449,6 +449,15 @@ message SetExerciseOrderResponse {
   repeated PlannedSet remaining_sets = 1;  // Updated remaining sets in new order
 }
 
+// Finish a workout early (before all sets completed)
+message FinishWorkoutEarlyRequest {
+  string session_id = 1;
+}
+
+message FinishWorkoutEarlyResponse {
+  WorkoutState state = 1;  // The final workout state
+}
+
 // Legacy messages for compatibility
 message GetNextWorkoutRequest {
   string user_id = 1;
@@ -501,6 +510,7 @@ enum UpdateType {
   UPDATE_TYPE_USER_NOT_READY = 13;   // A user unmarked ready
   UPDATE_TYPE_WORKOUT_STARTED = 14;  // Group workout started (planning complete)
   UPDATE_TYPE_SESSION_UPDATED = 15;  // General session state update
+  UPDATE_TYPE_HEARTBEAT = 16;        // Keep-alive heartbeat (no action needed)
 }
 
 // Real-time update pushed to watching clients
@@ -561,7 +571,10 @@ service WorkoutService {
   
   // Set the exercise order for the current session
   rpc SetExerciseOrder(SetExerciseOrderRequest) returns (SetExerciseOrderResponse);
-  
+
+  // Finish a workout early (before all sets completed)
+  rpc FinishWorkoutEarly(FinishWorkoutEarlyRequest) returns (FinishWorkoutEarlyResponse);
+
   // Legacy: Get the next recommended workout for a user
   rpc GetNextWorkout(GetNextWorkoutRequest) returns (GetNextWorkoutResponse);
   

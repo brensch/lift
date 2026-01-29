@@ -3,6 +3,8 @@ package interceptor
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/brensch/lift/backend/internal/db"
@@ -26,20 +28,33 @@ func NewUsernameInterceptor(dbManager *db.Manager) connect.Interceptor {
 
 func (i *usernameInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		start := time.Now()
+		procedure := req.Spec().Procedure
+
 		username := req.Header().Get("X-Username")
 		if username == "" {
 			return nil, connect.NewError(connect.CodeUnauthenticated, ErrNoUsername)
 		}
 
 		// Ensure the user's database exists (creates it if not)
+		dbStart := time.Now()
 		_, err := i.dbManager.GetDB(username)
+		if elapsed := time.Since(dbStart); elapsed > 100*time.Millisecond {
+			fmt.Printf("[INTERCEPTOR] GetDB took %v for %s\n", elapsed, procedure)
+		}
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 
 		// Add username to context
 		ctx = context.WithValue(ctx, UsernameKey{}, username)
-		return next(ctx, req)
+
+		resp, err := next(ctx, req)
+
+		if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
+			fmt.Printf("[INTERCEPTOR] Total request %s took %v\n", procedure, elapsed)
+		}
+		return resp, err
 	}
 }
 

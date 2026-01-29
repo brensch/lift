@@ -36,9 +36,10 @@ func (m *GroupManager) CreateSession(sessionID string) (*sql.DB, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Create the database file
+	// Create the database file with WAL mode
 	dbPath := filepath.Join(m.dataPath, sessionID+".db")
-	db, err := sql.Open("sqlite3", dbPath)
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=100&_synchronous=NORMAL", dbPath)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create group session database: %w", err)
 	}
@@ -71,13 +72,14 @@ func (m *GroupManager) GetSession(sessionID string) (*sql.DB, error) {
 		return db, nil
 	}
 
-	// Open existing database
+	// Open existing database with WAL mode
 	dbPath := filepath.Join(m.dataPath, sessionID+".db")
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("group session %s does not exist", sessionID)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath)
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=100&_synchronous=NORMAL", dbPath)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open group session database: %w", err)
 	}
