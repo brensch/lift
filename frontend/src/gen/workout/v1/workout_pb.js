@@ -60,6 +60,7 @@ export const UpdateType = /*@__PURE__*/ proto3.makeEnum(
     {no: 13, name: "UPDATE_TYPE_USER_NOT_READY", localName: "USER_NOT_READY"},
     {no: 14, name: "UPDATE_TYPE_WORKOUT_STARTED", localName: "WORKOUT_STARTED"},
     {no: 15, name: "UPDATE_TYPE_SESSION_UPDATED", localName: "SESSION_UPDATED"},
+    {no: 16, name: "UPDATE_TYPE_HEARTBEAT", localName: "HEARTBEAT"},
   ],
 );
 
@@ -903,6 +904,28 @@ export const SetExerciseOrderResponse = /*@__PURE__*/ proto3.makeMessageType(
   "workout.v1.SetExerciseOrderResponse",
   () => [
     { no: 1, name: "remaining_sets", kind: "message", T: PlannedSet, repeated: true },
+  ],
+);
+
+/**
+ * Finish a workout early (before all sets completed)
+ *
+ * @generated from message workout.v1.FinishWorkoutEarlyRequest
+ */
+export const FinishWorkoutEarlyRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.FinishWorkoutEarlyRequest",
+  () => [
+    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.FinishWorkoutEarlyResponse
+ */
+export const FinishWorkoutEarlyResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.FinishWorkoutEarlyResponse",
+  () => [
+    { no: 1, name: "state", kind: "message", T: WorkoutState },
   ],
 );
 

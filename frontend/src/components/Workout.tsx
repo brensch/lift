@@ -6,6 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { BarbellCalculator } from "@/components/BarbellCalculator";
 import { RemainingSets } from "@/components/RemainingSets";
 import { Timeline } from "@/components/Timeline";
@@ -114,7 +122,11 @@ function WorkoutContent() {
     handleStartNewWorkout,
     handleUpdateWeight,
     setError,
+    finishWorkoutEarly,
   } = useWorkout();
+
+  // Confirmation modal state for finishing workout early
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   // Weight editing state (for barbell calculator modal)
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
@@ -516,6 +528,49 @@ function WorkoutContent() {
           }}
           exerciseName={editingExercise !== null ? exerciseToString(editingExercise) : ""}
         />
+
+        {/* Finish Workout Early Button */}
+        {phase !== "preview" && (
+          <div className="mt-8 pt-4 border-t">
+            <Button
+              variant="outline"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowFinishConfirm(true)}
+            >
+              Finish Workout
+            </Button>
+          </div>
+        )}
+
+        {/* Finish Workout Confirmation Modal */}
+        <Dialog open={showFinishConfirm} onOpenChange={setShowFinishConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Finish Workout Early?</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to end this workout? You still have{" "}
+                {workoutState?.remainingSets.length ?? 0} sets remaining.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFinishConfirm(false)}
+              >
+                Keep Going
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setShowFinishConfirm(false);
+                  finishWorkoutEarly();
+                }}
+              >
+                Finish Workout
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

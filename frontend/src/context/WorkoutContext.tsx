@@ -108,6 +108,9 @@ interface WorkoutContextType {
   startGroupWorkout: () => Promise<void>;
   leaveGroupSession: () => Promise<void>;
   closePlanningModal: () => void;
+
+  // Workout control
+  finishWorkoutEarly: () => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
@@ -263,20 +266,32 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     };
   }, [phase, currentActivity, restConfig]);
 
-  // Real-time streaming subscription - connect when logged in
+  // Real-time streaming subscription - connect when logged in with auto-reconnect
   useEffect(() => {
     if (!username) return;
 
-    console.log("Connecting to notification stream for:", username);
+    let abortController: AbortController | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let isCleaningUp = false;
 
-    const abortController = watchNotifications(
-      username,
-      (update: WorkoutUpdate) => {
-        console.log("Received update:", update.type, update);
+    const connect = () => {
+      if (isCleaningUp) return;
 
-        // Handle different update types
-        switch (update.type) {
-          case UpdateType.INVITE_RECEIVED:
+      console.log("Connecting to notification stream for:", username);
+
+      abortController = watchNotifications(
+        username,
+        (update: WorkoutUpdate) => {
+          // Ignore heartbeat messages - they're just to keep connection alive
+          if (update.type === UpdateType.HEARTBEAT) {
+            return;
+          }
+
+          console.log("Received update:", update.type, update);
+
+          // Handle different update types
+          switch (update.type) {
+            case UpdateType.INVITE_RECEIVED:
             // Someone invited us - refresh to show the pending invite
             console.log("Received invite from:", update.userId);
             refresh();
@@ -364,19 +379,38 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
             // Unknown update type - refresh to be safe
             refresh();
         }
-      },
-      (error) => {
-        console.error("Notification stream error:", error);
-        // Could implement reconnection logic here
-      },
-      () => {
-        console.log("Notification stream closed");
-      }
-    );
+        },
+        (error) => {
+          console.error("Notification stream error:", error);
+          // Reconnect after a delay if not cleaning up
+          if (!isCleaningUp) {
+            console.log("Will reconnect in 2 seconds...");
+            reconnectTimeout = setTimeout(connect, 2000);
+          }
+        },
+        () => {
+          console.log("Notification stream closed");
+          // Reconnect after a delay if not cleaning up
+          if (!isCleaningUp) {
+            console.log("Will reconnect in 2 seconds...");
+            reconnectTimeout = setTimeout(connect, 2000);
+          }
+        }
+      );
+    };
+
+    // Start initial connection
+    connect();
 
     return () => {
       console.log("Disconnecting notification stream");
-      abortController.abort();
+      isCleaningUp = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (abortController) {
+        abortController.abort();
+      }
     };
   }, [username, refresh]);
 
@@ -598,6 +632,26 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     await refresh();
   };
 
+  // Finish the workout early (before all sets are done)
+  const finishWorkoutEarly = async () => {
+    if (!client || !workoutState) return;
+
+    try {
+      const response = await client.finishWorkoutEarly({
+        sessionId: workoutState.sessionId,
+      });
+
+      if (response.state) {
+        setWorkoutState(response.state);
+        setPhase("complete");
+        setCurrentActivity(null);
+        setActiveSession(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to finish workout");
+    }
+  };
+
   // Invite a user to join your workout group
   // Returns { plan, error } - plan is set on success, error message on failure
   const inviteToGroup = async (username: string): Promise<{ plan: GroupWorkoutPlan | null; error: string | null }> => {
@@ -807,6 +861,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         startGroupWorkout,
         leaveGroupSession,
         closePlanningModal,
+        finishWorkoutEarly,
       }}
     >
       {children}

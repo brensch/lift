@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/rs/cors"
@@ -115,7 +116,17 @@ func main() {
 		log.Printf("Static path: %s", staticPath)
 	}
 
-	if err := http.ListenAndServe(addr, corsHandler); err != nil {
+	// Configure HTTP server with proper timeouts to prevent stale connections
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           corsHandler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second, // Allow longer for streaming responses
+		IdleTimeout:       120 * time.Second,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

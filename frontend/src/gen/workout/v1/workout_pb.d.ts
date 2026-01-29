@@ -184,6 +184,13 @@ export declare enum UpdateType {
    * @generated from enum value: UPDATE_TYPE_SESSION_UPDATED = 15;
    */
   SESSION_UPDATED = 15,
+
+  /**
+   * Keep-alive heartbeat (no action needed)
+   *
+   * @generated from enum value: UPDATE_TYPE_HEARTBEAT = 16;
+   */
+  HEARTBEAT = 16,
 }
 
 /**
@@ -2556,6 +2563,58 @@ export declare class SetExerciseOrderResponse extends Message<SetExerciseOrderRe
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetExerciseOrderResponse;
 
   static equals(a: SetExerciseOrderResponse | PlainMessage<SetExerciseOrderResponse> | undefined, b: SetExerciseOrderResponse | PlainMessage<SetExerciseOrderResponse> | undefined): boolean;
+}
+
+/**
+ * Finish a workout early (before all sets completed)
+ *
+ * @generated from message workout.v1.FinishWorkoutEarlyRequest
+ */
+export declare class FinishWorkoutEarlyRequest extends Message<FinishWorkoutEarlyRequest> {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  constructor(data?: PartialMessage<FinishWorkoutEarlyRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.FinishWorkoutEarlyRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FinishWorkoutEarlyRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FinishWorkoutEarlyRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FinishWorkoutEarlyRequest;
+
+  static equals(a: FinishWorkoutEarlyRequest | PlainMessage<FinishWorkoutEarlyRequest> | undefined, b: FinishWorkoutEarlyRequest | PlainMessage<FinishWorkoutEarlyRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message workout.v1.FinishWorkoutEarlyResponse
+ */
+export declare class FinishWorkoutEarlyResponse extends Message<FinishWorkoutEarlyResponse> {
+  /**
+   * The final workout state
+   *
+   * @generated from field: workout.v1.WorkoutState state = 1;
+   */
+  state?: WorkoutState;
+
+  constructor(data?: PartialMessage<FinishWorkoutEarlyResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "workout.v1.FinishWorkoutEarlyResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FinishWorkoutEarlyResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FinishWorkoutEarlyResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FinishWorkoutEarlyResponse;
+
+  static equals(a: FinishWorkoutEarlyResponse | PlainMessage<FinishWorkoutEarlyResponse> | undefined, b: FinishWorkoutEarlyResponse | PlainMessage<FinishWorkoutEarlyResponse> | undefined): boolean;
 }
 
 /**

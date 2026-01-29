@@ -47,15 +47,31 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 	ctx context.Context,
 	req *connect.Request[workoutv1.GetUpcomingWorkoutsRequest],
 ) (*connect.Response[workoutv1.GetUpcomingWorkoutsResponse], error) {
+	start := time.Now()
+	logStep := func(step string) {
+		elapsed := time.Since(start)
+		if elapsed > 100*time.Millisecond {
+			fmt.Printf("[TIMING] %s: %v (total: %v)\n", step, elapsed, time.Since(start))
+		}
+	}
+	defer func() {
+		elapsed := time.Since(start)
+		if elapsed > 500*time.Millisecond {
+			fmt.Printf("[SLOW] GetUpcomingWorkouts total: %v\n", elapsed)
+		}
+	}()
+
 	username, ok := interceptor.GetUsername(ctx)
 	if !ok {
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
 	}
+	logStep("got username")
 
 	database, err := s.dbManager.GetDB(username)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	logStep("got database")
 
 	// Check for active workout (started but not complete)
 	var activeWorkout *workoutv1.WorkoutState
@@ -63,15 +79,19 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 	if err == nil && activeState != nil {
 		activeWorkout = activeState
 	}
+	logStep("got active workout")
 
 	// Get user preferences for workout days
 	preferences := s.getUserPreferences(database)
+	logStep("got preferences")
 
 	// Get last completed workout type to determine next type
 	lastWorkoutType := s.getLastWorkoutType(database)
+	logStep("got last workout type")
 
 	// Calculate target dates for upcoming workouts
 	targetDates := s.calculateTargetDates(preferences.WorkoutDays, 5)
+	logStep("calculated target dates")
 
 	// Generate 5 upcoming workouts
 	workouts := make([]*workoutv1.ProposedWorkout, 5)
@@ -92,19 +112,27 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 			TargetDate:  timestamppb.New(targetDates[i]),
 		}
 	}
+	logStep("generated workouts")
 
 	// Get pending invites and active group (legacy system)
 	pendingInvites := s.getPendingInvites(ctx, database, username)
+	logStep("got pending invites")
+
 	activeGroup := s.getActiveGroup(ctx, database, username)
+	logStep("got active group")
 
 	// Check for active group session (new system)
 	var activeSession *workoutv1.GroupSession
 	var sessionID sql.NullString
 	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&sessionID)
+	logStep("queried active group session")
+
 	if sessionID.Valid && sessionID.String != "" {
 		groupDB, err := s.groupManager.GetSession(sessionID.String)
+		logStep("got group db")
 		if err == nil {
 			activeSession = s.buildGroupSession(ctx, groupDB, sessionID.String)
+			logStep("built group session")
 		}
 	}
 
@@ -1364,6 +1392,97 @@ func (s *WorkoutService) SetExerciseOrder(
 	}), nil
 }
 
+// FinishWorkoutEarly ends the current workout before all sets are completed
+func (s *WorkoutService) FinishWorkoutEarly(
+	ctx context.Context,
+	req *connect.Request[workoutv1.FinishWorkoutEarlyRequest],
+) (*connect.Response[workoutv1.FinishWorkoutEarlyResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	now := time.Now()
+
+	// End any current activity (like a REST that's still open)
+	_, err = database.ExecContext(ctx, `
+		UPDATE activities SET ended_at = ?
+		WHERE session_id = ? AND ended_at IS NULL
+	`, now, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Delete all remaining planned sets for this session
+	_, err = database.ExecContext(ctx, `
+		DELETE FROM planned_sets WHERE session_id = ? AND NOT EXISTS (
+			SELECT 1 FROM activities
+			WHERE activities.session_id = planned_sets.session_id
+			AND activities.exercise = planned_sets.exercise
+			AND activities.set_number = planned_sets.set_number
+			AND activities.type = 'SET'
+			AND activities.ended_at IS NOT NULL
+		)
+	`, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Get the final workout state
+	timeline, err := s.getSessionActivities(ctx, database, req.Msg.SessionId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	var sessionStartedAt time.Time
+	var workoutStartedAt sql.NullTime
+	database.QueryRowContext(ctx, `
+		SELECT started_at, workout_started_at FROM sessions WHERE id = ?
+	`, req.Msg.SessionId).Scan(&sessionStartedAt, &workoutStartedAt)
+
+	state := &workoutv1.WorkoutState{
+		SessionId:        req.Msg.SessionId,
+		SessionStartedAt: timestamppb.New(sessionStartedAt),
+		Timeline:         timeline,
+		CurrentActivity:  nil,
+		NextSet:          nil,
+		RemainingSets:    []*workoutv1.PlannedSet{},
+		IsComplete:       true,
+	}
+	if workoutStartedAt.Valid {
+		state.WorkoutStartedAt = timestamppb.New(workoutStartedAt.Time)
+	}
+
+	// If user is in a group session, leave it
+	var groupSessionID sql.NullString
+	database.QueryRowContext(ctx, `SELECT session_id FROM active_group_session WHERE id = 1`).Scan(&groupSessionID)
+	if groupSessionID.Valid && groupSessionID.String != "" {
+		// Clear the active group session reference
+		database.ExecContext(ctx, `UPDATE active_group_session SET session_id = NULL WHERE id = 1`)
+
+		// Notify group that user left
+		if groupDB, err := s.groupManager.GetSession(groupSessionID.String); err == nil {
+			session := s.buildGroupSession(ctx, groupDB, groupSessionID.String)
+			s.hub.BroadcastToAll(hub.GroupChannel(groupSessionID.String), &workoutv1.WorkoutUpdate{
+				Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
+				UserId:    username,
+				Session:   session,
+				GroupId:   groupSessionID.String,
+				Timestamp: timestamppb.Now(),
+			})
+		}
+	}
+
+	return connect.NewResponse(&workoutv1.FinishWorkoutEarlyResponse{
+		State: state,
+	}), nil
+}
+
 // WatchNotifications streams real-time notifications for a user
 // This is the main streaming endpoint - connect on login to receive all updates
 func (s *WorkoutService) WatchNotifications(
@@ -1488,11 +1607,24 @@ func (s *WorkoutService) WatchNotifications(
 		}
 	}()
 
+	// Send heartbeat every 30 seconds to keep connection alive
+	heartbeat := time.NewTicker(30 * time.Second)
+	defer heartbeat.Stop()
+
 	// Stream updates to the client
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+
+		case <-heartbeat.C:
+			// Send a heartbeat to keep the connection alive
+			if err := stream.Send(&workoutv1.WorkoutUpdate{
+				Type:      workoutv1.UpdateType_UPDATE_TYPE_HEARTBEAT,
+				Timestamp: timestamppb.Now(),
+			}); err != nil {
+				return err
+			}
 
 		case update, ok := <-updates:
 			if !ok {
