@@ -40,6 +40,318 @@ func NewWorkoutService(dbManager *db.Manager, h *hub.Hub) *WorkoutService {
 	}
 }
 
+// GetUpcomingWorkouts returns the next 5 proposed workouts and any active workout
+func (s *WorkoutService) GetUpcomingWorkouts(
+	ctx context.Context,
+	req *connect.Request[workoutv1.GetUpcomingWorkoutsRequest],
+) (*connect.Response[workoutv1.GetUpcomingWorkoutsResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Check for active workout (started but not complete)
+	var activeWorkout *workoutv1.WorkoutState
+	activeState, err := s.getActiveWorkout(ctx, database)
+	if err == nil && activeState != nil {
+		activeWorkout = activeState
+	}
+
+	// Get user preferences for workout days
+	preferences := s.getUserPreferences(database)
+
+	// Get last completed workout type to determine next type
+	lastWorkoutType := s.getLastWorkoutType(database)
+
+	// Calculate target dates for upcoming workouts
+	targetDates := s.calculateTargetDates(preferences.WorkoutDays, 5)
+
+	// Generate 5 upcoming workouts
+	workouts := make([]*workoutv1.ProposedWorkout, 5)
+	currentType := lastWorkoutType
+	for i := 0; i < 5; i++ {
+		// Alternate workout type
+		if currentType == "A" {
+			currentType = "B"
+		} else {
+			currentType = "A"
+		}
+
+		sets := s.generateWorkoutSets(database, currentType)
+		workouts[i] = &workoutv1.ProposedWorkout{
+			Sequence:    int32(i + 1),
+			WorkoutType: currentType,
+			Sets:        sets,
+			TargetDate:  timestamppb.New(targetDates[i]),
+		}
+	}
+
+	return connect.NewResponse(&workoutv1.GetUpcomingWorkoutsResponse{
+		Workouts:      workouts,
+		ActiveWorkout: activeWorkout,
+		RestConfig: &workoutv1.RestConfig{
+			SuccessSeconds: RestSuccessSeconds,
+			FailureSeconds: RestFailureSeconds,
+		},
+		Preferences: preferences,
+	}), nil
+}
+
+// GetUserPreferences returns the user's preferences
+func (s *WorkoutService) GetUserPreferences(
+	ctx context.Context,
+	req *connect.Request[workoutv1.GetUserPreferencesRequest],
+) (*connect.Response[workoutv1.GetUserPreferencesResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	preferences := s.getUserPreferences(database)
+
+	return connect.NewResponse(&workoutv1.GetUserPreferencesResponse{
+		Preferences: preferences,
+	}), nil
+}
+
+// UpdateUserPreferences updates the user's preferences
+func (s *WorkoutService) UpdateUserPreferences(
+	ctx context.Context,
+	req *connect.Request[workoutv1.UpdateUserPreferencesRequest],
+) (*connect.Response[workoutv1.UpdateUserPreferencesResponse], error) {
+	username, ok := interceptor.GetUsername(ctx)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
+	}
+
+	database, err := s.dbManager.GetDB(username)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	// Convert workout days to comma-separated string
+	days := make([]string, len(req.Msg.Preferences.WorkoutDays))
+	for i, day := range req.Msg.Preferences.WorkoutDays {
+		days[i] = fmt.Sprintf("%d", day)
+	}
+	daysStr := strings.Join(days, ",")
+
+	// Update preferences
+	_, err = database.ExecContext(ctx, `
+		UPDATE user_preferences SET workout_days = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1
+	`, daysStr)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&workoutv1.UpdateUserPreferencesResponse{
+		Preferences: req.Msg.Preferences,
+	}), nil
+}
+
+// getUserPreferences retrieves user preferences from the database
+func (s *WorkoutService) getUserPreferences(database *sql.DB) *workoutv1.UserPreferences {
+	var daysStr string
+	err := database.QueryRow(`SELECT workout_days FROM user_preferences WHERE id = 1`).Scan(&daysStr)
+	if err != nil {
+		// Return default Mon/Wed/Fri
+		return &workoutv1.UserPreferences{WorkoutDays: []int32{1, 3, 5}}
+	}
+
+	// Parse comma-separated days
+	dayStrs := strings.Split(daysStr, ",")
+	days := make([]int32, 0, len(dayStrs))
+	for _, d := range dayStrs {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			continue
+		}
+		var day int
+		if _, err := fmt.Sscanf(d, "%d", &day); err == nil && day >= 1 && day <= 7 {
+			days = append(days, int32(day))
+		}
+	}
+
+	if len(days) == 0 {
+		return &workoutv1.UserPreferences{WorkoutDays: []int32{1, 3, 5}}
+	}
+
+	return &workoutv1.UserPreferences{WorkoutDays: days}
+}
+
+// calculateTargetDates calculates the next N workout dates based on workout days
+func (s *WorkoutService) calculateTargetDates(workoutDays []int32, count int) []time.Time {
+	dates := make([]time.Time, 0, count)
+	today := time.Now()
+
+	// Convert workout days to a set for quick lookup
+	daySet := make(map[int]bool)
+	for _, d := range workoutDays {
+		// time.Weekday: Sunday=0, Monday=1, etc.
+		// Our format: Monday=1, Sunday=7
+		// Convert: our 1 (Mon) -> Go's 1 (Mon), our 7 (Sun) -> Go's 0 (Sun)
+		goDay := int(d) % 7 // 1->1, 2->2, ..., 7->0
+		daySet[goDay] = true
+	}
+
+	// If no days set, default to every day
+	if len(daySet) == 0 {
+		for i := 0; i < count; i++ {
+			dates = append(dates, today.AddDate(0, 0, i))
+		}
+		return dates
+	}
+
+	// Find next workout days starting from today
+	current := today
+	for len(dates) < count {
+		weekday := int(current.Weekday())
+		if daySet[weekday] {
+			// Normalize to start of day
+			dates = append(dates, time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, current.Location()))
+		}
+		current = current.AddDate(0, 0, 1)
+
+		// Safety: don't loop forever
+		if current.Sub(today) > 365*24*time.Hour {
+			break
+		}
+	}
+
+	return dates
+}
+
+// getActiveWorkout returns the current in-progress workout, if any
+func (s *WorkoutService) getActiveWorkout(ctx context.Context, database *sql.DB) (*workoutv1.WorkoutState, error) {
+	// Find a session that has been started (workout_started_at set) but not completed
+	var sessionID string
+	var sessionStartedAt time.Time
+	var workoutStartedAt sql.NullTime
+
+	err := database.QueryRowContext(ctx, `
+		SELECT id, started_at, workout_started_at FROM sessions
+		WHERE workout_started_at IS NOT NULL
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&sessionID, &sessionStartedAt, &workoutStartedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No active workout
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Get activities and check if complete
+	timeline, err := s.getSessionActivities(ctx, database, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	plannedSets, err := s.getPlannedSets(ctx, database, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	completedSets := s.countCompletedSets(timeline)
+	remainingSets := s.calculateRemainingSets(plannedSets, completedSets)
+
+	// If complete, return nil
+	if len(remainingSets) == 0 {
+		return nil, nil
+	}
+
+	// Find current activity
+	var currentActivity *workoutv1.Activity
+	for _, a := range timeline {
+		if a.EndedAt == nil || a.EndedAt.AsTime().IsZero() {
+			currentActivity = a
+			break
+		}
+	}
+
+	var nextSet *workoutv1.PlannedSet
+	if len(remainingSets) > 0 {
+		nextSet = remainingSets[0]
+	}
+
+	state := &workoutv1.WorkoutState{
+		SessionId:        sessionID,
+		SessionStartedAt: timestamppb.New(sessionStartedAt),
+		Timeline:         timeline,
+		CurrentActivity:  currentActivity,
+		NextSet:          nextSet,
+		RemainingSets:    remainingSets,
+		IsComplete:       false,
+	}
+	if workoutStartedAt.Valid {
+		state.WorkoutStartedAt = timestamppb.New(workoutStartedAt.Time)
+	}
+
+	return state, nil
+}
+
+// getLastWorkoutType returns the workout type of the last completed session
+func (s *WorkoutService) getLastWorkoutType(database *sql.DB) string {
+	var workoutType string
+	err := database.QueryRow(`
+		SELECT COALESCE(workout_type, 'A') FROM sessions
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&workoutType)
+	if err != nil {
+		return "B" // Default so next will be A
+	}
+	return workoutType
+}
+
+// generateWorkoutSets creates the planned sets for a workout type
+func (s *WorkoutService) generateWorkoutSets(database *sql.DB, workoutType string) []*workoutv1.PlannedSet {
+	var exercises []workoutv1.Exercise
+	if workoutType == "A" {
+		exercises = []workoutv1.Exercise{
+			workoutv1.Exercise_EXERCISE_SQUAT,
+			workoutv1.Exercise_EXERCISE_BENCH,
+			workoutv1.Exercise_EXERCISE_ROW,
+		}
+	} else {
+		exercises = []workoutv1.Exercise{
+			workoutv1.Exercise_EXERCISE_SQUAT,
+			workoutv1.Exercise_EXERCISE_OHP,
+			workoutv1.Exercise_EXERCISE_DEADLIFT,
+		}
+	}
+
+	var sets []*workoutv1.PlannedSet
+	for _, exercise := range exercises {
+		weight := s.getTargetWeight(database, exercise)
+		reps := int32(5)
+		numSets := 5
+		if exercise == workoutv1.Exercise_EXERCISE_DEADLIFT {
+			numSets = 1
+		}
+
+		for setNum := 1; setNum <= numSets; setNum++ {
+			sets = append(sets, &workoutv1.PlannedSet{
+				Exercise:     exercise,
+				SetNumber:    int32(setNum),
+				TargetWeight: weight,
+				TargetReps:   reps,
+			})
+		}
+	}
+
+	return sets
+}
+
 // GetWorkoutState returns the current workout state
 func (s *WorkoutService) GetWorkoutState(
 	ctx context.Context,
@@ -121,7 +433,7 @@ func (s *WorkoutService) GetWorkoutState(
 	}), nil
 }
 
-// StartWorkout marks the workout as explicitly started by the user
+// StartWorkout creates a new session with the provided plan
 func (s *WorkoutService) StartWorkout(
 	ctx context.Context,
 	req *connect.Request[workoutv1.StartWorkoutRequest],
@@ -137,17 +449,44 @@ func (s *WorkoutService) StartWorkout(
 	}
 
 	now := time.Now()
+	sessionID := fmt.Sprintf("session-%d", now.UnixNano())
 
-	// Set workout_started_at for this session
+	// Create the session with workout_started_at set immediately
 	_, err = database.ExecContext(ctx, `
-		UPDATE sessions SET workout_started_at = ? WHERE id = ?
-	`, now, req.Msg.SessionId)
+		INSERT INTO sessions (id, started_at, workout_started_at, workout_type)
+		VALUES (?, ?, ?, ?)
+	`, sessionID, now, now, req.Msg.WorkoutType)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
+	}
+
+	// Insert the planned sets
+	for _, set := range req.Msg.Sets {
+		setID := uuid.New().String()
+		_, err = database.ExecContext(ctx, `
+			INSERT INTO planned_sets (id, session_id, exercise, set_number, target_weight, target_reps)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`, setID, sessionID, set.Exercise.String(), set.SetNumber, set.TargetWeight, set.TargetReps)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to insert planned set: %w", err))
+		}
+	}
+
+	// Return the new workout state
+	state := &workoutv1.WorkoutState{
+		SessionId:        sessionID,
+		SessionStartedAt: timestamppb.New(now),
+		WorkoutStartedAt: timestamppb.New(now),
+		Timeline:         []*workoutv1.Activity{},
+		RemainingSets:    req.Msg.Sets,
+		IsComplete:       false,
+	}
+	if len(req.Msg.Sets) > 0 {
+		state.NextSet = req.Msg.Sets[0]
 	}
 
 	return connect.NewResponse(&workoutv1.StartWorkoutResponse{
-		WorkoutStartedAt: timestamppb.New(now),
+		State: state,
 	}), nil
 }
 

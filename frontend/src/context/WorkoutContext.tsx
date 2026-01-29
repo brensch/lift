@@ -5,22 +5,24 @@ import {
   type Activity,
   type PlannedSet,
   type RestConfig,
+  type ProposedWorkout,
+  type UserPreferences,
   ActivityType,
   Exercise,
 } from "@/lib/api";
 
 // Roasts for when you're past your rest time
 const CHAT_TIME_ROASTS = [
-  "Did you get lost? 🧭",
-  "The weights miss you 😢",
-  "Your muscles are getting cold 🥶",
-  "Netflix break? 📺",
-  "Making new friends? 👋",
-  "Did you fall asleep? 😴",
-  "The bar is getting lonely 💔",
-  "Is there a line for the water fountain? 🚰",
-  "Checking your DMs? 📱",
-  "Writing your memoir? 📖",
+  "Did you get lost?",
+  "The weights miss you",
+  "Your muscles are getting cold",
+  "Netflix break?",
+  "Making new friends?",
+  "Did you fall asleep?",
+  "The bar is getting lonely",
+  "Is there a line for the water fountain?",
+  "Checking your DMs?",
+  "Writing your memoir?",
 ];
 
 function getRandomRoast(): string {
@@ -28,8 +30,9 @@ function getRandomRoast(): string {
 }
 
 // UI phases for the workout flow
-export type WorkoutPhase = 
-  | "preview"      // Before workout starts - show plan
+export type WorkoutPhase =
+  | "loading"      // Initial load
+  | "preview"      // Before workout starts - show upcoming workouts
   | "ready"        // Ready to start a set - show "Start Set" button
   | "performing"   // Currently doing a set - timer counting up, pick reps when done
   | "resting"      // Resting between sets - timer counting down
@@ -39,8 +42,10 @@ export type WorkoutPhase =
 interface WorkoutContextType {
   // State from backend
   workoutState: WorkoutState | null;
+  upcomingWorkouts: ProposedWorkout[];
   restConfig: RestConfig | null;
-  
+  preferences: UserPreferences | null;
+
   // UI state
   loading: boolean;
   error: string | null;
@@ -48,7 +53,8 @@ interface WorkoutContextType {
   currentActivity: Activity | null;
   currentTime: Date;
   currentRoast: string;
-  
+  selectedWorkoutIndex: number;
+
   // Computed values
   remainingSetsGrouped: Record<number, PlannedSet[]>;
   orderedExercises: Exercise[];
@@ -61,14 +67,16 @@ interface WorkoutContextType {
     targetTime: Date;
     plannedSeconds: number;
   } | null;
-  
+
   // Actions
-  fetchWorkoutState: () => Promise<void>;
+  refresh: () => Promise<void>;
+  selectWorkout: (index: number) => void;
   startWorkout: () => Promise<void>;
   handleStartSet: () => Promise<void>;
   handleSelectReps: (reps: number) => Promise<void>;
   handleStartNewWorkout: () => Promise<void>;
   handleUpdateWeight: (exercise: Exercise, newWeight: number) => Promise<void>;
+  updatePreferences: (workoutDays: number[]) => Promise<void>;
   setExerciseOrder: (exercises: Exercise[]) => void;
   setError: (error: string | null) => void;
 }
@@ -76,100 +84,116 @@ interface WorkoutContextType {
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
-  const { username, client } = useUser();
-  
+  const { client } = useUser();
+
   // State from backend
   const [workoutState, setWorkoutState] = useState<WorkoutState | null>(null);
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<ProposedWorkout[]>([]);
   const [restConfig, setRestConfig] = useState<RestConfig | null>(null);
-  
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<WorkoutPhase>("preview");
+  const [phase, setPhase] = useState<WorkoutPhase>("loading");
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-  
+  const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState(0);
+
   // Timer state
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentRoast, setCurrentRoast] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+
   // Exercise order state (user-controlled ordering for remaining sets)
   const [exerciseOrder, setExerciseOrder] = useState<Exercise[]>([]);
 
-  // Fetch workout state from backend
-  const fetchWorkoutState = useCallback(async (startNewSession: boolean = false) => {
-    if (!client || !username) return;
+  // Determine phase from workout state
+  const determinePhase = useCallback((state: WorkoutState | null): WorkoutPhase => {
+    if (!state) return "preview";
+
+    if (state.isComplete) {
+      return "complete";
+    }
+
+    if (state.currentActivity) {
+      const activity = state.currentActivity;
+
+      if (activity.type === ActivityType.SET) {
+        return "performing";
+      } else if (activity.type === ActivityType.REST) {
+        const restStarted = activity.startedAt?.toDate() ?? new Date();
+        const restDuration = activity.plannedDurationSeconds * 1000;
+        const restEndsAt = new Date(restStarted.getTime() + restDuration);
+
+        if (new Date() > restEndsAt) {
+          return "chatting";
+        }
+        return "resting";
+      }
+    }
+
+    // Workout started but no current activity - ready for next set
+    if (state.workoutStartedAt) {
+      return "ready";
+    }
+
+    return "preview";
+  }, []);
+
+  // Fetch upcoming workouts and active workout from backend
+  const refresh = useCallback(async () => {
+    if (!client) return;
 
     try {
       setLoading(true);
       setError(null);
-      const response = await client.getWorkoutState({ userId: username, startNewSession });
-      
-      setWorkoutState(response.state ?? null);
+      const response = await client.getUpcomingWorkouts({});
+
+      setUpcomingWorkouts(response.workouts);
       setRestConfig(response.restConfig ?? null);
-      
-      // Determine phase from state
-      if (response.state) {
-        const state = response.state;
-        
-        if (state.isComplete) {
-          setPhase("complete");
-        } else if (state.currentActivity) {
-          const activity = state.currentActivity;
-          setCurrentActivity(activity);
-          
-          if (activity.type === ActivityType.SET) {
-            // Currently doing a set
-            setPhase("performing");
-          } else if (activity.type === ActivityType.REST) {
-            // Check if rest is over
-            const restStarted = activity.startedAt?.toDate() ?? new Date();
-            const restDuration = activity.plannedDurationSeconds * 1000;
-            const restEndsAt = new Date(restStarted.getTime() + restDuration);
-            
-            if (new Date() > restEndsAt) {
-              setPhase("chatting");
-              if (!currentRoast) setCurrentRoast(getRandomRoast());
-            } else {
-              setPhase("resting");
-            }
-          }
-        } else if (state.timeline.length === 0) {
-          // No activities yet - check if workout was explicitly started
-          if (state.workoutStartedAt) {
-            setPhase("ready");
-          } else {
-            setPhase("preview");
-          }
-        } else {
-          // Activities exist but nothing current - ready for next
-          setPhase("ready");
+      setPreferences(response.preferences ?? null);
+
+      // Check if there's an active workout
+      if (response.activeWorkout) {
+        setWorkoutState(response.activeWorkout);
+        const newPhase = determinePhase(response.activeWorkout);
+        setPhase(newPhase);
+
+        if (response.activeWorkout.currentActivity) {
+          setCurrentActivity(response.activeWorkout.currentActivity);
         }
+
+        if (newPhase === "chatting" && !currentRoast) {
+          setCurrentRoast(getRandomRoast());
+        }
+      } else {
+        setWorkoutState(null);
+        setPhase("preview");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch workout");
+      setError(err instanceof Error ? err.message : "Failed to fetch workouts");
     } finally {
       setLoading(false);
     }
-  }, [client, username, currentRoast]);
+  }, [client, determinePhase, currentRoast]);
 
   useEffect(() => {
-    fetchWorkoutState();
-  }, [fetchWorkoutState]);
+    refresh();
+  }, [refresh]);
 
   // Timer effect
   useEffect(() => {
-    if (phase !== "preview" && phase !== "complete") {
+    if (phase !== "preview" && phase !== "complete" && phase !== "loading") {
       timerRef.current = setInterval(() => {
         const now = new Date();
         setCurrentTime(now);
-        
+
         // Check if rest just ended and we should switch to chatting
         if (phase === "resting" && currentActivity && restConfig) {
           const restStarted = currentActivity.startedAt?.toDate() ?? new Date();
           const restDuration = currentActivity.plannedDurationSeconds * 1000;
           const restEndsAt = new Date(restStarted.getTime() + restDuration);
-          
+
           if (now > restEndsAt) {
             setPhase("chatting");
             setCurrentRoast(getRandomRoast());
@@ -212,12 +236,15 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     : null;
 
   // Calculate total workout time
-  const totalWorkoutSeconds = workoutState?.sessionStartedAt
-    ? Math.floor((currentTime.getTime() - workoutState.sessionStartedAt.toDate().getTime()) / 1000)
+  const totalWorkoutSeconds = workoutState?.workoutStartedAt
+    ? Math.floor((currentTime.getTime() - workoutState.workoutStartedAt.toDate().getTime()) / 1000)
     : 0;
 
+  // Get sets to display (from active workout or selected upcoming workout)
+  const displaySets = workoutState?.remainingSets ?? upcomingWorkouts[selectedWorkoutIndex]?.sets ?? [];
+
   // Get remaining sets grouped by exercise
-  const remainingSetsGrouped = workoutState?.remainingSets.reduce(
+  const remainingSetsGrouped = displaySets.reduce(
     (acc, set) => {
       if (!acc[set.exercise]) {
         acc[set.exercise] = [];
@@ -226,23 +253,21 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       return acc;
     },
     {} as Record<number, PlannedSet[]>
-  ) ?? {};
+  );
 
   // Get unique exercises from remaining sets, preserving the order from the backend
-  // (the backend returns sets in the user's preferred order)
   const exercisesInRemaining: Exercise[] = [];
-  for (const set of workoutState?.remainingSets ?? []) {
+  for (const set of displaySets) {
     if (!exercisesInRemaining.includes(set.exercise)) {
       exercisesInRemaining.push(set.exercise);
     }
   }
-  
+
   // Use local exerciseOrder if set (during drag), otherwise use backend order
-  // Only include exercises that are still in remaining sets
   const orderedExercises = exerciseOrder.length > 0
     ? exerciseOrder.filter(e => exercisesInRemaining.includes(e))
     : exercisesInRemaining;
-  
+
   // Add any new exercises that aren't in the order yet
   const missingExercises = exercisesInRemaining.filter(e => !orderedExercises.includes(e));
   const finalOrderedExercises = [...orderedExercises, ...missingExercises];
@@ -252,19 +277,34 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     ? remainingSetsGrouped[finalOrderedExercises[0]][0]
     : workoutState?.nextSet;
 
-  // Start the workout (from preview)
+  // Select which upcoming workout to view/start
+  const selectWorkout = (index: number) => {
+    setSelectedWorkoutIndex(index);
+  };
+
+  // Start the workout with the selected plan
   const startWorkout = async () => {
-    if (!client || !workoutState?.sessionId) return;
+    if (!client) return;
+
+    const selectedWorkout = upcomingWorkouts[selectedWorkoutIndex];
+    if (!selectedWorkout) return;
 
     try {
-      await client.startWorkout({ sessionId: workoutState.sessionId });
-      setPhase("ready");
+      const response = await client.startWorkout({
+        sets: selectedWorkout.sets,
+        workoutType: selectedWorkout.workoutType,
+      });
+
+      if (response.state) {
+        setWorkoutState(response.state);
+        setPhase("ready");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start workout");
     }
   };
 
-  // Update weight for an exercise (all sets)
+  // Update weight for an exercise (all sets) - only works during active workout
   const handleUpdateWeight = async (exercise: Exercise, newWeight: number) => {
     if (!client || !workoutState) return;
 
@@ -275,18 +315,18 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         newWeight: newWeight,
       });
 
-      // Refetch workout state to get updated plan
-      await fetchWorkoutState();
+      // Refetch to get updated state
+      await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update weight");
     }
   };
 
-  // Update exercise order (persists to backend)
+  // Update exercise order (persists to backend) - only works during active workout
   const handleSetExerciseOrder = async (exercises: Exercise[]) => {
     // Optimistically update local state immediately for responsiveness
     setExerciseOrder(exercises);
-    
+
     if (!client || !workoutState) return;
 
     try {
@@ -296,15 +336,29 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update exercise order");
-      // Optionally revert on error by refetching
-      await fetchWorkoutState();
+      await refresh();
+    }
+  };
+
+  // Update user preferences (workout days)
+  const updatePreferences = async (workoutDays: number[]) => {
+    if (!client) return;
+
+    try {
+      await client.updateUserPreferences({
+        preferences: { workoutDays },
+      });
+      // Refresh to get updated upcoming workouts with new dates
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update preferences");
     }
   };
 
   // Start a set (from ready, resting, or chatting phase)
   const handleStartSet = async () => {
     if (!client || !workoutState) return;
-    
+
     // Use our computed nextSet (respecting user's exercise order), fallback to backend's nextSet
     const setToStart = nextSet ?? workoutState.nextSet;
     if (!setToStart) return;
@@ -352,7 +406,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         setCurrentActivity(response.nextActivity);
         setPhase("resting");
       }
-      
+
       // Update state from response
       if (response.state) {
         setWorkoutState(response.state);
@@ -365,39 +419,45 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Start next workout
+  // Return to preview (after completing a workout)
   const handleStartNewWorkout = async () => {
-    // Reset local state and request a new session
+    setWorkoutState(null);
     setPhase("preview");
     setCurrentActivity(null);
     setCurrentRoast("");
     setExerciseOrder([]);
-    await fetchWorkoutState(true);
+    setSelectedWorkoutIndex(0);
+    await refresh();
   };
 
   return (
     <WorkoutContext.Provider
       value={{
         workoutState,
+        upcomingWorkouts,
         restConfig,
+        preferences,
         loading,
         error,
         phase,
         currentActivity,
         currentTime,
         currentRoast,
+        selectedWorkoutIndex,
         remainingSetsGrouped,
         orderedExercises: finalOrderedExercises,
         nextSet,
         totalWorkoutSeconds,
         setElapsedSeconds,
         restInfo,
-        fetchWorkoutState,
+        refresh,
+        selectWorkout,
         startWorkout,
         handleStartSet,
         handleSelectReps,
         handleStartNewWorkout,
         handleUpdateWeight,
+        updatePreferences,
         setExerciseOrder: handleSetExerciseOrder,
         setError,
       }}

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -13,7 +13,29 @@ export const WorkoutService = {
   typeName: "workout.v1.WorkoutService",
   methods: {
     /**
-     * Get current workout state (creates session if needed)
+     * Get upcoming proposed workouts and any active workout
+     *
+     * @generated from rpc workout.v1.WorkoutService.GetUpcomingWorkouts
+     */
+    getUpcomingWorkouts: {
+      name: "GetUpcomingWorkouts",
+      I: GetUpcomingWorkoutsRequest,
+      O: GetUpcomingWorkoutsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start a workout with a specific plan (creates new session)
+     *
+     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     */
+    startWorkout: {
+      name: "StartWorkout",
+      I: StartWorkoutRequest,
+      O: StartWorkoutResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get current workout state (for an active session)
      *
      * @generated from rpc workout.v1.WorkoutService.GetWorkoutState
      */
@@ -24,14 +46,25 @@ export const WorkoutService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Start the workout (user explicitly begins)
+     * Get user preferences
      *
-     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     * @generated from rpc workout.v1.WorkoutService.GetUserPreferences
      */
-    startWorkout: {
-      name: "StartWorkout",
-      I: StartWorkoutRequest,
-      O: StartWorkoutResponse,
+    getUserPreferences: {
+      name: "GetUserPreferences",
+      I: GetUserPreferencesRequest,
+      O: GetUserPreferencesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update user preferences (workout days, etc.)
+     *
+     * @generated from rpc workout.v1.WorkoutService.UpdateUserPreferences
+     */
+    updateUserPreferences: {
+      name: "UpdateUserPreferences",
+      I: UpdateUserPreferencesRequest,
+      O: UpdateUserPreferencesResponse,
       kind: MethodKind.Unary,
     },
     /**

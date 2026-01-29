@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
+import { FinishActivityRequest, FinishActivityResponse, GetNextWorkoutRequest, GetNextWorkoutResponse, GetUpcomingWorkoutsRequest, GetUpcomingWorkoutsResponse, GetUserPreferencesRequest, GetUserPreferencesResponse, GetWorkoutStateRequest, GetWorkoutStateResponse, LogSetRequest, LogSetResponse, SetExerciseOrderRequest, SetExerciseOrderResponse, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdatePlannedWeightRequest, UpdatePlannedWeightResponse, UpdateUserPreferencesRequest, UpdateUserPreferencesResponse, WatchWorkoutRequest, WorkoutUpdate } from "./workout_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -13,7 +13,29 @@ export declare const WorkoutService: {
   readonly typeName: "workout.v1.WorkoutService",
   readonly methods: {
     /**
-     * Get current workout state (creates session if needed)
+     * Get upcoming proposed workouts and any active workout
+     *
+     * @generated from rpc workout.v1.WorkoutService.GetUpcomingWorkouts
+     */
+    readonly getUpcomingWorkouts: {
+      readonly name: "GetUpcomingWorkouts",
+      readonly I: typeof GetUpcomingWorkoutsRequest,
+      readonly O: typeof GetUpcomingWorkoutsResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Start a workout with a specific plan (creates new session)
+     *
+     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     */
+    readonly startWorkout: {
+      readonly name: "StartWorkout",
+      readonly I: typeof StartWorkoutRequest,
+      readonly O: typeof StartWorkoutResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Get current workout state (for an active session)
      *
      * @generated from rpc workout.v1.WorkoutService.GetWorkoutState
      */
@@ -24,14 +46,25 @@ export declare const WorkoutService: {
       readonly kind: MethodKind.Unary,
     },
     /**
-     * Start the workout (user explicitly begins)
+     * Get user preferences
      *
-     * @generated from rpc workout.v1.WorkoutService.StartWorkout
+     * @generated from rpc workout.v1.WorkoutService.GetUserPreferences
      */
-    readonly startWorkout: {
-      readonly name: "StartWorkout",
-      readonly I: typeof StartWorkoutRequest,
-      readonly O: typeof StartWorkoutResponse,
+    readonly getUserPreferences: {
+      readonly name: "GetUserPreferences",
+      readonly I: typeof GetUserPreferencesRequest,
+      readonly O: typeof GetUserPreferencesResponse,
+      readonly kind: MethodKind.Unary,
+    },
+    /**
+     * Update user preferences (workout days, etc.)
+     *
+     * @generated from rpc workout.v1.WorkoutService.UpdateUserPreferences
+     */
+    readonly updateUserPreferences: {
+      readonly name: "UpdateUserPreferences",
+      readonly I: typeof UpdateUserPreferencesRequest,
+      readonly O: typeof UpdateUserPreferencesResponse,
       readonly kind: MethodKind.Unary,
     },
     /**

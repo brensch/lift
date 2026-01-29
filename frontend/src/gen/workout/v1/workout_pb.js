@@ -139,6 +139,33 @@ export const RestConfig = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
+ * A proposed workout that hasn't been started yet
+ *
+ * @generated from message workout.v1.ProposedWorkout
+ */
+export const ProposedWorkout = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.ProposedWorkout",
+  () => [
+    { no: 1, name: "sequence", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "workout_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "sets", kind: "message", T: PlannedSet, repeated: true },
+    { no: 4, name: "target_date", kind: "message", T: Timestamp },
+  ],
+);
+
+/**
+ * User preferences for workout scheduling
+ *
+ * @generated from message workout.v1.UserPreferences
+ */
+export const UserPreferences = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UserPreferences",
+  () => [
+    { no: 1, name: "workout_days", kind: "scalar", T: 5 /* ScalarType.INT32 */, repeated: true },
+  ],
+);
+
+/**
  * Get or create today's workout state
  *
  * @generated from message workout.v1.GetWorkoutStateRequest
@@ -164,14 +191,80 @@ export const GetWorkoutStateResponse = /*@__PURE__*/ proto3.makeMessageType(
 );
 
 /**
- * Start the workout (user explicitly begins, starts the workout timer)
+ * Get upcoming proposed workouts (calculated based on progression)
+ *
+ * @generated from message workout.v1.GetUpcomingWorkoutsRequest
+ */
+export const GetUpcomingWorkoutsRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetUpcomingWorkoutsRequest",
+  [],
+);
+
+/**
+ * @generated from message workout.v1.GetUpcomingWorkoutsResponse
+ */
+export const GetUpcomingWorkoutsResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetUpcomingWorkoutsResponse",
+  () => [
+    { no: 1, name: "workouts", kind: "message", T: ProposedWorkout, repeated: true },
+    { no: 2, name: "active_workout", kind: "message", T: WorkoutState },
+    { no: 3, name: "rest_config", kind: "message", T: RestConfig },
+    { no: 4, name: "preferences", kind: "message", T: UserPreferences },
+  ],
+);
+
+/**
+ * Get user preferences
+ *
+ * @generated from message workout.v1.GetUserPreferencesRequest
+ */
+export const GetUserPreferencesRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetUserPreferencesRequest",
+  [],
+);
+
+/**
+ * @generated from message workout.v1.GetUserPreferencesResponse
+ */
+export const GetUserPreferencesResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.GetUserPreferencesResponse",
+  () => [
+    { no: 1, name: "preferences", kind: "message", T: UserPreferences },
+  ],
+);
+
+/**
+ * Update user preferences
+ *
+ * @generated from message workout.v1.UpdateUserPreferencesRequest
+ */
+export const UpdateUserPreferencesRequest = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdateUserPreferencesRequest",
+  () => [
+    { no: 1, name: "preferences", kind: "message", T: UserPreferences },
+  ],
+);
+
+/**
+ * @generated from message workout.v1.UpdateUserPreferencesResponse
+ */
+export const UpdateUserPreferencesResponse = /*@__PURE__*/ proto3.makeMessageType(
+  "workout.v1.UpdateUserPreferencesResponse",
+  () => [
+    { no: 1, name: "preferences", kind: "message", T: UserPreferences },
+  ],
+);
+
+/**
+ * Start the workout with a specific plan
  *
  * @generated from message workout.v1.StartWorkoutRequest
  */
 export const StartWorkoutRequest = /*@__PURE__*/ proto3.makeMessageType(
   "workout.v1.StartWorkoutRequest",
   () => [
-    { no: 1, name: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "sets", kind: "message", T: PlannedSet, repeated: true },
+    { no: 2, name: "workout_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
@@ -181,7 +274,7 @@ export const StartWorkoutRequest = /*@__PURE__*/ proto3.makeMessageType(
 export const StartWorkoutResponse = /*@__PURE__*/ proto3.makeMessageType(
   "workout.v1.StartWorkoutResponse",
   () => [
-    { no: 1, name: "workout_started_at", kind: "message", T: Timestamp },
+    { no: 1, name: "state", kind: "message", T: WorkoutState },
   ],
 );
 
