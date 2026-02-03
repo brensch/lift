@@ -152,32 +152,43 @@ fn StartWorkoutView() -> Element {
 
     let download_db = move |_| {
         with_db(|db| {
-            // 1. Get binary data from sql.js
+            web_sys::console::log_1(&"Exporting database...".into());
+
+            // 1. Get binary data
             let data = db.export();
 
-            // 2. Create a Blob (file-like object) from the data
-            let array = js_sys::Array::of1(&data);
-            let blob =
-                web_sys::Blob::new_with_u8_array_sequence(&array).expect("Failed to create blob");
+            // Debug: Check if data actually exists
+            let size = data.length();
+            web_sys::console::log_1(&format!("Database size: {} bytes", size).into());
 
-            // 3. Create a temporary URL for the Blob
+            if size == 0 {
+                web_sys::console::error_1(&"Warning: Exported database is empty!".into());
+                return;
+            }
+
+            // 2. Create Blob with specific MIME type for SQLite
+            let array = js_sys::Array::of1(&data);
+            let options = web_sys::BlobPropertyBag::new();
+            options.set_type("application/x-sqlite3");
+
+            let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&array, &options)
+                .expect("Failed to create blob");
+
+            // 3. Trigger Download
             let url =
                 web_sys::Url::create_object_url_with_blob(&blob).expect("Failed to create URL");
 
-            // 4. Create a hidden <a> tag to trigger the download
             let window = web_sys::window().unwrap();
             let document = window.document().unwrap();
             let a = document.create_element("a").unwrap();
 
-            // Cast to Anchor Element to access href/download properties
             use wasm_bindgen::JsCast;
             let a: web_sys::HtmlAnchorElement = a.unchecked_into();
 
             a.set_href(&url);
-            a.set_download("lift_progress.sqlite"); // The filename
+            a.set_download("lift_progress.sqlite");
             a.click();
 
-            // 5. Cleanup
             web_sys::Url::revoke_object_url(&url).unwrap();
         });
     };
