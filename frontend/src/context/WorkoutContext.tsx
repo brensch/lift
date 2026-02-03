@@ -7,9 +7,7 @@ import {
   type RestConfig,
   type ProposedWorkout,
   type UserPreferences,
-  type WorkoutGroup,
   type GroupInvite,
-  type GroupWorkoutPlan,
   type WorkoutUpdate,
   type GroupSession,
   type UserExercisePlan,
@@ -55,10 +53,8 @@ interface WorkoutContextType {
   preferences: UserPreferences | null;
 
   // Group state
-  activeGroup: WorkoutGroup | null;
-  activeSession: GroupSession | null;  // New group session system
+  activeSession: GroupSession | null;
   pendingInvites: GroupInvite[];
-  groupWorkoutPlan: GroupWorkoutPlan | null;
   showPlanningModal: boolean;
 
   // UI state
@@ -95,12 +91,7 @@ interface WorkoutContextType {
   setExerciseOrder: (exercises: Exercise[]) => void;
   setError: (error: string | null) => void;
 
-  // Group actions
-  inviteToGroup: (username: string) => Promise<{ plan: GroupWorkoutPlan | null; error: string | null }>;
-  respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
-  leaveGroup: () => Promise<void>;
-
-  // New group session actions
+  // Group session actions
   createGroupSession: (inviteUsername: string) => Promise<{ session: GroupSession | null; error: string | null }>;
   joinGroupSession: (inviteId: string) => Promise<{ session: GroupSession | null; error: string | null }>;
   updateMyPlan: (exercises: UserExercisePlan[]) => Promise<void>;
@@ -125,10 +116,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   // Group state
-  const [activeGroup, setActiveGroup] = useState<WorkoutGroup | null>(null);
   const [activeSession, setActiveSession] = useState<GroupSession | null>(null);
   const [pendingInvites, setPendingInvites] = useState<GroupInvite[]>([]);
-  const [groupWorkoutPlan, setGroupWorkoutPlan] = useState<GroupWorkoutPlan | null>(null);
   const [showPlanningModal, setShowPlanningModal] = useState(false);
 
   // UI state
@@ -192,9 +181,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       setRestConfig(response.restConfig ?? null);
       setPreferences(response.preferences ?? null);
       setPendingInvites(response.pendingInvites ?? []);
-      setActiveGroup(response.activeGroup ?? null);
 
-      // New group session system
+      // Group session system
       if (response.activeSession) {
         setActiveSession(response.activeSession);
         // Show planning modal if session is in planning phase
@@ -299,8 +287,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           case UpdateType.INVITE_ACCEPTED:
             // Someone accepted our invite - refresh to show them in the group
             console.log("Invite accepted by:", update.userId);
-            if (update.group) {
-              setActiveGroup(update.group);
+            if (update.session) {
+              setActiveSession(update.session);
             }
             refresh();
             break;
@@ -311,9 +299,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           case UpdateType.USER_JOINED:
             // Someone joined the group
             console.log("User joined group:", update.userId);
-            if (update.group) {
-              setActiveGroup(update.group);
-            }
             if (update.session) {
               setActiveSession(update.session);
               // Show planning modal when joining a new session (if in planning phase)
@@ -632,9 +617,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setCurrentRoast("");
     setExerciseOrder([]);
     setSelectedWorkoutIndex(0);
-    setActiveGroup(null);
     setActiveSession(null);
-    setGroupWorkoutPlan(null);
     await refresh();
   };
 
@@ -657,62 +640,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       setError(err instanceof Error ? err.message : "Failed to finish workout");
     }
   };
-
-  // Invite a user to join your workout group
-  // Returns { plan, error } - plan is set on success, error message on failure
-  const inviteToGroup = async (username: string): Promise<{ plan: GroupWorkoutPlan | null; error: string | null }> => {
-    if (!client) return { plan: null, error: "Not connected" };
-
-    try {
-      const response = await client.inviteToGroup({ username });
-      if (response.plan) {
-        setGroupWorkoutPlan(response.plan);
-      }
-      return { plan: response.plan ?? null, error: null };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to invite user";
-      return { plan: null, error: errorMessage };
-    }
-  };
-
-  // Respond to a group invite (accept or decline)
-  const respondToInvite = async (inviteId: string, accept: boolean): Promise<void> => {
-    if (!client) return;
-
-    try {
-      const response = await client.respondToInvite({ inviteId, accept });
-      if (accept && response.group) {
-        setActiveGroup(response.group);
-        if (response.plan) {
-          setGroupWorkoutPlan(response.plan);
-        }
-        if (response.state) {
-          setWorkoutState(response.state);
-          setPhase(determinePhase(response.state));
-        }
-      }
-      // Remove the invite from pending list
-      setPendingInvites(prev => prev.filter(inv => inv.id !== inviteId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to respond to invite");
-    }
-  };
-
-  // Leave the current workout group
-  const leaveGroup = async (): Promise<void> => {
-    if (!client) return;
-
-    try {
-      await client.leaveGroup({});
-      setActiveGroup(null);
-      setGroupWorkoutPlan(null);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to leave group");
-    }
-  };
-
-  // === New Group Session Functions ===
 
   // Create a new group session and invite someone
   const createGroupSession = async (inviteUsername: string): Promise<{ session: GroupSession | null; error: string | null }> => {
@@ -829,10 +756,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         upcomingWorkouts,
         restConfig,
         preferences,
-        activeGroup,
         activeSession,
         pendingInvites,
-        groupWorkoutPlan,
         showPlanningModal,
         loading,
         error,
@@ -857,9 +782,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         updatePreferences,
         setExerciseOrder: handleSetExerciseOrder,
         setError,
-        inviteToGroup,
-        respondToInvite,
-        leaveGroup,
         createGroupSession,
         joinGroupSession,
         updateMyPlan,

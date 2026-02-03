@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { UserPlus, Users, Clock, Dumbbell, LogOut, ArrowRight } from "lucide-react";
-import { type GroupMember, type GroupSessionMember, type ExerciseOrder, type NextUp, Exercise } from "@/lib/api";
+import { type GroupSessionMember, type NextUp, Exercise } from "@/lib/api";
 import { MemberWorkoutModal } from "./MemberWorkoutModal";
 
 // Helper to format seconds as MM:SS
@@ -37,95 +37,7 @@ function getExerciseName(exercise: Exercise): string {
   return names[exercise] || "Unknown";
 }
 
-// Legacy member card for old group system
-function LegacyMemberCard({ member }: { member: GroupMember }) {
-  const [now, setNow] = useState(new Date());
-
-  // Update time every second for realtime countdown
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const completedSets = member.state?.timeline.filter(a => a.type === 1).length ?? 0;
-  const remainingSets = member.state?.remainingSets.length ?? 0;
-  const totalSets = completedSets + remainingSets;
-
-  // Get current exercise info
-  const currentActivity = member.state?.currentActivity;
-  const currentExercise = currentActivity?.exercise;
-  const currentSet = currentActivity?.setNumber;
-
-  // Calculate realtime rest status
-  let restSecondsRemaining = 0;
-  let isInSet = false;
-  let setElapsed = 0;
-
-  if (currentActivity) {
-    const activityStart = currentActivity.startedAt?.toDate();
-    if (activityStart) {
-      const elapsedMs = now.getTime() - activityStart.getTime();
-      const elapsedSeconds = elapsedMs / 1000;
-
-      if (currentActivity.type === 2) {
-        // REST activity
-        const plannedDuration = currentActivity.plannedDurationSeconds;
-        restSecondsRemaining = plannedDuration - elapsedSeconds;
-      } else if (currentActivity.type === 1) {
-        // SET activity
-        isInSet = true;
-        setElapsed = elapsedSeconds;
-      }
-    }
-  }
-
-  return (
-    <Card className="p-3 min-w-[140px]">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-sm truncate">
-            {member.userId}
-          </span>
-          {member.isActive && (
-            <span className="w-2 h-2 rounded-full bg-green-500" title="Active" />
-          )}
-        </div>
-
-        {/* Progress */}
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Dumbbell className="h-3 w-3" />
-          <span>{completedSets}/{totalSets} sets</span>
-        </div>
-
-        {/* Current exercise */}
-        {currentExercise !== undefined && currentExercise !== 0 && (
-          <div className="text-xs">
-            {getExerciseName(currentExercise)} #{currentSet}
-          </div>
-        )}
-
-        {/* Set timer - counting up */}
-        {isInSet && (
-          <div className="flex items-center gap-1 text-xs text-yellow-600">
-            <Clock className="h-3 w-3" />
-            <span>{formatTime(setElapsed)}</span>
-            <span className="text-muted-foreground">(in set)</span>
-          </div>
-        )}
-
-        {/* Rest timer - counting down/up */}
-        {!isInSet && currentActivity?.type === 2 && (
-          <div className={`flex items-center gap-1 text-xs ${restSecondsRemaining < 0 ? "text-orange-500" : "text-muted-foreground"}`}>
-            <Clock className="h-3 w-3" />
-            <span>{restSecondsRemaining < 0 ? "+" : ""}{formatTime(Math.abs(restSecondsRemaining))}</span>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-// New session member card with realtime updates
+// Session member card with realtime updates
 function SessionMemberCard({ member, onClick }: { member: GroupSessionMember; onClick?: () => void }) {
   const [now, setNow] = useState(new Date());
 
@@ -261,40 +173,11 @@ function NextUpBanner({ nextUp, currentUsername }: { nextUp: NextUp; currentUser
   );
 }
 
-// Show the suggested exercise order for the group
-function GroupOrderPreview({ exercises }: { exercises: ExerciseOrder[] }) {
-  return (
-    <div className="space-y-4">
-      {exercises.map((exerciseOrder) => (
-        <div key={exerciseOrder.exercise} className="space-y-2">
-          <div className="font-medium">{getExerciseName(exerciseOrder.exercise)}</div>
-          <div className="space-y-1">
-            {exerciseOrder.userOrder.map((userWeight, idx) => (
-              <div key={userWeight.userId} className="flex items-center gap-2 text-sm">
-                <span className="w-6 text-muted-foreground">{idx + 1}.</span>
-                <span className="flex-1">{userWeight.userId}</span>
-                <span className="font-mono">{userWeight.weight}kg</span>
-                {userWeight.plateChange && (
-                  <span className="text-xs text-muted-foreground">
-                    ({userWeight.plateChange})
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function WorkoutGroupBar() {
   const { username } = useUser();
   const {
-    activeGroup,
     activeSession,
     pendingInvites,
-    groupWorkoutPlan,
     createGroupSession,
     joinGroupSession,
     leaveGroupSession,
@@ -310,8 +193,7 @@ export function WorkoutGroupBar() {
 
   // Filter out current user from member lists
   const otherSessionMembers = activeSession?.members.filter(m => m.userId !== username) ?? [];
-  const otherGroupMembers = activeGroup?.members.filter(m => m.userId !== username) ?? [];
-  const hasOtherMembers = otherSessionMembers.length > 0 || otherGroupMembers.length > 0;
+  const hasOtherMembers = otherSessionMembers.length > 0;
 
   // Get next up info (only show if it's not us)
   const nextUp = activeSession?.nextUp;
@@ -415,18 +297,12 @@ export function WorkoutGroupBar() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {/* Show OTHER members from activeSession (new system) */}
             {otherSessionMembers.map((member) => (
               <SessionMemberCard
                 key={member.userId}
                 member={member}
                 onClick={() => setSelectedMember(member)}
               />
-            ))}
-
-            {/* Show OTHER members from activeGroup (legacy system) */}
-            {otherGroupMembers.map((member) => (
-              <LegacyMemberCard key={member.userId} member={member} />
             ))}
 
             {/* Add person button */}
@@ -443,7 +319,7 @@ export function WorkoutGroupBar() {
       )}
 
       {/* Show add person button when no group exists during workout */}
-      {!hasOtherMembers && !activeSession && !activeGroup && phase !== "preview" && phase !== "loading" && phase !== "complete" && (
+      {!hasOtherMembers && !activeSession && phase !== "preview" && phase !== "loading" && phase !== "complete" && (
         <div className="flex justify-center">
           <Button
             variant="outline"
@@ -453,14 +329,6 @@ export function WorkoutGroupBar() {
             Add Person to Workout
           </Button>
         </div>
-      )}
-
-      {/* Suggested order when group exists */}
-      {groupWorkoutPlan && groupWorkoutPlan.exercises.length > 0 && (
-        <Card className="p-4">
-          <div className="text-sm font-medium mb-3">Suggested Order (for minimal plate changes)</div>
-          <GroupOrderPreview exercises={groupWorkoutPlan.exercises} />
-        </Card>
       )}
 
       {/* Invite modal */}

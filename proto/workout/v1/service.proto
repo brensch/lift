@@ -1,0 +1,236 @@
+syntax = "proto3";
+
+package workout.v1;
+
+import "google/protobuf/timestamp.proto";
+import "workout/v1/types.proto";
+import "workout/v1/workout.proto";
+import "workout/v1/group.proto";
+import "workout/v1/streaming.proto";
+
+option go_package = "github.com/brensch/lift/gen/workout/v1;workoutv1";
+
+// ============ Solo Workout Requests/Responses ============
+
+// Get or create today's workout state
+message GetWorkoutStateRequest {
+  string user_id = 1;
+  bool start_new_session = 2; // If true and current session is complete, start a new one
+}
+
+message GetWorkoutStateResponse {
+  WorkoutState state = 1;
+  Plan plan = 2;           // The full workout plan
+  RestConfig rest_config = 3;
+}
+
+// Get upcoming proposed workouts (calculated based on progression)
+message GetUpcomingWorkoutsRequest {}
+
+message GetUpcomingWorkoutsResponse {
+  repeated ProposedWorkout workouts = 1;    // Next 5 workouts
+  WorkoutState active_workout = 2;           // Current in-progress workout, if any
+  RestConfig rest_config = 3;
+  UserPreferences preferences = 4;           // User's scheduling preferences
+  repeated GroupInvite pending_invites = 5;  // Pending group invites for this user
+  GroupSession active_session = 7;           // Active group session if any
+}
+
+// Get user preferences
+message GetUserPreferencesRequest {}
+
+message GetUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Update user preferences
+message UpdateUserPreferencesRequest {
+  UserPreferences preferences = 1;
+}
+
+message UpdateUserPreferencesResponse {
+  UserPreferences preferences = 1;
+}
+
+// Start the workout with a specific plan
+message StartWorkoutRequest {
+  repeated PlannedSet sets = 1;             // The sets to use for this workout
+  string workout_type = 2;                   // "A" or "B"
+}
+
+message StartWorkoutResponse {
+  WorkoutState state = 1;                    // The newly created workout state
+}
+
+// Start performing a set (begins timing)
+message StartSetRequest {
+  string session_id = 1;
+  Exercise exercise = 2;
+  int32 set_number = 3;
+  float weight = 4;
+  int32 target_reps = 5;
+}
+
+message StartSetResponse {
+  Activity activity = 1;  // The started set activity
+}
+
+// Finish any activity (set or rest)
+// For SET: provide actual_reps, creates a REST activity
+// For REST: just ends it (records actual duration from timestamps)
+message FinishActivityRequest {
+  string session_id = 1;
+  string activity_id = 2;  // The activity to finish
+  int32 actual_reps = 3;   // Only needed for SET activities
+}
+
+message FinishActivityResponse {
+  Activity finished_activity = 1;  // The activity that was finished
+  Activity next_activity = 2;      // The next activity (REST after SET, or null after REST)
+  WorkoutState state = 3;          // Updated full state
+}
+
+// Update the target weight for an exercise (all sets) or a specific set
+message UpdatePlannedWeightRequest {
+  string session_id = 1;
+  Exercise exercise = 2;           // The exercise to update
+  float new_weight = 3;            // The new target weight
+  optional int32 set_number = 4;   // If provided, only update this set; otherwise update all sets for the exercise
+}
+
+message UpdatePlannedWeightResponse {
+  repeated PlannedSet updated_sets = 1;  // The updated planned sets
+}
+
+// Set the exercise order for a session
+message SetExerciseOrderRequest {
+  string session_id = 1;
+  repeated Exercise exercise_order = 2;  // Exercises in the order they should be performed
+}
+
+message SetExerciseOrderResponse {
+  repeated PlannedSet remaining_sets = 1;  // Updated remaining sets in new order
+}
+
+// Finish a workout early (before all sets completed)
+message FinishWorkoutEarlyRequest {
+  string session_id = 1;
+}
+
+message FinishWorkoutEarlyResponse {
+  WorkoutState state = 1;  // The final workout state
+}
+
+// ============ Group Session Requests/Responses ============
+
+// Create a new group session and invite someone
+message CreateGroupSessionRequest {
+  string invite_username = 1;  // First person to invite
+}
+
+message CreateGroupSessionResponse {
+  GroupSession session = 1;
+  GroupInvite invite = 2;
+}
+
+// Join a group session (accept invite)
+message JoinGroupSessionRequest {
+  string invite_id = 1;
+}
+
+message JoinGroupSessionResponse {
+  GroupSession session = 1;
+}
+
+// Get current group session state
+message GetGroupSessionRequest {
+  string session_id = 1;
+}
+
+message GetGroupSessionResponse {
+  GroupSession session = 1;
+}
+
+// Update your plan for the session (during planning phase)
+message UpdateMyPlanRequest {
+  string session_id = 1;
+  repeated UserExercisePlan exercises = 2;
+}
+
+message UpdateMyPlanResponse {
+  GroupSession session = 1;  // Updated session with new plan
+}
+
+// Mark yourself as ready (during planning phase)
+message SetReadyRequest {
+  string session_id = 1;
+  bool ready = 2;
+}
+
+message SetReadyResponse {
+  GroupSession session = 1;
+}
+
+// Start the group workout (when all ready)
+message StartGroupWorkoutRequest {
+  string session_id = 1;
+}
+
+message StartGroupWorkoutResponse {
+  GroupSession session = 1;
+}
+
+// Leave a group session
+message LeaveGroupSessionRequest {
+  string session_id = 1;
+}
+
+message LeaveGroupSessionResponse {
+  bool success = 1;
+}
+
+// ============ Service Definition ============
+
+service WorkoutService {
+  // Get upcoming proposed workouts and any active workout
+  rpc GetUpcomingWorkouts(GetUpcomingWorkoutsRequest) returns (GetUpcomingWorkoutsResponse);
+
+  // Start a workout with a specific plan (creates new session)
+  rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
+
+  // Get current workout state (for an active session)
+  rpc GetWorkoutState(GetWorkoutStateRequest) returns (GetWorkoutStateResponse);
+
+  // Get user preferences
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+
+  // Update user preferences (workout days, etc.)
+  rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
+
+  // Group session management
+  rpc CreateGroupSession(CreateGroupSessionRequest) returns (CreateGroupSessionResponse);
+  rpc JoinGroupSession(JoinGroupSessionRequest) returns (JoinGroupSessionResponse);
+  rpc GetGroupSession(GetGroupSessionRequest) returns (GetGroupSessionResponse);
+  rpc UpdateMyPlan(UpdateMyPlanRequest) returns (UpdateMyPlanResponse);
+  rpc SetReady(SetReadyRequest) returns (SetReadyResponse);
+  rpc StartGroupWorkout(StartGroupWorkoutRequest) returns (StartGroupWorkoutResponse);
+  rpc LeaveGroupSession(LeaveGroupSessionRequest) returns (LeaveGroupSessionResponse);
+
+  // Start performing a set
+  rpc StartSet(StartSetRequest) returns (StartSetResponse);
+
+  // Finish any activity (set with reps, or rest)
+  rpc FinishActivity(FinishActivityRequest) returns (FinishActivityResponse);
+
+  // Update the target weight for an exercise or specific set
+  rpc UpdatePlannedWeight(UpdatePlannedWeightRequest) returns (UpdatePlannedWeightResponse);
+
+  // Set the exercise order for the current session
+  rpc SetExerciseOrder(SetExerciseOrderRequest) returns (SetExerciseOrderResponse);
+
+  // Finish a workout early (before all sets completed)
+  rpc FinishWorkoutEarly(FinishWorkoutEarlyRequest) returns (FinishWorkoutEarlyResponse);
+
+  // Stream: Subscribe to real-time notifications for the current user
+  rpc WatchNotifications(WatchNotificationsRequest) returns (stream WorkoutUpdate);
+}

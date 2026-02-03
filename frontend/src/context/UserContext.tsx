@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createWorkoutClient } from "@/lib/api";
 import type { PromiseClient } from "@connectrpc/connect";
-import type { WorkoutService } from "@/gen/workout/v1/workout_connect";
+import type { WorkoutService } from "@/gen/workout/v1/service_connect";
 
 interface UserContextType {
   username: string | null;
