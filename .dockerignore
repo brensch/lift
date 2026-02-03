@@ -29,3 +29,5 @@ docker-compose.yml
 *.md
 *.log
 .DS_Store
+
+*.sqlite

@@ -1,423 +1,423 @@
 use dioxus::prelude::*;
-use gloo_storage::{LocalStorage, Storage};
-use shared::{OnlineUser, SignalMessage, UserPreferences};
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
-use uuid::Uuid;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::{
-    MessageEvent, RtcDataChannel, RtcDataChannelEvent, RtcIceCandidate, RtcIceCandidateInit,
-    RtcPeerConnection, RtcPeerConnectionIceEvent, RtcSessionDescriptionInit, WebSocket,
-};
 
-const STORAGE_KEY: &str = "lift_user_preferences";
-const SIGNALING_SERVER: &str = "ws://localhost:3001/ws";
+mod db;
+use db::Database;
 
 fn main() {
     console_error_panic_hook::set_once();
     dioxus::launch(App);
 }
 
-// Global state for WebSocket and WebRTC (accessed from JS callbacks)
-thread_local! {
-    static WEBSOCKET: RefCell<Option<WebSocket>> = RefCell::new(None);
-    static PEER_CONNECTION: RefCell<Option<RtcPeerConnection>> = RefCell::new(None);
-    static DATA_CHANNEL: RefCell<Option<RtcDataChannel>> = RefCell::new(None);
+// 5x5 Standard Exercises
+const WORKOUT_A: &[&str] = &["Squat", "Bench Press", "Barbell Row"];
+const WORKOUT_B: &[&str] = &["Squat", "Overhead Press", "Deadlift"];
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PlannedSet {
+    pub id: i64,
+    pub exercise: String,
+    pub set_number: i32,
+    pub weight: f64,
+    pub reps: i32,
+    pub rest_seconds: i32,
 }
 
-// Signals for reactive UI state
-static ONLINE_USERS: GlobalSignal<Vec<OnlineUser>> = Signal::global(Vec::new);
-static MESSAGES: GlobalSignal<Vec<String>> = Signal::global(Vec::new);
-static CONNECTED: GlobalSignal<bool> = Signal::global(|| false);
-static CONNECTION_STATUS: GlobalSignal<String> = Signal::global(|| "Connecting...".to_string());
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CompletedSet {
+    pub id: i64,
+    pub exercise: String,
+    pub set_number: i32,
+    pub weight: f64,
+    pub target_reps: i32,
+    pub completed_reps: i32,
+    pub start_time: f64,
+    pub end_time: f64,
+    pub rest_seconds: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExerciseConfig {
+    pub name: String,
+    pub weight: f64,
+    pub reps: i32,
+    pub sets: i32,
+    pub rest_seconds: i32,
+}
+
+// Global database
+thread_local! {
+    static DB: RefCell<Option<Database>> = RefCell::new(None);
+}
+
+fn with_db<F, R>(f: F) -> Option<R>
+where
+    F: FnOnce(&Database) -> R,
+{
+    DB.with(|db| db.borrow().as_ref().map(f))
+}
+
+static PLANNED_SETS: GlobalSignal<Vec<PlannedSet>> = Signal::global(Vec::new);
+static COMPLETED_SETS: GlobalSignal<Vec<CompletedSet>> = Signal::global(Vec::new);
+static CURRENT_SET_INDEX: GlobalSignal<usize> = Signal::global(|| 0);
+static WORKOUT_ACTIVE: GlobalSignal<bool> = Signal::global(|| false);
+static SET_IN_PROGRESS: GlobalSignal<bool> = Signal::global(|| false);
+static SET_START_TIME: GlobalSignal<f64> = Signal::global(|| 0.0);
+static DB_READY: GlobalSignal<bool> = Signal::global(|| false);
 
 #[component]
 fn App() -> Element {
-    let mut user = use_signal(|| LocalStorage::get::<UserPreferences>(STORAGE_KEY).ok());
+    // Initialize database on mount
+    use_effect(|| {
+        wasm_bindgen_futures::spawn_local(async {
+            match Database::new().await {
+                Ok(database) => {
+                    DB.with(|db| *db.borrow_mut() = Some(database));
+                    *DB_READY.write() = true;
+                    web_sys::console::log_1(&"Database initialized!".into());
+                }
+                Err(e) => {
+                    web_sys::console::log_1(&format!("DB Error: {:?}", e).into());
+                }
+            }
+        });
+    });
+
+    let db_ready = *DB_READY.read();
 
     rsx! {
         style { {include_str!("../public/style.css")} }
         div { class: "container",
-            match user.read().as_ref() {
-                None => rsx! { RegistrationForm { on_register: move |prefs| user.set(Some(prefs)) } },
-                Some(prefs) => rsx! { MainApp { user: prefs.clone() } },
+            if !db_ready {
+                div { class: "card",
+                    h1 { "Loading..." }
+                    p { "Initializing database..." }
+                }
+            } else if *WORKOUT_ACTIVE.read() {
+                WorkoutView {}
+            } else {
+                StartWorkoutView {}
             }
         }
     }
 }
 
 #[component]
-fn RegistrationForm(on_register: EventHandler<UserPreferences>) -> Element {
-    let mut username = use_signal(String::new);
-    let mut age = use_signal(String::new);
-
-    let submit = move |_: MouseEvent| {
-        let name = username.read().trim().to_string();
-        if name.is_empty() {
-            return;
-        }
-
-        let mut prefs = UserPreferences::new(name);
-        if let Ok(a) = age.read().parse::<u32>() {
-            prefs.age = Some(a);
-        }
-
-        LocalStorage::set(STORAGE_KEY, &prefs).ok();
-        on_register.call(prefs);
-    };
-
-    rsx! {
-        div { class: "card",
-            h1 { "Welcome to Lift" }
-            p { class: "subtitle", "Your ID: will be generated on registration" }
-
-            div { class: "form-group",
-                label { "Username" }
-                input {
-                    r#type: "text",
-                    placeholder: "Enter your name",
-                    value: "{username}",
-                    oninput: move |e| username.set(e.value()),
-                }
-            }
-
-            div { class: "form-group",
-                label { "Age (optional)" }
-                input {
-                    r#type: "number",
-                    placeholder: "Enter your age",
-                    value: "{age}",
-                    oninput: move |e| age.set(e.value()),
-                }
-            }
-
-            button {
-                onclick: submit,
-                "Register"
-            }
-        }
-    }
-}
-
-#[component]
-fn MainApp(user: UserPreferences) -> Element {
-    let mut message_input = use_signal(String::new);
-    let user_id = user.id;
-    let username = user.username.clone();
-
-    // Connect to signaling server on mount
-    use_effect({
-        let username = username.clone();
-        move || {
-            let username = username.clone();
-            spawn_local(async move {
-                match connect_signaling(user_id, &username) {
-                    Ok(_) => *CONNECTION_STATUS.write() = "Connected to server".to_string(),
-                    Err(e) => *CONNECTION_STATUS.write() = format!("Failed: {:?}", e),
-                }
-            });
-        }
+fn StartWorkoutView() -> Element {
+    let mut workout_type = use_signal(|| "A".to_string());
+    let mut weights = use_signal(|| {
+        vec![
+            ("Squat".to_string(), 45.0),
+            ("Bench Press".to_string(), 45.0),
+            ("Barbell Row".to_string(), 45.0),
+            ("Overhead Press".to_string(), 45.0),
+            ("Deadlift".to_string(), 45.0),
+        ]
     });
 
-    let online_users = ONLINE_USERS.read().clone();
-    let messages = MESSAGES.read().clone();
-    let connected = *CONNECTED.read();
-    let connection_status = CONNECTION_STATUS.read().clone();
+    let start_workout = move |_: MouseEvent| {
+        let exercises: &[&str] = if *workout_type.read() == "A" {
+            WORKOUT_A
+        } else {
+            WORKOUT_B
+        };
+        let weight_map = weights.read().clone();
 
-    let has_channel = DATA_CHANNEL.with(|dc| dc.borrow().is_some());
+        let configs: Vec<ExerciseConfig> = exercises
+            .iter()
+            .map(|&name| {
+                let weight = weight_map
+                    .iter()
+                    .find(|(n, _)| n == name)
+                    .map(|(_, w)| *w)
+                    .unwrap_or(45.0);
 
-    let send_message = move |_: MouseEvent| {
-        let msg = message_input.read().clone();
-        if msg.is_empty() {
-            return;
-        }
+                // Deadlift is 1x5, everything else is 5x5
+                let sets = if name == "Deadlift" { 1 } else { 5 };
 
-        DATA_CHANNEL.with(|dc| {
-            if let Some(dc) = dc.borrow().as_ref() {
-                if dc.ready_state() == web_sys::RtcDataChannelState::Open {
-                    dc.send_with_str(&msg).ok();
-                    MESSAGES.write().push(format!("You: {}", msg));
-                    message_input.set(String::new());
+                ExerciseConfig {
+                    name: name.to_string(),
+                    weight,
+                    reps: 5,
+                    sets,
+                    rest_seconds: 180, // 3 minutes rest
                 }
-            }
+            })
+            .collect();
+
+        start_workout_with_config(&configs);
+    };
+
+    let download_db = move |_| {
+        with_db(|db| {
+            // 1. Get binary data from sql.js
+            let data = db.export();
+
+            // 2. Create a Blob (file-like object) from the data
+            let array = js_sys::Array::of1(&data);
+            let blob =
+                web_sys::Blob::new_with_u8_array_sequence(&array).expect("Failed to create blob");
+
+            // 3. Create a temporary URL for the Blob
+            let url =
+                web_sys::Url::create_object_url_with_blob(&blob).expect("Failed to create URL");
+
+            // 4. Create a hidden <a> tag to trigger the download
+            let window = web_sys::window().unwrap();
+            let document = window.document().unwrap();
+            let a = document.create_element("a").unwrap();
+
+            // Cast to Anchor Element to access href/download properties
+            use wasm_bindgen::JsCast;
+            let a: web_sys::HtmlAnchorElement = a.unchecked_into();
+
+            a.set_href(&url);
+            a.set_download("lift_progress.sqlite"); // The filename
+            a.click();
+
+            // 5. Cleanup
+            web_sys::Url::revoke_object_url(&url).unwrap();
         });
     };
 
-    let initiate_connection = move |target_id: Uuid| {
-        spawn_local(async move {
-            if let Err(e) = create_offer(user_id, target_id).await {
-                web_sys::console::log_1(&format!("Error: {:?}", e).into());
-            }
-        });
+    let exercises: &[&str] = if *workout_type.read() == "A" {
+        WORKOUT_A
+    } else {
+        WORKOUT_B
     };
 
     rsx! {
         div { class: "card",
-            h1 { "Lift" }
-            p { class: "subtitle", "Logged in as {user.username} ({user.id})" }
-            p { class: "status", "{connection_status}" }
+            h1 { "Lift - 5x5 Workout" }
 
-            if connected {
-                p { class: "status connected", "P2P Connected!" }
+            div { class: "form-group",
+                label { "Workout Type" }
+                div { class: "button-group",
+                    button {
+                        class: if *workout_type.read() == "A" { "selected" } else { "" },
+                        onclick: move |_| workout_type.set("A".to_string()),
+                        "Workout A"
+                    }
+                    button {
+                        class: if *workout_type.read() == "B" { "selected" } else { "" },
+                        onclick: move |_| workout_type.set("B".to_string()),
+                        "Workout B"
+                    }
+                }
+
             }
 
-            h2 { "Online Users" }
-            div { class: "user-list",
-                for online_user in online_users.iter().filter(|u| u.id != user_id) {
-                    {
-                        let target_id = online_user.id;
-                        let name = online_user.username.clone();
-                        rsx! {
-                            div {
-                                class: "user-item",
-                                onclick: move |_| initiate_connection(target_id),
-                                "{name}"
+            h2 { "Exercises" }
+            for exercise in exercises.iter() {
+                {
+                    let name = exercise.to_string();
+                    let current_weight = weights.read()
+                        .iter()
+                        .find(|(n, _)| n == &name)
+                        .map(|(_, w)| *w)
+                        .unwrap_or(45.0);
+                    let sets = if name == "Deadlift" { 1 } else { 5 };
+
+                    rsx! {
+                        div { class: "exercise-config",
+                            div { class: "exercise-name", "{name}" }
+                            div { class: "exercise-details",
+                                span { "{sets}x5 @ " }
+                                input {
+                                    r#type: "number",
+                                    class: "weight-input",
+                                    value: "{current_weight}",
+                                    oninput: {
+                                        let name = name.clone();
+                                        move |e: FormEvent| {
+                                            if let Ok(w) = e.value().parse::<f64>() {
+                                                let mut w_list = weights.read().clone();
+                                                if let Some(entry) = w_list.iter_mut().find(|(n, _)| n == &name) {
+                                                    entry.1 = w;
+                                                }
+                                                weights.set(w_list);
+                                            }
+                                        }
+                                    },
+                                }
+                                span { " lbs" }
                             }
                         }
                     }
                 }
-                if online_users.iter().filter(|u| u.id != user_id).count() == 0 {
-                    p { class: "empty", "No other users online. Open another tab!" }
-                }
             }
 
-            h2 { "Messages" }
-            div { class: "messages",
-                for msg in messages.iter() {
-                    div { class: "message", "{msg}" }
-                }
-                if messages.is_empty() {
-                    p { class: "empty", "No messages yet" }
-                }
+            button {
+                class: "start-button",
+                onclick: start_workout,
+                "Start Workout"
             }
 
-            div { class: "message-input",
-                input {
-                    r#type: "text",
-                    placeholder: "Type a message...",
-                    value: "{message_input}",
-                    oninput: move |e| message_input.set(e.value()),
-                    onkeypress: move |e: KeyboardEvent| {
-                        if e.key() == Key::Enter {
-                            DATA_CHANNEL.with(|dc| {
-                                if let Some(dc) = dc.borrow().as_ref() {
-                                    if dc.ready_state() == web_sys::RtcDataChannelState::Open {
-                                        let msg = message_input.read().clone();
-                                        if !msg.is_empty() {
-                                            dc.send_with_str(&msg).ok();
-                                            MESSAGES.write().push(format!("You: {}", msg));
-                                            message_input.set(String::new());
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    },
-                }
-                button {
-                    onclick: send_message,
-                    disabled: !has_channel,
-                    "Send"
-                }
+            button {
+                class: "download-button",
+                style: "margin-top: 10px; background-color: #666;", // Simple inline style for separation
+                onclick: download_db,
+                "Download Database Backup"
             }
         }
     }
 }
 
-fn connect_signaling(user_id: Uuid, username: &str) -> Result<(), JsValue> {
-    let ws = WebSocket::new(SIGNALING_SERVER)?;
+fn start_workout_with_config(configs: &[ExerciseConfig]) {
+    let mut planned_sets = Vec::new();
 
-    WEBSOCKET.with(|ws_cell| {
-        *ws_cell.borrow_mut() = Some(ws.clone());
+    for config in configs {
+        for set_num in 1..=config.sets {
+            planned_sets.push(PlannedSet {
+                id: 0,
+                exercise: config.name.clone(),
+                set_number: set_num,
+                weight: config.weight,
+                reps: config.reps,
+                rest_seconds: config.rest_seconds,
+            });
+        }
+    }
+
+    // Save to database
+    with_db(|db| {
+        db.clear_planned_sets();
+        for set in &planned_sets {
+            db.insert_planned_set(set);
+        }
     });
 
-    let ws_clone = ws.clone();
-    let register_msg = serde_json::to_string(&SignalMessage::Register {
-        user_id,
-        username: username.to_string(),
-    }).unwrap();
-
-    let onopen = Closure::wrap(Box::new(move || {
-        ws_clone.send_with_str(&register_msg).ok();
-    }) as Box<dyn Fn()>);
-    ws.set_onopen(Some(onopen.as_ref().unchecked_ref()));
-    onopen.forget();
-
-    let onmessage = Closure::wrap(Box::new(move |e: MessageEvent| {
-        if let Ok(text) = e.data().dyn_into::<js_sys::JsString>() {
-            let text: String = text.into();
-            if let Ok(signal) = serde_json::from_str::<SignalMessage>(&text) {
-                handle_signal_message(signal, user_id);
-            }
-        }
-    }) as Box<dyn Fn(MessageEvent)>);
-    ws.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
-    onmessage.forget();
-
-    Ok(())
+    // Update state
+    *PLANNED_SETS.write() = with_db(|db| db.get_planned_sets()).unwrap_or_default();
+    *COMPLETED_SETS.write() = Vec::new();
+    *CURRENT_SET_INDEX.write() = 0;
+    *WORKOUT_ACTIVE.write() = true;
+    *SET_IN_PROGRESS.write() = false;
 }
 
-fn handle_signal_message(signal: SignalMessage, user_id: Uuid) {
-    match signal {
-        SignalMessage::UserList { users } => {
-            *ONLINE_USERS.write() = users;
+#[component]
+fn WorkoutView() -> Element {
+    let planned_sets = PLANNED_SETS.read().clone();
+    let completed_sets = COMPLETED_SETS.read().clone();
+    let current_index = *CURRENT_SET_INDEX.read();
+    let set_in_progress = *SET_IN_PROGRESS.read();
+
+    let current_set = planned_sets.get(current_index).cloned();
+    let all_done = current_index >= planned_sets.len();
+
+    let start_set = move |_: MouseEvent| {
+        *SET_START_TIME.write() = js_sys::Date::now();
+        *SET_IN_PROGRESS.write() = true;
+    };
+
+    let mut completed_reps = use_signal(|| 5);
+
+    let finish_set = {
+        let current_set = current_set.clone();
+        move |_: MouseEvent| {
+            if let Some(ref set) = current_set {
+                let completed = CompletedSet {
+                    id: 0,
+                    exercise: set.exercise.clone(),
+                    set_number: set.set_number,
+                    weight: set.weight,
+                    target_reps: set.reps,
+                    completed_reps: *completed_reps.read(),
+                    start_time: *SET_START_TIME.read(),
+                    end_time: js_sys::Date::now(),
+                    rest_seconds: set.rest_seconds,
+                };
+
+                with_db(|db| db.insert_completed_set(&completed));
+
+                COMPLETED_SETS.write().push(completed);
+                *CURRENT_SET_INDEX.write() = current_index + 1;
+                *SET_IN_PROGRESS.write() = false;
+                completed_reps.set(5);
+            }
         }
-        SignalMessage::Offer { from, to: _, sdp } => {
-            spawn_local(async move {
-                if let Err(e) = handle_offer(user_id, from, &sdp).await {
-                    web_sys::console::log_1(&format!("Error handling offer: {:?}", e).into());
+    };
+
+    let cancel_workout = move |_: MouseEvent| {
+        *WORKOUT_ACTIVE.write() = false;
+        *PLANNED_SETS.write() = Vec::new();
+        *COMPLETED_SETS.write() = Vec::new();
+        *CURRENT_SET_INDEX.write() = 0;
+    };
+
+    rsx! {
+        div { class: "card",
+            h1 { "Workout in Progress" }
+
+            // Progress
+            p { class: "progress",
+                "Set {current_index + 1} of {planned_sets.len()}"
+            }
+
+            if all_done {
+                div { class: "workout-complete",
+                    h2 { "Workout Complete!" }
+                    p { "You finished all {planned_sets.len()} sets." }
+                    button {
+                        onclick: cancel_workout,
+                        "Done"
+                    }
                 }
-            });
-        }
-        SignalMessage::Answer { from: _, to: _, sdp } => {
-            PEER_CONNECTION.with(|pc_cell| {
-                if let Some(pc) = pc_cell.borrow().as_ref() {
-                    let pc = pc.clone();
-                    spawn_local(async move {
-                        let desc = RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Answer);
-                        desc.set_sdp(&sdp);
-                        let _ = wasm_bindgen_futures::JsFuture::from(pc.set_remote_description(&desc)).await;
-                        *CONNECTED.write() = true;
-                    });
-                }
-            });
-        }
-        SignalMessage::IceCandidate { from: _, to: _, candidate } => {
-            PEER_CONNECTION.with(|pc_cell| {
-                if let Some(pc) = pc_cell.borrow().as_ref() {
-                    let pc = pc.clone();
-                    spawn_local(async move {
-                        let init = RtcIceCandidateInit::new(&candidate);
-                        init.set_sdp_mid(Some("0"));
-                        init.set_sdp_m_line_index(Some(0));
-                        if let Ok(cand) = RtcIceCandidate::new(&init) {
-                            let _ = wasm_bindgen_futures::JsFuture::from(
-                                pc.add_ice_candidate_with_opt_rtc_ice_candidate(Some(&cand)),
-                            ).await;
+            } else if let Some(set) = current_set {
+                div { class: "current-set",
+                    h2 { "{set.exercise}" }
+                    p { class: "set-details",
+                        "Set {set.set_number}: {set.weight} lbs x {set.reps} reps"
+                    }
+
+                    if !set_in_progress {
+                        button {
+                            class: "start-button",
+                            onclick: start_set,
+                            "Start Set"
                         }
-                    });
+                    } else {
+                        div { class: "rep-input",
+                            label { "Completed Reps:" }
+                            div { class: "rep-buttons",
+                                for i in 0..=5 {
+                                    button {
+                                        class: if *completed_reps.read() == i { "selected" } else { "" },
+                                        onclick: move |_| completed_reps.set(i),
+                                        "{i}"
+                                    }
+                                }
+                            }
+                        }
+                        button {
+                            class: "finish-button",
+                            onclick: finish_set,
+                            "Finish Set"
+                        }
+                    }
                 }
-            });
-        }
-        _ => {}
-    }
-}
+            }
 
-fn get_websocket() -> Option<WebSocket> {
-    WEBSOCKET.with(|ws| ws.borrow().clone())
-}
+            // Completed sets summary
+            if !completed_sets.is_empty() {
+                h3 { "Completed" }
+                div { class: "completed-list",
+                    for completed in completed_sets.iter().rev().take(5) {
+                        div { class: "completed-item",
+                            "{completed.exercise} Set {completed.set_number}: "
+                            "{completed.completed_reps}/{completed.target_reps} @ {completed.weight}lbs"
+                        }
+                    }
+                }
+            }
 
-async fn create_offer(user_id: Uuid, target_id: Uuid) -> Result<(), JsValue> {
-    let ws = get_websocket().ok_or_else(|| JsValue::from_str("No WebSocket"))?;
-    let pc = create_peer_connection(user_id, target_id)?;
-
-    let dc = pc.create_data_channel("messages");
-    setup_data_channel(&dc);
-    DATA_CHANNEL.with(|dc_cell| *dc_cell.borrow_mut() = Some(dc));
-
-    let offer = wasm_bindgen_futures::JsFuture::from(pc.create_offer()).await?;
-    let offer_sdp = js_sys::Reflect::get(&offer, &"sdp".into())?
-        .as_string()
-        .unwrap_or_default();
-
-    let desc = RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Offer);
-    desc.set_sdp(&offer_sdp);
-    wasm_bindgen_futures::JsFuture::from(pc.set_local_description(&desc)).await?;
-
-    PEER_CONNECTION.with(|pc_cell| *pc_cell.borrow_mut() = Some(pc));
-
-    let msg = serde_json::to_string(&SignalMessage::Offer {
-        from: user_id,
-        to: target_id,
-        sdp: offer_sdp,
-    }).unwrap();
-    ws.send_with_str(&msg).ok();
-
-    Ok(())
-}
-
-async fn handle_offer(user_id: Uuid, from_id: Uuid, sdp: &str) -> Result<(), JsValue> {
-    let ws = get_websocket().ok_or_else(|| JsValue::from_str("No WebSocket"))?;
-    let pc = create_peer_connection(user_id, from_id)?;
-
-    let ondatachannel = Closure::wrap(Box::new(move |e: RtcDataChannelEvent| {
-        let dc = e.channel();
-        setup_data_channel(&dc);
-        DATA_CHANNEL.with(|dc_cell| *dc_cell.borrow_mut() = Some(dc));
-    }) as Box<dyn Fn(RtcDataChannelEvent)>);
-    pc.set_ondatachannel(Some(ondatachannel.as_ref().unchecked_ref()));
-    ondatachannel.forget();
-
-    let desc = RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Offer);
-    desc.set_sdp(sdp);
-    wasm_bindgen_futures::JsFuture::from(pc.set_remote_description(&desc)).await?;
-
-    let answer = wasm_bindgen_futures::JsFuture::from(pc.create_answer()).await?;
-    let answer_sdp = js_sys::Reflect::get(&answer, &"sdp".into())?
-        .as_string()
-        .unwrap_or_default();
-
-    let answer_desc = RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Answer);
-    answer_desc.set_sdp(&answer_sdp);
-    wasm_bindgen_futures::JsFuture::from(pc.set_local_description(&answer_desc)).await?;
-
-    PEER_CONNECTION.with(|pc_cell| *pc_cell.borrow_mut() = Some(pc));
-    *CONNECTED.write() = true;
-
-    let msg = serde_json::to_string(&SignalMessage::Answer {
-        from: user_id,
-        to: from_id,
-        sdp: answer_sdp,
-    }).unwrap();
-    ws.send_with_str(&msg).ok();
-
-    Ok(())
-}
-
-fn create_peer_connection(user_id: Uuid, target_id: Uuid) -> Result<RtcPeerConnection, JsValue> {
-    let config = web_sys::RtcConfiguration::new();
-    let ice_servers = js_sys::Array::new();
-    let ice_server = web_sys::RtcIceServer::new();
-    let urls = js_sys::Array::new();
-    urls.push(&"stun:stun.l.google.com:19302".into());
-    ice_server.set_urls(&urls);
-    ice_servers.push(&ice_server);
-    config.set_ice_servers(&ice_servers);
-
-    let pc = RtcPeerConnection::new_with_configuration(&config)?;
-
-    let onicecandidate = Closure::wrap(Box::new(move |e: RtcPeerConnectionIceEvent| {
-        if let Some(candidate) = e.candidate() {
-            if let Some(ws) = get_websocket() {
-                let msg = serde_json::to_string(&SignalMessage::IceCandidate {
-                    from: user_id,
-                    to: target_id,
-                    candidate: candidate.candidate(),
-                }).unwrap();
-                ws.send_with_str(&msg).ok();
+            button {
+                class: "cancel-button",
+                onclick: cancel_workout,
+                "Cancel Workout"
             }
         }
-    }) as Box<dyn Fn(RtcPeerConnectionIceEvent)>);
-    pc.set_onicecandidate(Some(onicecandidate.as_ref().unchecked_ref()));
-    onicecandidate.forget();
-
-    Ok(pc)
-}
-
-fn setup_data_channel(dc: &RtcDataChannel) {
-    let onopen = Closure::wrap(Box::new(move || {
-        web_sys::console::log_1(&"Data channel opened!".into());
-        *CONNECTED.write() = true;
-    }) as Box<dyn Fn()>);
-    dc.set_onopen(Some(onopen.as_ref().unchecked_ref()));
-    onopen.forget();
-
-    let onmessage = Closure::wrap(Box::new(move |e: MessageEvent| {
-        if let Ok(text) = e.data().dyn_into::<js_sys::JsString>() {
-            let text: String = text.into();
-            MESSAGES.write().push(format!("Peer: {}", text));
-        }
-    }) as Box<dyn Fn(MessageEvent)>);
-    dc.set_onmessage(Some(onmessage.as_ref().unchecked_ref()));
-    onmessage.forget();
+    }
 }

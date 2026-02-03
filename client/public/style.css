@@ -36,21 +36,10 @@ h2 {
     color: #aaa;
 }
 
-.subtitle {
+h3 {
+    font-size: 16px;
+    margin: 16px 0 8px;
     color: #888;
-    font-size: 12px;
-    margin-bottom: 20px;
-    word-break: break-all;
-}
-
-.status {
-    color: #f39c12;
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-
-.status.connected {
-    color: #2ecc71;
 }
 
 .form-group {
@@ -64,25 +53,72 @@ h2 {
     font-size: 14px;
 }
 
-input[type="text"],
-input[type="number"] {
-    width: 100%;
+.button-group {
+    display: flex;
+    gap: 8px;
+}
+
+.button-group button {
+    flex: 1;
     padding: 12px;
+    background: #0f0f23;
+    color: #888;
     border: 1px solid #333;
     border-radius: 8px;
-    background: #0f0f23;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.button-group button:hover {
+    background: #1a1a3e;
+}
+
+.button-group button.selected {
+    background: #3498db;
     color: #fff;
+    border-color: #3498db;
+}
+
+.exercise-config {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #0f0f23;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.exercise-name {
+    font-weight: 600;
+    color: #fff;
+}
+
+.exercise-details {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #888;
+}
+
+.weight-input {
+    width: 70px;
+    padding: 8px;
+    background: #1a1a3e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #fff;
+    text-align: center;
     font-size: 16px;
 }
 
-input:focus {
+.weight-input:focus {
     outline: none;
     border-color: #3498db;
 }
 
 button {
-    width: 100%;
-    padding: 14px;
+    padding: 14px 24px;
     background: #3498db;
     color: #fff;
     border: none;
@@ -96,65 +132,118 @@ button:hover {
     background: #2980b9;
 }
 
-button:disabled {
-    background: #555;
-    cursor: not-allowed;
+.start-button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    font-size: 18px;
+    background: #27ae60;
 }
 
-.user-list {
+.start-button:hover {
+    background: #219a52;
+}
+
+.finish-button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 16px;
+    font-size: 18px;
+    background: #27ae60;
+}
+
+.finish-button:hover {
+    background: #219a52;
+}
+
+.cancel-button {
+    width: 100%;
+    margin-top: 20px;
+    background: #555;
+}
+
+.cancel-button:hover {
+    background: #666;
+}
+
+.progress {
+    color: #888;
+    margin-bottom: 20px;
+}
+
+.current-set {
+    background: #0f0f23;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.current-set h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.set-details {
+    color: #3498db;
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.rep-input {
+    margin: 20px 0;
+}
+
+.rep-input label {
+    display: block;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+.rep-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.rep-buttons button {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    background: #0f0f23;
+    border: 2px solid #333;
+    font-size: 18px;
+}
+
+.rep-buttons button.selected {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+.completed-list {
     background: #0f0f23;
     border-radius: 8px;
     padding: 8px;
-    max-height: 150px;
-    overflow-y: auto;
 }
 
-.user-item {
-    padding: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.user-item:hover {
-    background: #1a1a3e;
-}
-
-.empty {
-    color: #666;
-    font-size: 14px;
-    text-align: center;
-    padding: 12px;
-}
-
-.messages {
-    background: #0f0f23;
-    border-radius: 8px;
-    padding: 12px;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 12px;
-}
-
-.message {
-    padding: 8px 0;
+.completed-item {
+    padding: 8px 12px;
     border-bottom: 1px solid #222;
+    color: #888;
+    font-size: 14px;
 }
 
-.message:last-child {
+.completed-item:last-child {
     border-bottom: none;
 }
 
-.message-input {
-    display: flex;
-    gap: 8px;
+.workout-complete {
+    text-align: center;
+    padding: 40px 20px;
 }
 
-.message-input input {
-    flex: 1;
-}
-
-.message-input button {
-    width: auto;
-    padding: 12px 24px;
+.workout-complete h2 {
+    color: #27ae60;
+    font-size: 28px;
+    margin-bottom: 12px;
 }
