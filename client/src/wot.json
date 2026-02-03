@@ -1,0 +1,1 @@
+[{"stmt":"SELECT id, exercise, set_number, weight, target_reps, completed_reps, start_time, end_time, rest_seconds\nFROM completed_sets;","header":[],"rows":[]}]
