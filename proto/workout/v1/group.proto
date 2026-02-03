@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package workout.v1;
+
+import "google/protobuf/timestamp.proto";
+import "workout/v1/types.proto";
+import "workout/v1/workout.proto";
+
+option go_package = "github.com/brensch/lift/gen/workout/v1;workoutv1";
+
+// A group workout session (each workout gets a new session, even with same people)
+message GroupSession {
+  string id = 1;                              // Unique session ID
+  string created_by = 2;                      // Who started the group
+  google.protobuf.Timestamp created_at = 3;
+  string status = 4;                          // planning, active, completed
+  repeated GroupSessionMember members = 5;    // All members and their status
+  GroupPlan plan = 6;                         // The agreed workout plan
+  repeated GroupActivity timeline = 7;        // All activities from all users
+  NextUp next_up = 8;                         // Who should go next
+}
+
+// A member in a group session
+message GroupSessionMember {
+  string user_id = 1;
+  string status = 2;           // planning, ready (during planning phase)
+  bool is_connected = 3;       // Currently connected to the stream
+  UserPlan proposed_plan = 4;  // What this user wants to do
+  UserActivity current_activity = 5;  // What they're doing right now (during workout)
+  repeated PlannedSet remaining_sets = 6;  // Sets this user has left to do
+  repeated PlannedSet completed_sets = 7;  // Sets this user has completed
+}
+
+// A user's proposed/agreed plan for the session
+message UserPlan {
+  string user_id = 1;
+  repeated UserExercisePlan exercises = 2;
+}
+
+// A user's plan for a single exercise
+message UserExercisePlan {
+  Exercise exercise = 1;
+  float target_weight = 2;
+  int32 target_sets = 3;
+  int32 target_reps = 4;
+}
+
+// Current activity for a user (what they're doing right now)
+message UserActivity {
+  string activity_id = 1;
+  string type = 2;              // set, rest
+  Exercise exercise = 3;
+  int32 set_number = 4;
+  float weight = 5;
+  int32 target_reps = 6;
+  int32 actual_reps = 7;        // Filled when set complete
+  google.protobuf.Timestamp started_at = 8;
+  int32 rest_seconds_remaining = 9;  // For rest activities
+}
+
+// An activity in the group timeline (from activity_log)
+message GroupActivity {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;              // set, rest
+  Exercise exercise = 4;
+  int32 set_number = 5;
+  float weight = 6;
+  int32 target_reps = 7;
+  int32 actual_reps = 8;
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp ended_at = 10;
+  int32 planned_rest_seconds = 11;
+}
+
+// Who should go next in the group
+message NextUp {
+  string user_id = 1;
+  Exercise exercise = 2;
+  float weight = 3;
+  int32 set_number = 4;
+  int32 seconds_until_ready = 5;  // 0 if ready now, positive if still resting
+  google.protobuf.Timestamp rest_started_at = 6;  // When their rest started (for client countdown)
+  int32 planned_rest_seconds = 7;  // How long their rest was planned for
+}
+
+// The group's agreed workout plan
+message GroupPlan {
+  repeated GroupExercisePlan exercises = 1;  // Exercises in order
+  bool all_ready = 2;                         // Everyone has marked ready
+}
+
+// Plan for one exercise across the group
+message GroupExercisePlan {
+  Exercise exercise = 1;
+  int32 position = 2;                        // Order in the workout
+  repeated UserExerciseSlot user_slots = 3;  // Each user's slot (ordered by weight)
+}
+
+// A user's slot for an exercise (their weight + plate change from previous)
+message UserExerciseSlot {
+  string user_id = 1;
+  float weight = 2;
+  int32 sets = 3;
+  int32 reps = 4;
+  string plate_change = 5;  // e.g., "+2x25" from previous user
+}
+
+// An invite to join a group session
+message GroupInvite {
+  string id = 1;
+  string session_id = 2;        // The group session ID
+  string from_user = 3;
+  string to_user = 4;
+  string status = 5;            // pending, accepted, declined
+  google.protobuf.Timestamp created_at = 6;
+  GroupSession session = 7;     // Current session state for preview
+}

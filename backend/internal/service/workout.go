@@ -114,12 +114,9 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 	}
 	logStep("generated workouts")
 
-	// Get pending invites and active group (legacy system)
+	// Get pending invites
 	pendingInvites := s.getPendingInvites(ctx, database, username)
 	logStep("got pending invites")
-
-	activeGroup := s.getActiveGroup(ctx, database, username)
-	logStep("got active group")
 
 	// Check for active group session (new system)
 	var activeSession *workoutv1.GroupSession
@@ -145,7 +142,6 @@ func (s *WorkoutService) GetUpcomingWorkouts(
 		},
 		Preferences:    preferences,
 		PendingInvites: pendingInvites,
-		ActiveGroup:    activeGroup,
 		ActiveSession:  activeSession,
 	}), nil
 }
@@ -592,7 +588,6 @@ func (s *WorkoutService) StartSet(
 			Type:      workoutv1.UpdateType_UPDATE_TYPE_SET_STARTED,
 			UserId:    username,
 			Activity:  activity,
-			GroupId:   groupID.String,
 			Timestamp: timestamppb.New(now),
 		})
 	}
@@ -618,7 +613,6 @@ func (s *WorkoutService) StartSet(
 				UserId:    username,
 				Activity:  activity,
 				Session:   session,
-				GroupId:   groupSessionID.String,
 				Timestamp: timestamppb.New(now),
 			})
 		}
@@ -768,7 +762,6 @@ func (s *WorkoutService) FinishActivity(
 			UserId:    username,
 			Activity:  finishedActivity,
 			State:     stateResp.Msg.State,
-			GroupId:   groupID.String,
 			Timestamp: timestamppb.Now(),
 		})
 	}
@@ -808,7 +801,6 @@ func (s *WorkoutService) FinishActivity(
 				Activity:  finishedActivity,
 				State:     stateResp.Msg.State,
 				Session:   session,
-				GroupId:   groupSessionID.String,
 				Timestamp: timestamppb.Now(),
 			})
 
@@ -819,8 +811,7 @@ func (s *WorkoutService) FinishActivity(
 					Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
 					UserId:    username,
 					Session:   session,
-					GroupId:   groupSessionID.String,
-					Timestamp: timestamppb.Now(),
+						Timestamp: timestamppb.Now(),
 				})
 			}
 		}
@@ -892,69 +883,6 @@ func (s *WorkoutService) UpdatePlannedWeight(
 
 	return connect.NewResponse(&workoutv1.UpdatePlannedWeightResponse{
 		UpdatedSets: filteredSets,
-	}), nil
-}
-
-// GetNextWorkout is the legacy RPC for backwards compatibility
-func (s *WorkoutService) GetNextWorkout(
-	ctx context.Context,
-	req *connect.Request[workoutv1.GetNextWorkoutRequest],
-) (*connect.Response[workoutv1.GetNextWorkoutResponse], error) {
-	username, ok := interceptor.GetUsername(ctx)
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("no username in context"))
-	}
-
-	database, err := s.dbManager.GetDB(username)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	sessionID, _, _, _, err := s.getOrCreateTodaySession(ctx, database, false)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	// Get the stored plan for this session
-	plannedSets, err := s.getPlannedSets(ctx, database, sessionID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	plan := &workoutv1.Plan{
-		UserId: username,
-		Sets:   plannedSets,
-	}
-
-	timeline, err := s.getSessionActivities(ctx, database, sessionID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	var lastCompletedAt *timestamppb.Timestamp
-	for _, a := range timeline {
-		if a.Type == workoutv1.ActivityType_ACTIVITY_TYPE_SET && a.EndedAt != nil {
-			lastCompletedAt = a.EndedAt
-		}
-	}
-
-	return connect.NewResponse(&workoutv1.GetNextWorkoutResponse{
-		Plan:               plan,
-		LastSetCompletedAt: lastCompletedAt,
-		CompletedSets:      timeline,
-		ActiveSessionId:    sessionID,
-	}), nil
-}
-
-// LogSet is the legacy RPC for backwards compatibility
-func (s *WorkoutService) LogSet(
-	ctx context.Context,
-	req *connect.Request[workoutv1.LogSetRequest],
-) (*connect.Response[workoutv1.LogSetResponse], error) {
-	now := time.Now()
-	return connect.NewResponse(&workoutv1.LogSetResponse{
-		Success:     true,
-		CompletedAt: timestamppb.New(now),
 	}), nil
 }
 
@@ -1383,7 +1311,6 @@ func (s *WorkoutService) SetExerciseOrder(
 				Type:      workoutv1.UpdateType_UPDATE_TYPE_SESSION_UPDATED,
 				UserId:    username,
 				Session:   session,
-				GroupId:   groupSessionID.String,
 				Timestamp: timestamppb.Now(),
 			})
 		}
@@ -1489,7 +1416,6 @@ func (s *WorkoutService) FinishWorkoutEarly(
 				Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
 				UserId:    username,
 				Session:   session,
-				GroupId:   groupSessionID.String,
 				Timestamp: timestamppb.Now(),
 			})
 		}
@@ -1651,81 +1577,12 @@ func (s *WorkoutService) WatchNotifications(
 				return err
 			}
 			// If this update indicates joining a group, subscribe to that group
-			if update.GroupId != "" && (update.Type == workoutv1.UpdateType_UPDATE_TYPE_INVITE_ACCEPTED ||
-				update.Type == workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED) {
-				subscribeToGroup(update.GroupId)
+			if update.Session != nil && update.Session.Id != "" &&
+				(update.Type == workoutv1.UpdateType_UPDATE_TYPE_INVITE_ACCEPTED ||
+					update.Type == workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED) {
+				subscribeToGroup(update.Session.Id)
 			}
 		}
 	}
 }
 
-// WatchWorkout streams real-time updates for a workout session (deprecated - use WatchNotifications)
-func (s *WorkoutService) WatchWorkout(
-	ctx context.Context,
-	req *connect.Request[workoutv1.WatchWorkoutRequest],
-	stream *connect.ServerStream[workoutv1.WorkoutUpdate],
-) error {
-	userID := req.Msg.UserId
-	sessionID := req.Msg.SessionId
-
-	if userID == "" || sessionID == "" {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id and session_id are required"))
-	}
-
-	// Subscribe to updates for this session
-	client := s.hub.Subscribe(sessionID, userID)
-	defer s.hub.Unsubscribe(sessionID, userID)
-
-	// Check if this session belongs to a group - if so, also subscribe to group updates
-	var groupID string
-	if db, err := s.dbManager.GetDB(userID); err == nil {
-		var gid sql.NullString
-		db.QueryRowContext(ctx, `SELECT group_id FROM sessions WHERE id = ?`, sessionID).Scan(&gid)
-		if gid.Valid && gid.String != "" {
-			groupID = gid.String
-			// Subscribe to group channel for group-wide notifications
-			groupClient := s.hub.Subscribe(groupID, userID)
-			defer s.hub.Unsubscribe(groupID, userID)
-			// Forward group updates to the main client channel
-			go func() {
-				for update := range groupClient.Send {
-					select {
-					case client.Send <- update:
-					default:
-						// Buffer full, skip
-					}
-				}
-			}()
-		}
-	}
-
-	// Notify others that this user joined
-	s.hub.Broadcast(sessionID, &workoutv1.WorkoutUpdate{
-		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED,
-		UserId:    userID,
-		Timestamp: timestamppb.Now(),
-	}, userID)
-
-	// Send updates to the client until they disconnect
-	for {
-		select {
-		case <-ctx.Done():
-			// Client disconnected - notify others
-			s.hub.Broadcast(sessionID, &workoutv1.WorkoutUpdate{
-				Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
-				UserId:    userID,
-				Timestamp: timestamppb.Now(),
-			}, userID)
-			return nil
-
-		case update, ok := <-client.Send:
-			if !ok {
-				// Channel closed (user reconnected elsewhere)
-				return nil
-			}
-			if err := stream.Send(update); err != nil {
-				return err
-			}
-		}
-	}
-}

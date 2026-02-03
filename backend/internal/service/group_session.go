@@ -126,7 +126,6 @@ func (s *WorkoutService) CreateGroupSession(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED,
 		UserId:    username,
 		Session:   session,
-		GroupId:   sessionID,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -216,7 +215,6 @@ func (s *WorkoutService) JoinGroupSession(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED,
 		UserId:    username,
 		Session:   session,
-		GroupId:   sessionID,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -225,7 +223,6 @@ func (s *WorkoutService) JoinGroupSession(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_JOINED,
 		UserId:    username,
 		Session:   session,
-		GroupId:   sessionID,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -301,7 +298,6 @@ func (s *WorkoutService) UpdateMyPlan(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_PLAN_UPDATED,
 		UserId:    username,
 		Session:   session,
-		GroupId:   req.Msg.SessionId,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -348,7 +344,6 @@ func (s *WorkoutService) SetReady(
 		Type:      updateType,
 		UserId:    username,
 		Session:   session,
-		GroupId:   req.Msg.SessionId,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -402,7 +397,6 @@ func (s *WorkoutService) StartGroupWorkout(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_WORKOUT_STARTED,
 		UserId:    username,
 		Session:   session,
-		GroupId:   req.Msg.SessionId,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -444,7 +438,6 @@ func (s *WorkoutService) LeaveGroupSession(
 		Type:      workoutv1.UpdateType_UPDATE_TYPE_USER_LEFT,
 		UserId:    username,
 		Session:   session,
-		GroupId:   req.Msg.SessionId,
 		Timestamp: timestamppb.Now(),
 	})
 
@@ -846,6 +839,13 @@ func (s *WorkoutService) loadUserCurrentActivity(ctx context.Context, groupDB *s
 	return activity
 }
 
+type userWeightInfo struct {
+	userID string
+	weight float32
+	sets   int32
+	reps   int32
+}
+
 // Helper: Build the group plan from all members' plans
 func (s *WorkoutService) buildGroupPlan(ctx context.Context, groupDB *sql.DB, members []*workoutv1.GroupSessionMember) *workoutv1.GroupPlan {
 	plan := &workoutv1.GroupPlan{
@@ -1010,4 +1010,78 @@ func parseExercise(s string) workoutv1.Exercise {
 	default:
 		return workoutv1.Exercise_EXERCISE_UNSPECIFIED
 	}
+}
+
+// calculatePlateChange calculates the plate change description between two weights
+func calculatePlateChange(from, to float32) string {
+	diff := to - from
+	if diff == 0 {
+		return ""
+	}
+
+	if diff > 0 {
+		return formatPlateChange(diff, "+")
+	}
+	return formatPlateChange(-diff, "-")
+}
+
+func formatPlateChange(totalPerSide float32, prefix string) string {
+	perSide := totalPerSide / 2
+	availablePlates := []float32{45, 35, 25, 10, 5, 2.5}
+
+	result := ""
+	for _, plate := range availablePlates {
+		count := int(perSide / plate)
+		if count > 0 {
+			perSide -= float32(count) * plate
+			if result != "" {
+				result += ", "
+			}
+			result += fmt.Sprintf("%s%dx%.0f", prefix, count, plate)
+			if plate == 2.5 {
+				result = result[:len(result)-1] + ".5"
+			}
+		}
+	}
+
+	if result == "" && totalPerSide != 0 {
+		result = fmt.Sprintf("%s%.1f lbs", prefix, totalPerSide)
+	}
+
+	return result
+}
+
+// getPendingInvites returns pending invites for a user
+func (s *WorkoutService) getPendingInvites(ctx context.Context, database *sql.DB, username string) []*workoutv1.GroupInvite {
+	invites := []*workoutv1.GroupInvite{}
+
+	rows, err := database.QueryContext(ctx, `
+		SELECT id, group_id, from_user, created_at
+		FROM group_invites
+		WHERE to_user = ? AND status = 'pending'
+		ORDER BY created_at DESC
+	`, username)
+	if err != nil {
+		return invites
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id, groupID, fromUser string
+		var createdAt time.Time
+		if err := rows.Scan(&id, &groupID, &fromUser, &createdAt); err != nil {
+			continue
+		}
+
+		invites = append(invites, &workoutv1.GroupInvite{
+			Id:        id,
+			SessionId: groupID,
+			FromUser:  fromUser,
+			ToUser:    username,
+			Status:    "pending",
+			CreatedAt: timestamppb.New(createdAt),
+		})
+	}
+
+	return invites
 }
