@@ -1,8 +1,27 @@
 *.db
-backend/tmp/
-
 *wal
 *shm
-
 target/
 *.sqlite
+
+# Server
+server/gen/
+bin/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/src/gen/
+
+# Data
+data/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Misc
+*.log
+.DS_Store
