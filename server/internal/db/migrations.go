@@ -30,6 +30,16 @@ CREATE TABLE IF NOT EXISTS completed_set (
 	FOREIGN KEY (workout_id) REFERENCES workout(id),
 	FOREIGN KEY (proposed_set_id) REFERENCES proposed_set(id)
 );
+
+-- Indexes for workout table
+CREATE INDEX IF NOT EXISTS idx_workout_start_time ON workout(start_time DESC);
+
+-- Indexes for proposed_set table
+CREATE INDEX IF NOT EXISTS idx_proposed_set_workout_id ON proposed_set(workout_id);
+
+-- Indexes for completed_set table
+CREATE INDEX IF NOT EXISTS idx_completed_set_workout_id ON completed_set(workout_id);
+CREATE INDEX IF NOT EXISTS idx_completed_set_lookup ON completed_set(workout_id, proposed_set_id, ended_at);
 `
 
 const registryDBSchema = `
@@ -65,4 +75,14 @@ CREATE TABLE IF NOT EXISTS exercise_selection (
 	PRIMARY KEY (user_id, group_workout_id, exercise),
 	FOREIGN KEY (group_workout_id) REFERENCES group_workout(id)
 );
+
+-- Indexes for group_workout table
+CREATE INDEX IF NOT EXISTS idx_group_workout_ended_at ON group_workout(ended_at);
+
+-- Indexes for group_workout_participant table
+CREATE INDEX IF NOT EXISTS idx_gwp_group_id ON group_workout_participant(group_workout_id);
+CREATE INDEX IF NOT EXISTS idx_gwp_user_active ON group_workout_participant(user_id, left_at);
+
+-- Indexes for exercise_selection table
+CREATE INDEX IF NOT EXISTS idx_exercise_selection_group_id ON exercise_selection(group_workout_id);
 `

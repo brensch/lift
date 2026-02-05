@@ -36,7 +36,7 @@ type ExerciseSelectionRow struct {
 
 func NewGroupDB(dataDir string) (*GroupDB, error) {
 	dbPath := dataDir + "/group.db"
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL")
+	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL&_cache_size=-20000&_foreign_keys=ON")
 	if err != nil {
 		return nil, fmt.Errorf("open group db: %w", err)
 	}
