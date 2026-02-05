@@ -46,10 +46,10 @@ message CompletedSet {
 // --- RPC Requests/Responses ---
 
 message StartWorkoutRequest {
-  string user_id = 1;
+  repeated ProposedSet proposed_sets = 1;
 }
 message StartWorkoutResponse {
-  Workout workout = 1;
+  string id = 1;
 }
 
 message GetWorkoutRequest {
@@ -61,9 +61,8 @@ message GetWorkoutResponse {
   repeated CompletedSet completed_sets = 3;
 }
 
-message ListWorkoutsRequest {
-  string user_id = 1;
-}
+message ListWorkoutsRequest {}
+
 message ListWorkoutsResponse {
   repeated Workout workouts = 1;
 }
@@ -102,14 +101,51 @@ message EndWorkoutResponse {
   Workout workout = 1;
 }
 
+message GetProposedWorkoutScheduleRequest {
+  string user_id = 1;
+}
+message GetProposedWorkoutScheduleResponse {
+  repeated Workout workouts = 1;
+}
+
 // --- Service Definition ---
 
 service WorkoutService {
   rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
+  rpc EndWorkout(EndWorkoutRequest) returns (EndWorkoutResponse);
   rpc GetWorkout(GetWorkoutRequest) returns (GetWorkoutResponse);
+
+  // List all workouts for the user (user from auth context)
   rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
+  // Update the proposed sets for a workout. The user has to send all proposed sets.
   rpc ModifyProposedSets(ModifyProposedSetsRequest) returns (ModifyProposedSetsResponse);
+
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
-  rpc EndWorkout(EndWorkoutRequest) returns (EndWorkoutResponse);
+
+  // Get the next scheduled workouts for the user according to preferences and weight progression etc
+  rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);
+}
+
+message CreateUserRequest {
+  string name = 1;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+service UserService {
+  // Create a new user
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  // Get user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
 }
