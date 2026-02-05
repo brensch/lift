@@ -35,7 +35,7 @@ func (m *UserDBManager) GetDB(userID string) (*sql.DB, error) {
 	}
 
 	dbPath := fmt.Sprintf("%s/%s.db", m.dataDir, userID)
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL")
+	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL&_cache_size=-20000&_foreign_keys=ON")
 	if err != nil {
 		return nil, fmt.Errorf("open user db: %w", err)
 	}
