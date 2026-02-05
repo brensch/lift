@@ -1,9 +1,19 @@
-import { createClient } from "@connectrpc/connect";
+import { createClient, type CallOptions } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
-import { WorkoutService } from "../gen/workout/v1/workout_pb";
+import { WorkoutService, UserService } from "../gen/workout/v1/workout_pb";
 
 const transport = createGrpcWebTransport({
   baseUrl: "http://localhost:50051",
 });
 
 export const workoutClient = createClient(WorkoutService, transport);
+export const userClient = createClient(UserService, transport);
+
+// Helper to create call options with user ID header
+export function withUserId(userId: string): CallOptions {
+  return {
+    headers: {
+      "x-user-id": userId,
+    },
+  };
+}
