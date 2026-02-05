@@ -7,6 +7,7 @@ use lift::workout::v1::{
 };
 
 mod db;
+mod scheduler;
 mod service_workout;
 mod service_user;
 

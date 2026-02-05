@@ -11,6 +11,7 @@ use lift::workout::v1::{
     GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse,
 };
 use crate::db::UserDb;
+use crate::scheduler::Scheduler;
 
 #[derive(Debug, Default)]
 pub struct MyWorkoutService;
@@ -37,7 +38,7 @@ impl WorkoutService for MyWorkoutService {
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
-        let workout_id = user_db.create_workout(req.proposed_sets).await
+        let workout_id = user_db.create_workout(&req.name, req.proposed_sets).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
         Ok(Response::new(StartWorkoutResponse { id: workout_id }))
@@ -192,16 +193,17 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<GetProposedWorkoutScheduleRequest>,
     ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
-        let req = request.into_inner();
+        let user_id = get_user_id(&request)?;
 
-        if req.user_id.is_empty() {
-            return Err(Status::invalid_argument("user_id is required"));
-        }
+        let user_db = UserDb::new(&user_id).await
+            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
-        // TODO: Implement workout scheduling logic based on user preferences and history
-        // For now, return an empty list
+        let scheduler = Scheduler::new(user_db);
+        let proposed_workouts = scheduler.get_proposed_schedule().await
+            .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
+
         Ok(Response::new(GetProposedWorkoutScheduleResponse {
-            workouts: vec![],
+            proposed_workouts,
         }))
     }
 }
