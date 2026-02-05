@@ -1,0 +1,18 @@
+[package]
+name = "lift"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tonic = "0.12"           # gRPC implementation
+tonic-web = "0.12"       # gRPC-Web support for browser clients
+prost = "0.13"           # Protocol Buffers implementation
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] } # Async runtime
+futures-util = "0.3"     # Utilities for async streams
+sqlx = { version = "0.7", features = ["runtime-tokio", "tls-native-tls", "sqlite"] }
+uuid = { version = "1.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+tower-http = { version = "0.5", features = ["cors"] }
+http = "1.0"
+
+[build-dependencies]
+tonic-build = "0.12"     # Compiles .proto files into Rust

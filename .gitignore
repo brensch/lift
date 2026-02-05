@@ -9,9 +9,9 @@ server/gen/
 bin/
 
 # Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/src/gen/
+web/node_modules/
+web/dist/
+web/src/gen/
 
 # Data
 data/
@@ -25,3 +25,5 @@ data/
 # Misc
 *.log
 .DS_Store
+
+user_dbs/
