@@ -14,6 +14,15 @@ const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.BARBELL_ROW]: 'Barbell Row',
 }
 
+const EXERCISE_EMOJIS: Record<Exercise, string> = {
+  [Exercise.UNSPECIFIED]: '❓',
+  [Exercise.SQUAT]: '🦵',
+  [Exercise.BENCH_PRESS]: '🏋️',
+  [Exercise.DEADLIFT]: '⚡',
+  [Exercise.OVERHEAD_PRESS]: '🙌',
+  [Exercise.BARBELL_ROW]: '🚣',
+}
+
 interface HomeViewProps {
   userId: string
   onLogout: () => void
@@ -162,11 +171,17 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
                         Start
                       </Button>
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="flex flex-wrap gap-1.5 mt-1">
                       {exerciseGroups.map((g, i) => (
-                        <span key={i}>
-                          {i > 0 && ' \u2022 '}
-                          {EXERCISE_NAMES[g.exercise]} {g.sets.length}\u00d7{g.sets[0]?.targetReps} @ {g.sets[0]?.targetWeight}lbs
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
+                        >
+                          <span>{EXERCISE_EMOJIS[g.exercise]}</span>
+                          <span>{EXERCISE_NAMES[g.exercise]}</span>
+                          <span className="text-muted-foreground">
+                            {g.sets.length}&times;{g.sets[0]?.targetReps} &middot; {g.sets[0]?.targetWeight}lbs
+                          </span>
                         </span>
                       ))}
                     </div>
