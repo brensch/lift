@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package workout.v1;
+
+import "workout/v1/workout.proto";
+
+service SocialService {
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  rpc GetUserSocialProfile(GetUserSocialProfileRequest) returns (GetUserSocialProfileResponse);
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
+}
+
+service MultiplayerService {
+  // Start a new session
+  rpc StartSession(StartSessionRequest) returns (StartSessionResponse);
+
+  // Join someone's session via a session ID
+  rpc JoinSession(JoinSessionRequest) returns (JoinSessionResponse);
+  rpc LeaveSession(LeaveSessionRequest) returns (LeaveSessionResponse);
+  
+  // Get the current status of a session (list of participants)
+  rpc GetSessionStatus(GetSessionStatusRequest) returns (SessionStatus);
+
+  // Get a specific participant's workout progress
+  rpc GetParticipantWorkout(GetParticipantWorkoutRequest) returns (ParticipantStatus);
+
+  // Get the active session for the current user
+  rpc GetMyActiveSession(GetMyActiveSessionRequest) returns (GetMyActiveSessionResponse);
+}
+
+message SearchUsersRequest {
+  string query = 1;
+}
+
+message SearchUsersResponse {
+  repeated User users = 1;
+}
+
+message GetUserSocialProfileRequest {
+  string user_id = 1;
+}
+
+message GetUserSocialProfileResponse {
+  User user = 1;
+  repeated Workout recent_workouts = 2;
+  bool is_following = 3;
+}
+
+message FollowUserRequest {
+  string user_id = 1;
+}
+
+message FollowUserResponse {}
+
+message StartSessionRequest {
+  string workout_id = 1;
+}
+
+message StartSessionResponse {
+  string session_id = 1;
+}
+
+message JoinSessionRequest {
+  string session_id = 1;
+  string workout_id = 2; // Optional: user can join a session without being in a workout yet
+}
+
+message JoinSessionResponse {
+  string session_id = 1;
+}
+
+message LeaveSessionRequest {}
+
+message LeaveSessionResponse {}
+
+message GetSessionStatusRequest {
+  string session_id = 1;
+}
+
+message GetParticipantWorkoutRequest {
+  string user_id = 1;
+  string workout_id = 2;
+}
+
+message GetMyActiveSessionRequest {}
+
+message GetMyActiveSessionResponse {
+  string session_id = 1;
+}
+
+message SessionStatus {
+  string session_id = 1;
+  repeated ParticipantStatus participants = 2;
+}
+
+message ParticipantStatus {
+  User user = 1;
+  string active_workout_id = 2;
+  Workout active_workout = 3;
+  repeated ProposedSet proposed_sets = 4;
+  repeated CompletedSet completed_sets = 5;
+  
+  // High-level summary for the "Next Up" ticker
+  ProposedSet current_set = 6;
+  bool is_resting = 7;
+  int64 rest_until = 8;
+}

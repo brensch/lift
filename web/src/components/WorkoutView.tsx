@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,11 @@ import {
   ProposedSetSchema,
 } from '@/gen/workout/v1/workout_pb'
 import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
-import { Pencil } from 'lucide-react'
+import { Pencil, Users } from 'lucide-react'
+import { MultiplayerModal } from './MultiplayerModal'
+
+import { useMultiplayer } from '@/hooks/useMultiplayer'
+import { ParticipantTicker } from './ParticipantTicker'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: '?',
@@ -90,7 +94,7 @@ function RestingBox({ restUntil, nextSet, onStartEarly, onEditWeight }: {
           </p>
           {nextSet && (
             <p className="text-sm text-muted-foreground mt-3">
-              Up next: {EXERCISE_NAMES[nextSet.exercise]} {nextSet.targetReps}&times;{nextSet.targetWeight}lbs
+              Up next: {EXERCISE_NAMES[nextSet.exercise as Exercise]} {nextSet.targetReps}&times;{nextSet.targetWeight}lbs
               {onEditWeight && (
                 <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
                   <Pencil className="w-3.5 h-3.5" />
@@ -123,7 +127,7 @@ function ActiveSetBox({ proposedSet, completedSet, onComplete, onEditWeight }: {
       <CardContent className="pt-6 pb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-muted-foreground">
-            {EXERCISE_NAMES[proposedSet.exercise]}
+            {EXERCISE_NAMES[proposedSet.exercise as Exercise]}
             {proposedSet.warmup && ' (Warmup)'}
           </span>
           <span className="font-mono text-muted-foreground">{fmtElapsed(elapsed)}</span>
@@ -191,7 +195,7 @@ function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onEditWeight }: {
           </p>
           <div className="mt-3">
             <p className="text-xs text-muted-foreground mb-1">
-              Next: {EXERCISE_NAMES[nextSet.exercise]} {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
+              Next: {EXERCISE_NAMES[nextSet.exercise as Exercise]} {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
               <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -213,7 +217,7 @@ function NextUpBox({ nextSet, onStart, loading, onEditWeight }: {
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-1">Next up</p>
           <p className="text-lg font-bold">
-            {EXERCISE_NAMES[nextSet.exercise]}
+            {EXERCISE_NAMES[nextSet.exercise as Exercise]}
             {nextSet.warmup && <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-600 px-1.5 py-0.5 rounded">Warmup</span>}
           </p>
           <p className="text-muted-foreground">
@@ -231,44 +235,6 @@ function NextUpBox({ nextSet, onStart, loading, onEditWeight }: {
 
 // --- Plate Calculator Modal ---
 
-const PLATE_COLORS: Record<number, string> = {
-  45: 'bg-red-500',
-  25: 'bg-blue-500',
-  10: 'bg-yellow-500',
-  5: 'bg-green-500',
-  2.5: 'bg-gray-400',
-}
-
-const PLATE_WIDTHS: Record<number, string> = {
-  45: 'w-4',
-  25: 'w-3.5',
-  10: 'w-3',
-  5: 'w-2.5',
-  2.5: 'w-2',
-}
-
-const PLATE_HEIGHTS: Record<number, string> = {
-  45: 'h-20',
-  25: 'h-16',
-  10: 'h-14',
-  5: 'h-12',
-  2.5: 'h-10',
-}
-
-function calcPlatesPerSide(weight: number): number[] {
-  const available = [45, 25, 10, 5, 2.5]
-  let remaining = (weight - 45) / 2 // subtract bar, per side
-  if (remaining <= 0) return []
-  const plates: number[] = []
-  for (const plate of available) {
-    while (remaining >= plate - 0.01) {
-      plates.push(plate)
-      remaining -= plate
-    }
-  }
-  return plates
-}
-
 function PlateCalculatorModal({ weight, onSave, onClose }: {
   weight: number
   onSave: (weight: number) => void
@@ -277,7 +243,6 @@ function PlateCalculatorModal({ weight, onSave, onClose }: {
   const [value, setValue] = useState(weight)
   const snap = (v: number) => Math.round(v / 5) * 5
   const clamped = Math.max(45, Math.min(500, value))
-  const plates = calcPlatesPerSide(clamped)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -287,87 +252,15 @@ function PlateCalculatorModal({ weight, onSave, onClose }: {
             <span className="font-bold">Edit Weight</span>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">&times;</button>
           </div>
-
-          {/* Barbell visualization */}
-          <div className="flex items-center justify-center h-24 gap-0">
-            {/* Left plates (reversed so biggest is closest to center) */}
-            <div className="flex items-center gap-0.5 flex-row-reverse">
-              {plates.map((p, i) => (
-                <div
-                  key={`l-${i}`}
-                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
-                  title={`${p} lbs`}
-                />
-              ))}
-            </div>
-            {/* Bar */}
-            <div className="h-2 w-16 bg-gray-500" />
-            {/* Right plates */}
-            <div className="flex items-center gap-0.5">
-              {plates.map((p, i) => (
-                <div
-                  key={`r-${i}`}
-                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
-                  title={`${p} lbs`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Plate legend */}
-          <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
-            {[45, 25, 10, 5, 2.5].map((p) => (
-              <span key={p} className="flex items-center gap-0.5">
-                <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
-                {p}
-              </span>
-            ))}
-          </div>
-
-          {/* Weight display + direct input */}
-          <div className="text-center">
-            <Input
-              type="number"
-              value={clamped}
-              onChange={(e) => setValue(snap(Number(e.target.value)))}
-              className="text-3xl font-bold text-center h-14 text-foreground"
-              min={45}
-              max={500}
-              step={5}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              {clamped === 45 ? 'Empty bar' : `${plates.map((p) => p).join(' + ')} per side`}
-            </p>
-          </div>
-
-          {/* Slider */}
-          <input
-            type="range"
+          <Input
+            type="number"
+            value={clamped}
+            onChange={(e) => setValue(snap(Number(e.target.value)))}
+            className="text-3xl font-bold text-center h-14 text-foreground"
             min={45}
             max={500}
             step={5}
-            value={clamped}
-            onChange={(e) => setValue(Number(e.target.value))}
-            className="w-full accent-primary"
           />
-
-          {/* +/- buttons */}
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 45))} disabled={clamped <= 45}>
-              −45
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 5))} disabled={clamped <= 45}>
-              −5
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 5))} disabled={clamped >= 500}>
-              +5
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 45))} disabled={clamped >= 500}>
-              +45
-            </Button>
-          </div>
-
-          {/* Save / Cancel */}
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={() => onSave(clamped)}>Save</Button>
@@ -426,7 +319,7 @@ function AddSetModal({ onAdd, onClose, loading }: {
   )
 }
 
-// --- Completed workout timeline ---
+// --- Completed workout view ---
 
 function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: {
   workout: Workout
@@ -437,7 +330,6 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: 
   const totalDuration = Number(workout.endTime - workout.startTime)
   const workoutStart = Number(workout.startTime)
 
-  // Build timeline entries sorted by startedAt
   const entries = completedSets
     .filter((c) => c.endedAt > 0n)
     .map((c) => {
@@ -446,42 +338,19 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: 
     })
     .sort((a, b) => Number(a.completed.startedAt - b.completed.startedAt))
 
-  // Compute total chat time: gap between rest_until and next set's startedAt
-  let totalChatTime = 0
-  for (let i = 0; i < entries.length - 1; i++) {
-    const current = entries[i].completed
-    const next = entries[i + 1].completed
-    if (current.restUntil > 0n) {
-      const gap = Number(next.startedAt) - Number(current.restUntil)
-      if (gap > 0) totalChatTime += gap
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-3">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
-          <span className="text-sm text-muted-foreground">
-            {fmtElapsed(totalDuration)}
-          </span>
+          <span className="text-sm text-muted-foreground">{fmtElapsed(totalDuration)}</span>
         </div>
-
         <div className="text-center py-2">
           <h2 className="text-xl font-bold">{workout.name || 'Workout'}</h2>
           <p className="text-sm text-muted-foreground">
             {new Date(Number(workout.startTime) * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-            {' '}{fmtTime(workout.startTime)} &ndash; {fmtTime(workout.endTime)}
           </p>
-          {totalChatTime > 0 && (
-            <p className="text-sm mt-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 text-orange-500 px-2.5 py-0.5 text-xs font-medium">
-                💬 {fmtElapsed(totalChatTime)} chat time
-              </span>
-            </p>
-          )}
         </div>
-
         {/* Timeline bar */}
         {totalDuration > 0 && (
           <div className="relative h-8 bg-muted rounded-full overflow-hidden">
@@ -490,65 +359,24 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: 
               const end = Number(e.completed.endedAt) - workoutStart
               const left = (start / totalDuration) * 100
               const width = Math.max(((end - start) / totalDuration) * 100, 0.5)
-              const hitTarget = e.proposed && e.completed.actualReps >= e.proposed.targetReps
               return (
                 <div
                   key={i}
-                  className={`absolute top-0 h-full ${hitTarget ? 'bg-green-500' : 'bg-yellow-500'}`}
+                  className={`absolute top-0 h-full ${e.proposed && e.completed.actualReps >= e.proposed.targetReps ? 'bg-green-500' : 'bg-yellow-500'}`}
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={e.proposed ? `${EXERCISE_NAMES[e.proposed.exercise]} ${e.completed.actualReps}×${e.completed.actualWeight}` : ''}
                 />
               )
             })}
           </div>
         )}
-
         {/* Summary by exercise */}
         <div className="grid grid-cols-2 gap-2">
           {groupSetsByExercise(proposedSets).map((group, i) => {
-            const done = group.sets.filter((s) =>
-              completedSets.some((c) => c.proposedSetId === s.id && c.endedAt > 0n)
-            ).length
+            const done = group.sets.filter((s) => completedSets.some((c) => c.proposedSetId === s.id && c.endedAt > 0n)).length
             return (
               <div key={i} className="bg-muted rounded-md px-3 py-2 text-sm">
-                <span className="font-medium">{SHORT_NAMES[group.exercise]}</span>
+                <span className="font-medium">{SHORT_NAMES[group.exercise as Exercise]}</span>
                 <span className="text-muted-foreground ml-1">{done}/{group.sets.length}</span>
-                <span className="text-muted-foreground ml-1">@ {group.sets[0]?.targetWeight}lbs</span>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Set-by-set log */}
-        <div className="space-y-0.5">
-          <div className="text-xs text-muted-foreground px-2 grid grid-cols-[1fr_3.5rem_3.5rem_3rem] gap-1">
-            <span>Exercise</span>
-            <span>Start</span>
-            <span>End</span>
-            <span className="text-right">Result</span>
-          </div>
-          {entries.map((e, i) => {
-            const hitTarget = e.proposed && e.completed.actualReps >= e.proposed.targetReps
-            return (
-              <div
-                key={i}
-                className={`text-xs px-2 py-1 rounded grid grid-cols-[1fr_3.5rem_3.5rem_3rem] gap-1 items-center ${
-                  hitTarget ? 'bg-green-500/5' : 'bg-yellow-500/5'
-                }`}
-              >
-                <span className="font-medium truncate">
-                  {e.proposed ? SHORT_NAMES[e.proposed.exercise] : '?'}
-                  {e.proposed?.warmup && <span className="text-yellow-600 ml-1">W</span>}
-                </span>
-                <span className="text-muted-foreground font-mono">
-                  {fmtTime(e.completed.startedAt)}
-                </span>
-                <span className="text-muted-foreground font-mono">
-                  {fmtTime(e.completed.endedAt)}
-                </span>
-                <span className={`text-right font-medium ${hitTarget ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {e.completed.actualReps}&times;{e.completed.actualWeight}
-                </span>
               </div>
             )
           })}
@@ -558,7 +386,7 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: 
   )
 }
 
-// --- Set History (live workout) ---
+// --- Set History ---
 
 function SetLog({ completedSets, proposedSets }: {
   completedSets: CompletedSet[]
@@ -575,32 +403,49 @@ function SetLog({ completedSets, proposedSets }: {
       <div className="text-xs text-muted-foreground font-medium px-1 mb-1">Set Log</div>
       {done.map((c, i) => {
         const proposed = proposedSets.find((p) => p.id === c.proposedSetId)
-        const setDur = Number(c.endedAt - c.startedAt)
-        const hitTarget = proposed && c.actualReps >= proposed.targetReps
         return (
-          <div
-            key={i}
-            className={`text-xs px-2 py-1 rounded flex items-center gap-2 ${
-              hitTarget ? 'bg-green-500/5' : 'bg-yellow-500/5'
-            }`}
-          >
-            <span className="font-medium w-12 shrink-0 truncate">
-              {proposed ? SHORT_NAMES[proposed.exercise] : '?'}
-            </span>
-            <span className={`font-medium ${hitTarget ? 'text-green-600' : 'text-yellow-600'}`}>
-              {c.actualReps}&times;{c.actualWeight}
-            </span>
-            <span className="text-muted-foreground font-mono ml-auto">
-              {fmtElapsed(setDur)}
-            </span>
-            <span className="text-muted-foreground font-mono">
-              {fmtTime(c.endedAt)}
-            </span>
+          <div key={i} className="text-xs px-2 py-1 rounded flex items-center gap-2 bg-muted/50">
+            <span className="font-medium w-12 shrink-0 truncate">{proposed ? SHORT_NAMES[proposed.exercise as Exercise] : '?'}</span>
+            <span className="font-medium">{c.actualReps}&times;{c.actualWeight}</span>
+            <span className="text-muted-foreground font-mono ml-auto">{fmtTime(c.endedAt)}</span>
           </div>
         )
       })}
     </div>
   )
+}
+
+// --- Multiplayer Components ---
+
+function ActiveSummaryOverlay({ proposedSet, completedSet }: { proposedSet: ProposedSet; completedSet: CompletedSet }) {
+  const elapsed = useElapsed(Number(completedSet.startedAt))
+  return (
+    <div className="fixed bottom-4 left-4 right-4 z-40">
+      <Card className="border-2 border-primary bg-background/95 backdrop-blur shadow-lg">
+        <CardContent className="py-3 px-4 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase text-primary tracking-wider">Your Active Set</p>
+            <p className="font-bold text-sm truncate">
+              {EXERCISE_NAMES[proposedSet.exercise as Exercise]} &middot; {proposedSet.targetWeight}lbs
+            </p>
+          </div>
+          <div className="flex items-center gap-3 ml-4">
+             <div className="text-right">
+               <p className="text-xl font-bold leading-none">{proposedSet.targetReps}</p>
+               <p className="text-[10px] text-muted-foreground uppercase">reps</p>
+             </div>
+             <div className="w-px h-8 bg-border" />
+             <span className="font-mono font-bold text-primary">{fmtElapsed(elapsed)}</span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
+  const elapsed = useElapsed(Number(startTime))
+  return <span className="font-mono text-lg">{fmtElapsed(elapsed)}</span>
 }
 
 // --- Main WorkoutView ---
@@ -616,11 +461,15 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [proposedSets, setProposedSets] = useState<ProposedSet[]>([])
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [restEndedAt, setRestEndedAt] = useState<number | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
+  
+  // Multiplayer state
+  const sessionStatus = useMultiplayer(userId)
+  const [peepUserId, setPeepUserId] = useState<string | null>(null)
+  const [showMultiplayerModal, setShowMultiplayerModal] = useState(false)
 
   const loadWorkout = useCallback(async () => {
     try {
@@ -639,13 +488,14 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load workout')
+      console.error('Failed to load workout:', e)
     }
   }, [workoutId, userId])
 
-  useEffect(() => { loadWorkout() }, [loadWorkout])
+  useEffect(() => {
+    loadWorkout()
+  }, [loadWorkout, userId])
 
-  // Transition from rest → chat time when rest expires
   useEffect(() => {
     if (!restUntil) return
     const remaining = restUntil - Math.floor(Date.now() / 1000)
@@ -663,25 +513,17 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
 
   // --- derived ---
   const isWorkoutEnded = workout ? workout.endTime > 0n : false
-
-  const isSetDone = (setId: string) =>
-    completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
-
+  const isSetDone = (setId: string) => completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
   const activeCompleted = completedSets.find((c) => c.endedAt === 0n)
-  const activeProposed = activeCompleted
-    ? proposedSets.find((p) => p.id === activeCompleted.proposedSetId)
-    : undefined
+  const activeProposed = activeCompleted ? proposedSets.find((p) => p.id === activeCompleted.proposedSetId) : undefined
+  const nextSet = proposedSets.find((p) => !isSetDone(p.id) && p.id !== activeProposed?.id)
+  const allSetsDone = proposedSets.length > 0 && proposedSets.every((p) => isSetDone(p.id)) && !activeCompleted
 
-  const nextSet = proposedSets.find(
-    (p) => !isSetDone(p.id) && p.id !== activeProposed?.id
-  )
-
-  const allSetsDone = proposedSets.length > 0 &&
-    proposedSets.every((p) => isSetDone(p.id)) &&
-    !activeCompleted
-
-  const groups = groupSetsByExercise(proposedSets)
-  const completedCount = completedSets.filter((c) => c.endedAt > 0n).length
+  // Peep data
+  const peepParticipant = useMemo(() => {
+    if (!peepUserId || !sessionStatus) return null
+    return sessionStatus.participants.find(p => p.user?.id === peepUserId)
+  }, [peepUserId, sessionStatus])
 
   // --- handlers ---
 
@@ -695,241 +537,203 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
       }
       return [...prev, cs]
     })
-    if (cs.endedAt > 0n && cs.restUntil > 0n) {
-      setRestUntil(Number(cs.restUntil))
-    }
+    if (cs.endedAt > 0n && cs.restUntil > 0n) setRestUntil(Number(cs.restUntil))
   }
 
   const handleStartSet = async (proposedSetId: string) => {
-    setLoading(true)
-    setRestUntil(null)
-    setRestEndedAt(null)
+    setLoading(true); setRestUntil(null); setRestEndedAt(null)
     try {
       const response = await workoutClient.startSet({ workoutId, proposedSetId }, withUserId(userId))
       if (response.completedSet) handleSetUpdated(response.completedSet)
-    } catch (e) {
-      console.error('Failed to start set:', e)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
   const handleCompleteSet = async (proposedSetId: string, reps: number) => {
     const proposed = proposedSets.find((p) => p.id === proposedSetId)
     try {
       const response = await workoutClient.completeSet({
-        workoutId,
-        proposedSetId,
-        actualReps: reps,
-        actualWeight: proposed?.targetWeight || 0,
+        workoutId, proposedSetId, actualReps: reps, actualWeight: proposed?.targetWeight || 0,
       }, withUserId(userId))
       if (response.completedSet) handleSetUpdated(response.completedSet)
-    } catch (e) {
-      console.error('Failed to complete set:', e)
-    }
+    } catch (e) { console.error(e) }
   }
 
-  const handleMoveGroup = async (fromIndex: number, toIndex: number) => {
-    const reordered = [...groups]
-    const [moved] = reordered.splice(fromIndex, 1)
-    reordered.splice(toIndex, 0, moved)
-    let order = 0
-    const newSets: ProposedSet[] = []
-    for (const group of reordered) {
-      for (const set of group.sets) {
-        newSets.push(create(ProposedSetSchema, { ...set, workoutOrder: order++ }))
-      }
-    }
-    try {
-      const response = await workoutClient.modifyProposedSets(
-        { workoutId, proposedSets: newSets }, withUserId(userId));
-      setProposedSets(response.proposedSets)
-    } catch (e) {
-      console.error('Failed to reorder:', e)
-    }
-  }
-
-  const handleAddSet = async (exercise: Exercise, reps: number, weight: number, warmup: boolean) => {
-    setLoading(true)
-    try {
-      const newSet = create(ProposedSetSchema, {
-        exercise, targetReps: reps, targetWeight: weight, warmup,
-        workoutOrder: proposedSets.length,
-      })
-      const response = await workoutClient.modifyProposedSets(
-        { workoutId, proposedSets: [...proposedSets, newSet] }, withUserId(userId))
-      setProposedSets(response.proposedSets)
-      setShowAddModal(false)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to add set')
-    } finally {
-      setLoading(false)
-    }
+  const handleUpdateWeight = (setId: string, newWeight: number) => {
+    const updatedSets = proposedSets.map((s) => s.id === setId || (s.exercise === proposedSets.find(p => p.id === setId)?.exercise && !isSetDone(s.id))
+      ? create(ProposedSetSchema, { ...s, targetWeight: newWeight }) : s)
+    setProposedSets(updatedSets); setEditingSetId(null)
+    workoutClient.modifyProposedSets({ workoutId, proposedSets: updatedSets }, withUserId(userId))
+      .then((res) => setProposedSets(res.proposedSets)).catch(console.error)
   }
 
   const handleEndWorkout = async () => {
     setLoading(true)
     try {
       const response = await workoutClient.endWorkout({ workoutId }, withUserId(userId))
-      if (response.workout) setWorkout(response.workout)
-      await loadWorkout()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to end workout')
-    } finally {
-      setLoading(false)
-    }
+      if (response.workout) setWorkout(response.workout); await loadWorkout()
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  const handleUpdateWeight = (setId: string, newWeight: number) => {
-    const editedSet = proposedSets.find((s) => s.id === setId)
-    if (!editedSet) return
-    const updatedSets = proposedSets.map((s) =>
-      s.id === setId || (s.exercise === editedSet.exercise && !isSetDone(s.id))
-        ? create(ProposedSetSchema, { ...s, targetWeight: newWeight })
-        : s
-    )
-    // Optimistic update
-    setProposedSets(updatedSets)
-    setEditingSetId(null)
-    // Sync with server in background
-    workoutClient.modifyProposedSets(
-      { workoutId, proposedSets: updatedSets }, withUserId(userId)
-    ).then((response) => {
-      setProposedSets(response.proposedSets)
-    }).catch((e) => {
-      console.error('Failed to update weight:', e)
-      setProposedSets(proposedSets) // rollback
-    })
-  }
-
-  const editingSet = editingSetId ? proposedSets.find((p) => p.id === editingSetId) : undefined
-
-  // --- render ---
-
-  // Completed workout → show timeline view
-  if (isWorkoutEnded && workout) {
-    return (
-      <CompletedWorkoutView
-        workout={workout}
-        proposedSets={proposedSets}
-        completedSets={completedSets}
-        onBack={onBack}
-      />
-    )
-  }
+  if (isWorkoutEnded && workout) return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} onBack={onBack} />
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto space-y-3">
+    <div className="min-h-screen bg-background p-4 pb-24">
+      <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
-            <span className="text-xs text-muted-foreground">{completedCount}/{proposedSets.length}</span>
+            <Button variant="ghost" size="icon" onClick={() => setShowMultiplayerModal(true)}>
+              <Users className={`w-5 h-5 ${sessionStatus ? 'text-primary' : ''}`} />
+            </Button>
             <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>
           </div>
         </div>
 
-        {error && (
-          <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
-            {error}
+        {/* Multiplayer Chips */}
+        <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Workout Session</span>
+            {sessionStatus && (
+              <span className="text-[10px] font-mono text-muted-foreground bg-background px-1.5 py-0.5 rounded border">
+                ID: {sessionStatus.sessionId}
+              </span>
+            )}
           </div>
-        )}
-
-        {/* Active Box */}
-        {activeProposed && activeCompleted ? (
-          <ActiveSetBox
-            proposedSet={activeProposed}
-            completedSet={activeCompleted}
-            onComplete={(reps) => handleCompleteSet(activeProposed.id, reps)}
-            onEditWeight={() => setEditingSetId(activeProposed.id)}
-          />
-        ) : allSetsDone ? (
-          <Card className="border-2 border-green-500/50 bg-green-500/5">
-            <CardContent className="pt-6 pb-4 text-center">
-              <p className="text-lg font-bold text-green-600">All sets complete!</p>
-              <p className="text-sm text-muted-foreground mt-1">Nice work. End your workout?</p>
-              <div className="flex gap-2 justify-center mt-3">
-                <Button onClick={handleEndWorkout} disabled={loading}>Finish Workout</Button>
-                <Button variant="outline" onClick={() => setShowAddModal(true)}>Add More Sets</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : restUntil && restUntil > Math.floor(Date.now() / 1000) ? (
-          <RestingBox
-            restUntil={restUntil}
-            nextSet={nextSet}
-            onStartEarly={() => nextSet && handleStartSet(nextSet.id)}
-            onEditWeight={nextSet ? () => setEditingSetId(nextSet.id) : undefined}
-          />
-        ) : restEndedAt && nextSet ? (
-          <ChatTimeBox
-            restEndedAt={restEndedAt}
-            nextSet={nextSet}
-            onStart={() => handleStartSet(nextSet.id)}
-            loading={loading}
-            onEditWeight={() => setEditingSetId(nextSet.id)}
-          />
-        ) : nextSet ? (
-          <NextUpBox nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading} onEditWeight={() => setEditingSetId(nextSet.id)} />
-        ) : null}
-
-        {/* Compact exercise groups + add button */}
-        <div className="space-y-1">
-          {groups.map((group, idx) => (
-            <ExerciseGroup
-              key={`${group.exercise}-${idx}`}
-              group={group}
-              groupIndex={idx}
-              totalGroups={groups.length}
-              completedSets={completedSets}
-              activeSetId={activeProposed?.id}
-              isWorkoutEnded={false}
-              onMoveUp={() => handleMoveGroup(idx, idx - 1)}
-              onMoveDown={() => handleMoveGroup(idx, idx + 1)}
-            />
-          ))}
-          {/* + button */}
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full py-1.5 rounded-md border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-foreground/30 text-sm transition-colors"
-          >
-            + Add Exercise
-          </button>
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar min-h-[40px] items-center">
+            {sessionStatus && sessionStatus.participants.length > 1 ? (
+              sessionStatus.participants.filter(p => p.user?.id !== userId).map((p) => (
+                <ParticipantTicker 
+                  key={p.user?.id} 
+                  status={p} 
+                  isPeeping={peepUserId === p.user?.id}
+                  onPeep={() => setPeepUserId(peepUserId === p.user?.id ? null : p.user?.id || null)}
+                />
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No other participants yet. Share your session to invite friends!</p>
+            )}
+          </div>
         </div>
 
+        {/* Main View (Peep or Self) */}
+        {peepParticipant ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/20">
+              <span className="text-sm font-bold text-primary">Viewing {peepParticipant.user?.name}'s Workout</span>
+              <Button size="sm" variant="ghost" onClick={() => setPeepUserId(null)}>Close</Button>
+            </div>
+            
+            {peepParticipant.currentSet ? (
+              <Card className="border-2 border-primary/50">
+                <CardContent className="pt-6 pb-4 text-center">
+                  <p className="text-sm text-muted-foreground mb-1">{peepParticipant.isResting ? 'Next Set' : 'Currently Doing'}</p>
+                  <p className="text-2xl font-bold">{EXERCISE_NAMES[peepParticipant.currentSet.exercise as Exercise]}</p>
+                  <p className="text-4xl font-bold text-primary">{peepParticipant.currentSet.targetReps} &times; {peepParticipant.currentSet.targetWeight} lbs</p>
+                  {peepParticipant.isResting && (
+                    <div className="mt-4 pt-4 border-t">
+                       <p className="text-xs text-muted-foreground">Rest ends at {fmtTime(peepParticipant.restUntil)}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+               <Card><CardContent className="py-12 text-center text-muted-foreground">User is not currently doing a set.</CardContent></Card>
+            )}
+
+            <div className="opacity-60 pointer-events-none scale-95 origin-top transition-all">
+               <ExerciseGroupsList proposedSets={peepParticipant.proposedSets} completedSets={peepParticipant.completedSets} />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Active Box (Self) */}
+            {activeProposed && activeCompleted ? (
+              <ActiveSetBox proposedSet={activeProposed} completedSet={activeCompleted} onComplete={(reps) => handleCompleteSet(activeProposed.id, reps)} onEditWeight={() => setEditingSetId(activeProposed.id)} />
+            ) : allSetsDone ? (
+              <Card className="border-2 border-green-500/50 bg-green-500/5"><CardContent className="pt-6 pb-4 text-center"><p className="text-lg font-bold text-green-600">All sets complete!</p><Button onClick={handleEndWorkout} className="mt-3">Finish Workout</Button></CardContent></Card>
+            ) : restUntil && restUntil > Math.floor(Date.now() / 1000) ? (
+              <RestingBox restUntil={restUntil} nextSet={nextSet} onStartEarly={() => nextSet && handleStartSet(nextSet.id)} onEditWeight={nextSet ? () => setEditingSetId(nextSet.id) : undefined} />
+            ) : restEndedAt && nextSet ? (
+              <ChatTimeBox restEndedAt={restEndedAt} nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading} onEditWeight={() => setEditingSetId(nextSet.id)} />
+            ) : nextSet ? (
+              <NextUpBox nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading} onEditWeight={() => setEditingSetId(nextSet.id)} />
+            ) : null}
+
+            <ExerciseGroupsList 
+              proposedSets={proposedSets} 
+              completedSets={completedSets} 
+              activeSetId={activeProposed?.id}
+              onMove={(f, t) => {
+                const reordered = [...groupSetsByExercise(proposedSets)]; const [moved] = reordered.splice(f, 1); reordered.splice(t, 0, moved)
+                let order = 0; const newSets = reordered.flatMap(g => g.sets.map(s => create(ProposedSetSchema, { ...s, workoutOrder: order++ })))
+                workoutClient.modifyProposedSets({ workoutId, proposedSets: newSets }, withUserId(userId)).then(res => setProposedSets(res.proposedSets))
+              }}
+              onAdd={() => setShowAddModal(true)}
+            />
+          </>
+        )}
+
         {/* Set log */}
-        {workout && (
-          <SetLog
-            completedSets={completedSets}
-            proposedSets={proposedSets}
-          />
+        <SetLog completedSets={completedSets} proposedSets={proposedSets} />
+
+        {/* Overlay when peeping */}
+        {peepUserId && activeProposed && activeCompleted && (
+          <ActiveSummaryOverlay proposedSet={activeProposed} completedSet={activeCompleted} />
         )}
 
-        {/* Add set modal */}
-        {showAddModal && (
-          <AddSetModal
-            onAdd={handleAddSet}
-            onClose={() => setShowAddModal(false)}
-            loading={loading}
+        {showMultiplayerModal && (
+          <MultiplayerModal 
+            userId={userId} 
+            workoutId={workoutId} 
+            onClose={() => setShowMultiplayerModal(false)} 
+            onJoinSession={(sid) => {
+              console.log('Joined session:', sid);
+              // We don't necessarily want to peep immediately, just close the modal
+              setShowMultiplayerModal(false);
+            }} 
           />
         )}
-
-        {/* Plate calculator modal */}
-        {editingSet && (
-          <PlateCalculatorModal
-            weight={editingSet.targetWeight}
-            onSave={(w) => handleUpdateWeight(editingSet.id, w)}
-            onClose={() => setEditingSetId(null)}
-          />
-        )}
+        {editingSetId && <PlateCalculatorModal weight={proposedSets.find(p => p.id === editingSetId)?.targetWeight || 0} onSave={(w) => handleUpdateWeight(editingSetId, w)} onClose={() => setEditingSetId(null)} />}
+        {showAddModal && <AddSetModal onClose={() => setShowAddModal(false)} loading={loading} onAdd={async (ex, r, w, warmup) => {
+          const newSet = create(ProposedSetSchema, { exercise: ex, targetReps: r, targetWeight: w, warmup, workoutOrder: proposedSets.length })
+          const res = await workoutClient.modifyProposedSets({ workoutId, proposedSets: [...proposedSets, newSet] }, withUserId(userId))
+          setProposedSets(res.proposedSets); setShowAddModal(false)
+        }} />}
       </div>
     </div>
   )
 }
 
-function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
-  const elapsed = useElapsed(Number(startTime))
-  return <span className="font-mono text-lg">{fmtElapsed(elapsed)}</span>
+function ExerciseGroupsList({ proposedSets, completedSets, activeSetId, onMove, onAdd }: { 
+  proposedSets: ProposedSet[]; 
+  completedSets: CompletedSet[]; 
+  activeSetId?: string;
+  onMove?: (f: number, t: number) => void;
+  onAdd?: () => void;
+}) {
+  const groups = groupSetsByExercise(proposedSets)
+  return (
+    <div className="space-y-1">
+      {groups.map((group, idx) => (
+        <ExerciseGroup
+          key={`${group.exercise}-${idx}`}
+          group={group}
+          groupIndex={idx}
+          totalGroups={groups.length}
+          completedSets={completedSets}
+          activeSetId={activeSetId}
+          isWorkoutEnded={false}
+          onMoveUp={onMove ? () => onMove(idx, idx - 1) : undefined}
+          onMoveDown={onMove ? () => onMove(idx, idx + 1) : undefined}
+        />
+      ))}
+      {onAdd && (
+        <button onClick={onAdd} className="w-full py-1.5 rounded-md border border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground text-sm transition-colors">
+          + Add Exercise
+        </button>
+      )}
+    </div>
+  )
 }

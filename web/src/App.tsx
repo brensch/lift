@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
 import { WorkoutView } from '@/components/WorkoutView'
+import { multiplayerClient, withUserId } from '@/lib/client'
+import { type SessionStatus } from '@/gen/workout/v1/group_pb'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 
 type Route =
   | { view: 'login' }
@@ -35,6 +39,17 @@ function routeToPath(route: Route): string {
 
 function App() {
   const [route, setRoute] = useState<Route>(() => {
+    // Check for join parameter in URL
+    const params = new URLSearchParams(window.location.search)
+    const joinId = params.get('join')
+    if (joinId) {
+      sessionStorage.setItem('liftJoinSession', joinId)
+      // Clean up URL
+      const url = new URL(window.location.href)
+      url.searchParams.delete('join')
+      window.history.replaceState(null, '', url.pathname)
+    }
+
     const parsed = parseRoute(window.location.pathname)
 
     // If URL has a userId, use it
@@ -51,6 +66,44 @@ function App() {
 
     return { view: 'login' }
   })
+
+  const [pendingJoin, setPendingJoin] = useState<{ sessionId: string, status: SessionStatus } | null>(null)
+
+  // Handle joining a session after login
+  useEffect(() => {
+    if (route.view !== 'login') {
+      const joinId = sessionStorage.getItem('liftJoinSession')
+      if (joinId) {
+        multiplayerClient.getSessionStatus({ sessionId: joinId }, withUserId(route.userId))
+          .then((status) => {
+            setPendingJoin({ sessionId: joinId, status })
+          })
+          .catch(e => {
+            console.error('Failed to get session status:', e)
+            sessionStorage.removeItem('liftJoinSession')
+          })
+      }
+    }
+  }, [route])
+
+  const handleConfirmJoin = async () => {
+    if (!pendingJoin || route.view === 'login') return;
+    
+    // workoutId is optional for joining
+    const workoutId = route.view === 'workout' ? route.workoutId : '';
+
+    try {
+      await multiplayerClient.joinSession({ sessionId: pendingJoin.sessionId, workoutId }, withUserId(route.userId));
+      sessionStorage.removeItem('liftJoinSession');
+      setPendingJoin(null);
+      alert('Successfully joined session!');
+    } catch (e) {
+      console.error('Failed to join session:', e);
+      alert('Failed to join session.');
+      setPendingJoin(null);
+      sessionStorage.removeItem('liftJoinSession');
+    }
+  };
 
   const navigate = useCallback((newRoute: Route) => {
     setRoute(newRoute)
@@ -93,33 +146,70 @@ function App() {
     navigate({ view: 'login' })
   }
 
-  switch (route.view) {
-    case 'login':
-      return <LoginView onLogin={handleLogin} />
+  return (
+    <>
+      {pendingJoin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <Card className="w-full max-w-sm shadow-2xl border-2 border-primary">
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="text-xl font-bold text-center">Join Session?</h3>
+              <p className="text-sm text-center text-muted-foreground">
+                Would you like to join the session with these people?
+              </p>
+              <div className="space-y-2 py-2">
+                {pendingJoin.status.participants.map(p => (
+                  <div key={p.user?.id} className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                      {p.user?.name[0].toUpperCase()}
+                    </div>
+                    <span className="font-medium">{p.user?.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setPendingJoin(null); sessionStorage.removeItem('liftJoinSession'); }}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={handleConfirmJoin}>
+                  Join
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-    case 'home':
-      return (
-        <HomeView
-          userId={route.userId}
-          onLogout={handleLogout}
-          onStartWorkout={(workoutId) =>
-            navigate({ view: 'workout', userId: route.userId, workoutId })
-          }
-          onViewWorkout={(workoutId) =>
-            navigate({ view: 'workout', userId: route.userId, workoutId })
-          }
-        />
-      )
+      {(() => {
+        switch (route.view) {
+          case 'login':
+            return <LoginView onLogin={handleLogin} />
 
-    case 'workout':
-      return (
-        <WorkoutView
-          workoutId={route.workoutId}
-          userId={route.userId}
-          onBack={() => navigate({ view: 'home', userId: route.userId })}
-        />
-      )
-  }
+          case 'home':
+            return (
+              <HomeView
+                userId={route.userId}
+                onLogout={handleLogout}
+                onStartWorkout={(workoutId) =>
+                  navigate({ view: 'workout', userId: route.userId, workoutId })
+                }
+                onViewWorkout={(workoutId) =>
+                  navigate({ view: 'workout', userId: route.userId, workoutId })
+                }
+              />
+            )
+
+          case 'workout':
+            return (
+              <WorkoutView
+                workoutId={route.workoutId}
+                userId={route.userId}
+                onBack={() => navigate({ view: 'home', userId: route.userId })}
+              />
+            )
+        }
+      })()}
+    </>
+  )
 }
 
 export default App

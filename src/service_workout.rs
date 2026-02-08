@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use lift::workout::v1::{
     workout_service_server::WorkoutService,
@@ -12,12 +13,20 @@ use lift::workout::v1::{
 };
 use crate::db::UserDb;
 use crate::scheduler::Scheduler;
+use crate::service_group::SessionManager;
 
-#[derive(Debug, Default)]
-pub struct MyWorkoutService;
+pub struct MyWorkoutService {
+    session_manager: Arc<SessionManager>,
+}
+
+impl MyWorkoutService {
+    pub fn new(session_manager: Arc<SessionManager>) -> Self {
+        Self { session_manager }
+    }
+}
 
 // Helper to extract user_id from request metadata
-fn get_user_id<T>(request: &Request<T>) -> Result<String, Status> {
+pub fn get_user_id<T>(request: &Request<T>) -> Result<String, Status> {
     request
         .metadata()
         .get("x-user-id")
@@ -40,6 +49,8 @@ impl WorkoutService for MyWorkoutService {
 
         let workout_id = user_db.create_workout(&req.name, req.proposed_sets).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
+
+        self.session_manager.notify_user_update(&user_id).await;
 
         Ok(Response::new(StartWorkoutResponse { id: workout_id }))
     }
@@ -107,6 +118,8 @@ impl WorkoutService for MyWorkoutService {
         let proposed_sets = user_db.modify_proposed_sets(&req.workout_id, req.proposed_sets).await
             .map_err(|e| Status::internal(format!("Failed to modify proposed sets: {}", e)))?;
 
+        self.session_manager.notify_user_update(&user_id).await;
+
         Ok(Response::new(ModifyProposedSetsResponse { proposed_sets }))
     }
 
@@ -129,6 +142,8 @@ impl WorkoutService for MyWorkoutService {
 
         let completed_set = user_db.start_set(&req.workout_id, &req.proposed_set_id).await
             .map_err(|e| Status::internal(format!("Failed to start set: {}", e)))?;
+
+        self.session_manager.notify_user_update(&user_id).await;
 
         Ok(Response::new(StartSetResponse {
             completed_set: Some(completed_set),
@@ -160,6 +175,8 @@ impl WorkoutService for MyWorkoutService {
         ).await
             .map_err(|e| Status::internal(format!("Failed to complete set: {}", e)))?;
 
+        self.session_manager.notify_user_update(&user_id).await;
+
         Ok(Response::new(CompleteSetResponse {
             completed_set: Some(completed_set),
         }))
@@ -182,6 +199,8 @@ impl WorkoutService for MyWorkoutService {
         let workout = user_db.end_workout(&req.workout_id).await
             .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
+
+        self.session_manager.notify_user_update(&user_id).await;
 
         Ok(Response::new(EndWorkoutResponse {
             workout: Some(workout),

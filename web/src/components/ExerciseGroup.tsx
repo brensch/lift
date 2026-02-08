@@ -22,8 +22,8 @@ interface ExerciseGroupProps {
   completedSets: CompletedSet[]
   activeSetId?: string
   isWorkoutEnded: boolean
-  onMoveUp: () => void
-  onMoveDown: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
 export function ExerciseGroup({
@@ -43,7 +43,7 @@ export function ExerciseGroup({
   return (
     <div className={`flex items-center gap-2 px-3 py-2 rounded-md border ${allCompleted ? 'bg-green-500/5 border-green-500/20' : 'bg-muted/50'}`}>
       {/* Reorder arrows */}
-      {!isWorkoutEnded && !allCompleted && (
+      {!isWorkoutEnded && !allCompleted && onMoveUp && onMoveDown && (
         <div className="flex flex-col gap-0.5 -ml-1">
           <button
             onClick={onMoveUp}
