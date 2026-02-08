@@ -6,8 +6,15 @@ use lift::workout::v1::{
 };
 use crate::db::CentralDb;
 
-#[derive(Debug, Default)]
-pub struct MyUserService;
+pub struct MyUserService {
+    central_db: CentralDb,
+}
+
+impl MyUserService {
+    pub fn new(central_db: CentralDb) -> Self {
+        Self { central_db }
+    }
+}
 
 #[tonic::async_trait]
 impl UserService for MyUserService {
@@ -21,10 +28,7 @@ impl UserService for MyUserService {
             return Err(Status::invalid_argument("name is required"));
         }
 
-        let central_db = CentralDb::new().await
-            .map_err(|e| Status::internal(format!("Failed to connect to central db: {}", e)))?;
-
-        let user = central_db.create_user(&req.name).await
+        let user = self.central_db.create_user(&req.name).await
             .map_err(|e| Status::internal(format!("Failed to create user: {}", e)))?;
 
         Ok(Response::new(CreateUserResponse { user: Some(user) }))
@@ -40,10 +44,7 @@ impl UserService for MyUserService {
             return Err(Status::invalid_argument("user_id is required"));
         }
 
-        let central_db = CentralDb::new().await
-            .map_err(|e| Status::internal(format!("Failed to connect to central db: {}", e)))?;
-
-        let user = central_db.get_user(&req.user_id).await
+        let user = self.central_db.get_user(&req.user_id).await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?
             .ok_or_else(|| Status::not_found("User not found"))?;
 

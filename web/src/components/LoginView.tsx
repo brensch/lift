@@ -3,20 +3,36 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 
+import { userClient } from '@/lib/client'
+
 interface LoginViewProps {
   onLogin: (userId: string) => void
 }
 
 export function LoginView({ onLogin }: LoginViewProps) {
-  const [userId, setUserId] = useState('')
+  const [username, setUsername] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = () => {
-    if (!userId.trim()) {
-      setError('Please enter a user ID')
+  const handleLogin = async () => {
+    if (!username.trim()) {
+      setError('Please enter a username')
       return
     }
-    onLogin(userId.trim())
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await userClient.createUser({ name: username.trim() })
+      if (response.user) {
+        onLogin(response.user.id)
+      } else {
+        setError('Failed to login')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to login')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -24,7 +40,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Lift</CardTitle>
-          <CardDescription>Enter your user ID to start tracking</CardDescription>
+          <CardDescription>Enter a unique username to start tracking</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -33,14 +49,15 @@ export function LoginView({ onLogin }: LoginViewProps) {
             </div>
           )}
           <Input
-            placeholder="User ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            disabled={loading}
             autoFocus
           />
-          <Button onClick={handleLogin} className="w-full">
-            Continue
+          <Button onClick={handleLogin} className="w-full" disabled={loading}>
+            {loading ? 'Logging in...' : 'Continue'}
           </Button>
         </CardContent>
       </Card>

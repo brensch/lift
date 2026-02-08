@@ -44,6 +44,11 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
 
+CREATE TABLE IF NOT EXISTS user_sessions (
+    session_id TEXT PRIMARY KEY,
+    is_active BOOLEAN NOT NULL DEFAULT 0
+);
+
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
@@ -101,6 +106,7 @@ fn compute_rest_seconds(target_reps: i32, actual_reps: i32) -> i64 {
     }
 }
 
+#[derive(Clone)]
 pub struct UserDb {
     pub pool: Pool<Sqlite>,
 }
@@ -397,8 +403,27 @@ impl UserDb {
 
         self.get_workout(workout_id).await
     }
+
+    pub async fn add_session(&self, session_id: &str, is_active: bool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if is_active {
+            sqlx::query("UPDATE user_sessions SET is_active = 0").execute(&self.pool).await?;
+        }
+        sqlx::query("INSERT OR REPLACE INTO user_sessions (session_id, is_active) VALUES (?, ?)")
+            .bind(session_id)
+            .bind(is_active)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_active_session(&self) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar("SELECT session_id FROM user_sessions WHERE is_active = 1")
+            .fetch_optional(&self.pool)
+            .await?)
+    }
 }
 
+#[derive(Clone)]
 pub struct CentralDb {
     pub pool: Pool<Sqlite>,
 }
@@ -406,9 +431,26 @@ pub struct CentralDb {
 const CENTRAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS social_links (
+    follower_id TEXT NOT NULL,
+    followed_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (follower_id, followed_id)
+);
+
+CREATE TABLE IF NOT EXISTS active_sessions (
+    user_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    joined_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_links_followed ON social_links(followed_id);
+CREATE INDEX IF NOT EXISTS idx_active_sessions_session ON active_sessions(session_id);
 "#;
 
 impl CentralDb {
@@ -429,6 +471,11 @@ impl CentralDb {
     }
 
     pub async fn create_user(&self, name: &str) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
+        let existing = self.get_user_by_name(name).await?;
+        if let Some(user) = existing {
+            return Ok(user);
+        }
+
         let id = Uuid::new_v4().to_string();
         let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
@@ -449,6 +496,76 @@ impl CentralDb {
             .bind(user_id)
             .map(row_to_user)
             .fetch_optional(&self.pool)
+            .await?)
+    }
+
+    pub async fn get_user_by_name(&self, name: &str) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query("SELECT id, name, created_at FROM users WHERE name = ?")
+            .bind(name)
+            .map(row_to_user)
+            .fetch_optional(&self.pool)
+            .await?)
+    }
+
+    pub async fn search_users(&self, query: &str) -> Result<Vec<User>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query("SELECT id, name, created_at FROM users WHERE name LIKE ? LIMIT 20")
+            .bind(format!("%{}%", query))
+            .map(row_to_user)
+            .fetch_all(&self.pool)
+            .await?)
+    }
+
+    pub async fn follow_user(&self, follower_id: &str, followed_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        sqlx::query("INSERT OR IGNORE INTO social_links (follower_id, followed_id, created_at) VALUES (?, ?, ?)")
+            .bind(follower_id)
+            .bind(followed_id)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn is_following(&self, follower_id: &str, followed_id: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let count: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM social_links WHERE follower_id = ? AND followed_id = ?")
+            .bind(follower_id)
+            .bind(followed_id)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(count > 0)
+    }
+
+    pub async fn join_session(&self, user_id: &str, session_id: &str, workout_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        sqlx::query("INSERT OR REPLACE INTO active_sessions (user_id, session_id, workout_id, joined_at) VALUES (?, ?, ?, ?)")
+            .bind(user_id)
+            .bind(session_id)
+            .bind(workout_id)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn leave_session(&self, user_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        sqlx::query("DELETE FROM active_sessions WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_session_id(&self, user_id: &str) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar("SELECT session_id FROM active_sessions WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await?)
+    }
+
+    pub async fn get_session_participants(&self, session_id: &str) -> Result<Vec<(String, String)>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_as("SELECT user_id, workout_id FROM active_sessions WHERE session_id = ?")
+            .bind(session_id)
+            .fetch_all(&self.pool)
             .await?)
     }
 }
