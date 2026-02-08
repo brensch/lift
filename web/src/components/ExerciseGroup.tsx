@@ -1,15 +1,13 @@
-import { Button } from '@/components/ui/button'
-import { SetItem } from './SetItem'
 import type { ProposedSet, CompletedSet } from '@/gen/workout/v1/workout_pb'
 import { Exercise } from '@/gen/workout/v1/workout_pb'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: 'Select Exercise',
+  [Exercise.UNSPECIFIED]: '?',
   [Exercise.SQUAT]: 'Squat',
-  [Exercise.BENCH_PRESS]: 'Bench Press',
+  [Exercise.BENCH_PRESS]: 'Bench',
   [Exercise.DEADLIFT]: 'Deadlift',
-  [Exercise.OVERHEAD_PRESS]: 'Overhead Press',
-  [Exercise.BARBELL_ROW]: 'Barbell Row',
+  [Exercise.OVERHEAD_PRESS]: 'OHP',
+  [Exercise.BARBELL_ROW]: 'Row',
 }
 
 export interface ExerciseGroupData {
@@ -22,10 +20,8 @@ interface ExerciseGroupProps {
   groupIndex: number
   totalGroups: number
   completedSets: CompletedSet[]
-  workoutId: string
-  userId: string
+  activeSetId?: string
   isWorkoutEnded: boolean
-  onSetUpdated: (completedSet: CompletedSet) => void
   onMoveUp: () => void
   onMoveDown: () => void
 }
@@ -35,10 +31,8 @@ export function ExerciseGroup({
   groupIndex,
   totalGroups,
   completedSets,
-  workoutId,
-  userId,
+  activeSetId,
   isWorkoutEnded,
-  onSetUpdated,
   onMoveUp,
   onMoveDown,
 }: ExerciseGroupProps) {
@@ -46,57 +40,65 @@ export function ExerciseGroup({
     completedSets.some((c) => c.proposedSetId === s.id && c.endedAt > 0n)
   )
 
-  const completedCount = group.sets.filter((s) =>
-    completedSets.some((c) => c.proposedSetId === s.id && c.endedAt > 0n)
-  ).length
-
   return (
-    <div className="border rounded-lg p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="font-bold text-sm">
-          {EXERCISE_NAMES[group.exercise]}
-          <span className="ml-2 text-muted-foreground font-normal">
-            {completedCount}/{group.sets.length}
-          </span>
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-md border ${allCompleted ? 'bg-green-500/5 border-green-500/20' : 'bg-muted/50'}`}>
+      {/* Reorder arrows */}
+      {!isWorkoutEnded && !allCompleted && (
+        <div className="flex flex-col gap-0.5 -ml-1">
+          <button
+            onClick={onMoveUp}
+            disabled={groupIndex === 0}
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+          >
+            ▲
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={groupIndex === totalGroups - 1}
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+          >
+            ▼
+          </button>
         </div>
-        {!isWorkoutEnded && !allCompleted && (
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMoveUp}
-              disabled={groupIndex === 0}
-              className="h-7 w-7 p-0"
-            >
-              ↑
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMoveDown}
-              disabled={groupIndex === totalGroups - 1}
-              className="h-7 w-7 p-0"
-            >
-              ↓
-            </Button>
-          </div>
-        )}
-      </div>
-      <div className="space-y-2">
+      )}
+
+      {/* Exercise name */}
+      <span className={`text-sm font-medium w-16 shrink-0 ${allCompleted ? 'text-green-600' : ''}`}>
+        {EXERCISE_NAMES[group.exercise]}
+      </span>
+
+      {/* Set indicators */}
+      <div className="flex gap-1.5 flex-wrap flex-1">
         {group.sets.map((set) => {
           const completed = completedSets.find(
-            (c) => c.proposedSetId === set.id
+            (c) => c.proposedSetId === set.id && c.endedAt > 0n
           )
+          const isActive = set.id === activeSetId
+
+          if (completed) {
+            const hitTarget = completed.actualReps >= set.targetReps
+            return (
+              <span
+                key={set.id}
+                className={`text-xs px-1.5 py-0.5 rounded ${hitTarget ? 'bg-green-500/20 text-green-600' : 'bg-yellow-500/20 text-yellow-600'}`}
+                title={`${completed.actualReps}×${completed.actualWeight}`}
+              >
+                ✓{completed.actualReps < set.targetReps ? completed.actualReps : ''}
+              </span>
+            )
+          }
+
           return (
-            <SetItem
+            <span
               key={set.id}
-              proposedSet={set}
-              completedSet={completed}
-              workoutId={workoutId}
-              userId={userId}
-              isWorkoutEnded={isWorkoutEnded}
-              onSetUpdated={onSetUpdated}
-            />
+              className={`text-xs px-1.5 py-0.5 rounded ${
+                isActive
+                  ? 'bg-primary/20 text-primary font-bold ring-1 ring-primary'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {set.targetReps}×{set.targetWeight}
+            </span>
           )
         })}
       </div>
