@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(prop
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
 "#;
 
-// Row mapping functions - single place to define DB <-> Proto mapping
+// Row mapping functions - single place to define DB <-> Proto mapping. Yes
 fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
     Workout {
         id: row.get("id"),
@@ -83,6 +83,14 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
         id: row.get("id"),
         name: row.get("name"),
         created_at: row.get("created_at"),
+    }
+}
+
+fn compute_rest_seconds(target_reps: i32, actual_reps: i32) -> i64 {
+    if actual_reps >= target_reps {
+        180 // 3 minutes
+    } else {
+        300 // 5 minutes
     }
 }
 
@@ -282,10 +290,19 @@ impl UserDb {
         proposed_set_id: &str,
         actual_reps: i32,
         actual_weight: f32,
-        rest_seconds: i32,
     ) -> Result<CompletedSet, Box<dyn std::error::Error + Send + Sync>> {
         let ended_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        let rest_until = ended_at + rest_seconds as i64;
+
+        // Look up target_reps from the proposed set to compute rest
+        let target_reps: Option<i32> = sqlx::query_scalar(
+            "SELECT target_reps FROM proposed_sets WHERE id = ?"
+        )
+        .bind(proposed_set_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let rest_seconds = compute_rest_seconds(target_reps.unwrap_or(0), actual_reps);
+        let rest_until = ended_at + rest_seconds;
 
         let existing: Option<(String, i64)> = sqlx::query_as(
             "SELECT id, started_at FROM completed_sets WHERE workout_id = ? AND proposed_set_id = ? AND ended_at = 0"

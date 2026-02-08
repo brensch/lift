@@ -157,7 +157,6 @@ impl WorkoutService for MyWorkoutService {
             &req.proposed_set_id,
             req.actual_reps,
             req.actual_weight,
-            req.rest_seconds,
         ).await
             .map_err(|e| Status::internal(format!("Failed to complete set: {}", e)))?;
 
