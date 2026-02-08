@@ -80,6 +80,13 @@ impl SessionManager {
     pub async fn notify_user_update(&self, _user_id: &str) {
         // No-op for polling model, or could be used for other purposes
     }
+
+    pub async fn update_active_workout(&self, user_id: &str, workout_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(session_id) = self.central_db.get_session_id(user_id).await? {
+            self.central_db.join_session(user_id, &session_id, workout_id).await?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone)]
@@ -265,6 +272,19 @@ impl MultiplayerService for GroupService {
         Ok(Response::new(GetMyActiveSessionResponse {
             session_id,
         }))
+    }
+
+    async fn update_active_workout(
+        &self,
+        request: Request<UpdateActiveWorkoutRequest>,
+    ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
+        let user_id = get_user_id(&request)?;
+        let req = request.into_inner();
+
+        self.session_manager.update_active_workout(&user_id, &req.workout_id).await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(UpdateActiveWorkoutResponse {}))
     }
 }
 
