@@ -12,6 +12,7 @@ import {
   ProposedSetSchema,
 } from '@/gen/workout/v1/workout_pb'
 import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
+import { Pencil } from 'lucide-react'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: '?',
@@ -70,10 +71,11 @@ function fmtTime(ts: bigint | number) {
 
 // --- Active box sub-components ---
 
-function RestingBox({ restUntil, nextSet, onStartEarly }: {
+function RestingBox({ restUntil, nextSet, onStartEarly, onEditWeight }: {
   restUntil: number
   nextSet?: ProposedSet
   onStartEarly: () => void
+  onEditWeight?: () => void
 }) {
   const remaining = useCountdown(restUntil)
   if (remaining <= 0) return null
@@ -89,6 +91,11 @@ function RestingBox({ restUntil, nextSet, onStartEarly }: {
           {nextSet && (
             <p className="text-sm text-muted-foreground mt-3">
               Up next: {EXERCISE_NAMES[nextSet.exercise]} {nextSet.targetReps}&times;{nextSet.targetWeight}lbs
+              {onEditWeight && (
+                <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
             </p>
           )}
           <Button className="mt-3" onClick={onStartEarly}>
@@ -100,10 +107,11 @@ function RestingBox({ restUntil, nextSet, onStartEarly }: {
   )
 }
 
-function ActiveSetBox({ proposedSet, completedSet, onComplete }: {
+function ActiveSetBox({ proposedSet, completedSet, onComplete, onEditWeight }: {
   proposedSet: ProposedSet
   completedSet: CompletedSet
   onComplete: (reps: number) => void
+  onEditWeight: () => void
 }) {
   const elapsed = useElapsed(Number(completedSet.startedAt))
   const [loading, setLoading] = useState(false)
@@ -121,7 +129,12 @@ function ActiveSetBox({ proposedSet, completedSet, onComplete }: {
           <span className="font-mono text-muted-foreground">{fmtElapsed(elapsed)}</span>
         </div>
         <div className="text-center mb-4">
-          <div className="text-3xl font-bold">{proposedSet.targetWeight} lbs</div>
+          <div className="text-3xl font-bold">
+            {proposedSet.targetWeight} lbs
+            <button onClick={onEditWeight} className="ml-2 inline-flex align-middle text-muted-foreground hover:text-foreground">
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
           <div className="text-4xl font-bold text-primary">{proposedSet.targetReps} reps</div>
         </div>
         <div className="text-xs text-muted-foreground mb-2 text-center">How many did you get?</div>
@@ -155,11 +168,12 @@ const CHAT_MESSAGES = [
   "The squat rack is judging you",
 ]
 
-function ChatTimeBox({ restEndedAt, nextSet, onStart, loading }: {
+function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onEditWeight }: {
   restEndedAt: number
   nextSet: ProposedSet
   onStart: () => void
   loading: boolean
+  onEditWeight: () => void
 }) {
   const elapsed = useElapsed(restEndedAt)
   const [message] = useState(() => CHAT_MESSAGES[Math.floor(Math.random() * CHAT_MESSAGES.length)])
@@ -178,6 +192,9 @@ function ChatTimeBox({ restEndedAt, nextSet, onStart, loading }: {
           <div className="mt-3">
             <p className="text-xs text-muted-foreground mb-1">
               Next: {EXERCISE_NAMES[nextSet.exercise]} {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
+              <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
             </p>
             <Button onClick={onStart} disabled={loading}>Start Set</Button>
           </div>
@@ -187,8 +204,8 @@ function ChatTimeBox({ restEndedAt, nextSet, onStart, loading }: {
   )
 }
 
-function NextUpBox({ nextSet, onStart, loading }: {
-  nextSet: ProposedSet; onStart: () => void; loading: boolean
+function NextUpBox({ nextSet, onStart, loading, onEditWeight }: {
+  nextSet: ProposedSet; onStart: () => void; loading: boolean; onEditWeight: () => void
 }) {
   return (
     <Card className="border-2 border-dashed border-muted-foreground/30">
@@ -201,11 +218,163 @@ function NextUpBox({ nextSet, onStart, loading }: {
           </p>
           <p className="text-muted-foreground">
             {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
+            <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
           </p>
           <Button className="mt-3" onClick={onStart} disabled={loading}>Start Set</Button>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// --- Plate Calculator Modal ---
+
+const PLATE_COLORS: Record<number, string> = {
+  45: 'bg-red-500',
+  25: 'bg-blue-500',
+  10: 'bg-yellow-500',
+  5: 'bg-green-500',
+  2.5: 'bg-gray-400',
+}
+
+const PLATE_WIDTHS: Record<number, string> = {
+  45: 'w-4',
+  25: 'w-3.5',
+  10: 'w-3',
+  5: 'w-2.5',
+  2.5: 'w-2',
+}
+
+const PLATE_HEIGHTS: Record<number, string> = {
+  45: 'h-20',
+  25: 'h-16',
+  10: 'h-14',
+  5: 'h-12',
+  2.5: 'h-10',
+}
+
+function calcPlatesPerSide(weight: number): number[] {
+  const available = [45, 25, 10, 5, 2.5]
+  let remaining = (weight - 45) / 2 // subtract bar, per side
+  if (remaining <= 0) return []
+  const plates: number[] = []
+  for (const plate of available) {
+    while (remaining >= plate - 0.01) {
+      plates.push(plate)
+      remaining -= plate
+    }
+  }
+  return plates
+}
+
+function PlateCalculatorModal({ weight, onSave, onClose }: {
+  weight: number
+  onSave: (weight: number) => void
+  onClose: () => void
+}) {
+  const [value, setValue] = useState(weight)
+  const snap = (v: number) => Math.round(v / 5) * 5
+  const clamped = Math.max(45, Math.min(500, value))
+  const plates = calcPlatesPerSide(clamped)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-bold">Edit Weight</span>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">&times;</button>
+          </div>
+
+          {/* Barbell visualization */}
+          <div className="flex items-center justify-center h-24 gap-0">
+            {/* Left plates (reversed so biggest is closest to center) */}
+            <div className="flex items-center gap-0.5 flex-row-reverse">
+              {plates.map((p, i) => (
+                <div
+                  key={`l-${i}`}
+                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                  title={`${p} lbs`}
+                />
+              ))}
+            </div>
+            {/* Bar */}
+            <div className="h-2 w-16 bg-gray-500" />
+            {/* Right plates */}
+            <div className="flex items-center gap-0.5">
+              {plates.map((p, i) => (
+                <div
+                  key={`r-${i}`}
+                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                  title={`${p} lbs`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Plate legend */}
+          <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
+            {[45, 25, 10, 5, 2.5].map((p) => (
+              <span key={p} className="flex items-center gap-0.5">
+                <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
+                {p}
+              </span>
+            ))}
+          </div>
+
+          {/* Weight display + direct input */}
+          <div className="text-center">
+            <Input
+              type="number"
+              value={clamped}
+              onChange={(e) => setValue(snap(Number(e.target.value)))}
+              className="text-3xl font-bold text-center h-14 text-foreground"
+              min={45}
+              max={500}
+              step={5}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {clamped === 45 ? 'Empty bar' : `${plates.map((p) => p).join(' + ')} per side`}
+            </p>
+          </div>
+
+          {/* Slider */}
+          <input
+            type="range"
+            min={45}
+            max={500}
+            step={5}
+            value={clamped}
+            onChange={(e) => setValue(Number(e.target.value))}
+            className="w-full accent-primary"
+          />
+
+          {/* +/- buttons */}
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 45))} disabled={clamped <= 45}>
+              −45
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 5))} disabled={clamped <= 45}>
+              −5
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 5))} disabled={clamped >= 500}>
+              +5
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 45))} disabled={clamped >= 500}>
+              +45
+            </Button>
+          </div>
+
+          {/* Save / Cancel */}
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button className="flex-1" onClick={() => onSave(clamped)}>Save</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -397,7 +566,7 @@ function SetLog({ completedSets, proposedSets }: {
 }) {
   const done = completedSets
     .filter((c) => c.endedAt > 0n)
-    .sort((a, b) => Number(a.endedAt - b.endedAt))
+    .sort((a, b) => Number(b.endedAt - a.endedAt))
 
   if (done.length === 0) return null
 
@@ -451,6 +620,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [restUntil, setRestUntil] = useState<number | null>(null)
   const [restEndedAt, setRestEndedAt] = useState<number | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingSetId, setEditingSetId] = useState<string | null>(null)
 
   const loadWorkout = useCallback(async () => {
     try {
@@ -572,7 +742,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     }
     try {
       const response = await workoutClient.modifyProposedSets(
-        { workoutId, proposedSets: newSets }, withUserId(userId))
+        { workoutId, proposedSets: newSets }, withUserId(userId));
       setProposedSets(response.proposedSets)
     } catch (e) {
       console.error('Failed to reorder:', e)
@@ -609,6 +779,30 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
       setLoading(false)
     }
   }
+
+  const handleUpdateWeight = (setId: string, newWeight: number) => {
+    const editedSet = proposedSets.find((s) => s.id === setId)
+    if (!editedSet) return
+    const updatedSets = proposedSets.map((s) =>
+      s.id === setId || (s.exercise === editedSet.exercise && !isSetDone(s.id))
+        ? create(ProposedSetSchema, { ...s, targetWeight: newWeight })
+        : s
+    )
+    // Optimistic update
+    setProposedSets(updatedSets)
+    setEditingSetId(null)
+    // Sync with server in background
+    workoutClient.modifyProposedSets(
+      { workoutId, proposedSets: updatedSets }, withUserId(userId)
+    ).then((response) => {
+      setProposedSets(response.proposedSets)
+    }).catch((e) => {
+      console.error('Failed to update weight:', e)
+      setProposedSets(proposedSets) // rollback
+    })
+  }
+
+  const editingSet = editingSetId ? proposedSets.find((p) => p.id === editingSetId) : undefined
 
   // --- render ---
 
@@ -649,6 +843,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
             proposedSet={activeProposed}
             completedSet={activeCompleted}
             onComplete={(reps) => handleCompleteSet(activeProposed.id, reps)}
+            onEditWeight={() => setEditingSetId(activeProposed.id)}
           />
         ) : allSetsDone ? (
           <Card className="border-2 border-green-500/50 bg-green-500/5">
@@ -666,6 +861,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
             restUntil={restUntil}
             nextSet={nextSet}
             onStartEarly={() => nextSet && handleStartSet(nextSet.id)}
+            onEditWeight={nextSet ? () => setEditingSetId(nextSet.id) : undefined}
           />
         ) : restEndedAt && nextSet ? (
           <ChatTimeBox
@@ -673,9 +869,10 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
             nextSet={nextSet}
             onStart={() => handleStartSet(nextSet.id)}
             loading={loading}
+            onEditWeight={() => setEditingSetId(nextSet.id)}
           />
         ) : nextSet ? (
-          <NextUpBox nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading} />
+          <NextUpBox nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading} onEditWeight={() => setEditingSetId(nextSet.id)} />
         ) : null}
 
         {/* Compact exercise groups + add button */}
@@ -716,6 +913,15 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
             onAdd={handleAddSet}
             onClose={() => setShowAddModal(false)}
             loading={loading}
+          />
+        )}
+
+        {/* Plate calculator modal */}
+        {editingSet && (
+          <PlateCalculatorModal
+            weight={editingSet.targetWeight}
+            onSave={(w) => handleUpdateWeight(editingSet.id, w)}
+            onClose={() => setEditingSetId(null)}
           />
         )}
       </div>

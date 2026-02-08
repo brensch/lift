@@ -1,10 +1,17 @@
-use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions}, Pool, Sqlite, Row};
+use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteSynchronous, SqliteJournalMode}, Pool, Sqlite, Row, Arguments};
 use std::str::FromStr;
 use std::path::Path;
 use std::fs;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 use std::time::{SystemTime, UNIX_EPOCH};
 use lift::workout::v1::{Workout, ProposedSet, CompletedSet, User};
+
+// Global cache of per-user database pools
+static USER_DB_CACHE: std::sync::LazyLock<Arc<Mutex<HashMap<String, Pool<Sqlite>>>>> =
+    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 const SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS workouts (
@@ -100,6 +107,12 @@ pub struct UserDb {
 
 impl UserDb {
     pub async fn new(user_id: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let mut cache = USER_DB_CACHE.lock().await;
+
+        if let Some(pool) = cache.get(user_id) {
+            return Ok(Self { pool: pool.clone() });
+        }
+
         let data_dir = "user_dbs";
         if !Path::new(data_dir).exists() {
             fs::create_dir(data_dir)?;
@@ -108,10 +121,13 @@ impl UserDb {
         let db_path = format!("{}/{}.sqlite", data_dir, user_id);
         let db_url = format!("sqlite://{}", db_path);
 
-        let options = SqliteConnectOptions::from_str(&db_url)?.create_if_missing(true);
+        let options = SqliteConnectOptions::from_str(&db_url)?.create_if_missing(true)
+            .synchronous(SqliteSynchronous::Normal)
+            .journal_mode(SqliteJournalMode::Wal);
         let pool = SqlitePoolOptions::new().connect_with(options).await?;
         sqlx::query(SCHEMA).execute(&pool).await?;
 
+        cache.insert(user_id.to_string(), pool.clone());
         Ok(Self { pool })
     }
 
@@ -205,29 +221,29 @@ impl UserDb {
     }
 
     pub async fn modify_proposed_sets(&self, workout_id: &str, proposed_sets: Vec<ProposedSet>) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
         sqlx::query("DELETE FROM proposed_sets WHERE workout_id = ?")
             .bind(workout_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
 
         let mut result = Vec::new();
+        let mut args = sqlx::sqlite::SqliteArguments::default();
+        let mut values_placeholders: Vec<String> = Vec::new();
+
         for (idx, set) in proposed_sets.into_iter().enumerate() {
             let set_id = if set.id.is_empty() { Uuid::new_v4().to_string() } else { set.id };
             let workout_order = if set.workout_order == 0 { idx as i32 } else { set.workout_order };
 
-            sqlx::query(
-                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&set_id)
-            .bind(workout_id)
-            .bind(workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .execute(&self.pool)
-            .await?;
+            values_placeholders.push("(?, ?, ?, ?, ?, ?, ?)".to_string());
+            args.add(set_id.clone());
+            args.add(workout_id);
+            args.add(workout_order);
+            args.add(set.exercise);
+            args.add(set.target_reps);
+            args.add(set.target_weight);
+            args.add(set.warmup);
 
             result.push(ProposedSet {
                 id: set_id,
@@ -240,6 +256,18 @@ impl UserDb {
             });
         }
 
+        if !result.is_empty() {
+            let query_sql = format!(
+                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup) VALUES {}",
+                values_placeholders.join(", ")
+            );
+
+            sqlx::query_with(&query_sql, args)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
         Ok(result)
     }
 
