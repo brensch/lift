@@ -3,7 +3,7 @@ import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { WorkoutService, UserService } from "../gen/workout/v1/workout_pb";
 
 const transport = createGrpcWebTransport({
-  baseUrl: "http://localhost:50051",
+  baseUrl: "http://127.0.0.1:50051",
 });
 
 export const workoutClient = createClient(WorkoutService, transport);
