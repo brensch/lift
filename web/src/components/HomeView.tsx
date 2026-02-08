@@ -4,10 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { workoutClient, userClient, withUserId } from '@/lib/client'
 import type { Workout, ProposedWorkout, ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { Exercise } from '@/gen/workout/v1/workout_pb'
-import { UserPlus } from 'lucide-react'
-import { MultiplayerModal } from './MultiplayerModal'
-import { useMultiplayer } from '@/hooks/useMultiplayer'
-import { ParticipantTicker } from './ParticipantTicker'
+import { SessionHeader } from './SessionHeader'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: 'Select Exercise',
@@ -64,10 +61,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
   const [proposedWorkouts, setProposedWorkouts] = useState<ProposedWorkout[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showMultiplayer, setShowMultiplayer] = useState(false)
   
-  const sessionStatus = useMultiplayer(userId)
-
   useEffect(() => {
     loadData()
     userClient.getUser({ userId }, withUserId(userId))
@@ -130,40 +124,16 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Lift</h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setShowMultiplayer(true)}>
-              <UserPlus className="w-5 h-5" />
-            </Button>
+          <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={onLogout}>
               Logout
             </Button>
           </div>
         </div>
 
+        <SessionHeader userId={userId} />
+
         <p className="text-muted-foreground">Welcome, {userName || userId}</p>
-
-        {error && (
-          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {/* Multiplayer Ticker */}
-        {sessionStatus && sessionStatus.participants.length > 1 && (
-          <div className="space-y-2">
-            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Workout Session</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {sessionStatus.participants.filter(p => p.user?.id !== userId).map((p) => (
-                <ParticipantTicker 
-                  key={p.user?.id} 
-                  status={p} 
-                  isPeeping={false}
-                  onPeep={() => p.activeWorkoutId && onViewWorkout(p.activeWorkoutId)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Proposed Workouts */}
         {proposedWorkouts.length > 0 && (
@@ -268,16 +238,9 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
               </ul>
             </CardContent>
           </Card>
-        )}
-
-        {showMultiplayer && (
-          <MultiplayerModal
-            userId={userId}
-            onClose={() => setShowMultiplayer(false)}
-            onJoinSession={(sid) => console.log('Joined session:', sid)}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
+                )}
+              </div>
+            </div>
+          )
+        }
+        

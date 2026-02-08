@@ -12,11 +12,10 @@ import {
   ProposedSetSchema,
 } from '@/gen/workout/v1/workout_pb'
 import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
-import { Pencil, Users } from 'lucide-react'
-import { MultiplayerModal } from './MultiplayerModal'
+import { Pencil } from 'lucide-react'
+import { SessionHeader } from './SessionHeader'
 
 import { useMultiplayer } from '@/hooks/useMultiplayer'
-import { ParticipantTicker } from './ParticipantTicker'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: '?',
@@ -235,6 +234,44 @@ function NextUpBox({ nextSet, onStart, loading, onEditWeight }: {
 
 // --- Plate Calculator Modal ---
 
+const PLATE_COLORS: Record<number, string> = {
+  45: 'bg-red-500',
+  25: 'bg-blue-500',
+  10: 'bg-yellow-500',
+  5: 'bg-green-500',
+  2.5: 'bg-gray-400',
+}
+
+const PLATE_WIDTHS: Record<number, string> = {
+  45: 'w-4',
+  25: 'w-3.5',
+  10: 'w-3',
+  5: 'w-2.5',
+  2.5: 'w-2',
+}
+
+const PLATE_HEIGHTS: Record<number, string> = {
+  45: 'h-20',
+  25: 'h-16',
+  10: 'h-14',
+  5: 'h-12',
+  2.5: 'h-10',
+}
+
+function calcPlatesPerSide(weight: number): number[] {
+  const available = [45, 25, 10, 5, 2.5]
+  let remaining = (weight - 45) / 2 // subtract bar, per side
+  if (remaining <= 0) return []
+  const plates: number[] = []
+  for (const plate of available) {
+    while (remaining >= plate - 0.01) {
+      plates.push(plate)
+      remaining -= plate
+    }
+  }
+  return plates
+}
+
 function PlateCalculatorModal({ weight, onSave, onClose }: {
   weight: number
   onSave: (weight: number) => void
@@ -243,6 +280,7 @@ function PlateCalculatorModal({ weight, onSave, onClose }: {
   const [value, setValue] = useState(weight)
   const snap = (v: number) => Math.round(v / 5) * 5
   const clamped = Math.max(45, Math.min(500, value))
+  const plates = calcPlatesPerSide(clamped)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -252,15 +290,86 @@ function PlateCalculatorModal({ weight, onSave, onClose }: {
             <span className="font-bold">Edit Weight</span>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">&times;</button>
           </div>
-          <Input
-            type="number"
-            value={clamped}
-            onChange={(e) => setValue(snap(Number(e.target.value)))}
-            className="text-3xl font-bold text-center h-14 text-foreground"
+
+          {/* Barbell visualization */}
+          <div className="flex items-center justify-center h-24 gap-0">
+            {/* Left plates (reversed so biggest is closest to center) */}
+            <div className="flex items-center gap-0.5 flex-row-reverse">
+              {plates.map((p, i) => (
+                <div
+                  key={`l-${i}`}
+                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                  title={`${p} lbs`}
+                />
+              ))}
+            </div>
+            {/* Bar */}
+            <div className="h-2 w-16 bg-gray-500" />
+            {/* Right plates */}
+            <div className="flex items-center gap-0.5">
+              {plates.map((p, i) => (
+                <div
+                  key={`r-${i}`}
+                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                  title={`${p} lbs`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Plate legend */}
+          <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
+            {[45, 25, 10, 5, 2.5].map((p) => (
+              <span key={p} className="flex items-center gap-0.5">
+                <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
+                {p}
+              </span>
+            ))}
+          </div>
+
+          {/* Weight display + direct input */}
+          <div className="text-center">
+            <Input
+              type="number"
+              value={clamped}
+              onChange={(e) => setValue(snap(Number(e.target.value)))}
+              className="text-3xl font-bold text-center h-14 text-foreground"
+              min={45}
+              max={500}
+              step={5}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {clamped === 45 ? 'Empty bar' : `${plates.map((p) => p).join(' + ')} per side`}
+            </p>
+          </div>
+
+          {/* Slider */}
+          <input
+            type="range"
             min={45}
             max={500}
             step={5}
+            value={clamped}
+            onChange={(e) => setValue(Number(e.target.value))}
+            className="w-full accent-primary"
           />
+
+          {/* +/- buttons */}
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 45))} disabled={clamped <= 45}>
+              −45
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 5))} disabled={clamped <= 45}>
+              −5
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 5))} disabled={clamped >= 500}>
+              +5
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 45))} disabled={clamped >= 500}>
+              +45
+            </Button>
+          </div>
+
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
             <Button className="flex-1" onClick={() => onSave(clamped)}>Save</Button>
@@ -415,34 +524,6 @@ function SetLog({ completedSets, proposedSets }: {
   )
 }
 
-// --- Multiplayer Components ---
-
-function ActiveSummaryOverlay({ proposedSet, completedSet }: { proposedSet: ProposedSet; completedSet: CompletedSet }) {
-  const elapsed = useElapsed(Number(completedSet.startedAt))
-  return (
-    <div className="fixed bottom-4 left-4 right-4 z-40">
-      <Card className="border-2 border-primary bg-background/95 backdrop-blur shadow-lg">
-        <CardContent className="py-3 px-4 flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase text-primary tracking-wider">Your Active Set</p>
-            <p className="font-bold text-sm truncate">
-              {EXERCISE_NAMES[proposedSet.exercise as Exercise]} &middot; {proposedSet.targetWeight}lbs
-            </p>
-          </div>
-          <div className="flex items-center gap-3 ml-4">
-             <div className="text-right">
-               <p className="text-xl font-bold leading-none">{proposedSet.targetReps}</p>
-               <p className="text-[10px] text-muted-foreground uppercase">reps</p>
-             </div>
-             <div className="w-px h-8 bg-border" />
-             <span className="font-mono font-bold text-primary">{fmtElapsed(elapsed)}</span>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
 function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
   const elapsed = useElapsed(Number(startTime))
   return <span className="font-mono text-lg">{fmtElapsed(elapsed)}</span>
@@ -468,8 +549,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   
   // Multiplayer state
   const sessionStatus = useMultiplayer(userId)
-  const [peepUserId, setPeepUserId] = useState<string | null>(null)
-  const [showMultiplayerModal, setShowMultiplayerModal] = useState(false)
 
   const loadWorkout = useCallback(async () => {
     try {
@@ -519,12 +598,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const nextSet = proposedSets.find((p) => !isSetDone(p.id) && p.id !== activeProposed?.id)
   const allSetsDone = proposedSets.length > 0 && proposedSets.every((p) => isSetDone(p.id)) && !activeCompleted
 
-  // Peep data
-  const peepParticipant = useMemo(() => {
-    if (!peepUserId || !sessionStatus) return null
-    return sessionStatus.participants.find(p => p.user?.id === peepUserId)
-  }, [peepUserId, sessionStatus])
-
   // --- handlers ---
 
   const handleSetUpdated = (cs: CompletedSet) => {
@@ -552,7 +625,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     const proposed = proposedSets.find((p) => p.id === proposedSetId)
     try {
       const response = await workoutClient.completeSet({
-        workoutId, proposedSetId, actualReps: reps, actualWeight: proposed?.targetWeight || 0,
+        workoutId, proposedSetId, actual_reps: reps, actual_weight: proposed?.targetWeight || 0,
       }, withUserId(userId))
       if (response.completedSet) handleSetUpdated(response.completedSet)
     } catch (e) { console.error(e) }
@@ -584,72 +657,14 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
           <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
           <div className="flex items-center gap-2">
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
-            <Button variant="ghost" size="icon" onClick={() => setShowMultiplayerModal(true)}>
-              <Users className={`w-5 h-5 ${sessionStatus ? 'text-primary' : ''}`} />
-            </Button>
             <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>
           </div>
         </div>
 
-        {/* Multiplayer Chips */}
-        <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Workout Session</span>
-            {sessionStatus && (
-              <span className="text-[10px] font-mono text-muted-foreground bg-background px-1.5 py-0.5 rounded border">
-                ID: {sessionStatus.sessionId}
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar min-h-[40px] items-center">
-            {sessionStatus && sessionStatus.participants.length > 1 ? (
-              sessionStatus.participants.filter(p => p.user?.id !== userId).map((p) => (
-                <ParticipantTicker 
-                  key={p.user?.id} 
-                  status={p} 
-                  isPeeping={peepUserId === p.user?.id}
-                  onPeep={() => setPeepUserId(peepUserId === p.user?.id ? null : p.user?.id || null)}
-                />
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground italic">No other participants yet. Share your session to invite friends!</p>
-            )}
-          </div>
-        </div>
+        <SessionHeader userId={userId} workoutId={workoutId} />
 
-        {/* Main View (Peep or Self) */}
-        {peepParticipant ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/20">
-              <span className="text-sm font-bold text-primary">Viewing {peepParticipant.user?.name}'s Workout</span>
-              <Button size="sm" variant="ghost" onClick={() => setPeepUserId(null)}>Close</Button>
-            </div>
-            
-            {peepParticipant.currentSet ? (
-              <Card className="border-2 border-primary/50">
-                <CardContent className="pt-6 pb-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">{peepParticipant.isResting ? 'Next Set' : 'Currently Doing'}</p>
-                  <p className="text-2xl font-bold">{EXERCISE_NAMES[peepParticipant.currentSet.exercise as Exercise]}</p>
-                  <p className="text-4xl font-bold text-primary">{peepParticipant.currentSet.targetReps} &times; {peepParticipant.currentSet.targetWeight} lbs</p>
-                  {peepParticipant.isResting && (
-                    <div className="mt-4 pt-4 border-t">
-                       <p className="text-xs text-muted-foreground">Rest ends at {fmtTime(peepParticipant.restUntil)}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-               <Card><CardContent className="py-12 text-center text-muted-foreground">User is not currently doing a set.</CardContent></Card>
-            )}
-
-            <div className="opacity-60 pointer-events-none scale-95 origin-top transition-all">
-               <ExerciseGroupsList proposedSets={peepParticipant.proposedSets} completedSets={peepParticipant.completedSets} />
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Active Box (Self) */}
-            {activeProposed && activeCompleted ? (
+        {/* Active Box (Self) */}
+        {activeProposed && activeCompleted ? (
               <ActiveSetBox proposedSet={activeProposed} completedSet={activeCompleted} onComplete={(reps) => handleCompleteSet(activeProposed.id, reps)} onEditWeight={() => setEditingSetId(activeProposed.id)} />
             ) : allSetsDone ? (
               <Card className="border-2 border-green-500/50 bg-green-500/5"><CardContent className="pt-6 pb-4 text-center"><p className="text-lg font-bold text-green-600">All sets complete!</p><Button onClick={handleEndWorkout} className="mt-3">Finish Workout</Button></CardContent></Card>
@@ -672,29 +687,10 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
               }}
               onAdd={() => setShowAddModal(true)}
             />
-          </>
-        )}
 
         {/* Set log */}
         <SetLog completedSets={completedSets} proposedSets={proposedSets} />
 
-        {/* Overlay when peeping */}
-        {peepUserId && activeProposed && activeCompleted && (
-          <ActiveSummaryOverlay proposedSet={activeProposed} completedSet={activeCompleted} />
-        )}
-
-        {showMultiplayerModal && (
-          <MultiplayerModal 
-            userId={userId} 
-            workoutId={workoutId} 
-            onClose={() => setShowMultiplayerModal(false)} 
-            onJoinSession={(sid) => {
-              console.log('Joined session:', sid);
-              // We don't necessarily want to peep immediately, just close the modal
-              setShowMultiplayerModal(false);
-            }} 
-          />
-        )}
         {editingSetId && <PlateCalculatorModal weight={proposedSets.find(p => p.id === editingSetId)?.targetWeight || 0} onSave={(w) => handleUpdateWeight(editingSetId, w)} onClose={() => setEditingSetId(null)} />}
         {showAddModal && <AddSetModal onClose={() => setShowAddModal(false)} loading={loading} onAdd={async (ex, r, w, warmup) => {
           const newSet = create(ProposedSetSchema, { exercise: ex, targetReps: r, targetWeight: w, warmup, workoutOrder: proposedSets.length })

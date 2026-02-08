@@ -50,6 +50,7 @@ impl WorkoutService for MyWorkoutService {
         let workout_id = user_db.create_workout(&req.name, req.proposed_sets).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
+        let _ = self.session_manager.update_active_workout(&user_id, &workout_id).await;
         self.session_manager.notify_user_update(&user_id).await;
 
         Ok(Response::new(StartWorkoutResponse { id: workout_id }))

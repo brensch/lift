@@ -57,9 +57,8 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
   }, [showScanner]);
 
   const handleStartSession = async () => {
-    if (!workoutId) return;
     try {
-      const res = await multiplayerClient.startSession({ workoutId }, withUserId(userId));
+      const res = await multiplayerClient.startSession({ workoutId: workoutId || '' }, withUserId(userId));
       console.log('Started session:', res.sessionId);
       setActiveSessionId(res.sessionId);
       onJoinSession(res.sessionId);
@@ -128,13 +127,12 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
             <div className="space-y-4 py-4">
               <Button 
                 className="w-full h-12 text-lg font-bold" 
-                disabled={!workoutId}
                 onClick={handleStartSession}
               >
                 Start a Session
               </Button>
               <p className="text-sm text-muted-foreground text-center">
-                {!workoutId ? 'Start a workout to create a session' : 'Create a session to let others follow your progress'}
+                Create a session to let others follow your progress
               </p>
               
               <div className="relative">

@@ -26,6 +26,9 @@ service MultiplayerService {
 
   // Get the active session for the current user
   rpc GetMyActiveSession(GetMyActiveSessionRequest) returns (GetMyActiveSessionResponse);
+
+  // Update the active workout for the current user's session
+  rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
 }
 
 message SearchUsersRequest {
@@ -53,7 +56,7 @@ message FollowUserRequest {
 message FollowUserResponse {}
 
 message StartSessionRequest {
-  string workout_id = 1;
+  string workout_id = 1; // Optional
 }
 
 message StartSessionResponse {
@@ -62,7 +65,7 @@ message StartSessionResponse {
 
 message JoinSessionRequest {
   string session_id = 1;
-  string workout_id = 2; // Optional: user can join a session without being in a workout yet
+  string workout_id = 2; // Optional
 }
 
 message JoinSessionResponse {
@@ -87,6 +90,12 @@ message GetMyActiveSessionRequest {}
 message GetMyActiveSessionResponse {
   string session_id = 1;
 }
+
+message UpdateActiveWorkoutRequest {
+  string workout_id = 1;
+}
+
+message UpdateActiveWorkoutResponse {}
 
 message SessionStatus {
   string session_id = 1;
