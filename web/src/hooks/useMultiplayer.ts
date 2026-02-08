@@ -53,7 +53,7 @@ export function useMultiplayer(userId: string) {
         console.error('Multiplayer polling error:', e)
       } finally {
         if (active) {
-          timeoutId = window.setTimeout(poll, 5000)
+          timeoutId = window.setTimeout(poll, 1000)
         }
       }
     }
