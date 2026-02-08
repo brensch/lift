@@ -1,22 +1,26 @@
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
-import { Exercise } from '@/gen/workout/v1/workout_pb'
-
-const SHORT_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '?',
-  [Exercise.SQUAT]: 'Sq',
-  [Exercise.BENCH_PRESS]: 'Bp',
-  [Exercise.DEADLIFT]: 'Dl',
-  [Exercise.OVERHEAD_PRESS]: 'Oh',
-  [Exercise.BARBELL_ROW]: 'Br',
-}
+import { ParticipantStatusView } from './ParticipantStatusView'
 
 export function ParticipantTicker({ status, isPeeping, onPeep }: { 
   status: ParticipantStatus; 
   isPeeping: boolean;
   onPeep: () => void 
 }) {
-  const currentSet = status.currentSet
-  
+  const activeCompletedSet = status.completedSets.find(c => c.endedAt === 0n)
+  const lastCompletedSet = [...status.completedSets]
+    .filter(c => c.endedAt > 0n)
+    .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
+
+  const isResting = lastCompletedSet && Number(lastCompletedSet.restUntil) > Date.now() / 1000
+
+  const dotColor = isResting 
+    ? 'bg-blue-400 animate-pulse' 
+    : activeCompletedSet
+      ? 'bg-green-400'
+      : lastCompletedSet
+        ? 'bg-orange-400'
+        : 'bg-gray-400'
+
   return (
     <button
       onClick={onPeep}
@@ -26,11 +30,8 @@ export function ParticipantTicker({ status, isPeeping, onPeep }: {
           : 'bg-muted/50 border-transparent hover:bg-muted text-muted-foreground'
       }`}
     >
-      <div className={`w-2 h-2 rounded-full ${status.isResting ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`} />
-      <span className="max-w-[80px] truncate">{status.user?.name}</span>
-      <span className="opacity-60">
-        {currentSet ? `${SHORT_NAMES[currentSet.exercise as Exercise]} ${currentSet.targetReps}x${currentSet.targetWeight}` : 'idle'}
-      </span>
+      <div className={`w-2 h-2 rounded-full ${dotColor}`} />
+      <ParticipantStatusView status={status} layout="chip" />
     </button>
   )
 }

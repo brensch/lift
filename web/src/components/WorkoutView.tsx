@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
 import { Pencil } from 'lucide-react'
 import { SessionHeader } from './SessionHeader'
 
-import { useMultiplayer } from '@/hooks/useMultiplayer'
+import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
 
 const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: '?',
@@ -33,38 +33,6 @@ const SHORT_NAMES: Record<Exercise, string> = {
   [Exercise.DEADLIFT]: 'Dead',
   [Exercise.OVERHEAD_PRESS]: 'OHP',
   [Exercise.BARBELL_ROW]: 'Row',
-}
-
-// --- timer hooks ---
-
-function useElapsed(startSecs: number) {
-  const [elapsed, setElapsed] = useState(() => Math.floor(Date.now() / 1000) - startSecs)
-  useEffect(() => {
-    const update = () => setElapsed(Math.floor(Date.now() / 1000) - startSecs)
-    update()
-    const id = setInterval(update, 1000)
-    return () => clearInterval(id)
-  }, [startSecs])
-  return elapsed
-}
-
-function useCountdown(untilSecs: number) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, untilSecs - Math.floor(Date.now() / 1000)))
-  useEffect(() => {
-    const update = () => setRemaining(Math.max(0, untilSecs - Math.floor(Date.now() / 1000)))
-    update()
-    const id = setInterval(update, 200)
-    return () => clearInterval(id)
-  }, [untilSecs])
-  return remaining
-}
-
-function fmtElapsed(secs: number) {
-  const h = Math.floor(secs / 3600)
-  const m = Math.floor((secs % 3600) / 60)
-  const s = secs % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 function fmtTime(ts: bigint | number) {
@@ -547,9 +515,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
   
-  // Multiplayer state
-  const sessionStatus = useMultiplayer(userId)
-
   const loadWorkout = useCallback(async () => {
     try {
       const response = await workoutClient.getWorkout({ workoutId }, withUserId(userId))
@@ -625,7 +590,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     const proposed = proposedSets.find((p) => p.id === proposedSetId)
     try {
       const response = await workoutClient.completeSet({
-        workoutId, proposedSetId, actual_reps: reps, actual_weight: proposed?.targetWeight || 0,
+        workoutId, proposedSetId, actualReps: reps, actualWeight: proposed?.targetWeight || 0,
       }, withUserId(userId))
       if (response.completedSet) handleSetUpdated(response.completedSet)
     } catch (e) { console.error(e) }

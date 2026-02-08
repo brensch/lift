@@ -108,9 +108,4 @@ message ParticipantStatus {
   Workout active_workout = 3;
   repeated ProposedSet proposed_sets = 4;
   repeated CompletedSet completed_sets = 5;
-  
-  // High-level summary for the "Next Up" ticker
-  ProposedSet current_set = 6;
-  bool is_resting = 7;
-  int64 rest_until = 8;
 }

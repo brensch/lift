@@ -4,27 +4,13 @@ import { Users, X } from 'lucide-react'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 import { MultiplayerModal } from './MultiplayerModal'
 import { ParticipantTicker } from './ParticipantTicker'
+import { ParticipantStatusView } from './ParticipantStatusView'
 import { Card, CardContent } from '@/components/ui/card'
-import { Exercise } from '@/gen/workout/v1/workout_pb'
 import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
 
 interface SessionHeaderProps {
   userId: string
   workoutId?: string
-}
-
-const EXERCISE_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '?',
-  [Exercise.SQUAT]: 'Squat',
-  [Exercise.BENCH_PRESS]: 'Bench Press',
-  [Exercise.DEADLIFT]: 'Deadlift',
-  [Exercise.OVERHEAD_PRESS]: 'Overhead Press',
-  [Exercise.BARBELL_ROW]: 'Barbell Row',
-}
-
-function fmtTime(ts: bigint | number) {
-  if (!ts) return ''
-  return new Date(Number(ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
@@ -80,20 +66,7 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
               </Button>
             </div>
             <CardContent className="p-4 space-y-4 overflow-y-auto">
-              {peepParticipant.currentSet ? (
-                <div className="text-center p-4 bg-muted rounded-lg border border-border">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    {peepParticipant.isResting ? 'Next Set' : 'Currently Doing'}
-                  </p>
-                  <p className="text-xl font-bold">{EXERCISE_NAMES[peepParticipant.currentSet.exercise as Exercise]}</p>
-                  <p className="text-3xl font-black text-primary">{peepParticipant.currentSet.targetReps} &times; {peepParticipant.currentSet.targetWeight} lbs</p>
-                  {peepParticipant.isResting && (
-                    <p className="text-[10px] text-muted-foreground mt-2 font-mono">Rest ends at {fmtTime(peepParticipant.restUntil)}</p>
-                  )}
-                </div>
-              ) : (
-                <div className="py-8 text-center text-muted-foreground text-sm italic">User is not currently doing a set.</div>
-              )}
+              <ParticipantStatusView status={peepParticipant} layout="detail" />
 
               <div 
                 key={`peep-list-${peepParticipant.user?.id}-${peepParticipant.completedSets.length}`}
