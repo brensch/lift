@@ -135,6 +135,12 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
 
         <p className="text-muted-foreground">Welcome, {userName || userId}</p>
 
+        {error && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
+            {error}
+          </div>
+        )}
+
         {/* Proposed Workouts */}
         {proposedWorkouts.length > 0 && (
           <Card>

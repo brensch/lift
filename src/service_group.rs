@@ -35,44 +35,12 @@ impl SessionManager {
             active_workout: Some(active_workout),
             proposed_sets: Vec::new(),
             completed_sets: Vec::new(),
-            current_set: None,
-            is_resting: false,
-            rest_until: 0,
         };
 
-        let p_sets = user_db.get_proposed_sets(workout_id).await
+        status.proposed_sets = user_db.get_proposed_sets(workout_id).await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let c_sets = user_db.get_completed_sets(workout_id).await
+        status.completed_sets = user_db.get_completed_sets(workout_id).await
             .map_err(|e| Status::internal(e.to_string()))?;
-        
-        status.proposed_sets = p_sets.clone();
-        status.completed_sets = c_sets.clone();
-
-        // Find active completed set (one with ended_at == 0)
-        let active_c = c_sets.iter().find(|c| c.ended_at == 0);
-        if let Some(ac) = active_c {
-            status.current_set = p_sets.iter().find(|p| p.id == ac.proposed_set_id).cloned();
-        } else {
-            // Check for rest
-            let last_c = c_sets.iter()
-                .filter(|c| c.ended_at > 0)
-                .max_by_key(|c| c.ended_at);
-            
-            if let Some(lc) = last_c {
-                let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
-                if lc.rest_until > now {
-                    status.is_resting = true;
-                    status.rest_until = lc.rest_until;
-                }
-            }
-
-            // If not resting or active, find next set
-            if !status.is_resting {
-                status.current_set = p_sets.iter()
-                    .find(|p| !c_sets.iter().any(|c| c.proposed_set_id == p.id && c.ended_at > 0))
-                    .cloned();
-            }
-        }
 
         Ok(status)
     }
