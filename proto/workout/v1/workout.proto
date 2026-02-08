@@ -92,7 +92,6 @@ message CompleteSetRequest {
   string proposed_set_id = 2;
   int32 actual_reps = 3;
   float actual_weight = 4;
-  int32 rest_seconds = 5;
 }
 message CompleteSetResponse {
   CompletedSet completed_set = 1;
