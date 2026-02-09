@@ -254,11 +254,9 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
         let scheduler = Scheduler::new(user_db);
-        let proposed_workouts = scheduler.get_proposed_schedule().await
+        let response = scheduler.get_proposed_schedule().await
             .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
 
-        Ok(Response::new(GetProposedWorkoutScheduleResponse {
-            proposed_workouts,
-        }))
+        Ok(Response::new(response))
     }
 }

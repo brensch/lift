@@ -107,14 +107,24 @@ message EndWorkoutResponse {
 message GetProposedWorkoutScheduleRequest {
   string user_id = 1;
 }
-message GetProposedWorkoutScheduleResponse {
-  repeated ProposedWorkout proposed_workouts = 1;
+
+message ExerciseStatus {
+  Exercise exercise = 1;
+  float target_weight = 2;
+  string explanation = 3;
+  int64 last_performed_at = 4;
+  repeated float weight_history = 5;
 }
 
-message ProposedWorkout {
-  string name = 1;
-  repeated ProposedSet proposed_sets = 2;
-  int64 scheduled_for = 3;
+message ScheduledWorkout {
+  string workout_name = 1;
+  int64 scheduled_at = 2;
+}
+
+message GetProposedWorkoutScheduleResponse {
+  repeated ExerciseStatus exercise_statuses = 1;
+  repeated ScheduledWorkout schedule = 2;
+  string next_recommended_workout_name = 3;
 }
 
 message GetActiveWorkoutRequest {}
