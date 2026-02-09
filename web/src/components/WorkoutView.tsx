@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { workoutClient, withUserId } from '@/lib/client'
 import { create } from '@bufbuild/protobuf'
+import { cn } from '@/lib/utils'
 import {
   type Workout,
   type ProposedSet,
@@ -15,6 +16,7 @@ import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
 import { Pencil } from 'lucide-react'
 import { Modal } from './ui/modal'
 import { SessionHeader } from './SessionHeader'
+import { useMultiplayer } from '@/hooks/useMultiplayer'
 
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
 
@@ -455,29 +457,84 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, userId, on
 
 // --- Set History ---
 
-function SetLog({ completedSets, proposedSets }: {
+interface LogEntry {
+  completed: CompletedSet
+  proposed?: ProposedSet
+  userName?: string
+  isMe: boolean
+}
+
+function SetLog({ userId, completedSets, proposedSets, sessionStatus }: {
+  userId: string
   completedSets: CompletedSet[]
   proposedSets: ProposedSet[]
+  sessionStatus: any // SessionStatus | null
 }) {
-  const done = completedSets
-    .filter((c) => c.endedAt > 0n)
-    .sort((a, b) => Number(b.endedAt - a.endedAt))
+  const allEntries: LogEntry[] = []
 
-  if (done.length === 0) return null
+  // Add my own sets
+  completedSets
+    .filter((c) => c.endedAt > 0n)
+    .forEach((c) => {
+      allEntries.push({
+        completed: c,
+        proposed: proposedSets.find((p) => p.id === c.proposedSetId),
+        userName: 'You',
+        isMe: true,
+      })
+    })
+
+  // Add others' sets if in a session
+  if (sessionStatus) {
+    sessionStatus.participants.forEach((p: any) => {
+      if (p.user?.id === userId) return
+      p.completedSets
+        .filter((c: any) => c.endedAt > 0n)
+        .forEach((c: any) => {
+          allEntries.push({
+            completed: c,
+            proposed: p.proposedSets.find((ps: any) => ps.id === c.proposedSetId),
+            userName: p.user?.name || '?',
+            isMe: false,
+          })
+        })
+    })
+  }
+
+  const sortedEntries = allEntries.sort((a, b) => Number(b.completed.endedAt - a.completed.endedAt))
+
+  if (sortedEntries.length === 0) return null
+
+  const isGroup = sessionStatus && sessionStatus.participants.length > 1
 
   return (
-    <div className="space-y-0.5">
-      <div className="text-xs text-muted-foreground font-medium px-1 mb-1">Set Log</div>
-      {done.map((c, i) => {
-        const proposed = proposedSets.find((p) => p.id === c.proposedSetId)
-        return (
-          <div key={i} className="text-xs px-2 py-1 rounded flex items-center gap-2 bg-muted/50">
-            <span className="font-medium w-12 shrink-0 truncate">{proposed ? SHORT_NAMES[proposed.exercise as Exercise] : '?'}</span>
-            <span className="font-medium">{c.actualReps}&times;{c.actualWeight}</span>
-            <span className="text-muted-foreground font-mono ml-auto">{fmtTime(c.endedAt)}</span>
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground font-medium px-1 mb-1 flex justify-between items-center">
+        <span>Set Log</span>
+        {isGroup && <span className="text-[10px] opacity-60 uppercase">Group Session</span>}
+      </div>
+      <div className="space-y-0.5">
+        {sortedEntries.map((entry, i) => (
+          <div key={i} className={cn(
+            "text-xs px-2 py-1 rounded flex items-center gap-2",
+            entry.isMe ? "bg-muted/50" : "bg-primary/5 border-l-2 border-primary/30"
+          )}>
+            {isGroup && (
+              <span className={cn(
+                "font-bold w-16 shrink-0 truncate",
+                entry.isMe ? "text-muted-foreground" : "text-primary"
+              )}>
+                {entry.userName}
+              </span>
+            )}
+            <span className="font-medium w-12 shrink-0 truncate">
+              {entry.proposed ? SHORT_NAMES[entry.proposed.exercise as Exercise] : '?'}
+            </span>
+            <span className="font-medium">{entry.completed.actualReps}&times;{entry.completed.actualWeight}</span>
+            <span className="text-muted-foreground font-mono ml-auto">{fmtTime(entry.completed.endedAt)}</span>
           </div>
-        )
-      })}
+        ))}
+      </div>
     </div>
   )
 }
@@ -504,6 +561,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [restEndedAt, setRestEndedAt] = useState<number | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
+  const sessionStatus = useMultiplayer(userId, workoutId)
   
   const loadWorkout = useCallback(async () => {
     try {
@@ -644,7 +702,12 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
             />
 
         {/* Set log */}
-        <SetLog completedSets={completedSets} proposedSets={proposedSets} />
+        <SetLog 
+          userId={userId}
+          completedSets={completedSets} 
+          proposedSets={proposedSets} 
+          sessionStatus={sessionStatus}
+        />
 
         {editingSetId && <PlateCalculatorModal weight={proposedSets.find(p => p.id === editingSetId)?.targetWeight || 0} onSave={(w) => handleUpdateWeight(editingSetId, w)} onClose={() => setEditingSetId(null)} />}
         {showAddModal && <AddSetModal onClose={() => setShowAddModal(false)} loading={loading} onAdd={async (ex, r, w, warmup) => {

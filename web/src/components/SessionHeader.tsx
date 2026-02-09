@@ -63,8 +63,6 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
           title={`Viewing ${peepParticipant.user?.name}'s Workout`}
           onClose={() => setPeepUserId(null)}
           className="max-w-md"
-          headerClassName="bg-primary text-primary-foreground border-primary"
-          closeButtonClassName="text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground"
         >
           <div className="p-4 space-y-4">
             <ParticipantStatusView status={peepParticipant} layout="detail" />

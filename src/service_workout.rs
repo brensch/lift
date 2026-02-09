@@ -47,6 +47,11 @@ impl WorkoutService for MyWorkoutService {
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
+        if let Some(active) = user_db.get_active_workout().await
+            .map_err(|e| Status::internal(format!("Failed to check for active workout: {}", e)))? {
+            return Err(Status::failed_precondition(format!("A workout is already in progress (id: {}). End it before starting a new one.", active.id)));
+        }
+
         let workout_id = user_db.create_workout(&req.name, req.proposed_sets).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
