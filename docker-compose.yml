@@ -11,6 +11,8 @@ services:
       - WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net
     expose:
       - "50051"
+    networks:
+      - home_default
 
   frontend:
     build:
@@ -20,6 +22,8 @@ services:
       - PORT=5173
     expose:
       - "5173"
+    networks:
+      - home_default
 
   proxy:
     image: nginx:alpine
