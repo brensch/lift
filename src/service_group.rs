@@ -145,15 +145,32 @@ impl MultiplayerService for GroupService {
 
         let mut participant_statuses = Vec::new();
         for (user_id, workout_id) in participants {
-            let user = self.central_db.get_user(&user_id).await
-                .map_err(|e| Status::internal(e.to_string()))?
-                .ok_or_else(|| Status::not_found("User not found"))?;
+            if workout_id.is_empty() {
+                let user = self.central_db.get_user(&user_id).await
+                    .map_err(|e| Status::internal(e.to_string()))?
+                    .ok_or_else(|| Status::not_found("User not found"))?;
 
-            participant_statuses.push(ParticipantStatus {
-                user: Some(user),
-                active_workout_id: workout_id,
-                ..Default::default()
-            });
+                participant_statuses.push(ParticipantStatus {
+                    user: Some(user),
+                    active_workout_id: String::new(),
+                    ..Default::default()
+                });
+            } else {
+                match self.session_manager.get_participant_workout(&user_id, &workout_id).await {
+                    Ok(status) => participant_statuses.push(status),
+                    Err(_) => {
+                        let user = self.central_db.get_user(&user_id).await
+                            .map_err(|e| Status::internal(e.to_string()))?
+                            .ok_or_else(|| Status::not_found("User not found"))?;
+
+                        participant_statuses.push(ParticipantStatus {
+                            user: Some(user),
+                            active_workout_id: workout_id,
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
         }
 
         Ok(Response::new(SessionStatus {
