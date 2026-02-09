@@ -5,7 +5,7 @@ import { WorkoutView } from '@/components/WorkoutView'
 import { multiplayerClient, withUserId } from '@/lib/client'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Modal } from '@/components/ui/modal'
 
 type Route =
   | { view: 'login' }
@@ -149,34 +149,33 @@ function App() {
   return (
     <>
       {pendingJoin && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-          <Card className="w-full max-w-sm shadow-2xl border-2 border-primary">
-            <CardContent className="pt-6 space-y-4">
-              <h3 className="text-xl font-bold text-center">Join Session?</h3>
-              <p className="text-sm text-center text-muted-foreground">
-                Would you like to join the session with these people?
-              </p>
-              <div className="space-y-2 py-2">
-                {pendingJoin.status.participants.map(p => (
-                  <div key={p.user?.id} className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                      {p.user?.name[0].toUpperCase()}
-                    </div>
-                    <span className="font-medium">{p.user?.name}</span>
+        <Modal 
+          title="Join Session?" 
+          description="Would you like to join the session with these people?"
+          onClose={() => { setPendingJoin(null); sessionStorage.removeItem('liftJoinSession'); }}
+          className="max-w-sm"
+        >
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              {pendingJoin.status.participants.map(p => (
+                <div key={p.user?.id} className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                    {p.user?.name[0].toUpperCase()}
                   </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => { setPendingJoin(null); sessionStorage.removeItem('liftJoinSession'); }}>
-                  Cancel
-                </Button>
-                <Button className="flex-1" onClick={handleConfirmJoin}>
-                  Join
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  <span className="font-medium">{p.user?.name}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setPendingJoin(null); sessionStorage.removeItem('liftJoinSession'); }}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={handleConfirmJoin}>
+                Join
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {(() => {

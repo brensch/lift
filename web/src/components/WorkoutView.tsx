@@ -13,6 +13,7 @@ import {
 } from '@/gen/workout/v1/workout_pb'
 import { ExerciseGroup, groupSetsByExercise } from './ExerciseGroup'
 import { Pencil } from 'lucide-react'
+import { Modal } from './ui/modal'
 import { SessionHeader } from './SessionHeader'
 
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
@@ -251,100 +252,93 @@ function PlateCalculatorModal({ weight, onSave, onClose }: {
   const plates = calcPlatesPerSide(clamped)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="font-bold">Edit Weight</span>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">&times;</button>
-          </div>
-
-          {/* Barbell visualization */}
-          <div className="flex items-center justify-center h-24 gap-0">
-            {/* Left plates (reversed so biggest is closest to center) */}
-            <div className="flex items-center gap-0.5 flex-row-reverse">
-              {plates.map((p, i) => (
-                <div
-                  key={`l-${i}`}
-                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
-                  title={`${p} lbs`}
-                />
-              ))}
-            </div>
-            {/* Bar */}
-            <div className="h-2 w-16 bg-gray-500" />
-            {/* Right plates */}
-            <div className="flex items-center gap-0.5">
-              {plates.map((p, i) => (
-                <div
-                  key={`r-${i}`}
-                  className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
-                  title={`${p} lbs`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Plate legend */}
-          <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
-            {[45, 25, 10, 5, 2.5].map((p) => (
-              <span key={p} className="flex items-center gap-0.5">
-                <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
-                {p}
-              </span>
+    <Modal title="Edit Weight" onClose={onClose} className="max-w-sm">
+      <div className="p-6 space-y-4">
+        {/* Barbell visualization */}
+        <div className="flex items-center justify-center h-24 gap-0">
+          {/* Left plates (reversed so biggest is closest to center) */}
+          <div className="flex items-center gap-0.5 flex-row-reverse">
+            {plates.map((p, i) => (
+              <div
+                key={`l-${i}`}
+                className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                title={`${p} lbs`}
+              />
             ))}
           </div>
-
-          {/* Weight display + direct input */}
-          <div className="text-center">
-            <Input
-              type="number"
-              value={clamped}
-              onChange={(e) => setValue(snap(Number(e.target.value)))}
-              className="text-3xl font-bold text-center h-14 text-foreground"
-              min={45}
-              max={500}
-              step={5}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              {clamped === 45 ? 'Empty bar' : `${plates.map((p) => p).join(' + ')} per side`}
-            </p>
+          {/* Bar */}
+          <div className="h-2 w-16 bg-gray-500" />
+          {/* Right plates */}
+          <div className="flex items-center gap-0.5">
+            {plates.map((p, i) => (
+              <div
+                key={`r-${i}`}
+                className={`${PLATE_COLORS[p]} ${PLATE_WIDTHS[p]} ${PLATE_HEIGHTS[p]} rounded-sm`}
+                title={`${p} lbs`}
+              />
+            ))}
           </div>
+        </div>
 
-          {/* Slider */}
-          <input
-            type="range"
+        {/* Plate legend */}
+        <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
+          {[45, 25, 10, 5, 2.5].map((p) => (
+            <span key={p} className="flex items-center gap-0.5">
+              <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
+              {p}
+            </span>
+          ))}
+        </div>
+
+        {/* Weight display + direct input */}
+        <div className="text-center">
+          <Input
+            type="number"
+            value={clamped}
+            onChange={(e) => setValue(snap(Number(e.target.value)))}
+            className="text-3xl font-bold text-center h-14 text-foreground"
             min={45}
             max={500}
             step={5}
-            value={clamped}
-            onChange={(e) => setValue(Number(e.target.value))}
-            className="w-full accent-primary"
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            {clamped === 45 ? 'Empty bar' : `${plates.map((p) => p).join(' + ')} per side`}
+          </p>
+        </div>
 
-          {/* +/- buttons */}
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 45))} disabled={clamped <= 45}>
-              −45
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 5))} disabled={clamped <= 45}>
-              −5
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 5))} disabled={clamped >= 500}>
-              +5
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 45))} disabled={clamped >= 500}>
-              +45
-            </Button>
-          </div>
+        {/* Slider */}
+        <input
+          type="range"
+          min={45}
+          max={500}
+          step={5}
+          value={clamped}
+          onChange={(e) => setValue(Number(e.target.value))}
+          className="w-full accent-primary"
+        />
 
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-            <Button className="flex-1" onClick={() => onSave(clamped)}>Save</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        {/* +/- buttons */}
+        <div className="flex justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 45))} disabled={clamped <= 45}>
+            −45
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped - 5))} disabled={clamped <= 45}>
+            −5
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 5))} disabled={clamped >= 500}>
+            +5
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setValue(snap(clamped + 45))} disabled={clamped >= 500}>
+            +45
+          </Button>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+          <Button className="flex-1" onClick={() => onSave(clamped)}>Save</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -361,38 +355,32 @@ function AddSetModal({ onAdd, onClose, loading }: {
   const [warmup, setWarmup] = useState(false)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <CardContent className="pt-6 space-y-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-bold">Add Set</span>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">&times;</button>
-          </div>
-          <select
-            className="w-full p-2 border rounded-md bg-background text-sm"
-            value={exercise}
-            onChange={(e) => setExercise(Number(e.target.value) as Exercise)}
-          >
-            <option value={Exercise.SQUAT}>Squat</option>
-            <option value={Exercise.BENCH_PRESS}>Bench Press</option>
-            <option value={Exercise.DEADLIFT}>Deadlift</option>
-            <option value={Exercise.OVERHEAD_PRESS}>OHP</option>
-            <option value={Exercise.BARBELL_ROW}>Row</option>
-          </select>
-          <div className="grid grid-cols-2 gap-2">
-            <Input type="number" value={reps} onChange={(e) => setReps(Number(e.target.value))} placeholder="Reps" />
-            <Input type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} placeholder="Weight" />
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={warmup} onChange={(e) => setWarmup(e.target.checked)} className="rounded" />
-            Warmup
-          </label>
-          <Button className="w-full" onClick={() => onAdd(exercise, reps, weight, warmup)} disabled={loading}>
-            {loading ? 'Adding...' : 'Add'}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <Modal title="Add Set" onClose={onClose} className="max-w-sm">
+      <div className="p-6 space-y-4">
+        <select
+          className="w-full p-2 border rounded-md bg-background text-sm"
+          value={exercise}
+          onChange={(e) => setExercise(Number(e.target.value) as Exercise)}
+        >
+          <option value={Exercise.SQUAT}>Squat</option>
+          <option value={Exercise.BENCH_PRESS}>Bench Press</option>
+          <option value={Exercise.DEADLIFT}>Deadlift</option>
+          <option value={Exercise.OVERHEAD_PRESS}>OHP</option>
+          <option value={Exercise.BARBELL_ROW}>Row</option>
+        </select>
+        <div className="grid grid-cols-2 gap-2">
+          <Input type="number" value={reps} onChange={(e) => setReps(Number(e.target.value))} placeholder="Reps" />
+          <Input type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} placeholder="Weight" />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={warmup} onChange={(e) => setWarmup(e.target.checked)} className="rounded" />
+          Warmup
+        </label>
+        <Button className="w-full h-12 text-lg font-bold" onClick={() => onAdd(exercise, reps, weight, warmup)} disabled={loading}>
+          {loading ? 'Adding...' : 'Add Set'}
+        </Button>
+      </div>
+    </Modal>
   )
 }
 

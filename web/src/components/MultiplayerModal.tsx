@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { multiplayerClient, withUserId } from '@/lib/client'
 import QRCode from 'react-qr-code'
 import { Html5QrcodeScanner } from 'html5-qrcode'
-import { Camera, X, Share } from 'lucide-react'
+import { Camera, Share } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
 
 interface MultiplayerModalProps {
   userId: string
@@ -105,73 +105,68 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <Card className="w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <CardContent className="pt-6 space-y-4 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Multiplayer</h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="w-5 h-5" />
+    <Modal 
+      title="Multiplayer" 
+      onClose={onClose}
+      className="max-w-md"
+    >
+      <div className="p-6 space-y-4">
+        {!effectiveSessionId ? (
+          <div className="space-y-4">
+            <Button 
+              className="w-full h-12 text-lg font-bold" 
+              onClick={handleStartSession}
+            >
+              Start a Session
             </Button>
-          </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Create a session to let others follow your progress
+            </p>
+            
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or scan to join</span>
+              </div>
+            </div>
 
-          {!effectiveSessionId ? (
-            <div className="space-y-4 py-4">
+            <div className="flex gap-2">
               <Button 
-                className="w-full h-12 text-lg font-bold" 
-                onClick={handleStartSession}
+                variant={showScanner ? 'default' : 'outline'} 
+                className="flex-1"
+                onClick={() => setShowScanner(!showScanner)}
               >
-                Start a Session
+                <Camera className="w-4 h-4 mr-2" /> {showScanner ? 'Cancel Scan' : 'Scan QR Code'}
               </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Create a session to let others follow your progress
-              </p>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or scan to join</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  variant={showScanner ? 'default' : 'outline'} 
-                  className="flex-1"
-                  onClick={() => setShowScanner(!showScanner)}
-                >
-                  <Camera className="w-4 h-4 mr-2" /> {showScanner ? 'Cancel Scan' : 'Scan QR Code'}
-                </Button>
-              </div>
-
-              {showScanner && (
-                <div className="py-4">
-                  <div id="qr-reader" className="w-full rounded-lg overflow-hidden border" />
-                </div>
-              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center space-y-4 py-4">
-              <div className="bg-white p-4 rounded-xl">
-                <QRCode value={joinUrl} size={200} />
+
+            {showScanner && (
+              <div className="py-4">
+                <div id="qr-reader" className="w-full rounded-lg overflow-hidden border" />
               </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Active Session ID: <span className="font-mono">{effectiveSessionId}</span>
-              </p>
-              <div className="flex gap-2 w-full">
-                <Button variant="outline" className="flex-1" onClick={handleShare}>
-                  <Share className="w-4 h-4 mr-2" /> Share Link
-                </Button>
-                <Button variant="destructive" className="flex-1" onClick={handleLeave}>
-                  Leave Session
-                </Button>
-              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center space-y-4">
+            <div className="bg-white p-4 rounded-xl shadow-inner border">
+              <QRCode value={joinUrl} size={200} />
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Active Session ID: <span className="font-mono font-bold text-foreground">{effectiveSessionId}</span>
+            </p>
+            <div className="flex gap-2 w-full pt-2">
+              <Button variant="outline" className="flex-1" onClick={handleShare}>
+                <Share className="w-4 h-4 mr-2" /> Share Link
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={handleLeave}>
+                Leave Session
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
   )
 }
