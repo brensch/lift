@@ -258,6 +258,14 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                     >
                       Instead, do {(scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A'}
                     </Button>
+                    <Button
+                      onClick={() => handleStartWorkout('Custom')}
+                      disabled={loading}
+                      variant="ghost"
+                      className="w-full text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1"
+                    >
+                      Start Custom Session
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -402,15 +410,6 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                 View All Progress Charts
               </Button>
             </div>
-
-            <Button
-              onClick={() => handleStartWorkout('Custom')}
-              disabled={loading}
-              variant="ghost"
-              className="w-full text-xs uppercase tracking-widest font-bold text-muted-foreground"
-            >
-              Start Custom Session
-            </Button>
           </>
         )}
 
