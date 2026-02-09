@@ -8,6 +8,26 @@ serve({
   async fetch(req) {
     const url = new URL(req.url);
 
+    // Proxy auth REST requests to backend
+    if (backendUrl && url.pathname.startsWith("/auth/")) {
+        const target = backendUrl + url.pathname + url.search;
+        console.log(`Proxying ${url.pathname} to ${target}`);
+        try {
+            const backendRes = await fetch(target, {
+                method: req.method,
+                headers: req.headers,
+                body: req.body,
+            });
+            return new Response(backendRes.body, {
+                status: backendRes.status,
+                headers: backendRes.headers,
+            });
+        } catch (e) {
+            console.error("Proxy error:", e);
+            return new Response("Backend unavailable", { status: 502 });
+        }
+    }
+
     // Proxy API requests to backend (gRPC-Web)
     if (backendUrl && url.pathname.startsWith("/workout.v1.")) {
         // Construct backend URL

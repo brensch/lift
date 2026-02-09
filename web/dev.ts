@@ -55,6 +55,20 @@ const server = Bun.serve({
       return new Response("Upgrade failed", { status: 400 });
     }
 
+    // Proxy auth REST requests
+    if (url.pathname.startsWith("/auth/")) {
+      try {
+        const res = await fetch("http://localhost:50051" + url.pathname + url.search, {
+          method: req.method,
+          headers: req.headers,
+          body: req.body,
+        });
+        return new Response(res.body, { status: res.status, headers: res.headers });
+      } catch {
+        return new Response("Backend unavailable", { status: 502 });
+      }
+    }
+
     // Proxy API requests
     if (url.pathname.startsWith("/workout.v1.")) {
       try {

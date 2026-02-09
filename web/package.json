@@ -14,6 +14,7 @@
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-web": "^2.0.0",
     "@radix-ui/react-slot": "^1.0.2",
+    "@simplewebauthn/browser": "^11.0.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "html5-qrcode": "^2.3.8",

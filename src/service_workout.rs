@@ -12,29 +12,40 @@ use lift::workout::v1::{
     GetActiveWorkoutRequest, GetActiveWorkoutResponse,
     GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse,
 };
-use crate::db::UserDb;
+use crate::db::{CentralDb, UserDb};
 use crate::scheduler::Scheduler;
 use crate::service_group::SessionManager;
 
 pub struct MyWorkoutService {
+    central_db: CentralDb,
     session_manager: Arc<SessionManager>,
 }
 
 impl MyWorkoutService {
-    pub fn new(session_manager: Arc<SessionManager>) -> Self {
-        Self { session_manager }
+    pub fn new(central_db: CentralDb, session_manager: Arc<SessionManager>) -> Self {
+        Self { central_db, session_manager }
     }
 }
 
-// Helper to extract user_id from request metadata
-pub fn get_user_id<T>(request: &Request<T>) -> Result<String, Status> {
+// Helper to extract user_id from request metadata.
+// Prefers x-session-token (validated via DB), falls back to x-user-id.
+pub async fn get_user_id_authenticated<T>(request: &Request<T>, central_db: &CentralDb) -> Result<String, Status> {
+    // First try session token
+    if let Some(token) = request.metadata().get("x-session-token").and_then(|v| v.to_str().ok()) {
+        if let Ok(Some(user_id)) = central_db.validate_auth_session(token).await {
+            return Ok(user_id);
+        }
+    }
+
+    // Fall back to raw user-id (migration period)
     request
         .metadata()
         .get("x-user-id")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
-        .ok_or_else(|| Status::unauthenticated("x-user-id header is required"))
+        .ok_or_else(|| Status::unauthenticated("Authentication required"))
 }
+
 
 #[tonic::async_trait]
 impl WorkoutService for MyWorkoutService {
@@ -42,7 +53,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<StartWorkoutRequest>,
     ) -> Result<Response<StartWorkoutResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         let user_db = UserDb::new(&user_id).await
@@ -66,7 +77,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<GetWorkoutRequest>,
     ) -> Result<Response<GetWorkoutResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         if req.workout_id.is_empty() {
@@ -97,7 +108,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<ListWorkoutsRequest>,
     ) -> Result<Response<ListWorkoutsResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
@@ -112,7 +123,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<ModifyProposedSetsRequest>,
     ) -> Result<Response<ModifyProposedSetsResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         if req.workout_id.is_empty() {
@@ -134,7 +145,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<StartSetRequest>,
     ) -> Result<Response<StartSetResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         if req.workout_id.is_empty() {
@@ -161,7 +172,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<CompleteSetRequest>,
     ) -> Result<Response<CompleteSetResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         if req.workout_id.is_empty() {
@@ -193,7 +204,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<EndWorkoutRequest>,
     ) -> Result<Response<EndWorkoutResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         if req.workout_id.is_empty() {
@@ -221,7 +232,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<GetActiveWorkoutRequest>,
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
@@ -236,7 +247,7 @@ impl WorkoutService for MyWorkoutService {
         &self,
         request: Request<GetProposedWorkoutScheduleRequest>,
     ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;

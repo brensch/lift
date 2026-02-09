@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use crate::db::{CentralDb, UserDb};
-use crate::service_workout::get_user_id;
+use crate::service_workout::get_user_id_authenticated;
 use lift::workout::v1::multiplayer_service_server::MultiplayerService;
 use lift::workout::v1::*;
 
@@ -77,7 +77,7 @@ impl MultiplayerService for GroupService {
         &self,
         request: Request<StartSessionRequest>,
     ) -> Result<Response<StartSessionResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
         let session_id = uuid::Uuid::new_v4().to_string();
 
@@ -98,7 +98,7 @@ impl MultiplayerService for GroupService {
         &self,
         request: Request<JoinSessionRequest>,
     ) -> Result<Response<JoinSessionResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
         
         println!("User {} joining session {} with workout {}", user_id, req.session_id, req.workout_id);
@@ -120,7 +120,7 @@ impl MultiplayerService for GroupService {
         &self,
         request: Request<LeaveSessionRequest>,
     ) -> Result<Response<LeaveSessionResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         
         if let Some(session_id) = self.central_db.get_session_id(&user_id).await.map_err(|e| Status::internal(e.to_string()))? {
             self.central_db.leave_session(&user_id).await
@@ -192,7 +192,7 @@ impl MultiplayerService for GroupService {
         &self,
         request: Request<GetMyActiveSessionRequest>,
     ) -> Result<Response<GetMyActiveSessionResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(e.to_string()))?;
         
@@ -209,7 +209,7 @@ impl MultiplayerService for GroupService {
         &self,
         request: Request<UpdateActiveWorkoutRequest>,
     ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
-        let user_id = get_user_id(&request)?;
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
         self.session_manager.update_active_workout(&user_id, &req.workout_id).await
