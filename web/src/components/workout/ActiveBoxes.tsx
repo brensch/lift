@@ -15,11 +15,17 @@ interface ActionBoxProps {
   bgColor?: string
   title?: React.ReactNode
   icon?: React.ReactNode
+  label?: string
 }
 
-function ActionBox({ children, className, borderColor, bgColor, title, icon }: ActionBoxProps) {
+function ActionBox({ children, className, borderColor, bgColor, title, icon, label }: ActionBoxProps) {
   return (
-    <Card className={cn("border-2 transition-colors", borderColor, bgColor, className)}>
+    <Card className={cn("border-2 transition-colors relative overflow-hidden", borderColor, bgColor, className)}>
+      {label && (
+        <div className="absolute top-0 right-0 bg-muted-foreground/10 text-muted-foreground text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
+          {label}
+        </div>
+      )}
       <CardContent className="pt-6 pb-4">
         {(title || icon) && (
           <div className="flex items-center justify-center gap-2 mb-2 text-muted-foreground">
@@ -45,6 +51,7 @@ export function GroupNextUpBox({ participant, restUntil, nextSet }: {
 
   return (
     <ActionBox
+      label="Group"
       borderColor="border-purple-500/30"
       bgColor="bg-purple-500/5"
       icon={<UserIcon className="w-4 h-4" />}
@@ -87,6 +94,7 @@ export function RestingBox({ restUntil, nextSet, onStartEarly, onEditWeight, onS
 
   return (
     <ActionBox
+      label="You"
       borderColor="border-blue-500/50"
       bgColor="bg-blue-500/5"
       title="Resting"
@@ -131,6 +139,7 @@ export function ActiveSetBox({ proposedSet, completedSet, onComplete, onEditWeig
 
   return (
     <ActionBox
+      label="You"
       borderColor={proposedSet.warmup ? 'border-blue-500' : 'border-primary'}
       className="shadow-sm"
     >
@@ -202,6 +211,7 @@ export function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onEditWeig
 
   return (
     <ActionBox
+      label="You"
       borderColor="border-orange-500/50"
       bgColor="bg-orange-500/5"
       title="Chat Time"
@@ -240,6 +250,7 @@ export function NextUpBox({ nextSet, onStart, loading, onEditWeight, onSkipWarmu
 }) {
   return (
     <ActionBox
+      label="You"
       borderColor="border-dashed border-muted-foreground/30"
       title="Next Up"
     >
