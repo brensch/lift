@@ -7,15 +7,19 @@ import { Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
 import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
 import { EXERCISE_NAMES } from '@/lib/exercises'
+import { isSameDay, startOfDay, differenceInDays } from 'date-fns'
+import Calendar from 'react-calendar'
+import 'react-calendar/dist/Calendar.css'
 
 interface HomeViewProps {
   userId: string
   onLogout: () => void
   onStartWorkout: (workoutId: string) => void
   onViewWorkout: (workoutId: string) => void
+  onViewHistory: () => void
 }
 
-export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: HomeViewProps) {
+export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onViewHistory }: HomeViewProps) {
   const [userName, setUserName] = useState<string>('')
   const [workoutHistory, setWorkoutHistory] = useState<Workout[]>([])
   const [scheduleData, setScheduleData] = useState<{
@@ -163,6 +167,18 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
     return `${mins}m ${secs}s`
   }
 
+  const nextWorkout = scheduleData?.schedule[0]
+  const today = startOfDay(new Date())
+  const nextWorkoutDate = nextWorkout ? startOfDay(new Date(Number(nextWorkout.scheduledAt) * 1000)) : null
+  const isRestDay = nextWorkoutDate ? !isSameDay(nextWorkoutDate, today) : false
+  const daysUntilNext = nextWorkoutDate ? differenceInDays(nextWorkoutDate, today) : 0
+
+  const getWorkoutForDay = (date: Date) => {
+    const scheduled = scheduleData?.schedule.find(sw => isSameDay(new Date(Number(sw.scheduledAt) * 1000), date));
+    const completed = workoutHistory.find(w => isSameDay(new Date(Number(w.startTime) * 1000), date));
+    return { scheduled, completed };
+  }
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -207,19 +223,32 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
+              <Card className={isRestDay ? 'opacity-90' : 'border-primary ring-1 ring-primary/20'}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Recommended</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                      {isRestDay ? 'Next Up' : 'Today'}
+                    </CardTitle>
+                    {isRestDay && (
+                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-black uppercase">Rest Day</span>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-black uppercase mb-4">{scheduleData?.nextRecommendedWorkoutName || 'Workout A'}</p>
+                  <p className="text-3xl font-black uppercase mb-1">{scheduleData?.nextRecommendedWorkoutName || 'Workout A'}</p>
+                  {isRestDay && (
+                    <p className="text-xs font-bold text-muted-foreground mb-4 uppercase">Next session in {daysUntilNext} day{daysUntilNext === 1 ? '' : 's'}</p>
+                  )}
+                  {!isRestDay && (
+                    <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Time to lift.</p>
+                  )}
                   <div className="flex flex-col gap-2">
                     <Button 
                       className="w-full font-bold uppercase tracking-tighter" 
                       onClick={() => handleStartWorkout(scheduleData?.nextRecommendedWorkoutName || 'Workout A')}
                       disabled={loading}
                     >
-                      Start Recommended
+                      {isRestDay ? `Start ${scheduleData?.nextRecommendedWorkoutName}` : 'Start Recommended'}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -235,25 +264,40 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Schedule</CardTitle>
+                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Calendar</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-2">
-                    {scheduleData?.schedule.slice(0, 6).map((sw, i) => {
-                      const date = new Date(Number(sw.scheduledAt) * 1000)
-                      const isToday = date.toDateString() === new Date().toDateString()
+                <CardContent className="py-2 calendar-container">
+                  <Calendar
+                    className="border-none w-full"
+                    tileContent={({ date, view }) => {
+                      if (view !== 'month') return null;
+                      const { scheduled, completed } = getWorkoutForDay(date);
+                      if (!scheduled && !completed) return null;
+                      
+                      const type = (completed?.name || scheduled?.workoutName || '').split(' ')[1];
+                      if (!type) return null;
+
                       return (
-                        <div 
-                          key={i} 
-                          className={`p-2 rounded border flex flex-col items-center justify-center ${isToday ? 'border-primary bg-primary/5' : 'bg-muted/30'}`}
-                        >
-                          <span className="text-[10px] font-bold uppercase text-muted-foreground">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                          <span className="text-sm font-black">{date.toLocaleDateString('en-US', { day: 'numeric' })}</span>
-                          <span className="text-[10px] font-bold uppercase text-primary">{sw.workoutName.split(' ')[1]}</span>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="flex flex-col items-center">
+                            <span className={`text-[16px] font-black italic tracking-tighter ${
+                              isSameDay(date, today) ? 'text-primary-foreground' : 'text-primary'
+                            } ${completed ? 'opacity-100' : 'opacity-40'}`}>
+                              {type}
+                            </span>
+                            {completed && (
+                              <div className={`w-1 h-1 rounded-full ${
+                                isSameDay(date, today) ? 'bg-primary-foreground' : 'bg-primary'
+                              }`} />
+                            )}
+                          </div>
                         </div>
-                      )
-                    })}
-                  </div>
+                      );
+                    }}
+                    tileClassName={({ date }) => {
+                      return isSameDay(date, today) ? 'today-tile' : '';
+                    }}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -350,6 +394,13 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
                   )
                 })}
               </div>
+              <Button
+                onClick={onViewHistory}
+                variant="outline"
+                className="w-full text-xs uppercase tracking-widest font-bold"
+              >
+                View All Progress Charts
+              </Button>
             </div>
 
             <Button
