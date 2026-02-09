@@ -133,9 +133,9 @@ impl UserDb {
             return Ok(Self { pool: pool.clone() });
         }
 
-        let data_dir = "user_dbs";
+        let data_dir = "data/user_dbs";
         if !Path::new(data_dir).exists() {
-            fs::create_dir(data_dir)?;
+            fs::create_dir_all(data_dir)?;
         }
 
         let db_path = format!("{}/{}.sqlite", data_dir, user_id);
@@ -563,7 +563,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 
 impl CentralDb {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let data_dir = "user_dbs";
+        let data_dir = "data";
         if !Path::new(data_dir).exists() {
             fs::create_dir(data_dir)?;
         }
@@ -796,9 +796,9 @@ impl SessionDb {
             return Ok(Self { pool: pool.clone() });
         }
 
-        let data_dir = "user_dbs";
+        let data_dir = "data/session_dbs";
         if !Path::new(data_dir).exists() {
-            fs::create_dir(data_dir)?;
+            fs::create_dir_all(data_dir)?;
         }
 
         let db_path = format!("{}/{}.sqlite", data_dir, session_id);
