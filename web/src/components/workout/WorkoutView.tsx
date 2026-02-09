@@ -195,15 +195,14 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  const handleAddSet = async (ex: Exercise, r: number, w: number, warmup: boolean) => {
-    const newSet = create(ProposedSetSchema, {
+  const handleAddExercise = (ex: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
+    const seed = [create(ProposedSetSchema, {
       id: crypto.randomUUID(),
-      exercise: ex, targetReps: r, targetWeight: w, warmup, workoutOrder: proposedSets.length,
-    })
-    const res = await workoutClient.modifyProposedSets({
-      workoutId, proposedSets: [...proposedSets, newSet],
-    }, withUserId(userId))
-    setProposedSets(res.proposedSets)
+      exercise: ex, targetReps: 5, targetWeight: opts.targetWeight, warmup: false,
+    })]
+    const newSets = rebuildExerciseSets(seed, opts, () => false)
+    const groups = groupSetsByExercise(proposedSets)
+    saveGroups([...groups, { exercise: ex, sets: newSets }])
     setShowAddModal(false)
   }
 
@@ -307,7 +306,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
           />
         )}
         {showAddModal && (
-          <AddSetModal onClose={() => setShowAddModal(false)} loading={loading} onAdd={handleAddSet} />
+          <AddSetModal onClose={() => setShowAddModal(false)} onAdd={handleAddExercise} />
         )}
       </div>
     </div>
