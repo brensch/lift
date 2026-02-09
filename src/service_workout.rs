@@ -9,6 +9,7 @@ use lift::workout::v1::{
     StartSetRequest, StartSetResponse,
     CompleteSetRequest, CompleteSetResponse,
     EndWorkoutRequest, EndWorkoutResponse,
+    GetActiveWorkoutRequest, GetActiveWorkoutResponse,
     GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse,
 };
 use crate::db::UserDb;
@@ -214,6 +215,21 @@ impl WorkoutService for MyWorkoutService {
         Ok(Response::new(EndWorkoutResponse {
             workout: Some(workout),
         }))
+    }
+
+    async fn get_active_workout(
+        &self,
+        request: Request<GetActiveWorkoutRequest>,
+    ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
+        let user_id = get_user_id(&request)?;
+
+        let user_db = UserDb::new(&user_id).await
+            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+
+        let workout = user_db.get_active_workout().await
+            .map_err(|e| Status::internal(format!("Failed to get active workout: {}", e)))?;
+
+        Ok(Response::new(GetActiveWorkoutResponse { workout }))
     }
 
     async fn get_proposed_workout_schedule(

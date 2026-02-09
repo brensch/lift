@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
 import { WorkoutView } from '@/components/WorkoutView'
-import { multiplayerClient, withUserId } from '@/lib/client'
+import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
+import { X } from 'lucide-react'
 
 type Route =
   | { view: 'login' }
@@ -68,6 +69,8 @@ function App() {
   })
 
   const [pendingJoin, setPendingJoin] = useState<{ sessionId: string, status: SessionStatus } | null>(null)
+  const [joinSuccess, setJoinSuccess] = useState<string | null>(null)
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   // Handle joining a session after login
   useEffect(() => {
@@ -96,12 +99,25 @@ function App() {
       await multiplayerClient.joinSession({ sessionId: pendingJoin.sessionId, workoutId }, withUserId(route.userId));
       sessionStorage.removeItem('liftJoinSession');
       setPendingJoin(null);
-      alert('Successfully joined session!');
+      setJoinSuccess(`Joined session with ${pendingJoin.status.participants.length} people`);
+      
+      // Check for active workout and navigate to it
+      try {
+        const { workout } = await workoutClient.getActiveWorkout({}, withUserId(route.userId));
+        if (workout) {
+          navigate({ view: 'workout', userId: route.userId, workoutId: workout.id });
+        }
+      } catch (e) {
+        console.error('Failed to check for active workout after join:', e);
+      }
+      
+      setTimeout(() => setJoinSuccess(null), 5000);
     } catch (e) {
       console.error('Failed to join session:', e);
-      alert('Failed to join session.');
+      setJoinError('Failed to join session.');
       setPendingJoin(null);
       sessionStorage.removeItem('liftJoinSession');
+      setTimeout(() => setJoinError(null), 5000);
     }
   };
 
@@ -148,6 +164,21 @@ function App() {
 
   return (
     <>
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm px-4 space-y-2 pointer-events-none">
+        {joinSuccess && (
+          <div className="bg-green-600 text-white p-3 rounded-lg shadow-xl flex items-center justify-between pointer-events-auto animate-in fade-in slide-in-from-top-4">
+            <span className="text-sm font-bold">{joinSuccess}</span>
+            <button onClick={() => setJoinSuccess(null)}><X className="w-4 h-4" /></button>
+          </div>
+        )}
+        {joinError && (
+          <div className="bg-destructive text-white p-3 rounded-lg shadow-xl flex items-center justify-between pointer-events-auto animate-in fade-in slide-in-from-top-4">
+            <span className="text-sm font-bold">{joinError}</span>
+            <button onClick={() => setJoinError(null)}><X className="w-4 h-4" /></button>
+          </div>
+        )}
+      </div>
+
       {pendingJoin && (
         <Modal 
           title="Join Session?" 
