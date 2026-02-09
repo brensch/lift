@@ -33,3 +33,8 @@ services:
 
 volumes:
   user_dbs:
+
+# note this connects to the network set up by caddy in the home assist project
+networks:
+  home_default:
+    external: true
