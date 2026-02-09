@@ -7,6 +7,8 @@ services:
       - user_dbs:/app/user_dbs
     environment:
       - RUST_LOG=info
+      - WEBAUTHN_RP_ID=yourdomain.com
+      - WEBAUTHN_RP_ORIGIN=https://yourdomain.com
     expose:
       - "50051"
 

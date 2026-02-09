@@ -159,6 +159,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('liftUserId')
+    localStorage.removeItem('liftSessionToken')
     navigate({ view: 'login' })
   }
 

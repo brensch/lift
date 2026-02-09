@@ -9,12 +9,16 @@ use lift::workout::v1::{
 };
 use log::info;
 
+mod auth;
+mod auth_routes;
 mod db;
 mod scheduler;
 mod service_workout;
 mod service_user;
 mod service_group;
 
+use auth::AuthState;
+use auth_routes::auth_router;
 use db::CentralDb;
 use service_workout::MyWorkoutService;
 use service_user::MyUserService;
@@ -29,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let session_manager = Arc::new(SessionManager::new(central_db.clone()));
 
     let addr: SocketAddr = "0.0.0.0:50051".parse()?;
-    let workout_service = MyWorkoutService::new(session_manager.clone());
+    let workout_service = MyWorkoutService::new(central_db.clone(), session_manager.clone());
     let user_service = MyUserService::new(central_db.clone());
     let group_service = GroupService::new(central_db.clone(), session_manager.clone());
 
@@ -50,18 +54,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let user_service_web = tonic_web::enable(UserServiceServer::new(user_service));
     let multiplayer_service_web = tonic_web::enable(MultiplayerServiceServer::new(group_service));
 
-    // Start the gRPC server
-    println!("Server listening on {} (gRPC-Web only)", addr);
-
-    tonic::transport::Server::builder()
+    // Build gRPC router — used as fallback so it doesn't capture /auth/ paths
+    #[allow(deprecated)]
+    let grpc_router = tonic::transport::Server::builder()
         .accept_http1(true)
-        .tcp_nodelay(true)
-        .layer(cors)
         .add_service(workout_service_web)
         .add_service(user_service_web)
         .add_service(multiplayer_service_web)
-        .serve(addr)
-        .await?;
+        .into_router();
+
+    // Build auth REST router
+    let auth_state = Arc::new(AuthState::new(central_db.clone()));
+    let auth_routes = auth_router(auth_state);
+
+    // Auth routes checked first; gRPC handles everything else
+    let app = auth_routes
+        .fallback_service(grpc_router)
+        .layer(cors);
+
+    println!("Server listening on {} (gRPC-Web + REST)", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }

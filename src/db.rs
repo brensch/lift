@@ -480,6 +480,22 @@ CREATE TABLE IF NOT EXISTS active_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_active_sessions_session ON active_sessions(session_id);
+
+CREATE TABLE IF NOT EXISTS passkey_credentials (
+    credential_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    credential_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
 "#;
 
 impl CentralDb {
@@ -567,6 +583,54 @@ impl CentralDb {
         Ok(sqlx::query_as("SELECT user_id, workout_id FROM active_sessions WHERE session_id = ?")
             .bind(session_id)
             .fetch_all(&self.pool)
+            .await?)
+    }
+
+    pub async fn store_credential(&self, credential_id: &str, user_id: &str, credential_json: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        sqlx::query("INSERT OR REPLACE INTO passkey_credentials (credential_id, user_id, credential_json, created_at) VALUES (?, ?, ?, ?)")
+            .bind(credential_id)
+            .bind(user_id)
+            .bind(credential_json)
+            .bind(created_at)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_credentials_for_user(&self, user_id: &str) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar("SELECT credential_json FROM passkey_credentials WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_all(&self.pool)
+            .await?)
+    }
+
+    pub async fn get_all_credentials(&self) -> Result<Vec<(String, String)>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_as("SELECT user_id, credential_json FROM passkey_credentials")
+            .fetch_all(&self.pool)
+            .await?)
+    }
+
+    pub async fn create_auth_session(&self, user_id: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let token = Uuid::new_v4().to_string();
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let expires_at = now + 30 * 24 * 60 * 60; // 30 days
+        sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
+            .bind(&token)
+            .bind(user_id)
+            .bind(now)
+            .bind(expires_at)
+            .execute(&self.pool)
+            .await?;
+        Ok(token)
+    }
+
+    pub async fn validate_auth_session(&self, token: &str) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        Ok(sqlx::query_scalar("SELECT user_id FROM auth_sessions WHERE token = ? AND expires_at > ?")
+            .bind(token)
+            .bind(now)
+            .fetch_optional(&self.pool)
             .await?)
     }
 }
