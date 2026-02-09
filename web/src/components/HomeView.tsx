@@ -62,6 +62,8 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
+  const activeWorkout = workoutHistory.find(w => w.endTime === 0n)
+
   useEffect(() => {
     loadData()
     userClient.getUser({ userId }, withUserId(userId))
@@ -141,77 +143,101 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
           </div>
         )}
 
-        {/* Proposed Workouts */}
-        {proposedWorkouts.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Schedule</CardTitle>
-              <CardDescription>StrongLifts 5x5 - Pick a workout to start</CardDescription>
+        {/* Workout in Progress */}
+        {activeWorkout ? (
+          <Card className="border-2 border-primary animate-pulse">
+            <CardHeader className="text-center">
+              <CardTitle className="text-primary">Workout in Progress</CardTitle>
+              <CardDescription>You have an active workout session</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {proposedWorkouts.map((pw, idx) => {
-                const exerciseGroups = groupSetsByExercise(pw.proposedSets)
-                const isToday = idx === 0
-
-                return (
-                  <div
-                    key={idx}
-                    className={`p-4 rounded-lg border ${
-                      isToday ? 'border-primary bg-primary/5' : 'bg-muted'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <span className={`font-bold ${isToday ? 'text-primary' : ''}`}>
-                          {pw.name}
-                        </span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          {formatDate(pw.scheduledFor)}
-                        </span>
-                        {isToday && (
-                          <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
-                            Next
-                          </span>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleStartWorkout(pw)}
-                        disabled={loading}
-                      >
-                        Start
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {exerciseGroups.map((g, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
-                        >
-                          <span>{EXERCISE_EMOJIS[g.exercise]}</span>
-                          <span>{EXERCISE_NAMES[g.exercise]}</span>
-                          <span className="text-muted-foreground">
-                            {g.sets.length}&times;{g.sets[0]?.targetReps} &middot; {g.sets[0]?.targetWeight}lbs
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
+            <CardContent className="flex flex-col items-center gap-4">
+              <div className="text-center">
+                <p className="text-xl font-bold">{activeWorkout.name || 'Custom Workout'}</p>
+                <p className="text-sm text-muted-foreground">Started at {new Date(Number(activeWorkout.startTime) * 1000).toLocaleTimeString()}</p>
+              </div>
+              <Button 
+                className="w-full h-12 text-lg font-bold"
+                onClick={() => onStartWorkout(activeWorkout.id)}
+              >
+                Resume Workout
+              </Button>
             </CardContent>
           </Card>
-        )}
+        ) : (
+          <>
+            {/* Proposed Workouts */}
+            {proposedWorkouts.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Schedule</CardTitle>
+                  <CardDescription>StrongLifts 5x5 - Pick a workout to start</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {proposedWorkouts.map((pw, idx) => {
+                    const exerciseGroups = groupSetsByExercise(pw.proposedSets)
+                    const isToday = idx === 0
 
-        {/* Custom Workout */}
-        <Button
-          onClick={() => handleStartWorkout()}
-          disabled={loading}
-          variant="outline"
-          className="w-full"
-        >
-          {loading ? 'Starting...' : 'Start Custom Workout'}
-        </Button>
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border ${
+                          isToday ? 'border-primary bg-primary/5' : 'bg-muted'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <span className={`font-bold ${isToday ? 'text-primary' : ''}`}>
+                              {pw.name}
+                            </span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              {formatDate(pw.scheduledFor)}
+                            </span>
+                            {isToday && (
+                              <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
+                                Next
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleStartWorkout(pw)}
+                            disabled={loading}
+                          >
+                            Start
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {exerciseGroups.map((g, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
+                            >
+                              <span>{EXERCISE_EMOJIS[g.exercise]}</span>
+                              <span>{EXERCISE_NAMES[g.exercise]}</span>
+                              <span className="text-muted-foreground">
+                                {g.sets.length}&times;{g.sets[0]?.targetReps} &middot; {g.sets[0]?.targetWeight}lbs
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Custom Workout */}
+            <Button
+              onClick={() => handleStartWorkout()}
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+            >
+              {loading ? 'Starting...' : 'Start Custom Workout'}
+            </Button>
+          </>
+        )}
 
         {/* Workout History */}
         {workoutHistory.length > 0 && (
@@ -244,9 +270,8 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
               </ul>
             </CardContent>
           </Card>
-                )}
-              </div>
-            </div>
-          )
-        }
-        
+        )}
+      </div>
+    </div>
+  )
+}
