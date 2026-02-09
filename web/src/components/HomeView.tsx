@@ -5,24 +5,7 @@ import { workoutClient, userClient, withUserId } from '@/lib/client'
 import type { Workout, ProposedWorkout, ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { Exercise } from '@/gen/workout/v1/workout_pb'
 import { SessionHeader } from './SessionHeader'
-
-const EXERCISE_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: 'Select Exercise',
-  [Exercise.SQUAT]: 'Squat',
-  [Exercise.BENCH_PRESS]: 'Bench Press',
-  [Exercise.DEADLIFT]: 'Deadlift',
-  [Exercise.OVERHEAD_PRESS]: 'Overhead Press',
-  [Exercise.BARBELL_ROW]: 'Barbell Row',
-}
-
-const EXERCISE_EMOJIS: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '❓',
-  [Exercise.SQUAT]: '🦵',
-  [Exercise.BENCH_PRESS]: '🏋️',
-  [Exercise.DEADLIFT]: '⚡',
-  [Exercise.OVERHEAD_PRESS]: '🙌',
-  [Exercise.BARBELL_ROW]: '🚣',
-}
+import { EXERCISE_NAMES, EXERCISE_EMOJIS } from '@/lib/exercises'
 
 interface HomeViewProps {
   userId: string
