@@ -4,21 +4,22 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tonic = "0.12"           # gRPC implementation
-tonic-web = "0.12"       # gRPC-Web support for browser clients
-prost = "0.13"           # Protocol Buffers implementation
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] } # Async runtime
-futures-util = "0.3"     # Utilities for async streams
-sqlx = { version = "0.7", features = ["runtime-tokio", "tls-native-tls", "sqlite"] }
-uuid = { version = "1.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
-tower-http = { version = "0.5", features = ["cors", "trace"] }
-tower = { version = "0.4", features = ["util"] }
-http = "1.0"
-chrono = "0.4"
-log = "0.4"
-env_logger = "0.11"
-dashmap = "6.1"
-tokio-stream = { version = "0.1", features = ["sync"] }
+tonic = "0.12.3"
+tonic-web = "0.12.3"
+prost = "0.13.4"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
+futures-util = "0.3.31"
+sqlx = { version = "0.8.2", features = ["runtime-tokio", "tls-native-tls", "sqlite"] }
+uuid = { version = "1.11.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+tower-http = { version = "0.6.2", features = ["cors", "trace", "compression-full"] }
+tower = { version = "0.5.1", features = ["util"] }
+axum = "0.7.9"
+http = "1.2.0"
+chrono = "0.4.39"
+log = "0.4.22"
+env_logger = "0.11.5"
+dashmap = "6.1.0"
+tokio-stream = { version = "0.1.17", features = ["sync"] }
 
 [build-dependencies]
-tonic-build = "0.12"     # Compiles .proto files into Rust
+tonic-build = "0.12.3"

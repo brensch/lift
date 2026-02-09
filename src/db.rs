@@ -250,13 +250,13 @@ impl UserDb {
             let workout_order = if set.workout_order == 0 { idx as i32 } else { set.workout_order };
 
             values_placeholders.push("(?, ?, ?, ?, ?, ?, ?)".to_string());
-            args.add(set_id.clone());
-            args.add(workout_id);
-            args.add(workout_order);
-            args.add(set.exercise);
-            args.add(set.target_reps);
-            args.add(set.target_weight);
-            args.add(set.warmup);
+            args.add(set_id.clone())?;
+            args.add(workout_id)?;
+            args.add(workout_order)?;
+            args.add(set.exercise)?;
+            args.add(set.target_reps)?;
+            args.add(set.target_weight)?;
+            args.add(set.warmup)?;
 
             result.push(ProposedSet {
                 id: set_id,
