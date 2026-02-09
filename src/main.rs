@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let central_db = CentralDb::new().await?;
     let session_manager = Arc::new(SessionManager::new(central_db.clone()));
 
-    let addr = "127.0.0.1:50051".parse()?;
+    let addr = "0.0.0.0:50051".parse()?;
     let workout_service = MyWorkoutService::new(session_manager.clone());
     let user_service = MyUserService::new(central_db.clone());
     let group_service = GroupService::new(central_db.clone(), session_manager.clone());

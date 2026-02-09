@@ -4,7 +4,7 @@ import { WorkoutService, UserService } from "../gen/workout/v1/workout_pb";
 import { MultiplayerService } from "../gen/workout/v1/group_pb";
 
 const transport = createGrpcWebTransport({
-  baseUrl: "http://127.0.0.1:50051",
+  baseUrl: window.location.origin,
 });
 
 export const workoutClient = createClient(WorkoutService, transport);
