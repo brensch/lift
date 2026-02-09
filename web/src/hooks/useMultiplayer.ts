@@ -12,10 +12,11 @@ export function useMultiplayer(userId: string, workoutId?: string) {
 
     const poll = async () => {
       try {
-        // 1. Check current active session
-        const { sessionId: activeSessionId } = await multiplayerClient.getMyActiveSession({}, withUserId(userId))
-        
-        if (!activeSessionId) {
+        // 1. Get current session and status in one call
+        const response = await multiplayerClient.getCurrentSession({}, withUserId(userId))
+        const { sessionId: activeSessionId, sessionStatus: status } = response
+
+        if (!activeSessionId || !status) {
           if (active) setSessionStatus(null);
           lastSyncWorkoutId.current = undefined;
           return;
@@ -26,9 +27,6 @@ export function useMultiplayer(userId: string, workoutId?: string) {
           await multiplayerClient.updateActiveWorkout({ workoutId: workoutId || '' }, withUserId(userId))
           lastSyncWorkoutId.current = workoutId;
         }
-
-        // 2. Get the list of participants in this session
-        const status = await multiplayerClient.getSessionStatus({ sessionId: activeSessionId }, withUserId(userId))
 
         if (active) {
           setSessionStatus((prev) => {

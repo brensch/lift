@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
-use crate::db::{CentralDb, UserDb};
+use crate::db::{CentralDb, UserDb, SessionDb};
 use crate::service_workout::get_user_id_authenticated;
 use lift::workout::v1::multiplayer_service_server::MultiplayerService;
 use lift::workout::v1::*;
@@ -16,41 +16,51 @@ impl SessionManager {
         }
     }
 
-    pub async fn get_participant_workout(&self, user_id: &str, workout_id: &str) -> Result<ParticipantStatus, Status> {
-        let user = self.central_db.get_user(user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("User not found"))?;
-
-        let user_db = UserDb::new(user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        
-        let active_workout = user_db.get_workout(workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("Workout not found"))?;
-
-        let mut status = ParticipantStatus {
-            user: Some(user),
-            active_workout_id: active_workout.id.clone(),
-            active_workout: Some(active_workout),
-            proposed_sets: Vec::new(),
-            completed_sets: Vec::new(),
-        };
-
-        status.proposed_sets = user_db.get_proposed_sets(workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        status.completed_sets = user_db.get_completed_sets(workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(status)
+    pub async fn notify_user_update(&self, user_id: &str) {
+        if let Err(e) = self.sync_user_state(user_id).await {
+            eprintln!("Failed to sync user state for {}: {}", user_id, e);
+        }
     }
 
-    pub async fn notify_user_update(&self, _user_id: &str) {
-        // No-op for polling model, or could be used for other purposes
+    pub async fn sync_user_state(&self, user_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let session_id = match self.central_db.get_session_id(user_id).await? {
+            Some(id) => id,
+            None => return Ok(()),
+        };
+
+        let user_db = UserDb::new(user_id).await?;
+        let session_db = SessionDb::new(&session_id).await?;
+
+        // 1. Get user info and active workout
+        let user = self.central_db.get_user(user_id).await?
+            .ok_or("User not found")?; // Should exist
+        
+        let active_workout = user_db.get_active_workout().await?;
+        let active_workout_id = active_workout.as_ref().map(|w| w.id.clone());
+
+        // 2. Update participant info in SessionDb
+        session_db.upsert_participant(user_id, &user.name, active_workout_id.as_deref()).await?;
+
+        // 3. If there is an active workout, sync it to SessionDb
+        if let Some(workout) = active_workout {
+            session_db.upsert_workout(user_id, &workout).await?;
+            
+            let proposed = user_db.get_proposed_sets(&workout.id).await?;
+            session_db.upsert_proposed_sets(user_id, &proposed).await?;
+            
+            let completed = user_db.get_completed_sets(&workout.id).await?;
+            for set in completed {
+                session_db.upsert_completed_set(user_id, &set).await?;
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn update_active_workout(&self, user_id: &str, workout_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(session_id) = self.central_db.get_session_id(user_id).await? {
             self.central_db.join_session(user_id, &session_id, workout_id).await?;
+            self.sync_user_state(user_id).await?;
         }
         Ok(())
     }
@@ -89,6 +99,10 @@ impl MultiplayerService for GroupService {
         user_db.add_session(&session_id, true).await
             .map_err(|e| Status::internal(e.to_string()))?;
 
+        // Initialize SessionDb state
+        self.session_manager.sync_user_state(&user_id).await
+             .map_err(|e| Status::internal(format!("Failed to sync initial state: {}", e)))?;
+
         Ok(Response::new(StartSessionResponse {
             session_id,
         }))
@@ -111,6 +125,10 @@ impl MultiplayerService for GroupService {
         user_db.add_session(&req.session_id, true).await
             .map_err(|e| Status::internal(e.to_string()))?;
 
+        // Sync state to SessionDb
+        self.session_manager.sync_user_state(&user_id).await
+             .map_err(|e| Status::internal(format!("Failed to sync state: {}", e)))?;
+
         Ok(Response::new(JoinSessionResponse {
             session_id: req.session_id,
         }))
@@ -130,79 +148,128 @@ impl MultiplayerService for GroupService {
                 .map_err(|e| Status::internal(e.to_string()))?;
             user_db.add_session(&session_id, false).await
                 .map_err(|e| Status::internal(e.to_string()))?;
+
+            let session_db = SessionDb::new(&session_id).await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            session_db.remove_participant(&user_id).await
+                .map_err(|e| Status::internal(e.to_string()))?;
         }
 
         Ok(Response::new(LeaveSessionResponse {}))
-    }
-
-    async fn get_session_status(
-        &self,
-        request: Request<GetSessionStatusRequest>,
-    ) -> Result<Response<SessionStatus>, Status> {
-        let req = request.into_inner();
-        let participants = self.central_db.get_session_participants(&req.session_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        let mut participant_statuses = Vec::new();
-        for (user_id, workout_id) in participants {
-            if workout_id.is_empty() {
-                let user = self.central_db.get_user(&user_id).await
-                    .map_err(|e| Status::internal(e.to_string()))?
-                    .ok_or_else(|| Status::not_found("User not found"))?;
-
-                participant_statuses.push(ParticipantStatus {
-                    user: Some(user),
-                    active_workout_id: String::new(),
-                    ..Default::default()
-                });
-            } else {
-                match self.session_manager.get_participant_workout(&user_id, &workout_id).await {
-                    Ok(status) => participant_statuses.push(status),
-                    Err(_) => {
-                        let user = self.central_db.get_user(&user_id).await
-                            .map_err(|e| Status::internal(e.to_string()))?
-                            .ok_or_else(|| Status::not_found("User not found"))?;
-
-                        participant_statuses.push(ParticipantStatus {
-                            user: Some(user),
-                            active_workout_id: workout_id,
-                            ..Default::default()
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(Response::new(SessionStatus {
-            session_id: req.session_id,
-            participants: participant_statuses,
-        }))
     }
 
     async fn get_participant_workout(
         &self,
         request: Request<GetParticipantWorkoutRequest>,
     ) -> Result<Response<ParticipantStatus>, Status> {
+        let _ = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
-        let status = self.session_manager.get_participant_workout(&req.user_id, &req.workout_id).await?;
-        Ok(Response::new(status))
+        
+        // Check if the target user is in a session
+        if let Some(session_id) = self.central_db.get_session_id(&req.user_id).await.map_err(|e| Status::internal(e.to_string()))? {
+             let session_db = SessionDb::new(&session_id).await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            
+             // Read from SessionDb
+             let workout = session_db.get_workout(&req.workout_id).await
+                 .map_err(|e| Status::internal(e.to_string()))?
+                 .ok_or_else(|| Status::not_found("Workout not found"))?;
+
+             let proposed = session_db.get_proposed_sets(&req.workout_id).await
+                 .map_err(|e| Status::internal(e.to_string()))?;
+             let completed = session_db.get_completed_sets(&req.workout_id).await
+                 .map_err(|e| Status::internal(e.to_string()))?;
+             
+             // We need User info.
+             let user = self.central_db.get_user(&req.user_id).await
+                 .map_err(|e| Status::internal(e.to_string()))?
+                 .ok_or_else(|| Status::not_found("User not found"))?;
+
+             return Ok(Response::new(ParticipantStatus {
+                user: Some(user),
+                active_workout_id: workout.id.clone(),
+                active_workout: Some(workout),
+                proposed_sets: proposed,
+                completed_sets: completed,
+             }));
+        }
+
+        Err(Status::not_found("Participant not in an active session or workout not found in session context"))
     }
 
-    async fn get_my_active_session(
+    async fn get_current_session(
         &self,
-        request: Request<GetMyActiveSessionRequest>,
-    ) -> Result<Response<GetMyActiveSessionResponse>, Status> {
+        request: Request<GetCurrentSessionRequest>,
+    ) -> Result<Response<GetCurrentSessionResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
+        let req = request.into_inner();
         
-        let session_id = user_db.get_active_session().await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .unwrap_or_default();
-        
-        Ok(Response::new(GetMyActiveSessionResponse {
-            session_id,
-        }))
+        // Determine target session ID:
+        // 1. Explicitly requested (for peeking/joining)
+        // 2. User's active session
+        let session_id = if !req.session_id.is_empty() {
+             Some(req.session_id)
+        } else {
+             self.central_db.get_session_id(&user_id).await
+                .map_err(|e| Status::internal(e.to_string()))?
+        };
+
+        if let Some(sid) = session_id {
+            let session_db = SessionDb::new(&sid).await
+                .map_err(|e| Status::internal(e.to_string()))?;
+
+            let participants = session_db.get_participants().await
+                .map_err(|e| Status::internal(e.to_string()))?;
+
+            let mut participant_statuses = Vec::new();
+            for (p_user_id, name, active_workout_id) in participants {
+                // We construct the User object. 
+                // We might want to fetch real created_at from CentralDb if needed, but for UI name is most important.
+                let user = User {
+                    id: p_user_id,
+                    name,
+                    created_at: 0, 
+                };
+
+                if let Some(workout_id) = active_workout_id {
+                    let workout = session_db.get_workout(&workout_id).await
+                         .map_err(|e| Status::internal(e.to_string()))?
+                         .unwrap_or_default();
+                    let proposed = session_db.get_proposed_sets(&workout_id).await
+                         .map_err(|e| Status::internal(e.to_string()))?;
+                    let completed = session_db.get_completed_sets(&workout_id).await
+                         .map_err(|e| Status::internal(e.to_string()))?;
+
+                     participant_statuses.push(ParticipantStatus {
+                        user: Some(user),
+                        active_workout_id: workout_id,
+                        active_workout: Some(workout),
+                        proposed_sets: proposed,
+                        completed_sets: completed,
+                    });
+                } else {
+                     participant_statuses.push(ParticipantStatus {
+                        user: Some(user),
+                        active_workout_id: String::new(),
+                        ..Default::default()
+                    });
+                }
+            }
+
+            Ok(Response::new(GetCurrentSessionResponse {
+                session_id: sid.clone(),
+                session_status: Some(SessionStatus {
+                    session_id: sid,
+                    participants: participant_statuses,
+                }),
+            }))
+
+        } else {
+            Ok(Response::new(GetCurrentSessionResponse {
+                session_id: String::new(),
+                session_status: None,
+            }))
+        }
     }
 
     async fn update_active_workout(

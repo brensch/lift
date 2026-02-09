@@ -12,14 +12,12 @@ service MultiplayerService {
   rpc JoinSession(JoinSessionRequest) returns (JoinSessionResponse);
   rpc LeaveSession(LeaveSessionRequest) returns (LeaveSessionResponse);
   
-  // Get the current status of a session (list of participants)
-  rpc GetSessionStatus(GetSessionStatusRequest) returns (SessionStatus);
-
   // Get a specific participant's workout progress
   rpc GetParticipantWorkout(GetParticipantWorkoutRequest) returns (ParticipantStatus);
 
-  // Get the active session for the current user
-  rpc GetMyActiveSession(GetMyActiveSessionRequest) returns (GetMyActiveSessionResponse);
+  // Consolidated call: Get the current active session and its status for the user,
+  // OR get a specific session's status if session_id is provided.
+  rpc GetCurrentSession(GetCurrentSessionRequest) returns (GetCurrentSessionResponse);
 
   // Update the active workout for the current user's session
   rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
@@ -46,19 +44,18 @@ message LeaveSessionRequest {}
 
 message LeaveSessionResponse {}
 
-message GetSessionStatusRequest {
-  string session_id = 1;
-}
-
 message GetParticipantWorkoutRequest {
   string user_id = 1;
   string workout_id = 2;
 }
 
-message GetMyActiveSessionRequest {}
+message GetCurrentSessionRequest {
+  string session_id = 1; // Optional: If provided, gets status of this specific session.
+}
 
-message GetMyActiveSessionResponse {
+message GetCurrentSessionResponse {
   string session_id = 1;
+  SessionStatus session_status = 2; // populated if session_id is present
 }
 
 message UpdateActiveWorkoutRequest {

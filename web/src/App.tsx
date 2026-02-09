@@ -77,9 +77,13 @@ function App() {
     if (route.view !== 'login') {
       const joinId = sessionStorage.getItem('liftJoinSession')
       if (joinId) {
-        multiplayerClient.getSessionStatus({ sessionId: joinId }, withUserId(route.userId))
-          .then((status) => {
-            setPendingJoin({ sessionId: joinId, status })
+        multiplayerClient.getCurrentSession({ sessionId: joinId }, withUserId(route.userId))
+          .then((response) => {
+             if (response.sessionStatus) {
+                setPendingJoin({ sessionId: joinId, status: response.sessionStatus })
+             } else {
+                 throw new Error("Session not found");
+             }
           })
           .catch(e => {
             console.error('Failed to get session status:', e)
