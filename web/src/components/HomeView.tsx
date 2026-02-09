@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { workoutClient, userClient, withUserId } from '@/lib/client'
 import type { Workout } from '@/gen/workout/v1/workout_pb'
-import { Exercise } from '@/gen/workout/v1/workout_pb'
+import { Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
+import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
 import { EXERCISE_NAMES } from '@/lib/exercises'
 
@@ -53,41 +54,75 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
     }
   }
 
+  const generateWorkoutSets = (workoutName: string) => {
+    const getWeight = (ex: Exercise) => scheduleData?.exerciseStatuses.find(s => s.exercise === ex)?.targetWeight || 45
+    
+    const PLATE_STOPS = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635]
+    const REP_SCHEMES: Record<number, number[]> = { 1: [5], 2: [5, 5], 3: [5, 5, 3], 4: [5, 5, 3, 2] }
+
+    const getWarmups = (weight: number) => {
+      if (weight <= 45) return []
+      const candidates = PLATE_STOPS.filter(w => w < weight)
+      if (candidates.length === 0) return []
+      let selected: number[]
+      if (candidates.length <= 4) {
+        selected = candidates
+      } else {
+        const n = candidates.length
+        const step = (n - 1) / 3
+        selected = [candidates[0], candidates[Math.round(step)], candidates[Math.round(step * 2)], candidates[n - 1]]
+      }
+      const reps = REP_SCHEMES[selected.length]
+      return selected.map((w, i) => ({ weight: w, reps: reps[i] }))
+    }
+
+    const configs: { exercise: Exercise, reps: number, count: number }[] = []
+    if (workoutName === 'Workout A') {
+      configs.push({ exercise: Exercise.SQUAT, reps: 5, count: 5 })
+      configs.push({ exercise: Exercise.BENCH_PRESS, reps: 5, count: 5 })
+      configs.push({ exercise: Exercise.BARBELL_ROW, reps: 5, count: 5 })
+    } else if (workoutName === 'Workout B') {
+      configs.push({ exercise: Exercise.SQUAT, reps: 5, count: 5 })
+      configs.push({ exercise: Exercise.OVERHEAD_PRESS, reps: 5, count: 5 })
+      configs.push({ exercise: Exercise.DEADLIFT, reps: 5, count: 1 })
+    }
+
+    const allSets: any[] = []
+    let order = 0
+    for (const config of configs) {
+      const weight = getWeight(config.exercise)
+      // Add warmups
+      const warmups = getWarmups(weight)
+      for (const wu of warmups) {
+        allSets.push(create(ProposedSetSchema, {
+          id: crypto.randomUUID(),
+          workoutOrder: order++,
+          exercise: config.exercise,
+          targetReps: wu.reps,
+          targetWeight: wu.weight,
+          warmup: true
+        }))
+      }
+      // Add working sets
+      for (let i = 0; i < config.count; i++) {
+        allSets.push(create(ProposedSetSchema, {
+          id: crypto.randomUUID(),
+          workoutOrder: order++,
+          exercise: config.exercise,
+          targetReps: config.reps,
+          targetWeight: weight,
+          warmup: false
+        }))
+      }
+    }
+    return allSets
+  }
+
   const handleStartWorkout = async (workoutName: string) => {
     setLoading(true)
     setError(null)
     try {
-      // Find the weights from scheduleData.exerciseStatuses
-      const getWeight = (ex: Exercise) => scheduleData?.exerciseStatuses.find(s => s.exercise === ex)?.targetWeight || 45
-
-      let sets: any[] = []
-      if (workoutName === 'Workout A') {
-        sets = [
-          { exercise: Exercise.SQUAT, weight: getWeight(Exercise.SQUAT), reps: 5, count: 5 },
-          { exercise: Exercise.BENCH_PRESS, weight: getWeight(Exercise.BENCH_PRESS), reps: 5, count: 5 },
-          { exercise: Exercise.BARBELL_ROW, weight: getWeight(Exercise.BARBELL_ROW), reps: 5, count: 5 },
-        ]
-      } else if (workoutName === 'Workout B') {
-        sets = [
-          { exercise: Exercise.SQUAT, weight: getWeight(Exercise.SQUAT), reps: 5, count: 5 },
-          { exercise: Exercise.OVERHEAD_PRESS, weight: getWeight(Exercise.OVERHEAD_PRESS), reps: 5, count: 5 },
-          { exercise: Exercise.DEADLIFT, weight: getWeight(Exercise.DEADLIFT), reps: 5, count: 1 },
-        ]
-      }
-
-      let workoutOrder = 0
-      const formattedSets: any[] = []
-      for (const group of sets) {
-        for (let i = 0; i < group.count; i++) {
-          formattedSets.push({
-            workoutOrder: workoutOrder++,
-            exercise: group.exercise,
-            targetReps: group.reps,
-            targetWeight: group.weight,
-            warmup: false
-          })
-        }
-      }
+      const formattedSets = generateWorkoutSets(workoutName)
 
       const response = await workoutClient.startWorkout(
         { name: workoutName, proposedSets: formattedSets },
@@ -227,18 +262,23 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
             <div className="space-y-4">
               <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">Exercises</h2>
               <div className="grid grid-cols-1 gap-3">
-                {scheduleData?.exerciseStatuses.map(s => {
+                {scheduleData?.exerciseStatuses?.map(s => {
                   const history = s.weightHistory || []
                   const max = Math.max(...history, s.targetWeight)
                   const min = Math.min(...history, s.targetWeight)
                   const range = max - min || 10
                   
                   // Simple SVG trendline
-                  const points = history.map((w: number, i: number) => {
-                    const x = (i / (history.length - 1 || 1)) * 100
-                    const y = 20 - ((w - min) / range) * 20
-                    return `${x},${y}`
-                  }).join(' ')
+                  let points = ""
+                  try {
+                    points = history.map((w: number, i: number) => {
+                      const x = (i / (history.length - 1 || 1)) * 100
+                      const y = 20 - ((w - min) / range) * 20
+                      return `${x},${y}`
+                    }).join(' ')
+                  } catch (e) {
+                    console.error("Failed to generate trendline points", e)
+                  }
 
                   return (
                     <Card key={s.exercise} className="overflow-hidden">
@@ -250,9 +290,9 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
                         </div>
                         <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise]}</span>
+                            <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise] || 'Unknown'}</span>
                             <div className="flex items-center gap-2">
-                              {history.length > 1 && (
+                              {history.length > 1 && points && (
                                 <div className="relative w-16 h-6">
                                   <svg 
                                     className="w-full h-full overflow-visible" 
@@ -284,7 +324,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
                                     {/* Final point highlight */}
                                     {(() => {
                                       const lastPoint = points.split(' ').pop()?.split(',');
-                                      if (!lastPoint) return null;
+                                      if (!lastPoint || lastPoint.length < 2) return null;
                                       return (
                                         <circle
                                           cx={lastPoint[0]}

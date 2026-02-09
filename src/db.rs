@@ -268,47 +268,33 @@ impl UserDb {
         exercise: i32,
         limit: i32,
     ) -> Result<Vec<(f32, bool, i64)>, Box<dyn std::error::Error + Send + Sync>> {
-        // Fetch all non-warmup completed sets for this exercise, grouped by workout (ended_at)
+        // We use a single query to get the history.
+        // Success is defined as: (number of proposed non-warmup sets) == (number of completed sets) 
+        // AND (every completed set met its target reps).
         let rows = sqlx::query(
-            "SELECT cs.actual_weight, cs.actual_reps, ps.target_reps, cs.ended_at
-             FROM completed_sets cs
-             JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
-             WHERE ps.exercise = ? AND cs.ended_at > 0 AND ps.warmup = 0
-             ORDER BY cs.ended_at DESC",
+            "SELECT 
+                target_weight,
+                (COUNT(ps.id) = COUNT(cs.id) AND MIN(CASE WHEN cs.actual_reps >= ps.target_reps THEN 1 ELSE 0 END) = 1) as successful,
+                MAX(cs.ended_at) as ended_at
+             FROM proposed_sets ps
+             LEFT JOIN completed_sets cs ON ps.id = cs.proposed_set_id AND cs.ended_at > 0
+             WHERE ps.exercise = ? AND ps.warmup = 0
+             GROUP BY ps.workout_id
+             HAVING ended_at IS NOT NULL
+             ORDER BY ended_at DESC
+             LIMIT ?"
         )
         .bind(exercise)
+        .bind(limit)
         .fetch_all(&self.pool)
         .await?;
 
         let mut history = Vec::new();
-        let mut current_workout_time = -1;
-        let mut current_workout_weight = 0.0;
-        let mut current_workout_success = true;
-        let mut count = 0;
-
         for row in rows {
+            let weight = row.get::<f32, _>("target_weight");
+            let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
-            let weight = row.get::<f32, _>("actual_weight");
-            let success = row.get::<i32, _>("actual_reps") >= row.get::<i32, _>("target_reps");
-
-            if ended_at != current_workout_time {
-                if current_workout_time != -1 {
-                    history.push((current_workout_weight, current_workout_success, current_workout_time));
-                    count += 1;
-                    if count >= limit {
-                        return Ok(history);
-                    }
-                }
-                current_workout_time = ended_at;
-                current_workout_weight = weight;
-                current_workout_success = success;
-            } else {
-                current_workout_success &= success;
-            }
-        }
-
-        if current_workout_time != -1 && count < limit {
-            history.push((current_workout_weight, current_workout_success, current_workout_time));
+            history.push((weight, successful, ended_at));
         }
 
         Ok(history)
