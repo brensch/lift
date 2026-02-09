@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Users } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 import { MultiplayerModal } from './MultiplayerModal'
 import { ParticipantTicker } from './ParticipantTicker'
@@ -32,20 +31,17 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
     <div className="w-full space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar items-center py-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <button 
             onClick={() => setShowModal(true)}
-            className={`flex items-center gap-2 px-3 h-8 rounded-full transition-colors shrink-0 ${sessionStatus ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'text-muted-foreground border border-dashed'}`}
+            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-full border transition-all shrink-0 min-h-[38px] ${
+              sessionStatus 
+                ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' 
+                : 'bg-muted/50 border-dashed border-muted-foreground/50 hover:bg-muted text-muted-foreground'
+            }`}
           >
             <Users className="w-4 h-4" />
-            <span className="text-[10px] uppercase font-bold tracking-tight">
-              {sessionStatus ? 'Add People' : 'New Session'}
-            </span>
-            {activeParticipantsCount > 1 && (
-              <span className="text-xs font-black">({activeParticipantsCount})</span>
-            )}
-          </Button>
+            <Plus className="w-3 h-3 opacity-70" />
+          </button>
 
           {otherParticipants.map((p) => (
             <ParticipantTicker 
