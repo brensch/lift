@@ -207,18 +207,23 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
                           </Button>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-1">
-                          {exerciseGroups.map((g, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
-                            >
-                              <span>{EXERCISE_EMOJIS[g.exercise]}</span>
-                              <span>{EXERCISE_NAMES[g.exercise]}</span>
-                              <span className="text-muted-foreground">
-                                {g.sets.length}&times;{g.sets[0]?.targetReps} &middot; {g.sets[0]?.targetWeight}lbs
+                          {exerciseGroups.map((g, i) => {
+                            const workingSets = g.sets.filter((s) => !s.warmup)
+                            const warmupCount = g.sets.length - workingSets.length
+                            return (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
+                              >
+                                <span>{EXERCISE_EMOJIS[g.exercise]}</span>
+                                <span>{EXERCISE_NAMES[g.exercise]}</span>
+                                <span className="text-muted-foreground">
+                                  {workingSets.length}&times;{workingSets[0]?.targetReps} &middot; {workingSets[0]?.targetWeight}lbs
+                                  {warmupCount > 0 && ` +${warmupCount}w`}
+                                </span>
                               </span>
-                            </span>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )

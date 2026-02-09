@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
-import { WorkoutView } from '@/components/WorkoutView'
+import { WorkoutView } from '@/components/workout/WorkoutView'
 import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'

@@ -11,6 +11,72 @@ use crate::db::UserDb;
 /// Alternates A-B-A, B-A-B each week
 /// Training days: Monday, Wednesday, Friday
 
+/// Snap a weight to the nearest 5 lbs, minimum 45 (empty bar).
+fn snap_weight(w: f32) -> f32 {
+    let snapped = (w / 5.0).round() * 5.0;
+    if snapped < 45.0 { 45.0 } else { snapped }
+}
+
+/// Generate progressive warmup sets for a given exercise and working weight.
+fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> Vec<ProposedSet> {
+    if working_weight <= 45.0 {
+        return Vec::new();
+    }
+
+    let defs: Vec<(f32, i32)> = if working_weight <= 95.0 {
+        vec![(45.0, 5)]
+    } else if working_weight <= 135.0 {
+        vec![(45.0, 5), (snap_weight(working_weight * 0.5), 5)]
+    } else if working_weight <= 225.0 {
+        vec![
+            (45.0, 5),
+            (snap_weight(working_weight * 0.5), 5),
+            (snap_weight(working_weight * 0.75), 3),
+        ]
+    } else {
+        vec![
+            (45.0, 5),
+            (snap_weight(working_weight * 0.5), 5),
+            (snap_weight(working_weight * 0.75), 3),
+            (snap_weight(working_weight * 0.9), 2),
+        ]
+    };
+
+    defs.into_iter()
+        .map(|(weight, reps)| {
+            let set = ProposedSet {
+                id: String::new(),
+                workout_id: String::new(),
+                workout_order: *order,
+                exercise,
+                target_reps: reps,
+                target_weight: weight,
+                warmup: true,
+            };
+            *order += 1;
+            set
+        })
+        .collect()
+}
+
+/// Create warmup + working sets for an exercise.
+fn create_exercise_sets(exercise: i32, weight: f32, set_count: usize, reps: i32, order: &mut i32) -> Vec<ProposedSet> {
+    let mut sets = generate_warmup_sets(exercise, weight, order);
+    for _ in 0..set_count {
+        sets.push(ProposedSet {
+            id: String::new(),
+            workout_id: String::new(),
+            workout_order: *order,
+            exercise,
+            target_reps: reps,
+            target_weight: weight,
+            warmup: false,
+        });
+        *order += 1;
+    }
+    sets
+}
+
 const WORKOUT_A: &str = "Workout A";
 const WORKOUT_B: &str = "Workout B";
 
@@ -149,97 +215,20 @@ impl Scheduler {
     }
 
     fn create_workout_a_sets(&self, squat_weight: f32, bench_weight: f32, row_weight: f32) -> Vec<ProposedSet> {
-        let mut sets = Vec::new();
         let mut order = 0;
-
-        // Squat: 5x5
-        for _ in 0..5 {
-            sets.push(ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: order,
-                exercise: Exercise::Squat as i32,
-                target_reps: 5,
-                target_weight: squat_weight,
-                warmup: false,
-            });
-            order += 1;
-        }
-
-        // Bench Press: 5x5
-        for _ in 0..5 {
-            sets.push(ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: order,
-                exercise: Exercise::BenchPress as i32,
-                target_reps: 5,
-                target_weight: bench_weight,
-                warmup: false,
-            });
-            order += 1;
-        }
-
-        // Barbell Row: 5x5
-        for _ in 0..5 {
-            sets.push(ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: order,
-                exercise: Exercise::BarbellRow as i32,
-                target_reps: 5,
-                target_weight: row_weight,
-                warmup: false,
-            });
-            order += 1;
-        }
-
+        let mut sets = Vec::new();
+        sets.extend(create_exercise_sets(Exercise::Squat as i32, squat_weight, 5, 5, &mut order));
+        sets.extend(create_exercise_sets(Exercise::BenchPress as i32, bench_weight, 5, 5, &mut order));
+        sets.extend(create_exercise_sets(Exercise::BarbellRow as i32, row_weight, 5, 5, &mut order));
         sets
     }
 
     fn create_workout_b_sets(&self, squat_weight: f32, ohp_weight: f32, deadlift_weight: f32) -> Vec<ProposedSet> {
-        let mut sets = Vec::new();
         let mut order = 0;
-
-        // Squat: 5x5
-        for _ in 0..5 {
-            sets.push(ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: order,
-                exercise: Exercise::Squat as i32,
-                target_reps: 5,
-                target_weight: squat_weight,
-                warmup: false,
-            });
-            order += 1;
-        }
-
-        // Overhead Press: 5x5
-        for _ in 0..5 {
-            sets.push(ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: order,
-                exercise: Exercise::OverheadPress as i32,
-                target_reps: 5,
-                target_weight: ohp_weight,
-                warmup: false,
-            });
-            order += 1;
-        }
-
-        // Deadlift: 1x5
-        sets.push(ProposedSet {
-            id: String::new(),
-            workout_id: String::new(),
-            workout_order: order,
-            exercise: Exercise::Deadlift as i32,
-            target_reps: 5,
-            target_weight: deadlift_weight,
-            warmup: false,
-        });
-
+        let mut sets = Vec::new();
+        sets.extend(create_exercise_sets(Exercise::Squat as i32, squat_weight, 5, 5, &mut order));
+        sets.extend(create_exercise_sets(Exercise::OverheadPress as i32, ohp_weight, 5, 5, &mut order));
+        sets.extend(create_exercise_sets(Exercise::Deadlift as i32, deadlift_weight, 1, 5, &mut order));
         sets
     }
 }

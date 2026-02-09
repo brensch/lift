@@ -1,14 +1,7 @@
 import type { ProposedSet, CompletedSet } from '@/gen/workout/v1/workout_pb'
 import { Exercise } from '@/gen/workout/v1/workout_pb'
-
-const EXERCISE_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '?',
-  [Exercise.SQUAT]: 'Squat',
-  [Exercise.BENCH_PRESS]: 'Bench',
-  [Exercise.DEADLIFT]: 'Deadlift',
-  [Exercise.OVERHEAD_PRESS]: 'OHP',
-  [Exercise.BARBELL_ROW]: 'Row',
-}
+import { Pencil } from 'lucide-react'
+import { SHORT_NAMES } from '@/lib/exercises'
 
 export interface ExerciseGroupData {
   exercise: Exercise
@@ -24,6 +17,7 @@ interface ExerciseGroupProps {
   isWorkoutEnded: boolean
   onMoveUp?: () => void
   onMoveDown?: () => void
+  onEdit?: () => void
 }
 
 export function ExerciseGroup({
@@ -35,8 +29,10 @@ export function ExerciseGroup({
   isWorkoutEnded,
   onMoveUp,
   onMoveDown,
+  onEdit,
 }: ExerciseGroupProps) {
-  const allCompleted = group.sets.every((s) =>
+  const workingSets = group.sets.filter((s) => !s.warmup)
+  const allCompleted = workingSets.length > 0 && workingSets.every((s) =>
     completedSets.some((c) => c.proposedSetId === s.id && c.endedAt > 0n)
   )
 
@@ -62,10 +58,18 @@ export function ExerciseGroup({
         </div>
       )}
 
-      {/* Exercise name */}
+      {/* Exercise name + edit icon */}
       <span className={`text-sm font-medium w-16 shrink-0 ${allCompleted ? 'text-green-600' : ''}`}>
-        {EXERCISE_NAMES[group.exercise]}
+        {SHORT_NAMES[group.exercise]}
       </span>
+      {!isWorkoutEnded && onEdit && (
+        <button
+          onClick={onEdit}
+          className="text-muted-foreground hover:text-foreground -ml-1 shrink-0"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      )}
 
       {/* Set indicators */}
       <div className="flex gap-1.5 flex-wrap flex-1">
@@ -76,6 +80,17 @@ export function ExerciseGroup({
           const isActive = set.id === activeSetId
 
           if (completed) {
+            if (set.warmup) {
+              return (
+                <span
+                  key={set.id}
+                  className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600"
+                  title={`Warmup: ${completed.actualReps}×${completed.actualWeight}`}
+                >
+                  W
+                </span>
+              )
+            }
             const hitTarget = completed.actualReps >= set.targetReps
             return (
               <span
@@ -84,6 +99,21 @@ export function ExerciseGroup({
                 title={`${completed.actualReps}×${completed.actualWeight}`}
               >
                 ✓{completed.actualReps < set.targetReps ? completed.actualReps : ''}
+              </span>
+            )
+          }
+
+          if (set.warmup) {
+            return (
+              <span
+                key={set.id}
+                className={`text-xs px-1.5 py-0.5 rounded ${
+                  isActive
+                    ? 'bg-blue-500/20 text-blue-600 font-bold ring-1 ring-blue-500'
+                    : 'border border-blue-500/40 text-blue-600'
+                }`}
+              >
+                W:{set.targetReps}×{set.targetWeight}
               </span>
             )
           }

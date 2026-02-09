@@ -98,8 +98,10 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
     }
 }
 
-fn compute_rest_seconds(target_reps: i32, actual_reps: i32) -> i64 {
-    if actual_reps >= target_reps {
+fn compute_rest_seconds(target_reps: i32, actual_reps: i32, warmup: bool) -> i64 {
+    if warmup {
+        10
+    } else if actual_reps >= target_reps {
         180 // 3 minutes
     } else {
         300 // 5 minutes
@@ -225,7 +227,7 @@ impl UserDb {
         Ok(sqlx::query_scalar(
             "SELECT cs.actual_weight FROM completed_sets cs
              JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
-             WHERE ps.exercise = ? AND cs.ended_at > 0
+             WHERE ps.exercise = ? AND cs.ended_at > 0 AND ps.warmup = 0
              ORDER BY cs.ended_at DESC LIMIT 1"
         )
         .bind(exercise)
@@ -334,15 +336,16 @@ impl UserDb {
     ) -> Result<CompletedSet, Box<dyn std::error::Error + Send + Sync>> {
         let ended_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
-        // Look up target_reps from the proposed set to compute rest
-        let target_reps: Option<i32> = sqlx::query_scalar(
-            "SELECT target_reps FROM proposed_sets WHERE id = ?"
+        // Look up target_reps and warmup flag from the proposed set to compute rest
+        let proposed_info: Option<(i32, bool)> = sqlx::query_as(
+            "SELECT target_reps, warmup FROM proposed_sets WHERE id = ?"
         )
         .bind(proposed_set_id)
         .fetch_optional(&self.pool)
         .await?;
 
-        let rest_seconds = compute_rest_seconds(target_reps.unwrap_or(0), actual_reps);
+        let (target_reps, warmup) = proposed_info.unwrap_or((0, false));
+        let rest_seconds = compute_rest_seconds(target_reps, actual_reps, warmup);
         let rest_until = ended_at + rest_seconds;
 
         let existing: Option<(String, i64)> = sqlx::query_as(
