@@ -40,7 +40,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Lift</CardTitle>
-          <CardDescription>Enter a unique username to start tracking</CardDescription>
+          <CardDescription>Enter a unique username to start lifting</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
