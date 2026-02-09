@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { multiplayerClient, withUserId } from '@/lib/client'
-import QRCode from 'react-qr-code'
+import { QRCodeSVG } from 'qrcode.react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
-import { Camera, Share } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 
 interface MultiplayerModalProps {
@@ -138,7 +137,7 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
                 className="flex-1"
                 onClick={() => setShowScanner(!showScanner)}
               >
-                <Camera className="w-4 h-4 mr-2" /> {showScanner ? 'Cancel Scan' : 'Scan QR Code'}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> {showScanner ? 'Cancel Scan' : 'Scan QR Code'}
               </Button>
             </div>
 
@@ -151,14 +150,14 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
         ) : (
           <div className="flex flex-col items-center space-y-4">
             <div className="bg-white p-4 rounded-xl shadow-inner border">
-              <QRCode value={joinUrl} size={200} />
+              <QRCodeSVG value={joinUrl} size={200} />
             </div>
             <p className="text-sm text-muted-foreground text-center">
               Active Session ID: <span className="font-mono font-bold text-foreground">{effectiveSessionId}</span>
             </p>
             <div className="flex gap-2 w-full pt-2">
               <Button variant="outline" className="flex-1" onClick={handleShare}>
-                <Share className="w-4 h-4 mr-2" /> Share Link
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg> Share Link
               </Button>
               <Button variant="destructive" className="flex-1" onClick={handleLeave}>
                 Leave Session

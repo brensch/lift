@@ -20,7 +20,6 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
 
   const participants = sessionStatus?.participants || []
   const otherParticipants = participants.filter(p => p.user?.id !== userId)
-  const activeParticipantsCount = participants.length
 
   const peepParticipant = useMemo(() => {
     if (!peepUserId || !sessionStatus) return null
