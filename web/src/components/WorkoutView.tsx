@@ -410,7 +410,9 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, userId, on
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-3">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
+          <button onClick={onBack} className="text-3xl font-bold hover:opacity-80 transition-opacity">
+            Lift
+          </button>
           <span className="text-sm text-muted-foreground">{fmtElapsed(totalDuration)}</span>
         </div>
         <SessionHeader userId={userId} />
@@ -667,7 +669,9 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
+          <button onClick={onBack} className="text-3xl font-bold hover:opacity-80 transition-opacity">
+            Lift
+          </button>
           <div className="flex items-center gap-2">
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
             <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>
