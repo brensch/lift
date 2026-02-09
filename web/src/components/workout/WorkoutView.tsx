@@ -38,8 +38,8 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [proposedSets, setProposedSets] = useState<ProposedSet[]>([])
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>([])
   const [loading, setLoading] = useState(false)
-  const [restUntil, setRestUntil] = useState<number | null>(null)
-  const [restEndedAt, setRestEndedAt] = useState<number | null>(null)
+  const [activeRestEnd, setActiveRestEnd] = useState<number | null>(null)
+  const [isResting, setIsResting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingSetId, setEditingSetId] = useState<string | null>(null)
   const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null)
@@ -56,12 +56,21 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
         setProposedSets(response.proposedSets)
         setCompletedSets(response.completedSets)
 
+        const activeSet = response.completedSets.find(c => c.endedAt === 0n)
+        if (activeSet) {
+           setActiveRestEnd(null)
+           setIsResting(false)
+           return
+        }
+
         const lastCompleted = response.completedSets
           .filter((c) => c.endedAt > 0n && c.restUntil > 0n)
           .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
+          
         if (lastCompleted) {
           const ru = Number(lastCompleted.restUntil)
-          if (ru > Math.floor(Date.now() / 1000)) setRestUntil(ru)
+          setActiveRestEnd(ru)
+          setIsResting(ru > Math.floor(Date.now() / 1000))
         }
       }
     } catch (e) {
@@ -72,19 +81,17 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   useEffect(() => { loadWorkout() }, [loadWorkout])
 
   useEffect(() => {
-    if (!restUntil) return
-    const remaining = restUntil - Math.floor(Date.now() / 1000)
+    if (!activeRestEnd || !isResting) return
+    const remaining = activeRestEnd - Math.floor(Date.now() / 1000)
     if (remaining <= 0) {
-      setRestEndedAt(restUntil)
-      setRestUntil(null)
+      setIsResting(false)
       return
     }
     const timeout = setTimeout(() => {
-      setRestEndedAt(restUntil)
-      setRestUntil(null)
+      setIsResting(false)
     }, remaining * 1000)
     return () => clearTimeout(timeout)
-  }, [restUntil])
+  }, [activeRestEnd, isResting])
 
   // --- Derived ---
 
@@ -155,11 +162,15 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
       if (idx >= 0) { const next = [...prev]; next[idx] = cs; return next }
       return [...prev, cs]
     })
-    if (cs.endedAt > 0n && cs.restUntil > 0n) setRestUntil(Number(cs.restUntil))
+    if (cs.endedAt > 0n && cs.restUntil > 0n) {
+      const ru = Number(cs.restUntil)
+      setActiveRestEnd(ru)
+      setIsResting(ru > Math.floor(Date.now() / 1000))
+    }
   }
 
   const handleStartSet = async (proposedSetId: string) => {
-    setLoading(true); setRestUntil(null); setRestEndedAt(null)
+    setLoading(true); setActiveRestEnd(null); setIsResting(false)
     try {
       const response = await workoutClient.startSet({ workoutId, proposedSetId }, withUserId(userId))
       if (response.completedSet) handleSetUpdated(response.completedSet)
@@ -235,7 +246,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
           return [...prev, cs]
         })
       }
-      setRestUntil(null); setRestEndedAt(null)
+      setActiveRestEnd(null); setIsResting(false)
     } catch (e) { console.error(e) }
   }
 
@@ -320,16 +331,16 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
               <Button onClick={handleEndWorkout} className="mt-3">Finish Workout</Button>
             </CardContent>
           </Card>
-        ) : restUntil && restUntil > Math.floor(Date.now() / 1000) ? (
+        ) : isResting && activeRestEnd ? (
           <RestingBox
-            restUntil={restUntil} nextSet={nextSet}
+            restUntil={activeRestEnd} nextSet={nextSet}
             onStartEarly={() => nextSet && handleStartSet(nextSet.id)}
             onEditWeight={nextSet ? () => setEditingSetId(nextSet.id) : undefined}
             onSkipWarmup={nextSet?.warmup ? () => handleSkipWarmup(nextSet.id) : undefined}
           />
-        ) : restEndedAt && nextSet ? (
+        ) : activeRestEnd && nextSet ? (
           <ChatTimeBox
-            restEndedAt={restEndedAt} nextSet={nextSet}
+            restEndedAt={activeRestEnd} nextSet={nextSet}
             onStart={() => handleStartSet(nextSet.id)} loading={loading}
             onEditWeight={() => setEditingSetId(nextSet.id)}
             onSkipWarmup={nextSet.warmup ? () => handleSkipWarmup(nextSet.id) : undefined}
