@@ -117,12 +117,18 @@ message ProposedWorkout {
   int64 scheduled_for = 3;
 }
 
+message GetActiveWorkoutRequest {}
+message GetActiveWorkoutResponse {
+  Workout workout = 1;
+}
+
 // --- Service Definition ---
 
 service WorkoutService {
   rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
   rpc EndWorkout(EndWorkoutRequest) returns (EndWorkoutResponse);
   rpc GetWorkout(GetWorkoutRequest) returns (GetWorkoutResponse);
+  rpc GetActiveWorkout(GetActiveWorkoutRequest) returns (GetActiveWorkoutResponse);
 
   // List all workouts for the user (user from auth context)
   rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
