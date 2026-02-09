@@ -78,7 +78,7 @@ export function SetLog({ userId, completedSets, proposedSets, sessionStatus }: {
             <span className="font-medium w-12 shrink-0 truncate">
               {entry.proposed ? SHORT_NAMES[entry.proposed.exercise as Exercise] : '?'}
             </span>
-            <span className="font-medium">{entry.completed.actualReps}&times;{entry.completed.actualWeight}</span>
+            <span className="font-medium">{entry.completed.actualReps}&times;{entry.completed.actualWeight}{entry.proposed?.warmup ? ' (w)' : ''}</span>
             <span className="text-muted-foreground font-mono ml-auto">{fmtTime(entry.completed.endedAt)}</span>
           </div>
         ))}
