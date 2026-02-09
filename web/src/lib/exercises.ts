@@ -9,6 +9,15 @@ export const EXERCISE_NAMES: Record<Exercise, string> = {
   [Exercise.BARBELL_ROW]: 'Barbell Row',
 }
 
+export const EXERCISE_EMOJIS: Record<Exercise, string> = {
+  [Exercise.UNSPECIFIED]: '❓',
+  [Exercise.SQUAT]: '🦵',
+  [Exercise.BENCH_PRESS]: '🏋️',
+  [Exercise.DEADLIFT]: '⚡',
+  [Exercise.OVERHEAD_PRESS]: '🙌',
+  [Exercise.BARBELL_ROW]: '🚣',
+}
+
 export const SHORT_NAMES: Record<Exercise, string> = {
   [Exercise.UNSPECIFIED]: '?',
   [Exercise.SQUAT]: 'Squat',
