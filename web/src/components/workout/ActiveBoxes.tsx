@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
 import { type ProposedSet, type CompletedSet, Exercise } from '@/gen/workout/v1/workout_pb'
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { EXERCISE_NAMES } from '@/lib/exercises'
@@ -19,24 +20,70 @@ function Box({ accent, children, className }: { accent: string; children: React.
 const PLATE_H: Record<number, string> = { 45: 'h-8', 25: 'h-7', 10: 'h-6', 5: 'h-5', 2.5: 'h-4' }
 const PLATE_W: Record<number, string> = { 45: 'w-2.5', 25: 'w-2', 10: 'w-1.5', 5: 'w-1.5', 2.5: 'w-1' }
 
-/** Inline barbell plate visualization */
+const FULL_H: Record<number, string> = { 45: 'h-20', 25: 'h-16', 10: 'h-14', 5: 'h-12', 2.5: 'h-10' }
+const FULL_W: Record<number, string> = { 45: 'w-4', 25: 'w-3.5', 10: 'w-3', 5: 'w-2.5', 2.5: 'w-2' }
+
+/** Inline barbell plate visualization — tap to see full detail */
 function InlinePlates({ weight }: { weight: number }) {
+  const [showDetail, setShowDetail] = useState(false)
   const plates = calcPlatesPerSide(weight)
-  if (plates.length === 0) return null
+  const isEmpty = plates.length === 0
   return (
-    <div className="flex items-center gap-[2px]">
-      <div className="flex items-center gap-[2px] flex-row-reverse">
-        {plates.map((p, i) => (
-          <div key={`l-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
-        ))}
-      </div>
-      <div className="h-1 w-6 bg-gray-500" />
-      <div className="flex items-center gap-[2px]">
-        {plates.map((p, i) => (
-          <div key={`r-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
-        ))}
-      </div>
-    </div>
+    <>
+      <button className="flex items-center gap-[2px]" onClick={() => setShowDetail(true)}>
+        {!isEmpty && (
+          <div className="flex items-center gap-[2px] flex-row-reverse">
+            {plates.map((p, i) => (
+              <div key={`l-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
+            ))}
+          </div>
+        )}
+        <div className="h-1 w-6 bg-gray-500" />
+        {!isEmpty && (
+          <div className="flex items-center gap-[2px]">
+            {plates.map((p, i) => (
+              <div key={`r-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
+            ))}
+          </div>
+        )}
+      </button>
+      {showDetail && (
+        <Modal title={`${weight} lb`} onClose={() => setShowDetail(false)} className="max-w-sm">
+          <div className="p-6 space-y-3">
+            <div className="flex items-center justify-center h-24 gap-0">
+              {!isEmpty && (
+                <div className="flex items-center gap-0.5 flex-row-reverse">
+                  {plates.map((p, i) => (
+                    <div key={`l-${i}`} className={`${PLATE_COLORS[p]} ${FULL_W[p]} ${FULL_H[p]} rounded-sm`} />
+                  ))}
+                </div>
+              )}
+              <div className="h-2 w-16 bg-gray-500" />
+              {!isEmpty && (
+                <div className="flex items-center gap-0.5">
+                  {plates.map((p, i) => (
+                    <div key={`r-${i}`} className={`${PLATE_COLORS[p]} ${FULL_W[p]} ${FULL_H[p]} rounded-sm`} />
+                  ))}
+                </div>
+              )}
+            </div>
+            {!isEmpty && (
+              <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
+                {[45, 25, 10, 5, 2.5].map((p) => (
+                  <span key={p} className="flex items-center gap-0.5">
+                    <span className={`inline-block w-2.5 h-2.5 rounded-sm ${PLATE_COLORS[p]}`} />
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-center text-sm text-muted-foreground">
+              {isEmpty ? 'Empty bar' : `${plates.join(' + ')} per side`}
+            </p>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }
 
