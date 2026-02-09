@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { workoutClient, withUserId } from '@/lib/client'
@@ -10,13 +10,14 @@ import {
   Exercise,
   ProposedSetSchema,
 } from '@/gen/workout/v1/workout_pb'
+import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { ExerciseGroup, groupSetsByExercise } from '@/components/ExerciseGroup'
 import { rebuildExerciseSets } from '@/lib/warmup'
 import { SessionHeader } from '@/components/SessionHeader'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 import { useElapsed, fmtElapsed } from '@/hooks/useTimer'
 
-import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox } from './ActiveBoxes'
+import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox, GroupNextUpBox } from './ActiveBoxes'
 import { CompletedWorkoutView } from './CompletedView'
 import { SetLog } from './SetLog'
 import { PlateCalculatorModal, AddSetModal, EditExerciseModal } from './Modals'
@@ -93,6 +94,58 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const activeProposed = activeCompleted ? proposedSets.find((p) => p.id === activeCompleted.proposedSetId) : undefined
   const nextSet = proposedSets.find((p) => !isSetDone(p.id) && p.id !== activeProposed?.id)
   const allSetsDone = proposedSets.length > 0 && proposedSets.every((p) => isSetDone(p.id)) && !activeCompleted
+
+  // Determine "Next Up" for group
+  const groupNextUp = useMemo(() => {
+    if (!sessionStatus) return null
+    const now = Math.floor(Date.now() / 1000)
+    
+    const getParticipantState = (p: ParticipantStatus) => {
+      // Find last completed set with rest
+      const lastCompleted = p.completedSets
+        .filter((c) => c.endedAt > 0n && c.restUntil > 0n)
+        .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
+      
+      const restUntil = lastCompleted ? Number(lastCompleted.restUntil) : 0
+      
+      // Check if actively working out (started set but not ended)
+      const activeSet = p.completedSets.find(c => c.endedAt === 0n)
+      if (activeSet) return null 
+
+      // Find next set
+      const isPSetDone = (setId: string) => p.completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
+      const pActiveProposedId = activeSet?.proposedSetId
+      const pNextSet = p.proposedSets.find((s) => !isPSetDone(s.id) && s.id !== pActiveProposedId)
+      
+      if (!pNextSet) return null
+
+      if (restUntil > now) {
+         return { type: 'resting', restUntil, nextSet: pNextSet, score: restUntil - now }
+      } else {
+         return { type: 'chatting', restUntil, nextSet: pNextSet, score: now - restUntil }
+      }
+    }
+
+    const candidates = sessionStatus.participants
+      .map(p => ({ p, state: getParticipantState(p) }))
+      .filter((x): x is { p: ParticipantStatus, state: NonNullable<ReturnType<typeof getParticipantState>> } => x.state !== null)
+    
+    // Sort: Chatting (descending overdue) > Resting (ascending remaining)
+    candidates.sort((a, b) => {
+        if (a.state.type === 'chatting' && b.state.type === 'resting') return -1
+        if (a.state.type === 'resting' && b.state.type === 'chatting') return 1
+        
+        if (a.state.type === 'chatting' && b.state.type === 'chatting') {
+            return b.state.score - a.state.score // Longest chatting first
+        }
+        if (a.state.type === 'resting' && b.state.type === 'resting') {
+            return a.state.score - b.state.score // Soonest to finish first
+        }
+        return 0
+    })
+
+    return candidates[0]
+  }, [sessionStatus, userId])
 
   // --- Handlers ---
 
@@ -242,6 +295,15 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
         </div>
 
         <SessionHeader userId={userId} workoutId={workoutId} />
+
+        {/* Group Up Next */}
+        {groupNextUp && (
+          <GroupNextUpBox 
+            participant={groupNextUp.p} 
+            restUntil={groupNextUp.state.restUntil} 
+            nextSet={groupNextUp.state.nextSet} 
+          />
+        )}
 
         {/* Active Area */}
         {activeProposed && activeCompleted ? (
