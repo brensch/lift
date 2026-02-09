@@ -1,5 +1,5 @@
 use chrono::{Datelike, Duration, NaiveDate, Utc, Weekday};
-use lift::workout::v1::{Exercise, ProposedSet, ProposedWorkout};
+use lift::workout::v1::{Exercise, ExerciseStatus, GetProposedWorkoutScheduleResponse, ProposedSet, ScheduledWorkout};
 
 use crate::db::UserDb;
 
@@ -13,11 +13,13 @@ use crate::db::UserDb;
 
 /// Plate-friendly warmup stops (bar + combinations of 45/25 plates per side).
 /// Must match PLATE_STOPS in web/src/lib/warmup.ts.
+#[allow(dead_code)]
 const PLATE_STOPS: &[f32] = &[
     45.0, 95.0, 135.0, 185.0, 225.0, 275.0, 315.0, 365.0,
     405.0, 455.0, 495.0, 545.0, 585.0, 635.0,
 ];
 
+#[allow(dead_code)]
 const REP_SCHEMES: &[&[i32]] = &[
     &[5],          // 1 warmup
     &[5, 5],       // 2 warmups
@@ -27,6 +29,7 @@ const REP_SCHEMES: &[&[i32]] = &[
 
 /// Generate progressive warmup sets for a given exercise and working weight.
 /// Uses plate-friendly stops (same algorithm as the frontend warmup.ts).
+#[allow(dead_code)]
 fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> Vec<ProposedSet> {
     if working_weight <= 45.0 {
         return Vec::new();
@@ -68,6 +71,7 @@ fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> 
 }
 
 /// Create warmup + working sets for an exercise.
+#[allow(dead_code)]
 fn create_exercise_sets(exercise: i32, weight: f32, set_count: usize, reps: i32, order: &mut i32) -> Vec<ProposedSet> {
     let mut sets = generate_warmup_sets(exercise, weight, order);
     for _ in 0..set_count {
@@ -85,8 +89,8 @@ fn create_exercise_sets(exercise: i32, weight: f32, set_count: usize, reps: i32,
     sets
 }
 
-const WORKOUT_A: &str = "Workout A";
-const WORKOUT_B: &str = "Workout B";
+pub const WORKOUT_A: &str = "Workout A";
+pub const WORKOUT_B: &str = "Workout B";
 
 // Starting weights (in lbs) for new lifters
 const DEFAULT_SQUAT_WEIGHT: f32 = 45.0;
@@ -109,71 +113,107 @@ impl Scheduler {
         Self { user_db }
     }
 
-    /// Generate the next 5 proposed workouts based on user history
-    pub async fn get_proposed_schedule(&self) -> Result<Vec<ProposedWorkout>, Box<dyn std::error::Error + Send + Sync>> {
-        // Get last completed workout to determine next workout type
-        let last_workout = self.user_db.get_last_completed_workout().await?;
+    /// Generate the proposed schedule and exercise status
+    pub async fn get_proposed_schedule(&self) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
+        let exercises = vec![
+            (Exercise::Squat, DEFAULT_SQUAT_WEIGHT),
+            (Exercise::BenchPress, DEFAULT_BENCH_WEIGHT),
+            (Exercise::BarbellRow, DEFAULT_ROW_WEIGHT),
+            (Exercise::OverheadPress, DEFAULT_OHP_WEIGHT),
+            (Exercise::Deadlift, DEFAULT_DEADLIFT_WEIGHT),
+        ];
 
-        // Determine if next workout is A or B
-        let start_with_a = match &last_workout {
-            Some(w) => w.name == WORKOUT_B, // If last was B, next is A
-            None => true, // Start with A if no history
+        let mut exercise_statuses = Vec::new();
+        for (ex, default) in exercises {
+            let (weight, explanation, last_perf, weight_history) = self.calculate_sophisticated_weight(ex as i32, default).await?;
+            exercise_statuses.push(ExerciseStatus {
+                exercise: ex as i32,
+                target_weight: weight,
+                explanation,
+                last_performed_at: last_perf,
+                weight_history,
+            });
+        }
+
+        let last_workout = self.user_db.get_last_completed_workout().await?;
+        let next_recommended_workout_name = match last_workout {
+            Some(w) if w.name == WORKOUT_A => WORKOUT_B.to_string(),
+            _ => WORKOUT_A.to_string(),
         };
 
-        // Get last weights for each exercise
-        let squat_weight = self.get_next_weight(Exercise::Squat as i32, DEFAULT_SQUAT_WEIGHT).await?;
-        let bench_weight = self.get_next_weight(Exercise::BenchPress as i32, DEFAULT_BENCH_WEIGHT).await?;
-        let row_weight = self.get_next_weight(Exercise::BarbellRow as i32, DEFAULT_ROW_WEIGHT).await?;
-        let ohp_weight = self.get_next_weight(Exercise::OverheadPress as i32, DEFAULT_OHP_WEIGHT).await?;
-        let deadlift_weight = self.get_next_weight(Exercise::Deadlift as i32, DEFAULT_DEADLIFT_WEIGHT).await?;
-
-        // Get next training days (Mon/Wed/Fri)
-        let training_days = self.get_next_training_days(5);
-
-        let mut proposed_workouts = Vec::new();
-        let mut is_workout_a = start_with_a;
+        // Generate 4 weeks of schedule (12 workouts)
+        let training_days = self.get_next_training_days(12);
+        let mut schedule = Vec::new();
+        let mut is_a = next_recommended_workout_name == WORKOUT_A;
 
         for day in training_days {
-            let timestamp = day.and_hms_opt(9, 0, 0)
-                .unwrap()
-                .and_utc()
-                .timestamp();
-
-            let (name, sets) = if is_workout_a {
-                let sets = self.create_workout_a_sets(squat_weight, bench_weight, row_weight);
-                (WORKOUT_A.to_string(), sets)
-            } else {
-                let sets = self.create_workout_b_sets(squat_weight, ohp_weight, deadlift_weight);
-                (WORKOUT_B.to_string(), sets)
-            };
-
-            proposed_workouts.push(ProposedWorkout {
-                name,
-                proposed_sets: sets,
-                scheduled_for: timestamp,
+            let timestamp = day.and_hms_opt(9, 0, 0).unwrap().and_utc().timestamp();
+            schedule.push(ScheduledWorkout {
+                workout_name: if is_a { WORKOUT_A.to_string() } else { WORKOUT_B.to_string() },
+                scheduled_at: timestamp,
             });
-
-            is_workout_a = !is_workout_a;
+            is_a = !is_a;
         }
 
-        Ok(proposed_workouts)
+        Ok(GetProposedWorkoutScheduleResponse {
+            exercise_statuses,
+            schedule,
+            next_recommended_workout_name,
+        })
     }
 
-    async fn get_next_weight(&self, exercise: i32, default: f32) -> Result<f32, Box<dyn std::error::Error + Send + Sync>> {
-        match self.user_db.get_last_weight_for_exercise(exercise).await? {
-            Some(last_weight) => {
-                // Add appropriate increment based on exercise
-                let increment = if exercise == Exercise::Deadlift as i32 {
-                    DEADLIFT_INCREMENT
-                } else if exercise == Exercise::Squat as i32 {
-                    LOWER_BODY_INCREMENT
-                } else {
-                    UPPER_BODY_INCREMENT
-                };
-                Ok(last_weight + increment)
-            }
-            None => Ok(default),
+    async fn calculate_sophisticated_weight(&self, exercise: i32, default: f32) -> Result<(f32, String, i64, Vec<f32>), Box<dyn std::error::Error + Send + Sync>> {
+        let history = self.user_db.get_exercise_history(exercise, 10).await?;
+        let max_weight = self.user_db.get_all_time_max_weight_for_exercise(exercise).await?;
+        let weight_history: Vec<f32> = history.iter().rev().map(|(w, _, _)| *w).collect();
+        
+        if history.is_empty() {
+            return Ok((default, format!("Starting at {} lbs.", default), 0, weight_history));
         }
+
+        let (last_weight, last_success, last_date) = history[0];
+        let now = Utc::now().timestamp();
+        let days_since = (now - last_date) / (24 * 3600);
+        
+        let increment = if exercise == Exercise::Deadlift as i32 { DEADLIFT_INCREMENT } 
+                        else if exercise == Exercise::Squat as i32 { LOWER_BODY_INCREMENT }
+                        else { UPPER_BODY_INCREMENT };
+
+        // 1. Long Break Deload
+        if days_since > 14 {
+            let deload_pct = if days_since > 30 { 0.8 } else { 0.9 };
+            let new_weight = (last_weight * deload_pct / 5.0).round() * 5.0;
+            return Ok((new_weight.max(default), format!("Decreasing from {} to {} lbs because of {} day break.", last_weight, new_weight, days_since), last_date, weight_history));
+        }
+
+        // 2. Plateau Detection (3 consecutive failures at same weight)
+        if history.len() >= 3 {
+            let same_weight = history[0].0 == history[1].0 && history[1].0 == history[2].0;
+            let all_failed = !history[0].1 && !history[1].1 && !history[2].1;
+            if same_weight && all_failed {
+                let new_weight = (last_weight * 0.9 / 5.0).round() * 5.0;
+                return Ok((new_weight.max(default), format!("Decreasing from {} to {} lbs to reset progression after plateau.", last_weight, new_weight), last_date, weight_history));
+            }
+        }
+
+        // 3. Recent Failure (1 or 2 times)
+        if !last_success {
+            return Ok((last_weight, format!("Maintaining at {} lbs to master form after last failure.", last_weight), last_date, weight_history));
+        }
+
+        // 4. Return to Weight Mode
+        if max_weight > last_weight + increment {
+            let successes_since_deload = history.iter().take_while(|(_, success, _)| *success).count();
+            if successes_since_deload >= 2 {
+                let fast_increment = increment * 2.0;
+                let new_weight = last_weight + fast_increment;
+                return Ok((new_weight, format!("Increasing from {} to {} lbs to reclaim previous max of {} lbs.", last_weight, new_weight, max_weight), last_date, weight_history));
+            }
+        }
+
+        // 5. Standard Progression
+        let new_weight = last_weight + increment;
+        Ok((new_weight, format!("Increasing from {} to {} lbs after successful last session.", last_weight, new_weight), last_date, weight_history))
     }
 
     fn get_next_training_days(&self, count: usize) -> Vec<NaiveDate> {
@@ -182,10 +222,7 @@ impl Scheduler {
         let mut current = today;
 
         while days.len() < count {
-            // Move to next day
             current = current + Duration::days(1);
-
-            // Check if it's Mon, Wed, or Fri
             match current.weekday() {
                 Weekday::Mon | Weekday::Wed | Weekday::Fri => {
                     days.push(current);
@@ -193,11 +230,11 @@ impl Scheduler {
                 _ => {}
             }
         }
-
         days
     }
 
-    fn create_workout_a_sets(&self, squat_weight: f32, bench_weight: f32, row_weight: f32) -> Vec<ProposedSet> {
+    #[allow(dead_code)]
+    pub fn create_workout_a_sets(&self, squat_weight: f32, bench_weight: f32, row_weight: f32) -> Vec<ProposedSet> {
         let mut order = 0;
         let mut sets = Vec::new();
         sets.extend(create_exercise_sets(Exercise::Squat as i32, squat_weight, 5, 5, &mut order));
@@ -206,7 +243,8 @@ impl Scheduler {
         sets
     }
 
-    fn create_workout_b_sets(&self, squat_weight: f32, ohp_weight: f32, deadlift_weight: f32) -> Vec<ProposedSet> {
+    #[allow(dead_code)]
+    pub fn create_workout_b_sets(&self, squat_weight: f32, ohp_weight: f32, deadlift_weight: f32) -> Vec<ProposedSet> {
         let mut order = 0;
         let mut sets = Vec::new();
         sets.extend(create_exercise_sets(Exercise::Squat as i32, squat_weight, 5, 5, &mut order));

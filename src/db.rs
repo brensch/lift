@@ -263,19 +263,71 @@ impl UserDb {
         .await?)
     }
 
-    pub async fn get_last_weight_for_exercise(
+    pub async fn get_exercise_history(
         &self,
         exercise: i32,
-    ) -> Result<Option<f32>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query_scalar(
-            "SELECT cs.actual_weight FROM completed_sets cs
+        limit: i32,
+    ) -> Result<Vec<(f32, bool, i64)>, Box<dyn std::error::Error + Send + Sync>> {
+        // Fetch all non-warmup completed sets for this exercise, grouped by workout (ended_at)
+        let rows = sqlx::query(
+            "SELECT cs.actual_weight, cs.actual_reps, ps.target_reps, cs.ended_at
+             FROM completed_sets cs
              JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
              WHERE ps.exercise = ? AND cs.ended_at > 0 AND ps.warmup = 0
-             ORDER BY cs.ended_at DESC LIMIT 1",
+             ORDER BY cs.ended_at DESC",
+        )
+        .bind(exercise)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut history = Vec::new();
+        let mut current_workout_time = -1;
+        let mut current_workout_weight = 0.0;
+        let mut current_workout_success = true;
+        let mut count = 0;
+
+        for row in rows {
+            let ended_at = row.get::<i64, _>("ended_at");
+            let weight = row.get::<f32, _>("actual_weight");
+            let success = row.get::<i32, _>("actual_reps") >= row.get::<i32, _>("target_reps");
+
+            if ended_at != current_workout_time {
+                if current_workout_time != -1 {
+                    history.push((current_workout_weight, current_workout_success, current_workout_time));
+                    count += 1;
+                    if count >= limit {
+                        return Ok(history);
+                    }
+                }
+                current_workout_time = ended_at;
+                current_workout_weight = weight;
+                current_workout_success = success;
+            } else {
+                current_workout_success &= success;
+            }
+        }
+
+        if current_workout_time != -1 && count < limit {
+            history.push((current_workout_weight, current_workout_success, current_workout_time));
+        }
+
+        Ok(history)
+    }
+
+    pub async fn get_all_time_max_weight_for_exercise(
+        &self,
+        exercise: i32,
+    ) -> Result<f32, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar(
+            "SELECT MAX(cs.actual_weight) FROM completed_sets cs
+             JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
+             WHERE ps.exercise = ? AND cs.ended_at > 0 AND ps.warmup = 0
+             AND cs.actual_reps >= ps.target_reps",
         )
         .bind(exercise)
         .fetch_optional(&self.pool)
-        .await?)
+        .await?
+        .unwrap_or(0.0))
     }
 
     pub async fn modify_proposed_sets(
