@@ -31,9 +31,10 @@ interface WorkoutViewProps {
   workoutId: string
   userId: string
   onBack: () => void
+  onViewHistory: () => void
 }
 
-export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
+export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: WorkoutViewProps) {
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [proposedSets, setProposedSets] = useState<ProposedSet[]>([])
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>([])
@@ -263,7 +264,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   // --- Render ---
 
   if (isWorkoutEnded && workout) {
-    return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} onBack={onBack} />
+    return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} onBack={onBack} onViewHistory={onViewHistory} />
   }
 
   const editingGroup = editingExerciseIdx !== null

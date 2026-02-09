@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
+import { HistoryView } from '@/components/HistoryView'
 import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'
@@ -12,12 +13,17 @@ type Route =
   | { view: 'login' }
   | { view: 'home'; userId: string }
   | { view: 'workout'; userId: string; workoutId: string }
+  | { view: 'history'; userId: string }
 
 function parseRoute(path: string): Route {
   const parts = path.split('/').filter(Boolean)
 
   if (parts.length >= 3 && parts[1] === 'workout') {
     return { view: 'workout', userId: parts[0], workoutId: parts[2] }
+  }
+
+  if (parts.length >= 2 && parts[1] === 'history') {
+    return { view: 'history', userId: parts[0] }
   }
 
   if (parts.length >= 1) {
@@ -35,6 +41,8 @@ function routeToPath(route: Route): string {
       return `/${route.userId}`
     case 'workout':
       return `/${route.userId}/workout/${route.workoutId}`
+    case 'history':
+      return `/${route.userId}/history`
   }
 }
 
@@ -230,6 +238,7 @@ function App() {
                 onViewWorkout={(workoutId) =>
                   navigate({ view: 'workout', userId: route.userId, workoutId })
                 }
+                onViewHistory={() => navigate({ view: 'history', userId: route.userId })}
               />
             )
 
@@ -237,6 +246,15 @@ function App() {
             return (
               <WorkoutView
                 workoutId={route.workoutId}
+                userId={route.userId}
+                onBack={() => navigate({ view: 'home', userId: route.userId })}
+                onViewHistory={() => navigate({ view: 'history', userId: route.userId })}
+              />
+            )
+
+          case 'history':
+            return (
+              <HistoryView
                 userId={route.userId}
                 onBack={() => navigate({ view: 'home', userId: route.userId })}
               />
