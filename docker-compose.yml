@@ -30,7 +30,7 @@ services:
     depends_on:
       - backend
       - frontend
-    network:
+    networks:
       - home_default
 
 volumes:
