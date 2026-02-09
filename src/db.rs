@@ -98,8 +98,10 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
     }
 }
 
-fn compute_rest_seconds(target_reps: i32, actual_reps: i32, warmup: bool) -> i64 {
-    if warmup {
+fn compute_rest_seconds(target_reps: i32, actual_reps: i32, warmup: bool, last_warmup: bool) -> i64 {
+    if warmup && last_warmup {
+        180 // 3 minutes before first working set
+    } else if warmup {
         10
     } else if actual_reps >= target_reps {
         180 // 3 minutes
@@ -336,16 +338,35 @@ impl UserDb {
     ) -> Result<CompletedSet, Box<dyn std::error::Error + Send + Sync>> {
         let ended_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
-        // Look up target_reps and warmup flag from the proposed set to compute rest
-        let proposed_info: Option<(i32, bool)> = sqlx::query_as(
-            "SELECT target_reps, warmup FROM proposed_sets WHERE id = ?"
+        // Look up target_reps, warmup flag, exercise, and workout_order to compute rest
+        let proposed_info: Option<(i32, bool, i32, i32)> = sqlx::query_as(
+            "SELECT target_reps, warmup, exercise, workout_order FROM proposed_sets WHERE id = ?"
         )
         .bind(proposed_set_id)
         .fetch_optional(&self.pool)
         .await?;
 
-        let (target_reps, warmup) = proposed_info.unwrap_or((0, false));
-        let rest_seconds = compute_rest_seconds(target_reps, actual_reps, warmup);
+        let (target_reps, warmup, exercise, workout_order) = proposed_info.unwrap_or((0, false, 0, 0));
+
+        // Check if this is the last warmup in its exercise group:
+        // the next set (by workout_order) is either not a warmup or a different exercise.
+        let last_warmup = if warmup {
+            let next: Option<(bool, i32)> = sqlx::query_as(
+                "SELECT warmup, exercise FROM proposed_sets WHERE workout_id = ? AND workout_order > ? ORDER BY workout_order ASC LIMIT 1"
+            )
+            .bind(workout_id)
+            .bind(workout_order)
+            .fetch_optional(&self.pool)
+            .await?;
+            match next {
+                Some((true, ex)) if ex == exercise => false, // more warmups in this group
+                _ => true, // last warmup (next is working set, different exercise, or no next set)
+            }
+        } else {
+            false
+        };
+
+        let rest_seconds = compute_rest_seconds(target_reps, actual_reps, warmup, last_warmup);
         let rest_until = ended_at + rest_seconds;
 
         let existing: Option<(String, i64)> = sqlx::query_as(
