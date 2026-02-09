@@ -20,7 +20,7 @@ import { useElapsed, fmtElapsed } from '@/hooks/useTimer'
 import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox, GroupNextUpBox } from './ActiveBoxes'
 import { CompletedWorkoutView } from './CompletedView'
 import { SetLog } from './SetLog'
-import { PlateCalculatorModal, AddSetModal, EditExerciseModal } from './Modals'
+import { AddSetModal, EditExerciseModal } from './Modals'
 
 function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
   const elapsed = useElapsed(Number(startTime))
@@ -41,7 +41,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
   const [activeRestEnd, setActiveRestEnd] = useState<number | null>(null)
   const [isResting, setIsResting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingSetId, setEditingSetId] = useState<string | null>(null)
   const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null)
   const saveCounterRef = useRef(0)
   const sessionStatus = useMultiplayer(userId, workoutId)
@@ -201,15 +200,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
       }).catch(console.error)
   }
 
-  const handleUpdateWeight = (setId: string, newWeight: number) => {
-    const groups = groupSetsByExercise(proposedSets)
-    const groupIdx = groups.findIndex((g) => g.sets.some((s) => s.id === setId))
-    if (groupIdx === -1) return
-    const rebuilt = rebuildExerciseSets(groups[groupIdx].sets, { targetWeight: newWeight }, isSetDone)
-    saveGroups(groups.map((g, i) => i === groupIdx ? { ...g, sets: rebuilt } : g))
-    setEditingSetId(null)
-  }
-
   const handleEditExercise = (groupIdx: number, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
     const groups = groupSetsByExercise(proposedSets)
     if (!groups[groupIdx]) return
@@ -276,19 +266,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} onBack={onBack} />
   }
 
-  // Resolve weight for edit modal: use working weight even when editing a warmup set,
-  // and look within the same group (not by exercise type) to avoid cross-group confusion.
-  const editingWeightInfo = (() => {
-    if (!editingSetId) return null
-    const editSet = proposedSets.find((p) => p.id === editingSetId)
-    if (!editSet) return null
-    const group = groupSetsByExercise(proposedSets).find((g) => g.sets.some((s) => s.id === editingSetId))
-    const workingWeight = editSet.warmup
-      ? group?.sets.find((s) => !s.warmup)?.targetWeight || editSet.targetWeight
-      : editSet.targetWeight
-    return { setId: editingSetId, weight: workingWeight }
-  })()
-
   const editingGroup = editingExerciseIdx !== null
     ? groupSetsByExercise(proposedSets)[editingExerciseIdx] ?? null
     : null
@@ -321,7 +298,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
           <ActiveSetBox
             proposedSet={activeProposed} completedSet={activeCompleted}
             onComplete={(reps) => handleCompleteSet(activeProposed.id, reps)}
-            onEditWeight={() => setEditingSetId(activeProposed.id)}
             onSkip={activeProposed.warmup ? () => handleSkipWarmup(activeProposed.id) : undefined}
           />
         ) : allSetsDone ? (
@@ -335,20 +311,17 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
           <RestingBox
             restUntil={activeRestEnd} nextSet={nextSet}
             onStartEarly={() => nextSet && handleStartSet(nextSet.id)}
-            onEditWeight={nextSet ? () => setEditingSetId(nextSet.id) : undefined}
             onSkipWarmup={nextSet?.warmup ? () => handleSkipWarmup(nextSet.id) : undefined}
           />
         ) : activeRestEnd && nextSet ? (
           <ChatTimeBox
             restEndedAt={activeRestEnd} nextSet={nextSet}
             onStart={() => handleStartSet(nextSet.id)} loading={loading}
-            onEditWeight={() => setEditingSetId(nextSet.id)}
             onSkipWarmup={nextSet.warmup ? () => handleSkipWarmup(nextSet.id) : undefined}
           />
         ) : nextSet ? (
           <NextUpBox
             nextSet={nextSet} onStart={() => handleStartSet(nextSet.id)} loading={loading}
-            onEditWeight={() => setEditingSetId(nextSet.id)}
             onSkipWarmup={nextSet.warmup ? () => handleSkipWarmup(nextSet.id) : undefined}
           />
         ) : null}
@@ -363,13 +336,6 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
         <SetLog userId={userId} completedSets={completedSets} proposedSets={proposedSets} sessionStatus={sessionStatus} />
 
         {/* Modals */}
-        {editingWeightInfo && (
-          <PlateCalculatorModal
-            weight={editingWeightInfo.weight}
-            onSave={(w) => handleUpdateWeight(editingWeightInfo.setId, w)}
-            onClose={() => setEditingSetId(null)}
-          />
-        )}
         {editingGroup && editingExerciseIdx !== null && (
           <EditExerciseModal
             group={editingGroup}

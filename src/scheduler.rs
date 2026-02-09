@@ -11,52 +11,60 @@ use crate::db::UserDb;
 /// Alternates A-B-A, B-A-B each week
 /// Training days: Monday, Wednesday, Friday
 
-/// Snap a weight to the nearest 5 lbs, minimum 45 (empty bar).
-fn snap_weight(w: f32) -> f32 {
-    let snapped = (w / 5.0).round() * 5.0;
-    if snapped < 45.0 { 45.0 } else { snapped }
-}
+/// Plate-friendly warmup stops (bar + combinations of 45/25 plates per side).
+/// Must match PLATE_STOPS in web/src/lib/warmup.ts.
+const PLATE_STOPS: &[f32] = &[
+    45.0, 95.0, 135.0, 185.0, 225.0, 275.0, 315.0, 365.0,
+    405.0, 455.0, 495.0, 545.0, 585.0, 635.0,
+];
+
+const REP_SCHEMES: &[&[i32]] = &[
+    &[5],          // 1 warmup
+    &[5, 5],       // 2 warmups
+    &[5, 5, 3],    // 3 warmups
+    &[5, 5, 3, 2], // 4 warmups
+];
 
 /// Generate progressive warmup sets for a given exercise and working weight.
+/// Uses plate-friendly stops (same algorithm as the frontend warmup.ts).
 fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> Vec<ProposedSet> {
     if working_weight <= 45.0 {
         return Vec::new();
     }
 
-    let defs: Vec<(f32, i32)> = if working_weight <= 95.0 {
-        vec![(45.0, 5)]
-    } else if working_weight <= 135.0 {
-        vec![(45.0, 5), (snap_weight(working_weight * 0.5), 5)]
-    } else if working_weight <= 225.0 {
-        vec![
-            (45.0, 5),
-            (snap_weight(working_weight * 0.5), 5),
-            (snap_weight(working_weight * 0.75), 3),
-        ]
+    let candidates: Vec<f32> = PLATE_STOPS.iter().copied().filter(|&w| w < working_weight).collect();
+    if candidates.is_empty() {
+        return Vec::new();
+    }
+
+    let selected: Vec<f32> = if candidates.len() <= 4 {
+        candidates
     } else {
+        let n = candidates.len();
+        let step = (n - 1) as f64 / 3.0;
         vec![
-            (45.0, 5),
-            (snap_weight(working_weight * 0.5), 5),
-            (snap_weight(working_weight * 0.75), 3),
-            (snap_weight(working_weight * 0.9), 2),
+            candidates[0],
+            candidates[step.round() as usize],
+            candidates[(step * 2.0).round() as usize],
+            candidates[n - 1],
         ]
     };
 
-    defs.into_iter()
-        .map(|(weight, reps)| {
-            let set = ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: *order,
-                exercise,
-                target_reps: reps,
-                target_weight: weight,
-                warmup: true,
-            };
-            *order += 1;
-            set
-        })
-        .collect()
+    let reps = REP_SCHEMES[selected.len() - 1];
+
+    selected.iter().enumerate().map(|(i, &weight)| {
+        let set = ProposedSet {
+            id: String::new(),
+            workout_id: String::new(),
+            workout_order: *order,
+            exercise,
+            target_reps: reps[i],
+            target_weight: weight,
+            warmup: true,
+        };
+        *order += 1;
+        set
+    }).collect()
 }
 
 /// Create warmup + working sets for an exercise.
@@ -125,33 +133,18 @@ impl Scheduler {
         let mut proposed_workouts = Vec::new();
         let mut is_workout_a = start_with_a;
 
-        // Track weight progression across the 5 workouts
-        let mut current_squat = squat_weight;
-        let mut current_bench = bench_weight;
-        let mut current_row = row_weight;
-        let mut current_ohp = ohp_weight;
-        let mut current_deadlift = deadlift_weight;
-
         for day in training_days {
             let timestamp = day.and_hms_opt(9, 0, 0)
                 .unwrap()
                 .and_utc()
                 .timestamp();
 
-            let (name, sets, increments) = if is_workout_a {
-                let sets = self.create_workout_a_sets(current_squat, current_bench, current_row);
-                (
-                    WORKOUT_A.to_string(),
-                    sets,
-                    (LOWER_BODY_INCREMENT, UPPER_BODY_INCREMENT, UPPER_BODY_INCREMENT), // squat, bench, row
-                )
+            let (name, sets) = if is_workout_a {
+                let sets = self.create_workout_a_sets(squat_weight, bench_weight, row_weight);
+                (WORKOUT_A.to_string(), sets)
             } else {
-                let sets = self.create_workout_b_sets(current_squat, current_ohp, current_deadlift);
-                (
-                    WORKOUT_B.to_string(),
-                    sets,
-                    (LOWER_BODY_INCREMENT, UPPER_BODY_INCREMENT, DEADLIFT_INCREMENT), // squat, ohp, deadlift
-                )
+                let sets = self.create_workout_b_sets(squat_weight, ohp_weight, deadlift_weight);
+                (WORKOUT_B.to_string(), sets)
             };
 
             proposed_workouts.push(ProposedWorkout {
@@ -159,16 +152,6 @@ impl Scheduler {
                 proposed_sets: sets,
                 scheduled_for: timestamp,
             });
-
-            // Update weights for next workout
-            current_squat += LOWER_BODY_INCREMENT;
-            if is_workout_a {
-                current_bench += increments.1;
-                current_row += increments.2;
-            } else {
-                current_ohp += increments.1;
-                current_deadlift += increments.2;
-            }
 
             is_workout_a = !is_workout_a;
         }

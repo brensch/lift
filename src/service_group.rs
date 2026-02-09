@@ -31,30 +31,46 @@ impl SessionManager {
         let user_db = UserDb::new(user_id).await?;
         let session_db = SessionDb::new(&session_id).await?;
 
-        // 1. Get user info and active workout
+        // 1. Get user info
         let user = self.central_db.get_user(user_id).await?
-            .ok_or("User not found")?; // Should exist
-        
-        let active_workout = user_db.get_active_workout().await?;
-        let active_workout_id = active_workout.as_ref().map(|w| w.id.clone());
+            .ok_or("User not found")?;
 
-        // 2. Update participant info in SessionDb
-        session_db.upsert_participant(user_id, &user.name, active_workout_id.as_deref()).await?;
+        // 2. Use the workout_id from the session (persists after workout ends)
+        let workout_id = self.central_db.get_session_workout_id(user_id).await?;
 
-        // 3. If there is an active workout, sync it to SessionDb
-        if let Some(workout) = active_workout {
-            session_db.upsert_workout(user_id, &workout).await?;
-            
-            let proposed = user_db.get_proposed_sets(&workout.id).await?;
-            session_db.upsert_proposed_sets(user_id, &proposed).await?;
-            
-            let completed = user_db.get_completed_sets(&workout.id).await?;
-            for set in completed {
-                session_db.upsert_completed_set(user_id, &set).await?;
+        // 3. Update participant info in SessionDb
+        session_db.upsert_participant(user_id, &user.name, workout_id.as_deref()).await?;
+
+        // 4. Sync workout data (works for both active and ended workouts)
+        if let Some(wid) = &workout_id {
+            if let Some(workout) = user_db.get_workout(wid).await? {
+                session_db.upsert_workout(user_id, &workout).await?;
+
+                let proposed = user_db.get_proposed_sets(wid).await?;
+                session_db.upsert_proposed_sets(user_id, &proposed).await?;
+
+                let completed = user_db.get_completed_sets(wid).await?;
+                for set in completed {
+                    session_db.upsert_completed_set(user_id, &set).await?;
+                }
             }
         }
 
         Ok(())
+    }
+
+    pub async fn finish_session(&self, user_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(session_id) = self.central_db.get_session_id(user_id).await? {
+            self.central_db.leave_session(user_id).await?;
+
+            let user_db = UserDb::new(user_id).await?;
+            user_db.add_session(&session_id, false).await?;
+        }
+        Ok(())
+    }
+
+    pub async fn leave_session(&self, user_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.finish_session(user_id).await
     }
 
     pub async fn update_active_workout(&self, user_id: &str, workout_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -139,21 +155,9 @@ impl MultiplayerService for GroupService {
         request: Request<LeaveSessionRequest>,
     ) -> Result<Response<LeaveSessionResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
-        
-        if let Some(session_id) = self.central_db.get_session_id(&user_id).await.map_err(|e| Status::internal(e.to_string()))? {
-            self.central_db.leave_session(&user_id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-            
-            let user_db = UserDb::new(&user_id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-            user_db.add_session(&session_id, false).await
-                .map_err(|e| Status::internal(e.to_string()))?;
 
-            let session_db = SessionDb::new(&session_id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-            session_db.remove_participant(&user_id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-        }
+        self.session_manager.leave_session(&user_id).await
+            .map_err(|e| Status::internal(e.to_string()))?;
 
         Ok(Response::new(LeaveSessionResponse {}))
     }

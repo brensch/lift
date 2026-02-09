@@ -1,41 +1,60 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Pencil, User as UserIcon } from 'lucide-react'
 import { type ProposedSet, type CompletedSet, Exercise } from '@/gen/workout/v1/workout_pb'
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { EXERCISE_NAMES } from '@/lib/exercises'
+import { calcPlatesPerSide, PLATE_COLORS } from '@/components/PlateCalculator'
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
 import { cn } from '@/lib/utils'
 
-interface ActionBoxProps {
-  children: React.ReactNode
-  className?: string
-  borderColor?: string
-  bgColor?: string
-  title?: React.ReactNode
-  icon?: React.ReactNode
-  label?: string
+/** Shared compact box shell — left accent strip + card background */
+function Box({ accent, children, className }: { accent: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn('rounded-lg border border-border bg-card px-4 py-3 border-l-4', accent, className)}>
+      {children}
+    </div>
+  )
 }
 
-function ActionBox({ children, className, borderColor, bgColor, title, icon, label }: ActionBoxProps) {
+const PLATE_H: Record<number, string> = { 45: 'h-8', 25: 'h-7', 10: 'h-6', 5: 'h-5', 2.5: 'h-4' }
+const PLATE_W: Record<number, string> = { 45: 'w-2.5', 25: 'w-2', 10: 'w-1.5', 5: 'w-1.5', 2.5: 'w-1' }
+
+/** Inline barbell plate visualization */
+function InlinePlates({ weight }: { weight: number }) {
+  const plates = calcPlatesPerSide(weight)
+  if (plates.length === 0) return null
   return (
-    <Card className={cn("border-2 transition-colors relative overflow-hidden", borderColor, bgColor, className)}>
-      {label && (
-        <div className="absolute top-0 right-0 bg-muted-foreground/10 text-muted-foreground text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
-          {label}
-        </div>
+    <div className="flex items-center gap-[2px]">
+      <div className="flex items-center gap-[2px] flex-row-reverse">
+        {plates.map((p, i) => (
+          <div key={`l-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
+        ))}
+      </div>
+      <div className="h-1 w-6 bg-gray-500" />
+      <div className="flex items-center gap-[2px]">
+        {plates.map((p, i) => (
+          <div key={`r-${i}`} className={`${PLATE_COLORS[p]} ${PLATE_W[p]} ${PLATE_H[p]} rounded-sm`} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Compact one-line exercise info: "Bench Press [W] · 5×135 lb" + plates */
+function NextSetInfo({ set, large }: { set: ProposedSet; large?: boolean }) {
+  return (
+    <div className={cn('text-muted-foreground mt-0.5', large ? 'text-base' : 'text-sm')}>
+      <span className="font-medium text-foreground">{EXERCISE_NAMES[set.exercise as Exercise]}</span>
+      {set.warmup && (
+        <span className="ml-1.5 text-[10px] bg-blue-500/15 text-blue-500 px-1 py-0.5 rounded font-medium align-middle">W</span>
       )}
-      <CardContent className="pt-6 pb-4">
-        {(title || icon) && (
-          <div className="flex items-center justify-center gap-2 mb-2 text-muted-foreground">
-            {icon}
-            {title && <span className="text-sm font-medium uppercase tracking-wider">{title}</span>}
-          </div>
-        )}
-        {children}
-      </CardContent>
-    </Card>
+      <span className="mx-1.5 opacity-40">·</span>
+      <span className={cn('font-mono font-semibold text-foreground', large && 'text-lg')}>{set.targetReps}×{set.targetWeight}</span>
+      <span className={cn('ml-0.5', large ? 'text-sm' : 'text-xs')}>lb</span>
+      <div className="mt-1">
+        <InlinePlates weight={set.targetWeight} />
+      </div>
+    </div>
   )
 }
 
@@ -50,86 +69,60 @@ export function GroupNextUpBox({ participant, restUntil, nextSet }: {
   if (!nextSet) return null
 
   return (
-    <ActionBox
-      label="Group"
-      borderColor="border-purple-500/30"
-      bgColor="bg-purple-500/5"
-      icon={<UserIcon className="w-4 h-4" />}
-      title={
-        <span>
-          <span className="font-bold text-foreground">{participant.user?.name || 'Someone'}</span> is {isChatting ? 'chatting' : 'resting'}
-        </span>
-      }
-    >
-      <div className="text-center">
-        {isChatting ? (
-           <p className="text-lg font-mono text-purple-600 font-semibold animate-pulse">
-             Overdue
-           </p>
-        ) : (
-          <p className="text-3xl font-bold font-mono text-foreground/80">
-            {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
-          </p>
-        )}
-        
-        <div className="mt-2 text-sm text-muted-foreground">
-          Up next: <span className="font-medium text-foreground">{EXERCISE_NAMES[nextSet.exercise as Exercise]}</span>
-          <span className="mx-1">•</span>
-          {nextSet.targetReps} &times; {nextSet.targetWeight}lbs
+    <Box accent="border-l-purple-500">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
+            Next for group · {participant.user?.name || 'Someone'}
+          </div>
+          <NextSetInfo set={nextSet} />
         </div>
+        {isChatting ? (
+          <span className="text-sm font-mono text-purple-500 font-semibold animate-pulse shrink-0 ml-3">Overdue</span>
+        ) : (
+          <span className="text-2xl font-bold font-mono leading-none shrink-0 ml-3">
+            {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
+          </span>
+        )}
       </div>
-    </ActionBox>
+    </Box>
   )
 }
 
-export function RestingBox({ restUntil, nextSet, onStartEarly, onEditWeight, onSkipWarmup }: {
+export function RestingBox({ restUntil, nextSet, onStartEarly, onSkipWarmup }: {
   restUntil: number
   nextSet?: ProposedSet
   onStartEarly: () => void
-  onEditWeight?: () => void
   onSkipWarmup?: () => void
 }) {
   const remaining = useCountdown(restUntil)
   if (remaining <= 0) return null
 
   return (
-    <ActionBox
-      label="You"
-      borderColor="border-blue-500/50"
-      bgColor="bg-blue-500/5"
-      title="Resting"
-    >
-      <div className="text-center">
-        <p className="text-5xl font-bold font-mono">
-          {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
-        </p>
-        {nextSet && (
-          <p className="text-sm text-muted-foreground mt-3">
-            Up next: {EXERCISE_NAMES[nextSet.exercise as Exercise]} {nextSet.targetReps}&times;{nextSet.targetWeight}lbs
-            {nextSet.warmup && ' (Warmup)'}
-            {onEditWeight && (
-              <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </p>
-        )}
-        <div className="flex gap-2 justify-center mt-3">
-          <Button onClick={onStartEarly}>Start Next Set Early</Button>
-          {nextSet?.warmup && onSkipWarmup && (
-            <Button variant="ghost" onClick={onSkipWarmup} className="text-muted-foreground">Skip</Button>
-          )}
+    <Box accent="border-l-blue-500">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-blue-500 uppercase tracking-wider">Next set</div>
+          {nextSet && <NextSetInfo set={nextSet} large />}
         </div>
+        <span className="text-4xl font-bold font-mono leading-none shrink-0 ml-3">
+          {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
+        </span>
       </div>
-    </ActionBox>
+      <div className="flex gap-2 mt-3">
+        <Button size="sm" onClick={onStartEarly} className="flex-1">Start Next Set</Button>
+        {nextSet?.warmup && onSkipWarmup && (
+          <Button variant="ghost" size="sm" onClick={onSkipWarmup} className="text-muted-foreground">Skip</Button>
+        )}
+      </div>
+    </Box>
   )
 }
 
-export function ActiveSetBox({ proposedSet, completedSet, onComplete, onEditWeight, onSkip }: {
+export function ActiveSetBox({ proposedSet, completedSet, onComplete, onSkip }: {
   proposedSet: ProposedSet
   completedSet: CompletedSet
   onComplete: (reps: number) => void
-  onEditWeight: () => void
   onSkip?: () => void
 }) {
   const elapsed = useElapsed(Number(completedSet.startedAt))
@@ -138,140 +131,109 @@ export function ActiveSetBox({ proposedSet, completedSet, onComplete, onEditWeig
   const buttons = Array.from({ length: maxReps + 1 }, (_, i) => i)
 
   return (
-    <ActionBox
-      label="You"
-      borderColor={proposedSet.warmup ? 'border-blue-500' : 'border-primary'}
-      className="shadow-sm"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-muted-foreground font-medium uppercase tracking-wide">
-          {EXERCISE_NAMES[proposedSet.exercise as Exercise]}
-          {proposedSet.warmup && ' (Warmup)'}
-        </span>
-        <span className="font-mono text-muted-foreground">{fmtElapsed(elapsed)}</span>
-      </div>
-      <div className="text-center mb-6">
-        <div className="text-3xl font-bold flex items-center justify-center gap-2">
-          {proposedSet.targetWeight} <span className="text-lg text-muted-foreground font-normal">lbs</span>
-          <button onClick={onEditWeight} className="inline-flex text-muted-foreground hover:text-foreground">
-            <Pencil className="w-4 h-4" />
-          </button>
+    <Box accent={proposedSet.warmup ? 'border-l-blue-500' : 'border-l-primary'}>
+      {/* Header: exercise + elapsed */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">{EXERCISE_NAMES[proposedSet.exercise as Exercise]}</span>
+          {proposedSet.warmup && (
+            <span className="text-[10px] bg-blue-500/15 text-blue-500 px-1.5 py-0.5 rounded font-medium">Warmup</span>
+          )}
         </div>
-        <div className="text-5xl font-black text-primary mt-1">{proposedSet.targetReps} <span className="text-2xl text-muted-foreground font-medium">reps</span></div>
+        <span className="font-mono text-sm text-muted-foreground">{fmtElapsed(elapsed)}</span>
       </div>
-      
-      <div className="text-center space-y-3">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Log Reps</div>
-        <div className="flex flex-wrap gap-2 justify-center">
+
+      {/* Weight + reps */}
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-bold">{proposedSet.targetWeight}</span>
+        <span className="text-sm text-muted-foreground">lb</span>
+        <span className="text-muted-foreground mx-1 opacity-40">·</span>
+        <span className="text-2xl font-bold text-primary">{proposedSet.targetReps}</span>
+        <span className="text-sm text-muted-foreground">reps</span>
+      </div>
+      <div className="mt-1 mb-3">
+        <InlinePlates weight={proposedSet.targetWeight} />
+      </div>
+
+      {/* Log reps */}
+      <div>
+        <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Log reps</div>
+        <div className="flex flex-wrap gap-1.5">
           {buttons.map((n) => (
             <Button
               key={n}
-              size="lg"
+              size="sm"
               variant={n === maxReps ? 'default' : 'outline'}
               onClick={() => { setLoading(true); onComplete(n) }}
               disabled={loading}
-              className="min-w-[48px] h-12 text-lg font-bold"
+              className="min-w-[40px] h-10 text-base font-bold"
             >
               {n}
             </Button>
           ))}
         </div>
       </div>
-      
+
       {proposedSet.warmup && onSkip && (
-        <Button variant="ghost" size="sm" className="w-full mt-4 text-muted-foreground hover:text-foreground" onClick={() => { setLoading(true); onSkip() }} disabled={loading}>
+        <Button
+          variant="ghost" size="sm"
+          className="w-full mt-2 text-muted-foreground text-xs"
+          onClick={() => { setLoading(true); onSkip() }}
+          disabled={loading}
+        >
           Skip Warmup
         </Button>
       )}
-    </ActionBox>
+    </Box>
   )
 }
 
-const CHAT_MESSAGES = [
-  "The barbell misses you...",
-  "Your gains are evaporating",
-  "Less yapping, more repping!",
-  "The weights aren't gonna lift themselves",
-  "Sir, this is a gym",
-  "Your muscles are falling asleep",
-  "Chat time's over... any minute now",
-  "The squat rack is judging you",
-]
-
-export function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onEditWeight, onSkipWarmup }: {
+export function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onSkipWarmup }: {
   restEndedAt: number
   nextSet: ProposedSet
   onStart: () => void
   loading: boolean
-  onEditWeight: () => void
   onSkipWarmup?: () => void
 }) {
   const elapsed = useElapsed(restEndedAt)
-  const [message] = useState(() => CHAT_MESSAGES[Math.floor(Math.random() * CHAT_MESSAGES.length)])
 
   return (
-    <ActionBox
-      label="You"
-      borderColor="border-orange-500/50"
-      bgColor="bg-orange-500/5"
-      title="Chat Time"
-    >
-      <div className="text-center">
-        <p className="text-4xl font-bold font-mono text-orange-500">
-          {fmtElapsed(elapsed)}
-        </p>
-        <p className="text-sm text-muted-foreground mt-2 italic">"{message}"</p>
-        <div className="mt-4 pt-4 border-t border-orange-500/20">
-          <p className="text-sm text-muted-foreground mb-3">
-            Next: <span className="font-medium text-foreground">{EXERCISE_NAMES[nextSet.exercise as Exercise]}</span> {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
-            {nextSet.warmup && ' (Warmup)'}
-            <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-          </p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={onStart} disabled={loading} size="lg" className="w-full max-w-[200px]">Start Set</Button>
-            {nextSet.warmup && onSkipWarmup && (
-              <Button variant="ghost" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
-            )}
-          </div>
+    <Box accent="border-l-orange-500">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Next set</div>
+          <NextSetInfo set={nextSet} large />
         </div>
+        <span className="text-4xl font-bold font-mono text-orange-500 leading-none shrink-0 ml-3">
+          {fmtElapsed(elapsed)}
+        </span>
       </div>
-    </ActionBox>
+      <div className="flex gap-2 mt-3">
+        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">Start Set</Button>
+        {nextSet.warmup && onSkipWarmup && (
+          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
+        )}
+      </div>
+    </Box>
   )
 }
 
-export function NextUpBox({ nextSet, onStart, loading, onEditWeight, onSkipWarmup }: {
+export function NextUpBox({ nextSet, onStart, loading, onSkipWarmup }: {
   nextSet: ProposedSet
   onStart: () => void
   loading: boolean
-  onEditWeight: () => void
   onSkipWarmup?: () => void
 }) {
   return (
-    <ActionBox
-      label="You"
-      borderColor="border-dashed border-muted-foreground/30"
-      title="Next Up"
-    >
-      <div className="text-center">
-        <p className="text-xl font-bold mb-1">
-          {EXERCISE_NAMES[nextSet.exercise as Exercise]}
-          {nextSet.warmup && <span className="ml-2 text-xs bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded align-middle">Warmup</span>}
-        </p>
-        <p className="text-muted-foreground mb-4">
-          {nextSet.targetReps} reps @ {nextSet.targetWeight} lbs
-          <button onClick={onEditWeight} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-        </p>
-        <div className="flex gap-2 justify-center">
-          <Button onClick={onStart} disabled={loading} size="lg" className="w-full max-w-[200px]">Start Set</Button>
-          {nextSet.warmup && onSkipWarmup && (
-            <Button variant="ghost" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
-          )}
-        </div>
+    <Box accent="border-l-muted-foreground/30" className="border-dashed">
+      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Next up</div>
+      <NextSetInfo set={nextSet} />
+      <div className="flex gap-2 mt-2">
+        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">Start Set</Button>
+        {nextSet.warmup && onSkipWarmup && (
+          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
+        )}
       </div>
-    </ActionBox>
+    </Box>
   )
 }
