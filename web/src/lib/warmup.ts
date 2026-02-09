@@ -1,29 +1,39 @@
 import { create } from '@bufbuild/protobuf'
 import { type ProposedSet, type Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
 
-function snapWeight(w: number): number {
-  const snapped = Math.round(w / 5) * 5
-  return snapped < 45 ? 45 : snapped
+// Plate-friendly warmup stops (bar + combinations of 45/25 plates per side)
+const PLATE_STOPS = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635]
+
+const REP_SCHEMES: Record<number, number[]> = {
+  1: [5],
+  2: [5, 5],
+  3: [5, 5, 3],
+  4: [5, 5, 3, 2],
 }
 
 function generateWarmupDefs(workingWeight: number): { weight: number; reps: number }[] {
   if (workingWeight <= 45) return []
-  if (workingWeight <= 95) return [{ weight: 45, reps: 5 }]
-  if (workingWeight <= 135) return [
-    { weight: 45, reps: 5 },
-    { weight: snapWeight(workingWeight * 0.5), reps: 5 },
-  ]
-  if (workingWeight <= 225) return [
-    { weight: 45, reps: 5 },
-    { weight: snapWeight(workingWeight * 0.5), reps: 5 },
-    { weight: snapWeight(workingWeight * 0.75), reps: 3 },
-  ]
-  return [
-    { weight: 45, reps: 5 },
-    { weight: snapWeight(workingWeight * 0.5), reps: 5 },
-    { weight: snapWeight(workingWeight * 0.75), reps: 3 },
-    { weight: snapWeight(workingWeight * 0.9), reps: 2 },
-  ]
+
+  const candidates = PLATE_STOPS.filter((w) => w < workingWeight)
+  if (candidates.length === 0) return []
+
+  let selected: number[]
+  if (candidates.length <= 4) {
+    selected = candidates
+  } else {
+    // Pick 4 evenly spaced: first, two from middle, last
+    const n = candidates.length
+    const step = (n - 1) / 3
+    selected = [
+      candidates[0],
+      candidates[Math.round(step)],
+      candidates[Math.round(step * 2)],
+      candidates[n - 1],
+    ]
+  }
+
+  const reps = REP_SCHEMES[selected.length]
+  return selected.map((weight, i) => ({ weight, reps: reps[i] }))
 }
 
 /**
