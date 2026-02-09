@@ -1,0 +1,33 @@
+# Builder stage
+FROM oven/bun:1.3.8-debian AS builder
+WORKDIR /app/web
+
+# Install buf
+RUN apt-get update && apt-get install -y curl && \
+    BIN="/usr/local/bin" && \
+    VERSION="1.50.0" && \
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" -o "${BIN}/buf" && \
+    chmod +x "${BIN}/buf" && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY web/package.json web/bun.lockb* web/bun.lock* ./
+RUN bun install --frozen-lockfile
+
+COPY proto/ ../proto/
+COPY web/ ./
+
+# Generate proto code and build frontend
+RUN bun run generate && bun run build
+
+# Runtime stage
+# We use the same base image to run 'serve.ts' with bun
+FROM oven/bun:1.3.8-debian
+WORKDIR /app/web
+
+COPY --from=builder /app/web/dist ./dist
+COPY --from=builder /app/web/serve.ts ./
+COPY --from=builder /app/web/node_modules ./node_modules
+COPY --from=builder /app/web/package.json ./
+
+EXPOSE 5173
+CMD ["bun", "run", "serve.ts"]

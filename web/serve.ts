@@ -1,14 +1,15 @@
 import { serve } from "bun";
 
-const backendUrl = process.env.BACKEND_URL || "http://localhost:50051";
+const backendUrl = process.env.BACKEND_URL;
+const port = parseInt(process.env.PORT || "4173");
 
 serve({
-  port: 4173,
+  port,
   async fetch(req) {
     const url = new URL(req.url);
 
     // Proxy API requests to backend (gRPC-Web)
-    if (url.pathname.startsWith("/workout.v1.")) {
+    if (backendUrl && url.pathname.startsWith("/workout.v1.")) {
         // Construct backend URL
         const target = backendUrl + url.pathname + url.search;
         console.log(`Proxying ${url.pathname} to ${target}`);
@@ -48,4 +49,9 @@ serve({
     return new Response(file);
   }
 });
-console.log(`Preview server running on http://localhost:4173, proxying to ${backendUrl}`);
+
+if (backendUrl) {
+    console.log(`Preview server running on http://localhost:${port}, proxying to ${backendUrl}`);
+} else {
+    console.log(`Preview server running on http://localhost:${port} (static only)`);
+}

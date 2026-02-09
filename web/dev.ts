@@ -39,25 +39,6 @@ const server = Bun.serve({
   port: 5173,
   async fetch(req) {
     const url = new URL(req.url);
-
-    // Proxy API requests to backend (gRPC-Web)
-    // Matches requests starting with /workout.v1. (package name)
-    if (url.pathname.startsWith("/workout.v1.")) {
-        const backendUrl = "http://localhost:50051" + url.pathname + url.search;
-        console.log(`Proxying ${url.pathname} to ${backendUrl}`);
-        
-        // Forward the request
-        const backendRes = await fetch(backendUrl, {
-            method: req.method,
-            headers: req.headers,
-            body: req.body,
-        });
-        
-        return new Response(backendRes.body, {
-            status: backendRes.status,
-            headers: backendRes.headers,
-        });
-    }
     
     // Serve index.html (modified)
     if (url.pathname === "/" || url.pathname === "/index.html") {

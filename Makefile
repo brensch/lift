@@ -1,12 +1,10 @@
 .PHONY: run-dev check
 
 run-dev:
-	# Start backend (with watch) and frontend in parallel
-	# Use a subshell and trap to kill background processes on Ctrl+C
-	@bash -c 'trap "kill %1 %2" SIGINT; \
-	cargo watch -x "run --bin lift" & \
-	(cd web && bun run dev) & \
-	wait'
+	docker-compose -f docker-compose.dev.yml up --build
+
+run-prod:
+	docker-compose up --build
 
 check:
 	cargo check

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run dev.ts",
     "build": "bun run build.ts",
-    "preview": "bun run serve.ts",
+    "preview": "BACKEND_URL=http://localhost:50051 bun run serve.ts",
     "generate": "rm -rf src/gen && cd ../proto && buf generate"
   },
   "dependencies": {
