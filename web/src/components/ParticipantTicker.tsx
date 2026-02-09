@@ -27,7 +27,7 @@ export function ParticipantTicker({ status, isPeeping, onPeep }: {
   return (
     <button
       onClick={onPeep}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all shrink-0 ${
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all shrink-0 min-h-[38px] ${
         isPeeping 
           ? 'bg-primary border-primary text-primary-foreground shadow-md scale-105' 
           : 'bg-muted/50 border-transparent hover:bg-muted text-muted-foreground'
