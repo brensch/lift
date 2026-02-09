@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { Exercise, type ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
@@ -31,7 +32,7 @@ interface ParticipantStatusViewProps {
   layout: 'chip' | 'detail'
 }
 
-export function ParticipantStatusView({ status, layout }: ParticipantStatusViewProps) {
+export const ParticipantStatusView = memo(function ParticipantStatusView({ status, layout }: ParticipantStatusViewProps) {
   const activeCompletedSet = status.completedSets.find(c => c.endedAt === 0n)
   
   const lastCompletedSet = [...status.completedSets]
@@ -42,7 +43,7 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
 
   // Derive "isResting" and "restUntil" from the last completed set
   const restUntil = lastCompletedSet?.restUntil || 0n
-  const isResting = !isWorkoutFinished && Number(restUntil) > Date.now() / 1000
+  const isResting = !isWorkoutFinished && !activeCompletedSet && Number(restUntil) > Date.now() / 1000
 
   // Derive "currentSet" (the active one or the next one)
   const currentSet = activeCompletedSet 
@@ -51,7 +52,7 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
 
   const elapsedWorking = useElapsed(activeCompletedSet?.startedAt || 0n)
   const remainingRest = useCountdown(restUntil)
-  const elapsedChatting = useElapsed(isResting || isWorkoutFinished ? 0n : restUntil)
+  const elapsedChatting = useElapsed((lastCompletedSet && !isResting && !activeCompletedSet && !isWorkoutFinished) ? lastCompletedSet.endedAt : 0n)
 
   let mode = 'idle'
   let timerText = ''
@@ -62,6 +63,12 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
     mode = 'finished'
     label = 'done'
     exerciseInfo = 'Workout complete!'
+  } else if (activeCompletedSet && currentSet) {
+    // WORKING takes priority over RESTING (e.g. if starting early)
+    mode = 'working'
+    timerText = fmtElapsed(elapsedWorking)
+    label = 'set'
+    exerciseInfo = `${SHORT_NAMES[currentSet.exercise as Exercise]} ${getSetInfo(currentSet, status.proposedSets)} ${currentSet.targetReps}x${currentSet.targetWeight}`
   } else if (isResting) {
     mode = 'resting'
     timerText = fmtElapsed(remainingRest)
@@ -69,12 +76,7 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
     if (currentSet) {
       exerciseInfo = `${SHORT_NAMES[currentSet.exercise as Exercise]} ${getSetInfo(currentSet, status.proposedSets)} ${currentSet.targetReps}x${currentSet.targetWeight}`
     }
-  } else if (activeCompletedSet && currentSet) {
-    mode = 'working'
-    timerText = fmtElapsed(elapsedWorking)
-    label = 'set'
-    exerciseInfo = `${SHORT_NAMES[currentSet.exercise as Exercise]} ${getSetInfo(currentSet, status.proposedSets)} ${currentSet.targetReps}x${currentSet.targetWeight}`
-  } else if (lastCompletedSet && !isResting) {
+  } else if (lastCompletedSet && !activeCompletedSet) {
     mode = 'chatting'
     timerText = fmtElapsed(elapsedChatting)
     label = 'next'
@@ -126,4 +128,4 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
       )}
     </div>
   )
-}
+})
