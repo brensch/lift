@@ -218,10 +218,11 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
 
-        user_db.deactivate_all_sessions().await
-            .map_err(|e| Status::internal(format!("Failed to deactivate sessions: {}", e)))?;
-        
+        // Sync final workout state to session DB, then leave the session.
+        // The participant row is kept so their finished workout remains visible.
         self.session_manager.notify_user_update(&user_id).await;
+        self.session_manager.finish_session(&user_id).await
+            .map_err(|e| Status::internal(format!("Failed to finish session: {}", e)))?;
 
         Ok(Response::new(EndWorkoutResponse {
             workout: Some(workout),

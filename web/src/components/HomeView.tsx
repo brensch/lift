@@ -148,72 +148,76 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
           </Card>
         ) : (
           <>
-            {/* Proposed Workouts */}
-            {proposedWorkouts.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Schedule</CardTitle>
-                  <CardDescription>StrongLifts 5x5 - Pick a workout to start</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
+            {/* Schedule */}
+            {proposedWorkouts.length > 0 && (() => {
+              const nextDate = new Date(Number(proposedWorkouts[0].scheduledFor) * 1000)
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              nextDate.setHours(0, 0, 0, 0)
+              const daysUntil = Math.round((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+              const isToday = daysUntil <= 0
+
+              // Track which workout names have had a Start button
+              const startShown = new Set<string>()
+
+              return (
+                <div className="space-y-2">
+                  {!isToday && (
+                    <div className="rounded-lg border border-dashed p-3 text-center text-muted-foreground">
+                      Rest day — next workout in {daysUntil} {daysUntil === 1 ? 'day' : 'days'}
+                    </div>
+                  )}
                   {proposedWorkouts.map((pw, idx) => {
                     const exerciseGroups = groupSetsByExercise(pw.proposedSets)
-                    const isToday = idx === 0
+                    const showStart = !startShown.has(pw.name)
+                    if (showStart) startShown.add(pw.name)
 
                     return (
                       <div
                         key={idx}
-                        className={`p-4 rounded-lg border ${
-                          isToday ? 'border-primary bg-primary/5' : 'bg-muted'
+                        className={`rounded-lg border p-3 ${
+                          idx === 0 && isToday ? 'border-primary bg-primary/5' : ''
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <span className={`font-bold ${isToday ? 'text-primary' : ''}`}>
-                              {pw.name}
-                            </span>
-                            <span className="text-sm text-muted-foreground ml-2">
-                              {formatDate(pw.scheduledFor)}
-                            </span>
-                            {isToday && (
-                              <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
-                                Next
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleStartWorkout(pw)}
-                            disabled={loading}
-                          >
-                            Start
-                          </Button>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`font-bold ${idx === 0 && isToday ? 'text-primary' : ''}`}>
+                            {idx === 0 && isToday ? 'Today' : formatDate(pw.scheduledFor)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">{pw.name}</span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
+                        <div className="flex flex-wrap gap-1.5 mt-2">
                           {exerciseGroups.map((g, i) => {
                             const workingSets = g.sets.filter((s) => !s.warmup)
-                            const warmupCount = g.sets.length - workingSets.length
                             return (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-1 text-xs font-medium"
+                                className="inline-flex items-center gap-1 rounded-full bg-background border px-2.5 py-0.5 text-xs font-medium"
                               >
                                 <span>{EXERCISE_EMOJIS[g.exercise]}</span>
                                 <span>{EXERCISE_NAMES[g.exercise]}</span>
                                 <span className="text-muted-foreground">
                                   {workingSets.length}&times;{workingSets[0]?.targetReps} &middot; {workingSets[0]?.targetWeight}lbs
-                                  {warmupCount > 0 && ` +${warmupCount}w`}
                                 </span>
                               </span>
                             )
                           })}
                         </div>
+                        {showStart && (
+                          <Button
+                            className="w-full mt-3"
+                            variant={idx === 0 ? 'default' : 'outline'}
+                            onClick={() => handleStartWorkout(pw)}
+                            disabled={loading}
+                          >
+                            {loading ? 'Starting...' : `Start ${pw.name}`}
+                          </Button>
+                        )}
                       </div>
                     )
                   })}
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )
+            })()}
 
             {/* Custom Workout */}
             <Button

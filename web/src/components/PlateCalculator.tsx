@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-const PLATE_COLORS: Record<number, string> = {
+export const PLATE_COLORS: Record<number, string> = {
   45: 'bg-red-500',
   25: 'bg-blue-500',
   10: 'bg-yellow-500',

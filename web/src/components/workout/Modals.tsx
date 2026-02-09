@@ -5,26 +5,6 @@ import { PlateCalculator } from '@/components/PlateCalculator'
 import { Exercise, type ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { EXERCISE_NAMES } from '@/lib/exercises'
 
-export function PlateCalculatorModal({ weight, onSave, onClose }: {
-  weight: number
-  onSave: (weight: number) => void
-  onClose: () => void
-}) {
-  const [value, setValue] = useState(weight)
-
-  return (
-    <Modal title="Edit Weight" onClose={onClose} className="max-w-sm">
-      <div className="p-6 space-y-4">
-        <PlateCalculator weight={value} onChange={setValue} />
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button className="flex-1" onClick={() => onSave(value)}>Save</Button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
-
 export function AddSetModal({ onAdd, onClose }: {
   onAdd: (exercise: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => void
   onClose: () => void

@@ -512,15 +512,6 @@ impl UserDb {
         Ok(())
     }
 
-    pub async fn deactivate_all_sessions(
-        &self,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        println!("Deactivating all sessions for user");
-        sqlx::query("UPDATE user_sessions SET is_active = 0")
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
 }
 
 #[derive(Clone)]
@@ -666,6 +657,18 @@ impl CentralDb {
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(
             sqlx::query_scalar("SELECT session_id FROM active_sessions WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.pool)
+                .await?,
+        )
+    }
+
+    pub async fn get_session_workout_id(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(
+            sqlx::query_scalar("SELECT workout_id FROM active_sessions WHERE user_id = ?")
                 .bind(user_id)
                 .fetch_optional(&self.pool)
                 .await?,
@@ -830,16 +833,6 @@ impl SessionDb {
         Ok(())
     }
 
-    pub async fn remove_participant(
-        &self,
-        user_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query("DELETE FROM participants WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
 
     pub async fn upsert_workout(
         &self,
