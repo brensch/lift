@@ -1,5 +1,6 @@
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { ParticipantStatusView } from './ParticipantStatusView'
+import { useCountdown } from '@/hooks/useTimer'
 
 export function ParticipantTicker({ status, isPeeping, onPeep }: { 
   status: ParticipantStatus; 
@@ -12,7 +13,12 @@ export function ParticipantTicker({ status, isPeeping, onPeep }: {
     .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
 
   const isWorkoutFinished = status.activeWorkout && Number(status.activeWorkout.endTime) > 0
-  const isResting = !isWorkoutFinished && lastCompletedSet && Number(lastCompletedSet.restUntil) > Date.now() / 1000
+  
+  // Use a hook to force re-renders while the timer is counting down
+  const restUntil = lastCompletedSet ? Number(lastCompletedSet.restUntil) : 0
+  const remaining = useCountdown(restUntil)
+  
+  const isResting = !isWorkoutFinished && lastCompletedSet && remaining > 0
 
   const dotColor = isWorkoutFinished
     ? 'bg-purple-400'
