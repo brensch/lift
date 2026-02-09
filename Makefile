@@ -1,7 +1,9 @@
 .PHONY: run-dev check
 
 run-dev:
-	docker-compose -f docker-compose.dev.yml up --build
+	@pkill -x lift || true
+	@echo "Starting services... Press Ctrl+C to stop."
+	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; cargo watch -x "run --bin lift" & (cd web && bun run dev) & wait'
 
 run-prod:
 	docker-compose up --build

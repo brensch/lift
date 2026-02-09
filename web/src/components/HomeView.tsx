@@ -135,7 +135,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout }: Ho
 
         <SessionHeader userId={userId} />
 
-        <p className="text-muted-foreground">Welcome, {userName || userId}</p>
+        <p className="text-muted-foreground">Hi, {userName || userId}</p>
 
         {error && (
           <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md">
