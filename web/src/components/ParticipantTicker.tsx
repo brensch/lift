@@ -11,15 +11,18 @@ export function ParticipantTicker({ status, isPeeping, onPeep }: {
     .filter(c => c.endedAt > 0n)
     .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
 
-  const isResting = lastCompletedSet && Number(lastCompletedSet.restUntil) > Date.now() / 1000
+  const isWorkoutFinished = status.activeWorkout && Number(status.activeWorkout.endTime) > 0
+  const isResting = !isWorkoutFinished && lastCompletedSet && Number(lastCompletedSet.restUntil) > Date.now() / 1000
 
-  const dotColor = isResting 
-    ? 'bg-blue-400 animate-pulse' 
-    : activeCompletedSet
-      ? 'bg-green-400'
-      : lastCompletedSet
-        ? 'bg-orange-400'
-        : 'bg-gray-400'
+  const dotColor = isWorkoutFinished
+    ? 'bg-purple-400'
+    : isResting 
+      ? 'bg-blue-400 animate-pulse' 
+      : activeCompletedSet
+        ? 'bg-green-400'
+        : lastCompletedSet
+          ? 'bg-orange-400'
+          : 'bg-gray-400'
 
   return (
     <button

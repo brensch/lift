@@ -9,22 +9,20 @@ import { Camera, X, Share } from 'lucide-react'
 interface MultiplayerModalProps {
   userId: string
   workoutId?: string // Current workout ID if any
+  sessionId?: string // Current session ID if any
   onClose: () => void
   onJoinSession: (sessionId: string) => void
 }
 
-export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: MultiplayerModalProps) {
-  const [activeSessionId, setActiveSessionId] = useState<string>('')
+export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoinSession }: MultiplayerModalProps) {
+  const [localActiveSessionId, setLocalActiveSessionId] = useState<string>('')
   const [showScanner, setShowScanner] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
-  useEffect(() => {
-    multiplayerClient.getMyActiveSession({}, withUserId(userId))
-      .then(res => {
-        if (res.sessionId) setActiveSessionId(res.sessionId);
-      })
-      .catch(console.error);
-  }, [userId]);
+  // Use the prop if available, otherwise use local state (from start/join actions)
+  const activeSessionId = localActiveSessionId || sessionId || ''
+  const effectiveSessionId = activeSessionId === '__NONE__' ? '' : activeSessionId
+  const joinUrl = effectiveSessionId ? `${window.location.origin}/?join=${effectiveSessionId}` : ''
 
   useEffect(() => {
     if (showScanner) {
@@ -34,7 +32,6 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
         false
       );
       scannerRef.current.render((decodedText) => {
-        // Expected format: http://.../?join=SESSION_ID
         try {
           const url = new URL(decodedText);
           const joinId = url.searchParams.get('join');
@@ -44,9 +41,7 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
         } catch (e) {
           console.error('Invalid QR code:', decodedText);
         }
-      }, () => {
-        // Just ignore scan errors
-      });
+      }, () => {});
 
       return () => {
         if (scannerRef.current) {
@@ -59,20 +54,18 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
   const handleStartSession = async () => {
     try {
       const res = await multiplayerClient.startSession({ workoutId: workoutId || '' }, withUserId(userId));
-      console.log('Started session:', res.sessionId);
-      setActiveSessionId(res.sessionId);
+      setLocalActiveSessionId(res.sessionId);
       onJoinSession(res.sessionId);
     } catch (e) {
       console.error('Failed to start session:', e);
     }
   };
 
-  const handleJoin = async (sessionId: string) => {
+  const handleJoin = async (id: string) => {
     try {
-      await multiplayerClient.joinSession({ sessionId, workoutId: workoutId || '' }, withUserId(userId));
-      console.log('Joined session:', sessionId);
-      setActiveSessionId(sessionId);
-      onJoinSession(sessionId);
+      await multiplayerClient.joinSession({ sessionId: id, workoutId: workoutId || '' }, withUserId(userId));
+      setLocalActiveSessionId(id);
+      onJoinSession(id);
       onClose();
     } catch (e) {
       console.error('Failed to join session:', e);
@@ -82,13 +75,12 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
   const handleLeave = async () => {
     try {
       await multiplayerClient.leaveSession({}, withUserId(userId));
-      setActiveSessionId('');
+      setLocalActiveSessionId('__NONE__');
+      onJoinSession('');
     } catch (e) {
       console.error('Failed to leave session:', e);
     }
   };
-
-  const joinUrl = activeSessionId ? `${window.location.origin}/?join=${activeSessionId}` : '';
 
   const handleShare = async () => {
     if (!joinUrl) return;
@@ -123,7 +115,7 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
             </Button>
           </div>
 
-          {!activeSessionId ? (
+          {!effectiveSessionId ? (
             <div className="space-y-4 py-4">
               <Button 
                 className="w-full h-12 text-lg font-bold" 
@@ -166,7 +158,7 @@ export function MultiplayerModal({ userId, workoutId, onClose, onJoinSession }: 
                 <QRCode value={joinUrl} size={200} />
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                Active Session ID: <span className="font-mono">{activeSessionId}</span>
+                Active Session ID: <span className="font-mono">{effectiveSessionId}</span>
               </p>
               <div className="flex gap-2 w-full">
                 <Button variant="outline" className="flex-1" onClick={handleShare}>
