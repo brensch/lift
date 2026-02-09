@@ -38,9 +38,11 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
     .filter(c => c.endedAt > 0n)
     .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
 
+  const isWorkoutFinished = status.activeWorkout && Number(status.activeWorkout.endTime) > 0
+
   // Derive "isResting" and "restUntil" from the last completed set
   const restUntil = lastCompletedSet?.restUntil || 0n
-  const isResting = Number(restUntil) > Date.now() / 1000
+  const isResting = !isWorkoutFinished && Number(restUntil) > Date.now() / 1000
 
   // Derive "currentSet" (the active one or the next one)
   const currentSet = activeCompletedSet 
@@ -49,14 +51,18 @@ export function ParticipantStatusView({ status, layout }: ParticipantStatusViewP
 
   const elapsedWorking = useElapsed(activeCompletedSet?.startedAt || 0n)
   const remainingRest = useCountdown(restUntil)
-  const elapsedChatting = useElapsed(isResting ? 0n : restUntil)
+  const elapsedChatting = useElapsed(isResting || isWorkoutFinished ? 0n : restUntil)
 
   let mode = 'idle'
   let timerText = ''
   let label = ''
   let exerciseInfo = ''
 
-  if (isResting) {
+  if (isWorkoutFinished) {
+    mode = 'finished'
+    label = 'done'
+    exerciseInfo = 'Workout complete!'
+  } else if (isResting) {
     mode = 'resting'
     timerText = fmtElapsed(remainingRest)
     label = 'next'

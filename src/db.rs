@@ -421,6 +421,12 @@ impl UserDb {
             .fetch_optional(&self.pool)
             .await?)
     }
+
+    pub async fn deactivate_all_sessions(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        println!("Deactivating all sessions for user");
+        sqlx::query("UPDATE user_sessions SET is_active = 0").execute(&self.pool).await?;
+        Ok(())
+    }
 }
 
 #[derive(Clone)]

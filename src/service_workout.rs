@@ -201,6 +201,9 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
 
+        user_db.deactivate_all_sessions().await
+            .map_err(|e| Status::internal(format!("Failed to deactivate sessions: {}", e)))?;
+        
         self.session_manager.notify_user_update(&user_id).await;
 
         Ok(Response::new(EndWorkoutResponse {

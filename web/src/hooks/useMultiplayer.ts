@@ -13,7 +13,6 @@ export function useMultiplayer(userId: string) {
       try {
         // 1. Check current active session in local DB
         const { sessionId: activeSessionId } = await multiplayerClient.getMyActiveSession({}, withUserId(userId))
-        console.debug('Active Session ID:', activeSessionId);
         
         if (!activeSessionId) {
           if (active) setSessionStatus(null);
@@ -22,7 +21,6 @@ export function useMultiplayer(userId: string) {
 
         // 2. Get the list of participants in this session
         const status = await multiplayerClient.getSessionStatus({ sessionId: activeSessionId }, withUserId(userId))
-        console.debug('Session participants count:', status.participants.length);
 
         // 3. Parallel lookups for each participant's workout progress
         const participantUpdates = await Promise.all(
@@ -31,7 +29,6 @@ export function useMultiplayer(userId: string) {
               return p;
             }
             try {
-              console.debug(`Fetching workout for participant ${p.user?.id} with workout ${p.activeWorkoutId}`);
               return await multiplayerClient.getParticipantWorkout(
                 { userId: p.user?.id || '', workoutId: p.activeWorkoutId },
                 withUserId(userId)

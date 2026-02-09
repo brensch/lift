@@ -398,10 +398,11 @@ function AddSetModal({ onAdd, onClose, loading }: {
 
 // --- Completed workout view ---
 
-function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: {
+function CompletedWorkoutView({ workout, proposedSets, completedSets, userId, onBack }: {
   workout: Workout
   proposedSets: ProposedSet[]
   completedSets: CompletedSet[]
+  userId: string
   onBack: () => void
 }) {
   const totalDuration = Number(workout.endTime - workout.startTime)
@@ -422,6 +423,7 @@ function CompletedWorkoutView({ workout, proposedSets, completedSets, onBack }: 
           <Button variant="ghost" size="sm" onClick={onBack}>&larr; Back</Button>
           <span className="text-sm text-muted-foreground">{fmtElapsed(totalDuration)}</span>
         </div>
+        <SessionHeader userId={userId} />
         <div className="text-center py-2">
           <h2 className="text-xl font-bold">{workout.name || 'Workout'}</h2>
           <p className="text-sm text-muted-foreground">
@@ -612,7 +614,7 @@ export function WorkoutView({ workoutId, userId, onBack }: WorkoutViewProps) {
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  if (isWorkoutEnded && workout) return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} onBack={onBack} />
+  if (isWorkoutEnded && workout) return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} onBack={onBack} />
 
   return (
     <div className="min-h-screen bg-background p-4 pb-24">

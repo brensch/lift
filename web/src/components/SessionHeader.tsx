@@ -35,13 +35,14 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
             variant="ghost" 
             size="sm" 
             onClick={() => setShowModal(true)}
-            className={`flex items-center gap-2 px-3 h-8 rounded-full transition-colors shrink-0 ${activeParticipantsCount > 1 ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'text-muted-foreground border border-dashed'}`}
+            className={`flex items-center gap-2 px-3 h-8 rounded-full transition-colors shrink-0 ${sessionStatus ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'text-muted-foreground border border-dashed'}`}
           >
             <Users className="w-4 h-4" />
-            {activeParticipantsCount > 1 ? (
-              <span className="text-xs font-bold">{activeParticipantsCount}</span>
-            ) : (
-              <span className="text-[10px] uppercase font-bold tracking-tighter">Session</span>
+            <span className="text-[10px] uppercase font-bold tracking-tight">
+              {sessionStatus ? 'Add People' : 'New Session'}
+            </span>
+            {activeParticipantsCount > 1 && (
+              <span className="text-xs font-black">({activeParticipantsCount})</span>
             )}
           </Button>
 
@@ -93,6 +94,7 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
         <MultiplayerModal 
           userId={userId} 
           workoutId={workoutId} 
+          sessionId={sessionStatus?.sessionId}
           onClose={() => setShowModal(false)} 
           onJoinSession={(sid) => {
             console.log('Joined session:', sid);
