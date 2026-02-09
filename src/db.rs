@@ -441,13 +441,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS social_links (
-    follower_id TEXT NOT NULL,
-    followed_id TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    PRIMARY KEY (follower_id, followed_id)
-);
-
 CREATE TABLE IF NOT EXISTS active_sessions (
     user_id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL,
@@ -455,7 +448,6 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     joined_at INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_social_links_followed ON social_links(followed_id);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_session ON active_sessions(session_id);
 "#;
 
@@ -511,34 +503,6 @@ impl CentralDb {
             .map(row_to_user)
             .fetch_optional(&self.pool)
             .await?)
-    }
-
-    pub async fn search_users(&self, query: &str) -> Result<Vec<User>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query("SELECT id, name, created_at FROM users WHERE name LIKE ? LIMIT 20")
-            .bind(format!("%{}%", query))
-            .map(row_to_user)
-            .fetch_all(&self.pool)
-            .await?)
-    }
-
-    pub async fn follow_user(&self, follower_id: &str, followed_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        sqlx::query("INSERT OR IGNORE INTO social_links (follower_id, followed_id, created_at) VALUES (?, ?, ?)")
-            .bind(follower_id)
-            .bind(followed_id)
-            .bind(now)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn is_following(&self, follower_id: &str, followed_id: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        let count: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM social_links WHERE follower_id = ? AND followed_id = ?")
-            .bind(follower_id)
-            .bind(followed_id)
-            .fetch_one(&self.pool)
-            .await?;
-        Ok(count > 0)
     }
 
     pub async fn join_session(&self, user_id: &str, session_id: &str, workout_id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

@@ -2,7 +2,6 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use crate::db::{CentralDb, UserDb};
 use crate::service_workout::get_user_id;
-use lift::workout::v1::social_service_server::SocialService;
 use lift::workout::v1::multiplayer_service_server::MultiplayerService;
 use lift::workout::v1::*;
 
@@ -69,59 +68,6 @@ impl GroupService {
             central_db,
             session_manager,
         }
-    }
-}
-
-#[tonic::async_trait]
-impl SocialService for GroupService {
-    async fn search_users(
-        &self,
-        request: Request<SearchUsersRequest>,
-    ) -> Result<Response<SearchUsersResponse>, Status> {
-        let req = request.into_inner();
-        let users = self.central_db.search_users(&req.query).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(SearchUsersResponse { users }))
-    }
-
-    async fn get_user_social_profile(
-        &self,
-        request: Request<GetUserSocialProfileRequest>,
-    ) -> Result<Response<GetUserSocialProfileResponse>, Status> {
-        let user_id = get_user_id(&request).unwrap_or_default();
-        let req = request.into_inner();
-        let user = self.central_db.get_user(&req.user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("User not found"))?;
-        
-        let is_following = if !user_id.is_empty() {
-            self.central_db.is_following(&user_id, &req.user_id).await
-                .map_err(|e| Status::internal(e.to_string()))?
-        } else {
-            false
-        };
-
-        let user_db = UserDb::new(&req.user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let recent_workouts = user_db.list_workouts().await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(Response::new(GetUserSocialProfileResponse {
-            user: Some(user),
-            recent_workouts,
-            is_following,
-        }))
-    }
-
-    async fn follow_user(
-        &self,
-        request: Request<FollowUserRequest>,
-    ) -> Result<Response<FollowUserResponse>, Status> {
-        let follower_id = get_user_id(&request)?;
-        let req = request.into_inner();
-        self.central_db.follow_user(&follower_id, &req.user_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(FollowUserResponse {}))
     }
 }
 
@@ -255,4 +201,3 @@ impl MultiplayerService for GroupService {
         Ok(Response::new(UpdateActiveWorkoutResponse {}))
     }
 }
-

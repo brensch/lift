@@ -4,12 +4,6 @@ package workout.v1;
 
 import "workout/v1/workout.proto";
 
-service SocialService {
-  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
-  rpc GetUserSocialProfile(GetUserSocialProfileRequest) returns (GetUserSocialProfileResponse);
-  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
-}
-
 service MultiplayerService {
   // Start a new session
   rpc StartSession(StartSessionRequest) returns (StartSessionResponse);
@@ -30,30 +24,6 @@ service MultiplayerService {
   // Update the active workout for the current user's session
   rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
 }
-
-message SearchUsersRequest {
-  string query = 1;
-}
-
-message SearchUsersResponse {
-  repeated User users = 1;
-}
-
-message GetUserSocialProfileRequest {
-  string user_id = 1;
-}
-
-message GetUserSocialProfileResponse {
-  User user = 1;
-  repeated Workout recent_workouts = 2;
-  bool is_following = 3;
-}
-
-message FollowUserRequest {
-  string user_id = 1;
-}
-
-message FollowUserResponse {}
 
 message StartSessionRequest {
   string workout_id = 1; // Optional

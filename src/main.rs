@@ -5,7 +5,6 @@ use tower_http::cors::{Any, CorsLayer};
 use lift::workout::v1::{
     workout_service_server::WorkoutServiceServer,
     user_service_server::UserServiceServer,
-    social_service_server::SocialServiceServer,
     multiplayer_service_server::MultiplayerServiceServer,
 };
 use log::info;
@@ -51,7 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let workout_service_web = tonic_web::enable(WorkoutServiceServer::new(workout_service));
     let user_service_web = tonic_web::enable(UserServiceServer::new(user_service));
-    let social_service_web = tonic_web::enable(SocialServiceServer::new(group_service.clone()));
     let multiplayer_service_web = tonic_web::enable(MultiplayerServiceServer::new(group_service));
 
     Server::builder()
@@ -60,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .layer(cors)
         .add_service(workout_service_web)
         .add_service(user_service_web)
-        .add_service(social_service_web)
         .add_service(multiplayer_service_web)
         .serve(addr)
         .await?;
