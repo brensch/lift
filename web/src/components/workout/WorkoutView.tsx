@@ -59,15 +59,15 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
 
         const activeSet = response.completedSets.find(c => c.endedAt === 0n)
         if (activeSet) {
-           setActiveRestEnd(null)
-           setIsResting(false)
-           return
+          setActiveRestEnd(null)
+          setIsResting(false)
+          return
         }
 
         const lastCompleted = response.completedSets
           .filter((c) => c.endedAt > 0n && c.restUntil > 0n)
           .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
-          
+
         if (lastCompleted) {
           const ru = Number(lastCompleted.restUntil)
           setActiveRestEnd(ru)
@@ -107,48 +107,48 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
   const groupNextUp = useMemo(() => {
     if (!sessionStatus) return null
     const now = Math.floor(Date.now() / 1000)
-    
+
     const getParticipantState = (p: ParticipantStatus) => {
       // Find last completed set with rest
       const lastCompleted = p.completedSets
         .filter((c) => c.endedAt > 0n && c.restUntil > 0n)
         .sort((a, b) => Number(b.endedAt - a.endedAt))[0]
-      
+
       const restUntil = lastCompleted ? Number(lastCompleted.restUntil) : 0
-      
+
       // Check if actively working out (started set but not ended)
       const activeSet = p.completedSets.find(c => c.endedAt === 0n)
-      if (activeSet) return null 
+      if (activeSet) return null
 
       // Find next set
       const isPSetDone = (setId: string) => p.completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
       const pNextSet = p.proposedSets.find((s) => !isPSetDone(s.id))
-      
+
       if (!pNextSet) return null
 
       if (restUntil > now) {
-         return { type: 'resting', restUntil, nextSet: pNextSet, score: restUntil - now }
+        return { type: 'resting', restUntil, nextSet: pNextSet, score: restUntil - now }
       } else {
-         return { type: 'chatting', restUntil, nextSet: pNextSet, score: now - restUntil }
+        return { type: 'chatting', restUntil, nextSet: pNextSet, score: now - restUntil }
       }
     }
 
     const candidates = sessionStatus.participants
       .map(p => ({ p, state: getParticipantState(p) }))
       .filter((x): x is { p: ParticipantStatus, state: NonNullable<ReturnType<typeof getParticipantState>> } => x.state !== null)
-    
+
     // Sort: Chatting (descending overdue) > Resting (ascending remaining)
     candidates.sort((a, b) => {
-        if (a.state.type === 'chatting' && b.state.type === 'resting') return -1
-        if (a.state.type === 'resting' && b.state.type === 'chatting') return 1
-        
-        if (a.state.type === 'chatting' && b.state.type === 'chatting') {
-            return b.state.score - a.state.score // Longest chatting first
-        }
-        if (a.state.type === 'resting' && b.state.type === 'resting') {
-            return a.state.score - b.state.score // Soonest to finish first
-        }
-        return 0
+      if (a.state.type === 'chatting' && b.state.type === 'resting') return -1
+      if (a.state.type === 'resting' && b.state.type === 'chatting') return 1
+
+      if (a.state.type === 'chatting' && b.state.type === 'chatting') {
+        return b.state.score - a.state.score // Longest chatting first
+      }
+      if (a.state.type === 'resting' && b.state.type === 'resting') {
+        return a.state.score - b.state.score // Soonest to finish first
+      }
+      return 0
     })
 
     return candidates[0]
@@ -287,9 +287,9 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-                    <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
-                      LIFT
-                    </button>
+          <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
+            LIFT
+          </button>
           <div className="flex items-center gap-2">
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
             <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>
@@ -300,10 +300,10 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
 
         {/* Group Up Next */}
         {groupNextUp && (
-          <GroupNextUpBox 
-            participant={groupNextUp.p} 
-            restUntil={groupNextUp.state.restUntil} 
-            nextSet={groupNextUp.state.nextSet} 
+          <GroupNextUpBox
+            participant={groupNextUp.p}
+            restUntil={groupNextUp.state.restUntil}
+            nextSet={groupNextUp.state.nextSet}
           />
         )}
 
