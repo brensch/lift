@@ -149,7 +149,7 @@ export function RestingBox({ restUntil, nextSet, onStartEarly, onSkipWarmup }: {
     <Box accent="border-l-blue-500">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-blue-500 uppercase tracking-wider">Next set</div>
+          <div className="text-xs font-semibold text-blue-500 uppercase tracking-wider">Your Next set</div>
           {nextSet && <NextSetInfo set={nextSet} large />}
         </div>
         <span className="text-4xl font-bold font-mono leading-none shrink-0 ml-3">
@@ -248,7 +248,7 @@ export function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onSkipWarm
     <Box accent="border-l-orange-500">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <div className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Next set</div>
+          <div className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Your next set</div>
           <NextSetInfo set={nextSet} large />
         </div>
         <span className="text-4xl font-bold font-mono text-orange-500 leading-none shrink-0 ml-3">
