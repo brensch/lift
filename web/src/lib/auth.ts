@@ -1,4 +1,5 @@
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 
 const AUTH_BASE = `${window.location.origin}/auth`;
 
@@ -24,21 +25,20 @@ async function authFetch(path: string, body: unknown): Promise<unknown> {
 export async function register(username: string): Promise<AuthResponse> {
   const startData = (await authFetch('/register/start', { username })) as {
     user_id: string;
-    options: { publicKey: Record<string, unknown> };
+    options: { publicKey: PublicKeyCredentialCreationOptionsJSON };
   };
 
   // Force residentKey: "required" so authenticators (including YubiKeys) store
   // discoverable credentials. webauthn-rs defaults to "discouraged" which makes
   // YubiKeys store non-resident keys that can't be found during sign-in.
-  const optionsJSON = startData.options.publicKey as Record<string, unknown>;
-  const authSel = (optionsJSON.authenticatorSelection ?? {}) as Record<string, unknown>;
-  authSel.residentKey = 'required';
-  authSel.requireResidentKey = true;
-  optionsJSON.authenticatorSelection = authSel;
+  const optionsJSON = startData.options.publicKey;
+  optionsJSON.authenticatorSelection = {
+    ...optionsJSON.authenticatorSelection,
+    residentKey: 'required',
+    requireResidentKey: true,
+  };
 
-  const credential = await startRegistration({
-    optionsJSON: optionsJSON as Parameters<typeof startRegistration>[0]['optionsJSON'],
-  });
+  const credential = await startRegistration({ optionsJSON });
 
   return (await authFetch('/register/finish', {
     user_id: startData.user_id,
@@ -50,13 +50,13 @@ export async function login(): Promise<AuthResponse> {
   // Get discoverable authentication challenge (empty allowCredentials)
   const startData = (await authFetch('/login/start', {})) as {
     challenge_id: string;
-    options: { publicKey: Record<string, unknown> };
+    options: { publicKey: PublicKeyCredentialRequestOptionsJSON };
   };
 
   // Modal discoverable auth — on Android this shows the credential selector
   // bottom sheet with "Sign in as [user] to [site]"
   const credential = await startAuthentication({
-    optionsJSON: startData.options.publicKey as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+    optionsJSON: startData.options.publicKey,
   });
 
   return (await authFetch('/login/finish', {
