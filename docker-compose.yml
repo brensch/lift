@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     volumes:
-      - user_dbs:/app/user_dbs
+      - ./data:/app/data
     environment:
       - RUST_LOG=info
       - WEBAUTHN_RP_ID=lift.snek2.ddns.net
@@ -36,9 +36,6 @@ services:
       - frontend
     networks:
       - home_default
-
-volumes:
-  user_dbs:
 
 # note this connects to the network set up by caddy in the home assist project
 networks:
