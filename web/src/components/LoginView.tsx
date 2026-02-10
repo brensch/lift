@@ -9,7 +9,6 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onLogin }: LoginViewProps) {
-  const [mode, setMode] = useState<'signin' | 'register'>('signin')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +34,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
   const handleRegister = async () => {
     if (!username.trim()) {
-      setError('Please enter a username')
+      setError('Please enter a display name')
       return
     }
     setLoading(true)
@@ -56,55 +55,45 @@ export function LoginView({ onLogin }: LoginViewProps) {
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Lift</CardTitle>
           <CardDescription>
-            {mode === 'signin' ? 'Sign in with your passkey' : 'Create a new account'}
+            Track your workouts
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {error && (
             <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md text-sm">
               {error}
             </div>
           )}
 
-          {mode === 'signin' ? (
-            <>
-              <Button onClick={handleSignIn} className="w-full" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign in with Passkey'}
-              </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <button
-                  className="text-primary underline"
-                  onClick={() => { setMode('register'); setError(null) }}
-                >
-                  Create one
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <Input
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
-                disabled={loading}
-                autoFocus
-              />
-              <Button onClick={handleRegister} className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create Account'}
-              </Button>
-              <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <button
-                  className="text-primary underline"
-                  onClick={() => { setMode('signin'); setError(null) }}
-                >
-                  Sign in
-                </button>
-              </div>
-            </>
-          )}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-center text-lg">New user?</h3>
+            <Input
+              placeholder="Display Name"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
+              disabled={loading}
+            />
+            <Button onClick={handleRegister} className="w-full" disabled={loading}>
+              {loading ? 'Creating account...' : 'Sign up'}
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-center text-lg">Coming back?</h3>
+            <Button onClick={handleSignIn} variant="outline" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
