@@ -4,6 +4,7 @@ import { multiplayerClient, withUserId } from '@/lib/client'
 import { QRCodeSVG } from 'qrcode.react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { Modal } from '@/components/ui/modal'
+import { Loader2 } from 'lucide-react'
 
 interface MultiplayerModalProps {
   userId: string
@@ -16,6 +17,7 @@ interface MultiplayerModalProps {
 export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoinSession }: MultiplayerModalProps) {
   const [localActiveSessionId, setLocalActiveSessionId] = useState<string>('')
   const [showScanner, setShowScanner] = useState(false)
+  const [loading, setLoading] = useState(false)
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
   // Use the prop if available, otherwise use local state (from start/join actions)
@@ -51,16 +53,20 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
   }, [showScanner]);
 
   const handleStartSession = async () => {
+    setLoading(true);
     try {
       const res = await multiplayerClient.startSession({ workoutId: workoutId || '' }, withUserId(userId));
       setLocalActiveSessionId(res.sessionId);
       onJoinSession(res.sessionId);
     } catch (e) {
       console.error('Failed to start session:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleJoin = async (id: string) => {
+    setLoading(true);
     try {
       await multiplayerClient.joinSession({ sessionId: id, workoutId: workoutId || '' }, withUserId(userId));
       setLocalActiveSessionId(id);
@@ -68,16 +74,21 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
       onClose();
     } catch (e) {
       console.error('Failed to join session:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLeave = async () => {
+    setLoading(true);
     try {
       await multiplayerClient.leaveSession({}, withUserId(userId));
       setLocalActiveSessionId('__NONE__');
       onJoinSession('');
     } catch (e) {
       console.error('Failed to leave session:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,7 +126,9 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
             <Button 
               className="w-full h-12 text-lg font-bold" 
               onClick={handleStartSession}
+              disabled={loading}
             >
+              {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
               Start a Session
             </Button>
             <p className="text-sm text-muted-foreground text-center">
@@ -136,6 +149,7 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
                 variant={showScanner ? 'default' : 'outline'} 
                 className="flex-1"
                 onClick={() => setShowScanner(!showScanner)}
+                disabled={loading}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> {showScanner ? 'Cancel Scan' : 'Scan QR Code'}
               </Button>
@@ -156,11 +170,11 @@ export function MultiplayerModal({ userId, workoutId, sessionId, onClose, onJoin
               Active Session ID: <span className="font-mono font-bold text-foreground">{effectiveSessionId}</span>
             </p>
             <div className="flex gap-2 w-full pt-2">
-              <Button variant="outline" className="flex-1" onClick={handleShare}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg> Share Link
+              <Button variant="outline" className="flex-1 text-destructive hover:text-destructive" onClick={handleLeave} disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Leave Session'}
               </Button>
-              <Button variant="destructive" className="flex-1" onClick={handleLeave}>
-                Leave Session
+              <Button variant="default" className="flex-1" onClick={handleShare}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg> Share Link
               </Button>
             </div>
           </div>

@@ -97,6 +97,12 @@ message CompleteSetResponse {
   CompletedSet completed_set = 1;
 }
 
+message DeleteCompletedSetRequest {
+  string workout_id = 1;
+  string completed_set_id = 2;
+}
+message DeleteCompletedSetResponse {}
+
 message EndWorkoutRequest {
   string workout_id = 1;
 }
@@ -147,6 +153,7 @@ service WorkoutService {
 
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
+  rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);

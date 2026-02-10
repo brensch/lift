@@ -107,3 +107,17 @@ export function EditExerciseModal({ group, onSave, onDelete, onClose }: {
     </Modal>
   )
 }
+
+export function DeleteSetModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) {
+  return (
+    <Modal title="Delete Set" onClose={onClose} className="max-w-xs">
+      <div className="p-6 space-y-4">
+        <p className="text-sm">Are you sure you want to remove this completed set?</p>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+          <Button variant="destructive" className="flex-1" onClick={onConfirm}>Delete</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}

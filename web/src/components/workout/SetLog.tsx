@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { X } from 'lucide-react'
 import { type ProposedSet, type CompletedSet, Exercise } from '@/gen/workout/v1/workout_pb'
 import { SHORT_NAMES } from '@/lib/exercises'
 
@@ -14,11 +15,12 @@ interface LogEntry {
   isMe: boolean
 }
 
-export function SetLog({ userId, completedSets, proposedSets, sessionStatus }: {
+export function SetLog({ userId, completedSets, proposedSets, sessionStatus, onDelete }: {
   userId: string
   completedSets: CompletedSet[]
   proposedSets: ProposedSet[]
   sessionStatus: any
+  onDelete: (id: string) => void
 }) {
   const allEntries: LogEntry[] = []
 
@@ -80,6 +82,14 @@ export function SetLog({ userId, completedSets, proposedSets, sessionStatus }: {
             </span>
             <span className="font-medium">{entry.completed.actualReps}&times;{entry.completed.actualWeight}{entry.proposed?.warmup ? ' (w)' : ''}</span>
             <span className="text-muted-foreground font-mono ml-auto">{fmtTime(entry.completed.endedAt)}</span>
+            {entry.isMe && (
+              <button
+                onClick={() => onDelete(entry.completed.id)}
+                className="text-muted-foreground/50 hover:text-destructive transition-colors ml-1 p-0.5 rounded-full hover:bg-destructive/10"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
         ))}
       </div>
