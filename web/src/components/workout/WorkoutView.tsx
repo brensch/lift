@@ -20,7 +20,7 @@ import { useElapsed, fmtElapsed } from '@/hooks/useTimer'
 import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox, GroupNextUpBox } from './ActiveBoxes'
 import { CompletedWorkoutView } from './CompletedView'
 import { SetLog } from './SetLog'
-import { AddSetModal, EditExerciseModal } from './Modals'
+import { AddSetModal, EditExerciseModal, DeleteSetModal } from './Modals'
 
 function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
   const elapsed = useElapsed(Number(startTime))
@@ -43,6 +43,7 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
   const [isResting, setIsResting] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null)
+  const [setToDelete, setSetToDelete] = useState<string | null>(null)
   const saveCounterRef = useRef(0)
   const sessionStatus = useMultiplayer(userId, workoutId)
 
@@ -260,6 +261,17 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
     setShowAddModal(false)
   }
 
+  const handleDeleteSet = async () => {
+    if (!setToDelete) return
+    try {
+      await workoutClient.deleteCompletedSet({ workoutId, completedSetId: setToDelete }, withUserId(userId))
+      setCompletedSets((prev) => prev.filter((c) => c.id !== setToDelete))
+      setSetToDelete(null)
+    } catch (e) {
+      console.error('Failed to delete set:', e)
+    }
+  }
+
   // --- Render ---
 
   if (isWorkoutEnded && workout) {
@@ -333,9 +345,12 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
         />
 
         {/* Set Log */}
-        <SetLog userId={userId} completedSets={completedSets} proposedSets={proposedSets} sessionStatus={sessionStatus} />
+        <SetLog userId={userId} completedSets={completedSets} proposedSets={proposedSets} sessionStatus={sessionStatus} onDelete={setSetToDelete} />
 
         {/* Modals */}
+        {setToDelete && (
+          <DeleteSetModal onClose={() => setSetToDelete(null)} onConfirm={handleDeleteSet} />
+        )}
         {editingGroup && editingExerciseIdx !== null && (
           <EditExerciseModal
             group={editingGroup}

@@ -8,6 +8,7 @@ use lift::workout::v1::{
     ModifyProposedSetsRequest, ModifyProposedSetsResponse,
     StartSetRequest, StartSetResponse,
     CompleteSetRequest, CompleteSetResponse,
+    DeleteCompletedSetRequest, DeleteCompletedSetResponse,
     EndWorkoutRequest, EndWorkoutResponse,
     GetActiveWorkoutRequest, GetActiveWorkoutResponse,
     GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse,
@@ -198,6 +199,31 @@ impl WorkoutService for MyWorkoutService {
         Ok(Response::new(CompleteSetResponse {
             completed_set: Some(completed_set),
         }))
+    }
+
+    async fn delete_completed_set(
+        &self,
+        request: Request<DeleteCompletedSetRequest>,
+    ) -> Result<Response<DeleteCompletedSetResponse>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        let req = request.into_inner();
+
+        if req.workout_id.is_empty() {
+            return Err(Status::invalid_argument("workout_id is required"));
+        }
+        if req.completed_set_id.is_empty() {
+            return Err(Status::invalid_argument("completed_set_id is required"));
+        }
+
+        let user_db = UserDb::new(&user_id).await
+            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+
+        user_db.delete_completed_set(&req.workout_id, &req.completed_set_id).await
+            .map_err(|e| Status::internal(format!("Failed to delete completed set: {}", e)))?;
+
+        self.session_manager.notify_user_update(&user_id).await;
+
+        Ok(Response::new(DeleteCompletedSetResponse {}))
     }
 
     async fn end_workout(

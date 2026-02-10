@@ -517,6 +517,19 @@ impl UserDb {
         })
     }
 
+    pub async fn delete_completed_set(
+        &self,
+        workout_id: &str,
+        completed_set_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        sqlx::query("DELETE FROM completed_sets WHERE workout_id = ? AND id = ?")
+            .bind(workout_id)
+            .bind(completed_set_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     pub async fn end_workout(
         &self,
         workout_id: &str,

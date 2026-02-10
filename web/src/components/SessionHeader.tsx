@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Loader2 } from 'lucide-react'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
+import { multiplayerClient, withUserId } from '@/lib/client'
 import { MultiplayerModal } from './MultiplayerModal'
 import { ParticipantTicker } from './ParticipantTicker'
 import { ParticipantStatusView } from './ParticipantStatusView'
@@ -16,6 +17,8 @@ interface SessionHeaderProps {
 export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
   const sessionStatus = useMultiplayer(userId)
   const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [tempSessionId, setTempSessionId] = useState<string | null>(null)
   const [peepUserId, setPeepUserId] = useState<string | null>(null)
 
   const participants = sessionStatus?.participants || []
@@ -26,19 +29,34 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
     return sessionStatus.participants.find(p => p.user?.id === peepUserId)
   }, [peepUserId, sessionStatus])
 
+  const handleStartSession = async () => {
+    setLoading(true)
+    try {
+      const res = await multiplayerClient.startSession({ workoutId: workoutId || '' }, withUserId(userId))
+      setTempSessionId(res.sessionId)
+      setShowModal(true)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="w-full space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar items-center py-1">
           <button
-            onClick={() => setShowModal(true)}
-            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-full border transition-all shrink-0 min-h-[38px] text-xs font-medium ${
-              sessionStatus
-                ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
-                : 'bg-muted/50 border-dashed border-muted-foreground/50 hover:bg-muted text-muted-foreground'
-            }`}
+            onClick={() => {
+              if (sessionStatus) setShowModal(true)
+              else handleStartSession()
+            }}
+            disabled={loading}
+            className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-full border transition-all shrink-0 min-h-[38px] text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 border-transparent shadow-sm`}
           >
-            {sessionStatus ? (
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : sessionStatus ? (
               <>
                 <Users className="w-4 h-4" />
                 <Plus className="w-3 h-3 opacity-70" />
@@ -91,11 +109,11 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
         <MultiplayerModal 
           userId={userId} 
           workoutId={workoutId} 
-          sessionId={sessionStatus?.sessionId}
+          sessionId={sessionStatus?.sessionId || tempSessionId || undefined}
           onClose={() => setShowModal(false)} 
           onJoinSession={(sid) => {
             console.log('Joined session:', sid);
-            setShowModal(false);
+            if (!sid) setShowModal(false);
           }} 
         />
       )}

@@ -10,6 +10,7 @@ import { EXERCISE_NAMES } from '@/lib/exercises'
 import { isSameDay, startOfDay, differenceInDays } from 'date-fns'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
+import { Loader2 } from 'lucide-react'
 
 interface HomeViewProps {
   userId: string
@@ -248,6 +249,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                       onClick={() => handleStartWorkout(scheduleData?.nextRecommendedWorkoutName || 'Workout A')}
                       disabled={loading}
                     >
+                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       {isRestDay ? `Start ${scheduleData?.nextRecommendedWorkoutName}` : 'Start Recommended'}
                     </Button>
                     <Button 
@@ -256,6 +258,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                       onClick={() => handleStartWorkout((scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A')}
                       disabled={loading}
                     >
+                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Instead, do {(scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A'}
                     </Button>
                     <Button
@@ -264,7 +267,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                       variant="ghost"
                       className="w-full text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1"
                     >
-                      Start Custom Session
+                      {loading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : 'Start Custom Session'}
                     </Button>
                   </div>
                 </CardContent>
