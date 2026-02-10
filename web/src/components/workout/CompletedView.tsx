@@ -32,16 +32,10 @@ export function CompletedWorkoutView({ workout, proposedSets, completedSets, use
 
   const exerciseStats = groups.map((group) => {
     const workingSets = group.sets.filter((s) => !s.warmup)
-    const warmupSets = group.sets.filter((s) => s.warmup)
     const completedWorking = workingSets
       .map((s) => completedSets.find((c) => c.proposedSetId === s.id && c.endedAt > 0n))
       .filter(Boolean) as CompletedSet[]
-    const completedWarmup = warmupSets
-      .map((s) => completedSets.find((c) => c.proposedSetId === s.id && c.endedAt > 0n))
-      .filter(Boolean) as CompletedSet[]
-
     const workingVolume = completedWorking.reduce((sum, c) => sum + c.actualReps * c.actualWeight, 0)
-    const warmupVolume = completedWarmup.reduce((sum, c) => sum + c.actualReps * c.actualWeight, 0)
     const workingReps = completedWorking.reduce((sum, c) => sum + c.actualReps, 0)
 
     return {
