@@ -1,4 +1,4 @@
-import { startRegistration, startAuthentication, browserSupportsWebAuthnAutofill } from '@simplewebauthn/browser';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
 const AUTH_BASE = `${window.location.origin}/auth`;
 
@@ -6,11 +6,6 @@ interface AuthResponse {
   session_token: string;
   user_id: string;
   username: string;
-}
-
-interface LoginStartData {
-  challenge_id: string;
-  options: { publicKey: Record<string, unknown> };
 }
 
 async function authFetch(path: string, body: unknown): Promise<unknown> {
@@ -27,48 +22,41 @@ async function authFetch(path: string, body: unknown): Promise<unknown> {
 }
 
 export async function register(username: string): Promise<AuthResponse> {
-  // Step 1: Get registration options from server
   const startData = (await authFetch('/register/start', { username })) as {
     user_id: string;
     options: { publicKey: Record<string, unknown> };
   };
 
-  // Step 2: Create credential via browser WebAuthn API
-  // webauthn-rs wraps options in { publicKey: { ... } } — SimpleWebAuthn expects the inner object
+  // Force residentKey: "required" so authenticators (including YubiKeys) store
+  // discoverable credentials. webauthn-rs defaults to "discouraged" which makes
+  // YubiKeys store non-resident keys that can't be found during sign-in.
+  const optionsJSON = startData.options.publicKey as Record<string, unknown>;
+  const authSel = (optionsJSON.authenticatorSelection ?? {}) as Record<string, unknown>;
+  authSel.residentKey = 'required';
+  authSel.requireResidentKey = true;
+  optionsJSON.authenticatorSelection = authSel;
+
   const credential = await startRegistration({
-    optionsJSON: startData.options.publicKey as Parameters<typeof startRegistration>[0]['optionsJSON'],
+    optionsJSON: optionsJSON as Parameters<typeof startRegistration>[0]['optionsJSON'],
   });
 
-  // Step 3: Send credential to server
   return (await authFetch('/register/finish', {
     user_id: startData.user_id,
     credential,
   })) as AuthResponse;
 }
 
-export async function login(username?: string): Promise<AuthResponse> {
-  const startData = await loginStart(username);
-  return loginFinish(startData);
-}
+export async function login(): Promise<AuthResponse> {
+  // Get discoverable authentication challenge (empty allowCredentials)
+  const startData = (await authFetch('/login/start', {})) as {
+    challenge_id: string;
+    options: { publicKey: Record<string, unknown> };
+  };
 
-/** Start login flow — get challenge from server */
-export async function loginStart(username?: string): Promise<LoginStartData> {
-  const body: Record<string, unknown> = {};
-  if (username) {
-    body.username = username;
-  }
-  return (await authFetch('/login/start', body)) as LoginStartData;
-}
-
-/** Finish login flow — authenticate with browser and verify with server */
-export async function loginFinish(
-  startData: LoginStartData,
-  useBrowserAutofill = false,
-): Promise<AuthResponse> {
-  // webauthn-rs wraps options in { publicKey: { ... } } — SimpleWebAuthn expects the inner object
+  // Modal discoverable auth — on Android this shows the credential selector
+  // bottom sheet with "Sign in as [user] to [site]"
   const credential = await startAuthentication({
     optionsJSON: startData.options.publicKey as Parameters<typeof startAuthentication>[0]['optionsJSON'],
-    useBrowserAutofill,
   });
 
   return (await authFetch('/login/finish', {
@@ -76,5 +64,3 @@ export async function loginFinish(
     credential,
   })) as AuthResponse;
 }
-
-export { browserSupportsWebAuthnAutofill };

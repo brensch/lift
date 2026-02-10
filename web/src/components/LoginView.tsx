@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { register, login, loginStart, loginFinish, browserSupportsWebAuthnAutofill } from '@/lib/auth'
+import { register, login } from '@/lib/auth'
 
 interface LoginViewProps {
   onLogin: (userId: string) => void
@@ -13,42 +13,19 @@ export function LoginView({ onLogin }: LoginViewProps) {
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const conditionalUIStarted = useRef(false)
 
-  // Start conditional UI (autofill) on mount when in sign-in mode
-  useEffect(() => {
-    if (mode !== 'signin' || conditionalUIStarted.current) return
-    conditionalUIStarted.current = true
-
-    const startConditionalUI = async () => {
-      try {
-        const supported = await browserSupportsWebAuthnAutofill()
-        if (!supported) return
-
-        // Get a discoverable challenge for conditional UI
-        const startData = await loginStart()
-        const result = await loginFinish(startData, true)
-
-        // If we get here, the user picked a passkey from autofill
-        localStorage.setItem('liftSessionToken', result.session_token)
-        localStorage.setItem('liftUserId', result.user_id)
-        onLogin(result.user_id)
-      } catch {
-        // Conditional UI was cancelled or not supported — that's fine
-      }
-    }
-
-    startConditionalUI()
-  }, [mode, onLogin])
+  const completeLogin = (result: { session_token: string; user_id: string }) => {
+    localStorage.setItem('liftSessionToken', result.session_token)
+    localStorage.setItem('liftUserId', result.user_id)
+    onLogin(result.user_id)
+  }
 
   const handleSignIn = async () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await login(username.trim() || undefined)
-      localStorage.setItem('liftSessionToken', result.session_token)
-      localStorage.setItem('liftUserId', result.user_id)
-      onLogin(result.user_id)
+      const result = await login()
+      completeLogin(result)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to sign in')
     } finally {
@@ -65,9 +42,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
     setError(null)
     try {
       const result = await register(username.trim())
-      localStorage.setItem('liftSessionToken', result.session_token)
-      localStorage.setItem('liftUserId', result.user_id)
-      onLogin(result.user_id)
+      completeLogin(result)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to register')
     } finally {
@@ -93,16 +68,8 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
           {mode === 'signin' ? (
             <>
-              <Input
-                placeholder="Username (optional for security keys)"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
-                disabled={loading}
-                autoComplete="username webauthn"
-              />
               <Button onClick={handleSignIn} className="w-full" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Signing in...' : 'Sign in with Passkey'}
               </Button>
               <div className="text-center text-sm text-muted-foreground">
                 Don't have an account?{' '}
