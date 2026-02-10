@@ -730,6 +730,19 @@ impl CentralDb {
         Ok(())
     }
 
+    pub async fn update_credential_json(
+        &self,
+        credential_id: &str,
+        new_json: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        sqlx::query("UPDATE passkey_credentials SET credential_json = ? WHERE credential_id = ?")
+            .bind(new_json)
+            .bind(credential_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_credentials_for_user(
         &self,
         user_id: &str,

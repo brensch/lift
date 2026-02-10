@@ -30,7 +30,10 @@ pub struct AuthResponse {
 }
 
 #[derive(Deserialize)]
-pub struct LoginStartRequest {}
+pub struct LoginStartRequest {
+    #[serde(default)]
+    pub username: Option<String>,
+}
 
 #[derive(Serialize)]
 pub struct LoginStartResponse {
@@ -102,12 +105,22 @@ async fn register_finish(
 
 async fn login_start(
     State(state): State<Arc<AuthState>>,
-    Json(_req): Json<LoginStartRequest>,
+    Json(req): Json<LoginStartRequest>,
 ) -> Result<Json<LoginStartResponse>, (StatusCode, String)> {
-    let (challenge_id, options) = state
-        .start_authentication()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let (challenge_id, options) = match req.username.as_deref() {
+        Some(username) if !username.trim().is_empty() => {
+            state
+                .start_authentication_with_username(username.trim())
+                .await
+                .map_err(|e| (StatusCode::BAD_REQUEST, e))?
+        }
+        _ => {
+            state
+                .start_authentication()
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+        }
+    };
 
     Ok(Json(LoginStartResponse {
         challenge_id,
