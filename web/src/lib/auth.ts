@@ -1,4 +1,4 @@
-import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import { startRegistration, startAuthentication, browserSupportsWebAuthnAutofill } from '@simplewebauthn/browser';
 
 const AUTH_BASE = `${window.location.origin}/auth`;
 
@@ -6,6 +6,11 @@ interface AuthResponse {
   session_token: string;
   user_id: string;
   username: string;
+}
+
+interface LoginStartData {
+  challenge_id: string;
+  options: { publicKey: Record<string, unknown> };
 }
 
 async function authFetch(path: string, body: unknown): Promise<unknown> {
@@ -41,22 +46,35 @@ export async function register(username: string): Promise<AuthResponse> {
   })) as AuthResponse;
 }
 
-export async function login(): Promise<AuthResponse> {
-  // Step 1: Get authentication options from server
-  const startData = (await authFetch('/login/start', {})) as {
-    challenge_id: string;
-    options: { publicKey: Record<string, unknown> };
-  };
+export async function login(username?: string): Promise<AuthResponse> {
+  const startData = await loginStart(username);
+  return loginFinish(startData);
+}
 
-  // Step 2: Authenticate via browser WebAuthn API
+/** Start login flow — get challenge from server */
+export async function loginStart(username?: string): Promise<LoginStartData> {
+  const body: Record<string, unknown> = {};
+  if (username) {
+    body.username = username;
+  }
+  return (await authFetch('/login/start', body)) as LoginStartData;
+}
+
+/** Finish login flow — authenticate with browser and verify with server */
+export async function loginFinish(
+  startData: LoginStartData,
+  useBrowserAutofill = false,
+): Promise<AuthResponse> {
   // webauthn-rs wraps options in { publicKey: { ... } } — SimpleWebAuthn expects the inner object
   const credential = await startAuthentication({
     optionsJSON: startData.options.publicKey as Parameters<typeof startAuthentication>[0]['optionsJSON'],
+    useBrowserAutofill,
   });
 
-  // Step 3: Send assertion to server
   return (await authFetch('/login/finish', {
     challenge_id: startData.challenge_id,
     credential,
   })) as AuthResponse;
 }
+
+export { browserSupportsWebAuthnAutofill };

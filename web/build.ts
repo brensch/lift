@@ -1,5 +1,5 @@
 import { build, type BunPlugin } from "bun";
-import { rm } from "fs/promises";
+import { rm, cp } from "fs/promises";
 
 console.log("Cleaning dist...");
 await rm("./dist", { recursive: true, force: true });
@@ -28,6 +28,9 @@ await build({
 console.log("Building CSS...");
 const tailwindProc = Bun.spawn(["bun", "x", "tailwindcss", "-i", "./src/index.css", "-o", "./dist/index.css", "--minify"]);
 await tailwindProc.exited;
+
+console.log("Copying public assets...");
+await cp("./public", "./dist", { recursive: true });
 
 console.log("Copying HTML...");
 const html = await Bun.file("./index.html").text();
