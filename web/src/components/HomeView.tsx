@@ -30,7 +30,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const activeWorkout = workoutHistory.find(w => w.endTime === 0n)
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
 
   const generateWorkoutSets = (workoutName: string) => {
     const getWeight = (ex: Exercise) => scheduleData?.exerciseStatuses.find(s => s.exercise === ex)?.targetWeight || 45
-    
+
     const PLATE_STOPS = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635]
     const REP_SCHEMES: Record<number, number[]> = { 1: [5], 2: [5, 5], 3: [5, 5, 3], 4: [5, 5, 3, 2] }
 
@@ -200,221 +200,216 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
           </div>
         )}
 
-        {activeWorkout ? (
-          <Card className="border-2 border-primary animate-pulse">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-primary text-sm uppercase tracking-wider">Active Session</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-2xl font-black uppercase">{activeWorkout.name || 'Custom Workout'}</p>
-                  <p className="text-xs text-muted-foreground">Started {new Date(Number(activeWorkout.startTime) * 1000).toLocaleTimeString()}</p>
-                </div>
-                <Button 
-                  size="lg"
-                  className="font-bold uppercase tracking-tighter"
-                  onClick={() => onStartWorkout(activeWorkout.id)}
-                >
-                  Resume
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className={isRestDay ? 'opacity-90' : 'border-primary ring-1 ring-primary/20'}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                      {isRestDay ? 'Next Up' : 'Today'}
-                    </CardTitle>
-                    {isRestDay && (
-                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-black uppercase">Rest Day</span>
-                    )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {activeWorkout ? (
+            <Card className="border-2 border-primary animate-pulse">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-primary text-sm uppercase tracking-wider">Active Session</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-2xl font-black uppercase">{activeWorkout.name || 'Custom Workout'}</p>
+                    <p className="text-xs text-muted-foreground">Started {new Date(Number(activeWorkout.startTime) * 1000).toLocaleTimeString()}</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-black uppercase mb-1">{scheduleData?.nextRecommendedWorkoutName || 'Workout A'}</p>
+                  <Button
+                    size="lg"
+                    className="w-full font-bold uppercase tracking-tighter"
+                    onClick={() => onStartWorkout(activeWorkout.id)}
+                  >
+                    Resume
+                  </Button>
+                </div>              </CardContent>
+            </Card>
+          ) : (
+            <Card className={isRestDay ? 'opacity-90' : 'border-primary ring-1 ring-primary/20'}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                    {isRestDay ? 'Next Up' : 'Today'}
+                  </CardTitle>
                   {isRestDay && (
-                    <p className="text-xs font-bold text-muted-foreground mb-4 uppercase">Next session in {daysUntilNext} day{daysUntilNext === 1 ? '' : 's'}</p>
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-black uppercase">Rest Day</span>
                   )}
-                  {!isRestDay && (
-                    <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Time to lift.</p>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      className="w-full font-bold uppercase tracking-tighter" 
-                      onClick={() => handleStartWorkout(scheduleData?.nextRecommendedWorkoutName || 'Workout A')}
-                      disabled={loading}
-                    >
-                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {isRestDay ? `Start ${scheduleData?.nextRecommendedWorkoutName}` : 'Start Recommended'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-xs font-bold uppercase"
-                      onClick={() => handleStartWorkout((scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A')}
-                      disabled={loading}
-                    >
-                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Instead, do {(scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A'}
-                    </Button>
-                    <Button
-                      onClick={() => handleStartWorkout('Custom')}
-                      disabled={loading}
-                      variant="ghost"
-                      className="w-full text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1"
-                    >
-                      {loading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : 'Start Custom Session'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-black uppercase mb-1">{scheduleData?.nextRecommendedWorkoutName || 'Workout A'}</p>
+                {isRestDay && (
+                  <p className="text-xs font-bold text-muted-foreground mb-4 uppercase">Next session in {daysUntilNext} day{daysUntilNext === 1 ? '' : 's'}</p>
+                )}
+                {!isRestDay && (
+                  <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Time to lift.</p>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Button
+                    className="w-full font-bold uppercase tracking-tighter"
+                    onClick={() => handleStartWorkout(scheduleData?.nextRecommendedWorkoutName || 'Workout A')}
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isRestDay ? `Start ${scheduleData?.nextRecommendedWorkoutName}` : 'Start Recommended'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs font-bold uppercase"
+                    onClick={() => handleStartWorkout((scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A')}
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Instead, do {(scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A'}
+                  </Button>
+                  <Button
+                    onClick={() => handleStartWorkout('Custom')}
+                    disabled={loading}
+                    variant="ghost"
+                    className="w-full text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1"
+                  >
+                    {loading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : 'Start Custom Session'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Calendar</CardTitle>
-                </CardHeader>
-                <CardContent className="py-2 calendar-container">
-                  <Calendar
-                    className="border-none w-full"
-                    tileContent={({ date, view }) => {
-                      if (view !== 'month') return null;
-                      const { scheduled, completed } = getWorkoutForDay(date);
-                      if (!scheduled && !completed) return null;
-                      
-                      const type = (completed?.name || scheduled?.workoutName || '').split(' ')[1];
-                      if (!type) return null;
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Calendar</CardTitle>
+            </CardHeader>
+            <CardContent className="py-2 calendar-container">
+              <Calendar
+                className="border-none w-full"
+                tileContent={({ date, view }) => {
+                  if (view !== 'month') return null;
+                  const { scheduled, completed } = getWorkoutForDay(date);
+                  if (!scheduled && !completed) return null;
 
-                      return (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="flex flex-col items-center">
-                            <span className={`text-[16px] font-black italic tracking-tighter ${
-                              isSameDay(date, today) ? 'text-primary-foreground' : 'text-primary'
-                            } ${completed ? 'opacity-100' : 'opacity-40'}`}>
-                              {type}
-                            </span>
-                            {completed && (
-                              <div className={`w-1 h-1 rounded-full ${
-                                isSameDay(date, today) ? 'bg-primary-foreground' : 'bg-primary'
-                              }`} />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }}
-                    tileClassName={({ date }) => {
-                      return isSameDay(date, today) ? 'today-tile' : '';
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Exercise Status Grid */}
-            <div className="space-y-4">
-              <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">Exercises</h2>
-              <div className="grid grid-cols-1 gap-3">
-                {scheduleData?.exerciseStatuses?.map(s => {
-                  const history = s.weightHistory || []
-                  const max = Math.max(...history, s.targetWeight)
-                  const min = Math.min(...history, s.targetWeight)
-                  const range = max - min || 10
-                  
-                  // Simple SVG trendline
-                  let points = ""
-                  try {
-                    points = history.map((w: number, i: number) => {
-                      const x = (i / (history.length - 1 || 1)) * 100
-                      const y = 20 - ((w - min) / range) * 20
-                      return `${x},${y}`
-                    }).join(' ')
-                  } catch (e) {
-                    console.error("Failed to generate trendline points", e)
-                  }
+                  const type = (completed?.name || scheduled?.workoutName || '').split(' ')[1];
+                  if (!type) return null;
 
                   return (
-                    <Card key={s.exercise} className="overflow-hidden">
-                      <div className="flex">
-                        <div className="bg-primary/5 w-24 flex-shrink-0 flex flex-col items-center justify-center border-r p-2">
-                          <span className="text-[10px] font-black uppercase text-primary/60 tracking-tighter">Target</span>
-                          <span className="text-2xl font-black tabular-nums leading-none">{s.targetWeight}</span>
-                          <span className="text-[10px] font-bold uppercase text-primary/60">LBS</span>
-                        </div>
-                        <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise as Exercise] || 'Unknown'}</span>
-                            <div className="flex items-center gap-2">
-                              {history.length > 1 && points && (
-                                <div className="relative w-16 h-6">
-                                  <svg 
-                                    className="w-full h-full overflow-visible" 
-                                    viewBox="-4 -4 108 28" 
-                                    preserveAspectRatio="none"
-                                  >
-                                    <defs>
-                                      <linearGradient id={`gradient-${s.exercise}`} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-                                      </linearGradient>
-                                    </defs>
-                                    {/* Area fill */}
-                                    <path
-                                      d={`M ${points} V 20 H 0 Z`}
-                                      fill={`url(#gradient-${s.exercise})`}
-                                      className="transition-all duration-500"
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="flex flex-col items-center">
+                        <span className={`text-[16px] font-black italic tracking-tighter ${isSameDay(date, today) ? 'text-primary-foreground' : 'text-primary'
+                          } ${completed ? 'opacity-100' : 'opacity-40'}`}>
+                          {type}
+                        </span>
+                        {completed && (
+                          <div className={`w-1 h-1 rounded-full ${isSameDay(date, today) ? 'bg-primary-foreground' : 'bg-primary'
+                            }`} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                }}
+                tileClassName={({ date }) => {
+                  return isSameDay(date, today) ? 'today-tile' : '';
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Exercise Status Grid */}
+        <div className="space-y-4">
+          <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">Exercises</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {scheduleData?.exerciseStatuses?.map(s => {
+              const history = s.weightHistory || []
+              const max = Math.max(...history, s.targetWeight)
+              const min = Math.min(...history, s.targetWeight)
+              const range = max - min || 10
+
+              // Simple SVG trendline
+              let points = ""
+              try {
+                points = history.map((w: number, i: number) => {
+                  const x = (i / (history.length - 1 || 1)) * 100
+                  const y = 20 - ((w - min) / range) * 20
+                  return `${x},${y}`
+                }).join(' ')
+              } catch (e) {
+                console.error("Failed to generate trendline points", e)
+              }
+
+              return (
+                <Card key={s.exercise} className="overflow-hidden">
+                  <div className="flex">
+                    <div className="bg-primary/5 w-24 flex-shrink-0 flex flex-col items-center justify-center border-r p-2">
+                      <span className="text-[10px] font-black uppercase text-primary/60 tracking-tighter">Target</span>
+                      <span className="text-2xl font-black tabular-nums leading-none">{s.targetWeight}</span>
+                      <span className="text-[10px] font-bold uppercase text-primary/60">LBS</span>
+                    </div>
+                    <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise as Exercise] || 'Unknown'}</span>
+                        <div className="flex items-center gap-2">
+                          {history.length > 1 && points && (
+                            <div className="relative w-16 h-6">
+                              <svg
+                                className="w-full h-full overflow-visible"
+                                viewBox="-4 -4 108 28"
+                                preserveAspectRatio="none"
+                              >
+                                <defs>
+                                  <linearGradient id={`gradient-${s.exercise}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                                  </linearGradient>
+                                </defs>
+                                {/* Area fill */}
+                                <path
+                                  d={`M ${points} V 20 H 0 Z`}
+                                  fill={`url(#gradient-${s.exercise})`}
+                                  className="transition-all duration-500"
+                                />
+                                {/* The line */}
+                                <polyline
+                                  points={points}
+                                  fill="none"
+                                  stroke="hsl(var(--primary))"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="transition-all duration-500"
+                                />
+                                {/* Final point highlight */}
+                                {(() => {
+                                  const lastPoint = points.split(' ').pop()?.split(',');
+                                  if (!lastPoint || lastPoint.length < 2) return null;
+                                  return (
+                                    <circle
+                                      cx={lastPoint[0]}
+                                      cy={lastPoint[1]}
+                                      r="3.5"
+                                      fill="hsl(var(--primary))"
+                                      className="animate-pulse"
                                     />
-                                    {/* The line */}
-                                    <polyline
-                                      points={points}
-                                      fill="none"
-                                      stroke="hsl(var(--primary))"
-                                      strokeWidth="3"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="transition-all duration-500"
-                                    />
-                                    {/* Final point highlight */}
-                                    {(() => {
-                                      const lastPoint = points.split(' ').pop()?.split(',');
-                                      if (!lastPoint || lastPoint.length < 2) return null;
-                                      return (
-                                        <circle
-                                          cx={lastPoint[0]}
-                                          cy={lastPoint[1]}
-                                          r="3.5"
-                                          fill="hsl(var(--primary))"
-                                          className="animate-pulse"
-                                        />
-                                      );
-                                    })()}
-                                  </svg>
-                                </div>
-                              )}
-                              <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Last: {formatRelativeDate(s.lastPerformedAt)}</span>
+                                  );
+                                })()}
+                              </svg>
                             </div>
-                          </div>
-                          <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                            {s.explanation}
-                          </p>
+                          )}
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Last: {formatRelativeDate(s.lastPerformedAt)}</span>
                         </div>
                       </div>
-                    </Card>
-                  )
-                })}
-              </div>
-              <Button
-                onClick={onViewHistory}
-                variant="outline"
-                className="w-full text-xs uppercase tracking-widest font-bold"
-              >
-                View All Progress Charts
-              </Button>
-            </div>
-          </>
-        )}
+                      <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                        {s.explanation}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+          <Button
+            onClick={onViewHistory}
+            variant="outline"
+            className="w-full text-xs uppercase tracking-widest font-bold"
+          >
+            View All Progress Charts
+          </Button>
+        </div>
 
         {workoutHistory.length > 0 && (
           <Card className="opacity-70 hover:opacity-100 transition-opacity">
