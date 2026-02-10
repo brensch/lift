@@ -204,7 +204,7 @@ export function ActiveSetBox({ proposedSet, completedSet, onComplete, onSkip }: 
 
       {/* Log reps */}
       <div>
-        <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Log reps</div>
+        <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">How many reps did you complete cleanly?</div>
         <div className="flex flex-wrap gap-1.5">
           {buttons.map((n) => (
             <Button
