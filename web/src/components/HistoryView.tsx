@@ -73,8 +73,8 @@ function WeightChart({ history, range }: {
           width={40}
         />
         <Tooltip
-          labelFormatter={(ts: number) => new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
-          formatter={(value: number) => [`${value} lbs`, 'Weight']}
+          labelFormatter={(ts) => new Date(ts as number).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+          formatter={(value) => [`${value} lbs`, 'Weight']}
           contentStyle={{ fontSize: 12, background: 'hsl(0 0% 10%)', border: '1px solid hsl(0 0% 20%)', borderRadius: 6 }}
           labelStyle={{ color: 'hsl(0 0% 70%)' }}
           itemStyle={{ color: 'hsl(142 76% 50%)' }}

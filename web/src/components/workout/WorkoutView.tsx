@@ -121,8 +121,7 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
 
       // Find next set
       const isPSetDone = (setId: string) => p.completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
-      const pActiveProposedId = activeSet?.proposedSetId
-      const pNextSet = p.proposedSets.find((s) => !isPSetDone(s.id) && s.id !== pActiveProposedId)
+      const pNextSet = p.proposedSets.find((s) => !isPSetDone(s.id))
       
       if (!pNextSet) return null
 

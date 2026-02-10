@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { workoutClient, userClient, withUserId } from '@/lib/client'
 import type { Workout } from '@/gen/workout/v1/workout_pb'
 import { Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
@@ -20,7 +20,7 @@ interface HomeViewProps {
 }
 
 export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onViewHistory }: HomeViewProps) {
-  const [userName, setUserName] = useState<string>('')
+  const [_userName, setUserName] = useState<string>('')
   const [workoutHistory, setWorkoutHistory] = useState<Workout[]>([])
   const [scheduleData, setScheduleData] = useState<{
     exerciseStatuses: any[],
@@ -342,7 +342,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                         </div>
                         <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise] || 'Unknown'}</span>
+                            <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise as Exercise] || 'Unknown'}</span>
                             <div className="flex items-center gap-2">
                               {history.length > 1 && points && (
                                 <div className="relative w-16 h-6">

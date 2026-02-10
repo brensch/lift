@@ -1,5 +1,5 @@
 import { create } from '@bufbuild/protobuf'
-import { type ProposedSet, type Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
+import { type ProposedSet, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
 
 // Plate-friendly warmup stops (bar + combinations of 45/25 plates per side)
 const PLATE_STOPS = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635]
