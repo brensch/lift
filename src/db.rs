@@ -612,8 +612,11 @@ impl CentralDb {
         name: &str,
     ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
         let existing = self.get_user_by_name(name).await?;
-        if let Some(user) = existing {
-            return Ok(user);
+        if let Some(_user) = existing {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "User already exists",
+            )));
         }
 
         let id = Uuid::new_v4().to_string();
@@ -653,7 +656,7 @@ impl CentralDb {
         name: &str,
     ) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(
-            sqlx::query("SELECT id, name, created_at FROM users WHERE name = ?")
+            sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
                 .bind(name)
                 .map(row_to_user)
                 .fetch_optional(&self.pool)

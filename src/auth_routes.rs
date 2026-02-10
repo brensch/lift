@@ -56,11 +56,16 @@ async fn register_start(
     }
 
     // Create or get user
-    let user = state
-        .central_db
-        .create_user(&req.username)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let user = match state.central_db.create_user(&req.username).await {
+        Ok(user) => user,
+        Err(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("User already exists") {
+                return Err((StatusCode::CONFLICT, "User already exists".to_string()));
+            }
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg));
+        }
+    };
 
     let options = state
         .start_registration(&user.id, &user.name)
