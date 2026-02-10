@@ -287,7 +287,9 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-3xl font-bold hover:opacity-80 transition-opacity">Lift</button>
+                    <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
+                      LIFT
+                    </button>
           <div className="flex items-center gap-2">
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
             <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>

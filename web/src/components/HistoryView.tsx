@@ -156,8 +156,8 @@ export function HistoryView({ userId, onBack }: { userId: string, onBack: () => 
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-3xl font-bold hover:opacity-80 transition-opacity">
-            Lift
+          <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
+            LIFT
           </button>
           <span className="text-sm font-bold">Progress History</span>
         </div>
