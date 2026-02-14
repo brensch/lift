@@ -306,7 +306,13 @@ impl Scheduler {
             });
         }
 
-        Ok(GetProposedWorkoutScheduleResponse { exercise_statuses })
+        let active_workout = self.user_db.get_active_workout().await?;
+        let active_workout_id = active_workout.map(|w| w.id).unwrap_or_default();
+
+        Ok(GetProposedWorkoutScheduleResponse {
+            exercise_statuses,
+            active_workout_id,
+        })
     }
 
     async fn calculate_sophisticated_weight(

@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
-import { SettingsView } from '@/components/SettingsView'
+import { PasskeysView } from '@/components/PasskeysView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
 import { ProgressView } from '@/components/ProgressView'
 import { WorkoutHistoryView } from '@/components/WorkoutHistoryView'
 import { GlobalHeader } from '@/components/GlobalHeader'
-import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
+import { workoutClient, userClient, multiplayerClient, withUserId } from '@/lib/client'
+import { logout } from '@/lib/auth'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -14,33 +15,36 @@ import { X } from 'lucide-react'
 
 type Route =
   | { view: 'login' }
-  | { view: 'home'; userId: string }
-  | { view: 'workout'; userId: string; workoutId: string }
-  | { view: 'progress'; userId: string }
-  | { view: 'workout-history'; userId: string }
-  | { view: 'settings'; userId: string }
+  | { view: 'home' }
+  | { view: 'workout'; workoutId: string }
+  | { view: 'progress' }
+  | { view: 'workout-history' }
+  | { view: 'passkeys' }
 
 function parseRoute(path: string): Route {
   const parts = path.split('/').filter(Boolean)
 
-  if (parts.length >= 3 && parts[1] === 'workout') {
-    return { view: 'workout', userId: parts[0], workoutId: parts[2] }
+  if (parts.length >= 2 && parts[0] === 'workout') {
+    return { view: 'workout', workoutId: parts[1] }
   }
 
-  if (parts.length >= 2 && parts[1] === 'progress') {
-    return { view: 'progress', userId: parts[0] }
+  if (parts.length >= 1 && parts[0] === 'progress') {
+    return { view: 'progress' }
   }
 
-  if (parts.length >= 2 && parts[1] === 'history') {
-    return { view: 'workout-history', userId: parts[0] }
+  if (parts.length >= 1 && parts[0] === 'history') {
+    return { view: 'workout-history' }
   }
 
-  if (parts.length >= 2 && parts[1] === 'settings') {
-    return { view: 'settings', userId: parts[0] }
+  if (parts.length >= 1 && parts[0] === 'passkeys') {
+    return { view: 'passkeys' }
   }
 
-  if (parts.length >= 1) {
-    return { view: 'home', userId: parts[0] }
+  if (path === '/' || path === '') {
+    // If we are at root, we might be logged in or not. 
+    // We'll let the App component decide based on localStorage.
+    // For parsing, we return 'home' as a placeholder if not login.
+    return { view: 'home' }
   }
 
   return { view: 'login' }
@@ -51,19 +55,21 @@ function routeToPath(route: Route): string {
     case 'login':
       return '/'
     case 'home':
-      return `/${route.userId}`
+      return '/'
     case 'workout':
-      return `/${route.userId}/workout/${route.workoutId}`
+      return `/workout/${route.workoutId}`
     case 'progress':
-      return `/${route.userId}/progress`
+      return `/progress`
     case 'workout-history':
-      return `/${route.userId}/history`
-    case 'settings':
-      return `/${route.userId}/settings`
+      return `/history`
+    case 'passkeys':
+      return `/passkeys`
   }
 }
 
 function App() {
+  const [userId, setUserId] = useState<string | null>(() => localStorage.getItem('liftUserId'))
+  const [userName, setUserName] = useState<string>('')
   const [route, setRoute] = useState<Route>(() => {
     // Check for join parameter in URL
     const params = new URLSearchParams(window.location.search)
@@ -76,33 +82,47 @@ function App() {
       window.history.replaceState(null, '', url.pathname)
     }
 
-    const parsed = parseRoute(window.location.pathname)
-
-    // If URL has a userId, use it
-    if (parsed.view !== 'login') {
-      localStorage.setItem('liftUserId', parsed.view === 'home' ? parsed.userId : parsed.userId)
-      return parsed
-    }
-
     // Check localStorage for saved userId
     const savedUserId = localStorage.getItem('liftUserId')
-    if (savedUserId) {
-      return { view: 'home', userId: savedUserId }
+    if (!savedUserId) {
+      return { view: 'login' }
     }
 
-    return { view: 'login' }
+    const parsed = parseRoute(window.location.pathname)
+    if (parsed.view === 'login') {
+        return { view: 'home' }
+    }
+    return parsed
   })
 
   const [pendingJoin, setPendingJoin] = useState<{ sessionId: string, status: SessionStatus } | null>(null)
   const [joinSuccess, setJoinSuccess] = useState<string | null>(null)
   const [joinError, setJoinError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (userId) {
+      userClient.getUser({ userId }, withUserId(userId))
+        .then((res) => {
+          if (res.user) setUserName(res.user.name)
+        })
+        .catch(console.error)
+    } else {
+      setUserName('')
+    }
+  }, [userId])
+
+  const navigate = useCallback((newRoute: Route) => {
+    setRoute(newRoute)
+    const path = routeToPath(newRoute)
+    window.history.pushState(null, '', path)
+  }, [])
+
   // Handle joining a session after login
   useEffect(() => {
-    if (route.view !== 'login') {
+    if (route.view !== 'login' && userId) {
       const joinId = sessionStorage.getItem('liftJoinSession')
       if (joinId) {
-        multiplayerClient.getCurrentSession({ sessionId: joinId }, withUserId(route.userId))
+        multiplayerClient.getCurrentSession({ sessionId: joinId }, withUserId(userId))
           .then((response) => {
              if (response.sessionStatus) {
                 setPendingJoin({ sessionId: joinId, status: response.sessionStatus })
@@ -116,25 +136,25 @@ function App() {
           })
       }
     }
-  }, [route])
+  }, [route, userId])
 
   const handleConfirmJoin = async () => {
-    if (!pendingJoin || route.view === 'login') return;
+    if (!pendingJoin || route.view === 'login' || !userId) return;
     
     // workoutId is optional for joining
     const workoutId = route.view === 'workout' ? route.workoutId : '';
 
     try {
-      await multiplayerClient.joinSession({ sessionId: pendingJoin.sessionId, workoutId }, withUserId(route.userId));
+      await multiplayerClient.joinSession({ sessionId: pendingJoin.sessionId, workoutId }, withUserId(userId));
       sessionStorage.removeItem('liftJoinSession');
       setPendingJoin(null);
       setJoinSuccess(`Joined session with ${pendingJoin.status.participants.length} people`);
       
       // Check for active workout and navigate to it
       try {
-        const { workout } = await workoutClient.getActiveWorkout({}, withUserId(route.userId));
+        const { workout } = await workoutClient.getActiveWorkout({}, withUserId(userId));
         if (workout) {
-          navigate({ view: 'workout', userId: route.userId, workoutId: workout.id });
+          navigate({ view: 'workout', workoutId: workout.id });
         }
       } catch (e) {
         console.error('Failed to check for active workout after join:', e);
@@ -150,12 +170,6 @@ function App() {
     }
   };
 
-  const navigate = useCallback((newRoute: Route) => {
-    setRoute(newRoute)
-    const path = routeToPath(newRoute)
-    window.history.pushState(null, '', path)
-  }, [])
-
   // Sync URL on initial load (in case we redirected from localStorage)
   useEffect(() => {
     const currentPath = routeToPath(route)
@@ -167,28 +181,32 @@ function App() {
   // Handle browser back/forward
   useEffect(() => {
     const handlePopState = () => {
-      const parsed = parseRoute(window.location.pathname)
-      if (parsed.view === 'login') {
-        const savedUserId = localStorage.getItem('liftUserId')
-        if (savedUserId) {
-          setRoute({ view: 'home', userId: savedUserId })
-          return
-        }
+      const savedUserId = localStorage.getItem('liftUserId')
+      if (!savedUserId) {
+        setUserId(null)
+        setRoute({ view: 'login' })
+        return
       }
+      
+      setUserId(savedUserId)
+      const parsed = parseRoute(window.location.pathname)
       setRoute(parsed)
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleLogin = (userId: string) => {
-    localStorage.setItem('liftUserId', userId)
-    navigate({ view: 'home', userId })
+  const handleLogin = (newUserId: string) => {
+    localStorage.setItem('liftUserId', newUserId)
+    setUserId(newUserId)
+    navigate({ view: 'home' })
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout()
     localStorage.removeItem('liftUserId')
     localStorage.removeItem('liftSessionToken')
+    setUserId(null)
     navigate({ view: 'login' })
   }
 
@@ -239,15 +257,18 @@ function App() {
         </Modal>
       )}
 
-      {route.view !== 'login' && (
+      {route.view !== 'login' && userId && (
         <GlobalHeader 
           currentView={route.view}
-          onNavigate={(newView: { view: any }) => navigate({ ...newView, userId: route.userId } as Route)}
+          onNavigate={(newView: { view: any }) => navigate(newView as Route)}
           onLogout={handleLogout}
+          userName={userName}
         />
       )}
 
       {(() => {
+        if (!userId && route.view !== 'login') return <LoginView onLogin={handleLogin} />
+
         switch (route.view) {
           case 'login':
             return <LoginView onLogin={handleLogin} />
@@ -255,9 +276,9 @@ function App() {
           case 'home':
             return (
               <HomeView
-                userId={route.userId}
+                userId={userId!}
                 onStartWorkout={(workoutId) =>
-                  navigate({ view: 'workout', userId: route.userId, workoutId })
+                  navigate({ view: 'workout', workoutId })
                 }
               />
             )
@@ -266,28 +287,28 @@ function App() {
             return (
               <WorkoutView
                 workoutId={route.workoutId}
-                userId={route.userId}
+                userId={userId!}
               />
             )
 
           case 'progress':
             return (
               <ProgressView
-                userId={route.userId}
+                userId={userId!}
               />
             )
 
           case 'workout-history':
             return (
               <WorkoutHistoryView
-                userId={route.userId}
-                onViewWorkout={(workoutId) => navigate({ view: 'workout', userId: route.userId, workoutId })}
+                userId={userId!}
+                onViewWorkout={(workoutId) => navigate({ view: 'workout', workoutId })}
               />
             )
 
-          case 'settings':
+          case 'passkeys':
             return (
-              <SettingsView
+              <PasskeysView
               />
             )
         }

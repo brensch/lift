@@ -249,12 +249,31 @@ async fn list_passkeys(
     Ok(Json(passkeys))
 }
 
+async fn logout(
+    State(state): State<Arc<AuthState>>,
+    headers: HeaderMap,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let token = headers
+        .get("x-session-token")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Missing session token".to_string()))?;
+
+    state
+        .central_db
+        .invalidate_auth_session(token)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
 pub fn auth_router(auth_state: Arc<AuthState>) -> Router {
     Router::new()
         .route("/auth/register/start", post(register_start))
         .route("/auth/register/finish", post(register_finish))
         .route("/auth/login/start", post(login_start))
         .route("/auth/login/finish", post(login_finish))
+        .route("/auth/logout", post(logout))
         .route("/auth/passkey/add/start", post(add_passkey_start))
         .route("/auth/passkey/add/finish", post(add_passkey_finish))
         .route("/auth/passkeys", get(list_passkeys))

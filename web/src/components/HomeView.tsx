@@ -47,6 +47,12 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
         workoutClient.listWorkouts({}, withUserId(userId)),
         workoutClient.getProposedWorkoutSchedule({ userId }, withUserId(userId)),
       ])
+
+      if (scheduleRes.activeWorkoutId) {
+        onStartWorkout(scheduleRes.activeWorkoutId)
+        return
+      }
+
       setWorkoutHistory(workoutsRes.workouts)
       setExerciseStatuses(scheduleRes.exerciseStatuses)
 
@@ -184,6 +190,13 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
     return `${days}d`
   })()
 
+  const greeting = (() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  })()
+
   // Group exercises by category from API
   const exercisesByCategory = exerciseStatuses.reduce((acc, s) => {
     const cat = s.category || ExerciseCategory.UNSPECIFIED
@@ -238,10 +251,20 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
         )}
 
         {/* Time since last workout */}
-        {timeSinceLastWorkout && !activeWorkout && (
-          <div className="flex items-baseline gap-1.5 px-1 py-0.5">
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Last workout:</span>
-            <span className="text-sm font-black">{timeSinceLastWorkout} ago</span>
+        {!activeWorkout && (
+          <div className="px-1 py-2">
+            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">
+              {greeting} {_userName.split(' ')[0]}.
+            </h1>
+            {timeSinceLastWorkout ? (
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                Your last workout was <span className="text-foreground">{timeSinceLastWorkout}</span> ago.
+              </p>
+            ) : (
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                Ready for your first workout?
+              </p>
+            )}
           </div>
         )}
 

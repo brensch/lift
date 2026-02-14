@@ -127,3 +127,17 @@ export async function login(): Promise<AuthResponse> {
     credential,
   })) as AuthResponse;
 }
+
+export async function logout(): Promise<void> {
+  const token = localStorage.getItem('liftSessionToken');
+  if (!token) return;
+
+  try {
+    await fetch(`${AUTH_BASE}/logout`, {
+      method: 'POST',
+      headers: { 'x-session-token': token },
+    });
+  } catch (e) {
+    console.error('Failed to logout on server:', e);
+  }
+}

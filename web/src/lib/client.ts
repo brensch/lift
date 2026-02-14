@@ -12,11 +12,19 @@ export const userClient = createClient(UserService, transport);
 export const multiplayerClient = createClient(MultiplayerService, transport);
 
 // Helper to create call options with auth header.
-// Prefers session token if available, falls back to raw user ID.
+
 export function withUserId(userId: string): CallOptions {
+
   const token = localStorage.getItem('liftSessionToken');
+
   if (token) {
+
     return { headers: { 'x-session-token': token } };
+
   }
-  return { headers: { 'x-user-id': userId } };
+
+  // If no token, we send nothing (or could throw). The server will reject it.
+
+  return { headers: {} };
+
 }

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { addPasskey, listPasskeys, type PasskeyInfo } from '@/lib/auth'
 import { Plus, Key } from 'lucide-react'
 import { LoadingSpinner, LoadingBlock } from '@/components/ui/loading'
 
-interface SettingsViewProps {
+interface PasskeysViewProps {
 }
 
-export function SettingsView({ }: SettingsViewProps) {
+export function PasskeysView({ }: PasskeysViewProps) {
   const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -77,29 +76,28 @@ export function SettingsView({ }: SettingsViewProps) {
           </div>
         )}
 
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                Passkeys
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAddPasskey}
-                disabled={adding}
-                className="text-xs font-bold uppercase"
-              >
-                {adding ? (
-                  <LoadingSpinner size="sm" className="mr-1" />
-                ) : (
-                  <Plus className="w-3 h-3 mr-1" />
-                )}
-                Add Passkey
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+              Passkeys
+            </h2>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddPasskey}
+              disabled={adding}
+              className="text-xs font-bold uppercase"
+            >
+              {adding ? (
+                <LoadingSpinner size="sm" className="mr-1" />
+              ) : (
+                <Plus className="w-3 h-3 mr-1" />
+              )}
+              Add Passkey
+            </Button>
+          </div>
+
+          <div className="px-1">
             {loading ? (
               <LoadingBlock text="Loading passkeys..." />
             ) : passkeys.length === 0 ? (
@@ -111,7 +109,7 @@ export function SettingsView({ }: SettingsViewProps) {
                 {passkeys.map((pk, i) => (
                   <li
                     key={pk.credential_id}
-                    className="flex items-center gap-3 p-3 bg-muted rounded-md"
+                    className="flex items-center gap-3 p-3 bg-muted rounded-md border border-border/50"
                   >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <Key className="w-4 h-4 text-primary" />
@@ -126,8 +124,8 @@ export function SettingsView({ }: SettingsViewProps) {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
