@@ -2,32 +2,32 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { workoutClient, userClient, withUserId } from '@/lib/client'
-import type { Workout } from '@/gen/workout/v1/workout_pb'
-import { Exercise, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
+import type { Workout, ExerciseStatus } from '@/gen/workout/v1/workout_pb'
+import { Exercise, ExerciseCategory, ProposedSetSchema } from '@/gen/workout/v1/workout_pb'
 import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
-import { EXERCISE_NAMES } from '@/lib/exercises'
-import { isSameDay, startOfDay, differenceInDays } from 'date-fns'
-import Calendar from 'react-calendar'
-import 'react-calendar/dist/Calendar.css'
-import { Loader2 } from 'lucide-react'
+import { SHORT_NAMES } from '@/lib/exercises'
+import { Loader2, Settings, Check, Lock } from 'lucide-react'
+
+const CATEGORY_NAMES: Record<ExerciseCategory, string> = {
+  [ExerciseCategory.UNSPECIFIED]: '',
+  [ExerciseCategory.COMPOUND]: 'Compound',
+  [ExerciseCategory.AUXILIARY]: 'Auxiliary',
+}
 
 interface HomeViewProps {
   userId: string
-  onLogout: () => void
+  onSettings: () => void
   onStartWorkout: (workoutId: string) => void
   onViewWorkout: (workoutId: string) => void
   onViewHistory: () => void
 }
 
-export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onViewHistory }: HomeViewProps) {
+export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, onViewHistory }: HomeViewProps) {
   const [_userName, setUserName] = useState<string>('')
   const [workoutHistory, setWorkoutHistory] = useState<Workout[]>([])
-  const [scheduleData, setScheduleData] = useState<{
-    exerciseStatuses: any[],
-    schedule: any[],
-    nextRecommendedWorkoutName: string
-  } | null>(null)
+  const [exerciseStatuses, setExerciseStatuses] = useState<ExerciseStatus[]>([])
+  const [selectedExercises, setSelectedExercises] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -49,19 +49,43 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
         workoutClient.getProposedWorkoutSchedule({ userId }, withUserId(userId)),
       ])
       setWorkoutHistory(workoutsRes.workouts)
-      setScheduleData({
-        exerciseStatuses: scheduleRes.exerciseStatuses,
-        schedule: scheduleRes.schedule,
-        nextRecommendedWorkoutName: scheduleRes.nextRecommendedWorkoutName
-      })
+      setExerciseStatuses(scheduleRes.exerciseStatuses)
+
+      // Auto-select: always_include + up to 3 recovered compound exercises, no auxiliary
+      const autoSelected = new Set<number>()
+      let compoundCount = 0
+      for (const s of scheduleRes.exerciseStatuses) {
+        if (s.alwaysInclude) {
+          autoSelected.add(s.exercise)
+          if (s.category === ExerciseCategory.COMPOUND) compoundCount++
+        }
+      }
+      for (const s of scheduleRes.exerciseStatuses) {
+        if (s.category === ExerciseCategory.COMPOUND && s.recovered && !autoSelected.has(s.exercise) && compoundCount < 3) {
+          autoSelected.add(s.exercise)
+          compoundCount++
+        }
+      }
+      setSelectedExercises(autoSelected)
     } catch (e) {
       console.error('Failed to load data:', e)
     }
   }
 
-  const generateWorkoutSets = (workoutName: string) => {
-    const getWeight = (ex: Exercise) => scheduleData?.exerciseStatuses.find(s => s.exercise === ex)?.targetWeight || 45
+  const toggleExercise = (exercise: number, alwaysInclude: boolean) => {
+    if (alwaysInclude) return // can't deselect always-include
+    setSelectedExercises(prev => {
+      const next = new Set(prev)
+      if (next.has(exercise)) {
+        next.delete(exercise)
+      } else {
+        next.add(exercise)
+      }
+      return next
+    })
+  }
 
+  const generateWorkoutSets = () => {
     const PLATE_STOPS = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635]
     const REP_SCHEMES: Record<number, number[]> = { 1: [5], 2: [5, 5], 3: [5, 5, 3], 4: [5, 5, 3, 2] }
 
@@ -81,40 +105,31 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
       return selected.map((w, i) => ({ weight: w, reps: reps[i] }))
     }
 
-    const configs: { exercise: Exercise, reps: number, count: number }[] = []
-    if (workoutName === 'Workout A') {
-      configs.push({ exercise: Exercise.SQUAT, reps: 5, count: 5 })
-      configs.push({ exercise: Exercise.BENCH_PRESS, reps: 5, count: 5 })
-      configs.push({ exercise: Exercise.BARBELL_ROW, reps: 5, count: 5 })
-    } else if (workoutName === 'Workout B') {
-      configs.push({ exercise: Exercise.SQUAT, reps: 5, count: 5 })
-      configs.push({ exercise: Exercise.OVERHEAD_PRESS, reps: 5, count: 5 })
-      configs.push({ exercise: Exercise.DEADLIFT, reps: 5, count: 1 })
-    }
-
     const allSets: any[] = []
     let order = 0
-    for (const config of configs) {
-      const weight = getWeight(config.exercise)
-      // Add warmups
+
+    // Use the exercise statuses in order, filtered to selected
+    for (const s of exerciseStatuses) {
+      if (!selectedExercises.has(s.exercise)) continue
+
+      const weight = s.targetWeight
       const warmups = getWarmups(weight)
       for (const wu of warmups) {
         allSets.push(create(ProposedSetSchema, {
           id: crypto.randomUUID(),
           workoutOrder: order++,
-          exercise: config.exercise,
+          exercise: s.exercise as Exercise,
           targetReps: wu.reps,
           targetWeight: wu.weight,
           warmup: true
         }))
       }
-      // Add working sets
-      for (let i = 0; i < config.count; i++) {
+      for (let i = 0; i < s.defaultSets; i++) {
         allSets.push(create(ProposedSetSchema, {
           id: crypto.randomUUID(),
           workoutOrder: order++,
-          exercise: config.exercise,
-          targetReps: config.reps,
+          exercise: s.exercise as Exercise,
+          targetReps: s.defaultReps,
           targetWeight: weight,
           warmup: false
         }))
@@ -123,11 +138,14 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
     return allSets
   }
 
-  const handleStartWorkout = async (workoutName: string) => {
+  const handleStartWorkout = async () => {
+    if (selectedExercises.size === 0) return
     setLoading(true)
     setError(null)
     try {
-      const formattedSets = generateWorkoutSets(workoutName)
+      const formattedSets = generateWorkoutSets()
+      const now = new Date()
+      const workoutName = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
       const response = await workoutClient.startWorkout(
         { name: workoutName, proposedSets: formattedSets },
@@ -150,16 +168,6 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
     })
   }
 
-  const formatRelativeDate = (timestamp: bigint | number) => {
-    if (!timestamp || Number(timestamp) === 0) return 'Never'
-    const now = Date.now() / 1000
-    const diff = now - Number(timestamp)
-    const days = Math.floor(diff / 86400)
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    return `${days} days ago`
-  }
-
   const formatDuration = (start: bigint, end: bigint) => {
     if (!start || !end) return ''
     const seconds = Number(end - start)
@@ -168,28 +176,39 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
     return `${mins}m ${secs}s`
   }
 
-  const nextWorkout = scheduleData?.schedule[0]
-  const today = startOfDay(new Date())
-  const nextWorkoutDate = nextWorkout ? startOfDay(new Date(Number(nextWorkout.scheduledAt) * 1000)) : null
-  const isRestDay = nextWorkoutDate ? !isSameDay(nextWorkoutDate, today) : false
-  const daysUntilNext = nextWorkoutDate ? differenceInDays(nextWorkoutDate, today) : 0
+  // Time since last workout
+  const lastCompletedWorkout = workoutHistory.find(w => w.endTime > 0n)
+  const timeSinceLastWorkout = (() => {
+    if (!lastCompletedWorkout) return null
+    const diff = Date.now() / 1000 - Number(lastCompletedWorkout.startTime)
+    const hours = Math.floor(diff / 3600)
+    if (hours < 24) return `${hours}h`
+    const days = Math.floor(hours / 24)
+    return `${days}d`
+  })()
 
-  const getWorkoutForDay = (date: Date) => {
-    const scheduled = scheduleData?.schedule.find(sw => isSameDay(new Date(Number(sw.scheduledAt) * 1000), date));
-    const completed = workoutHistory.find(w => isSameDay(new Date(Number(w.startTime) * 1000), date));
-    return { scheduled, completed };
-  }
+  // Group exercises by category from API
+  const exercisesByCategory = exerciseStatuses.reduce((acc, s) => {
+    const cat = s.category || ExerciseCategory.UNSPECIFIED
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(s)
+    return acc
+  }, {} as Record<number, ExerciseStatus[]>)
+
+  // Sort categories: compound first, then auxiliary
+  const sortedCategories = Object.keys(exercisesByCategory)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .filter(c => c !== ExerciseCategory.UNSPECIFIED)
 
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tighter">LIFT</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onLogout}>
-              Logout
-            </Button>
-          </div>
+          <button onClick={onSettings} className="p-2 hover:bg-muted rounded-md transition-colors">
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
 
         <SessionHeader userId={userId} />
@@ -200,216 +219,117 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activeWorkout ? (
-            <Card className="border-2 border-primary animate-pulse">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-primary text-sm uppercase tracking-wider">Active Session</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <p className="text-2xl font-black uppercase">{activeWorkout.name || 'Custom Workout'}</p>
-                    <p className="text-xs text-muted-foreground">Started {new Date(Number(activeWorkout.startTime) * 1000).toLocaleTimeString()}</p>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full font-bold uppercase tracking-tighter"
-                    onClick={() => onStartWorkout(activeWorkout.id)}
-                  >
-                    Resume
-                  </Button>
-                </div>              </CardContent>
-            </Card>
-          ) : (
-            <Card className={isRestDay ? 'opacity-90' : 'border-primary ring-1 ring-primary/20'}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                    {isRestDay ? 'Next Up' : 'Today'}
-                  </CardTitle>
-                  {isRestDay && (
-                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-black uppercase">Rest Day</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-black uppercase mb-1">{scheduleData?.nextRecommendedWorkoutName || 'Workout A'}</p>
-                {isRestDay && (
-                  <p className="text-xs font-bold text-muted-foreground mb-4 uppercase">Next session in {daysUntilNext} day{daysUntilNext === 1 ? '' : 's'}</p>
-                )}
-                {!isRestDay && (
-                  <p className="text-xs font-bold text-primary mb-4 uppercase tracking-tight">Time to lift.</p>
-                )}
-                <div className="flex flex-col gap-2">
-                  <Button
-                    className="w-full font-bold uppercase tracking-tighter"
-                    onClick={() => handleStartWorkout(scheduleData?.nextRecommendedWorkoutName || 'Workout A')}
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isRestDay ? `Start ${scheduleData?.nextRecommendedWorkoutName}` : 'Start Recommended'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full text-xs font-bold uppercase"
-                    onClick={() => handleStartWorkout((scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A')}
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Instead, do {(scheduleData?.nextRecommendedWorkoutName || 'Workout A') === 'Workout A' ? 'Workout B' : 'Workout A'}
-                  </Button>
-                  <Button
-                    onClick={() => handleStartWorkout('Custom')}
-                    disabled={loading}
-                    variant="ghost"
-                    className="w-full text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-1"
-                  >
-                    {loading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : 'Start Custom Session'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
+        {/* Active Workout Resume */}
+        {activeWorkout && (
+          <Card className="border-2 border-primary animate-pulse">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Calendar</CardTitle>
+              <CardTitle className="text-primary text-sm uppercase tracking-wider">Active Session</CardTitle>
             </CardHeader>
-            <CardContent className="py-2 calendar-container">
-              <Calendar
-                className="border-none w-full"
-                tileContent={({ date, view }) => {
-                  if (view !== 'month') return null;
-                  const { scheduled, completed } = getWorkoutForDay(date);
-                  if (!scheduled && !completed) return null;
-
-                  const type = (completed?.name || scheduled?.workoutName || '').split(' ')[1];
-                  if (!type) return null;
-
-                  return (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="flex flex-col items-center">
-                        <span className={`text-[16px] font-black italic tracking-tighter ${isSameDay(date, today) ? 'text-primary-foreground' : 'text-primary'
-                          } ${completed ? 'opacity-100' : 'opacity-40'}`}>
-                          {type}
-                        </span>
-                        {completed && (
-                          <div className={`w-1 h-1 rounded-full ${isSameDay(date, today) ? 'bg-primary-foreground' : 'bg-primary'
-                            }`} />
-                        )}
-                      </div>
-                    </div>
-                  );
-                }}
-                tileClassName={({ date }) => {
-                  return isSameDay(date, today) ? 'today-tile' : '';
-                }}
-              />
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p className="text-2xl font-black uppercase">{activeWorkout.name || 'Workout'}</p>
+                  <p className="text-xs text-muted-foreground">Started {new Date(Number(activeWorkout.startTime) * 1000).toLocaleTimeString()}</p>
+                </div>
+                <Button
+                  size="lg"
+                  className="w-full font-bold uppercase tracking-tighter"
+                  onClick={() => onStartWorkout(activeWorkout.id)}
+                >
+                  Resume
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        </div>
+        )}
 
-        {/* Exercise Status Grid */}
-        <div className="space-y-4">
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">Exercises</h2>
-          <div className="grid grid-cols-1 gap-3">
-            {scheduleData?.exerciseStatuses?.map(s => {
-              const history = s.weightHistory || []
-              const max = Math.max(...history, s.targetWeight)
-              const min = Math.min(...history, s.targetWeight)
-              const range = max - min || 10
+        {/* Time since last workout */}
+        {timeSinceLastWorkout && !activeWorkout && (
+          <div className="text-center py-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last workout </span>
+            <span className="text-lg font-black">{timeSinceLastWorkout}</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground"> ago</span>
+          </div>
+        )}
 
-              // Simple SVG trendline
-              let points = ""
-              try {
-                points = history.map((w: number, i: number) => {
-                  const x = (i / (history.length - 1 || 1)) * 100
-                  const y = 20 - ((w - min) / range) * 20
-                  return `${x},${y}`
-                }).join(' ')
-              } catch (e) {
-                console.error("Failed to generate trendline points", e)
-              }
+        {/* Exercise Selection by Category */}
+        {sortedCategories.map(cat => (
+          <div key={cat} className="space-y-2">
+            <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold px-1">
+              {CATEGORY_NAMES[cat as ExerciseCategory] || 'Exercises'}
+            </h2>
+            <div className="grid grid-cols-3 gap-1.5">
+              {exercisesByCategory[cat].map(s => {
+                const isSelected = selectedExercises.has(s.exercise)
 
-              return (
-                <Card key={s.exercise} className="overflow-hidden">
-                  <div className="flex">
-                    <div className="bg-primary/5 w-24 flex-shrink-0 flex flex-col items-center justify-center border-r p-2">
-                      <span className="text-[10px] font-black uppercase text-primary/60 tracking-tighter">Target</span>
-                      <span className="text-2xl font-black tabular-nums leading-none">{s.targetWeight}</span>
-                      <span className="text-[10px] font-bold uppercase text-primary/60">LBS</span>
+                return (
+                  <div
+                    key={s.exercise}
+                    className={`relative rounded-lg border p-2 cursor-pointer transition-all text-center ${
+                      isSelected
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                        : 'border-border opacity-50'
+                    }`}
+                    onClick={() => toggleExercise(s.exercise, s.alwaysInclude)}
+                  >
+                    {/* Selection icon */}
+                    <div className="absolute top-1 right-1">
+                      {s.alwaysInclude ? (
+                        <Lock className="w-2.5 h-2.5 text-primary" />
+                      ) : isSelected ? (
+                        <Check className="w-2.5 h-2.5 text-primary" />
+                      ) : null}
                     </div>
-                    <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-black uppercase tracking-tight truncate">{EXERCISE_NAMES[s.exercise as Exercise] || 'Unknown'}</span>
-                        <div className="flex items-center gap-2">
-                          {history.length > 1 && points && (
-                            <div className="relative w-16 h-6">
-                              <svg
-                                className="w-full h-full overflow-visible"
-                                viewBox="-4 -4 108 28"
-                                preserveAspectRatio="none"
-                              >
-                                <defs>
-                                  <linearGradient id={`gradient-${s.exercise}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-                                  </linearGradient>
-                                </defs>
-                                {/* Area fill */}
-                                <path
-                                  d={`M ${points} V 20 H 0 Z`}
-                                  fill={`url(#gradient-${s.exercise})`}
-                                  className="transition-all duration-500"
-                                />
-                                {/* The line */}
-                                <polyline
-                                  points={points}
-                                  fill="none"
-                                  stroke="hsl(var(--primary))"
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="transition-all duration-500"
-                                />
-                                {/* Final point highlight */}
-                                {(() => {
-                                  const lastPoint = points.split(' ').pop()?.split(',');
-                                  if (!lastPoint || lastPoint.length < 2) return null;
-                                  return (
-                                    <circle
-                                      cx={lastPoint[0]}
-                                      cy={lastPoint[1]}
-                                      r="3.5"
-                                      fill="hsl(var(--primary))"
-                                      className="animate-pulse"
-                                    />
-                                  );
-                                })()}
-                              </svg>
-                            </div>
-                          )}
-                          <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">Last: {formatRelativeDate(s.lastPerformedAt)}</span>
-                        </div>
-                      </div>
-                      <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                        {s.explanation}
-                      </p>
+
+                    {/* Recovery dot */}
+                    <div className="absolute top-1 left-1">
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        s.recovered ? 'bg-green-500' : 'bg-amber-500'
+                      }`} />
+                    </div>
+
+                    {/* Exercise name */}
+                    <div className="text-[10px] font-black uppercase tracking-tight leading-tight mt-1">
+                      {SHORT_NAMES[s.exercise as Exercise] || '?'}
+                    </div>
+
+                    {/* Weight */}
+                    <div className="text-sm font-black tabular-nums leading-none mt-0.5">
+                      {s.targetWeight}
+                    </div>
+
+                    {/* Sets x Reps */}
+                    <div className="text-[8px] font-bold text-muted-foreground uppercase">
+                      {s.defaultSets}x{s.defaultReps}
                     </div>
                   </div>
-                </Card>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
+        ))}
+
+        {/* Start Workout Button */}
+        {!activeWorkout && selectedExercises.size > 0 && (
           <Button
-            onClick={onViewHistory}
-            variant="outline"
-            className="w-full text-xs uppercase tracking-widest font-bold"
+            size="lg"
+            className="w-full font-bold uppercase tracking-tighter text-lg py-6"
+            onClick={handleStartWorkout}
+            disabled={loading}
           >
-            View All Progress Charts
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            Start Workout ({selectedExercises.size} exercise{selectedExercises.size !== 1 ? 's' : ''})
           </Button>
-        </div>
+        )}
+
+        {/* History */}
+        <Button
+          onClick={onViewHistory}
+          variant="outline"
+          className="w-full text-xs uppercase tracking-widest font-bold"
+        >
+          View All Progress Charts
+        </Button>
 
         {workoutHistory.length > 0 && (
           <Card className="opacity-70 hover:opacity-100 transition-opacity">
@@ -426,7 +346,7 @@ export function HomeView({ userId, onLogout, onStartWorkout, onViewWorkout, onVi
                   >
                     <div className="flex flex-col">
                       <span className="font-bold uppercase text-sm tracking-tight">
-                        {workout.name || 'Custom'}
+                        {workout.name || 'Workout'}
                       </span>
                       <span className="text-[10px] text-muted-foreground uppercase font-bold">
                         {workout.endTime > 0n ? formatDuration(workout.startTime, workout.endTime) : 'In Progress'}

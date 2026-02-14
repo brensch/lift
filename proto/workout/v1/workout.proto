@@ -3,6 +3,24 @@ package workout.v1;
 
 // --- Data Structures ---
 
+enum MuscleGroup {
+  MUSCLE_GROUP_UNSPECIFIED = 0;
+  MUSCLE_GROUP_QUADS = 1;
+  MUSCLE_GROUP_HAMSTRINGS = 2;
+  MUSCLE_GROUP_GLUTES = 3;
+  MUSCLE_GROUP_CHEST = 4;
+  MUSCLE_GROUP_BACK = 5;
+  MUSCLE_GROUP_SHOULDERS = 6;
+  MUSCLE_GROUP_BICEPS = 7;
+  MUSCLE_GROUP_TRICEPS = 8;
+}
+
+enum ExerciseCategory {
+  EXERCISE_CATEGORY_UNSPECIFIED = 0;
+  EXERCISE_CATEGORY_COMPOUND = 1;
+  EXERCISE_CATEGORY_AUXILIARY = 2;
+}
+
 message User {
   string id = 1;
   string name = 2;
@@ -126,17 +144,16 @@ message ExerciseStatus {
   string explanation = 3;
   int64 last_performed_at = 4;
   repeated float weight_history = 5;
-}
-
-message ScheduledWorkout {
-  string workout_name = 1;
-  int64 scheduled_at = 2;
+  repeated MuscleGroup muscle_groups = 6;
+  int32 default_sets = 7;
+  int32 default_reps = 8;
+  bool recovered = 9;
+  bool always_include = 10;
+  ExerciseCategory category = 11;
 }
 
 message GetProposedWorkoutScheduleResponse {
   repeated ExerciseStatus exercise_statuses = 1;
-  repeated ScheduledWorkout schedule = 2;
-  string next_recommended_workout_name = 3;
 }
 
 message GetActiveWorkoutRequest {}

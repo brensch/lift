@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
+import { SettingsView } from '@/components/SettingsView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
 import { HistoryView } from '@/components/HistoryView'
 import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
@@ -14,6 +15,7 @@ type Route =
   | { view: 'home'; userId: string }
   | { view: 'workout'; userId: string; workoutId: string }
   | { view: 'history'; userId: string }
+  | { view: 'settings'; userId: string }
 
 function parseRoute(path: string): Route {
   const parts = path.split('/').filter(Boolean)
@@ -24,6 +26,10 @@ function parseRoute(path: string): Route {
 
   if (parts.length >= 2 && parts[1] === 'history') {
     return { view: 'history', userId: parts[0] }
+  }
+
+  if (parts.length >= 2 && parts[1] === 'settings') {
+    return { view: 'settings', userId: parts[0] }
   }
 
   if (parts.length >= 1) {
@@ -43,6 +49,8 @@ function routeToPath(route: Route): string {
       return `/${route.userId}/workout/${route.workoutId}`
     case 'history':
       return `/${route.userId}/history`
+    case 'settings':
+      return `/${route.userId}/settings`
   }
 }
 
@@ -231,7 +239,7 @@ function App() {
             return (
               <HomeView
                 userId={route.userId}
-                onLogout={handleLogout}
+                onSettings={() => navigate({ view: 'settings', userId: route.userId })}
                 onStartWorkout={(workoutId) =>
                   navigate({ view: 'workout', userId: route.userId, workoutId })
                 }
@@ -257,6 +265,14 @@ function App() {
               <HistoryView
                 userId={route.userId}
                 onBack={() => navigate({ view: 'home', userId: route.userId })}
+              />
+            )
+
+          case 'settings':
+            return (
+              <SettingsView
+                onBack={() => navigate({ view: 'home', userId: route.userId })}
+                onLogout={handleLogout}
               />
             )
         }
