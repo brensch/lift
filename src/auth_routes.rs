@@ -1,6 +1,7 @@
 use std::sync::Arc;
+use std::net::SocketAddr;
 use axum::{
-    extract::State,
+    extract::{State, ConnectInfo},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
     Json, Router,
@@ -52,6 +53,21 @@ pub struct LoginFinishRequest {
     pub credential: PublicKeyCredential,
 }
 
+fn get_client_ip(headers: &HeaderMap, connect_info: Option<ConnectInfo<SocketAddr>>) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split(',').next())
+        .map(|v| v.trim().to_string())
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(|v| v.to_string())
+        })
+        .or_else(|| connect_info.map(|ci| ci.0.ip().to_string()))
+}
+
 async fn register_start(
     State(state): State<Arc<AuthState>>,
     Json(req): Json<RegisterStartRequest>,
@@ -81,11 +97,14 @@ async fn register_start(
 
 async fn register_finish(
     State(state): State<Arc<AuthState>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     Json(req): Json<RegisterFinishRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, String)> {
+    let ip = get_client_ip(&headers, Some(ConnectInfo(addr)));
     // Verify passkey, then create user + store credential
     let username = state
-        .finish_registration(&req.user_id, &req.credential)
+        .finish_registration(&req.user_id, &req.credential, ip)
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
@@ -192,13 +211,15 @@ pub struct AddPasskeyFinishRequest {
 
 async fn add_passkey_finish(
     State(state): State<Arc<AuthState>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     Json(req): Json<AddPasskeyFinishRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     let user_id = validate_session(&headers, &state).await?;
+    let ip = get_client_ip(&headers, Some(ConnectInfo(addr)));
 
     state
-        .finish_add_passkey(&user_id, &req.credential)
+        .finish_add_passkey(&user_id, &req.credential, ip)
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
@@ -208,7 +229,9 @@ async fn add_passkey_finish(
 #[derive(Serialize)]
 pub struct PasskeyInfoResponse {
     pub credential_id: String,
+    pub name: Option<String>,
     pub created_at: i64,
+    pub created_at_ip: Option<String>,
     pub transports: Vec<String>,
 }
 
@@ -226,13 +249,17 @@ async fn list_passkeys(
 
     let passkeys: Vec<PasskeyInfoResponse> = rows
         .into_iter()
-        .map(|(credential_id, created_at, credential_json)| {
+        .map(|(credential_id, created_at, credential_json, created_at_ip)| {
+            let v: serde_json::Value = serde_json::from_str(&credential_json).unwrap_or(serde_json::Value::Null);
+            
+            // Extract name if present
+            let name = v.get("cred_name").and_then(|n| n.as_str()).map(|s| s.to_string());
+
             // Best-effort extract transports from credential JSON
-            let transports: Vec<String> = serde_json::from_str::<serde_json::Value>(&credential_json)
-                .ok()
-                .and_then(|v| v.get("transports")?.as_array().cloned())
+            let transports: Vec<String> = v.get("transports")
+                .and_then(|t| t.as_array())
                 .map(|arr| {
-                    arr.into_iter()
+                    arr.iter()
                         .filter_map(|v| v.as_str().map(String::from))
                         .collect()
                 })
@@ -240,7 +267,9 @@ async fn list_passkeys(
 
             PasskeyInfoResponse {
                 credential_id,
+                name,
                 created_at,
+                created_at_ip,
                 transports,
             }
         })

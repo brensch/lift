@@ -48,7 +48,9 @@ export async function register(username: string): Promise<AuthResponse> {
 
 export interface PasskeyInfo {
   credential_id: string;
+  name?: string;
   created_at: number;
+  created_at_ip?: string;
   transports: string[];
 }
 

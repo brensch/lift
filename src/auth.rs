@@ -74,6 +74,7 @@ impl AuthState {
         &self,
         user_id: &str,
         reg: &RegisterPublicKeyCredential,
+        created_at_ip: Option<String>,
     ) -> Result<String, String> {
         let mut challenges = self.reg_challenges.lock().await;
         let (reg_state, username, _) = challenges
@@ -98,7 +99,7 @@ impl AuthState {
             serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
-            .store_credential(&cred_id, user_id, &cred_json)
+            .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
@@ -158,6 +159,7 @@ impl AuthState {
         &self,
         user_id: &str,
         reg: &RegisterPublicKeyCredential,
+        created_at_ip: Option<String>,
     ) -> Result<(), String> {
         let mut challenges = self.reg_challenges.lock().await;
         let (reg_state, _, _) = challenges
@@ -175,7 +177,7 @@ impl AuthState {
             serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
-            .store_credential(&cred_id, user_id, &cred_json)
+            .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
             .await
             .map_err(|e| format!("DB error: {}", e))?;
 
