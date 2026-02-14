@@ -18,7 +18,7 @@ export function AddSetModal({ onAdd, onClose }: {
     <Modal title="Add Exercise" onClose={onClose} className="max-w-sm">
       <div className="p-6 space-y-4">
         <select
-          className="w-full p-2 border rounded-md bg-background text-sm [&]:pr-10"
+          className="w-full p-2 border rounded-md bg-background text-base [&]:pr-10"
           value={exercise}
           onChange={(e) => setExercise(Number(e.target.value) as Exercise)}
         >
