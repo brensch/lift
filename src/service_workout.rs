@@ -38,13 +38,7 @@ pub async fn get_user_id_authenticated<T>(request: &Request<T>, central_db: &Cen
         }
     }
 
-    // Fall back to raw user-id (migration period)
-    request
-        .metadata()
-        .get("x-user-id")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string())
-        .ok_or_else(|| Status::unauthenticated("Authentication required"))
+    Err(Status::unauthenticated("Authentication required"))
 }
 
 

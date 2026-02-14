@@ -821,6 +821,17 @@ impl CentralDb {
         .fetch_optional(&self.pool)
         .await?)
     }
+
+    pub async fn invalidate_auth_session(
+        &self,
+        token: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        sqlx::query("DELETE FROM auth_sessions WHERE token = ?")
+            .bind(token)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
 
 // Global cache of per-session database pools

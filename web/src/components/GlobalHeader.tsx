@@ -1,20 +1,38 @@
-import { useState } from 'react'
-import { Menu, X, BarChart2, History, Settings, LogOut, Home } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Menu, X, BarChart2, History, LogOut, Home, User, Sun, Moon, Key } from 'lucide-react'
 
 interface GlobalHeaderProps {
   onNavigate: (view: any) => void
   onLogout: () => void
   currentView: string
+  userName?: string
 }
 
-export function GlobalHeader({ onNavigate, onLogout, currentView }: GlobalHeaderProps) {
+export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: GlobalHeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lift-theme')
+      if (saved) return saved === 'dark'
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('lift-theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('lift-theme', 'light')
+    }
+  }, [isDark])
 
   const menuItems = [
     { label: 'Home', icon: Home, view: 'home' },
     { label: 'Progress', icon: BarChart2, view: 'progress' },
     { label: 'History', icon: History, view: 'workout-history' },
-    { label: 'Settings', icon: Settings, view: 'settings' },
   ]
 
   const handleNavigate = (view: string) => {
@@ -54,7 +72,7 @@ export function GlobalHeader({ onNavigate, onLogout, currentView }: GlobalHeader
               </button>
             </div>
 
-            <div className="flex-1 px-4 py-8 space-y-2">
+            <div className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
               {menuItems.map((item) => (
                 <button
                   key={item.label}
@@ -69,9 +87,44 @@ export function GlobalHeader({ onNavigate, onLogout, currentView }: GlobalHeader
                   <span className="text-lg font-black uppercase tracking-tight">{item.label}</span>
                 </button>
               ))}
+
+              <div className="pt-8 space-y-4">
+                <button
+                  onClick={() => handleNavigate('passkeys')}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    currentView === 'passkeys' 
+                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                      : 'hover:bg-muted text-foreground border border-transparent'
+                  }`}
+                >
+                  <Key className="w-5 h-5" />
+                  <span className="text-lg font-black uppercase tracking-tight">Passkeys</span>
+                </button>
+
+                <button
+                  onClick={() => setIsDark(!isDark)}
+                  className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-muted text-foreground transition-all border border-border/50"
+                >
+                  <div className="flex items-center gap-4">
+                    {isDark ? <Moon className="w-5 h-5 text-blue-400" /> : <Sun className="w-5 h-5 text-amber-500" />}
+                    <span className="text-lg font-black uppercase tracking-tight">
+                      {isDark ? 'Dark Mode' : 'Light Mode'}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDark ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                    <div className={`w-4 h-4 rounded-full transition-transform ${isDark ? 'translate-x-4 bg-primary-foreground' : 'bg-white'}`} />
+                  </div>
+                </button>
+              </div>
             </div>
 
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-border space-y-2">
+              {userName && (
+                <div className="flex items-center gap-4 px-4 py-2 text-muted-foreground">
+                  <User className="w-5 h-5" />
+                  <span className="text-sm font-black uppercase tracking-widest truncate">{userName}</span>
+                </div>
+              )}
               <button
                 onClick={() => {
                   onLogout()

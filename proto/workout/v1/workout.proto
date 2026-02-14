@@ -154,6 +154,7 @@ message ExerciseStatus {
 
 message GetProposedWorkoutScheduleResponse {
   repeated ExerciseStatus exercise_statuses = 1;
+  string active_workout_id = 2;
 }
 
 message GetActiveWorkoutRequest {}

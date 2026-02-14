@@ -55,7 +55,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-md flex flex-col items-center space-y-8">
+      <div className="w-full max-w-md flex flex-col items-center space-y-12">
         
         {/* Branding */}
         <div className="text-center space-y-2">
@@ -64,17 +64,17 @@ export function LoginView({ onLogin }: LoginViewProps) {
         </div>
 
         <div className="w-full space-y-8">
-          <Card className="border shadow-lg">
-          <CardHeader className="space-y-1 pb-4">
+          <Card className="border shadow-lg overflow-hidden">
+          <CardHeader className="space-y-4 pb-4">
             {/* Mode Switcher */}
-            <div className="flex p-1 bg-muted rounded-lg mb-4">
+            <div className="flex p-1 bg-muted rounded-lg">
               <button
                 onClick={() => { setMode('signup'); setError(null) }}
                 className={cn(
                   "flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200",
                   mode === 'signup' 
                     ? "bg-background text-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-foreground/50 hover:text-foreground"
                 )}
               >
                 Sign Up
@@ -85,19 +85,18 @@ export function LoginView({ onLogin }: LoginViewProps) {
                   "flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200",
                   mode === 'signin' 
                     ? "bg-background text-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-foreground/50 hover:text-foreground"
                 )}
               >
                 Sign In
               </button>
             </div>
             
-
-            <CardDescription className="text-center">
+            <p className="text-center text-sm text-muted-foreground px-4">
               {mode === 'signup' 
-                ? 'Enter your display name to get started' 
-                : 'Use your passkey to sign in securely'}
-            </CardDescription>
+                ? 'Pick a display name, ez game.' 
+                : 'Use the passkey on your device to sign in.'}
+            </p>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -107,57 +106,47 @@ export function LoginView({ onLogin }: LoginViewProps) {
               </div>
             )}
 
-            {mode === 'signup' ? (
-              <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="space-y-2">
+            <div className="relative min-h-[120px]">
+              {mode === 'signup' ? (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <Input
                     placeholder="Display Name"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
                     disabled={loading}
-                    className="h-11"
+                    className="h-11 border-foreground/20 shadow-sm focus:border-primary"
                     autoFocus
                   />
+                  <Button 
+                    onClick={handleRegister} 
+                    className="w-full h-11 text-base font-semibold" 
+                    disabled={loading}
+                  >
+                    {loading ? <><LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> Creating...</> : 'Create Account With Passkey'}
+                  </Button>
                 </div>
-                <Button 
-                  onClick={handleRegister} 
-                  className="w-full h-11 text-base font-semibold" 
-                  disabled={loading}
-                >
-                  {loading ? <><LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> Creating...</> : 'Get Started'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-6 py-2 animate-in fade-in slide-in-from-right-2 duration-300">
-                <div className="flex flex-col items-center justify-center gap-4 text-center">
-                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Key className="h-8 w-8 text-primary" />
-                  </div>
-                  <p className="text-sm text-muted-foreground max-w-[240px]">
-                    Authenticate instantly with FaceID, TouchID, or your device PIN.
-                  </p>
+              ) : (
+                <div className="pt-2 animate-in fade-in duration-300">
+                  <Button 
+                    onClick={handleSignIn} 
+                    className="w-full h-11 text-base font-semibold" 
+                    disabled={loading}
+                  >
+                    {loading ? <><LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> Verifying...</> : 'Sign In with Passkey'}
+                  </Button>
                 </div>
-                <Button 
-                  onClick={handleSignIn} 
-                  className="w-full h-11 text-base font-semibold" 
-                  disabled={loading}
-                >
-                  {loading ? <><LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> Verifying...</> : 'Sign In with Passkey'}
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
           </Card>
 
-          {/* Feature Grid - Only visible on large screens or if there's space */}
-          {mode === 'signup' && (
-            <div className="grid grid-cols-3 gap-4 pt-4 px-2">
-              <Feature icon={Zap} label="Smart Progress" />
-              <Feature icon={Users} label="Multiplayer" />
-              <Feature icon={Dumbbell} label="Pure Lifting" />
-            </div>
-          )}
+          {/* Feature Grid */}
+          <div className="grid grid-cols-3 gap-4 pt-4 px-2">
+            <Feature icon={Zap} label="Smart Progress" />
+            <Feature icon={Users} label="Multiplayer" />
+            <Feature icon={Dumbbell} label="Pure Lifting" />
+          </div>
         </div>
       </div>
     </div>
