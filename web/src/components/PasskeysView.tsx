@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { addPasskey, listPasskeys, type PasskeyInfo } from '@/lib/auth'
-import { Plus, Key } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { addPasskey, listPasskeys, deletePasskey, type PasskeyInfo } from '@/lib/auth'
+import { Plus, Key, Trash2 } from 'lucide-react'
 import { LoadingSpinner, LoadingBlock } from '@/components/ui/loading'
+import { Modal } from '@/components/ui/modal'
 
 interface PasskeysViewProps {
 }
@@ -11,6 +13,9 @@ export function PasskeysView({ }: PasskeysViewProps) {
   const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  const [passkeyName, setPasskeyName] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -34,7 +39,8 @@ export function PasskeysView({ }: PasskeysViewProps) {
     setAdding(true)
     setError(null)
     try {
-      await addPasskey()
+      await addPasskey(passkeyName.trim() || undefined)
+      setPasskeyName('')
       await loadPasskeys()
     } catch (e) {
       if (e instanceof Error && e.name === 'NotAllowedError') {
@@ -44,6 +50,20 @@ export function PasskeysView({ }: PasskeysViewProps) {
       }
     } finally {
       setAdding(false)
+    }
+  }
+
+  const handleDelete = async (credentialId: string) => {
+    setDeletingId(credentialId)
+    setError(null)
+    try {
+      await deletePasskey(credentialId)
+      await loadPasskeys()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete passkey')
+    } finally {
+      setDeletingId(null)
+      setShowDeleteConfirm(null)
     }
   }
 
@@ -79,24 +99,34 @@ export function PasskeysView({ }: PasskeysViewProps) {
         )}
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+          <div className="px-1 space-y-4">
             <h2 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
               Passkeys
             </h2>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleAddPasskey}
-              disabled={adding}
-              className="text-xs font-bold uppercase"
-            >
-              {adding ? (
-                <LoadingSpinner size="sm" className="mr-1" />
-              ) : (
-                <Plus className="w-3 h-3 mr-1" />
-              )}
-              Add Passkey
-            </Button>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Passkey Name (e.g. Work Phone)"
+                value={passkeyName}
+                onChange={(e) => setPasskeyName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddPasskey()}
+                disabled={adding}
+                className="text-sm h-9"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddPasskey}
+                disabled={adding}
+                className="text-xs font-bold uppercase whitespace-nowrap"
+              >
+                {adding ? (
+                  <LoadingSpinner size="sm" className="mr-1" />
+                ) : (
+                  <Plus className="w-3 h-3 mr-1" />
+                )}
+                Add Passkey
+              </Button>
+            </div>
           </div>
 
           <div className="px-1">
@@ -135,6 +165,19 @@ export function PasskeysView({ }: PasskeysViewProps) {
                         <span>Added {formatDate(pk.created_at)}</span>
                       </div>
                     </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirm(pk.credential_id)}
+                      disabled={deletingId !== null || passkeys.length <= 1}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      {deletingId === pk.credential_id ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -142,6 +185,43 @@ export function PasskeysView({ }: PasskeysViewProps) {
           </div>
         </div>
       </div>
+
+      {showDeleteConfirm !== null && (
+        <Modal
+          onClose={() => !deletingId && setShowDeleteConfirm(null)}
+          title="Delete Passkey"
+          className="max-w-md"
+        >
+          <div className="p-6 space-y-6">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm text-destructive font-bold leading-relaxed">
+              Make sure you have one of the remaining passkeys before deleting anything. 
+              If you don't have a valid passkey you cannot recover your account.
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this passkey? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowDeleteConfirm(null)}
+                disabled={deletingId !== null}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 font-bold"
+                onClick={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}
+                disabled={deletingId !== null}
+              >
+                {deletingId ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                {deletingId ? 'Deleting...' : 'Delete Key'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

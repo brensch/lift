@@ -26,6 +26,7 @@ pub struct RegisterStartResponse {
 pub struct RegisterFinishRequest {
     pub user_id: String,
     pub credential: RegisterPublicKeyCredential,
+    pub name: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -104,7 +105,7 @@ async fn register_finish(
     let ip = get_client_ip(&headers, Some(ConnectInfo(addr)));
     // Verify passkey, then create user + store credential
     let username = state
-        .finish_registration(&req.user_id, &req.credential, ip)
+        .finish_registration(&req.user_id, &req.credential, ip, req.name)
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
@@ -207,6 +208,7 @@ async fn add_passkey_start(
 #[derive(Deserialize)]
 pub struct AddPasskeyFinishRequest {
     pub credential: RegisterPublicKeyCredential,
+    pub name: Option<String>,
 }
 
 async fn add_passkey_finish(
@@ -219,9 +221,30 @@ async fn add_passkey_finish(
     let ip = get_client_ip(&headers, Some(ConnectInfo(addr)));
 
     state
-        .finish_add_passkey(&user_id, &req.credential, ip)
+        .finish_add_passkey(&user_id, &req.credential, ip, req.name)
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+
+    Ok(StatusCode::OK)
+}
+
+#[derive(Deserialize)]
+pub struct DeletePasskeyRequest {
+    pub credential_id: String,
+}
+
+async fn delete_passkey(
+    State(state): State<Arc<AuthState>>,
+    headers: HeaderMap,
+    Json(req): Json<DeletePasskeyRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let user_id = validate_session(&headers, &state).await?;
+
+    state
+        .central_db
+        .delete_credential(&user_id, &req.credential_id)
+        .await
+        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
     Ok(StatusCode::OK)
 }
@@ -305,6 +328,7 @@ pub fn auth_router(auth_state: Arc<AuthState>) -> Router {
         .route("/auth/logout", post(logout))
         .route("/auth/passkey/add/start", post(add_passkey_start))
         .route("/auth/passkey/add/finish", post(add_passkey_finish))
+        .route("/auth/passkey/delete", post(delete_passkey))
         .route("/auth/passkeys", get(list_passkeys))
         .with_state(auth_state)
 }

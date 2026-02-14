@@ -22,7 +22,7 @@ async function authFetch(path: string, body: unknown): Promise<unknown> {
   return res.json();
 }
 
-export async function register(username: string): Promise<AuthResponse> {
+export async function register(username: string, name?: string): Promise<AuthResponse> {
   const startData = (await authFetch('/register/start', { username })) as {
     user_id: string;
     options: { publicKey: PublicKeyCredentialCreationOptionsJSON };
@@ -43,6 +43,7 @@ export async function register(username: string): Promise<AuthResponse> {
   return (await authFetch('/register/finish', {
     user_id: startData.user_id,
     credential,
+    name: name || 'signup key',
   })) as AuthResponse;
 }
 
@@ -54,7 +55,7 @@ export interface PasskeyInfo {
   transports: string[];
 }
 
-export async function addPasskey(): Promise<void> {
+export async function addPasskey(name?: string): Promise<void> {
   const token = localStorage.getItem('liftSessionToken');
   if (!token) throw new Error('Not authenticated');
 
@@ -88,7 +89,7 @@ export async function addPasskey(): Promise<void> {
       'Content-Type': 'application/json',
       'x-session-token': token,
     },
-    body: JSON.stringify({ credential }),
+    body: JSON.stringify({ credential, name }),
   });
   if (!finishRes.ok) {
     const text = await finishRes.text();
@@ -109,6 +110,24 @@ export async function listPasskeys(): Promise<PasskeyInfo[]> {
     throw new Error(text || `Request failed: ${res.status}`);
   }
   return res.json();
+}
+
+export async function deletePasskey(credentialId: string): Promise<void> {
+  const token = localStorage.getItem('liftSessionToken');
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${AUTH_BASE}/passkey/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': token,
+    },
+    body: JSON.stringify({ credential_id: credentialId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Request failed: ${res.status}`);
+  }
 }
 
 export async function login(): Promise<AuthResponse> {
