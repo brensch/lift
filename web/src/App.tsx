@@ -5,6 +5,7 @@ import { PasskeysView } from '@/components/PasskeysView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
 import { ProgressView } from '@/components/ProgressView'
 import { WorkoutHistoryView } from '@/components/WorkoutHistoryView'
+import { SoundSettingsView } from '@/components/SoundSettingsView'
 import { GlobalHeader } from '@/components/GlobalHeader'
 import { workoutClient, userClient, multiplayerClient, withUserId } from '@/lib/client'
 import { logout } from '@/lib/auth'
@@ -20,6 +21,7 @@ type Route =
   | { view: 'progress' }
   | { view: 'workout-history' }
   | { view: 'passkeys' }
+  | { view: 'pick-sound' }
 
 function parseRoute(path: string): Route {
   const parts = path.split('/').filter(Boolean)
@@ -38,6 +40,14 @@ function parseRoute(path: string): Route {
 
   if (parts.length >= 1 && parts[0] === 'passkeys') {
     return { view: 'passkeys' }
+  }
+
+  if (parts.length >= 1 && parts[1] === 'pick-sound') {
+    return { view: 'pick-sound' }
+  }
+
+  if (parts.length >= 1 && parts[0] === 'pick-sound') {
+    return { view: 'pick-sound' }
   }
 
   if (path === '/' || path === '') {
@@ -64,6 +74,8 @@ function routeToPath(route: Route): string {
       return `/history`
     case 'passkeys':
       return `/passkeys`
+    case 'pick-sound':
+      return `/pick-sound`
   }
 }
 
@@ -310,6 +322,13 @@ function App() {
             return (
               <PasskeysView
               />
+            )
+
+          case 'pick-sound':
+            return (
+              <div className="max-w-2xl mx-auto p-4 pb-24">
+                <SoundSettingsView />
+              </div>
             )
         }
       })()}
