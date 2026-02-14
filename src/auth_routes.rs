@@ -8,6 +8,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use webauthn_rs::prelude::*;
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 
 use crate::auth::AuthState;
 
@@ -319,6 +323,105 @@ async fn logout(
     Ok(StatusCode::OK)
 }
 
+#[derive(Deserialize)]
+pub struct PasswordRegisterRequest {
+    pub username: String,
+    pub password: String,
+}
+
+async fn password_register(
+    State(state): State<Arc<AuthState>>,
+    Json(req): Json<PasswordRegisterRequest>,
+) -> Result<Json<AuthResponse>, (StatusCode, String)> {
+    let username = req.username.trim().to_string();
+    if username.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "username is required".to_string()));
+    }
+    if req.password.len() < 4 {
+        return Err((StatusCode::BAD_REQUEST, "password must be at least 4 characters".to_string()));
+    }
+
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let password_hash = argon2
+        .hash_password(req.password.as_bytes(), &salt)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Hash error: {}", e)))?
+        .to_string();
+
+    let user = state
+        .central_db
+        .create_user_with_password(&username, &password_hash)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("already exists") {
+                (StatusCode::CONFLICT, "User already exists".to_string())
+            } else {
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+            }
+        })?;
+
+    let token = state
+        .central_db
+        .create_auth_session(&user.id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(AuthResponse {
+        session_token: token,
+        user_id: user.id,
+        username: user.name,
+    }))
+}
+
+#[derive(Deserialize)]
+pub struct PasswordLoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+async fn password_login(
+    State(state): State<Arc<AuthState>>,
+    Json(req): Json<PasswordLoginRequest>,
+) -> Result<Json<AuthResponse>, (StatusCode, String)> {
+    let username = req.username.trim().to_string();
+    if username.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "username is required".to_string()));
+    }
+
+    let user = state
+        .central_db
+        .get_user_by_name(&username)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid username or password".to_string()))?;
+
+    let stored_hash = state
+        .central_db
+        .get_password_hash(&user.id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "No password set for this account".to_string()))?;
+
+    let parsed_hash = PasswordHash::new(&stored_hash)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Hash parse error: {}", e)))?;
+
+    Argon2::default()
+        .verify_password(req.password.as_bytes(), &parsed_hash)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid username or password".to_string()))?;
+
+    let token = state
+        .central_db
+        .create_auth_session(&user.id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(AuthResponse {
+        session_token: token,
+        user_id: user.id,
+        username: user.name,
+    }))
+}
+
 pub fn auth_router(auth_state: Arc<AuthState>) -> Router {
     Router::new()
         .route("/auth/register/start", post(register_start))
@@ -330,5 +433,7 @@ pub fn auth_router(auth_state: Arc<AuthState>) -> Router {
         .route("/auth/passkey/add/finish", post(add_passkey_finish))
         .route("/auth/passkey/delete", post(delete_passkey))
         .route("/auth/passkeys", get(list_passkeys))
+        .route("/auth/password/register", post(password_register))
+        .route("/auth/password/login", post(password_login))
         .with_state(auth_state)
 }
