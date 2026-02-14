@@ -2,24 +2,7 @@ import { memo } from 'react'
 import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { Exercise, type ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
-
-const EXERCISE_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '?',
-  [Exercise.SQUAT]: 'Squat',
-  [Exercise.BENCH_PRESS]: 'Bench Press',
-  [Exercise.DEADLIFT]: 'Deadlift',
-  [Exercise.OVERHEAD_PRESS]: 'Overhead Press',
-  [Exercise.BARBELL_ROW]: 'Barbell Row',
-}
-
-const SHORT_NAMES: Record<Exercise, string> = {
-  [Exercise.UNSPECIFIED]: '?',
-  [Exercise.SQUAT]: 'Sq',
-  [Exercise.BENCH_PRESS]: 'Bp',
-  [Exercise.DEADLIFT]: 'Dl',
-  [Exercise.OVERHEAD_PRESS]: 'Oh',
-  [Exercise.BARBELL_ROW]: 'Br',
-}
+import { EXERCISE_NAMES, SHORT_NAMES } from '@/lib/exercises'
 
 function getSetInfo(proposedSet: ProposedSet, allProposed: ProposedSet[]) {
   const sameExerciseSets = allProposed.filter(s => s.exercise === proposedSet.exercise);

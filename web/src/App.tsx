@@ -3,7 +3,9 @@ import { LoginView } from '@/components/LoginView'
 import { HomeView } from '@/components/HomeView'
 import { SettingsView } from '@/components/SettingsView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
-import { HistoryView } from '@/components/HistoryView'
+import { ProgressView } from '@/components/ProgressView'
+import { WorkoutHistoryView } from '@/components/WorkoutHistoryView'
+import { GlobalHeader } from '@/components/GlobalHeader'
 import { workoutClient, multiplayerClient, withUserId } from '@/lib/client'
 import { type SessionStatus } from '@/gen/workout/v1/group_pb'
 import { Button } from '@/components/ui/button'
@@ -14,7 +16,8 @@ type Route =
   | { view: 'login' }
   | { view: 'home'; userId: string }
   | { view: 'workout'; userId: string; workoutId: string }
-  | { view: 'history'; userId: string }
+  | { view: 'progress'; userId: string }
+  | { view: 'workout-history'; userId: string }
   | { view: 'settings'; userId: string }
 
 function parseRoute(path: string): Route {
@@ -24,8 +27,12 @@ function parseRoute(path: string): Route {
     return { view: 'workout', userId: parts[0], workoutId: parts[2] }
   }
 
+  if (parts.length >= 2 && parts[1] === 'progress') {
+    return { view: 'progress', userId: parts[0] }
+  }
+
   if (parts.length >= 2 && parts[1] === 'history') {
-    return { view: 'history', userId: parts[0] }
+    return { view: 'workout-history', userId: parts[0] }
   }
 
   if (parts.length >= 2 && parts[1] === 'settings') {
@@ -47,7 +54,9 @@ function routeToPath(route: Route): string {
       return `/${route.userId}`
     case 'workout':
       return `/${route.userId}/workout/${route.workoutId}`
-    case 'history':
+    case 'progress':
+      return `/${route.userId}/progress`
+    case 'workout-history':
       return `/${route.userId}/history`
     case 'settings':
       return `/${route.userId}/settings`
@@ -230,6 +239,14 @@ function App() {
         </Modal>
       )}
 
+      {route.view !== 'login' && (
+        <GlobalHeader 
+          currentView={route.view}
+          onNavigate={(newView: { view: any }) => navigate({ ...newView, userId: route.userId } as Route)}
+          onLogout={handleLogout}
+        />
+      )}
+
       {(() => {
         switch (route.view) {
           case 'login':
@@ -239,14 +256,9 @@ function App() {
             return (
               <HomeView
                 userId={route.userId}
-                onSettings={() => navigate({ view: 'settings', userId: route.userId })}
                 onStartWorkout={(workoutId) =>
                   navigate({ view: 'workout', userId: route.userId, workoutId })
                 }
-                onViewWorkout={(workoutId) =>
-                  navigate({ view: 'workout', userId: route.userId, workoutId })
-                }
-                onViewHistory={() => navigate({ view: 'history', userId: route.userId })}
               />
             )
 
@@ -255,23 +267,27 @@ function App() {
               <WorkoutView
                 workoutId={route.workoutId}
                 userId={route.userId}
-                onBack={() => navigate({ view: 'home', userId: route.userId })}
-                onViewHistory={() => navigate({ view: 'history', userId: route.userId })}
               />
             )
 
-          case 'history':
+          case 'progress':
             return (
-              <HistoryView
+              <ProgressView
                 userId={route.userId}
-                onBack={() => navigate({ view: 'home', userId: route.userId })}
+              />
+            )
+
+          case 'workout-history':
+            return (
+              <WorkoutHistoryView
+                userId={route.userId}
+                onViewWorkout={(workoutId) => navigate({ view: 'workout', userId: route.userId, workoutId })}
               />
             )
 
           case 'settings':
             return (
               <SettingsView
-                onBack={() => navigate({ view: 'home', userId: route.userId })}
                 onLogout={handleLogout}
               />
             )

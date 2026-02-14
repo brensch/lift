@@ -3,20 +3,17 @@ import { groupSetsByExercise } from '@/components/ExerciseGroup'
 import { SHORT_NAMES } from '@/lib/exercises'
 import { fmtElapsed } from '@/hooks/useTimer'
 import { SessionHeader } from '@/components/SessionHeader'
-import { Button } from '@/components/ui/button'
 
 function fmtTime(ts: bigint | number) {
   if (!ts) return ''
   return new Date(Number(ts) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-export function CompletedWorkoutView({ workout, proposedSets, completedSets, userId, onBack, onViewHistory }: {
+export function CompletedWorkoutView({ workout, proposedSets, completedSets, userId }: {
   workout: Workout
   proposedSets: ProposedSet[]
   completedSets: CompletedSet[]
   userId: string
-  onBack: () => void
-  onViewHistory: () => void
 }) {
   const totalDuration = Number(workout.endTime - workout.startTime)
 
@@ -50,20 +47,15 @@ export function CompletedWorkoutView({ workout, proposedSets, completedSets, use
   const totalWorkingSets = exerciseStats.reduce((sum, s) => sum + s.workingSetsCompleted, 0)
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
-            LIFT
-          </button>
-          <span className="text-sm text-muted-foreground">{fmtElapsed(totalDuration)}</span>
-        </div>
         <SessionHeader userId={userId} />
         <div className="text-center py-2">
-          <h2 className="text-xl font-bold">{workout.name || 'Workout'}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-xl font-bold uppercase tracking-tight">{workout.name || 'Workout'}</h2>
+          <p className="text-sm text-muted-foreground uppercase tracking-widest font-black">
             {new Date(Number(workout.startTime) * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+            <span className="ml-2 opacity-50">&middot;</span>
+            <span className="ml-2">{fmtElapsed(totalDuration)}</span>
           </p>
         </div>
 
@@ -102,16 +94,6 @@ export function CompletedWorkoutView({ workout, proposedSets, completedSets, use
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="pt-4 pb-8 space-y-2">
-          <Button onClick={onViewHistory} className="w-full">
-            View Progress Charts
-          </Button>
-          <Button onClick={onBack} variant="outline" className="w-full">
-            Back to Home
-          </Button>
         </div>
       </div>
     </div>

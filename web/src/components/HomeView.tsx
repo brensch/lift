@@ -7,7 +7,7 @@ import { Exercise, ExerciseCategory, ProposedSetSchema } from '@/gen/workout/v1/
 import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
 import { SHORT_NAMES } from '@/lib/exercises'
-import { Loader2, Settings, Check, Lock } from 'lucide-react'
+import { Loader2, Check, Lock } from 'lucide-react'
 
 const CATEGORY_NAMES: Record<ExerciseCategory, string> = {
   [ExerciseCategory.UNSPECIFIED]: '',
@@ -17,13 +17,10 @@ const CATEGORY_NAMES: Record<ExerciseCategory, string> = {
 
 interface HomeViewProps {
   userId: string
-  onSettings: () => void
   onStartWorkout: (workoutId: string) => void
-  onViewWorkout: (workoutId: string) => void
-  onViewHistory: () => void
 }
 
-export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, onViewHistory }: HomeViewProps) {
+export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
   const [_userName, setUserName] = useState<string>('')
   const [workoutHistory, setWorkoutHistory] = useState<Workout[]>([])
   const [exerciseStatuses, setExerciseStatuses] = useState<ExerciseStatus[]>([])
@@ -159,21 +156,13 @@ export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, on
     }
   }
 
-  const formatDate = (timestamp: bigint | number) => {
-    if (!timestamp) return 'N/A'
-    return new Date(Number(timestamp) * 1000).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-
-  const formatDuration = (start: bigint, end: bigint) => {
-    if (!start || !end) return ''
-    const seconds = Number(end - start)
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}m ${secs}s`
+  const formatTimeSince = (timestamp: bigint | number) => {
+    if (!timestamp || timestamp === 0n || timestamp === 0) return ''
+    const diff = Date.now() / 1000 - Number(timestamp)
+    if (diff < 60) return 'now'
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`
+    return `${Math.floor(diff / 86400)}d`
   }
 
   // Time since last workout
@@ -202,15 +191,8 @@ export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, on
     .filter(c => c !== ExerciseCategory.UNSPECIFIED)
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tighter">LIFT</h1>
-          <button onClick={onSettings} className="p-2 hover:bg-muted rounded-md transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-
         <SessionHeader userId={userId} />
 
         {error && (
@@ -245,10 +227,9 @@ export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, on
 
         {/* Time since last workout */}
         {timeSinceLastWorkout && !activeWorkout && (
-          <div className="text-center py-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Last workout </span>
-            <span className="text-lg font-black">{timeSinceLastWorkout}</span>
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground"> ago</span>
+          <div className="flex items-baseline gap-1.5 px-1 py-0.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">Last workout:</span>
+            <span className="text-sm font-black">{timeSinceLastWorkout} ago</span>
           </div>
         )}
 
@@ -265,42 +246,58 @@ export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, on
                 return (
                   <div
                     key={s.exercise}
-                    className={`relative rounded-lg border p-2 cursor-pointer transition-all text-center ${
+                    className={`relative flex flex-col justify-between rounded-lg border p-2 cursor-pointer transition-all shadow-sm h-full ${
                       isSelected
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                        : 'border-border opacity-50'
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-md'
+                        : 'border-border bg-card hover:bg-muted/50'
                     }`}
                     onClick={() => toggleExercise(s.exercise, s.alwaysInclude)}
                   >
-                    {/* Selection icon */}
-                    <div className="absolute top-1 right-1">
-                      {s.alwaysInclude ? (
-                        <Lock className="w-2.5 h-2.5 text-primary" />
-                      ) : isSelected ? (
-                        <Check className="w-2.5 h-2.5 text-primary" />
-                      ) : null}
+                    {/* Header: Name & Status */}
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[13px] font-black uppercase tracking-tighter text-foreground leading-none truncate mr-1">
+                        {SHORT_NAMES[s.exercise as Exercise] || '?'}
+                      </span>
+                      <div className="flex items-center">
+                        {s.alwaysInclude ? (
+                          <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
+                        ) : isSelected && (
+                          <Check className="w-2.5 h-2.5 text-primary" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Recovery dot */}
-                    <div className="absolute top-1 left-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        s.recovered ? 'bg-green-500' : 'bg-amber-500'
-                      }`} />
+                    {/* Body: Weight & Sets */}
+                    <div className="flex flex-col items-center justify-center py-0.5">
+                      <div className="text-lg font-black tabular-nums tracking-tighter text-foreground">
+                        {s.targetWeight}
+                        <span className="text-[8px] text-muted-foreground ml-0.5 font-bold uppercase">lb</span>
+                      </div>
+                      <div className="text-[8px] font-bold text-muted-foreground uppercase tracking-tight bg-muted/30 px-1 rounded">
+                        {s.defaultSets}x{s.defaultReps}
+                      </div>
                     </div>
 
-                    {/* Exercise name */}
-                    <div className="text-[10px] font-black uppercase tracking-tight leading-tight mt-1">
-                      {SHORT_NAMES[s.exercise as Exercise] || '?'}
-                    </div>
+                    {/* Footer: Recovery & Explanation */}
+                    <div className="mt-1 space-y-0.5">
+                       {/* Recovery Info */}
+                       <div className="flex items-center gap-1 scale-[0.7] origin-left w-[140%]">
+                          <div className={`w-1.5 h-1.5 rounded-full ring-1 ring-background shrink-0 ${
+                            s.recovered ? 'bg-green-500' : 'bg-amber-500'
+                          }`} />
+                          <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-tighter truncate">
+                            {s.lastPerformedAt ? formatTimeSince(s.lastPerformedAt) : 'New'}
+                          </span>
+                        </div>
 
-                    {/* Weight */}
-                    <div className="text-sm font-black tabular-nums leading-none mt-0.5">
-                      {s.targetWeight}
-                    </div>
-
-                    {/* Sets x Reps */}
-                    <div className="text-[8px] font-bold text-muted-foreground uppercase">
-                      {s.defaultSets}x{s.defaultReps}
+                        {/* Explanation (only if relevant/selected) */}
+                        {isSelected && s.explanation && (
+                          <div className="scale-[0.7] origin-left w-[140%] -mt-0.5">
+                            <div className="text-[10px] text-muted-foreground/60 leading-tight border-t border-border/20 pt-1 normal-case font-medium line-clamp-2">
+                              {s.explanation}
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )
@@ -320,46 +317,6 @@ export function HomeView({ userId, onSettings, onStartWorkout, onViewWorkout, on
             {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             Start Workout ({selectedExercises.size} exercise{selectedExercises.size !== 1 ? 's' : ''})
           </Button>
-        )}
-
-        {/* History */}
-        <Button
-          onClick={onViewHistory}
-          variant="outline"
-          className="w-full text-xs uppercase tracking-widest font-bold"
-        >
-          View All Progress Charts
-        </Button>
-
-        {workoutHistory.length > 0 && (
-          <Card className="opacity-70 hover:opacity-100 transition-opacity">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground font-bold">History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                {workoutHistory.slice(0, 5).map((workout) => (
-                  <li
-                    key={workout.id}
-                    className="p-2 hover:bg-muted rounded-md flex justify-between items-center cursor-pointer transition-colors"
-                    onClick={() => onViewWorkout(workout.id)}
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-bold uppercase text-sm tracking-tight">
-                        {workout.name || 'Workout'}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                        {workout.endTime > 0n ? formatDuration(workout.startTime, workout.endTime) : 'In Progress'}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">
-                      {formatDate(workout.startTime)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         )}
       </div>
     </div>

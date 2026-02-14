@@ -30,11 +30,9 @@ function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
 interface WorkoutViewProps {
   workoutId: string
   userId: string
-  onBack: () => void
-  onViewHistory: () => void
 }
 
-export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: WorkoutViewProps) {
+export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [proposedSets, setProposedSets] = useState<ProposedSet[]>([])
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>([])
@@ -275,7 +273,7 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
   // --- Render ---
 
   if (isWorkoutEnded && workout) {
-    return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} onBack={onBack} onViewHistory={onViewHistory} />
+    return <CompletedWorkoutView workout={workout} proposedSets={proposedSets} completedSets={completedSets} userId={userId} />
   }
 
   const editingGroup = editingExerciseIdx !== null
@@ -283,17 +281,15 @@ export function WorkoutView({ workoutId, userId, onBack, onViewHistory }: Workou
     : null
 
   return (
-    <div className="min-h-screen bg-background p-4 pb-24">
+    <div className="min-h-screen bg-background p-4 pt-0 pb-24">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
-            LIFT
-          </button>
-          <div className="flex items-center gap-2">
+        {/* Workout Controls */}
+        <div className="flex items-center justify-between bg-muted/30 p-3 rounded-xl border border-border/50">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Duration</span>
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
-            <Button variant="destructive" size="sm" onClick={handleEndWorkout} disabled={loading}>End</Button>
           </div>
+          <Button variant="destructive" size="sm" className="font-bold uppercase tracking-tight" onClick={handleEndWorkout} disabled={loading}>End Workout</Button>
         </div>
 
         <SessionHeader userId={userId} workoutId={workoutId} />
