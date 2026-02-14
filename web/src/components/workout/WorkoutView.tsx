@@ -17,6 +17,7 @@ import { rebuildExerciseSets } from '@/lib/warmup'
 import { SessionHeader } from '@/components/SessionHeader'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 import { useElapsed, fmtElapsed } from '@/hooks/useTimer'
+import { playDing } from '@/lib/audio'
 
 import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox, GroupNextUpBox } from './ActiveBoxes'
 import { CompletedWorkoutView } from './CompletedView'
@@ -85,10 +86,12 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
     const remaining = activeRestEnd - Math.floor(Date.now() / 1000)
     if (remaining <= 0) {
       setIsResting(false)
+      playDing()
       return
     }
     const timeout = setTimeout(() => {
       setIsResting(false)
+      playDing()
     }, remaining * 1000)
     return () => clearTimeout(timeout)
   }, [activeRestEnd, isResting])
