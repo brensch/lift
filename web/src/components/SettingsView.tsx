@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { addPasskey, listPasskeys, type PasskeyInfo } from '@/lib/auth'
-import { ArrowLeft, Plus, Key, Loader2 } from 'lucide-react'
+import { Plus, Key, Loader2 } from 'lucide-react'
 
 interface SettingsViewProps {
-  onBack: () => void
   onLogout: () => void
 }
 
-export function SettingsView({ onBack, onLogout }: SettingsViewProps) {
+export function SettingsView({ onLogout }: SettingsViewProps) {
   const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -70,15 +69,8 @@ export function SettingsView({ onBack, onLogout }: SettingsViewProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-1 hover:bg-muted rounded-md transition-colors">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-3xl font-bold tracking-tighter">Settings</h1>
-        </div>
-
         {error && (
           <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md text-sm">
             {error}

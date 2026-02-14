@@ -92,7 +92,7 @@ function WeightChart({ history, range }: {
   )
 }
 
-export function HistoryView({ userId, onBack }: { userId: string, onBack: () => void }) {
+export function ProgressView({ userId }: { userId: string }) {
   const [historyByExercise, setHistoryByExercise] = useState<Record<number, ExerciseHistory[]>>({})
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<TimeRange>('6m')
@@ -152,15 +152,8 @@ export function HistoryView({ userId, onBack }: { userId: string, onBack: () => 
   const exercisesWithHistory = Object.keys(historyByExercise).map(Number).sort()
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={onBack} className="text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
-            LIFT
-          </button>
-          <span className="text-sm font-bold">Progress History</span>
-        </div>
         <SessionHeader userId={userId} />
 
         {/* Time range selector */}
@@ -197,15 +190,6 @@ export function HistoryView({ userId, onBack }: { userId: string, onBack: () => 
             ))}
           </div>
         )}
-
-        <div className="pt-4 pb-8">
-          <button
-            onClick={onBack}
-            className="w-full py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            Back
-          </button>
-        </div>
       </div>
     </div>
   )
