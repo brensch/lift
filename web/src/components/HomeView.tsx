@@ -7,7 +7,7 @@ import { Exercise, ExerciseCategory, ProposedSetSchema } from '@/gen/workout/v1/
 import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
 import { SHORT_NAMES } from '@/lib/exercises'
-import { Loader2, Check, Lock } from 'lucide-react'
+import { Loader2, Check } from 'lucide-react'
 
 const CATEGORY_NAMES: Record<ExerciseCategory, string> = {
   [ExerciseCategory.UNSPECIFIED]: '',
@@ -48,29 +48,33 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
       setWorkoutHistory(workoutsRes.workouts)
       setExerciseStatuses(scheduleRes.exerciseStatuses)
 
-      // Auto-select: always_include + up to 3 recovered compound exercises, no auxiliary
+      // Auto-select: start with always_include, then fill up to 3 with oldest compounds
       const autoSelected = new Set<number>()
-      let compoundCount = 0
+      
+      // 1. Add always_include
       for (const s of scheduleRes.exerciseStatuses) {
         if (s.alwaysInclude) {
           autoSelected.add(s.exercise)
-          if (s.category === ExerciseCategory.COMPOUND) compoundCount++
         }
       }
-      for (const s of scheduleRes.exerciseStatuses) {
-        if (s.category === ExerciseCategory.COMPOUND && s.recovered && !autoSelected.has(s.exercise) && compoundCount < 3) {
-          autoSelected.add(s.exercise)
-          compoundCount++
-        }
+
+      // 2. Fill up to 3 from the oldest compounds
+      const sortedCompounds = [...scheduleRes.exerciseStatuses]
+        .filter(s => s.category === ExerciseCategory.COMPOUND)
+        .sort((a, b) => Number(a.lastPerformedAt - b.lastPerformedAt))
+
+      for (const s of sortedCompounds) {
+        if (autoSelected.size >= 3) break
+        autoSelected.add(s.exercise)
       }
+      
       setSelectedExercises(autoSelected)
     } catch (e) {
       console.error('Failed to load data:', e)
     }
   }
 
-  const toggleExercise = (exercise: number, alwaysInclude: boolean) => {
-    if (alwaysInclude) return // can't deselect always-include
+  const toggleExercise = (exercise: number) => {
     setSelectedExercises(prev => {
       const next = new Set(prev)
       if (next.has(exercise)) {
@@ -191,7 +195,7 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
     .filter(c => c !== ExerciseCategory.UNSPECIFIED)
 
   return (
-    <div className="min-h-screen bg-background p-4 pt-0">
+    <div className="h-full bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-6">
         <SessionHeader userId={userId} />
 
@@ -251,7 +255,7 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
                         ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-md'
                         : 'border-border bg-card hover:bg-muted/50'
                     }`}
-                    onClick={() => toggleExercise(s.exercise, s.alwaysInclude)}
+                    onClick={() => toggleExercise(s.exercise)}
                   >
                     {/* Header: Name & Status */}
                     <div className="flex justify-between items-start mb-1">
@@ -259,9 +263,7 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
                         {SHORT_NAMES[s.exercise as Exercise] || '?'}
                       </span>
                       <div className="flex items-center">
-                        {s.alwaysInclude ? (
-                          <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
-                        ) : isSelected && (
+                        {isSelected && (
                           <Check className="w-2.5 h-2.5 text-primary" />
                         )}
                       </div>

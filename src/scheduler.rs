@@ -103,7 +103,7 @@ const LOWER_BODY_INCREMENT: f32 = 5.0;
 const DEADLIFT_INCREMENT: f32 = 10.0;
 
 /// Recovery time in hours for each muscle group
-const RECOVERY_HOURS: i64 = 48;
+const RECOVERY_HOURS: i64 = 24;
 
 struct ExerciseConfig {
     exercise: Exercise,
