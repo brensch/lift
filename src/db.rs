@@ -252,17 +252,6 @@ impl UserDb {
         .await?)
     }
 
-    pub async fn get_last_completed_workout(
-        &self,
-    ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query(
-            "SELECT id, name, start_time, end_time FROM workouts WHERE end_time IS NOT NULL ORDER BY end_time DESC LIMIT 1"
-        )
-        .map(row_to_workout)
-        .fetch_optional(&self.pool)
-        .await?)
-    }
-
     pub async fn get_exercise_history(
         &self,
         exercise: i32,
