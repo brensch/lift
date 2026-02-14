@@ -55,15 +55,16 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md flex flex-col items-center space-y-8">
         
         {/* Branding */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">LIFT</h1>
-          <p className="text-muted-foreground text-lg">Social Strength Protocol</p>
+          <h1 className="text-4xl font-bold tracking-tighter leading-none text-foreground">LIFT</h1>
+          <p className="text-muted-foreground text-xl font-medium">Social Strength Protocol</p>
         </div>
 
-        <Card className="border shadow-lg">
+        <div className="w-full space-y-8">
+          <Card className="border shadow-lg">
           <CardHeader className="space-y-1 pb-4">
             {/* Mode Switcher */}
             <div className="flex p-1 bg-muted rounded-lg mb-4">
@@ -91,9 +92,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
               </button>
             </div>
             
-            <CardTitle className="text-2xl text-center">
-              {mode === 'signup' ? 'Create an account' : 'Welcome back'}
-            </CardTitle>
+
             <CardDescription className="text-center">
               {mode === 'signup' 
                 ? 'Enter your display name to get started' 
@@ -149,16 +148,17 @@ export function LoginView({ onLogin }: LoginViewProps) {
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
 
-        {/* Feature Grid - Only visible on large screens or if there's space */}
-        {mode === 'signup' && (
-          <div className="grid grid-cols-3 gap-4 pt-4 px-2">
-            <Feature icon={Zap} label="Smart Progress" />
-            <Feature icon={Users} label="Multiplayer" />
-            <Feature icon={Dumbbell} label="Pure Lifting" />
-          </div>
-        )}
+          {/* Feature Grid - Only visible on large screens or if there's space */}
+          {mode === 'signup' && (
+            <div className="grid grid-cols-3 gap-4 pt-4 px-2">
+              <Feature icon={Zap} label="Smart Progress" />
+              <Feature icon={Users} label="Multiplayer" />
+              <Feature icon={Dumbbell} label="Pure Lifting" />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
