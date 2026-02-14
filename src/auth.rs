@@ -75,6 +75,7 @@ impl AuthState {
         user_id: &str,
         reg: &RegisterPublicKeyCredential,
         created_at_ip: Option<String>,
+        name: Option<String>,
     ) -> Result<String, String> {
         let mut challenges = self.reg_challenges.lock().await;
         let (reg_state, username, _) = challenges
@@ -95,8 +96,13 @@ impl AuthState {
 
         // Store the credential
         let cred_id = format!("{:?}", passkey.cred_id());
-        let cred_json =
-            serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        let mut cred_val = serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        if let Some(n) = name {
+            if let Some(obj) = cred_val.as_object_mut() {
+                obj.insert("cred_name".to_string(), serde_json::Value::String(n));
+            }
+        }
+        let cred_json = serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
@@ -160,6 +166,7 @@ impl AuthState {
         user_id: &str,
         reg: &RegisterPublicKeyCredential,
         created_at_ip: Option<String>,
+        name: Option<String>,
     ) -> Result<(), String> {
         let mut challenges = self.reg_challenges.lock().await;
         let (reg_state, _, _) = challenges
@@ -173,8 +180,13 @@ impl AuthState {
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
 
         let cred_id = format!("{:?}", passkey.cred_id());
-        let cred_json =
-            serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        let mut cred_val = serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        if let Some(n) = name {
+            if let Some(obj) = cred_val.as_object_mut() {
+                obj.insert("cred_name".to_string(), serde_json::Value::String(n));
+            }
+        }
+        let cred_json = serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())

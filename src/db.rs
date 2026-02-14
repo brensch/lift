@@ -762,6 +762,33 @@ impl CentralDb {
         Ok(())
     }
 
+    pub async fn delete_credential(
+        &self,
+        user_id: &str,
+        credential_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        // Check how many credentials the user has
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_credentials WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        if count <= 1 {
+            return Err("Cannot delete the last passkey".into());
+        }
+
+        sqlx::query("DELETE FROM passkey_credentials WHERE user_id = ? AND credential_id = ?")
+            .bind(user_id)
+            .bind(credential_id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
     pub async fn update_credential_json(
         &self,
         credential_id: &str,
