@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Menu, X, BarChart2, History, LogOut, Home, User, Sun, Moon, Key } from 'lucide-react'
+import { Menu, X, BarChart2, History, LogOut, Home, User, Sun, Moon, Key, Bell } from 'lucide-react'
+import { playDing } from '@/lib/audio'
 
 interface GlobalHeaderProps {
   onNavigate: (view: any) => void
@@ -33,6 +34,7 @@ export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: Gl
     { label: 'Home', icon: Home, view: 'home' },
     { label: 'Progress', icon: BarChart2, view: 'progress' },
     { label: 'History', icon: History, view: 'workout-history' },
+    { label: 'Pick Sound', icon: Bell, view: 'pick-sound' },
   ]
 
   const handleNavigate = (view: string) => {
