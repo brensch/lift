@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { workoutClient, withUserId } from '@/lib/client'
 import { create } from '@bufbuild/protobuf'
+import { LoadingSpinner } from '@/components/ui/loading'
 import {
   type Workout,
   type ProposedSet,
@@ -289,7 +290,10 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Duration</span>
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
           </div>
-          <Button variant="destructive" size="sm" className="font-bold uppercase tracking-tight" onClick={handleEndWorkout} disabled={loading}>End Workout</Button>
+          <Button variant="destructive" size="sm" className="font-bold uppercase tracking-tight" onClick={handleEndWorkout} disabled={loading}>
+            {loading ? <LoadingSpinner size="sm" className="mr-2 text-destructive-foreground" /> : null}
+            End Workout
+          </Button>
         </div>
 
         <SessionHeader userId={userId} workoutId={workoutId} />
