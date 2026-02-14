@@ -22,7 +22,7 @@ import { playDing } from '@/lib/audio'
 import { RestingBox, ActiveSetBox, ChatTimeBox, NextUpBox, GroupNextUpBox } from './ActiveBoxes'
 import { CompletedWorkoutView } from './CompletedView'
 import { SetLog } from './SetLog'
-import { AddSetModal, EditExerciseModal, DeleteSetModal } from './Modals'
+import { AddSetModal, EditExerciseModal, DeleteSetModal, EndWorkoutModal } from './Modals'
 
 function WorkoutElapsedTimer({ startTime }: { startTime: bigint }) {
   const elapsed = useElapsed(Number(startTime))
@@ -44,6 +44,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null)
   const [setToDelete, setSetToDelete] = useState<string | null>(null)
+  const [showEndModal, setShowEndModal] = useState(false)
   const saveCounterRef = useRef(0)
   const sessionStatus = useMultiplayer(userId, workoutId)
 
@@ -296,16 +297,16 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Duration</span>
             {workout && <WorkoutElapsedTimer startTime={workout.startTime} />}
           </div>
-          <Button variant="destructive" size="sm" className="font-bold uppercase tracking-tight" onClick={handleEndWorkout} disabled={loading}>
+          <Button variant="destructive" size="sm" className="font-bold uppercase tracking-tight" onClick={() => setShowEndModal(true)} disabled={loading}>
             {loading ? <LoadingSpinner size="sm" className="mr-2 text-destructive-foreground" /> : null}
             End Workout
           </Button>
         </div>
 
-        <SessionHeader userId={userId} workoutId={workoutId} hideIfSolo />
+        <SessionHeader userId={userId} workoutId={workoutId} />
 
-        {/* Group Up Next */}
-        {groupNextUp && (
+        {/* Group Up Next — only show when multiple participants */}
+        {groupNextUp && sessionStatus && sessionStatus.participants.length > 1 && (
           <GroupNextUpBox
             participant={groupNextUp.p}
             restUntil={groupNextUp.state.restUntil}
@@ -325,7 +326,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
           <Card className="border-2 border-green-500/50 bg-green-500/5">
             <CardContent className="pt-6 pb-4 text-center">
               <p className="text-lg font-bold text-green-600">All sets complete!</p>
-              <Button onClick={handleEndWorkout} className="mt-3">Finish Workout</Button>
+              <Button onClick={() => setShowEndModal(true)} className="mt-3">Finish Workout</Button>
             </CardContent>
           </Card>
         ) : isResting && activeRestEnd ? (
@@ -367,6 +368,9 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
             onDelete={() => handleDeleteExercise(editingExerciseIdx)}
             onClose={() => setEditingExerciseIdx(null)}
           />
+        )}
+        {showEndModal && (
+          <EndWorkoutModal onClose={() => setShowEndModal(false)} onConfirm={() => { setShowEndModal(false); handleEndWorkout() }} />
         )}
         {showAddModal && (
           <AddSetModal onClose={() => setShowAddModal(false)} onAdd={handleAddExercise} />

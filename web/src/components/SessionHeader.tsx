@@ -13,10 +13,9 @@ import { Modal } from './ui/modal'
 interface SessionHeaderProps {
   userId: string
   workoutId?: string
-  hideIfSolo?: boolean
 }
 
-export function SessionHeader({ userId, workoutId, hideIfSolo }: SessionHeaderProps) {
+export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
   const sessionStatus = useMultiplayer(userId)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -30,8 +29,6 @@ export function SessionHeader({ userId, workoutId, hideIfSolo }: SessionHeaderPr
     if (!peepUserId || !sessionStatus) return null
     return sessionStatus.participants.find(p => p.user?.id === peepUserId)
   }, [peepUserId, sessionStatus])
-
-  if (hideIfSolo && otherParticipants.length === 0) return null
 
   const handleStartSession = async () => {
     setLoading(true)
