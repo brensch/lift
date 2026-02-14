@@ -4,6 +4,7 @@ import { groupSetsByExercise } from '@/components/ExerciseGroup'
 import { EXERCISE_NAMES } from '@/lib/exercises'
 import { workoutClient, withUserId } from '@/lib/client'
 import { SessionHeader } from '@/components/SessionHeader'
+import { LoadingBlock } from '@/components/ui/loading'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 interface ExerciseHistory {
@@ -174,7 +175,7 @@ export function ProgressView({ userId }: { userId: string }) {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground italic">Loading history...</div>
+          <LoadingBlock text="Loading history..." />
         ) : exercisesWithHistory.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No workout history found yet.</div>
         ) : (

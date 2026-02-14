@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Plus, Users, Loader2 } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/loading'
 import { useMultiplayer } from '@/hooks/useMultiplayer'
 import { multiplayerClient, withUserId } from '@/lib/client'
 import { MultiplayerModal } from './MultiplayerModal'
@@ -55,7 +56,7 @@ export function SessionHeader({ userId, workoutId }: SessionHeaderProps) {
             className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-full border transition-all shrink-0 min-h-[38px] text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 border-transparent shadow-sm`}
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoadingSpinner size="sm" className="text-primary-foreground" />
             ) : sessionStatus ? (
               <>
                 <Users className="w-4 h-4" />

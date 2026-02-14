@@ -6,6 +6,7 @@ import { type ParticipantStatus } from '@/gen/workout/v1/group_pb'
 import { EXERCISE_NAMES } from '@/lib/exercises'
 import { calcPlatesPerSide, PLATE_COLORS } from '@/components/PlateCalculator'
 import { useElapsed, useCountdown, fmtElapsed } from '@/hooks/useTimer'
+import { LoadingSpinner } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
 
 /** Shared compact box shell — left accent strip + card background */
@@ -215,7 +216,7 @@ export function ActiveSetBox({ proposedSet, completedSet, onComplete, onSkip }: 
               disabled={loading}
               className="min-w-[40px] h-10 text-base font-bold"
             >
-              {n}
+              {loading ? <LoadingSpinner size="sm" className={n === maxReps ? "text-primary-foreground" : ""} /> : n}
             </Button>
           ))}
         </div>
@@ -228,6 +229,7 @@ export function ActiveSetBox({ proposedSet, completedSet, onComplete, onSkip }: 
           onClick={() => { setLoading(true); onSkip() }}
           disabled={loading}
         >
+          {loading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
           Skip Warmup
         </Button>
       )}
@@ -256,9 +258,15 @@ export function ChatTimeBox({ restEndedAt, nextSet, onStart, loading, onSkipWarm
         </span>
       </div>
       <div className="flex gap-2 mt-3">
-        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">Start Set</Button>
+        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">
+          {loading ? <LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> : null}
+          Start Set
+        </Button>
         {nextSet.warmup && onSkipWarmup && (
-          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
+          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">
+            {loading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+            Skip
+          </Button>
         )}
       </div>
     </Box>
@@ -276,9 +284,15 @@ export function NextUpBox({ nextSet, onStart, loading, onSkipWarmup }: {
       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Next up</div>
       <NextSetInfo set={nextSet} />
       <div className="flex gap-2 mt-2">
-        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">Start Set</Button>
+        <Button size="sm" onClick={onStart} disabled={loading} className="flex-1">
+          {loading ? <LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> : null}
+          Start Set
+        </Button>
         {nextSet.warmup && onSkipWarmup && (
-          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">Skip</Button>
+          <Button variant="ghost" size="sm" onClick={onSkipWarmup} disabled={loading} className="text-muted-foreground">
+            {loading ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+            Skip
+          </Button>
         )}
       </div>
     </Box>

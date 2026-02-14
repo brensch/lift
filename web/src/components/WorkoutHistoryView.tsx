@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { workoutClient, withUserId } from '@/lib/client'
 import type { Workout } from '@/gen/workout/v1/workout_pb'
 import { SessionHeader } from '@/components/SessionHeader'
+import { LoadingBlock } from '@/components/ui/loading'
 
 interface WorkoutHistoryViewProps {
   userId: string
@@ -68,9 +69,7 @@ export function WorkoutHistoryView({ userId, onViewWorkout }: WorkoutHistoryView
         <SessionHeader userId={userId} />
 
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground italic uppercase text-xs tracking-widest">
-            Loading past sessions...
-          </div>
+          <LoadingBlock text="Loading past sessions..." />
         ) : summaries.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground uppercase text-xs tracking-widest">
             No workouts recorded yet.

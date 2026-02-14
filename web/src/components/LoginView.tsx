@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { register, login } from '@/lib/auth'
+import { LoadingSpinner } from '@/components/ui/loading'
 
 interface LoginViewProps {
   onLogin: (userId: string) => void
@@ -75,7 +76,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
               disabled={loading}
             />
             <Button onClick={handleRegister} className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? <><LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> Creating account...</> : 'Sign up'}
             </Button>
           </div>
 
@@ -91,7 +92,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
           <div className="space-y-4">
             <h3 className="font-semibold text-center text-lg">Coming back?</h3>
             <Button onClick={handleSignIn} variant="outline" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? <><LoadingSpinner size="sm" className="mr-2" /> Signing in...</> : 'Sign in'}
             </Button>
           </div>
         </CardContent>

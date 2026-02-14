@@ -7,7 +7,8 @@ import { Exercise, ExerciseCategory, ProposedSetSchema } from '@/gen/workout/v1/
 import { create } from '@bufbuild/protobuf'
 import { SessionHeader } from './SessionHeader'
 import { SHORT_NAMES } from '@/lib/exercises'
-import { Loader2, Check } from 'lucide-react'
+import { LoadingSpinner, LoadingBlock } from '@/components/ui/loading'
+import { Check } from 'lucide-react'
 
 const CATEGORY_NAMES: Record<ExerciseCategory, string> = {
   [ExerciseCategory.UNSPECIFIED]: '',
@@ -40,6 +41,7 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
   }, [userId])
 
   const loadData = async () => {
+    setLoading(true)
     try {
       const [workoutsRes, scheduleRes] = await Promise.all([
         workoutClient.listWorkouts({}, withUserId(userId)),
@@ -71,6 +73,8 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
       setSelectedExercises(autoSelected)
     } catch (e) {
       console.error('Failed to load data:', e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -199,13 +203,17 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
       <div className="max-w-2xl mx-auto space-y-6">
         <SessionHeader userId={userId} />
 
-        {error && (
-          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md text-sm">
-            {error}
-          </div>
-        )}
+        {loading && exerciseStatuses.length === 0 ? (
+          <LoadingBlock text="Loading your rotation..." />
+        ) : (
+          <>
+            {error && (
+              <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
 
-        {/* Active Workout Resume */}
+            {/* Active Workout Resume */}
         {activeWorkout && (
           <Card className="border-2 border-primary animate-pulse">
             <CardHeader className="pb-2">
@@ -316,9 +324,11 @@ export function HomeView({ userId, onStartWorkout }: HomeViewProps) {
             onClick={handleStartWorkout}
             disabled={loading}
           >
-            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+            {loading ? <LoadingSpinner size="sm" className="mr-2 text-primary-foreground" /> : null}
             Start Workout ({selectedExercises.size} exercise{selectedExercises.size !== 1 ? 's' : ''})
           </Button>
+        )}
+          </>
         )}
       </div>
     </div>
