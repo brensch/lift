@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { register, login } from '@/lib/auth'
 import { LoadingSpinner } from '@/components/ui/loading'
 import { cn } from '@/lib/utils'
-import { Dumbbell, Users, Zap, Key } from 'lucide-react'
+import { Dumbbell, Users, Zap, TrendingUp, CheckCircle2 } from 'lucide-react'
 
 interface LoginViewProps {
   onLogin: (userId: string) => void
@@ -60,7 +60,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
         {/* Branding */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tighter leading-none text-foreground">LIFT</h1>
-          <p className="text-muted-foreground text-xl font-medium">Social Strength Protocol</p>
+          <p className="text-muted-foreground text-xl font-medium">Social Strength System</p>
         </div>
 
         <div className="w-full space-y-8">
@@ -141,11 +141,11 @@ export function LoginView({ onLogin }: LoginViewProps) {
           </CardContent>
           </Card>
 
-          {/* Feature Grid */}
-          <div className="grid grid-cols-3 gap-4 pt-4 px-2">
-            <Feature icon={Zap} label="Smart Progress" />
-            <Feature icon={Users} label="Multiplayer" />
-            <Feature icon={Dumbbell} label="Pure Lifting" />
+          {/* Feature List */}
+          <div className="space-y-4 pt-4 px-2">
+            <Feature icon={TrendingUp} label="Smart Progressive Overload" />
+            <Feature icon={Users} label="Group workouts to keep each other on task" />
+            <Feature icon={CheckCircle2} label="Simple workout selection and tracking" />
           </div>
         </div>
       </div>
@@ -155,11 +155,11 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
 function Feature({ icon: Icon, label }: { icon: any, label: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      <div className="p-2 rounded-full bg-muted text-muted-foreground">
+    <div className="flex items-center gap-4 px-2">
+      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-muted text-primary">
         <Icon className="w-5 h-5" />
       </div>
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
+      <span className="text-sm font-medium text-muted-foreground leading-tight">{label}</span>
     </div>
   )
 }
