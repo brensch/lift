@@ -112,7 +112,7 @@ export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: Gl
                     </span>
                   </div>
                   <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDark ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                    <div className={`w-4 h-4 rounded-full transition-transform ${isDark ? 'translate-x-4 bg-primary-foreground' : 'bg-white'}`} />
+                    <div className={`w-4 h-4 rounded-full transition-transform ${isDark ? 'translate-x-4 bg-background' : 'bg-white'}`} />
                   </div>
                 </button>
               </div>
