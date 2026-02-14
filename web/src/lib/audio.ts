@@ -1,6 +1,13 @@
 let audioCtx: AudioContext | null = null;
 
-export type SoundPreset = 'chord_strum' | 'bell_high' | 'mac_chime' | 'jazz_maj9' | 'classic_beep';
+export type SoundPreset = 
+  | 'chord_strum' | 'bell_high' | 'mac_chime' | 'jazz_maj9' | 'classic_beep' 
+  | 'success_rise' | 'mystic_chord' | 'cyber_pulse' | 'dojo_gong' | 'zen_harmonic' 
+  | 'retro_arcade' | 'boxing_bell' | 'elevator_ding' | 'space_warp' | 'digital_chirp' 
+  | 'tonic_glow' | 'melodic_drop' | 'pulse_wave' | 'star_twinkle' | 'neon_glitch' 
+  | 'forest_bird' | 'tech_click' | 'deep_thud' | 'crystal_shine' | 'sub_drop' 
+  | 'warning_siren' | 'morning_dew' | 'voltage_pulse' | 'cloud_drift' | 'deep_echo' 
+  | 'glitch_pop' | 'harmonic_wind' | 'quartz_ping';
 
 interface SoundDef {
   name: string;

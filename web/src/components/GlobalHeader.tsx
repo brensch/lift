@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Menu, X, BarChart2, History, LogOut, Home, User, Sun, Moon, Key, Bell } from 'lucide-react'
-import { playDing } from '@/lib/audio'
 
 interface GlobalHeaderProps {
   onNavigate: (view: any) => void
@@ -34,7 +33,6 @@ export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: Gl
     { label: 'Home', icon: Home, view: 'home' },
     { label: 'Progress', icon: BarChart2, view: 'progress' },
     { label: 'History', icon: History, view: 'workout-history' },
-    { label: 'Pick Sound', icon: Bell, view: 'pick-sound' },
   ]
 
   const handleNavigate = (view: string) => {
@@ -89,8 +87,23 @@ export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: Gl
                   <span className="text-lg font-black uppercase tracking-tight">{item.label}</span>
                 </button>
               ))}
+            </div>
 
-              <div className="pt-8 space-y-4">
+            <hr className="border-border/50" />
+
+            <div className="px-4 py-8 space-y-4">
+              <button
+                onClick={() => handleNavigate('pick-sound')}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
+                    currentView === 'pick-sound' 
+                      ? 'bg-primary/10 text-primary border border-primary/20' 
+                      : 'hover:bg-muted text-foreground border border-transparent'
+                  }`}
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="text-lg font-black uppercase tracking-tight">Pick Sound</span>
+                </button>
+
                 <button
                   onClick={() => handleNavigate('passkeys')}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
@@ -118,13 +131,12 @@ export function GlobalHeader({ onNavigate, onLogout, currentView, userName }: Gl
                   </div>
                 </button>
               </div>
-            </div>
 
             <div className="p-4 border-t border-border space-y-2">
               {userName && (
-                <div className="flex items-center gap-4 px-4 py-2 text-muted-foreground">
+                <div className="flex items-center gap-4 px-4 py-4 text-muted-foreground">
                   <User className="w-5 h-5" />
-                  <span className="text-sm font-black uppercase tracking-widest truncate">{userName}</span>
+                  <span className="text-lg font-black uppercase tracking-tight truncate">{userName}</span>
                 </div>
               )}
               <button
