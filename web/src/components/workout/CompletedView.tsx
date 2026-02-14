@@ -49,7 +49,7 @@ export function CompletedWorkoutView({ workout, proposedSets, completedSets, use
   return (
     <div className="min-h-screen bg-background p-4 pt-0">
       <div className="max-w-2xl mx-auto space-y-4">
-        <SessionHeader userId={userId} hideIfSolo />
+        <SessionHeader userId={userId} />
         <div className="text-center py-2">
           <h2 className="text-xl font-bold uppercase tracking-tight">{workout.name || 'Workout'}</h2>
           <p className="text-sm text-muted-foreground uppercase tracking-widest font-black">
