@@ -624,6 +624,15 @@ impl CentralDb {
         &self,
         name: &str,
     ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
+        let id = Uuid::new_v4().to_string();
+        self.create_user_with_id(&id, name).await
+    }
+
+    pub async fn create_user_with_id(
+        &self,
+        id: &str,
+        name: &str,
+    ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
         let existing = self.get_user_by_name(name).await?;
         if let Some(_user) = existing {
             return Err(Box::new(std::io::Error::new(
@@ -632,20 +641,19 @@ impl CentralDb {
             )));
         }
 
-        let id = Uuid::new_v4().to_string();
         let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
-            .bind(&id)
+            .bind(id)
             .bind(name)
             .bind(created_at)
             .execute(&self.pool)
             .await?;
 
-        UserDb::new(&id).await?;
+        UserDb::new(id).await?;
 
         Ok(User {
-            id,
+            id: id.to_string(),
             name: name.to_string(),
             created_at,
         })
@@ -769,6 +777,18 @@ impl CentralDb {
                 .fetch_all(&self.pool)
                 .await?,
         )
+    }
+
+    pub async fn list_passkey_metadata(
+        &self,
+        user_id: &str,
+    ) -> Result<Vec<(String, i64, String)>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_as(
+            "SELECT credential_id, created_at, credential_json FROM passkey_credentials WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await?)
     }
 
     pub async fn create_auth_session(

@@ -46,6 +46,69 @@ export async function register(username: string): Promise<AuthResponse> {
   })) as AuthResponse;
 }
 
+export interface PasskeyInfo {
+  credential_id: string;
+  created_at: number;
+  transports: string[];
+}
+
+export async function addPasskey(): Promise<void> {
+  const token = localStorage.getItem('liftSessionToken');
+  if (!token) throw new Error('Not authenticated');
+
+  const startRes = await fetch(`${AUTH_BASE}/passkey/add/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': token,
+    },
+  });
+  if (!startRes.ok) {
+    const text = await startRes.text();
+    throw new Error(text || `Request failed: ${startRes.status}`);
+  }
+  const startData = (await startRes.json()) as {
+    options: { publicKey: PublicKeyCredentialCreationOptionsJSON };
+  };
+
+  const optionsJSON = startData.options.publicKey;
+  optionsJSON.authenticatorSelection = {
+    ...optionsJSON.authenticatorSelection,
+    residentKey: 'required',
+    requireResidentKey: true,
+  };
+
+  const credential = await startRegistration({ optionsJSON });
+
+  const finishRes = await fetch(`${AUTH_BASE}/passkey/add/finish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-token': token,
+    },
+    body: JSON.stringify({ credential }),
+  });
+  if (!finishRes.ok) {
+    const text = await finishRes.text();
+    throw new Error(text || `Request failed: ${finishRes.status}`);
+  }
+}
+
+export async function listPasskeys(): Promise<PasskeyInfo[]> {
+  const token = localStorage.getItem('liftSessionToken');
+  if (!token) throw new Error('Not authenticated');
+
+  const res = await fetch(`${AUTH_BASE}/passkeys`, {
+    method: 'GET',
+    headers: { 'x-session-token': token },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function login(): Promise<AuthResponse> {
   // Get discoverable authentication challenge (empty allowCredentials)
   const startData = (await authFetch('/login/start', {})) as {

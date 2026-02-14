@@ -21,7 +21,7 @@ enum AuthChallengeState {
 pub struct AuthState {
     pub webauthn: Arc<Webauthn>,
     pub central_db: CentralDb,
-    reg_challenges: Arc<Mutex<HashMap<String, (PasskeyRegistration, Instant)>>>,
+    reg_challenges: Arc<Mutex<HashMap<String, (PasskeyRegistration, String, Instant)>>>,
     auth_challenges: Arc<Mutex<HashMap<String, (AuthChallengeState, Instant)>>>,
 }
 
@@ -46,60 +46,130 @@ impl AuthState {
         }
     }
 
+    /// Start registration: generates a temporary user ID and WebAuthn challenge.
+    /// No user is created in the DB yet — that happens in finish_registration.
     pub async fn start_registration(
         &self,
-        user_id: &str,
         username: &str,
-    ) -> Result<CreationChallengeResponse, String> {
-        let user_unique_id = uuid::Uuid::parse_str(user_id)
-            .map_err(|e| format!("Invalid user_id UUID: {}", e))?;
-
-        // Get existing credentials for this user to exclude
-        let existing_cred_jsons = self
-            .central_db
-            .get_credentials_for_user(user_id)
-            .await
-            .map_err(|e| format!("DB error: {}", e))?;
-
-        let existing_creds: Vec<Passkey> = existing_cred_jsons
-            .iter()
-            .filter_map(|json| serde_json::from_str(json).ok())
-            .collect();
-
-        let exclude_credentials = if existing_creds.is_empty() {
-            None
-        } else {
-            Some(existing_creds.iter().map(|c| c.cred_id().clone()).collect())
-        };
+    ) -> Result<(String, CreationChallengeResponse), String> {
+        let user_id = uuid::Uuid::new_v4().to_string();
+        let user_unique_id = uuid::Uuid::parse_str(&user_id)
+            .map_err(|e| format!("Invalid UUID: {}", e))?;
 
         let (ccr, reg_state) = self
             .webauthn
-            .start_passkey_registration(user_unique_id, username, username, exclude_credentials)
+            .start_passkey_registration(user_unique_id, username, username, None)
             .map_err(|e| format!("WebAuthn error: {}", e))?;
 
         let mut challenges = self.reg_challenges.lock().await;
         self.cleanup_expired_reg(&mut challenges);
-        challenges.insert(user_id.to_string(), (reg_state, Instant::now()));
+        challenges.insert(user_id.clone(), (reg_state, username.to_string(), Instant::now()));
 
-        Ok(ccr)
+        Ok((user_id, ccr))
     }
 
+    /// Finish registration: verifies the passkey, THEN creates the user and stores the credential.
+    /// Returns the username on success.
     pub async fn finish_registration(
         &self,
         user_id: &str,
         reg: &RegisterPublicKeyCredential,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         let mut challenges = self.reg_challenges.lock().await;
-        let (reg_state, _) = challenges
+        let (reg_state, username, _) = challenges
             .remove(user_id)
             .ok_or_else(|| "No pending registration challenge".to_string())?;
+        drop(challenges);
 
         let passkey = self
             .webauthn
             .finish_passkey_registration(reg, &reg_state)
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
 
-        // Use serde to serialize the credential ID for the DB key
+        // Passkey verified — now create the user
+        self.central_db
+            .create_user_with_id(user_id, &username)
+            .await
+            .map_err(|e| format!("Failed to create user: {}", e))?;
+
+        // Store the credential
+        let cred_id = format!("{:?}", passkey.cred_id());
+        let cred_json =
+            serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+
+        self.central_db
+            .store_credential(&cred_id, user_id, &cred_json)
+            .await
+            .map_err(|e| format!("DB error: {}", e))?;
+
+        Ok(username)
+    }
+
+    /// Start adding a passkey to an existing user account.
+    /// Like start_registration but for authenticated users — fetches existing credentials to exclude them.
+    pub async fn start_add_passkey(
+        &self,
+        user_id: &str,
+        username: &str,
+    ) -> Result<CreationChallengeResponse, String> {
+        let user_unique_id =
+            uuid::Uuid::parse_str(user_id).map_err(|e| format!("Invalid UUID: {}", e))?;
+
+        // Fetch existing credentials so WebAuthn excludes them
+        let cred_jsons = self
+            .central_db
+            .get_credentials_for_user(user_id)
+            .await
+            .map_err(|e| format!("DB error: {}", e))?;
+
+        let existing_creds: Vec<Passkey> = cred_jsons
+            .iter()
+            .filter_map(|json| serde_json::from_str(json).ok())
+            .collect();
+
+        let exclude_cred_ids: Option<Vec<_>> = if existing_creds.is_empty() {
+            None
+        } else {
+            Some(existing_creds.iter().map(|pk| pk.cred_id().clone()).collect())
+        };
+
+        let (ccr, reg_state) = self
+            .webauthn
+            .start_passkey_registration(
+                user_unique_id,
+                username,
+                username,
+                exclude_cred_ids,
+            )
+            .map_err(|e| format!("WebAuthn error: {}", e))?;
+
+        let mut challenges = self.reg_challenges.lock().await;
+        self.cleanup_expired_reg(&mut challenges);
+        challenges.insert(
+            user_id.to_string(),
+            (reg_state, username.to_string(), Instant::now()),
+        );
+
+        Ok(ccr)
+    }
+
+    /// Finish adding a passkey: verifies and stores credential. Does NOT create a user.
+    pub async fn finish_add_passkey(
+        &self,
+        user_id: &str,
+        reg: &RegisterPublicKeyCredential,
+    ) -> Result<(), String> {
+        let mut challenges = self.reg_challenges.lock().await;
+        let (reg_state, _, _) = challenges
+            .remove(user_id)
+            .ok_or_else(|| "No pending add-passkey challenge".to_string())?;
+        drop(challenges);
+
+        let passkey = self
+            .webauthn
+            .finish_passkey_registration(reg, &reg_state)
+            .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
+
         let cred_id = format!("{:?}", passkey.cred_id());
         let cred_json =
             serde_json::to_string(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
@@ -290,9 +360,9 @@ impl AuthState {
         }
     }
 
-    fn cleanup_expired_reg(&self, map: &mut HashMap<String, (PasskeyRegistration, Instant)>) {
+    fn cleanup_expired_reg(&self, map: &mut HashMap<String, (PasskeyRegistration, String, Instant)>) {
         let now = Instant::now();
-        map.retain(|_, (_, created)| now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS);
+        map.retain(|_, (_, _, created)| now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS);
     }
 
     fn cleanup_expired_auth(
