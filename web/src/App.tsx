@@ -288,7 +288,6 @@ function App() {
           case 'settings':
             return (
               <SettingsView
-                onLogout={handleLogout}
               />
             )
         }
