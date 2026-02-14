@@ -6,10 +6,9 @@ import { Plus, Key } from 'lucide-react'
 import { LoadingSpinner, LoadingBlock } from '@/components/ui/loading'
 
 interface SettingsViewProps {
-  onLogout: () => void
 }
 
-export function SettingsView({ onLogout }: SettingsViewProps) {
+export function SettingsView({ }: SettingsViewProps) {
   const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -129,14 +128,6 @@ export function SettingsView({ onLogout }: SettingsViewProps) {
             )}
           </CardContent>
         </Card>
-
-        <Button
-          variant="outline"
-          className="w-full text-xs font-bold uppercase tracking-widest text-destructive hover:text-destructive"
-          onClick={onLogout}
-        >
-          Logout
-        </Button>
       </div>
     </div>
   )
