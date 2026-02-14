@@ -612,6 +612,11 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
+        // Manual migration for password_hash column
+        let _ = sqlx::query("ALTER TABLE users ADD COLUMN password_hash TEXT")
+            .execute(&pool)
+            .await;
+
         Ok(Self { pool })
     }
 
@@ -855,6 +860,51 @@ impl CentralDb {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn create_user_with_password(
+        &self,
+        name: &str,
+        password_hash: &str,
+    ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
+        let existing = self.get_user_by_name(name).await?;
+        if existing.is_some() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "User already exists",
+            )));
+        }
+
+        let id = Uuid::new_v4().to_string();
+        let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+
+        sqlx::query("INSERT INTO users (id, name, created_at, password_hash) VALUES (?, ?, ?, ?)")
+            .bind(&id)
+            .bind(name)
+            .bind(created_at)
+            .bind(password_hash)
+            .execute(&self.pool)
+            .await?;
+
+        UserDb::new(&id).await?;
+
+        Ok(User {
+            id,
+            name: name.to_string(),
+            created_at,
+        })
+    }
+
+    pub async fn get_password_hash(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(
+            sqlx::query_scalar("SELECT password_hash FROM users WHERE id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.pool)
+                .await?,
+        )
     }
 }
 
