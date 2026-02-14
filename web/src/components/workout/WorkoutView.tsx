@@ -153,7 +153,10 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
       return 0
     })
 
-    return candidates[0]
+    const top = candidates[0]
+    if (!top) return null
+
+    return { ...top, isMe: top.p.user?.id === userId }
   }, [sessionStatus, userId])
 
   // --- Handlers ---
@@ -299,7 +302,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
           </Button>
         </div>
 
-        <SessionHeader userId={userId} workoutId={workoutId} />
+        <SessionHeader userId={userId} workoutId={workoutId} hideIfSolo />
 
         {/* Group Up Next */}
         {groupNextUp && (
@@ -307,6 +310,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
             participant={groupNextUp.p}
             restUntil={groupNextUp.state.restUntil}
             nextSet={groupNextUp.state.nextSet}
+            isMe={groupNextUp.isMe}
           />
         )}
 

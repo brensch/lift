@@ -89,27 +89,34 @@ function InlinePlates({ weight }: { weight: number }) {
 }
 
 /** Compact one-line exercise info: "Bench Press [W] · 5×135 lb" + plates */
-function NextSetInfo({ set, large }: { set: ProposedSet; large?: boolean }) {
+function NextSetInfo({ set, large, hideWeight, hideExercise }: { set: ProposedSet; large?: boolean; hideWeight?: boolean; hideExercise?: boolean }) {
   return (
     <div className={cn('text-muted-foreground mt-0.5', large ? 'text-base' : 'text-sm')}>
-      <span className="font-medium text-foreground">{EXERCISE_NAMES[set.exercise as Exercise]}</span>
-      {set.warmup && (
-        <span className="ml-1.5 text-[10px] bg-blue-500/15 text-blue-500 px-1 py-0.5 rounded font-medium align-middle">W</span>
+      {!hideExercise && (
+        <span className="font-medium text-foreground">{EXERCISE_NAMES[set.exercise as Exercise]}</span>
       )}
-      <span className="mx-1.5 opacity-40">·</span>
-      <span className={cn('font-mono font-semibold text-foreground', large && 'text-lg')}>{set.targetReps}×{set.targetWeight}</span>
-      <span className={cn('ml-0.5', large ? 'text-sm' : 'text-xs')}>lb</span>
-      <div className="mt-1">
-        <InlinePlates weight={set.targetWeight} />
-      </div>
+      {set.warmup && (
+        <span className={cn("text-[10px] bg-blue-500/15 text-blue-500 px-1 py-0.5 rounded font-medium align-middle", !hideExercise && "ml-1.5")}>W</span>
+      )}
+      {!hideWeight && (
+        <>
+          <span className="mx-1.5 opacity-40">·</span>
+          <span className={cn('font-mono font-semibold text-foreground', large && 'text-lg')}>{set.targetReps}×{set.targetWeight}</span>
+          <span className={cn('ml-0.5', large ? 'text-sm' : 'text-xs')}>lb</span>
+          <div className="mt-1">
+            <InlinePlates weight={set.targetWeight} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-export function GroupNextUpBox({ participant, restUntil, nextSet }: {
+export function GroupNextUpBox({ participant, restUntil, nextSet, isMe }: {
   participant: ParticipantStatus
   restUntil: number
   nextSet?: ProposedSet
+  isMe?: boolean
 }) {
   const remaining = useCountdown(restUntil)
   const isChatting = remaining <= 0
@@ -121,9 +128,9 @@ export function GroupNextUpBox({ participant, restUntil, nextSet }: {
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <div className="text-xs font-semibold text-purple-500 uppercase tracking-wider">
-            Next for group · {participant.user?.name || 'Someone'}
+            {isMe ? "You're next up for the group! Don't hold them up" : `Next for group · ${participant.user?.name || 'Someone'}`}
           </div>
-          <NextSetInfo set={nextSet} />
+          <NextSetInfo set={nextSet} hideWeight={isMe} hideExercise={isMe} />
         </div>
         {isChatting ? (
           <span className="text-sm font-mono text-purple-500 font-semibold animate-pulse shrink-0 ml-3">Overdue</span>
