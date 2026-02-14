@@ -48,15 +48,17 @@ export function PasskeysView({ }: PasskeysViewProps) {
   }
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+    return new Date(timestamp * 1000).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     })
   }
 
   const formatTransports = (transports: string[]) => {
-    if (transports.length === 0) return 'Unknown'
+    if (transports.length === 0) return null
     const labels: Record<string, string> = {
       internal: 'This device',
       usb: 'USB',
@@ -115,10 +117,23 @@ export function PasskeysView({ }: PasskeysViewProps) {
                       <Key className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold">Passkey {i + 1}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatTransports(pk.transports)} &middot; Added {formatDate(pk.created_at)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold">{pk.name || `Passkey ${i + 1}`}</p>
+                        {pk.created_at_ip && (
+                          <span className="text-[10px] bg-muted-foreground/10 px-1.5 py-0.5 rounded text-muted-foreground font-mono">
+                            {pk.created_at_ip}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 items-center text-xs text-muted-foreground">
+                        {formatTransports(pk.transports) && (
+                          <span>{formatTransports(pk.transports)}</span>
+                        )}
+                        {formatTransports(pk.transports) && pk.created_at && (
+                          <span>&middot;</span>
+                        )}
+                        <span>Added {formatDate(pk.created_at)}</span>
+                      </div>
                     </div>
                   </li>
                 ))}

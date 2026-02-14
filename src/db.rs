@@ -591,6 +591,7 @@ CREATE TABLE IF NOT EXISTS passkey_credentials (
     user_id TEXT NOT NULL,
     credential_json TEXT NOT NULL,
     created_at INTEGER NOT NULL,
+    created_at_ip TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
@@ -616,6 +617,11 @@ impl CentralDb {
         let options = SqliteConnectOptions::from_str(&db_url)?.create_if_missing(true);
         let pool = SqlitePoolOptions::new().connect_with(options).await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
+
+        // Manual migration for created_at_ip column
+        let _ = sqlx::query("ALTER TABLE passkey_credentials ADD COLUMN created_at_ip TEXT")
+            .execute(&pool)
+            .await;
 
         Ok(Self { pool })
     }
@@ -742,13 +748,15 @@ impl CentralDb {
         credential_id: &str,
         user_id: &str,
         credential_json: &str,
+        created_at_ip: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        sqlx::query("INSERT OR REPLACE INTO passkey_credentials (credential_id, user_id, credential_json, created_at) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT OR REPLACE INTO passkey_credentials (credential_id, user_id, credential_json, created_at, created_at_ip) VALUES (?, ?, ?, ?, ?)")
             .bind(credential_id)
             .bind(user_id)
             .bind(credential_json)
             .bind(created_at)
+            .bind(created_at_ip)
             .execute(&self.pool)
             .await?;
         Ok(())
@@ -782,9 +790,9 @@ impl CentralDb {
     pub async fn list_passkey_metadata(
         &self,
         user_id: &str,
-    ) -> Result<Vec<(String, i64, String)>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<(String, i64, String, Option<String>)>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query_as(
-            "SELECT credential_id, created_at, credential_json FROM passkey_credentials WHERE user_id = ?",
+            "SELECT credential_id, created_at, credential_json, created_at_ip FROM passkey_credentials WHERE user_id = ?",
         )
         .bind(user_id)
         .fetch_all(&self.pool)
