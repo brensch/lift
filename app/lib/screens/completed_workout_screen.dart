@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/exercise_groups.dart';
 import '../providers/workout_provider.dart';
+import '../services/grpc_client.dart';
+import '../services/workout_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exercise_group_widget.dart';
 import '../widgets/set_log.dart';
@@ -13,7 +16,7 @@ class CompletedWorkoutScreen extends StatefulWidget {
   final bool isHistory;
 
   const CompletedWorkoutScreen({
-    super.key, 
+    super.key,
     required this.workoutId,
     this.isHistory = false,
   });
@@ -26,15 +29,38 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   late int _currentPage;
   late final PageController _pageController;
 
+  // Self-contained data — no dependency on WorkoutProvider
+  Workout? _workout;
+  List<ProposedSet> _proposedSets = [];
+  List<CompletedSet> _completedSets = [];
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    // If it's history, we go straight to stats. If just finished, show celebration.
     _currentPage = widget.isHistory ? 1 : 0;
     _pageController = PageController(initialPage: _currentPage);
-    
-    final wp = context.read<WorkoutProvider>();
-    wp.loadWorkout(widget.workoutId, asHistory: widget.isHistory);
+    _loadWorkout();
+  }
+
+  Future<void> _loadWorkout() async {
+    final grpc = context.read<GrpcClient>();
+    final service = WorkoutServiceWrapper(grpc);
+    try {
+      final response = await service.getWorkout(widget.workoutId);
+      if (mounted) {
+        setState(() {
+          _workout = response.workout;
+          _proposedSets = List.from(response.proposedSets);
+          _completedSets = List.from(response.completedSets);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -45,20 +71,21 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final wp = context.watch<WorkoutProvider>();
-
-    if (wp.workout == null || wp.workout!.id != widget.workoutId) {
+    if (_isLoading || _workout == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    final workout = _workout!;
+    final groups = groupSetsByExercise(_proposedSets);
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(widget.isHistory ? Icons.history : Icons.close),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (widget.isHistory) {
-              wp.stopViewingHistory();
-            } else {
+            if (!widget.isHistory) {
+              // Just finished a workout — clear active state so home screen loads fresh
+              final wp = context.read<WorkoutProvider>();
               if (wp.workout?.id == widget.workoutId && !wp.hasActiveWorkout) {
                 wp.clear();
               }
@@ -71,7 +98,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           },
         ),
         title: Text(
-          _currentPage == 0 ? 'CELEBRATION' : 'SUMMARY',
+          workout.name.isNotEmpty ? workout.name.toUpperCase() : (_currentPage == 0 ? 'CELEBRATION' : 'SUMMARY'),
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         actions: [
@@ -94,10 +121,16 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         onPageChanged: (page) => setState(() => _currentPage = page),
         children: [
           _CelebrationView(
-            wp: wp, 
+            workout: workout,
+            proposedSets: _proposedSets,
+            completedSets: _completedSets,
             onViewSummary: () => _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
           ),
-          _StatsView(wp: wp),
+          _StatsView(
+            groups: groups,
+            proposedSets: _proposedSets,
+            completedSets: _completedSets,
+          ),
         ],
       ),
     );
@@ -105,22 +138,29 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 }
 
 class _CelebrationView extends StatelessWidget {
-  final WorkoutProvider wp;
+  final Workout workout;
+  final List<ProposedSet> proposedSets;
+  final List<CompletedSet> completedSets;
   final VoidCallback onViewSummary;
 
-  const _CelebrationView({required this.wp, required this.onViewSummary});
+  const _CelebrationView({
+    required this.workout,
+    required this.proposedSets,
+    required this.completedSets,
+    required this.onViewSummary,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final duration = wp.workout!.endTime != Int64.ZERO
-        ? Duration(seconds: (wp.workout!.endTime - wp.workout!.startTime).toInt())
+    final duration = workout.endTime != Int64.ZERO
+        ? Duration(seconds: (workout.endTime - workout.startTime).toInt())
         : Duration.zero;
 
-    final completedWorking = wp.completedSets
+    final completedWorking = completedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .where((c) {
-          final proposed = wp.proposedSets.cast<ProposedSet?>().firstWhere(
+          final proposed = proposedSets.cast<ProposedSet?>().firstWhere(
             (p) => p!.id == c.proposedSetId,
             orElse: () => null,
           );
@@ -128,7 +168,7 @@ class _CelebrationView extends StatelessWidget {
         })
         .length;
 
-    final totalVolume = wp.completedSets
+    final totalVolume = completedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .fold(0.0, (sum, c) => sum + (c.actualReps * c.actualWeight));
 
@@ -238,14 +278,18 @@ class _StatMetric extends StatelessWidget {
 }
 
 class _StatsView extends StatelessWidget {
-  final WorkoutProvider wp;
+  final List<ExerciseGroupData> groups;
+  final List<ProposedSet> proposedSets;
+  final List<CompletedSet> completedSets;
 
-  const _StatsView({required this.wp});
+  const _StatsView({
+    required this.groups,
+    required this.proposedSets,
+    required this.completedSets,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final groups = wp.exerciseGroups;
-
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -253,14 +297,14 @@ class _StatsView extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: ExerciseGroupWidget(
                 group: group,
-                completedSets: wp.completedSets,
+                completedSets: completedSets,
                 isWorkoutEnded: true,
               ),
             )),
         const SizedBox(height: 16),
         SetLog(
-          proposedSets: wp.proposedSets,
-          completedSets: wp.completedSets,
+          proposedSets: proposedSets,
+          completedSets: completedSets,
         ),
       ],
     );

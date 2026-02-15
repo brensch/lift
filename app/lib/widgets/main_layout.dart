@@ -7,6 +7,7 @@ import '../providers/theme_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import 'multiplayer_modal.dart';
+import 'wobbly_text.dart';
 import 'workout_bottom_bar.dart';
 
 class MainLayout extends StatelessWidget {
@@ -28,14 +29,7 @@ class MainLayout extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: GestureDetector(
           onTap: () => context.go('/'),
-          child: const Text(
-            'LIFT',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.0,
-            ),
-          ),
+          child: const WobblyText(text: 'LIFT', fontSize: 24, maxOffset: 1),
         ),
         actions: [
           _buildMultiplayerButton(context, mp),
@@ -115,16 +109,6 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/sound-settings',
                     ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.key_outlined,
-                      label: 'PASSKEYS',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/passkeys');
-                      },
-                      isActive: GoRouterState.of(context).uri.toString() == '/passkeys',
-                    ),
                     Divider(height: 32, color: colorScheme.outline),
                     // Dark mode toggle
                     InkWell(
@@ -174,17 +158,18 @@ class MainLayout extends StatelessWidget {
                   children: [
                     if (userName.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                         child: Row(
                           children: [
                             Icon(Icons.person_outline, size: 20, color: colorScheme.tertiary),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Text(
                               userName.toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: 16,
+                                fontSize: 14,
                                 letterSpacing: -0.5,
+                                color: colorScheme.tertiary,
                               ),
                             ),
                           ],

@@ -77,11 +77,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 return ListTile(
                   title: Text(
-                    '${date.month}/${date.day}/${date.year}',
+                    workout.name.isNotEmpty ? workout.name : '${date.month}/${date.day}/${date.year}',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    _formatDuration(duration),
+                    '${date.month}/${date.day}/${date.year} · ${_formatDuration(duration)}',
                     style: TextStyle(color: colorScheme.tertiary, fontSize: 13),
                   ),
                   trailing: Icon(Icons.chevron_right, color: colorScheme.tertiary),
