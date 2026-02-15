@@ -50,13 +50,12 @@ class WorkoutScreen extends StatelessWidget {
         : wp.now;
     final duration = endTime.difference(startTime);
 
-            return ListView(
-
-              children: [
-
-                Padding(
-
-                  padding: const EdgeInsets.all(16),
+    return ListView(
+      physics: const ClampingScrollPhysics(),
+      padding: EdgeInsets.zero,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
 
                   child: Row(
 
@@ -458,27 +457,25 @@ class WorkoutScreen extends StatelessWidget {
 
                         ),
 
-                        child: const Text(
+                                                child: const Text(
 
-                          'End Workout',
+                                                  'End Workout',
 
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
 
-                        ),
+                                                ),
 
-                      ),
+                                              ),
 
-                    ),
+                                            ),
 
-                  ),
+                                          ),
 
-                  const SizedBox(height: 32),
+                                        ],
 
-                ],
+                                      ],
 
-              ],
-
-            );
+                                    );
 
         
 

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
@@ -25,6 +26,17 @@ class WorkoutProvider extends ChangeNotifier {
   DateTime _now = DateTime.now();
 
   WorkoutProvider(this._service);
+
+  void _showError(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
 
   // Proxy getters for screens to show "current" context (active or historical)
   Workout? get workout => _isViewingHistory ? _viewingWorkout : _activeWorkout;
@@ -130,7 +142,7 @@ class WorkoutProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading active workout: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -155,7 +167,7 @@ class WorkoutProvider extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading workout: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -173,7 +185,7 @@ class WorkoutProvider extends ChangeNotifier {
       await loadWorkout(workoutId);
       return workoutId;
     } catch (e) {
-      debugPrint('Error starting workout: $e');
+      _showError('Connection error: $e');
       return null;
     }
   }
@@ -198,7 +210,7 @@ class WorkoutProvider extends ChangeNotifier {
       _activeProposedSets = List.from(updated);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error saving groups: $e');
+      _showError('Connection error: $e');
       await loadWorkout(_activeWorkout!.id);
     }
   }
@@ -210,7 +222,7 @@ class WorkoutProvider extends ChangeNotifier {
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error starting set: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -233,7 +245,7 @@ class WorkoutProvider extends ChangeNotifier {
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error completing set: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -244,7 +256,7 @@ class WorkoutProvider extends ChangeNotifier {
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error deleting completed set: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -269,7 +281,7 @@ class WorkoutProvider extends ChangeNotifier {
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error skipping warmup: $e');
+      _showError('Connection error: $e');
     }
   }
 
@@ -281,7 +293,7 @@ class WorkoutProvider extends ChangeNotifier {
       _stopTimer();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error ending workout: $e');
+      _showError('Connection error: $e');
     }
   }
 

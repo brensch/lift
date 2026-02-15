@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -22,9 +23,9 @@ import 'screens/passkeys_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
-const serverHost = 'localhost';
-const serverPort = 50051;
-const serverBaseUrl = 'http://$serverHost:$serverPort';
+const serverHost = kReleaseMode ? 'lift.snek2.ddns.net' : 'localhost';
+const serverPort = kReleaseMode ? 443 : 50051;
+const serverBaseUrl = kReleaseMode ? 'https://$serverHost' : 'http://$serverHost:$serverPort';
 
 void main() {
   runApp(const LiftApp());
