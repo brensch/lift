@@ -10,6 +10,8 @@ import 'providers/auth_provider.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
 import 'providers/sound_provider.dart';
+import 'providers/theme_provider.dart';
+import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/workout_screen.dart';
@@ -43,6 +45,7 @@ class _LiftAppState extends State<LiftApp> {
   late final WorkoutProvider _workoutProvider;
   late final MultiplayerProvider _multiplayerProvider;
   late final SoundProvider _soundProvider;
+  late final ThemeProvider _themeProvider;
   late final GoRouter _router;
 
   @override
@@ -60,6 +63,7 @@ class _LiftAppState extends State<LiftApp> {
     _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
     _multiplayerProvider = MultiplayerProvider(MultiplayerServiceWrapper(_grpcClient));
     _soundProvider = SoundProvider();
+    _themeProvider = ThemeProvider();
 
     // Listen to auth changes to clear state on logout
     _authProvider.addListener(() {
@@ -127,6 +131,7 @@ class _LiftAppState extends State<LiftApp> {
     _workoutProvider.dispose();
     _multiplayerProvider.dispose();
     _soundProvider.dispose();
+    _themeProvider.dispose();
     super.dispose();
   }
 
@@ -139,21 +144,17 @@ class _LiftAppState extends State<LiftApp> {
         ChangeNotifierProvider<WorkoutProvider>.value(value: _workoutProvider),
         ChangeNotifierProvider<MultiplayerProvider>.value(value: _multiplayerProvider),
         ChangeNotifierProvider<SoundProvider>.value(value: _soundProvider),
+        ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],
-      child: MaterialApp.router(
-        title: 'Lift',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorSchemeSeed: Colors.blue,
-          useMaterial3: true,
-          brightness: Brightness.light,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) => MaterialApp.router(
+          title: 'Lift',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeProvider.themeMode,
+          routerConfig: _router,
         ),
-        darkTheme: ThemeData(
-          colorSchemeSeed: Colors.blue,
-          useMaterial3: true,
-          brightness: Brightness.dark,
-        ),
-        routerConfig: _router,
       ),
     );
   }

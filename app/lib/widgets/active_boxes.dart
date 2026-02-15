@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
+import '../theme/app_theme.dart';
 import '../widgets/plate_visualization.dart';
 
 String _formatDuration(int seconds) {
@@ -17,24 +18,41 @@ class RestingBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.blue.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Text('Resting', style: TextStyle(fontSize: 14, color: Colors.blue)),
-            const SizedBox(height: 8),
-            Text(
-              _formatDuration(secondsRemaining),
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.blue),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.secondary,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outline),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'RESTING',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
             ),
-            if (onSkip != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton(onPressed: onSkip, child: const Text('Skip Rest')),
-            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatDuration(secondsRemaining),
+            style: TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -2,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          if (onSkip != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(onPressed: onSkip, child: const Text('Skip Rest')),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -56,60 +74,75 @@ class ActiveSetBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final elapsedSecs = activeCompletedSet != null
         ? (now.millisecondsSinceEpoch ~/ 1000) - activeCompletedSet!.startedAt.toInt()
         : 0;
     final name = shortNames[proposedSet.exercise] ?? '?';
+    final isWarmup = proposedSet.warmup;
 
-    return Card(
-      color: proposedSet.warmup ? Colors.blue.shade50 : Colors.orange.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (proposedSet.warmup)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('WARMUP', style: TextStyle(fontSize: 10, color: Colors.blue)),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isWarmup ? AppTheme.warmupLight : AppTheme.activeBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isWarmup
+              ? AppTheme.warmupFg.withValues(alpha: 0.3)
+              : AppTheme.activeFg.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isWarmup)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warmupFg.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${proposedSet.targetReps} \u00D7 ${proposedSet.targetWeight.toInt()} lbs',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  child: Text(
+                    'WARMUP',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.warmupFg,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                PlateVisualization(weight: proposedSet.targetWeight.toDouble()),
-              ],
-            ),
-            if (elapsedSecs > 0) ...[
-              const SizedBox(height: 4),
-              Text(
-                _formatDuration(elapsedSecs),
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
+              Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ],
-            const SizedBox(height: 12),
-            _CompletionButtons(
-              targetReps: proposedSet.targetReps,
-              targetWeight: proposedSet.targetWeight.toDouble(),
-              onComplete: onComplete,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${proposedSet.targetReps} \u00D7 ${proposedSet.targetWeight.toInt()} lbs',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(width: 8),
+              PlateVisualization(weight: proposedSet.targetWeight.toDouble()),
+            ],
+          ),
+          if (elapsedSecs > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              _formatDuration(elapsedSecs),
+              style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          _CompletionButtons(
+            targetReps: proposedSet.targetReps,
+            targetWeight: proposedSet.targetWeight.toDouble(),
+            onComplete: onComplete,
+          ),
+        ],
       ),
     );
   }
@@ -133,12 +166,10 @@ class _CompletionButtons extends StatelessWidget {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        // Quick complete with target reps
         FilledButton(
           onPressed: () => onComplete(targetReps, targetWeight),
           child: Text('$targetReps reps'),
         ),
-        // Minus reps buttons
         for (int diff = 1; diff <= 2 && targetReps - diff > 0; diff++)
           OutlinedButton(
             onPressed: () => onComplete(targetReps - diff, targetWeight),
@@ -157,46 +188,57 @@ class NextUpBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final name = shortNames[nextSet.exercise] ?? '?';
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              'Next Up: $name',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outline),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'NEXT UP',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
             ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '${nextSet.targetReps} \u00D7 ${nextSet.targetWeight.toInt()} lbs',
-                  style: const TextStyle(fontSize: 18),
-                ),
-                if (nextSet.warmup)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('warmup', style: TextStyle(fontSize: 10, color: Colors.blue)),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$name  ${nextSet.targetReps} \u00D7 ${nextSet.targetWeight.toInt()} lbs',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              if (nextSet.warmup)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warmupLight,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                const SizedBox(width: 8),
-                PlateVisualization(weight: nextSet.targetWeight.toDouble()),
-              ],
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onStart,
-              child: const Text('Start Set'),
-            ),
-          ],
-        ),
+                  child: Text(
+                    'warmup',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.warmupFg),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              PlateVisualization(weight: nextSet.targetWeight.toDouble()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: onStart,
+            child: const Text('Start Set'),
+          ),
+        ],
       ),
     );
   }

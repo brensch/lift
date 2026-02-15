@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import 'session_header.dart';
 
 class MainLayout extends StatelessWidget {
@@ -12,7 +13,9 @@ class MainLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final userName = authProvider.username ?? '';
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,7 +70,7 @@ class MainLayout extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
                     _MenuButton(
-                      icon: Icons.home,
+                      icon: Icons.home_outlined,
                       label: 'HOME',
                       onTap: () {
                         Navigator.pop(context);
@@ -75,9 +78,9 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _MenuButton(
-                      icon: Icons.bar_chart,
+                      icon: Icons.bar_chart_outlined,
                       label: 'PROGRESS',
                       onTap: () {
                         Navigator.pop(context);
@@ -85,9 +88,9 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/progress',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _MenuButton(
-                      icon: Icons.history,
+                      icon: Icons.history_outlined,
                       label: 'HISTORY',
                       onTap: () {
                         Navigator.pop(context);
@@ -95,9 +98,9 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/history',
                     ),
-                    const Divider(height: 32),
+                    Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
-                      icon: Icons.notifications, // Or music_note
+                      icon: Icons.notifications_outlined,
                       label: 'PICK SOUND',
                       onTap: () {
                         Navigator.pop(context);
@@ -105,9 +108,9 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/sound-settings',
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     _MenuButton(
-                      icon: Icons.key,
+                      icon: Icons.key_outlined,
                       label: 'PASSKEYS',
                       onTap: () {
                         Navigator.pop(context);
@@ -115,11 +118,49 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/passkeys',
                     ),
-                    // Dark Mode toggle would go here if implemented in provider
+                    Divider(height: 32, color: colorScheme.outline),
+                    // Dark mode toggle
+                    InkWell(
+                      onTap: () => themeProvider.toggle(),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            Icon(
+                              themeProvider.isDarkMode(context)
+                                  ? Icons.light_mode_outlined
+                                  : Icons.dark_mode_outlined,
+                              size: 20,
+                              color: colorScheme.onSurface,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                themeProvider.isDarkMode(context) ? 'LIGHT MODE' : 'DARK MODE',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  letterSpacing: -0.5,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 24,
+                              child: Switch(
+                                value: themeProvider.isDarkMode(context),
+                                onChanged: (_) => themeProvider.toggle(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Divider(),
+              Divider(color: colorScheme.outline),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -129,7 +170,7 @@ class MainLayout extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Row(
                           children: [
-                            const Icon(Icons.person, size: 20, color: Colors.grey),
+                            Icon(Icons.person_outline, size: 20, color: colorScheme.tertiary),
                             const SizedBox(width: 12),
                             Text(
                               userName.toUpperCase(),
@@ -145,7 +186,7 @@ class MainLayout extends StatelessWidget {
                     _MenuButton(
                       icon: Icons.logout,
                       label: 'LOGOUT',
-                      color: Colors.red,
+                      color: colorScheme.error,
                       onTap: () {
                         Navigator.pop(context);
                         authProvider.logout();
@@ -187,29 +228,32 @@ class _MenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveColor = color ?? (isActive ? theme.colorScheme.primary : theme.colorScheme.onSurface);
-    
+    final colorScheme = Theme.of(context).colorScheme;
+    final effectiveColor = color ?? colorScheme.onSurface;
+
     return Material(
-      color: isActive ? theme.colorScheme.primary : Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
+      color: isActive ? colorScheme.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: isActive ? theme.colorScheme.onPrimary : effectiveColor),
+              Icon(
+                icon,
+                size: 20,
+                color: isActive ? colorScheme.onPrimary : effectiveColor,
+              ),
               const SizedBox(width: 16),
               Text(
                 label,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  fontSize: 16,
+                  fontSize: 14,
                   letterSpacing: -0.5,
-                  color: isActive ? theme.colorScheme.onPrimary : effectiveColor,
+                  color: isActive ? colorScheme.onPrimary : effectiveColor,
                 ),
               ),
             ],

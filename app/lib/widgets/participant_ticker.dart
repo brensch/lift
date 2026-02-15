@@ -3,6 +3,7 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
+import '../theme/app_theme.dart';
 
 class ParticipantTicker extends StatelessWidget {
   final ParticipantStatus participant;
@@ -50,7 +51,6 @@ class ParticipantTicker extends StatelessWidget {
   _StatusInfo _getStatus(ParticipantStatus p) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    // Check for active (in-progress) set
     final activeSet = p.completedSets.cast<CompletedSet?>().firstWhere(
       (c) => c!.endedAt == Int64.ZERO,
       orElse: () => null,
@@ -61,21 +61,19 @@ class ParticipantTicker extends StatelessWidget {
         orElse: () => null,
       );
       final name = proposed != null ? (shortNames[proposed.exercise] ?? '?') : '?';
-      return _StatusInfo('lifting $name', Colors.orange);
+      return _StatusInfo('lifting $name', AppTheme.activeFg);
     }
 
-    // Check for resting
     final restingSet = p.completedSets.cast<CompletedSet?>().firstWhere(
       (c) => c!.endedAt != Int64.ZERO && c.restUntil.toInt() > now,
       orElse: () => null,
     );
     if (restingSet != null) {
       final remaining = restingSet.restUntil.toInt() - now;
-      return _StatusInfo('rest ${remaining}s', Colors.blue);
+      return _StatusInfo('rest ${remaining}s', AppTheme.warmupFg);
     }
 
-    // Idle
-    return _StatusInfo('idle', Colors.grey);
+    return _StatusInfo('idle', AppTheme.warmupFg);
   }
 }
 

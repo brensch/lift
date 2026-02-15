@@ -3,6 +3,7 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
+import '../theme/app_theme.dart';
 
 class ExerciseGroupWidget extends StatelessWidget {
   final ExerciseGroupData group;
@@ -39,19 +40,16 @@ class ExerciseGroupWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: allCompleted
-            ? Colors.green.withValues(alpha: 0.05)
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: allCompleted ? AppTheme.successBg : colorScheme.secondary,
         border: Border.all(
           color: allCompleted
-              ? Colors.green.withValues(alpha: 0.2)
-              : colorScheme.outlineVariant,
+              ? AppTheme.successFg.withValues(alpha: 0.2)
+              : colorScheme.outline,
         ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
-          // Reorder arrows
           if (!isWorkoutEnded && !allCompleted && onMoveUp != null && onMoveDown != null)
             Column(
               mainAxisSize: MainAxisSize.min,
@@ -85,30 +83,27 @@ class ExerciseGroupWidget extends StatelessWidget {
           if (!isWorkoutEnded && !allCompleted && onMoveUp != null)
             const SizedBox(width: 4),
 
-          // Exercise name
           SizedBox(
             width: 56,
             child: Text(
               shortNames[group.exercise] ?? '?',
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: allCompleted ? Colors.green : null,
+                fontWeight: FontWeight.w600,
+                color: allCompleted ? AppTheme.successFg : colorScheme.onSurface,
               ),
             ),
           ),
 
-          // Edit button
           if (!isWorkoutEnded && onEdit != null)
             GestureDetector(
               onTap: onEdit,
               child: Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: Icon(Icons.edit, size: 14, color: colorScheme.outline),
+                child: Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
               ),
             ),
 
-          // Set indicators
           Expanded(
             child: Wrap(
               spacing: 4,
@@ -131,36 +126,30 @@ class ExerciseGroupWidget extends StatelessWidget {
 
     if (completed != null) {
       if (set.warmup) {
-        return _chip(
-          'W',
-          Colors.blue.withValues(alpha: 0.2),
-          Colors.blue,
-        );
+        return _chip('W', AppTheme.warmupLight, AppTheme.warmupFg);
       }
       final hitTarget = completed.actualReps >= set.targetReps;
       return _chip(
         hitTarget ? '\u2713' : '\u2713${completed.actualReps}',
-        hitTarget
-            ? Colors.green.withValues(alpha: 0.2)
-            : Colors.amber.withValues(alpha: 0.2),
-        hitTarget ? Colors.green : Colors.amber.shade700,
+        hitTarget ? AppTheme.successBg : AppTheme.warningBg,
+        hitTarget ? AppTheme.successFg : AppTheme.warningFg,
       );
     }
 
     if (set.warmup) {
       return _chip(
         'W:${set.targetReps}\u00D7${set.targetWeight.toInt()}',
-        isActive ? Colors.blue.withValues(alpha: 0.2) : Colors.transparent,
-        Colors.blue,
-        border: isActive ? Colors.blue : Colors.blue.withValues(alpha: 0.4),
+        isActive ? AppTheme.warmupLight : Colors.transparent,
+        AppTheme.warmupFg,
+        border: isActive ? AppTheme.warmupFg : AppTheme.warmupFg.withValues(alpha: 0.3),
         bold: isActive,
       );
     }
 
     return _chip(
       '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
-      isActive ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest,
-      isActive ? colorScheme.primary : colorScheme.onSurfaceVariant,
+      isActive ? colorScheme.primary.withValues(alpha: 0.1) : colorScheme.surfaceContainerHighest,
+      isActive ? colorScheme.primary : colorScheme.tertiary,
       border: isActive ? colorScheme.primary : null,
       bold: isActive,
     );

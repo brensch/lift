@@ -40,16 +40,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(
+        title: const Text(
+          'HISTORY',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
       body: _workouts == null || _workouts!.isEmpty
-          ? const Center(child: Text('No completed workouts yet'))
-          : ListView.builder(
+          ? Center(
+              child: Text(
+                'No completed workouts yet',
+                style: TextStyle(color: colorScheme.tertiary),
+              ),
+            )
+          : ListView.separated(
               itemCount: _workouts!.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                color: colorScheme.outline,
+              ),
               itemBuilder: (context, index) {
                 final workout = _workouts![index];
                 final date = DateTime.fromMillisecondsSinceEpoch(
@@ -62,10 +78,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 return ListTile(
                   title: Text(
                     '${date.month}/${date.day}/${date.year}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(_formatDuration(duration)),
-                  trailing: const Icon(Icons.chevron_right),
+                  subtitle: Text(
+                    _formatDuration(duration),
+                    style: TextStyle(color: colorScheme.tertiary, fontSize: 13),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: colorScheme.tertiary),
                   onTap: () {
                     final wp = context.read<WorkoutProvider>();
                     wp.loadWorkout(workout.id);

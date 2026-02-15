@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
+import '../theme/app_theme.dart';
 
 class SetLog extends StatelessWidget {
   final List<ProposedSet> proposedSets;
@@ -17,6 +18,7 @@ class SetLog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final done = completedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .toList()
@@ -30,8 +32,13 @@ class SetLog extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            'Completed Sets',
-            style: Theme.of(context).textTheme.titleSmall,
+            'COMPLETED SETS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
+            ),
           ),
         ),
         ...done.map((completed) {
@@ -43,32 +50,43 @@ class SetLog extends StatelessWidget {
           final isWarmup = proposed?.warmup ?? false;
           final hitTarget = proposed != null ? completed.actualReps >= proposed.targetReps : true;
 
+          Color bg;
+          Color fg;
+          String label;
+
+          if (isWarmup) {
+            bg = AppTheme.warmupLight;
+            fg = AppTheme.warmupFg;
+            label = 'W';
+          } else if (hitTarget) {
+            bg = AppTheme.successBg;
+            fg = AppTheme.successFg;
+            label = '\u2713';
+          } else {
+            bg = AppTheme.warningBg;
+            fg = AppTheme.warningFg;
+            label = '\u2713';
+          }
+
           return ListTile(
             dense: true,
             leading: Container(
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: isWarmup
-                    ? Colors.blue.withValues(alpha: 0.2)
-                    : hitTarget
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.amber.withValues(alpha: 0.2),
+                color: bg,
                 borderRadius: BorderRadius.circular(6),
               ),
               alignment: Alignment.center,
               child: Text(
-                isWarmup ? 'W' : '\u2713',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isWarmup ? Colors.blue : hitTarget ? Colors.green : Colors.amber.shade700,
-                ),
+                label,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
               ),
             ),
             title: Text('$name: ${completed.actualReps} \u00D7 ${completed.actualWeight.toInt()} lbs'),
             trailing: onDelete != null
                 ? IconButton(
-                    icon: const Icon(Icons.close, size: 16),
+                    icon: Icon(Icons.close, size: 16, color: colorScheme.tertiary),
                     onPressed: () => onDelete!(completed.id),
                   )
                 : null,
