@@ -33,10 +33,16 @@ class GrpcClient {
 
   GrpcClient({required String host, required int port}) {
     authInterceptor = AuthInterceptor();
+    
+    // Use secure credentials for production (port 443)
+    final credentials = port == 443 
+        ? const ChannelCredentials.secure() 
+        : const ChannelCredentials.insecure();
+
     channel = ClientChannel(
       host,
       port: port,
-      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+      options: ChannelOptions(credentials: credentials),
     );
     workoutService = WorkoutServiceClient(channel, interceptors: [authInterceptor]);
     userService = UserServiceClient(channel, interceptors: [authInterceptor]);

@@ -198,30 +198,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        color: colorScheme.primary,
-        onRefresh: _loadData,
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  'SELECT YOUR EXERCISES',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    color: colorScheme.tertiary,
-                  ),
+      body: CustomScrollView(
+        physics: const ClampingScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                'SELECT YOUR EXERCISES',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                  color: colorScheme.tertiary,
                 ),
               ),
             ),
-            if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
-            if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 250)),
-          ],
-        ),
+          ),
+          if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
+          if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
+        ],
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
