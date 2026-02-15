@@ -5,7 +5,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile_protos(
             &[
                 "proto/workout/v1/workout.proto",
-                "proto/workout/v1/group.proto"
+                "proto/workout/v1/group.proto",
+                "proto/workout/v1/auth.proto"
             ],
             &["proto"]
         )?;

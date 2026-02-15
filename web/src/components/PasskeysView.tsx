@@ -67,8 +67,8 @@ export function PasskeysView({ }: PasskeysViewProps) {
     }
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString('en-US', {
+  const formatDate = (timestamp: bigint) => {
+    return new Date(Number(timestamp) * 1000).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -140,7 +140,7 @@ export function PasskeysView({ }: PasskeysViewProps) {
               <ul className="space-y-2">
                 {passkeys.map((pk, i) => (
                   <li
-                    key={pk.credential_id}
+                    key={pk.credentialId}
                     className="flex items-center gap-3 p-3 bg-muted rounded-md border border-border/50"
                   >
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -149,9 +149,9 @@ export function PasskeysView({ }: PasskeysViewProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold">{pk.name || `Passkey ${i + 1}`}</p>
-                        {pk.created_at_ip && (
+                        {pk.createdAtIp && (
                           <span className="text-[10px] bg-muted-foreground/10 px-1.5 py-0.5 rounded text-muted-foreground font-mono">
-                            {pk.created_at_ip}
+                            {pk.createdAtIp}
                           </span>
                         )}
                       </div>
@@ -159,20 +159,20 @@ export function PasskeysView({ }: PasskeysViewProps) {
                         {formatTransports(pk.transports) && (
                           <span>{formatTransports(pk.transports)}</span>
                         )}
-                        {formatTransports(pk.transports) && pk.created_at && (
+                        {formatTransports(pk.transports) && pk.createdAt && (
                           <span>&middot;</span>
                         )}
-                        <span>Added {formatDate(pk.created_at)}</span>
+                        <span>Added {formatDate(pk.createdAt)}</span>
                       </div>
                     </div>
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => setShowDeleteConfirm(pk.credential_id)}
+                      onClick={() => setShowDeleteConfirm(pk.credentialId)}
                       disabled={deletingId !== null || passkeys.length <= 1}
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
-                      {deletingId === pk.credential_id ? (
+                      {deletingId === pk.credentialId ? (
                         <LoadingSpinner size="sm" />
                       ) : (
                         <Trash2 className="w-4 h-4" />

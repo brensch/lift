@@ -1,5 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../gen/workout/v1/auth.pbgrpc.dart';
+import 'grpc_client.dart';
 
 class AuthResponse {
   final String sessionToken;
@@ -11,56 +11,40 @@ class AuthResponse {
     required this.userId,
     required this.username,
   });
-
-  factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    return AuthResponse(
-      sessionToken: json['session_token'] as String,
-      userId: json['user_id'] as String,
-      username: json['username'] as String,
-    );
-  }
 }
 
 class AuthService {
-  final String baseUrl;
+  final GrpcClient grpcClient;
 
-  AuthService({required this.baseUrl});
+  AuthService({required this.grpcClient});
 
   Future<AuthResponse> register(String username, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/password/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
+    final response = await grpcClient.authService.passwordRegister(
+      PasswordRegisterRequest(username: username, password: password),
     );
 
-    if (response.statusCode == 200) {
-      return AuthResponse.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(response.body);
-    }
+    return AuthResponse(
+      sessionToken: response.sessionToken,
+      userId: response.userId,
+      username: response.username,
+    );
   }
 
   Future<AuthResponse> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/password/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
+    final response = await grpcClient.authService.passwordLogin(
+      PasswordLoginRequest(username: username, password: password),
     );
 
-    if (response.statusCode == 200) {
-      return AuthResponse.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(response.body);
-    }
+    return AuthResponse(
+      sessionToken: response.sessionToken,
+      userId: response.userId,
+      username: response.username,
+    );
   }
 
   Future<void> logout(String token) async {
-    await http.post(
-      Uri.parse('$baseUrl/auth/logout'),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-session-token': token,
-      },
-    );
+    // Note: The token is already set in the GrpcClient interceptor if logged in.
+    // But we pass it to LogoutRequest if needed, or just rely on interceptor.
+    await grpcClient.authService.logout(LogoutRequest());
   }
 }

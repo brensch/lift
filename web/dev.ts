@@ -55,21 +55,7 @@ const server = Bun.serve({
       return new Response("Upgrade failed", { status: 400 });
     }
 
-    // Proxy auth REST requests
-    if (url.pathname.startsWith("/auth/")) {
-      try {
-        const res = await fetch("http://localhost:50051" + url.pathname + url.search, {
-          method: req.method,
-          headers: req.headers,
-          body: req.body,
-        });
-        return new Response(res.body, { status: res.status, headers: res.headers });
-      } catch {
-        return new Response("Backend unavailable", { status: 502 });
-      }
-    }
-
-    // Proxy API requests
+    // Proxy API requests (both workout and auth services)
     if (url.pathname.startsWith("/workout.v1.")) {
       try {
         const res = await fetch("http://localhost:50051" + url.pathname + url.search, {
@@ -85,7 +71,11 @@ const server = Bun.serve({
 
     // Serve index.html (SPA fallback)
     if (url.pathname === "/" || url.pathname === "/index.html" || !url.pathname.includes(".")) {
-      const html = await Bun.file("./index.html").text();
+      const file = Bun.file("./index.html");
+      if (!(await file.exists())) {
+        return new Response("index.html not found", { status: 500 });
+      }
+      const html = await file.text();
       const newHtml = html
         .replace(
           '<script type="module" src="/src/main.tsx"></script>',

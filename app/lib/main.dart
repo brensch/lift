@@ -18,7 +18,7 @@ import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/passkeys_screen.dart';
-import 'widgets/session_header.dart';
+import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
 const serverHost = 'localhost';
@@ -50,7 +50,7 @@ class _LiftAppState extends State<LiftApp> {
     super.initState();
 
     _grpcClient = GrpcClient(host: serverHost, port: serverPort);
-    _authService = AuthService(baseUrl: serverBaseUrl);
+    _authService = AuthService(grpcClient: _grpcClient);
 
     _authProvider = AuthProvider(
       authService: _authService,
@@ -60,6 +60,14 @@ class _LiftAppState extends State<LiftApp> {
     _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
     _multiplayerProvider = MultiplayerProvider(MultiplayerServiceWrapper(_grpcClient));
     _soundProvider = SoundProvider();
+
+    // Listen to auth changes to clear state on logout
+    _authProvider.addListener(() {
+      if (!_authProvider.isLoggedIn) {
+        _workoutProvider.clear();
+        _multiplayerProvider.clear();
+      }
+    });
 
     // Load persisted state
     _authProvider.loadSession().then((_) {
@@ -80,18 +88,19 @@ class _LiftAppState extends State<LiftApp> {
         if (loggedIn && isLogin) return '/';
 
         // Auto-redirect to workout if one is active
-        if (loggedIn &&
-            state.matchedLocation == '/' &&
-            _workoutProvider.hasActiveWorkout) {
-          return '/workout';
-        }
+        // Removed: Logic moved to HomeScreen "Resume" button to prevent loops and improve UX
+        // if (loggedIn &&
+        //     state.matchedLocation == '/' &&
+        //     _workoutProvider.hasActiveWorkout) {
+        //   return '/workout';
+        // }
 
         return null;
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
         ShellRoute(
-          builder: (context, state, child) => ScaffoldWithDrawer(child: child),
+          builder: (context, state, child) => MainLayout(child: child),
           routes: [
             GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
             GoRoute(path: '/workout', builder: (_, __) => const WorkoutScreen()),
@@ -146,22 +155,6 @@ class _LiftAppState extends State<LiftApp> {
         ),
         routerConfig: _router,
       ),
-    );
-  }
-}
-
-class ScaffoldWithDrawer extends StatelessWidget {
-  final Widget child;
-
-  const ScaffoldWithDrawer({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SessionHeader(),
-        Expanded(child: child),
-      ],
     );
   }
 }
