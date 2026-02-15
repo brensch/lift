@@ -6,15 +6,22 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/warmup.dart';
 import '../services/workout_service.dart';
+import '../providers/sound_provider.dart';
+import '../services/notification_service.dart';
 
-class WorkoutProvider extends ChangeNotifier {
+class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final WorkoutServiceWrapper _service;
+  SoundProvider? _soundProvider;
 
   // Active workout state
   Workout? _activeWorkout;
   List<ProposedSet> _activeProposedSets = [];
   List<CompletedSet> _activeCompletedSets = [];
   List<ExerciseStatus> _exerciseStatuses = [];
+
+  // Track whether we already played the sound for the current rest period
+  bool _wasResting = false;
+  int? _lastSoundedRestUntil;
 
   // Historical / viewing state
   Workout? _viewingWorkout;
@@ -25,7 +32,66 @@ class WorkoutProvider extends ChangeNotifier {
   Timer? _timer;
   DateTime _now = DateTime.now();
 
-  WorkoutProvider(this._service);
+  WorkoutProvider(this._service) {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  void setSoundProvider(SoundProvider provider) {
+    _soundProvider = provider;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App came back to foreground — check if rest expired while away
+      _now = DateTime.now();
+      _checkRestSound();
+      notifyListeners();
+    }
+  }
+
+  /// Set _wasResting to current state without triggering sound.
+  /// Call after loading completed sets to avoid false-triggering on load.
+  void _initRestState() {
+    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final resting = _activeCompletedSets
+        .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > 0)
+        .toList();
+    if (resting.isEmpty) {
+      _wasResting = false;
+      return;
+    }
+    resting.sort((a, b) => b.endedAt.compareTo(a.endedAt));
+    final restUntil = resting.first.restUntil.toInt();
+    _wasResting = restUntil > nowUnix;
+    // Mark as already sounded if rest already expired, so we don't play on load
+    if (!_wasResting) {
+      _lastSoundedRestUntil = restUntil;
+    }
+  }
+
+  void _checkRestSound() {
+    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
+    final resting = _activeCompletedSets
+        .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > 0)
+        .toList();
+    if (resting.isEmpty) {
+      _wasResting = false;
+      return;
+    }
+    resting.sort((a, b) => b.endedAt.compareTo(a.endedAt));
+    final latest = resting.first;
+    final restUntil = latest.restUntil.toInt();
+    final isCurrentlyResting = restUntil > nowUnix;
+
+    if (_wasResting && !isCurrentlyResting && _lastSoundedRestUntil != restUntil) {
+      // Rest just ended — cancel notification (prevent double-play) and play in-app sound
+      _lastSoundedRestUntil = restUntil;
+      NotificationService.cancelRestNotification();
+      _soundProvider?.playCurrentSound();
+    }
+    _wasResting = isCurrentlyResting;
+  }
 
   void _showError(String message) {
     Fluttertoast.showToast(
@@ -112,6 +178,7 @@ class WorkoutProvider extends ChangeNotifier {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _now = DateTime.now();
+      _checkRestSound();
       notifyListeners();
     });
   }
@@ -129,6 +196,8 @@ class WorkoutProvider extends ChangeNotifier {
         _activeWorkout = response.workout;
         _activeProposedSets = List.from(response.proposedSets);
         _activeCompletedSets = List.from(response.completedSets);
+        // Initialize rest tracking state so we don't false-trigger sound on load
+        _initRestState();
         _startTimer();
       } else {
         _activeWorkout = null;
@@ -159,6 +228,7 @@ class WorkoutProvider extends ChangeNotifier {
         _activeProposedSets = List.from(response.proposedSets);
         _activeCompletedSets = List.from(response.completedSets);
         _isViewingHistory = false;
+        _initRestState();
         if (hasActiveWorkout) {
           _startTimer();
         } else {
@@ -218,6 +288,7 @@ class WorkoutProvider extends ChangeNotifier {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
+      NotificationService.cancelRestNotification();
       final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
       _activeCompletedSets.add(completed);
       notifyListeners();
@@ -243,6 +314,16 @@ class WorkoutProvider extends ChangeNotifier {
         (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
       );
       _activeCompletedSets.add(completed);
+      // Mark that rest has started so _checkRestSound can detect the transition
+      if (completed.restUntil.toInt() > 0) {
+        _wasResting = true;
+        // Schedule background notification for when rest ends
+        final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
+        NotificationService.scheduleRestNotification(
+          restUntilUnix: completed.restUntil.toInt(),
+          soundPresetId: presetId,
+        );
+      }
       notifyListeners();
     } catch (e) {
       _showError('Connection error: $e');
@@ -288,6 +369,7 @@ class WorkoutProvider extends ChangeNotifier {
   Future<void> endWorkout() async {
     if (_activeWorkout == null) return;
     try {
+      NotificationService.cancelRestNotification();
       final ended = await _service.endWorkout(_activeWorkout!.id);
       _activeWorkout = ended;
       _stopTimer();
@@ -320,6 +402,7 @@ class WorkoutProvider extends ChangeNotifier {
   }
 
   void clear() {
+    NotificationService.cancelRestNotification();
     _activeWorkout = null;
     _activeProposedSets = [];
     _activeCompletedSets = [];
@@ -333,6 +416,7 @@ class WorkoutProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
     super.dispose();
   }

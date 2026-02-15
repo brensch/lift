@@ -24,6 +24,8 @@ dependencies:
   fixnum: ^1.1.0
   share_plus: ^10.0.0
   fluttertoast: ^8.2.10
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
