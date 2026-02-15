@@ -19,9 +19,10 @@ class _WorkoutTabState extends State<WorkoutTab> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        final wp = context.read<WorkoutProvider>();
         final auth = context.read<AuthProvider>();
         if (auth.userId != null) {
-          context.read<WorkoutProvider>().loadActiveWorkout(auth.userId!);
+          wp.loadActiveWorkout(auth.userId!);
         }
       }
     });

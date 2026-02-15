@@ -27,12 +27,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _wasResting = false;
   int? _lastSoundedRestUntil;
 
-  // Historical / viewing state
-  Workout? _viewingWorkout;
-  List<ProposedSet> _viewingProposedSets = [];
-  List<CompletedSet> _viewingCompletedSets = [];
-  bool _isViewingHistory = false;
-
   Timer? _timer;
   DateTime _now = DateTime.now();
 
@@ -118,31 +112,27 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // Loading state
   bool get isLoading => _isLoading;
 
-  // Proxy getters for screens to show "current" context (active or historical)
-  Workout? get workout => _isViewingHistory ? _viewingWorkout : _activeWorkout;
-  List<ProposedSet> get proposedSets => _isViewingHistory ? _viewingProposedSets : _activeProposedSets;
-  List<CompletedSet> get completedSets => _isViewingHistory ? _viewingCompletedSets : _activeCompletedSets;
+  // Active workout getters
+  Workout? get workout => _activeWorkout;
+  List<ProposedSet> get proposedSets => _activeProposedSets;
+  List<CompletedSet> get completedSets => _activeCompletedSets;
   List<ExerciseStatus> get exerciseStatuses => _exerciseStatuses;
-  
-  // Explicit active state for the bottom bar
+
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
   List<CompletedSet> get activeCompletedSets => _activeCompletedSets;
   bool get hasActiveWorkout => _activeWorkout != null && _activeWorkout!.endTime == Int64.ZERO;
   bool get isWorkoutEnded => _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
-  bool get isViewingHistory => _isViewingHistory;
   DateTime get now => _now;
 
-  List<ExerciseGroupData> get exerciseGroups => groupSetsByExercise(proposedSets);
+  List<ExerciseGroupData> get exerciseGroups => groupSetsByExercise(_activeProposedSets);
 
-  bool isSetDone(String setId, {bool useActive = false}) {
-    final sets = (useActive || !_isViewingHistory) ? _activeCompletedSets : _viewingCompletedSets;
-    return sets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
+  bool isSetDone(String setId) {
+    return _activeCompletedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
   }
 
-  bool isSetActive(String setId, {bool useActive = false}) {
-    final sets = (useActive || !_isViewingHistory) ? _activeCompletedSets : _viewingCompletedSets;
-    return sets.any((c) => c.proposedSetId == setId && c.endedAt == Int64.ZERO);
+  bool isSetActive(String setId) {
+    return _activeCompletedSets.any((c) => c.proposedSetId == setId && c.endedAt == Int64.ZERO);
   }
 
   String? get activeSetId {
@@ -165,7 +155,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   ProposedSet? get nextPendingSet {
     for (final set in _activeProposedSets) {
-      if (!isSetDone(set.id, useActive: true) && !isSetActive(set.id, useActive: true)) {
+      if (!isSetDone(set.id) && !isSetActive(set.id)) {
         return set;
       }
     }
@@ -232,25 +222,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> loadWorkout(String workoutId, {bool asHistory = false}) async {
+  Future<void> _loadWorkout(String workoutId) async {
     try {
       final response = await _service.getWorkout(workoutId);
-      if (asHistory) {
-        _viewingWorkout = response.workout;
-        _viewingProposedSets = List.from(response.proposedSets);
-        _viewingCompletedSets = List.from(response.completedSets);
-        _isViewingHistory = true;
+      _activeWorkout = response.workout;
+      _activeProposedSets = List.from(response.proposedSets);
+      _activeCompletedSets = List.from(response.completedSets);
+      _initRestState();
+      if (hasActiveWorkout) {
+        _startTimer();
       } else {
-        _activeWorkout = response.workout;
-        _activeProposedSets = List.from(response.proposedSets);
-        _activeCompletedSets = List.from(response.completedSets);
-        _isViewingHistory = false;
-        _initRestState();
-        if (hasActiveWorkout) {
-          _startTimer();
-        } else {
-          _stopTimer();
-        }
+        _stopTimer();
       }
       notifyListeners();
     } catch (e) {
@@ -258,18 +240,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void stopViewingHistory() {
-    _isViewingHistory = false;
-    _viewingWorkout = null;
-    _viewingProposedSets = [];
-    _viewingCompletedSets = [];
-    notifyListeners();
-  }
-
   Future<String?> startWorkout(String name, List<ProposedSet> sets) async {
     try {
       final workoutId = await _service.startWorkout(name, sets);
-      await loadWorkout(workoutId);
+      await _loadWorkout(workoutId);
       return workoutId;
     } catch (e) {
       _handleError(e);
@@ -278,7 +252,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> saveGroups(List<ExerciseGroupData> groups) async {
-    if (_activeWorkout == null || _isViewingHistory) return;
+    if (_activeWorkout == null) return;
 
     final allSets = <ProposedSet>[];
     for (final group in groups) {
@@ -298,7 +272,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
     } catch (e) {
       _handleError(e);
-      await loadWorkout(_activeWorkout!.id);
+      await _loadWorkout(_activeWorkout!.id);
     }
   }
 
@@ -397,7 +371,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void rebuildGroup(int groupIndex, {required double targetWeight, bool? warmups, int? setCount}) {
-    if (_isViewingHistory) return;
     final groups = exerciseGroups;
     if (groupIndex < 0 || groupIndex >= groups.length) return;
 
@@ -406,7 +379,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       targetWeight: targetWeight,
       warmups: warmups,
       setCount: setCount,
-      isSetDone: (id) => isSetDone(id, useActive: true),
+      isSetDone: isSetDone,
     );
 
     final updatedGroups = List<ExerciseGroupData>.from(groups);
@@ -423,10 +396,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeWorkout = null;
     _activeProposedSets = [];
     _activeCompletedSets = [];
-    _isViewingHistory = false;
-    _viewingWorkout = null;
-    _viewingProposedSets = [];
-    _viewingCompletedSets = [];
     _stopTimer();
     notifyListeners();
   }

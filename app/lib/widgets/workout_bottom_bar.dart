@@ -76,7 +76,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
     final chatElapsed = isChatTime ? nowUnix - lastRestEnd : 0;
 
     final allDone = wp.activeProposedSets.isNotEmpty &&
-        wp.activeProposedSets.every((p) => wp.isSetDone(p.id, useActive: true)) &&
+        wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
         activeSetId == null;
 
     // Determine if we're on the workout page
@@ -165,7 +165,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
     }
 
     return GestureDetector(
-      onTap: !isOnWorkoutPage ? () => context.go('/') : null,
+      onTap: !isOnWorkoutPage ? () {
+        context.go('/');
+      } : null,
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.secondary,
