@@ -1,37 +1,21 @@
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
+import { authClient, withUserId } from './client';
 
-const AUTH_BASE = `${window.location.origin}/auth`;
-
-interface AuthResponse {
-  session_token: string;
-  user_id: string;
+export interface AuthResponse {
+  sessionToken: string;
+  userId: string;
   username: string;
 }
 
-async function authFetch(path: string, body: unknown): Promise<unknown> {
-  const res = await fetch(`${AUTH_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json();
-}
-
 export async function register(username: string, name?: string): Promise<AuthResponse> {
-  const startData = (await authFetch('/register/start', { username })) as {
-    user_id: string;
-    options: { publicKey: PublicKeyCredentialCreationOptionsJSON };
-  };
+  const startData = await authClient.registerStart({ username });
 
+  const optionsJSON = JSON.parse(startData.optionsJson) as PublicKeyCredentialCreationOptionsJSON;
+  
   // Force residentKey: "required" so authenticators (including YubiKeys) store
   // discoverable credentials. webauthn-rs defaults to "discouraged" which makes
   // YubiKeys store non-resident keys that can't be found during sign-in.
-  const optionsJSON = startData.options.publicKey;
   optionsJSON.authenticatorSelection = {
     ...optionsJSON.authenticatorSelection,
     residentKey: 'required',
@@ -40,41 +24,27 @@ export async function register(username: string, name?: string): Promise<AuthRes
 
   const credential = await startRegistration({ optionsJSON });
 
-  return (await authFetch('/register/finish', {
-    user_id: startData.user_id,
-    credential,
+  const finishData = await authClient.registerFinish({
+    userId: startData.userId,
+    credentialJson: JSON.stringify(credential),
     name: name || 'signup key',
-  })) as AuthResponse;
+  });
+
+  return finishData;
 }
 
 export interface PasskeyInfo {
-  credential_id: string;
+  credentialId: string;
   name?: string;
-  created_at: number;
-  created_at_ip?: string;
+  createdAt: bigint;
+  createdAtIp?: string;
   transports: string[];
 }
 
 export async function addPasskey(name?: string): Promise<void> {
-  const token = localStorage.getItem('liftSessionToken');
-  if (!token) throw new Error('Not authenticated');
+  const startData = await authClient.addPasskeyStart({}, withUserId(''));
 
-  const startRes = await fetch(`${AUTH_BASE}/passkey/add/start`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-session-token': token,
-    },
-  });
-  if (!startRes.ok) {
-    const text = await startRes.text();
-    throw new Error(text || `Request failed: ${startRes.status}`);
-  }
-  const startData = (await startRes.json()) as {
-    options: { publicKey: PublicKeyCredentialCreationOptionsJSON };
-  };
-
-  const optionsJSON = startData.options.publicKey;
+  const optionsJSON = JSON.parse(startData.optionsJson) as PublicKeyCredentialCreationOptionsJSON;
   optionsJSON.authenticatorSelection = {
     ...optionsJSON.authenticatorSelection,
     residentKey: 'required',
@@ -83,81 +53,41 @@ export async function addPasskey(name?: string): Promise<void> {
 
   const credential = await startRegistration({ optionsJSON });
 
-  const finishRes = await fetch(`${AUTH_BASE}/passkey/add/finish`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-session-token': token,
-    },
-    body: JSON.stringify({ credential, name }),
-  });
-  if (!finishRes.ok) {
-    const text = await finishRes.text();
-    throw new Error(text || `Request failed: ${finishRes.status}`);
-  }
+  await authClient.addPasskeyFinish({
+    credentialJson: JSON.stringify(credential),
+    name,
+  }, withUserId(''));
 }
 
 export async function listPasskeys(): Promise<PasskeyInfo[]> {
-  const token = localStorage.getItem('liftSessionToken');
-  if (!token) throw new Error('Not authenticated');
-
-  const res = await fetch(`${AUTH_BASE}/passkeys`, {
-    method: 'GET',
-    headers: { 'x-session-token': token },
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
-  return res.json();
+  const res = await authClient.listPasskeys({}, withUserId(''));
+  return res.passkeys;
 }
 
 export async function deletePasskey(credentialId: string): Promise<void> {
-  const token = localStorage.getItem('liftSessionToken');
-  if (!token) throw new Error('Not authenticated');
-
-  const res = await fetch(`${AUTH_BASE}/passkey/delete`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-session-token': token,
-    },
-    body: JSON.stringify({ credential_id: credentialId }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Request failed: ${res.status}`);
-  }
+  await authClient.deletePasskey({ credentialId }, withUserId(''));
 }
 
 export async function login(): Promise<AuthResponse> {
-  // Get discoverable authentication challenge (empty allowCredentials)
-  const startData = (await authFetch('/login/start', {})) as {
-    challenge_id: string;
-    options: { publicKey: PublicKeyCredentialRequestOptionsJSON };
-  };
+  const startData = await authClient.loginStart({});
 
-  // Modal discoverable auth — on Android this shows the credential selector
-  // bottom sheet with "Sign in as [user] to [site]"
+  const optionsJSON = JSON.parse(startData.optionsJson) as PublicKeyCredentialRequestOptionsJSON;
+
   const credential = await startAuthentication({
-    optionsJSON: startData.options.publicKey,
+    optionsJSON,
   });
 
-  return (await authFetch('/login/finish', {
-    challenge_id: startData.challenge_id,
-    credential,
-  })) as AuthResponse;
+  const finishData = await authClient.loginFinish({
+    challengeId: startData.challengeId,
+    credentialJson: JSON.stringify(credential),
+  });
+
+  return finishData;
 }
 
 export async function logout(): Promise<void> {
-  const token = localStorage.getItem('liftSessionToken');
-  if (!token) return;
-
   try {
-    await fetch(`${AUTH_BASE}/logout`, {
-      method: 'POST',
-      headers: { 'x-session-token': token },
-    });
+    await authClient.logout({}, withUserId(''));
   } catch (e) {
     console.error('Failed to logout on server:', e);
   }

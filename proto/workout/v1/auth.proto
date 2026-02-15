@@ -1,0 +1,93 @@
+syntax = "proto3";
+package workout.v1;
+
+message RegisterStartRequest {
+  string username = 1;
+}
+
+message RegisterStartResponse {
+  string user_id = 1;
+  string options_json = 2;
+}
+
+message RegisterFinishRequest {
+  string user_id = 1;
+  string credential_json = 2;
+  optional string name = 3;
+}
+
+message AuthResponse {
+  string session_token = 1;
+  string user_id = 2;
+  string username = 3;
+}
+
+message LoginStartRequest {
+  optional string username = 1;
+}
+
+message LoginStartResponse {
+  string challenge_id = 1;
+  string options_json = 2;
+}
+
+message LoginFinishRequest {
+  string challenge_id = 1;
+  string credential_json = 2;
+}
+
+message LogoutRequest {}
+message LogoutResponse {}
+
+message AddPasskeyStartRequest {}
+message AddPasskeyStartResponse {
+  string options_json = 1;
+}
+
+message AddPasskeyFinishRequest {
+  string credential_json = 1;
+  optional string name = 2;
+}
+message AddPasskeyFinishResponse {}
+
+message DeletePasskeyRequest {
+  string credential_id = 1;
+}
+message DeletePasskeyResponse {}
+
+message PasskeyInfo {
+  string credential_id = 1;
+  optional string name = 2;
+  int64 created_at = 3;
+  optional string created_at_ip = 4;
+  repeated string transports = 5;
+}
+
+message ListPasskeysRequest {}
+message ListPasskeysResponse {
+  repeated PasskeyInfo passkeys = 1;
+}
+
+message PasswordRegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message PasswordLoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+service AuthService {
+  rpc RegisterStart(RegisterStartRequest) returns (RegisterStartResponse);
+  rpc RegisterFinish(RegisterFinishRequest) returns (AuthResponse);
+  rpc LoginStart(LoginStartRequest) returns (LoginStartResponse);
+  rpc LoginFinish(LoginFinishRequest) returns (AuthResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc AddPasskeyStart(AddPasskeyStartRequest) returns (AddPasskeyStartResponse);
+  rpc AddPasskeyFinish(AddPasskeyFinishRequest) returns (AddPasskeyFinishResponse);
+  rpc DeletePasskey(DeletePasskeyRequest) returns (DeletePasskeyResponse);
+  rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
+  rpc PasswordRegister(PasswordRegisterRequest) returns (AuthResponse);
+  rpc PasswordLogin(PasswordLoginRequest) returns (AuthResponse);
+}

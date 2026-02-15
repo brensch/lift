@@ -54,7 +54,7 @@ proto-dart:
 	PATH="$(HOME)/flutter-sdk/bin:$(HOME)/.pub-cache/bin:$$PATH" \
 		protoc --dart_out=grpc:app/lib/gen/workout/v1 \
 		--proto_path=proto \
-		proto/workout/v1/workout.proto proto/workout/v1/group.proto
+		proto/workout/v1/workout.proto proto/workout/v1/group.proto proto/workout/v1/auth.proto
 	@# Fix nested directory structure from protoc
 	@if [ -d "app/lib/gen/workout/v1/workout/v1" ]; then \
 		mv app/lib/gen/workout/v1/workout/v1/*.dart app/lib/gen/workout/v1/; \

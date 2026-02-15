@@ -6,23 +6,24 @@ use lift::workout::v1::{
     workout_service_server::WorkoutServiceServer,
     user_service_server::UserServiceServer,
     multiplayer_service_server::MultiplayerServiceServer,
+    auth_service_server::AuthServiceServer,
 };
 use log::info;
 
 mod auth;
-mod auth_routes;
 mod db;
 mod scheduler;
 mod service_workout;
 mod service_user;
 mod service_group;
+mod service_auth;
 
 use auth::AuthState;
-use auth_routes::auth_router;
 use db::CentralDb;
 use service_workout::MyWorkoutService;
 use service_user::MyUserService;
 use service_group::{GroupService, SessionManager};
+use service_auth::MyAuthService;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -36,6 +37,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let workout_service = MyWorkoutService::new(central_db.clone(), session_manager.clone());
     let user_service = MyUserService::new(central_db.clone());
     let group_service = GroupService::new(central_db.clone(), session_manager.clone());
+    
+    let auth_state = Arc::new(AuthState::new(central_db.clone()));
+    let auth_service = MyAuthService { auth_state: auth_state.clone() };
 
     // CORS layer for browser access
     let cors = CorsLayer::new()
@@ -53,26 +57,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let workout_service_web = tonic_web::enable(WorkoutServiceServer::new(workout_service));
     let user_service_web = tonic_web::enable(UserServiceServer::new(user_service));
     let multiplayer_service_web = tonic_web::enable(MultiplayerServiceServer::new(group_service));
+    let auth_service_web = tonic_web::enable(AuthServiceServer::new(auth_service));
 
-    // Build gRPC router — used as fallback so it doesn't capture /auth/ paths
+    // Build gRPC router
     #[allow(deprecated)]
     let grpc_router = tonic::transport::Server::builder()
         .accept_http1(true)
         .add_service(workout_service_web)
         .add_service(user_service_web)
         .add_service(multiplayer_service_web)
+        .add_service(auth_service_web)
         .into_router();
 
-    // Build auth REST router
-    let auth_state = Arc::new(AuthState::new(central_db.clone()));
-    let auth_routes = auth_router(auth_state);
+    // Use gRPC router with CORS
+    let app = grpc_router.layer(cors);
 
-    // Auth routes checked first; gRPC handles everything else
-    let app = auth_routes
-        .fallback_service(grpc_router)
-        .layer(cors);
-
-    println!("Server listening on {} (gRPC-Web + REST)", addr);
+    println!("Server listening on {} (gRPC-Web)", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(

@@ -81,6 +81,13 @@ class MultiplayerProvider extends ChangeNotifier {
     }
   }
 
+  void clear() {
+    _sessionId = null;
+    _sessionStatus = null;
+    _stopPolling();
+    notifyListeners();
+  }
+
   void _startPolling() {
     _stopPolling();
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _poll());

@@ -17,10 +17,10 @@ export function LoginView({ onLogin }: LoginViewProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const completeLogin = (result: { session_token: string; user_id: string }) => {
-    localStorage.setItem('liftSessionToken', result.session_token)
-    localStorage.setItem('liftUserId', result.user_id)
-    onLogin(result.user_id)
+  const completeLogin = (result: { sessionToken: string; userId: string }) => {
+    localStorage.setItem('liftSessionToken', result.sessionToken)
+    localStorage.setItem('liftUserId', result.userId)
+    onLogin(result.userId)
   }
 
   const handleSignIn = async () => {

@@ -1,6 +1,7 @@
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import '../gen/workout/v1/group.pbgrpc.dart';
+import '../gen/workout/v1/auth.pbgrpc.dart';
 
 class AuthInterceptor extends ClientInterceptor {
   String? _token;
@@ -28,6 +29,7 @@ class GrpcClient {
   late final WorkoutServiceClient workoutService;
   late final UserServiceClient userService;
   late final MultiplayerServiceClient multiplayerService;
+  late final AuthServiceClient authService;
 
   GrpcClient({required String host, required int port}) {
     authInterceptor = AuthInterceptor();
@@ -39,6 +41,7 @@ class GrpcClient {
     workoutService = WorkoutServiceClient(channel, interceptors: [authInterceptor]);
     userService = UserServiceClient(channel, interceptors: [authInterceptor]);
     multiplayerService = MultiplayerServiceClient(channel, interceptors: [authInterceptor]);
+    authService = AuthServiceClient(channel, interceptors: [authInterceptor]);
   }
 
   void setToken(String? token) {
