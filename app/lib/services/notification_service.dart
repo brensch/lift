@@ -10,7 +10,15 @@ class NotificationService {
     tz.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const darwinSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestSoundPermission: true,
+      requestBadgePermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: darwinSettings,
+    );
     await _plugin.initialize(initSettings);
 
     // Request notification permission (Android 13+)
@@ -36,7 +44,7 @@ class NotificationService {
 
     // Use per-preset channel ID to avoid Android's channel sound caching
     final channelId = 'rest_timer_$soundPresetId';
-    final sound = RawResourceAndroidNotificationSound('sound_$soundPresetId');
+    final androidSound = RawResourceAndroidNotificationSound('sound_$soundPresetId');
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
@@ -44,11 +52,17 @@ class NotificationService {
       channelDescription: 'Rest timer completion alert',
       importance: Importance.high,
       priority: Priority.high,
-      sound: sound,
+      sound: androidSound,
       playSound: true,
       enableVibration: true,
       category: AndroidNotificationCategory.alarm,
       fullScreenIntent: true,
+    );
+
+    final darwinDetails = DarwinNotificationDetails(
+      sound: 'sounds/sound_$soundPresetId.wav',
+      presentSound: true,
+      presentAlert: true,
     );
 
     await _plugin.zonedSchedule(
@@ -56,7 +70,7 @@ class NotificationService {
       'Rest Complete',
       'Time to start your next set!',
       scheduledTime,
-      NotificationDetails(android: androidDetails),
+      NotificationDetails(android: androidDetails, iOS: darwinDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: null,
     );

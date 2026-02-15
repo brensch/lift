@@ -21,6 +21,10 @@ run-app:
 	$(ADB) reverse tcp:50051 tcp:50051
 	cd app && $(FLUTTER) run
 
+deploy-android:
+	cd app && $(FLUTTER) build apk --release
+	$(ADB) install -r app/build/app/outputs/flutter-apk/app-release.apk
+
 run-prod:
 	docker-compose up --build
 
