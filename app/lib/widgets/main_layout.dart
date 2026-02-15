@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -217,19 +218,27 @@ class MainLayout extends StatelessWidget {
   }
 
   Widget _buildMultiplayerButton(BuildContext context, MultiplayerProvider mp) {
+    final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     
-    final label = mp.isInSession ? 'IN SESSION' : 'MULTIPLAYER';
-    final icon = mp.isInSession ? Icons.group : Icons.group_add;
+    // Check workout duration if active
+    bool shouldShake = !mp.isInSession;
+    if (wp.hasActiveWorkout && wp.activeWorkout!.startTime != Int64.ZERO) {
+      final startTime = DateTime.fromMillisecondsSinceEpoch(wp.activeWorkout!.startTime.toInt() * 1000);
+      final duration = DateTime.now().difference(startTime);
+      if (duration.inMinutes >= 5) {
+        shouldShake = false;
+      }
+    }
 
     Widget button = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: FilledButton.icon(
         onPressed: () => _showMultiplayerModal(context),
-        icon: Icon(icon, size: 16),
-        label: Text(
-          label,
-          style: const TextStyle(
+        icon: const Icon(Icons.group_add, size: 16),
+        label: const Text(
+          'MULTIPLAYER',
+          style: TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 11,
             letterSpacing: 0.5,
@@ -238,14 +247,14 @@ class MainLayout extends StatelessWidget {
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           minimumSize: const Size(0, 36),
-          backgroundColor: mp.isInSession ? colorScheme.secondary : colorScheme.primary,
-          foregroundColor: mp.isInSession ? colorScheme.onSecondary : colorScheme.onPrimary,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
 
-    if (mp.isInSession) {
+    if (!shouldShake) {
       return button;
     }
 

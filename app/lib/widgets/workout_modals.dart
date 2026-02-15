@@ -50,8 +50,9 @@ Future<void> showEditExerciseDialog(
 
           return Container(
             decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              color: colorScheme.secondary,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
