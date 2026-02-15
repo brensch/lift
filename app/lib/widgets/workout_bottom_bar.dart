@@ -168,13 +168,18 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
       onTap: !isOnWorkoutPage ? () => context.go('/') : null,
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          border: Border(top: BorderSide(color: colorScheme.outline)),
+          color: colorScheme.secondary,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            right: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+          ),
         ),
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,

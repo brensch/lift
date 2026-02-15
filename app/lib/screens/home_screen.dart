@@ -226,15 +226,13 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-          border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1))),
+          color: colorScheme.secondary,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            right: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

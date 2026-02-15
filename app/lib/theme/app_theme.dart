@@ -33,7 +33,7 @@ class AppTheme {
       onSurface: Color(0xFF0A0A0A),
       primary: Color(0xFF171717),       // near-black primary
       onPrimary: Color(0xFFFAFAFA),
-      secondary: Color(0xFFF5F5F5),     // light gray
+      secondary: Color(0xFFE5E5E5),     // darker gray for better contrast
       onSecondary: Color(0xFF171717),
       tertiary: Color(0xFF737373),      // muted text
       error: Color(0xFFDC2626),
