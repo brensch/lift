@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
-import '../providers/workout_provider.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -86,8 +86,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   trailing: Icon(Icons.chevron_right, color: colorScheme.tertiary),
                   onTap: () {
-                    final wp = context.read<WorkoutProvider>();
-                    wp.loadWorkout(workout.id);
+                    context.go('/workout/${workout.id}/completed');
                   },
                 );
               },

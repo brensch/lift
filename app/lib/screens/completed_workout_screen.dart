@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -6,17 +7,32 @@ import '../providers/workout_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/exercise_group_widget.dart';
 
-class CompletedWorkoutScreen extends StatelessWidget {
+class CompletedWorkoutScreen extends StatefulWidget {
   final String workoutId;
 
   const CompletedWorkoutScreen({super.key, required this.workoutId});
+
+  @override
+  State<CompletedWorkoutScreen> createState() => _CompletedWorkoutScreenState();
+}
+
+class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final wp = context.read<WorkoutProvider>();
+    // Load workout if not already loaded or if it's a different workout
+    if (wp.workout == null || wp.workout!.id != widget.workoutId) {
+      wp.loadWorkout(widget.workoutId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (wp.workout == null) {
+    if (wp.workout == null || wp.workout!.id != widget.workoutId) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -38,7 +54,7 @@ class CompletedWorkoutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'COMPLETE',
+          'SUMMARY',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),
@@ -86,7 +102,10 @@ class CompletedWorkoutScreen extends StatelessWidget {
           SizedBox(
             height: 48,
             child: FilledButton(
-              onPressed: () => wp.clear(),
+              onPressed: () {
+                wp.clear();
+                context.go('/');
+              },
               child: const Text('Done'),
             ),
           ),

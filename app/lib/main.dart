@@ -13,8 +13,7 @@ import 'providers/sound_provider.dart';
 import 'providers/theme_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/workout_screen.dart';
+import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
@@ -106,8 +105,7 @@ class _LiftAppState extends State<LiftApp> {
         ShellRoute(
           builder: (context, state, child) => MainLayout(child: child),
           routes: [
-            GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-            GoRoute(path: '/workout', builder: (_, __) => const WorkoutScreen()),
+            GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
             GoRoute(
               path: '/workout/:id/completed',
               builder: (_, state) => CompletedWorkoutScreen(
