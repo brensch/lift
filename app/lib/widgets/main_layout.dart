@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
-import 'session_header.dart';
+import '../providers/workout_provider.dart';
+import '../providers/multiplayer_provider.dart';
+import 'multiplayer_modal.dart';
+import 'workout_bottom_bar.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -14,8 +17,12 @@ class MainLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final themeProvider = context.watch<ThemeProvider>();
+    final wp = context.watch<WorkoutProvider>();
+    final mp = context.watch<MultiplayerProvider>();
     final userName = authProvider.username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
+
+    final hasWorkout = wp.hasActiveWorkout;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,6 +39,20 @@ class MainLayout extends StatelessWidget {
           ),
         ),
         actions: [
+          if (hasWorkout)
+            IconButton(
+              icon: Icon(
+                mp.isInSession ? Icons.group : Icons.group_add_outlined,
+                size: 22,
+              ),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) => const MultiplayerModal(),
+                );
+              },
+            ),
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu),
@@ -70,8 +91,8 @@ class MainLayout extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
                     _MenuButton(
-                      icon: Icons.home_outlined,
-                      label: 'HOME',
+                      icon: Icons.fitness_center_outlined,
+                      label: 'WORKOUT',
                       onTap: () {
                         Navigator.pop(context);
                         context.go('/');
@@ -203,8 +224,8 @@ class MainLayout extends StatelessWidget {
       ),
       body: Column(
         children: [
-          const SessionHeader(),
           Expanded(child: child),
+          const WorkoutBottomBar(),
         ],
       ),
     );

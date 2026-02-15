@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -22,7 +21,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<ExerciseStatus>? _schedule;
-  String? _activeWorkoutId;
   Set<Exercise> _selectedExercises = {};
   bool _isLoading = true;
   bool _isStarting = false;
@@ -46,15 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final scheduleRes = await workoutService.getProposedWorkoutSchedule(auth.userId!);
-
-      String? activeId = scheduleRes.activeWorkoutId.isNotEmpty ? scheduleRes.activeWorkoutId : null;
-
-      if (activeId == null) {
-        final activeRes = await workoutService.getActiveWorkout();
-        if (activeRes != null) {
-          activeId = activeRes.id;
-        }
-      }
 
       if (!mounted) return;
 
@@ -80,14 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _schedule = schedule;
-        _activeWorkoutId = activeId;
         _selectedExercises = autoSelected;
         _isLoading = false;
       });
-
-      if (activeId != null) {
-        context.read<WorkoutProvider>().loadWorkout(activeId);
-      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -137,11 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final workoutName = "${monthNames[now.month - 1]} ${now.day}";
 
       final workoutProvider = context.read<WorkoutProvider>();
-      final workoutId = await workoutProvider.startWorkout(workoutName, proposedSets);
-
-      if (workoutId != null && mounted) {
-        context.go('/workout');
-      }
+      await workoutProvider.startWorkout(workoutName, proposedSets);
     } catch (e) {
       debugPrint('Error starting workout: $e');
       if (mounted) {
@@ -168,8 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final providerHasActive = context.watch<WorkoutProvider>().hasActiveWorkout;
-    final showResume = _activeWorkoutId != null || providerHasActive;
     final userName = context.read<AuthProvider>().username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -205,37 +183,32 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                if (showResume)
-                  _buildResumeCard()
-                else ...[
-                  Text(
-                    'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.0,
-                      height: 1.0,
-                    ),
+                Text(
+                  'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
+                    height: 1.0,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'READY FOR YOUR FIRST WORKOUT?',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: colorScheme.tertiary,
-                    ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'SELECT YOUR EXERCISES',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                    color: colorScheme.tertiary,
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
+                const SizedBox(height: 24),
               ]),
             ),
           ),
 
-          if (!showResume) ...[
-            if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
-            if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
+          if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
+          if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
 
             SliverPadding(
               padding: const EdgeInsets.all(16),
@@ -265,60 +238,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ],
 
           const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResumeCard() {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.primary, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'ACTIVE SESSION',
-            style: TextStyle(
-              color: colorScheme.tertiary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'WORKOUT IN PROGRESS',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.0,
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: () => context.go('/workout'),
-              child: const Text(
-                'RESUME',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

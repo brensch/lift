@@ -66,6 +66,17 @@ class WorkoutProvider extends ChangeNotifier {
     return remaining > 0 ? remaining : 0;
   }
 
+  /// Returns the unix timestamp when the last rest period ended, or null.
+  /// Used to detect "chat time" (rest ended but user hasn't started next set).
+  int? get lastRestEndTimestamp {
+    final candidates = _completedSets
+        .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
+        .toList();
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) => b.endedAt.compareTo(a.endedAt));
+    return candidates.first.restUntil.toInt();
+  }
+
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -193,6 +204,32 @@ class WorkoutProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error deleting completed set: $e');
+    }
+  }
+
+  /// Skip a warmup set by completing it immediately with target reps/weight.
+  Future<void> skipWarmup(String proposedSetId) async {
+    if (_workout == null) return;
+    final proposed = _proposedSets.cast<ProposedSet?>().firstWhere(
+      (p) => p!.id == proposedSetId,
+      orElse: () => null,
+    );
+    if (proposed == null) return;
+
+    try {
+      final completed = await _service.completeSet(
+        _workout!.id,
+        proposedSetId,
+        proposed.targetReps,
+        proposed.targetWeight.toDouble(),
+      );
+      _completedSets.removeWhere(
+        (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
+      );
+      _completedSets.add(completed);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error skipping warmup: $e');
     }
   }
 
