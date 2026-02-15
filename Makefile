@@ -15,7 +15,10 @@ run-backend:
 run-frontend:
 	cd web && $(BUN) run dev
 
+ADB = $(HOME)/android-sdk/platform-tools/adb
+
 run-app:
+	$(ADB) reverse tcp:50051 tcp:50051
 	cd app && $(FLUTTER) run
 
 run-prod:

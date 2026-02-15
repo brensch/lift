@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'services/notification_service.dart';
 import 'services/grpc_client.dart';
 import 'services/auth_service.dart';
 import 'services/workout_service.dart';
@@ -27,7 +28,9 @@ const serverHost = kReleaseMode ? 'lift.snek2.ddns.net' : 'localhost';
 const serverPort = kReleaseMode ? 443 : 50051;
 const serverBaseUrl = kReleaseMode ? 'https://$serverHost' : 'http://$serverHost:$serverPort';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
   runApp(const LiftApp());
 }
 
@@ -60,9 +63,10 @@ class _LiftAppState extends State<LiftApp> {
       grpcClient: _grpcClient,
     );
 
-    _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
-    _multiplayerProvider = MultiplayerProvider(MultiplayerServiceWrapper(_grpcClient));
     _soundProvider = SoundProvider();
+    _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
+    _workoutProvider.setSoundProvider(_soundProvider);
+    _multiplayerProvider = MultiplayerProvider(MultiplayerServiceWrapper(_grpcClient));
     _themeProvider = ThemeProvider();
 
     // Listen to auth changes to clear state on logout
