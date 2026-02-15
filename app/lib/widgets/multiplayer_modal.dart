@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
 
@@ -14,168 +16,224 @@ class MultiplayerModal extends StatefulWidget {
 
 class _MultiplayerModalState extends State<MultiplayerModal> {
   bool _isScanning = false;
-  final _sessionIdController = TextEditingController();
 
-  @override
-  void dispose() {
-    _sessionIdController.dispose();
-    super.dispose();
+  void _handleScan(BarcodeCapture capture) {
+    final List<Barcode> barcodes = capture.barcodes;
+    for (final barcode in barcodes) {
+      if (barcode.rawValue != null) {
+        final url = Uri.tryParse(barcode.rawValue!);
+        if (url != null) {
+          final joinId = url.queryParameters['join'];
+          if (joinId != null) {
+            _joinSession(joinId);
+            return; // Only join the first valid one
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _joinSession(String sessionId) async {
+    // If we're already processing a scan, don't do it again immediately
+    if (!mounted) return;
+    
+    // Stop scanning
+    setState(() => _isScanning = false);
+
+    final mp = context.read<MultiplayerProvider>();
+    final wp = context.read<WorkoutProvider>();
+    final workoutId = wp.hasActiveWorkout ? wp.workout?.id : null;
+
+    final success = await mp.joinSession(sessionId, workoutId: workoutId);
+    if (success && mounted) {
+      Navigator.pop(context); // Close modal on success
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Joined session successfully')),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to join session')),
+      );
+    }
+  }
+
+  Future<void> _startSession() async {
+    final mp = context.read<MultiplayerProvider>();
+    final wp = context.read<WorkoutProvider>();
+    final workoutId = wp.hasActiveWorkout ? wp.workout?.id : null;
+
+    await mp.startSession(workoutId: workoutId);
+  }
+
+  Future<void> _leaveSession() async {
+    final mp = context.read<MultiplayerProvider>();
+    await mp.leaveSession();
+  }
+
+  Future<void> _shareSession(String sessionId) async {
+    try {
+      await Share.share('Join my workout on Lift: https://lift.brensch.com/?join=$sessionId');
+    } catch (e) {
+      debugPrint('Error sharing: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sharing not supported on this device. Use "Copy" instead.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _copyLink(String sessionId) async {
+    await Clipboard.setData(ClipboardData(text: 'https://lift.brensch.com/?join=$sessionId'));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link copied to clipboard')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final mp = context.watch<MultiplayerProvider>();
-    final wp = context.read<WorkoutProvider>();
+    final theme = Theme.of(context);
+    final sessionId = mp.sessionId;
 
-    if (mp.isInSession) {
-      return _buildInSession(context, mp);
-    }
-
-    return _buildJoinOrCreate(context, mp, wp);
-  }
-
-  Widget _buildInSession(BuildContext context, MultiplayerProvider mp) {
-    return Padding(
+    // Use a fixed height or make it scrollable
+    return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Session Active', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          QrImageView(
-            data: mp.sessionId!,
-            size: 200,
-          ),
-          const SizedBox(height: 8),
-          SelectableText(
-            mp.sessionId!,
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () {
-              mp.leaveSession();
-              Navigator.pop(context);
-            },
-            child: const Text('Leave Session'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJoinOrCreate(BuildContext context, MultiplayerProvider mp, WorkoutProvider wp) {
-    if (_isScanning) {
-      return SizedBox(
-        height: 400,
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Scan Session QR Code', style: TextStyle(fontSize: 16)),
-            ),
-            Expanded(
-              child: MobileScanner(
-                onDetect: (capture) {
-                  final barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    final value = barcode.rawValue;
-                    if (value != null && value.isNotEmpty) {
-                      setState(() => _isScanning = false);
-                      _joinSession(context, mp, wp, value);
-                      break;
-                    }
-                  }
-                },
-              ),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _isScanning = false),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Multiplayer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: mp.isLoading
-                  ? null
-                  : () async {
-                      final sessionId = await mp.startSession(
-                        workoutId: wp.workout?.id,
-                      );
-                      if (sessionId != null && context.mounted) {
-                        Navigator.pop(context);
-                      }
-                    },
-              icon: const Icon(Icons.add),
-              label: const Text('Start Session'),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _sessionIdController,
-            decoration: const InputDecoration(
-              labelText: 'Session ID',
-              border: OutlineInputBorder(),
-              hintText: 'Enter or scan session ID',
-            ),
-          ),
-          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _isScanning = true),
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan QR'),
-                ),
+              Text(
+                'MULTIPLAYER',
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: mp.isLoading || _sessionIdController.text.isEmpty
-                      ? null
-                      : () => _joinSession(
-                            context,
-                            mp,
-                            wp,
-                            _sessionIdController.text.trim(),
-                          ),
-                  child: const Text('Join'),
-                ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          if (mp.isLoading)
+             const Center(child: Padding(
+               padding: EdgeInsets.all(32.0),
+               child: CircularProgressIndicator(),
+             ))
+          else if (sessionId == null) ...[
+            if (_isScanning)
+              SizedBox(
+                height: 300,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: MobileScanner(
+                    onDetect: _handleScan,
+                  ),
+                ),
+              )
+            else ...[
+              FilledButton(
+                onPressed: _startSession,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('Start a Session'),
+              ),
+              const SizedBox(height: 16),
+              const Center(child: Text('OR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _isScanning = true),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scan QR Code'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ],
+            if (_isScanning)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: TextButton(
+                  onPressed: () => setState(() => _isScanning = false),
+                  child: const Text('Cancel Scan'),
+                ),
+              ),
+          ] else ...[
+            // In Session
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Center(
+                child: QrImageView(
+                  data: 'https://lift.brensch.com/?join=$sessionId', // Replace with actual domain if needed
+                  version: QrVersions.auto,
+                  size: 200.0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Session Active',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'ID: $sessionId',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _leaveSession,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Leave'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _copyLink(sessionId),
+                    icon: const Icon(Icons.copy, size: 18),
+                    label: const Text('Copy'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: theme.colorScheme.secondary,
+                      foregroundColor: theme.colorScheme.onSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _shareSession(sessionId),
+                    icon: const Icon(Icons.share, size: 18),
+                    label: const Text('Share'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
-  }
-
-  Future<void> _joinSession(
-    BuildContext context,
-    MultiplayerProvider mp,
-    WorkoutProvider wp,
-    String sessionId,
-  ) async {
-    final success = await mp.joinSession(
-      sessionId,
-      workoutId: wp.workout?.id,
-    );
-    if (success && context.mounted) {
-      Navigator.pop(context);
-    }
   }
 }

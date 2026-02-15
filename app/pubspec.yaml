@@ -22,6 +22,7 @@ dependencies:
   just_audio: ^0.9.40
   uuid: ^4.4.0
   fixnum: ^1.1.0
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:
