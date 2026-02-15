@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/warmup.dart';
@@ -12,6 +13,9 @@ import '../services/notification_service.dart';
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final WorkoutServiceWrapper _service;
   SoundProvider? _soundProvider;
+
+  // Loading state
+  bool _isLoading = false;
 
   // Active workout state
   Workout? _activeWorkout;
@@ -93,7 +97,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _wasResting = isCurrentlyResting;
   }
 
-  void _showError(String message) {
+  void _handleError(Object e) {
+    if (e is GrpcError && e.code == StatusCode.unauthenticated) return;
+    String message;
+    if (e is GrpcError) {
+      message = e.message ?? 'Server error';
+    } else {
+      message = e.toString().replaceFirst('Exception: ', '');
+    }
     Fluttertoast.showToast(
       msg: message,
       toastLength: Toast.LENGTH_LONG,
@@ -103,6 +114,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       fontSize: 16.0,
     );
   }
+
+  // Loading state
+  bool get isLoading => _isLoading;
 
   // Proxy getters for screens to show "current" context (active or historical)
   Workout? get workout => _isViewingHistory ? _viewingWorkout : _activeWorkout;
@@ -189,6 +203,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> loadActiveWorkout(String userId) async {
+    _isLoading = true;
+    notifyListeners();
     try {
       final active = await _service.getActiveWorkout();
       if (active != null) {
@@ -208,10 +224,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       final proposedSchedule = await _service.getProposedWorkoutSchedule(userId);
       _exerciseStatuses = proposedSchedule.exerciseStatuses;
-
-      notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -237,7 +254,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 
@@ -255,7 +272,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       await loadWorkout(workoutId);
       return workoutId;
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
       return null;
     }
   }
@@ -280,7 +297,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeProposedSets = List.from(updated);
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
       await loadWorkout(_activeWorkout!.id);
     }
   }
@@ -293,7 +310,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 
@@ -326,7 +343,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 
@@ -337,7 +354,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 
@@ -362,7 +379,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 
@@ -375,7 +392,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _stopTimer();
       notifyListeners();
     } catch (e) {
-      _showError('Connection error: $e');
+      _handleError(e);
     }
   }
 

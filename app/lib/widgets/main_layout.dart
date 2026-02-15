@@ -91,7 +91,7 @@ class MainLayout extends StatelessWidget {
                       label: 'PROGRESS',
                       onTap: () {
                         Navigator.pop(context);
-                        context.go('/progress');
+                        context.push('/progress');
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/progress',
                     ),
@@ -101,7 +101,7 @@ class MainLayout extends StatelessWidget {
                       label: 'HISTORY',
                       onTap: () {
                         Navigator.pop(context);
-                        context.go('/history');
+                        context.push('/history');
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/history',
                     ),
@@ -111,7 +111,7 @@ class MainLayout extends StatelessWidget {
                       label: 'PICK SOUND',
                       onTap: () {
                         Navigator.pop(context);
-                        context.go('/sound-settings');
+                        context.push('/sound-settings');
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/sound-settings',
                     ),
@@ -121,7 +121,7 @@ class MainLayout extends StatelessWidget {
                       label: 'PASSKEYS',
                       onTap: () {
                         Navigator.pop(context);
-                        context.go('/passkeys');
+                        context.push('/passkeys');
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/passkeys',
                     ),

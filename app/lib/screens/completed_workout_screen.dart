@@ -58,11 +58,14 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           onPressed: () {
             if (widget.isHistory) {
               wp.stopViewingHistory();
-              context.go('/history');
             } else {
               if (wp.workout?.id == widget.workoutId && !wp.hasActiveWorkout) {
                 wp.clear();
               }
+            }
+            if (context.canPop()) {
+              context.pop();
+            } else {
               context.go('/');
             }
           },

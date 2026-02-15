@@ -323,7 +323,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
         if (mp.isInSession) {
           await mp.leaveSession();
         }
-        context.go('/workout/$workoutId/completed');
+        context.push('/workout/$workoutId/completed');
       }
     }
   }

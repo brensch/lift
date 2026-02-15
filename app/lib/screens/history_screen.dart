@@ -86,7 +86,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   trailing: Icon(Icons.chevron_right, color: colorScheme.tertiary),
                   onTap: () {
-                    context.go('/workout/${workout.id}/completed?isHistory=true');
+                    context.push('/workout/${workout.id}/completed?isHistory=true');
                   },
                 );
               },
