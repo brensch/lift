@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -42,113 +43,446 @@ class WorkoutScreen extends StatelessWidget {
         .where((p) => p.user.id != auth.userId)
         .toList();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Participant cards (multiplayer)
-        if (mp.isInSession && otherParticipants.isNotEmpty) ...[
-          ...otherParticipants.map((p) {
-            final isNextUp = groupNextUp?.participant.user.id == p.user.id;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ParticipantCard(
-                participant: p,
-                isNextUp: isNextUp,
-              ),
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
+    final workout = wp.workout!;
+    final startTime = DateTime.fromMillisecondsSinceEpoch(workout.startTime.toInt() * 1000);
+    final endTime = workout.endTime != Int64.ZERO 
+        ? DateTime.fromMillisecondsSinceEpoch(workout.endTime.toInt() * 1000)
+        : wp.now;
+    final duration = endTime.difference(startTime);
 
-        ...groups.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final group = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Dismissible(
-              key: ValueKey('group-$idx-${group.exercise.value}'),
-              direction: isEnded ? DismissDirection.none : DismissDirection.endToStart,
-              confirmDismiss: (_) => showDeleteGroupDialog(
-                context,
-                exerciseNames[group.exercise] ?? '?',
-              ),
-              onDismissed: (_) => _deleteGroup(context, wp, idx),
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
-                  color: colorScheme.error,
-                  borderRadius: BorderRadius.circular(8),
+            return ListView(
+
+              children: [
+
+                Padding(
+
+                  padding: const EdgeInsets.all(16),
+
+                  child: Row(
+
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                    crossAxisAlignment: CrossAxisAlignment.end,
+
+                    children: [
+
+                      Expanded(
+
+                        child: Column(
+
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                          children: [
+
+                            Text(
+
+                              isEnded ? 'WORKOUT COMPLETED' : 'WORKOUT IN PROGRESS',
+
+                              style: TextStyle(
+
+                                fontSize: 11,
+
+                                fontWeight: FontWeight.bold,
+
+                                letterSpacing: 1.5,
+
+                                color: colorScheme.tertiary,
+
+                              ),
+
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            Text(
+
+                              workout.name.toUpperCase(),
+
+                              style: const TextStyle(
+
+                                fontSize: 24,
+
+                                fontWeight: FontWeight.w900,
+
+                                letterSpacing: -1.0,
+
+                                height: 1.0,
+
+                              ),
+
+                            ),
+
+                          ],
+
+                        ),
+
+                      ),
+
+                      Column(
+
+                        crossAxisAlignment: CrossAxisAlignment.end,
+
+                        children: [
+
+                          Text(
+
+                            'TOTAL TIME',
+
+                            style: TextStyle(
+
+                              fontSize: 10,
+
+                              fontWeight: FontWeight.bold,
+
+                              letterSpacing: 1.0,
+
+                              color: colorScheme.tertiary,
+
+                            ),
+
+                          ),
+
+                          Text(
+
+                            _formatDuration(duration),
+
+                            style: const TextStyle(
+
+                              fontSize: 20,
+
+                              fontWeight: FontWeight.w900,
+
+                              letterSpacing: -0.5,
+
+                            ),
+
+                          ),
+
+                        ],
+
+                      ),
+
+                    ],
+
+                  ),
+
                 ),
-                child: Icon(Icons.delete, color: colorScheme.onError),
-              ),
-              child: ExerciseGroupWidget(
-                group: group,
-                groupIndex: idx,
-                totalGroups: groups.length,
-                completedSets: wp.completedSets,
-                activeSetId: activeSetId,
-                isWorkoutEnded: isEnded,
-                onMoveUp: () => _moveGroup(wp, idx, -1),
-                onMoveDown: () => _moveGroup(wp, idx, 1),
-                onEdit: () => _editGroup(context, wp, idx, group),
-              ),
-            ),
-          );
-        }),
 
-        if (!isEnded) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton.icon(
-              onPressed: () => _showAddExercise(context, wp),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'Add Exercise',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
+                Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
-        SetLog(
-          proposedSets: wp.proposedSets,
-          completedSets: wp.completedSets,
-          onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
-        ),
+        
 
-        if (!isEnded) ...[
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton(
-              onPressed: () => _endWorkout(context, wp),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.error,
-                side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-              ),
-              child: const Text(
-                'End Workout',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ],
-    );
-  }
+                Padding(
 
-  void _moveGroup(WorkoutProvider wp, int index, int direction) {
-    final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
-    final newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= groups.length) return;
-    final item = groups.removeAt(index);
-    groups.insert(newIndex, item);
-    wp.saveGroups(groups);
+                  padding: const EdgeInsets.all(16),
+
+                  child: Column(
+
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+
+                      Padding(
+
+                        padding: const EdgeInsets.only(bottom: 8),
+
+                        child: Text(
+
+                          'EXERCISES IN WORKOUT',
+
+                          style: TextStyle(
+
+                            fontSize: 11,
+
+                            fontWeight: FontWeight.bold,
+
+                            letterSpacing: 1.5,
+
+                            color: colorScheme.tertiary,
+
+                          ),
+
+                        ),
+
+                      ),
+
+                      if (groups.isNotEmpty)
+
+                        ReorderableListView(
+
+                          shrinkWrap: true,
+
+                          physics: const NeverScrollableScrollPhysics(),
+
+                          onReorder: (oldIndex, newIndex) {
+
+                            if (isEnded) return;
+
+                            if (oldIndex < newIndex) {
+
+                              newIndex -= 1;
+
+                            }
+
+                            final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
+
+                            final item = items.removeAt(oldIndex);
+
+                            items.insert(newIndex, item);
+
+                            wp.saveGroups(items);
+
+                          },
+
+                          children: groups.asMap().entries.map((entry) {
+
+                            final idx = entry.key;
+
+                            final group = entry.value;
+
+                            final stableKey = group.sets.isNotEmpty ? group.sets.first.id : 'empty-$idx';
+
+                            return Padding(
+
+                              key: ValueKey(stableKey),
+
+                              padding: const EdgeInsets.only(bottom: 8),
+
+                              child: Dismissible(
+
+                                key: ValueKey('dismiss-$stableKey'),
+
+                                direction: isEnded ? DismissDirection.none : DismissDirection.endToStart,
+
+                                confirmDismiss: (_) => showDeleteGroupDialog(
+
+                                  context,
+
+                                  exerciseNames[group.exercise] ?? '?',
+
+                                ),
+
+                                onDismissed: (_) => _deleteGroup(context, wp, idx),
+
+                                background: Container(
+
+                                  alignment: Alignment.centerRight,
+
+                                  padding: const EdgeInsets.only(right: 16),
+
+                                  decoration: BoxDecoration(
+
+                                    color: colorScheme.error,
+
+                                    borderRadius: BorderRadius.circular(8),
+
+                                  ),
+
+                                  child: Icon(Icons.delete, color: colorScheme.onError),
+
+                                ),
+
+                                child: ExerciseGroupWidget(
+
+                                  group: group,
+
+                                  completedSets: wp.completedSets,
+
+                                  activeSetId: activeSetId,
+
+                                  isWorkoutEnded: isEnded,
+
+                                  onEdit: () => _editGroup(context, wp, idx, group),
+
+                                ),
+
+                              ),
+
+                            );
+
+                          }).toList(),
+
+                        ),
+
+                      if (!isEnded) ...[
+
+                        const SizedBox(height: 8),
+
+                        SizedBox(
+
+                          width: double.infinity,
+
+                          height: 44,
+
+                          child: OutlinedButton.icon(
+
+                            onPressed: () => _showAddExercise(context, wp),
+
+                            icon: const Icon(Icons.add, size: 18),
+
+                            label: const Text(
+
+                              'Add Exercise',
+
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+
+                            ),
+
+                          ),
+
+                        ),
+
+                      ],
+
+                    ],
+
+                  ),
+
+                ),
+
+        
+
+                // Participant cards (multiplayer)
+
+                if (mp.isInSession && otherParticipants.isNotEmpty) ...[
+
+                  Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
+
+                  Padding(
+
+                    padding: const EdgeInsets.all(16),
+
+                    child: Column(
+
+                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                      children: [
+
+                        Padding(
+
+                          padding: const EdgeInsets.only(bottom: 8),
+
+                          child: Text(
+
+                            'SESSION MEMBERS',
+
+                            style: TextStyle(
+
+                              fontSize: 11,
+
+                              fontWeight: FontWeight.bold,
+
+                              letterSpacing: 1.5,
+
+                              color: colorScheme.tertiary,
+
+                            ),
+
+                          ),
+
+                        ),
+
+                        ...otherParticipants.map((p) {
+
+                          final isNextUp = groupNextUp?.participant.user.id == p.user.id;
+
+                          return Padding(
+
+                            padding: const EdgeInsets.only(bottom: 8),
+
+                            child: ParticipantCard(
+
+                              participant: p,
+
+                              isNextUp: isNextUp,
+
+                            ),
+
+                          );
+
+                        }),
+
+                      ],
+
+                    ),
+
+                  ),
+
+                ],
+
+        
+
+                Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
+
+                Padding(
+
+                  padding: const EdgeInsets.all(16),
+
+                  child: SetLog(
+
+                    proposedSets: wp.proposedSets,
+
+                    completedSets: wp.completedSets,
+
+                    onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
+
+                  ),
+
+                ),
+
+        
+
+                if (!isEnded) ...[
+
+                  const SizedBox(height: 8),
+
+                  Padding(
+
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                    child: SizedBox(
+
+                      width: double.infinity,
+
+                      height: 44,
+
+                      child: OutlinedButton(
+
+                        onPressed: () => _endWorkout(context, wp),
+
+                        style: OutlinedButton.styleFrom(
+
+                          foregroundColor: colorScheme.error,
+
+                          side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+
+                        ),
+
+                        child: const Text(
+
+                          'End Workout',
+
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+
+                        ),
+
+                      ),
+
+                    ),
+
+                  ),
+
+                  const SizedBox(height: 32),
+
+                ],
+
+              ],
+
+            );
+
+        
+
+    
   }
 
   void _deleteGroup(BuildContext context, WorkoutProvider wp, int index) {
@@ -164,6 +498,8 @@ class WorkoutScreen extends StatelessWidget {
       context,
       group: group,
       groupIndex: index,
+      exerciseStatuses: wp.exerciseStatuses,
+      isSetDone: wp.isSetDone,
       onSave: (groupIndex, {required double targetWeight, bool? warmups, int? setCount}) {
         wp.rebuildGroup(groupIndex, targetWeight: targetWeight, warmups: warmups, setCount: setCount);
       },
@@ -173,6 +509,7 @@ class WorkoutScreen extends StatelessWidget {
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
     showAddExerciseDialog(
       context,
+      exerciseStatuses: wp.exerciseStatuses,
       onAdd: (exercise, weight, sets, reps) {
         final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
         final newSets = <ProposedSet>[];
@@ -208,8 +545,25 @@ class WorkoutScreen extends StatelessWidget {
       final workoutId = wp.workout!.id;
       await wp.endWorkout();
       if (context.mounted) {
+        final mp = context.read<MultiplayerProvider>();
+        if (mp.isInSession) {
+          await mp.leaveSession();
+        }
         context.go('/workout/$workoutId/completed');
       }
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    final seconds = d.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes}m ${seconds}s';
+    } else if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    } else {
+      return '${seconds}s';
     }
   }
 }

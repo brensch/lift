@@ -75,7 +75,7 @@ class _LiftAppState extends State<LiftApp> {
     // Load persisted state
     _authProvider.loadSession().then((_) {
       if (_authProvider.isLoggedIn) {
-        _workoutProvider.loadActiveWorkout();
+        _workoutProvider.loadActiveWorkout(_authProvider.userId!);
         _multiplayerProvider.checkForSession();
         _soundProvider.load();
       }
@@ -110,6 +110,7 @@ class _LiftAppState extends State<LiftApp> {
               path: '/workout/:id/completed',
               builder: (_, state) => CompletedWorkoutScreen(
                 workoutId: state.pathParameters['id']!,
+                isHistory: state.uri.queryParameters['isHistory'] == 'true',
               ),
             ),
             GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),

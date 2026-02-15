@@ -7,25 +7,17 @@ import '../theme/app_theme.dart';
 
 class ExerciseGroupWidget extends StatelessWidget {
   final ExerciseGroupData group;
-  final int groupIndex;
-  final int totalGroups;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
   final bool isWorkoutEnded;
-  final VoidCallback? onMoveUp;
-  final VoidCallback? onMoveDown;
   final VoidCallback? onEdit;
 
   const ExerciseGroupWidget({
     super.key,
     required this.group,
-    required this.groupIndex,
-    required this.totalGroups,
     required this.completedSets,
     this.activeSetId,
     required this.isWorkoutEnded,
-    this.onMoveUp,
-    this.onMoveDown,
     this.onEdit,
   });
 
@@ -50,39 +42,6 @@ class ExerciseGroupWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (!isWorkoutEnded && !allCompleted && onMoveUp != null && onMoveDown != null)
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: groupIndex > 0 ? onMoveUp : null,
-                  child: Text(
-                    '\u25B2',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: groupIndex > 0
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurface.withValues(alpha: 0.2),
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: groupIndex < totalGroups - 1 ? onMoveDown : null,
-                  child: Text(
-                    '\u25BC',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: groupIndex < totalGroups - 1
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurface.withValues(alpha: 0.2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          if (!isWorkoutEnded && !allCompleted && onMoveUp != null)
-            const SizedBox(width: 4),
-
           SizedBox(
             width: 56,
             child: Text(
@@ -111,6 +70,16 @@ class ExerciseGroupWidget extends StatelessWidget {
               children: group.sets.map((set) => _buildSetIndicator(context, set)).toList(),
             ),
           ),
+
+          if (!isWorkoutEnded)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(
+                Icons.reorder,
+                size: 20,
+                color: colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+            ),
         ],
       ),
     );

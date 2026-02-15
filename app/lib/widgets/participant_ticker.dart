@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
-import '../widgets/plate_visualization.dart';
+import '../widgets/workout_status_box.dart';
 
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -24,125 +23,30 @@ class ParticipantCard extends StatelessWidget {
     this.isNextUp = false,
   });
 
-  static const _purple = Color(0xFF9333EA);
-
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final name = participant.user.name;
     final status = _getStatus(participant);
 
-    final borderColor = isNextUp
-        ? _purple.withValues(alpha: 0.5)
-        : colorScheme.outline;
-    final bgColor = isNextUp
-        ? _purple.withValues(alpha: 0.05)
-        : colorScheme.surface;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor, width: isNextUp ? 1.5 : 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: name + state dot + timer
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: status.stateColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  name.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.3,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                status.stateLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: status.stateColor,
-                ),
-              ),
-              if (status.timerText != null) ...[
-                const SizedBox(width: 6),
-                Text(
-                  status.timerText!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                    color: status.timerColor ?? colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          // Row 2: exercise + weight info
-          if (status.exerciseName != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(
-                  status.exerciseName!,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                if (status.isWarmup) ...[
-                  const SizedBox(width: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                    decoration: BoxDecoration(
-                      color: AppTheme.warmupFg.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: Text(
-                      'W',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.warmupFg,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 6),
-                Text(
-                  '${status.weight} lb',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(width: 6),
-                PlateVisualization(weight: status.weightDouble),
-              ],
-            ),
-          ],
-        ],
-      ),
+    return StatusBox(
+      label: '${participant.user.name.toUpperCase()} (${status.stateLabel})',
+      color: status.stateColor,
+      timerText: status.timerText,
+      timerColor: status.timerColor,
+      set: status.proposedSet,
+      isComplete: status.stateLabel == 'DONE' || status.stateLabel == 'FINISHED',
     );
   }
 
-  _ParticipantState _getStatus(ParticipantStatus p) {
+  _ParticipantStatusInfo _getStatus(ParticipantStatus p) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    // Check if workout is ended
+    if (p.hasActiveWorkout() && p.activeWorkout.endTime != Int64.ZERO) {
+      return _ParticipantStatusInfo(
+        stateLabel: 'FINISHED',
+        stateColor: AppTheme.successFg,
+      );
+    }
 
     // Check if actively lifting
     final activeSet = p.completedSets.cast<CompletedSet?>().firstWhere(
@@ -155,13 +59,10 @@ class ParticipantCard extends StatelessWidget {
         orElse: () => null,
       );
       final elapsed = now - activeSet.startedAt.toInt();
-      return _ParticipantState(
+      return _ParticipantStatusInfo(
         stateLabel: proposed?.warmup == true ? 'WARMUP' : 'LIFTING',
         stateColor: AppTheme.activeFg,
-        exerciseName: proposed != null ? (exerciseNames[proposed.exercise] ?? '?') : null,
-        isWarmup: proposed?.warmup ?? false,
-        weight: proposed != null ? '${proposed.targetWeight.toInt()}' : null,
-        weightDouble: proposed?.targetWeight.toDouble() ?? 0,
+        proposedSet: proposed,
         timerText: _fmt(elapsed),
         timerColor: null,
       );
@@ -176,13 +77,10 @@ class ParticipantCard extends StatelessWidget {
       final remaining = restingSet.restUntil.toInt() - now;
       // Find next pending set
       final nextSet = _findNextPending(p);
-      return _ParticipantState(
+      return _ParticipantStatusInfo(
         stateLabel: 'RESTING',
         stateColor: const Color(0xFF3B82F6),
-        exerciseName: nextSet != null ? (exerciseNames[nextSet.exercise] ?? '?') : null,
-        isWarmup: nextSet?.warmup ?? false,
-        weight: nextSet != null ? '${nextSet.targetWeight.toInt()}' : null,
-        weightDouble: nextSet?.targetWeight.toDouble() ?? 0,
+        proposedSet: nextSet,
         timerText: _fmt(remaining),
         timerColor: null,
       );
@@ -198,13 +96,10 @@ class ParticipantCard extends StatelessWidget {
 
     if (lastRestEnd > 0 && lastRestEnd <= now && nextSet != null) {
       final elapsed = now - lastRestEnd;
-      return _ParticipantState(
+      return _ParticipantStatusInfo(
         stateLabel: 'CHATTING',
         stateColor: const Color(0xFFF97316),
-        exerciseName: exerciseNames[nextSet.exercise] ?? '?',
-        isWarmup: nextSet.warmup,
-        weight: '${nextSet.targetWeight.toInt()}',
-        weightDouble: nextSet.targetWeight.toDouble(),
+        proposedSet: nextSet,
         timerText: '+${_fmt(elapsed)}',
         timerColor: const Color(0xFFF97316),
       );
@@ -212,18 +107,15 @@ class ParticipantCard extends StatelessWidget {
 
     // Idle / next up
     if (nextSet != null) {
-      return _ParticipantState(
+      return _ParticipantStatusInfo(
         stateLabel: 'NEXT UP',
         stateColor: AppTheme.warmupFg,
-        exerciseName: exerciseNames[nextSet.exercise] ?? '?',
-        isWarmup: nextSet.warmup,
-        weight: '${nextSet.targetWeight.toInt()}',
-        weightDouble: nextSet.targetWeight.toDouble(),
+        proposedSet: nextSet,
       );
     }
 
     // All done
-    return _ParticipantState(
+    return _ParticipantStatusInfo(
       stateLabel: 'DONE',
       stateColor: AppTheme.successFg,
     );
@@ -239,23 +131,17 @@ class ParticipantCard extends StatelessWidget {
   }
 }
 
-class _ParticipantState {
+class _ParticipantStatusInfo {
   final String stateLabel;
   final Color stateColor;
-  final String? exerciseName;
-  final bool isWarmup;
-  final String? weight;
-  final double weightDouble;
+  final ProposedSet? proposedSet;
   final String? timerText;
   final Color? timerColor;
 
-  _ParticipantState({
+  _ParticipantStatusInfo({
     required this.stateLabel,
     required this.stateColor,
-    this.exerciseName,
-    this.isWarmup = false,
-    this.weight,
-    this.weightDouble = 0,
+    this.proposedSet,
     this.timerText,
     this.timerColor,
   });

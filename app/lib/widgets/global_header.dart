@@ -70,6 +70,7 @@ class AppDrawer extends StatelessWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
+                useRootNavigator: true,
                 builder: (_) => const MultiplayerModal(),
               );
             },

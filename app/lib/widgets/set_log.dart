@@ -30,7 +30,7 @@ class SetLog extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Text(
             'COMPLETED SETS',
             style: TextStyle(
@@ -50,46 +50,66 @@ class SetLog extends StatelessWidget {
           final isWarmup = proposed?.warmup ?? false;
           final hitTarget = proposed != null ? completed.actualReps >= proposed.targetReps : true;
 
-          Color bg;
           Color fg;
           String label;
 
           if (isWarmup) {
-            bg = AppTheme.warmupLight;
             fg = AppTheme.warmupFg;
             label = 'W';
           } else if (hitTarget) {
-            bg = AppTheme.successBg;
             fg = AppTheme.successFg;
-            label = '\u2713';
+            label = 'S';
           } else {
-            bg = AppTheme.warningBg;
             fg = AppTheme.warningFg;
-            label = '\u2713';
+            label = 'S';
           }
 
-          return ListTile(
-            dense: true,
-            leading: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
-              ),
+          final finishTime = DateTime.fromMillisecondsSinceEpoch(completed.endedAt.toInt() * 1000);
+          final timeStr = "${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}";
+          final durationSecs = (completed.endedAt - completed.startedAt).toInt();
+          final durationStr = durationSecs < 60 ? "${durationSecs}s" : "${durationSecs ~/ 60}m${durationSecs % 60}s";
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Text(
+                  '[$label]',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: fg,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$name ${completed.actualReps}x${completed.actualWeight.toInt()}lbs',
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$durationStr @ $timeStr',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: colorScheme.tertiary,
+                  ),
+                ),
+                if (onDelete != null)
+                  GestureDetector(
+                    onTap: () => onDelete!(completed.id),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(Icons.close, size: 14, color: colorScheme.error.withValues(alpha: 0.5)),
+                    ),
+                  ),
+              ],
             ),
-            title: Text('$name: ${completed.actualReps} \u00D7 ${completed.actualWeight.toInt()} lbs'),
-            trailing: onDelete != null
-                ? IconButton(
-                    icon: Icon(Icons.close, size: 16, color: colorScheme.tertiary),
-                    onPressed: () => onDelete!(completed.id),
-                  )
-                : null,
           );
         }),
       ],

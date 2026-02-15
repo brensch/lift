@@ -6,6 +6,7 @@ import '../logic/exercises.dart';
 import '../logic/warmup.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
+import '../providers/multiplayer_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import 'package:uuid/uuid.dart';
@@ -25,11 +26,25 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _isStarting = false;
   String? _error;
+  late final TextEditingController _nameController = TextEditingController(text: _getDefaultWorkoutName());
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  String _getDefaultWorkoutName() {
+    final now = DateTime.now();
+    final date = "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
+    final time = greetingTime().toLowerCase();
+    return "$date $time";
   }
 
   Future<void> _loadData() async {
@@ -116,12 +131,19 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      final now = DateTime.now();
-      final monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      final workoutName = "${monthNames[now.month - 1]} ${now.day}";
+      final workoutName = _nameController.text.trim().isEmpty 
+          ? _getDefaultWorkoutName() 
+          : _nameController.text.trim();
 
       final workoutProvider = context.read<WorkoutProvider>();
-      await workoutProvider.startWorkout(workoutName, proposedSets);
+      final workoutId = await workoutProvider.startWorkout(workoutName, proposedSets);
+
+      if (workoutId != null && mounted) {
+        final mp = context.read<MultiplayerProvider>();
+        if (mp.isInSession) {
+          await mp.updateActiveWorkout(workoutId);
+        }
+      }
     } catch (e) {
       debugPrint('Error starting workout: $e');
       if (mounted) {
@@ -174,73 +196,111 @@ class _HomeScreenState extends State<HomeScreen> {
     final compounds = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND).toList();
     final auxiliaries = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_AUXILIARY).toList();
 
-    return RefreshIndicator(
-      color: colorScheme.primary,
-      onRefresh: _loadData,
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                Text(
-                  'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.0,
-                    height: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        color: colorScheme.primary,
+        onRefresh: _loadData,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              sliver: SliverToBoxAdapter(
+                child: Text(
                   'SELECT YOUR EXERCISES',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.5,
                     color: colorScheme.tertiary,
                   ),
                 ),
-                const SizedBox(height: 24),
-              ]),
-            ),
-          ),
-
-          if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
-          if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
-
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: _selectedExercises.isEmpty || _isStarting ? null : _startWorkout,
-                    child: _isStarting
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.onPrimary,
-                            ),
-                          )
-                        : Text(
-                            'START WORKOUT (${_selectedExercises.length})',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                  ),
-                ),
               ),
             ),
-
-          const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
-        ],
+            if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
+            if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 250)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+          border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1))),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'WORKOUT NAME (OPTIONAL)',
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: colorScheme.tertiary,
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                hintText: _getDefaultWorkoutName(),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 64,
+              child: FilledButton(
+                onPressed: _selectedExercises.isEmpty || _isStarting ? null : _startWorkout,
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isStarting
+                    ? SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(
+                        'START WORKOUT (${_selectedExercises.length})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -251,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           sliver: SliverToBoxAdapter(
             child: Text(
               title,
@@ -265,13 +325,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 1.1,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+              crossAxisCount: 2,
+              childAspectRatio: 1.3,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -286,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
       ],
     );
   }
@@ -326,85 +386,88 @@ class _ExerciseCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
         ),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     name.toUpperCase(),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 13,
+                      fontSize: 14,
                       height: 1.1,
-                      letterSpacing: -0.5,
+                      letterSpacing: -0.2,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (isSelected)
-                  Icon(Icons.check, size: 16, color: colorScheme.primary),
+                  Icon(Icons.check_circle, size: 18, color: colorScheme.primary),
               ],
             ),
-
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${status.targetWeight.toInt()}',
-                          style: TextStyle(
-                            color: colorScheme.onSurface,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1.0,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' LB',
-                          style: TextStyle(
-                            color: colorScheme.tertiary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+            const Spacer(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '${status.targetWeight.toInt()}',
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
+                    height: 1.0,
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colorScheme.secondary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${status.defaultSets}x${status.defaultReps}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.tertiary,
-                      ),
-                    ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  'LB',
+                  style: TextStyle(
+                    color: colorScheme.tertiary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+                const Spacer(),
+                Text(
+                  '${status.defaultSets}x${status.defaultReps}',
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.0,
+                    height: 1.0,
+                  ),
+                ),
+              ],
             ),
-
+            if (status.explanation.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  status.explanation.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.primary,
+                    height: 1.1,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            const Spacer(),
             Row(
               children: [
                 Container(
-                  width: 6,
-                  height: 6,
+                  width: 8,
+                  height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: status.recovered
@@ -412,16 +475,13 @@ class _ExerciseCard extends StatelessWidget {
                         : const Color(0xFFEA580C),
                   ),
                 ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    _formatTimeSince(status.lastPerformedAt),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.tertiary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 6),
+                Text(
+                  _formatTimeSince(status.lastPerformedAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.tertiary,
                   ),
                 ),
               ],

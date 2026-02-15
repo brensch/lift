@@ -212,6 +212,49 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               ),
             ),
             const SizedBox(height: 24),
+            Text(
+              'SESSION MEMBERS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+                color: colorScheme.tertiary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: mp.participants.map((p) {
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      radius: 12,
+                      backgroundColor: colorScheme.primaryContainer,
+                      child: Text(
+                        p.user.name.isNotEmpty ? p.user.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      p.user.name.toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
