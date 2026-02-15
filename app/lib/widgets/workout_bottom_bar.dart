@@ -3,15 +3,15 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercises.dart';
+import '../gen/workout/v1/group.pb.dart';
 import '../logic/group_next_up.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/sound_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/plate_visualization.dart';
 import '../widgets/workout_modals.dart';
+import '../widgets/workout_status_box.dart';
 
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -31,6 +31,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
   int _prevRestSeconds = 0;
 
   @override
+  void didUpdateWidget(covariant WorkoutBottomBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When the key changes (new workout), reset internal state
+    _soundPlayed = false;
+    _prevRestSeconds = 0;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
@@ -38,7 +46,8 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
     final soundProvider = context.read<SoundProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (wp.workout == null || wp.isWorkoutEnded) {
+    // Show bottom bar if there's an active workout, even if we are viewing history
+    if (!wp.hasActiveWorkout) {
       return const SizedBox.shrink();
     }
 
@@ -66,11 +75,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
         nextSet != null;
     final chatElapsed = isChatTime ? nowUnix - lastRestEnd : 0;
 
-    final allDone = wp.proposedSets.isNotEmpty &&
-        wp.proposedSets.every((p) => wp.isSetDone(p.id)) &&
+    final allDone = wp.activeProposedSets.isNotEmpty &&
+        wp.activeProposedSets.every((p) => wp.isSetDone(p.id, useActive: true)) &&
         activeSetId == null;
-
-    final groupNextUp = computeGroupNextUp(mp.sessionStatus, auth.userId, nowUnix);
 
     // Determine if we're on the workout page
     final currentUri = GoRouterState.of(context).uri.toString();
@@ -93,13 +100,13 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
         onPressed: () => _endWorkout(context, wp),
       );
     } else if (activeSetId != null) {
-      final proposed = wp.proposedSets.cast<ProposedSet?>().firstWhere(
+      final proposed = wp.activeProposedSets.cast<ProposedSet?>().firstWhere(
         (p) => p!.id == activeSetId,
         orElse: () => null,
       );
       if (proposed == null) return const SizedBox.shrink();
 
-      final activeCompleted = wp.completedSets.cast<CompletedSet?>().firstWhere(
+      final activeCompleted = wp.activeCompletedSets.cast<CompletedSet?>().firstWhere(
         (c) => c!.proposedSetId == activeSetId && c.endedAt == Int64.ZERO,
         orElse: () => null,
       );
@@ -172,70 +179,24 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Row 1: state label + weight info on left, timer on right
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left: state + set info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: stateColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                stateLabel,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.0,
-                                  color: stateColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (displaySet != null) ...[
-                            const SizedBox(height: 4),
-                            _SetWeightInfo(set: displaySet),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Right: timer
-                    if (timerText != null)
-                      Text(
-                        timerText,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'monospace',
-                          letterSpacing: -2,
-                          color: timerColor,
-                        ),
-                      ),
-                  ],
+                // Row 1: Current user status box
+                StatusBox(
+                  label: 'NEXT FOR YOU ($stateLabel)',
+                  color: stateColor,
+                  timerText: timerText,
+                  timerColor: timerColor,
+                  set: displaySet,
+                  isComplete: allDone,
                 ),
 
-                // Group next up info (multiplayer)
-                if (groupNextUp != null && mp.participants.length > 1) ...[
-                  const SizedBox(height: 6),
-                  _GroupNextUpInfo(
-                    data: groupNextUp,
-                    now: wp.now,
-                  ),
+                // Row 2: Group status box
+                if (mp.participants.length > 1) ...[
+                  const SizedBox(height: 8),
+                  _buildGroupStatusBox(context, mp.sessionStatus, auth.userId, wp.now),
                 ],
 
-                // Row 2: full-width action button
-                const SizedBox(height: 10),
+                // Row 3: full-width action button
+                const SizedBox(height: 12),
                 actionButton,
               ],
             ),
@@ -245,145 +206,121 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
     );
   }
 
+  Widget _buildGroupStatusBox(BuildContext context, SessionStatus? status, String? myUserId, DateTime now) {
+    if (status == null) return const SizedBox.shrink();
+    const purple = Color(0xFF9333EA);
+    const orange = Color(0xFFF97316);
+    final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+
+    // Find someone in the group who is active or next
+    ParticipantStatus? groupActive;
+    String groupState = '';
+    String? groupTimer;
+    Color? groupTimerColor;
+    ProposedSet? groupSet;
+    Color boxColor = purple;
+    bool isMeNext = false;
+
+    for (final p in status.participants) {
+      if (p.user.id == myUserId) continue;
+
+      // Check if lifting
+      final active = p.completedSets.cast<CompletedSet?>().firstWhere(
+            (c) => c!.endedAt == Int64.ZERO,
+            orElse: () => null,
+          );
+
+      if (active != null) {
+        final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
+              (s) => s!.id == active.proposedSetId,
+              orElse: () => null,
+            );
+        groupActive = p;
+        groupState = proposed?.warmup == true ? 'WARMUP' : 'LIFTING';
+        groupTimer = _fmt(nowUnix - active.startedAt.toInt());
+        groupSet = proposed;
+        break;
+      }
+    }
+
+    if (groupActive == null) {
+      // Nobody is lifting, find the next one up using the logic
+      final nextUp = computeGroupNextUp(status, myUserId, nowUnix);
+      if (nextUp != null) {
+        if (nextUp.isMe) {
+          isMeNext = true;
+        } else {
+          groupActive = nextUp.participant;
+          final remaining = nextUp.restUntil - nowUnix;
+          if (remaining > 0) {
+            groupState = 'RESTING';
+            groupTimer = _fmt(remaining);
+          } else if (nextUp.restUntil > 0) {
+            groupState = 'CHATTING';
+            groupTimer = '+${_fmt(nowUnix - nextUp.restUntil)}';
+            groupTimerColor = orange;
+          } else {
+            groupState = 'READY';
+            groupTimer = 'READY';
+          }
+          groupSet = nextUp.nextSet;
+        }
+      }
+    }
+
+    if (isMeNext) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: purple.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: purple.withValues(alpha: 0.2)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: purple, size: 18),
+            SizedBox(width: 8),
+            Text(
+              "YOU'RE UP NEXT IN THE GROUP",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+                color: purple,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (groupActive == null) return const SizedBox.shrink();
+
+    final name = groupActive.user.name.toUpperCase();
+    final label = 'NEXT FOR GROUP: $name ($groupState)';
+
+    return StatusBox(
+      label: label,
+      color: boxColor,
+      timerText: groupTimer,
+      timerColor: groupTimerColor,
+      set: groupSet,
+    );
+  }
+
   Future<void> _endWorkout(BuildContext context, WorkoutProvider wp) async {
     final confirmed = await showEndWorkoutConfirmDialog(context);
     if (confirmed) {
       final workoutId = wp.workout!.id;
       await wp.endWorkout();
       if (context.mounted) {
+        final mp = context.read<MultiplayerProvider>();
+        if (mp.isInSession) {
+          await mp.leaveSession();
+        }
         context.go('/workout/$workoutId/completed');
       }
     }
-  }
-}
-
-// ─── Set weight info (left side of bottom bar) ───────────────────────
-
-class _SetWeightInfo extends StatelessWidget {
-  final ProposedSet set;
-
-  const _SetWeightInfo({required this.set});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final name = exerciseNames[set.exercise] ?? '?';
-
-    return Row(
-      children: [
-        Text(
-          name,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-        if (set.warmup) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-            decoration: BoxDecoration(
-              color: AppTheme.warmupFg.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: Text(
-              'W',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.warmupFg,
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(width: 8),
-        Text(
-          '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'monospace',
-          ),
-        ),
-        Text(
-          ' lb',
-          style: TextStyle(fontSize: 11, color: colorScheme.tertiary),
-        ),
-        const SizedBox(width: 8),
-        PlateVisualization(weight: set.targetWeight.toDouble()),
-      ],
-    );
-  }
-}
-
-// ─── Group next up info ──────────────────────────────────────────────
-
-class _GroupNextUpInfo extends StatelessWidget {
-  final GroupNextUpData data;
-  final DateTime now;
-
-  const _GroupNextUpInfo({required this.data, required this.now});
-
-  static const _purple = Color(0xFF9333EA);
-
-  @override
-  Widget build(BuildContext context) {
-    final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
-    final remaining = data.restUntil - nowUnix;
-    final isOverdue = remaining <= 0;
-    final name = data.participant.user.name;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: _purple.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _purple.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: _purple,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              data.isMe
-                  ? "YOU'RE NEXT"
-                  : 'NEXT: ${name.toUpperCase()}',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-                color: _purple,
-              ),
-            ),
-          ),
-          if (data.nextSet != null) ...[
-            Text(
-              '${exerciseNames[data.nextSet!.exercise] ?? '?'} ${data.nextSet!.targetWeight.toInt()} lb',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: _purple,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            isOverdue ? 'READY' : _fmt(remaining),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'monospace',
-              color: _purple,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

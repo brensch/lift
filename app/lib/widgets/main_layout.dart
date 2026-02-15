@@ -22,8 +22,6 @@ class MainLayout extends StatelessWidget {
     final userName = authProvider.username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
-    final hasWorkout = wp.hasActiveWorkout;
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -39,20 +37,7 @@ class MainLayout extends StatelessWidget {
           ),
         ),
         actions: [
-          if (hasWorkout)
-            IconButton(
-              icon: Icon(
-                mp.isInSession ? Icons.group : Icons.group_add_outlined,
-                size: 22,
-              ),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => const MultiplayerModal(),
-                );
-              },
-            ),
+          _buildMultiplayerButton(context, mp),
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.menu),
@@ -225,9 +210,54 @@ class MainLayout extends StatelessWidget {
       body: Column(
         children: [
           Expanded(child: child),
-          const WorkoutBottomBar(),
+          WorkoutBottomBar(key: ValueKey(wp.activeWorkout?.id ?? 'none')),
         ],
       ),
+    );
+  }
+
+  Widget _buildMultiplayerButton(BuildContext context, MultiplayerProvider mp) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    final label = mp.isInSession ? 'IN SESSION' : 'MULTIPLAYER';
+    final icon = mp.isInSession ? Icons.group : Icons.group_add;
+
+    Widget button = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: FilledButton.icon(
+        onPressed: () => _showMultiplayerModal(context),
+        icon: Icon(icon, size: 16),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
+            letterSpacing: 0.5,
+          ),
+        ),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          minimumSize: const Size(0, 36),
+          backgroundColor: mp.isInSession ? colorScheme.secondary : colorScheme.primary,
+          foregroundColor: mp.isInSession ? colorScheme.onSecondary : colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+
+    if (mp.isInSession) {
+      return button;
+    }
+
+    return _ShakingWidget(child: button);
+  }
+
+  void _showMultiplayerModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      builder: (context) => const MultiplayerModal(),
     );
   }
 }
@@ -281,6 +311,66 @@ class _MenuButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ShakingWidget extends StatefulWidget {
+  final Widget child;
+  const _ShakingWidget({required this.child});
+
+  @override
+  State<_ShakingWidget> createState() => _ShakingWidgetState();
+}
+
+class _ShakingWidgetState extends State<_ShakingWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _animation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.1), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 0.1, end: -0.1), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -0.1, end: 0.1), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 0.1, end: 0.0), weight: 1),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _startCycle();
+  }
+
+  Future<void> _startCycle() async {
+    while (mounted) {
+      await Future.delayed(const Duration(seconds: 5));
+      if (mounted) {
+        await _controller.forward(from: 0.0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.rotate(
+          angle: _animation.value,
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }
