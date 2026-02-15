@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
@@ -9,6 +10,8 @@ import '../logic/warmup.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
+import '../services/health_service.dart' show HealthService, HealthWriteResult;
+import '../logic/exercises.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final WorkoutServiceWrapper _service;
@@ -32,6 +35,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   WorkoutProvider(this._service) {
     WidgetsBinding.instance.addObserver(this);
+    NotificationService.onStartNextSet = _onStartNextSet;
+  }
+
+  void _onStartNextSet() {
+    final next = nextPendingSet;
+    if (next != null) {
+      startSet(next.id);
+    }
   }
 
   void setSoundProvider(SoundProvider provider) {
@@ -83,10 +94,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final isCurrentlyResting = restUntil > nowUnix;
 
     if (_wasResting && !isCurrentlyResting && _lastSoundedRestUntil != restUntil) {
-      // Rest just ended — cancel notification (prevent double-play) and play in-app sound
+      // Rest just ended — cancel scheduled notification (prevent double sound),
+      // play in-app sound, and show buzz notification for watches
       _lastSoundedRestUntil = restUntil;
       NotificationService.cancelRestNotification();
       _soundProvider?.playCurrentSound();
+      NotificationService.showBuzzNotification(body: _nextSetBody());
     }
     _wasResting = isCurrentlyResting;
   }
@@ -126,6 +139,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime get now => _now;
 
   List<ExerciseGroupData> get exerciseGroups => groupSetsByExercise(_activeProposedSets);
+
+  String _nextSetBody() {
+    final next = nextPendingSet;
+    if (next == null) return 'All sets complete!';
+    final name = exerciseNames[next.exercise] ?? '?';
+    final prefix = next.warmup ? 'Warmup ' : '';
+    final w = next.targetWeight.toDouble();
+    final weightStr = w == w.roundToDouble() ? w.toInt().toString() : w.toStringAsFixed(1);
+    return 'Next up: $prefix$name — ${weightStr}kg x ${next.targetReps}';
+  }
+
+  // Debug getters
+  bool get debugWasResting => _wasResting;
+  int? get debugLastSoundedRestUntil => _lastSoundedRestUntil;
 
   bool isSetDone(String setId) {
     return _activeCompletedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
@@ -280,6 +307,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_activeWorkout == null) return;
     try {
       NotificationService.cancelRestNotification();
+      _wasResting = false;
       final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
       _activeCompletedSets.add(completed);
       notifyListeners();
@@ -313,6 +341,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         NotificationService.scheduleRestNotification(
           restUntilUnix: completed.restUntil.toInt(),
           soundPresetId: presetId,
+          body: _nextSetBody(),
         );
       }
       notifyListeners();
@@ -326,6 +355,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _service.deleteCompletedSet(_activeWorkout!.id, completedSetId);
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
+      NotificationService.cancelRestNotification();
+      _wasResting = false;
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -341,6 +372,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (proposed == null) return;
 
     try {
+      NotificationService.cancelRestNotification();
       final completed = await _service.completeSet(
         _activeWorkout!.id,
         proposedSetId,
@@ -351,12 +383,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
       );
       _activeCompletedSets.add(completed);
+      // Suppress sound for skipped warmup rest period
+      if (completed.restUntil.toInt() > 0) {
+        _lastSoundedRestUntil = completed.restUntil.toInt();
+      }
+      _wasResting = false;
       notifyListeners();
     } catch (e) {
       _handleError(e);
     }
   }
 
+  /// Ends the workout on the server and returns immediately.
+  /// Health write happens in the background — check [lastHealthResult] after.
   Future<void> endWorkout() async {
     if (_activeWorkout == null) return;
     try {
@@ -365,8 +404,83 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeWorkout = ended;
       _stopTimer();
       notifyListeners();
+
+      // Fire-and-forget: never blocks workout completion
+      _writeToHealthPlatform(ended);
     } catch (e) {
       _handleError(e);
+    }
+  }
+
+  void _writeToHealthPlatform(Workout workout) async {
+    try {
+      final startTime = DateTime.fromMillisecondsSinceEpoch(
+        workout.startTime.toInt() * 1000,
+      );
+      final endTime = DateTime.fromMillisecondsSinceEpoch(
+        workout.endTime.toInt() * 1000,
+      );
+
+      // Build title from unique exercise names in order
+      final seen = <int>{};
+      final names = <String>[];
+      for (final set in _activeProposedSets) {
+        if (!set.warmup && seen.add(set.exercise.value)) {
+          names.add(exerciseNames[set.exercise] ?? set.exercise.name);
+        }
+      }
+      final title = names.join(', ');
+
+      // Calculate total volume and working set count from completed sets
+      var totalVolumeKg = 0.0;
+      var workingSets = 0;
+      for (final cs in _activeCompletedSets) {
+        if (cs.endedAt == Int64.ZERO) continue;
+        final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
+          (p) => p!.id == cs.proposedSetId,
+          orElse: () => null,
+        );
+        if (proposed != null && !proposed.warmup) {
+          totalVolumeKg += cs.actualWeight * cs.actualReps;
+          workingSets++;
+        }
+      }
+
+      final result = await HealthService.writeCompletedWorkout(
+        startTime: startTime,
+        endTime: endTime,
+        title: title,
+        totalVolumeKg: totalVolumeKg,
+        workingSets: workingSets,
+      );
+
+      if (result == HealthWriteResult.success) {
+        final storeName = Platform.isAndroid ? 'Health Connect' : 'Apple Health';
+        Fluttertoast.showToast(
+          msg: 'Successfully uploaded to $storeName',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      } else if (result == HealthWriteResult.permissionDenied) {
+        Fluttertoast.showToast(
+          msg: 'Health Connect permission denied — enable in Settings > Apps > Lift',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.orange,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e, st) {
+      debugPrint('Health: write failed: $e\n$st');
+      Fluttertoast.showToast(
+        msg: 'Failed to sync workout to Health Connect',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
     }
   }
 

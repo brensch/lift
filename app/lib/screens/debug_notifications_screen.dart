@@ -1,0 +1,148 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import '../providers/workout_provider.dart';
+import '../services/notification_service.dart';
+
+class DebugNotificationsScreen extends StatefulWidget {
+  const DebugNotificationsScreen({super.key});
+
+  @override
+  State<DebugNotificationsScreen> createState() => _DebugNotificationsScreenState();
+}
+
+class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
+  List<PendingNotificationRequest> _pending = [];
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPending();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _loadPending());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadPending() async {
+    final pending = await NotificationService.getPendingNotifications();
+    if (mounted) setState(() => _pending = pending);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wp = context.watch<WorkoutProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Debug: Notifications'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPending,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _section('Bottom Bar State', [
+            _row('state', () {
+              final activeSetId = wp.activeSetId;
+              final isResting = wp.restingSet != null;
+              final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
+              final nextSet = wp.nextPendingSet;
+              final allDone = wp.activeProposedSets.isNotEmpty &&
+                  wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
+                  activeSetId == null;
+              if (allDone) return 'ALL DONE';
+              if (activeSetId != null) return 'LIFTING';
+              if (isResting) return 'RESTING (${wp.restSecondsRemaining}s)';
+              if (!isResting && activeSetId == null && lastRestEnd > 0 && lastRestEnd <= nowUnix && nextSet != null) {
+                return 'CHATTING (+${nowUnix - lastRestEnd}s)';
+              }
+              if (nextSet != null) return 'NEXT UP';
+              return 'IDLE';
+            }()),
+            _row('wasResting', '${wp.debugWasResting}'),
+            _row('lastSoundedRestUntil', '${wp.debugLastSoundedRestUntil ?? "null"}'),
+            _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
+            _row('now (unix)', '$nowUnix'),
+          ], colorScheme),
+          const SizedBox(height: 16),
+          _section('Pending OS Notifications (${_pending.length})', [
+            if (_pending.isEmpty)
+              _row('', 'None')
+            else
+              for (final n in _pending)
+                _row('id=${n.id}', () {
+                  final scheduledUnix = int.tryParse(n.payload ?? '');
+                  if (scheduledUnix != null) {
+                    final diff = scheduledUnix - nowUnix;
+                    final timeStr = diff > 0 ? '${diff}s from now' : '${-diff}s ago';
+                    return '${n.title} — fires $timeStr (unix=$scheduledUnix)';
+                  }
+                  return '${n.title}: ${n.body}';
+                }()),
+          ], colorScheme),
+          const SizedBox(height: 16),
+          _section('Completed Sets (${wp.completedSets.length})', [
+            for (final c in wp.completedSets.reversed) ...[
+              _row(
+                'set ${c.proposedSetId.substring(0, 8)}...',
+                'restUntil=${c.restUntil.toInt()} '
+                '(${c.restUntil.toInt() > nowUnix ? "${c.restUntil.toInt() - nowUnix}s left" : "expired"}) '
+                'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
+              ),
+            ],
+          ], colorScheme),
+        ],
+      ),
+    );
+  }
+
+  Widget _section(String title, List<Widget> children, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: colorScheme.primary,
+        )),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (label.isNotEmpty) ...[
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(width: 8),
+          ],
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
+    );
+  }
+}

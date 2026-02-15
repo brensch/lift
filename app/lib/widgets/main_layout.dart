@@ -109,6 +109,16 @@ class MainLayout extends StatelessWidget {
                       },
                       isActive: GoRouterState.of(context).uri.toString() == '/sound-settings',
                     ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: Icons.bug_report_outlined,
+                      label: 'DEBUG',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/debug-notifications');
+                      },
+                      isActive: GoRouterState.of(context).uri.toString() == '/debug-notifications',
+                    ),
                     Divider(height: 32, color: colorScheme.outline),
                     // Dark mode toggle
                     InkWell(

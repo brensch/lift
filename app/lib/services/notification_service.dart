@@ -5,6 +5,11 @@ import 'package:timezone/timezone.dart' as tz;
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _notificationId = 1;
+  static const _buzzNotificationId = 2;
+  static const _startSetActionId = 'start_next_set';
+
+  /// Callback for when the "Start Set" notification action is tapped.
+  static void Function()? onStartNextSet;
 
   static Future<void> init() async {
     tz.initializeTimeZones();
@@ -19,7 +24,10 @@ class NotificationService {
       android: androidSettings,
       iOS: darwinSettings,
     );
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationResponse,
+    );
 
     // Request notification permission (Android 13+)
     final android = _plugin.resolvePlatformSpecificImplementation<
@@ -28,9 +36,16 @@ class NotificationService {
     await android?.requestExactAlarmsPermission();
   }
 
+  static void _onNotificationResponse(NotificationResponse response) {
+    if (response.actionId == _startSetActionId) {
+      onStartNextSet?.call();
+    }
+  }
+
   static Future<void> scheduleRestNotification({
     required int restUntilUnix,
     required String soundPresetId,
+    String body = 'Time to start your next set!',
   }) async {
     await cancelRestNotification();
 
@@ -57,6 +72,13 @@ class NotificationService {
       enableVibration: true,
       category: AndroidNotificationCategory.alarm,
       fullScreenIntent: true,
+      actions: const [
+        AndroidNotificationAction(
+          _startSetActionId,
+          'Start Set',
+          showsUserInterface: true,
+        ),
+      ],
     );
 
     final darwinDetails = DarwinNotificationDetails(
@@ -68,15 +90,55 @@ class NotificationService {
     await _plugin.zonedSchedule(
       _notificationId,
       'Rest Complete',
-      'Time to start your next set!',
+      body,
       scheduledTime,
       NotificationDetails(android: androidDetails, iOS: darwinDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: null,
+      payload: '$restUntilUnix',
     );
   }
 
   static Future<void> cancelRestNotification() async {
     await _plugin.cancel(_notificationId);
+  }
+
+  /// Show a silent notification with vibration only (no sound).
+  /// Used when rest ends while app is in foreground — the in-app ding handles
+  /// sound, but we still want watches to buzz.
+  static Future<void> showBuzzNotification({String body = 'Time to start your next set!'}) async {
+    const androidDetails = AndroidNotificationDetails(
+      'rest_timer_buzz',
+      'Rest Timer Buzz',
+      channelDescription: 'Vibration-only alert when rest ends',
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: false,
+      enableVibration: true,
+      category: AndroidNotificationCategory.alarm,
+      actions: [
+        AndroidNotificationAction(
+          _startSetActionId,
+          'Start Set',
+          showsUserInterface: true,
+        ),
+      ],
+    );
+
+    const darwinDetails = DarwinNotificationDetails(
+      presentSound: false,
+      presentAlert: true,
+    );
+
+    await _plugin.show(
+      _buzzNotificationId,
+      'Rest Complete',
+      body,
+      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
+    );
+  }
+
+  static Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return _plugin.pendingNotificationRequests();
   }
 }

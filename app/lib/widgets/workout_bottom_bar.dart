@@ -8,7 +8,6 @@ import '../logic/group_next_up.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
-import '../providers/sound_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/workout_modals.dart';
 import '../widgets/workout_status_box.dart';
@@ -19,31 +18,14 @@ String _fmt(int seconds) {
   return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
-class WorkoutBottomBar extends StatefulWidget {
+class WorkoutBottomBar extends StatelessWidget {
   const WorkoutBottomBar({super.key});
-
-  @override
-  State<WorkoutBottomBar> createState() => _WorkoutBottomBarState();
-}
-
-class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
-  bool _soundPlayed = false;
-  int _prevRestSeconds = 0;
-
-  @override
-  void didUpdateWidget(covariant WorkoutBottomBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // When the key changes (new workout), reset internal state
-    _soundPlayed = false;
-    _prevRestSeconds = 0;
-  }
 
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
     final auth = context.read<AuthProvider>();
-    final soundProvider = context.read<SoundProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     // Show bottom bar if there's an active workout, even if we are viewing history
@@ -51,17 +33,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar> {
       return const SizedBox.shrink();
     }
 
-    // Sound on rest end
     final restSeconds = wp.restSecondsRemaining;
-    if (_prevRestSeconds > 0 && restSeconds == 0 && !_soundPlayed) {
-      _soundPlayed = true;
-      soundProvider.playCurrentSound();
-    }
-    if (restSeconds > 0) {
-      _soundPlayed = false;
-    }
-    _prevRestSeconds = restSeconds;
-
     final activeSetId = wp.activeSetId;
     final nextSet = wp.nextPendingSet;
     final isResting = wp.restingSet != null;
