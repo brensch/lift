@@ -26,7 +26,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           final joinId = url.queryParameters['join'];
           if (joinId != null) {
             _joinSession(joinId);
-            return; // Only join the first valid one
+            return;
           }
         }
       }
@@ -34,10 +34,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
   }
 
   Future<void> _joinSession(String sessionId) async {
-    // If we're already processing a scan, don't do it again immediately
     if (!mounted) return;
-    
-    // Stop scanning
+
     setState(() => _isScanning = false);
 
     final mp = context.read<MultiplayerProvider>();
@@ -46,7 +44,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
     final success = await mp.joinSession(sessionId, workoutId: workoutId);
     if (success && mounted) {
-      Navigator.pop(context); // Close modal on success
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Joined session successfully')),
       );
@@ -95,10 +93,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
   @override
   Widget build(BuildContext context) {
     final mp = context.watch<MultiplayerProvider>();
-    final theme = Theme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final sessionId = mp.sessionId;
 
-    // Use a fixed height or make it scrollable
     return Container(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -108,9 +105,13 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'MULTIPLAYER',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
@@ -120,38 +121,49 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           ),
           const SizedBox(height: 24),
           if (mp.isLoading)
-             const Center(child: Padding(
-               padding: EdgeInsets.all(32.0),
-               child: CircularProgressIndicator(),
-             ))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (sessionId == null) ...[
             if (_isScanning)
               SizedBox(
                 height: 300,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   child: MobileScanner(
                     onDetect: _handleScan,
                   ),
                 ),
               )
             else ...[
-              FilledButton(
-                onPressed: _startSession,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: _startSession,
+                  child: const Text('Start a Session'),
                 ),
-                child: const Text('Start a Session'),
               ),
               const SizedBox(height: 16),
-              const Center(child: Text('OR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+              Center(
+                child: Text(
+                  'OR',
+                  style: TextStyle(
+                    color: colorScheme.tertiary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => setState(() => _isScanning = true),
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan QR Code'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+              SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() => _isScanning = true),
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan QR Code'),
                 ),
               ),
             ],
@@ -164,68 +176,76 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 ),
               ),
           ] else ...[
-            // In Session
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colorScheme.outline),
               ),
               child: Center(
                 child: QrImageView(
-                  data: 'https://lift.brensch.com/?join=$sessionId', // Replace with actual domain if needed
+                  data: 'https://lift.brensch.com/?join=$sessionId',
                   version: QrVersions.auto,
                   size: 200.0,
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Session Active',
+            const Text(
+              'SESSION ACTIVE',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: -0.5,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
-              'ID: $sessionId',
+              sessionId,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: 'monospace'),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: colorScheme.tertiary,
+              ),
             ),
             const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: _leaveSession,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.error,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Leave'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _copyLink(sessionId),
-                    icon: const Icon(Icons.copy, size: 18),
-                    label: const Text('Copy'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: theme.colorScheme.secondary,
-                      foregroundColor: theme.colorScheme.onSecondary,
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: _leaveSession,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.error,
+                        side: BorderSide(color: colorScheme.error.withValues(alpha: 0.3)),
+                      ),
+                      child: const Text('Leave'),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _shareSession(sessionId),
-                    icon: const Icon(Icons.share, size: 18),
-                    label: const Text('Share'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _copyLink(sessionId),
+                      icon: const Icon(Icons.copy, size: 16),
+                      label: const Text('Copy'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton.icon(
+                      onPressed: () => _shareSession(sessionId),
+                      icon: const Icon(Icons.share, size: 16),
+                      label: const Text('Share'),
                     ),
                   ),
                 ),

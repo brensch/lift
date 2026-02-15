@@ -9,21 +9,34 @@ class SoundSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final soundProvider = context.watch<SoundProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
     final presets = getPresets();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Rest Timer Sound')),
-      body: ListView.builder(
+      appBar: AppBar(
+        title: const Text(
+          'PICK SOUND',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
+      body: ListView.separated(
         itemCount: presets.length,
+        separatorBuilder: (_, __) => Divider(height: 1, color: colorScheme.outline),
         itemBuilder: (context, index) {
           final entry = presets[index];
           final isSelected = entry.key == soundProvider.currentPreset;
 
           return ListTile(
-            leading: isSelected
-                ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
-                : const Icon(Icons.circle_outlined),
-            title: Text(entry.value.name),
+            leading: Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? colorScheme.primary : colorScheme.tertiary,
+            ),
+            title: Text(
+              entry.value.name,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
             onTap: () {
               soundProvider.setPreset(entry.key);
               soundProvider.playPreview(entry.key);

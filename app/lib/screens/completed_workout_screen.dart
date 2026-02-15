@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../providers/workout_provider.dart';
+import '../theme/app_theme.dart';
 import '../widgets/exercise_group_widget.dart';
 
 class CompletedWorkoutScreen extends StatelessWidget {
@@ -13,6 +14,7 @@ class CompletedWorkoutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (wp.workout == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -34,30 +36,39 @@ class CompletedWorkoutScreen extends StatelessWidget {
         .length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout Complete')),
+      appBar: AppBar(
+        title: const Text(
+          'COMPLETE',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Great Work!',
-                    style: Theme.of(context).textTheme.headlineSmall,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outline),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.check_circle, color: AppTheme.successFg, size: 48),
+                const SizedBox(height: 8),
+                const Text(
+                  'GREAT WORK',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$completedWorking working sets  \u2022  ${_formatDuration(duration)}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$completedWorking working sets  \u2022  ${_formatDuration(duration)}',
+                  style: TextStyle(color: colorScheme.tertiary, fontSize: 14),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -72,11 +83,12 @@ class CompletedWorkoutScreen extends StatelessWidget {
                 ),
               )),
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: () {
-              wp.clear();
-            },
-            child: const Text('Done'),
+          SizedBox(
+            height: 48,
+            child: FilledButton(
+              onPressed: () => wp.clear(),
+              child: const Text('Done'),
+            ),
           ),
         ],
       ),

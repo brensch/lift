@@ -30,12 +30,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final soundProvider = context.read<SoundProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (wp.workout == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Play sound when rest timer hits 0
     final restSeconds = wp.restSecondsRemaining;
     if (_prevRestSeconds > 0 && restSeconds == 0 && !_soundPlayed) {
       _soundPlayed = true;
@@ -53,7 +53,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Workout'),
+        title: const Text(
+          'WORKOUT',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
         actions: [
           if (!isEnded) ...[
             IconButton(
@@ -61,7 +64,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               onPressed: () => _showAddExercise(context, wp),
             ),
             IconButton(
-              icon: const Icon(Icons.stop),
+              icon: Icon(Icons.stop, color: colorScheme.error),
               onPressed: () => _endWorkout(context, wp),
             ),
           ],
@@ -70,7 +73,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Active area
           if (!isEnded) ...[
             if (wp.restingSet != null)
               RestingBox(secondsRemaining: restSeconds),
@@ -82,25 +84,29 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 onStart: () => wp.startSet(nextSet.id),
               ),
             if (activeSetId == null && wp.restingSet == null && nextSet == null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const Text('All sets complete!', style: TextStyle(fontSize: 18)),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => _endWorkout(context, wp),
-                        child: const Text('End Workout'),
-                      ),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'ALL SETS COMPLETE',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => _endWorkout(context, wp),
+                      child: const Text('End Workout'),
+                    ),
+                  ],
                 ),
               ),
             const SizedBox(height: 16),
           ],
 
-          // Exercise groups
           ...groups.asMap().entries.map((entry) {
             final idx = entry.key;
             final group = entry.value;
@@ -117,8 +123,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 16),
-                  color: Colors.red,
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  decoration: BoxDecoration(
+                    color: colorScheme.error,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.delete, color: colorScheme.onError),
                 ),
                 child: ExerciseGroupWidget(
                   group: group,
@@ -135,7 +144,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             );
           }),
 
-          // Set log
           SetLog(
             proposedSets: wp.proposedSets,
             completedSets: wp.completedSets,
@@ -201,7 +209,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
         final newSets = <ProposedSet>[];
 
-        // Generate warmups
         final warmupDefs = generateWarmupDefs(weight);
         for (final def in warmupDefs) {
           newSets.add(ProposedSet()
@@ -212,7 +219,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ..warmup = true);
         }
 
-        // Working sets
         for (int i = 0; i < sets; i++) {
           newSets.add(ProposedSet()
             ..id = _uuid.v4()

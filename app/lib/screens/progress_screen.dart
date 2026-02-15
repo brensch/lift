@@ -54,7 +54,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
         }
       }
 
-      // Sort by date
       for (final list in data.values) {
         list.sort((a, b) => a.date.compareTo(b.date));
       }
@@ -71,79 +70,137 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_data == null || _data!.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Progress')),
-        body: const Center(child: Text('No workout history yet')),
+        appBar: AppBar(
+          title: const Text(
+            'PROGRESS',
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
+        ),
+        body: Center(
+          child: Text(
+            'No workout history yet',
+            style: TextStyle(color: colorScheme.tertiary),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Progress')),
+      appBar: AppBar(
+        title: const Text(
+          'PROGRESS',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: _data!.entries.map((entry) {
           final name = exerciseNames[entry.key] ?? '?';
           final points = entry.value;
           if (points.length < 2) {
-            return Card(
-              child: ListTile(
-                title: Text(name),
-                subtitle: Text('${points.first.weight.toInt()} lbs (1 session)'),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outline),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    '${points.first.weight.toInt()} lbs',
+                    style: TextStyle(color: colorScheme.tertiary),
+                  ),
+                ],
               ),
             );
           }
 
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 150,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: const FlGridData(show: false),
-                        titlesData: const FlTitlesData(
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: true, reservedSize: 40),
-                          ),
-                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: points
-                                .asMap()
-                                .entries
-                                .map((e) => FlSpot(
-                                      e.key.toDouble(),
-                                      e.value.weight,
-                                    ))
-                                .toList(),
-                            isCurved: true,
-                            color: Theme.of(context).colorScheme.primary,
-                            dotData: const FlDotData(show: true),
-                            belowBarData: BarAreaData(
-                              show: true,
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 150,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) => Text(
+                              value.toInt().toString(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: colorScheme.tertiary,
+                              ),
                             ),
                           ),
-                        ],
+                        ),
+                        bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: points
+                              .asMap()
+                              .entries
+                              .map((e) => FlSpot(
+                                    e.key.toDouble(),
+                                    e.value.weight,
+                                  ))
+                              .toList(),
+                          isCurved: true,
+                          color: colorScheme.onSurface,
+                          barWidth: 2,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) =>
+                                FlDotCirclePainter(
+                              radius: 3,
+                              color: colorScheme.onSurface,
+                              strokeWidth: 0,
+                            ),
+                          ),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: colorScheme.onSurface.withValues(alpha: 0.05),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }).toList(),

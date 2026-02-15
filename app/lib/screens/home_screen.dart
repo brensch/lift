@@ -45,13 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Load schedule and check for active workout
-      // We could also call listWorkouts to check history for active ones if schedule doesn't return it
       final scheduleRes = await workoutService.getProposedWorkoutSchedule(auth.userId!);
-      
+
       String? activeId = scheduleRes.activeWorkoutId.isNotEmpty ? scheduleRes.activeWorkoutId : null;
-      
-      // Also check provider state or listWorkouts if schedule doesn't have it (redundancy)
+
       if (activeId == null) {
         final activeRes = await workoutService.getActiveWorkout();
         if (activeRes != null) {
@@ -64,23 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
       final schedule = scheduleRes.exerciseStatuses;
       final autoSelected = <Exercise>{};
 
-      // Freshness Logic:
-      // 1. Add always_include
       for (final s in schedule) {
         if (s.alwaysInclude) {
           autoSelected.add(s.exercise);
         }
       }
 
-      // 2. Fill up to 3 from the oldest compounds
-      // Filter for compounds
       final compounds = schedule
           .where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND)
           .toList();
-      
-      // Sort by lastPerformedAt (ascending: oldest first)
-      // 0 means never performed, so treat 0 as very old (or handle separately if we want to prioritize new)
-      // Web logic: sort((a, b) => Number(a.lastPerformedAt - b.lastPerformedAt))
+
       compounds.sort((a, b) => a.lastPerformedAt.compareTo(b.lastPerformedAt));
 
       for (final s in compounds) {
@@ -95,11 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
 
-      // If there is an active workout, ensure provider knows about it
       if (activeId != null) {
         context.read<WorkoutProvider>().loadWorkout(activeId);
       }
-
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -119,11 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final proposedSets = <ProposedSet>[];
       int order = 0;
 
-      // Follow the order of the schedule (rotation order)
       for (final status in _schedule!) {
         if (!_selectedExercises.contains(status.exercise)) continue;
 
-        // Generate warmup + working sets
         final warmupDefs = generateWarmupDefs(status.targetWeight.toDouble());
         for (final def in warmupDefs) {
           proposedSets.add(ProposedSet()
@@ -147,7 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final now = DateTime.now();
-      // Format: "Feb 14"
       final monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       final workoutName = "${monthNames[now.month - 1]} ${now.day}";
 
@@ -183,10 +168,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // If we have an active workout in provider, ensure UI reflects it
     final providerHasActive = context.watch<WorkoutProvider>().hasActiveWorkout;
     final showResume = _activeWorkoutId != null || providerHasActive;
     final userName = context.read<AuthProvider>().username ?? '';
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -197,9 +182,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+            Text('Error: $_error', style: TextStyle(color: colorScheme.error)),
             const SizedBox(height: 16),
-            ElevatedButton(
+            FilledButton(
               onPressed: _loadData,
               child: const Text('Retry'),
             ),
@@ -208,11 +193,11 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // Group exercises by category
     final compounds = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND).toList();
     final auxiliaries = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_AUXILIARY).toList();
 
     return RefreshIndicator(
+      color: colorScheme.primary,
       onRefresh: _loadData,
       child: CustomScrollView(
         slivers: [
@@ -223,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (showResume)
                   _buildResumeCard()
                 else ...[
-                   Text(
+                  Text(
                     'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
                     style: const TextStyle(
                       fontSize: 24,
@@ -233,14 +218,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // Could add "last workout time" here if we fetched history
-                  const Text(
+                  Text(
                     'READY FOR YOUR FIRST WORKOUT?',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
-                      color: Colors.grey,
+                      color: colorScheme.tertiary,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -252,24 +236,28 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!showResume) ...[
             if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
             if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
-            
+
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 64,
+                  height: 56,
                   child: FilledButton(
                     onPressed: _selectedExercises.isEmpty || _isStarting ? null : _startWorkout,
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
                     child: _isStarting
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.onPrimary,
+                            ),
+                          )
                         : Text(
                             'START WORKOUT (${_selectedExercises.length})',
                             style: const TextStyle(
                               fontWeight: FontWeight.w900,
-                              fontSize: 18,
+                              fontSize: 16,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -278,8 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-          
-          // Bottom padding
+
           const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
         ],
       ),
@@ -287,61 +274,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildResumeCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.primary, width: 1.5),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ACTIVE SESSION',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                fontSize: 12,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ACTIVE SESSION',
+            style: TextStyle(
+              color: colorScheme.tertiary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              fontSize: 11,
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'WORKOUT IN PROGRESS',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1.0,
-              ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'WORKOUT IN PROGRESS',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.0,
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton(
-                onPressed: () => context.go('/workout'),
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text(
-                  'RESUME',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    letterSpacing: 0.5,
-                  ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              onPressed: () => context.go('/workout'),
+              child: const Text(
+                'RESUME',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCategorySection(String title, List<ExerciseStatus> items) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
@@ -349,11 +334,11 @@ class _HomeScreenState extends State<HomeScreen> {
           sliver: SliverToBoxAdapter(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
-                color: Colors.grey,
+                color: colorScheme.tertiary,
               ),
             ),
           ),
@@ -363,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              childAspectRatio: 1.1, // Adjusted to be less tall
+              childAspectRatio: 1.1,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
@@ -406,31 +391,25 @@ class _ExerciseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final name = exerciseNames[status.exercise] ?? '?';
-    // Use short names if available, basically split by space and take 1-2 words or custom map
-    // For now, simple truncation logic or just use full name with overflow
-    
-    final borderColor = isSelected ? theme.colorScheme.primary : theme.dividerColor;
-    final bgColor = isSelected ? theme.colorScheme.primary.withValues(alpha: 0.05) : theme.cardColor;
+
+    final borderColor = isSelected ? colorScheme.primary : colorScheme.outline;
+    final bgColor = isSelected ? colorScheme.primary.withValues(alpha: 0.05) : colorScheme.surface;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
-          boxShadow: isSelected
-              ? [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]
-              : null,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Header
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -449,11 +428,10 @@ class _ExerciseCard extends StatelessWidget {
                   ),
                 ),
                 if (isSelected)
-                  Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
+                  Icon(Icons.check, size: 16, color: colorScheme.primary),
               ],
             ),
-            
-            // Center Content (Weight/Sets)
+
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -464,7 +442,7 @@ class _ExerciseCard extends StatelessWidget {
                         TextSpan(
                           text: '${status.targetWeight.toInt()}',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface,
+                            color: colorScheme.onSurface,
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1.0,
@@ -473,7 +451,7 @@ class _ExerciseCard extends StatelessWidget {
                         TextSpan(
                           text: ' LB',
                           style: TextStyle(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: colorScheme.tertiary,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -485,7 +463,7 @@ class _ExerciseCard extends StatelessWidget {
                     margin: const EdgeInsets.only(top: 2),
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                      color: colorScheme.secondary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -493,7 +471,7 @@ class _ExerciseCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: colorScheme.tertiary,
                       ),
                     ),
                   ),
@@ -501,7 +479,6 @@ class _ExerciseCard extends StatelessWidget {
               ),
             ),
 
-            // Footer (Time ago)
             Row(
               children: [
                 Container(
@@ -509,7 +486,9 @@ class _ExerciseCard extends StatelessWidget {
                   height: 6,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: status.recovered ? Colors.green : Colors.orange,
+                    color: status.recovered
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFEA580C),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -519,7 +498,7 @@ class _ExerciseCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      color: colorScheme.tertiary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -536,7 +515,7 @@ class _ExerciseCard extends StatelessWidget {
     if (timestamp == Int64.ZERO) return 'NEW';
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final diff = now - timestamp.toInt();
-    
+
     if (diff < 60) return 'NOW';
     if (diff < 3600) return '${(diff / 60).floor()}m';
     if (diff < 86400) return '${(diff / 3600).floor()}h';
