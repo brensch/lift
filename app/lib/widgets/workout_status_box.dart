@@ -14,6 +14,7 @@ class StatusBox extends StatelessWidget {
   final Color? timerColor;
   final ProposedSet? set;
   final bool isComplete;
+  final bool showHeader;
 
   const StatusBox({
     super.key,
@@ -26,6 +27,7 @@ class StatusBox extends StatelessWidget {
     this.timerColor,
     this.set,
     this.isComplete = false,
+    this.showHeader = false,
   });
 
   @override
@@ -57,6 +59,8 @@ class StatusBox extends StatelessWidget {
                       letterSpacing: 2.0,
                       color: color,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -70,98 +74,106 @@ class StatusBox extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Column 1: Info (Header, Exercise Name, Weight)
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (header != null) ...[
-                            Text(
-                              header!.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                color: color,
-                                letterSpacing: -0.2,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                          ],
-                          if (name != null) ...[
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: 'monospace',
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                          ],
-                          if (set != null) ...[
-                            StatusSetWeightInfo(set: set!),
-                          ] else if (isComplete) ...[
-                            const Text(
-                              'All sets complete',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ] else if (child != null) ...[
-                            child!,
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Column 2: Plate Visualization
-                    if (set != null) ...[
-                      Expanded(
-                        flex: 4,
-                        child: Center(
-                          child: PlateVisualization(weight: set!.targetWeight.toDouble()),
+                    if (header != null && showHeader) ...[
+                      Text(
+                        header!.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                          letterSpacing: -0.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(height: 8),
                     ],
-                    // Column 3: Timer & State
-                    Column(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (stateLabel != null) ...[
-                          Text(
-                            stateLabel!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              fontFamily: 'monospace',
-                              color: color.withValues(alpha: 0.9),
-                              letterSpacing: 0.5,
+                        // Column 1: Info (Exercise Name, Weight)
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (name != null) ...[
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                              if (set != null) ...[
+                                StatusSetWeightInfo(set: set!),
+                              ] else if (isComplete) ...[
+                                const Text(
+                                  'All sets complete',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ] else if (child != null) ...[
+                                child!,
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Column 2: Plate Visualization
+                        if (set != null) ...[
+                          Expanded(
+                            flex: 4,
+                            child: Center(
+                              child: PlateVisualization(weight: set!.targetWeight.toDouble()),
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(width: 12),
                         ],
-                        if (timerText != null)
-                          Text(
-                            timerText!,
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              fontFamily: 'monospace',
-                              letterSpacing: -1.5,
-                              height: 1.0,
-                              color: timerColor ?? color,
-                            ),
-                          ),
+                        // Column 3: Timer & State
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (stateLabel != null) ...[
+                              Text(
+                                stateLabel!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
+                                  color: color.withValues(alpha: 0.9),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                            ],
+                            if (timerText != null)
+                              Text(
+                                timerText!,
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
+                                  letterSpacing: -1.5,
+                                  height: 1.0,
+                                  color: timerColor ?? color,
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ],
