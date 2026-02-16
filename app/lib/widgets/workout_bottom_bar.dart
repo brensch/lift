@@ -40,14 +40,16 @@ class WorkoutBottomBar extends StatelessWidget {
 
     final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
     final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
-    final isChatTime = !isResting &&
+    final isChatTime =
+        !isResting &&
         activeSetId == null &&
         lastRestEnd > 0 &&
         lastRestEnd <= nowUnix &&
         nextSet != null;
     final chatElapsed = isChatTime ? nowUnix - lastRestEnd : 0;
 
-    final allDone = wp.activeProposedSets.isNotEmpty &&
+    final allDone =
+        wp.activeProposedSets.isNotEmpty &&
         wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
         activeSetId == null;
 
@@ -78,22 +80,28 @@ class WorkoutBottomBar extends StatelessWidget {
       );
       if (proposed == null) return const SizedBox.shrink();
 
-      final activeCompleted = wp.activeCompletedSets.cast<CompletedSet?>().firstWhere(
-        (c) => c!.proposedSetId == activeSetId && c.endedAt == Int64.ZERO,
-        orElse: () => null,
-      );
+      final activeCompleted = wp.activeCompletedSets
+          .cast<CompletedSet?>()
+          .firstWhere(
+            (c) => c!.proposedSetId == activeSetId && c.endedAt == Int64.ZERO,
+            orElse: () => null,
+          );
       final elapsedSecs = activeCompleted != null
-          ? (wp.now.millisecondsSinceEpoch ~/ 1000) - activeCompleted.startedAt.toInt()
+          ? (wp.now.millisecondsSinceEpoch ~/ 1000) -
+                activeCompleted.startedAt.toInt()
           : 0;
 
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
-      stateColor = proposed.warmup ? const Color(0xFF3B82F6) : colorScheme.primary;
+      stateColor = proposed.warmup
+          ? const Color(0xFF3B82F6)
+          : colorScheme.primary;
       timerText = _fmt(elapsedSecs);
       timerColor = colorScheme.tertiary;
       displaySet = proposed;
       actionButton = _RepButtons(
         targetReps: proposed.targetReps,
-        onComplete: (reps) => wp.completeSet(activeSetId, reps, proposed.targetWeight.toDouble()),
+        onComplete: (reps) =>
+            wp.completeSet(activeSetId, reps, proposed.targetWeight.toDouble()),
         onSkipWarmup: proposed.warmup ? () => wp.skipWarmup(activeSetId) : null,
       );
     } else if (isResting) {
@@ -108,7 +116,9 @@ class WorkoutBottomBar extends StatelessWidget {
           if (nextSet != null) wp.startSet(nextSet.id);
         },
         secondaryLabel: nextSet?.warmup == true ? 'Skip Warmup' : null,
-        onSecondary: nextSet?.warmup == true ? () => wp.skipWarmup(nextSet!.id) : null,
+        onSecondary: nextSet?.warmup == true
+            ? () => wp.skipWarmup(nextSet!.id)
+            : null,
       );
     } else if (isChatTime) {
       stateLabel = 'Yapping';
@@ -137,9 +147,11 @@ class WorkoutBottomBar extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: !isOnWorkoutPage ? () {
-        context.go('/');
-      } : null,
+      onTap: !isOnWorkoutPage
+          ? () {
+              context.go('/');
+            }
+          : null,
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.secondary,
@@ -147,7 +159,9 @@ class WorkoutBottomBar extends StatelessWidget {
           border: Border(
             top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
             left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            right: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            right: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.5),
+            ),
           ),
         ),
         child: SafeArea(
@@ -172,7 +186,12 @@ class WorkoutBottomBar extends StatelessWidget {
                 // Row 2: Group status box
                 if (mp.participants.length > 1) ...[
                   const SizedBox(height: 8),
-                  _buildGroupStatusBox(context, mp.sessionStatus, auth.userId, wp.now),
+                  _buildGroupStatusBox(
+                    context,
+                    mp.sessionStatus,
+                    auth.userId,
+                    wp.now,
+                  ),
                 ],
 
                 // Row 3: full-width action button
@@ -186,7 +205,12 @@ class WorkoutBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupStatusBox(BuildContext context, SessionStatus? status, String? myUserId, DateTime now) {
+  Widget _buildGroupStatusBox(
+    BuildContext context,
+    SessionStatus? status,
+    String? myUserId,
+    DateTime now,
+  ) {
     if (status == null) return const SizedBox.shrink();
     const purple = Color(0xFF9333EA);
     const orange = Color(0xFFF97316);
@@ -206,15 +230,15 @@ class WorkoutBottomBar extends StatelessWidget {
 
       // Check if lifting
       final active = p.completedSets.cast<CompletedSet?>().firstWhere(
-            (c) => c!.endedAt == Int64.ZERO,
-            orElse: () => null,
-          );
+        (c) => c!.endedAt == Int64.ZERO,
+        orElse: () => null,
+      );
 
       if (active != null) {
         final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
-              (s) => s!.id == active.proposedSetId,
-              orElse: () => null,
-            );
+          (s) => s!.id == active.proposedSetId,
+          orElse: () => null,
+        );
         groupActive = p;
         groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
         groupTimer = _fmt(nowUnix - active.startedAt.toInt());
@@ -319,7 +343,10 @@ class _BigButton extends StatelessWidget {
               onPressed: onPressed,
               child: Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -382,7 +409,10 @@ class _RepButtons extends StatelessWidget {
                       style: FilledButton.styleFrom(padding: EdgeInsets.zero),
                       child: Text(
                         '$n',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     )
                   : OutlinedButton(
@@ -390,7 +420,10 @@ class _RepButtons extends StatelessWidget {
                       style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                       child: Text(
                         '$n',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
             );
@@ -404,10 +437,7 @@ class _RepButtons extends StatelessWidget {
               onPressed: onSkipWarmup,
               child: Text(
                 'Skip Warmup',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colorScheme.tertiary,
-                ),
+                style: TextStyle(fontSize: 13, color: colorScheme.tertiary),
               ),
             ),
           ),

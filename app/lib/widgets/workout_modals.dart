@@ -34,32 +34,44 @@ Future<void> showEditExerciseDialog(
   required int groupIndex,
   required List<ExerciseStatus> exerciseStatuses,
   required bool Function(String setId) isSetDone,
-  required void Function(int groupIndex, {required List<double> targetWeights, bool? warmups, int? setCount}) onSave,
+  required void Function(
+    int groupIndex, {
+    required List<double> targetWeights,
+    bool? warmups,
+    int? setCount,
+  })
+  onSave,
 }) async {
   final workingSets = group.sets.where((s) => !s.warmup).toList();
-  
+
   // Get unique exercises in this group
   final List<Exercise> exercisesInGroup = [];
   for (final s in group.sets) {
-    if (!exercisesInGroup.contains(s.exercise)) exercisesInGroup.add(s.exercise);
+    if (!exercisesInGroup.contains(s.exercise))
+      exercisesInGroup.add(s.exercise);
   }
 
   // Initial weights
   final List<double> currentWeights = [];
   if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET) {
     for (final ex in exercisesInGroup) {
-      currentWeights.add(group.sets.firstWhere((s) => s.exercise == ex).targetWeight.toDouble());
+      currentWeights.add(
+        group.sets.firstWhere((s) => s.exercise == ex).targetWeight.toDouble(),
+      );
     }
-  } else if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
+  } else if (group.group?.type ==
+      ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
     for (final s in workingSets) {
       currentWeights.add(s.targetWeight.toDouble());
     }
   } else {
-    currentWeights.add(workingSets.firstOrNull?.targetWeight.toDouble() ?? 45.0);
+    currentWeights.add(
+      workingSets.firstOrNull?.targetWeight.toDouble() ?? 45.0,
+    );
   }
 
   bool warmups = group.group?.includeWarmup ?? true;
-  int sets = group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET 
+  int sets = group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET
       ? workingSets.length ~/ exercisesInGroup.length
       : workingSets.length;
 
@@ -76,8 +88,12 @@ Future<void> showEditExerciseDialog(
           return Container(
             decoration: BoxDecoration(
               color: colorScheme.secondary,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
             ),
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
@@ -110,39 +126,64 @@ Future<void> showEditExerciseDialog(
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Weights editing
-                  if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET)
+                  if (group.group?.type ==
+                      ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET)
                     ...exercisesInGroup.asMap().entries.map((entry) {
                       final i = entry.key;
                       final ex = entry.value;
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(exerciseNames[ex] ?? '?', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          Text(
+                            exerciseNames[ex] ?? '?',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           _WeightSlider(
                             weight: currentWeights[i],
-                            onChanged: (v) => setState(() => currentWeights[i] = v),
+                            onChanged: (v) =>
+                                setState(() => currentWeights[i] = v),
                           ),
                           const SizedBox(height: 12),
                         ],
                       );
                     }).toList()
-                  else if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET)
+                  else if (group.group?.type ==
+                      ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('SET WEIGHTS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'SET WEIGHTS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         ...List.generate(sets, (i) {
-                          if (i >= currentWeights.length) currentWeights.add((currentWeights.last - 10).clamp(0, 1000));
+                          if (i >= currentWeights.length)
+                            currentWeights.add(
+                              (currentWeights.last - 10).clamp(0, 1000),
+                            );
                           return Row(
                             children: [
-                              Text('SET ${i+1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              Text(
+                                'SET ${i + 1}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               Expanded(
                                 child: _WeightSlider(
                                   weight: currentWeights[i],
-                                  onChanged: (v) => setState(() => currentWeights[i] = v),
+                                  onChanged: (v) =>
+                                      setState(() => currentWeights[i] = v),
                                 ),
                               ),
                             ],
@@ -164,7 +205,11 @@ Future<void> showEditExerciseDialog(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET ? 'ROUNDS' : 'WORKING SETS',
+                              group.group?.type ==
+                                      ExerciseGroupType
+                                          .EXERCISE_GROUP_TYPE_SUPERSET
+                                  ? 'ROUNDS'
+                                  : 'WORKING SETS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -175,15 +220,30 @@ Future<void> showEditExerciseDialog(
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                _CountButton(icon: Icons.remove, onPressed: () => setState(() => sets = (sets - 1).clamp(1, 10))),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    '$sets',
-                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                                _CountButton(
+                                  icon: Icons.remove,
+                                  onPressed: () => setState(
+                                    () => sets = (sets - 1).clamp(1, 10),
                                   ),
                                 ),
-                                _CountButton(icon: Icons.add, onPressed: () => setState(() => sets = (sets + 1).clamp(1, 10))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Text(
+                                    '$sets',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                _CountButton(
+                                  icon: Icons.add,
+                                  onPressed: () => setState(
+                                    () => sets = (sets + 1).clamp(1, 10),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -217,11 +277,19 @@ Future<void> showEditExerciseDialog(
                     child: FilledButton(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        onSave(groupIndex, targetWeights: currentWeights, warmups: warmups, setCount: sets);
+                        onSave(
+                          groupIndex,
+                          targetWeights: currentWeights,
+                          warmups: warmups,
+                          setCount: sets,
+                        );
                       },
                       child: const Text(
                         'SAVE CHANGES',
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -256,7 +324,11 @@ class _WeightSlider extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               'LB',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: colorScheme.tertiary),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: colorScheme.tertiary,
+              ),
             ),
           ],
         ),
@@ -266,10 +338,22 @@ class _WeightSlider extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _WeightButton(label: '-45', onPressed: () => onChanged((weight - 45).clamp(0, 1000))),
-            _WeightButton(label: '-5', onPressed: () => onChanged((weight - 5).clamp(0, 1000))),
-            _WeightButton(label: '+5', onPressed: () => onChanged((weight + 5).clamp(0, 1000))),
-            _WeightButton(label: '+45', onPressed: () => onChanged((weight + 45).clamp(0, 1000))),
+            _WeightButton(
+              label: '-45',
+              onPressed: () => onChanged((weight - 45).clamp(0, 1000)),
+            ),
+            _WeightButton(
+              label: '-5',
+              onPressed: () => onChanged((weight - 5).clamp(0, 1000)),
+            ),
+            _WeightButton(
+              label: '+5',
+              onPressed: () => onChanged((weight + 5).clamp(0, 1000)),
+            ),
+            _WeightButton(
+              label: '+45',
+              onPressed: () => onChanged((weight + 45).clamp(0, 1000)),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -288,7 +372,15 @@ class _WeightSlider extends StatelessWidget {
 Future<void> showAddExerciseDialog(
   BuildContext context, {
   required List<ExerciseStatus> exerciseStatuses,
-  required void Function(String name, List<Exercise> exercises, double weight, int sets, int reps, ExerciseGroupType type) onAdd,
+  required void Function(
+    String name,
+    List<Exercise> exercises,
+    double weight,
+    int sets,
+    int reps,
+    ExerciseGroupType type,
+  )
+  onAdd,
 }) async {
   List<Exercise> selectedExercises = [];
   String customName = '';
@@ -308,12 +400,14 @@ Future<void> showAddExerciseDialog(
       return StatefulBuilder(
         builder: (ctx, setState) {
           final colorScheme = Theme.of(ctx).colorScheme;
-          
-          Exercise? firstSelected = selectedExercises.isNotEmpty ? selectedExercises.first : null;
+
+          Exercise? firstSelected = selectedExercises.isNotEmpty
+              ? selectedExercises.first
+              : null;
           final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-                (s) => s!.exercise == firstSelected,
-                orElse: () => null,
-              );
+            (s) => s!.exercise == firstSelected,
+            orElse: () => null,
+          );
 
           return AlertDialog(
             title: const Text(
@@ -337,7 +431,10 @@ Future<void> showAddExerciseDialog(
                   DropdownButtonFormField<ExerciseGroupType>(
                     value: type,
                     decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                       labelText: 'Group Type',
                     ),
                     items: [
@@ -354,7 +451,10 @@ Future<void> showAddExerciseDialog(
                       if (v != null) {
                         setState(() {
                           type = v;
-                          if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT && selectedExercises.length > 1) {
+                          if (type ==
+                                  ExerciseGroupType
+                                      .EXERCISE_GROUP_TYPE_STRAIGHT &&
+                              selectedExercises.length > 1) {
                             selectedExercises = [selectedExercises.first];
                           }
                         });
@@ -368,27 +468,36 @@ Future<void> showAddExerciseDialog(
                       hint: const Text('Select exercise'),
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         labelText: 'Exercise',
                       ),
                       items: Exercise.values
                           .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
-                          .map((e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(exerciseNames[e] ?? '?'),
-                              ))
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(exerciseNames[e] ?? '?'),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) {
                         if (v == null) return;
                         setState(() {
                           selectedExercises = [v];
-                          final s = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
+                          final s = exerciseStatuses
+                              .cast<ExerciseStatus?>()
+                              .firstWhere(
                                 (status) => status!.exercise == v,
                                 orElse: () => null,
                               );
                           if (s != null) {
                             weight = s.targetWeight;
-                            weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                            weightController.text = weight
+                                .toStringAsFixed(1)
+                                .replaceAll('.0', '');
                             sets = s.defaultSets > 0 ? s.defaultSets : 3;
                             setsController.text = sets.toString();
                             reps = s.defaultReps > 0 ? s.defaultReps : 5;
@@ -401,28 +510,40 @@ Future<void> showAddExerciseDialog(
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Select Exercises', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Select Exercises',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           children: Exercise.values
                               .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
                               .map((e) {
-                            final isSelected = selectedExercises.contains(e);
-                            return FilterChip(
-                              label: Text(exerciseNames[e] ?? '?', style: const TextStyle(fontSize: 11)),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (selected) {
-                                    selectedExercises.add(e);
-                                  } else {
-                                    selectedExercises.remove(e);
-                                  }
-                                });
-                              },
-                            );
-                          }).toList(),
+                                final isSelected = selectedExercises.contains(
+                                  e,
+                                );
+                                return FilterChip(
+                                  label: Text(
+                                    exerciseNames[e] ?? '?',
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      if (selected) {
+                                        selectedExercises.add(e);
+                                      } else {
+                                        selectedExercises.remove(e);
+                                      }
+                                    });
+                                  },
+                                );
+                              })
+                              .toList(),
                         ),
                       ],
                     ),
@@ -437,7 +558,11 @@ Future<void> showAddExerciseDialog(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, size: 16, color: colorScheme.primary),
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -456,8 +581,12 @@ Future<void> showAddExerciseDialog(
                   const SizedBox(height: 12),
                   TextField(
                     controller: weightController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Weight (lbs)'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Weight (lbs)',
+                    ),
                     onChanged: (v) {
                       setState(() {
                         weight = double.tryParse(v) ?? weight;
@@ -474,28 +603,36 @@ Future<void> showAddExerciseDialog(
                         label: '-45',
                         onPressed: () => setState(() {
                           weight = (weight - 45).clamp(0, 1000);
-                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                          weightController.text = weight
+                              .toStringAsFixed(1)
+                              .replaceAll('.0', '');
                         }),
                       ),
                       _WeightButton(
                         label: '-5',
                         onPressed: () => setState(() {
                           weight = (weight - 5).clamp(0, 1000);
-                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                          weightController.text = weight
+                              .toStringAsFixed(1)
+                              .replaceAll('.0', '');
                         }),
                       ),
                       _WeightButton(
                         label: '+5',
                         onPressed: () => setState(() {
                           weight = (weight + 5).clamp(0, 1000);
-                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                          weightController.text = weight
+                              .toStringAsFixed(1)
+                              .replaceAll('.0', '');
                         }),
                       ),
                       _WeightButton(
                         label: '+45',
                         onPressed: () => setState(() {
                           weight = (weight + 45).clamp(0, 1000);
-                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                          weightController.text = weight
+                              .toStringAsFixed(1)
+                              .replaceAll('.0', '');
                         }),
                       ),
                     ],
@@ -535,7 +672,14 @@ Future<void> showAddExerciseDialog(
                     ? null
                     : () {
                         Navigator.pop(ctx);
-                        onAdd(customName, selectedExercises, weight, sets, reps, type);
+                        onAdd(
+                          customName,
+                          selectedExercises,
+                          weight,
+                          sets,
+                          reps,
+                          type,
+                        );
                       },
                 child: const Text('Add'),
               ),
@@ -576,7 +720,10 @@ Future<bool> showEndWorkoutConfirmDialog(BuildContext context) async {
       false;
 }
 
-Future<bool> showDeleteGroupDialog(BuildContext context, String exerciseName) async {
+Future<bool> showDeleteGroupDialog(
+  BuildContext context,
+  String exerciseName,
+) async {
   final colorScheme = Theme.of(context).colorScheme;
   return await showDialog<bool>(
         context: context,

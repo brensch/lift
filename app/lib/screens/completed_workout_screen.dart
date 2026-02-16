@@ -98,13 +98,20 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           },
         ),
         title: Text(
-          workout.name.isNotEmpty ? workout.name.toUpperCase() : (_currentPage == 0 ? 'CELEBRATION' : 'SUMMARY'),
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          workout.name.isNotEmpty
+              ? workout.name.toUpperCase()
+              : (_currentPage == 0 ? 'CELEBRATION' : 'SUMMARY'),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
         actions: [
           if (!widget.isHistory)
             IconButton(
-              icon: Icon(_currentPage == 0 ? Icons.bar_chart : Icons.celebration),
+              icon: Icon(
+                _currentPage == 0 ? Icons.bar_chart : Icons.celebration,
+              ),
               onPressed: () {
                 _pageController.animateToPage(
                   _currentPage == 0 ? 1 : 0,
@@ -124,7 +131,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             workout: workout,
             proposedSets: _proposedSets,
             completedSets: _completedSets,
-            onViewSummary: () => _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
+            onViewSummary: () => _pageController.animateToPage(
+              1,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            ),
           ),
           _StatsView(
             groups: groups,
@@ -250,7 +261,11 @@ class _StatMetric extends StatelessWidget {
   final String value;
   final IconData icon;
 
-  const _StatMetric({required this.label, required this.value, required this.icon});
+  const _StatMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,19 +308,18 @@ class _StatsView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        ...groups.map((group) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ExerciseGroupWidget(
-                group: group,
-                completedSets: completedSets,
-                isWorkoutEnded: true,
-              ),
-            )),
-        const SizedBox(height: 16),
-        SetLog(
-          proposedSets: proposedSets,
-          completedSets: completedSets,
+        ...groups.map(
+          (group) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ExerciseGroupWidget(
+              group: group,
+              completedSets: completedSets,
+              isWorkoutEnded: true,
+            ),
+          ),
         ),
+        const SizedBox(height: 16),
+        SetLog(proposedSets: proposedSets, completedSets: completedSets),
       ],
     );
   }

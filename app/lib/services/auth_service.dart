@@ -24,7 +24,9 @@ class AuthService {
 
   Future<void> _ensureCredentialManager() async {
     if (!_credentialManagerInitialized) {
-      await _credentialManager.init(preferImmediatelyAvailableCredentials: false);
+      await _credentialManager.init(
+        preferImmediatelyAvailableCredentials: false,
+      );
       _credentialManagerInitialized = true;
     }
   }
@@ -77,9 +79,7 @@ class AuthService {
     // Server wraps options under "publicKey" key
     final optionsJson = jsonDecode(startResponse.optionsJson);
     final credential = await _credentialManager.savePasskeyCredentials(
-      request: CredentialCreationOptions.fromJson(
-        optionsJson['publicKey'],
-      ),
+      request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
     );
 
     // Step 3: Send credential back to server
@@ -110,9 +110,7 @@ class AuthService {
     // Server wraps options under "publicKey" key
     final optionsJson = jsonDecode(startResponse.optionsJson);
     final credentials = await _credentialManager.getCredentials(
-      passKeyOption: CredentialLoginOptions.fromJson(
-        optionsJson['publicKey'],
-      ),
+      passKeyOption: CredentialLoginOptions.fromJson(optionsJson['publicKey']),
       fetchOptions: FetchOptionsAndroid(passKey: true),
     );
 
@@ -120,7 +118,9 @@ class AuthService {
     final finishResponse = await grpcClient.authService.loginFinish(
       LoginFinishRequest(
         challengeId: startResponse.challengeId,
-        credentialJson: jsonEncode(_stripNulls(credentials.publicKeyCredential!.toJson())),
+        credentialJson: jsonEncode(
+          _stripNulls(credentials.publicKeyCredential!.toJson()),
+        ),
       ),
     );
 
@@ -132,7 +132,9 @@ class AuthService {
   }
 
   Future<List<PasskeyInfo>> listPasskeys() async {
-    final response = await grpcClient.authService.listPasskeys(ListPasskeysRequest());
+    final response = await grpcClient.authService.listPasskeys(
+      ListPasskeysRequest(),
+    );
     return response.passkeys;
   }
 
@@ -145,9 +147,7 @@ class AuthService {
 
     final optionsJson = jsonDecode(startResponse.optionsJson);
     final credential = await _credentialManager.savePasskeyCredentials(
-      request: CredentialCreationOptions.fromJson(
-        optionsJson['publicKey'],
-      ),
+      request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
     );
 
     await grpcClient.authService.addPasskeyFinish(

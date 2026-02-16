@@ -16,7 +16,9 @@ List<ExerciseGroupData> groupSetsByExercise(List<ProposedSet> sets) {
   for (final set in sets) {
     if (set.exercise != currentExercise) {
       if (currentGroup.isNotEmpty && currentExercise != null) {
-        groups.add(ExerciseGroupData(exercise: currentExercise, sets: currentGroup));
+        groups.add(
+          ExerciseGroupData(exercise: currentExercise, sets: currentGroup),
+        );
       }
       currentExercise = set.exercise;
       currentGroup = [set];
@@ -26,7 +28,9 @@ List<ExerciseGroupData> groupSetsByExercise(List<ProposedSet> sets) {
   }
 
   if (currentGroup.isNotEmpty && currentExercise != null) {
-    groups.add(ExerciseGroupData(exercise: currentExercise, sets: currentGroup));
+    groups.add(
+      ExerciseGroupData(exercise: currentExercise, sets: currentGroup),
+    );
   }
 
   return groups;

@@ -13,7 +13,9 @@ class NotificationService {
   static Future<void> init() async {
     tz.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestSoundPermission: true,
@@ -33,8 +35,10 @@ class NotificationService {
     );
 
     // Request notification permission (Android 13+)
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.requestNotificationsPermission();
     await android?.requestExactAlarmsPermission();
   }
@@ -65,7 +69,9 @@ class NotificationService {
 
     // Use per-preset channel ID to avoid Android's channel sound caching
     final channelId = 'rest_timer_$soundPresetId';
-    final androidSound = RawResourceAndroidNotificationSound('sound_$soundPresetId');
+    final androidSound = RawResourceAndroidNotificationSound(
+      'sound_$soundPresetId',
+    );
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
@@ -165,13 +171,16 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
-  static Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+  static Future<List<PendingNotificationRequest>>
+  getPendingNotifications() async {
     return _plugin.pendingNotificationRequests();
   }
 
   static Future<List<ActiveNotification>> getActiveNotifications() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       return android.getActiveNotifications();
     }

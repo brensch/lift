@@ -15,7 +15,12 @@ class SoundNote {
   final WaveType type;
   final double delay;
   final double duration;
-  const SoundNote({required this.freq, required this.type, this.delay = 0.0, this.duration = 2.0});
+  const SoundNote({
+    required this.freq,
+    required this.type,
+    this.delay = 0.0,
+    this.duration = 2.0,
+  });
 }
 
 class SoundDef {
@@ -26,59 +31,99 @@ class SoundDef {
 
 // Keep in sync with lib/logic/audio.dart soundPresets
 const Map<String, SoundDef> soundPresets = {
-  'chord_strum': SoundDef(name: 'Esoteric Strum', notes: [
-    SoundNote(freq: 233.08, type: WaveType.triangle, delay: 0.00),
-    SoundNote(freq: 329.63, type: WaveType.sine, delay: 0.04),
-    SoundNote(freq: 440.00, type: WaveType.sine, delay: 0.08),
-    SoundNote(freq: 587.33, type: WaveType.triangle, delay: 0.12),
-    SoundNote(freq: 739.99, type: WaveType.sine, delay: 0.16),
-    SoundNote(freq: 987.77, type: WaveType.sine, delay: 0.20),
-  ]),
-  'bell_high': SoundDef(name: 'High Bell', notes: [
-    SoundNote(freq: 1320, type: WaveType.sine, duration: 0.8),
-    SoundNote(freq: 2640, type: WaveType.sine, duration: 0.8),
-  ]),
-  'classic_beep': SoundDef(name: 'Classic Beep', notes: [
-    SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.0),
-    SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.2),
-    SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.4),
-  ]),
-  'success_rise': SoundDef(name: 'Success Rise', notes: [
-    SoundNote(freq: 523.25, type: WaveType.sine, duration: 0.5, delay: 0.0),
-    SoundNote(freq: 659.25, type: WaveType.sine, duration: 0.5, delay: 0.1),
-    SoundNote(freq: 783.99, type: WaveType.sine, duration: 0.5, delay: 0.2),
-    SoundNote(freq: 1046.50, type: WaveType.sine, duration: 1.0, delay: 0.3),
-  ]),
-  'boxing_bell': SoundDef(name: 'Boxing Bell', notes: [
-    SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.0),
-    SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.2),
-    SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.4),
-  ]),
-  'elevator_ding': SoundDef(name: 'Elevator Ding', notes: [
-    SoundNote(freq: 783.99, type: WaveType.sine, duration: 1.5, delay: 0.0),
-  ]),
-  'dojo_gong': SoundDef(name: 'Dojo Gong', notes: [
-    SoundNote(freq: 98.00, type: WaveType.triangle, duration: 3.0, delay: 0.0),
-    SoundNote(freq: 146.83, type: WaveType.triangle, duration: 2.5, delay: 0.05),
-    SoundNote(freq: 196.00, type: WaveType.sine, duration: 2.0, delay: 0.1),
-  ]),
-  'retro_arcade': SoundDef(name: 'Retro Arcade', notes: [
-    SoundNote(freq: 440, type: WaveType.square, duration: 0.05, delay: 0.0),
-    SoundNote(freq: 523, type: WaveType.square, duration: 0.05, delay: 0.05),
-    SoundNote(freq: 659, type: WaveType.square, duration: 0.05, delay: 0.1),
-    SoundNote(freq: 880, type: WaveType.square, duration: 0.05, delay: 0.15),
-    SoundNote(freq: 1046, type: WaveType.square, duration: 0.2, delay: 0.2),
-  ]),
-  'crystal_shine': SoundDef(name: 'Crystal Shine', notes: [
-    SoundNote(freq: 2093, type: WaveType.sine, duration: 0.8, delay: 0.0),
-    SoundNote(freq: 2637, type: WaveType.sine, duration: 0.8, delay: 0.05),
-    SoundNote(freq: 3135, type: WaveType.sine, duration: 0.8, delay: 0.1),
-  ]),
-  'morning_dew': SoundDef(name: 'Morning Dew', notes: [
-    SoundNote(freq: 1760, type: WaveType.sine, duration: 0.4, delay: 0.0),
-    SoundNote(freq: 1975, type: WaveType.sine, duration: 0.4, delay: 0.1),
-    SoundNote(freq: 2093, type: WaveType.sine, duration: 0.4, delay: 0.2),
-  ]),
+  'chord_strum': SoundDef(
+    name: 'Esoteric Strum',
+    notes: [
+      SoundNote(freq: 233.08, type: WaveType.triangle, delay: 0.00),
+      SoundNote(freq: 329.63, type: WaveType.sine, delay: 0.04),
+      SoundNote(freq: 440.00, type: WaveType.sine, delay: 0.08),
+      SoundNote(freq: 587.33, type: WaveType.triangle, delay: 0.12),
+      SoundNote(freq: 739.99, type: WaveType.sine, delay: 0.16),
+      SoundNote(freq: 987.77, type: WaveType.sine, delay: 0.20),
+    ],
+  ),
+  'bell_high': SoundDef(
+    name: 'High Bell',
+    notes: [
+      SoundNote(freq: 1320, type: WaveType.sine, duration: 0.8),
+      SoundNote(freq: 2640, type: WaveType.sine, duration: 0.8),
+    ],
+  ),
+  'classic_beep': SoundDef(
+    name: 'Classic Beep',
+    notes: [
+      SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.0),
+      SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.2),
+      SoundNote(freq: 880, type: WaveType.square, duration: 0.1, delay: 0.4),
+    ],
+  ),
+  'success_rise': SoundDef(
+    name: 'Success Rise',
+    notes: [
+      SoundNote(freq: 523.25, type: WaveType.sine, duration: 0.5, delay: 0.0),
+      SoundNote(freq: 659.25, type: WaveType.sine, duration: 0.5, delay: 0.1),
+      SoundNote(freq: 783.99, type: WaveType.sine, duration: 0.5, delay: 0.2),
+      SoundNote(freq: 1046.50, type: WaveType.sine, duration: 1.0, delay: 0.3),
+    ],
+  ),
+  'boxing_bell': SoundDef(
+    name: 'Boxing Bell',
+    notes: [
+      SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.0),
+      SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.2),
+      SoundNote(freq: 440, type: WaveType.sine, duration: 1.0, delay: 0.4),
+    ],
+  ),
+  'elevator_ding': SoundDef(
+    name: 'Elevator Ding',
+    notes: [
+      SoundNote(freq: 783.99, type: WaveType.sine, duration: 1.5, delay: 0.0),
+    ],
+  ),
+  'dojo_gong': SoundDef(
+    name: 'Dojo Gong',
+    notes: [
+      SoundNote(
+        freq: 98.00,
+        type: WaveType.triangle,
+        duration: 3.0,
+        delay: 0.0,
+      ),
+      SoundNote(
+        freq: 146.83,
+        type: WaveType.triangle,
+        duration: 2.5,
+        delay: 0.05,
+      ),
+      SoundNote(freq: 196.00, type: WaveType.sine, duration: 2.0, delay: 0.1),
+    ],
+  ),
+  'retro_arcade': SoundDef(
+    name: 'Retro Arcade',
+    notes: [
+      SoundNote(freq: 440, type: WaveType.square, duration: 0.05, delay: 0.0),
+      SoundNote(freq: 523, type: WaveType.square, duration: 0.05, delay: 0.05),
+      SoundNote(freq: 659, type: WaveType.square, duration: 0.05, delay: 0.1),
+      SoundNote(freq: 880, type: WaveType.square, duration: 0.05, delay: 0.15),
+      SoundNote(freq: 1046, type: WaveType.square, duration: 0.2, delay: 0.2),
+    ],
+  ),
+  'crystal_shine': SoundDef(
+    name: 'Crystal Shine',
+    notes: [
+      SoundNote(freq: 2093, type: WaveType.sine, duration: 0.8, delay: 0.0),
+      SoundNote(freq: 2637, type: WaveType.sine, duration: 0.8, delay: 0.05),
+      SoundNote(freq: 3135, type: WaveType.sine, duration: 0.8, delay: 0.1),
+    ],
+  ),
+  'morning_dew': SoundDef(
+    name: 'Morning Dew',
+    notes: [
+      SoundNote(freq: 1760, type: WaveType.sine, duration: 0.4, delay: 0.0),
+      SoundNote(freq: 1975, type: WaveType.sine, duration: 0.4, delay: 0.1),
+      SoundNote(freq: 2093, type: WaveType.sine, duration: 0.4, delay: 0.2),
+    ],
+  ),
 };
 
 Uint8List generateWav(String presetId) {
@@ -109,7 +154,9 @@ Uint8List generateWav(String presetId) {
         case WaveType.sine:
           value = sin(phase);
         case WaveType.triangle:
-          value = 2 * (2 * (note.freq * t - (note.freq * t + 0.5).floor())).abs() - 1;
+          value =
+              2 * (2 * (note.freq * t - (note.freq * t + 0.5).floor())).abs() -
+              1;
         case WaveType.square:
           value = sin(phase) >= 0 ? 1.0 : -1.0;
         case WaveType.sawtooth:

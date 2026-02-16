@@ -21,7 +21,8 @@ class SoundSettingsScreen extends StatelessWidget {
       ),
       body: ListView.separated(
         itemCount: presets.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: colorScheme.outline),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, color: colorScheme.outline),
         itemBuilder: (context, index) {
           final entry = presets[index];
           final isSelected = entry.key == soundProvider.currentPreset;

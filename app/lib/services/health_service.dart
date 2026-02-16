@@ -20,15 +20,24 @@ class HealthService {
     await health.configure();
     debugPrint('Health: configured');
 
-    final types = [HealthDataType.WORKOUT, HealthDataType.TOTAL_CALORIES_BURNED];
+    final types = [
+      HealthDataType.WORKOUT,
+      HealthDataType.TOTAL_CALORIES_BURNED,
+    ];
     final permissions = [HealthDataAccess.WRITE, HealthDataAccess.WRITE];
 
-    final hasPerms = await health.hasPermissions(types, permissions: permissions);
+    final hasPerms = await health.hasPermissions(
+      types,
+      permissions: permissions,
+    );
     debugPrint('Health: hasPermissions=$hasPerms');
 
     if (hasPerms != true) {
       debugPrint('Health: requesting authorization...');
-      final authorized = await health.requestAuthorization(types, permissions: permissions);
+      final authorized = await health.requestAuthorization(
+        types,
+        permissions: permissions,
+      );
       debugPrint('Health: authorization result=$authorized');
       if (!authorized) {
         debugPrint('Health: authorization denied, skipping write');
@@ -39,7 +48,9 @@ class HealthService {
     final durationMinutes = endTime.difference(startTime).inSeconds / 60.0;
     final calories = (durationMinutes * _kcalPerMinute).round();
 
-    debugPrint('Health: writing workout "$title", ${durationMinutes.toStringAsFixed(1)} min, $calories kcal');
+    debugPrint(
+      'Health: writing workout "$title", ${durationMinutes.toStringAsFixed(1)} min, $calories kcal',
+    );
 
     final success = await health.writeWorkoutData(
       activityType: Platform.isAndroid

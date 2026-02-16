@@ -3,7 +3,22 @@ import '../gen/workout/v1/workout.pb.dart';
 
 const _uuid = Uuid();
 
-const List<double> plateStops = [45, 95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635];
+const List<double> plateStops = [
+  45,
+  95,
+  135,
+  185,
+  225,
+  275,
+  315,
+  365,
+  405,
+  455,
+  495,
+  545,
+  585,
+  635,
+];
 
 const Map<int, List<int>> _repSchemes = {
   1: [5],
@@ -55,60 +70,81 @@ List<ProposedSet> rebuildExerciseSets(
   final exercise = existingSets[0].exercise;
   final wantWarmups = warmups ?? existingSets.any((s) => s.warmup);
   final wantSetCount = setCount ?? existingSets.where((s) => !s.warmup).length;
-  final targetReps = existingSets.firstWhere(
-    (s) => !s.warmup,
-    orElse: () => existingSets.first,
-  ).targetReps;
+  final targetReps = existingSets
+      .firstWhere((s) => !s.warmup, orElse: () => existingSets.first)
+      .targetReps;
 
   // --- warmup sets ---
-  final completedWarmups = existingSets.where((s) => s.warmup && isSetDone(s.id)).toList();
-  final pendingWarmups = existingSets.where((s) => s.warmup && !isSetDone(s.id)).toList();
+  final completedWarmups = existingSets
+      .where((s) => s.warmup && isSetDone(s.id))
+      .toList();
+  final pendingWarmups = existingSets
+      .where((s) => s.warmup && !isSetDone(s.id))
+      .toList();
 
   List<ProposedSet> warmupSets;
   if (!wantWarmups) {
     warmupSets = completedWarmups;
   } else {
     final defs = generateWarmupDefs(targetWeight);
-    final pendingNeeded = (defs.length - completedWarmups.length).clamp(0, defs.length);
+    final pendingNeeded = (defs.length - completedWarmups.length).clamp(
+      0,
+      defs.length,
+    );
     final newPending = <ProposedSet>[];
     for (int i = 0; i < pendingNeeded; i++) {
       final def = defs[completedWarmups.length + i];
       if (i < pendingWarmups.length) {
-        newPending.add(ProposedSet()
-          ..mergeFromMessage(pendingWarmups[i])
-          ..targetWeight = def.weight
-          ..targetReps = def.reps);
+        newPending.add(
+          ProposedSet()
+            ..mergeFromMessage(pendingWarmups[i])
+            ..targetWeight = def.weight
+            ..targetReps = def.reps,
+        );
       } else {
-        newPending.add(ProposedSet()
-          ..id = _uuid.v4()
-          ..exercise = exercise
-          ..targetReps = def.reps
-          ..targetWeight = def.weight
-          ..warmup = true);
+        newPending.add(
+          ProposedSet()
+            ..id = _uuid.v4()
+            ..exercise = exercise
+            ..targetReps = def.reps
+            ..targetWeight = def.weight
+            ..warmup = true,
+        );
       }
     }
     warmupSets = [...completedWarmups, ...newPending];
   }
 
   // --- working sets ---
-  final completedWorking = existingSets.where((s) => !s.warmup && isSetDone(s.id)).toList();
-  final pendingWorking = existingSets.where((s) => !s.warmup && !isSetDone(s.id)).toList();
-  final pendingNeeded = (wantSetCount - completedWorking.length).clamp(0, wantSetCount);
+  final completedWorking = existingSets
+      .where((s) => !s.warmup && isSetDone(s.id))
+      .toList();
+  final pendingWorking = existingSets
+      .where((s) => !s.warmup && !isSetDone(s.id))
+      .toList();
+  final pendingNeeded = (wantSetCount - completedWorking.length).clamp(
+    0,
+    wantSetCount,
+  );
 
   final newPendingWorking = <ProposedSet>[];
   for (int i = 0; i < pendingNeeded; i++) {
     if (i < pendingWorking.length) {
-      newPendingWorking.add(ProposedSet()
-        ..mergeFromMessage(pendingWorking[i])
-        ..targetWeight = targetWeight
-        ..targetReps = targetReps);
+      newPendingWorking.add(
+        ProposedSet()
+          ..mergeFromMessage(pendingWorking[i])
+          ..targetWeight = targetWeight
+          ..targetReps = targetReps,
+      );
     } else {
-      newPendingWorking.add(ProposedSet()
-        ..id = _uuid.v4()
-        ..exercise = exercise
-        ..targetReps = targetReps
-        ..targetWeight = targetWeight
-        ..warmup = false);
+      newPendingWorking.add(
+        ProposedSet()
+          ..id = _uuid.v4()
+          ..exercise = exercise
+          ..targetReps = targetReps
+          ..targetWeight = targetWeight
+          ..warmup = false,
+      );
     }
   }
 

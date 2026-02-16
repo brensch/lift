@@ -9,7 +9,8 @@ class DebugNotificationsScreen extends StatefulWidget {
   const DebugNotificationsScreen({super.key});
 
   @override
-  State<DebugNotificationsScreen> createState() => _DebugNotificationsScreenState();
+  State<DebugNotificationsScreen> createState() =>
+      _DebugNotificationsScreenState();
 }
 
 class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
@@ -51,10 +52,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
       appBar: AppBar(
         title: const Text('Debug: Notifications'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: ListView(
@@ -66,20 +64,28 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
               final isResting = wp.restingSet != null;
               final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
               final nextSet = wp.nextPendingSet;
-              final allDone = wp.activeProposedSets.isNotEmpty &&
+              final allDone =
+                  wp.activeProposedSets.isNotEmpty &&
                   wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
                   activeSetId == null;
               if (allDone) return 'All done';
               if (activeSetId != null) return 'Lifting';
               if (isResting) return 'Resting (${wp.restSecondsRemaining}s)';
-              if (!isResting && activeSetId == null && lastRestEnd > 0 && lastRestEnd <= nowUnix && nextSet != null) {
+              if (!isResting &&
+                  activeSetId == null &&
+                  lastRestEnd > 0 &&
+                  lastRestEnd <= nowUnix &&
+                  nextSet != null) {
                 return 'Yapping (+${nowUnix - lastRestEnd}s)';
               }
               if (nextSet != null) return 'Next up';
               return 'Idle';
             }()),
             _row('wasResting', '${wp.debugWasResting}'),
-            _row('lastSoundedRestUntil', '${wp.debugLastSoundedRestUntil ?? "null"}'),
+            _row(
+              'lastSoundedRestUntil',
+              '${wp.debugLastSoundedRestUntil ?? "null"}',
+            ),
             _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
             _row('now (unix)', '$nowUnix'),
           ], colorScheme),
@@ -93,7 +99,11 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                   'NOTE: "None" here means no future notifications are scheduled. '
                   'If a notification fires now, it was likely already in the OS '
                   'delivery pipeline or was just moved from "Pending" to "Active".',
-                  style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ] else
@@ -102,7 +112,9 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                   final scheduledUnix = int.tryParse(n.payload ?? '');
                   if (scheduledUnix != null) {
                     final diff = scheduledUnix - nowUnix;
-                    final timeStr = diff > 0 ? '${diff}s from now' : '${-diff}s ago';
+                    final timeStr = diff > 0
+                        ? '${diff}s from now'
+                        : '${-diff}s ago';
                     return '${n.title} — fires $timeStr (unix=$scheduledUnix)';
                   }
                   return '${n.title}: ${n.body}';
@@ -122,8 +134,8 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
               _row(
                 'set ${c.proposedSetId.substring(0, 8)}...',
                 'restUntil=${c.restUntil.toInt()} '
-                '(${c.restUntil.toInt() > nowUnix ? "${c.restUntil.toInt() - nowUnix}s left" : "expired"}) '
-                'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
+                    '(${c.restUntil.toInt() > nowUnix ? "${c.restUntil.toInt() - nowUnix}s left" : "expired"}) '
+                    'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
               ),
             ],
           ], colorScheme),
@@ -132,21 +144,30 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     );
   }
 
-  Widget _section(String title, List<Widget> children, ColorScheme colorScheme) {
+  Widget _section(
+    String title,
+    List<Widget> children,
+    ColorScheme colorScheme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: colorScheme.primary,
-        )),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.primary,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.3),
+            ),
           ),
           child: Column(children: children),
         ),
@@ -161,7 +182,10 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label.isNotEmpty) ...[
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(width: 8),
           ],
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),

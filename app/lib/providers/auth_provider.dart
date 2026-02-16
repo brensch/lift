@@ -18,8 +18,8 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({
     required AuthService authService,
     required GrpcClient grpcClient,
-  })  : _authService = authService,
-        _grpcClient = grpcClient;
+  }) : _authService = authService,
+       _grpcClient = grpcClient;
 
   String? get userId => _userId;
   String? get username => _username;

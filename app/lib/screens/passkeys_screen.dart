@@ -138,7 +138,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
             const SizedBox(height: 12),
             Text(
               'Are you sure? This cannot be undone.',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -159,8 +162,23 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
 
   String _formatDate(int timestampSeconds) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestampSeconds * 1000);
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final hour = date.hour > 12
+        ? date.hour - 12
+        : (date.hour == 0 ? 12 : date.hour);
     final amPm = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
     return '${months[date.month - 1]} ${date.day}, ${date.year}, $hour:$minute $amPm';
@@ -206,7 +224,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                         ),
                         child: Text(
                           _error!,
-                          style: TextStyle(color: colorScheme.error, fontSize: 13),
+                          style: TextStyle(
+                            color: colorScheme.error,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -241,7 +262,8 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                     ...List.generate(_passkeys!.length, (i) {
                       final pk = _passkeys![i];
                       final isDeleting = _deletingId == pk.credentialId;
-                      final canDelete = _passkeys!.length > 1 && _deletingId == null;
+                      final canDelete =
+                          _passkeys!.length > 1 && _deletingId == null;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Container(
@@ -256,10 +278,16 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary.withValues(alpha: 0.1),
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(Icons.key, size: 18, color: colorScheme.primary),
+                                child: Icon(
+                                  Icons.key,
+                                  size: 18,
+                                  color: colorScheme.primary,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -269,7 +297,9 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                     Row(
                                       children: [
                                         Text(
-                                          pk.name.isNotEmpty ? pk.name : 'Passkey ${i + 1}',
+                                          pk.name.isNotEmpty
+                                              ? pk.name
+                                              : 'Passkey ${i + 1}',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w700,
                                             fontSize: 14,
@@ -278,17 +308,23 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                         if (pk.hasCreatedAtIp()) ...[
                                           const SizedBox(width: 6),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 5,
+                                              vertical: 1,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: colorScheme.onSurface.withValues(alpha: 0.08),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: colorScheme.onSurface
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               pk.createdAtIp,
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontFamily: 'monospace',
-                                                color: colorScheme.onSurfaceVariant,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
                                               ),
                                             ),
                                           ),
@@ -298,8 +334,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       [
-                                        if (pk.transports.isNotEmpty) _formatTransports(pk.transports),
-                                        if (pk.createdAt > 0) 'Added ${_formatDate(pk.createdAt.toInt())}',
+                                        if (pk.transports.isNotEmpty)
+                                          _formatTransports(pk.transports),
+                                        if (pk.createdAt > 0)
+                                          'Added ${_formatDate(pk.createdAt.toInt())}',
                                       ].join(' · '),
                                       style: TextStyle(
                                         fontSize: 12,
@@ -310,17 +348,25 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: canDelete ? () => _deletePasskey(pk.credentialId) : null,
+                                onPressed: canDelete
+                                    ? () => _deletePasskey(pk.credentialId)
+                                    : null,
                                 icon: isDeleting
                                     ? const SizedBox(
                                         width: 16,
                                         height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     : Icon(
                                         Icons.delete_outline,
                                         size: 20,
-                                        color: canDelete ? colorScheme.onSurfaceVariant : colorScheme.onSurface.withValues(alpha: 0.2),
+                                        color: canDelete
+                                            ? colorScheme.onSurfaceVariant
+                                            : colorScheme.onSurface.withValues(
+                                                alpha: 0.2,
+                                              ),
                                       ),
                               ),
                             ],

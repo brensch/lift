@@ -27,7 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _isStarting = false;
   String? _error;
-  late final TextEditingController _nameController = TextEditingController(text: _getDefaultWorkoutName());
+  late final TextEditingController _nameController = TextEditingController(
+    text: _getDefaultWorkoutName(),
+  );
 
   @override
   void initState() {
@@ -56,7 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final scheduleRes = await workoutService.getProposedWorkoutSchedule(auth.userId!);
+      final scheduleRes = await workoutService.getProposedWorkoutSchedule(
+        auth.userId!,
+      );
 
       if (!mounted) return;
 
@@ -70,7 +74,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final compounds = schedule
-          .where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND)
+          .where(
+            (s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND,
+          )
           .toList();
 
       compounds.sort((a, b) => a.lastPerformedAt.compareTo(b.lastPerformedAt));
@@ -111,59 +117,71 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!_selectedExercises.contains(status.exercise)) continue;
 
         final groupId = _uuid.v4();
-        exerciseGroups.add(ExerciseGroup()
-          ..id = groupId
-          ..name = exerciseNames[status.exercise] ?? status.exercise.name
-          ..type = ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT
-          ..includeWarmup = true
-          ..workoutOrder = groupOrder++);
+        exerciseGroups.add(
+          ExerciseGroup()
+            ..id = groupId
+            ..name = exerciseNames[status.exercise] ?? status.exercise.name
+            ..type = ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT
+            ..includeWarmup = true
+            ..workoutOrder = groupOrder++,
+        );
 
         final warmupDefs = generateWarmupDefs(status.targetWeight.toDouble());
         for (final def in warmupDefs) {
-          proposedSets.add(ProposedSet()
-            ..id = _uuid.v4()
-            ..workoutOrder = setOrder++
-            ..exercise = status.exercise
-            ..targetReps = def.reps
-            ..targetWeight = def.weight
-            ..warmup = true
-            ..exerciseGroupId = groupId);
+          proposedSets.add(
+            ProposedSet()
+              ..id = _uuid.v4()
+              ..workoutOrder = setOrder++
+              ..exercise = status.exercise
+              ..targetReps = def.reps
+              ..targetWeight = def.weight
+              ..warmup = true
+              ..exerciseGroupId = groupId,
+          );
         }
 
         for (int i = 0; i < status.defaultSets; i++) {
-          proposedSets.add(ProposedSet()
-            ..id = _uuid.v4()
-            ..workoutOrder = setOrder++
-            ..exercise = status.exercise
-            ..targetReps = status.defaultReps
-            ..targetWeight = status.targetWeight
-            ..warmup = false
-            ..exerciseGroupId = groupId);
+          proposedSets.add(
+            ProposedSet()
+              ..id = _uuid.v4()
+              ..workoutOrder = setOrder++
+              ..exercise = status.exercise
+              ..targetReps = status.defaultReps
+              ..targetWeight = status.targetWeight
+              ..warmup = false
+              ..exerciseGroupId = groupId,
+          );
         }
       }
 
       final now = DateTime.now();
-      final dateStr = "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
+      final dateStr =
+          "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
       final exerciseSummary = _selectedExercises
           .map((e) => shortNames[e] ?? "")
           .where((s) => s.isNotEmpty)
           .join(' ');
-      
-      final baseName = _nameController.text.trim().isEmpty 
-          ? _getDefaultWorkoutName() 
+
+      final baseName = _nameController.text.trim().isEmpty
+          ? _getDefaultWorkoutName()
           : _nameController.text.trim().toUpperCase();
 
-      final workoutName = "$dateStr - $exerciseSummary - $baseName".toUpperCase();
+      final workoutName = "$dateStr - $exerciseSummary - $baseName"
+          .toUpperCase();
 
       final workoutProvider = context.read<WorkoutProvider>();
-      
+
       // We need to pass the weights for each group
       // The startWorkout wrapper should handle this if I updated it correctly
       // But wait, the startWorkout method in WorkoutProvider currently takes (String name, List<ExerciseGroup> groups, List<ProposedSet> sets)
       // The groups already contain the configuration? No, ExerciseGroup proto doesn't have weights.
       // The weights are in the ProposedSet objects.
-      
-      final workoutId = await workoutProvider.startWorkout(workoutName, exerciseGroups, proposedSets);
+
+      final workoutId = await workoutProvider.startWorkout(
+        workoutName,
+        exerciseGroups,
+        proposedSets,
+      );
 
       if (workoutId != null && mounted) {
         final mp = context.read<MultiplayerProvider>();
@@ -174,9 +192,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('Error starting workout: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start workout: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
       }
     } finally {
       if (mounted) {
@@ -211,17 +229,20 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text('Error: $_error', style: TextStyle(color: colorScheme.error)),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _loadData,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: _loadData, child: const Text('Retry')),
           ],
         ),
       );
     }
 
-    final compounds = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND).toList();
-    final auxiliaries = _schedule!.where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_AUXILIARY).toList();
+    final compounds = _schedule!
+        .where((s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_COMPOUND)
+        .toList();
+    final auxiliaries = _schedule!
+        .where(
+          (s) => s.category == ExerciseCategory.EXERCISE_CATEGORY_AUXILIARY,
+        )
+        .toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -242,20 +263,29 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          if (compounds.isNotEmpty) _buildCategorySection('COMPOUND', compounds),
-          if (auxiliaries.isNotEmpty) _buildCategorySection('AUXILIARY', auxiliaries),
+          if (compounds.isNotEmpty)
+            _buildCategorySection('COMPOUND', compounds),
+          if (auxiliaries.isNotEmpty)
+            _buildCategorySection('AUXILIARY', auxiliaries),
           const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
         ],
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.of(context).padding.bottom,
+        ),
         decoration: BoxDecoration(
           color: colorScheme.secondary,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border(
             top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
             left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            right: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+            right: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.5),
+            ),
           ),
         ),
         child: Column(
@@ -285,24 +315,28 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: _getDefaultWorkoutName(),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 64,
               child: FilledButton(
-                onPressed: _selectedExercises.isEmpty || _isStarting ? null : _startWorkout,
+                onPressed: _selectedExercises.isEmpty || _isStarting
+                    ? null
+                    : _startWorkout,
                 style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: _isStarting
                     ? SizedBox(
@@ -357,17 +391,14 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final status = items[index];
-                return _ExerciseCard(
-                  status: status,
-                  isSelected: _selectedExercises.contains(status.exercise),
-                  onTap: () => _toggleExercise(status.exercise),
-                );
-              },
-              childCount: items.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final status = items[index];
+              return _ExerciseCard(
+                status: status,
+                isSelected: _selectedExercises.contains(status.exercise),
+                onTap: () => _toggleExercise(status.exercise),
+              );
+            }, childCount: items.length),
           ),
         ),
         const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
@@ -400,7 +431,9 @@ class _ExerciseCard extends StatelessWidget {
     final name = exerciseNames[status.exercise] ?? '?';
 
     final borderColor = isSelected ? colorScheme.primary : colorScheme.outline;
-    final bgColor = isSelected ? colorScheme.primary.withValues(alpha: 0.05) : colorScheme.surface;
+    final bgColor = isSelected
+        ? colorScheme.primary.withValues(alpha: 0.05)
+        : colorScheme.surface;
 
     return GestureDetector(
       onTap: onTap,
@@ -431,7 +464,11 @@ class _ExerciseCard extends StatelessWidget {
                   ),
                 ),
                 if (isSelected)
-                  Icon(Icons.check_circle, size: 18, color: colorScheme.primary),
+                  Icon(
+                    Icons.check_circle,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
               ],
             ),
             const Spacer(),

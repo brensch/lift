@@ -7,7 +7,11 @@ class WorkoutServiceWrapper {
 
   WorkoutServiceWrapper(this._client);
 
-  Future<String> startWorkout(String name, List<ExerciseGroup> exerciseGroups, List<ProposedSet> proposedSets) async {
+  Future<String> startWorkout(
+    String name,
+    List<ExerciseGroup> exerciseGroups,
+    List<ProposedSet> proposedSets,
+  ) async {
     final response = await _client.workoutService.startWorkout(
       StartWorkoutRequest()
         ..name = name
@@ -62,7 +66,10 @@ class WorkoutServiceWrapper {
     return response.completedSet;
   }
 
-  Future<void> deleteCompletedSet(String workoutId, String completedSetId) async {
+  Future<void> deleteCompletedSet(
+    String workoutId,
+    String completedSetId,
+  ) async {
     await _client.workoutService.deleteCompletedSet(
       DeleteCompletedSetRequest()
         ..workoutId = workoutId
@@ -121,7 +128,10 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<void> deleteExerciseGroup(String workoutId, String exerciseGroupId) async {
+  Future<void> deleteExerciseGroup(
+    String workoutId,
+    String exerciseGroupId,
+  ) async {
     await _client.workoutService.deleteExerciseGroup(
       DeleteExerciseGroupRequest()
         ..workoutId = workoutId
@@ -129,7 +139,10 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<void> reorderExerciseGroups(String workoutId, List<String> exerciseGroupIds) async {
+  Future<void> reorderExerciseGroups(
+    String workoutId,
+    List<String> exerciseGroupIds,
+  ) async {
     await _client.workoutService.reorderExerciseGroups(
       ReorderExerciseGroupsRequest()
         ..workoutId = workoutId

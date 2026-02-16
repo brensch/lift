@@ -113,10 +113,7 @@ class _AccentBox extends StatelessWidget {
         children: [
           Container(width: 4, color: accentColor),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: child,
-            ),
+            child: Padding(padding: const EdgeInsets.all(12), child: child),
           ),
         ],
       ),
@@ -147,7 +144,10 @@ class _ActionRow extends StatelessWidget {
               onPressed: onAction,
               child: Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -425,11 +425,14 @@ class ActiveSetBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final elapsedSecs = activeCompletedSet != null
-        ? (now.millisecondsSinceEpoch ~/ 1000) - activeCompletedSet!.startedAt.toInt()
+        ? (now.millisecondsSinceEpoch ~/ 1000) -
+              activeCompletedSet!.startedAt.toInt()
         : 0;
     final name = exerciseNames[proposedSet.exercise] ?? '?';
     final isWarmup = proposedSet.warmup;
-    final accentColor = isWarmup ? const Color(0xFF3B82F6) : colorScheme.primary;
+    final accentColor = isWarmup
+        ? const Color(0xFF3B82F6)
+        : colorScheme.primary;
 
     return IntrinsicHeight(
       child: _AccentBox(
@@ -453,7 +456,10 @@ class ActiveSetBox extends StatelessWidget {
                       if (isWarmup) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.warmupFg.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(3),
@@ -490,7 +496,10 @@ class ActiveSetBox extends StatelessWidget {
               children: [
                 Text(
                   '${proposedSet.targetWeight.toInt()}',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 Text(
                   ' lb',
@@ -547,19 +556,35 @@ class ActiveSetBox extends StatelessWidget {
                   height: 44,
                   child: isTarget
                       ? FilledButton(
-                          onPressed: () => onComplete(n, proposedSet.targetWeight.toDouble()),
-                          style: FilledButton.styleFrom(padding: EdgeInsets.zero),
+                          onPressed: () => onComplete(
+                            n,
+                            proposedSet.targetWeight.toDouble(),
+                          ),
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                          ),
                           child: Text(
                             '$n',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         )
                       : OutlinedButton(
-                          onPressed: () => onComplete(n, proposedSet.targetWeight.toDouble()),
-                          style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                          onPressed: () => onComplete(
+                            n,
+                            proposedSet.targetWeight.toDouble(),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                          ),
                           child: Text(
                             '$n',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                 );
@@ -575,10 +600,7 @@ class ActiveSetBox extends StatelessWidget {
                   onPressed: onSkipWarmup,
                   child: Text(
                     'Skip Warmup',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.tertiary,
-                    ),
+                    style: TextStyle(fontSize: 12, color: colorScheme.tertiary),
                   ),
                 ),
               ),

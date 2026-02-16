@@ -14,12 +14,13 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _devUsernameController = TextEditingController();
   final _usernameFocusNode = FocusNode();
   late TabController _tabController;
-  
+
   final List<String> _usernameExamples = [
     'squat_master_9000',
     'bench_press_king',
@@ -104,265 +105,204 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     context.read<AuthProvider>().testLogin('__test__$username');
   }
 
-    @override
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
 
-    Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
 
-      final auth = context.watch<AuthProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
-      final themeProvider = context.watch<ThemeProvider>();
+    return Scaffold(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
 
-      final colorScheme = Theme.of(context).colorScheme;
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
 
-  
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
 
-      return Scaffold(
+                    children: [
+                      const WobblyText(
+                        text: 'LIFT',
+                        fontSize: 48,
+                        maxOffset: 4,
+                      ),
 
-        body: Stack(
+                      const SizedBox(height: 48),
 
-          children: [
+                      Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
 
-            SafeArea(
+                          side: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1.0,
+                          ),
+                        ),
 
-              child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
 
-                child: SingleChildScrollView(
+                          children: [
+                            TabBar(
+                              controller: _tabController,
 
-                  padding: const EdgeInsets.all(24),
+                              dividerColor: colorScheme.primary,
 
-                  child: ConstrainedBox(
+                              dividerHeight: 1.0,
 
-                    constraints: const BoxConstraints(maxWidth: 360),
+                              labelColor: colorScheme.onSurface,
 
-                    child: Column(
+                              unselectedLabelColor: colorScheme.tertiary,
 
-                      mainAxisSize: MainAxisSize.min,
+                              indicatorColor: colorScheme.primary,
 
-                      children: [
+                              indicatorWeight:
+                                  4.0, // Thicker indicator for prominent selected state
 
-                        const WobblyText(text: 'LIFT', fontSize: 48, maxOffset: 4),
+                              indicatorSize: TabBarIndicatorSize.tab,
 
-                                                                                                        const SizedBox(height: 48),
+                              labelStyle: const TextStyle(
+                                fontWeight: FontWeight.w900,
 
-                                                                                                        Card(
+                                fontSize: 12,
 
-                                                                                                          shape: RoundedRectangleBorder(
+                                letterSpacing: 1.0,
+                              ),
 
-                                                                                                            borderRadius: BorderRadius.circular(8),
+                              tabs: const [
+                                Tab(text: 'NEW USER'),
 
-                                                                                                            side: BorderSide(color: colorScheme.primary, width: 1.0),
-
-                                                                                                          ),
-
-                                                                                                          child: Column(
-
-                                                                                                            mainAxisSize: MainAxisSize.min,
-
-                                                                                        children: [
-
-                                                                                                                                              TabBar(
-
-                                                                                                                                                controller: _tabController,
-
-                                                                                                                                                dividerColor: colorScheme.primary,
-
-                                                                                                                                                dividerHeight: 1.0,
-
-                                                                                                                                                labelColor: colorScheme.onSurface,
-
-                                                                                                                                                unselectedLabelColor: colorScheme.tertiary,
-
-                                                                                                                                                                            indicatorColor: colorScheme.primary,
-
-                                                                                                                                                                            indicatorWeight: 4.0, // Thicker indicator for prominent selected state
-
-                                                                                                                                                                            indicatorSize: TabBarIndicatorSize.tab,
-
-                                                                                                                                                labelStyle: const TextStyle(
-
-                                                                                                                                                  fontWeight: FontWeight.w900,
-
-                                                                                                                                                  fontSize: 12,
-
-                                                                                                                                                  letterSpacing: 1.0,
-
-                                                                                                                                                ),
-
-                                                                                                                                                tabs: const [
-
-                                                                                                                                                  Tab(text: 'NEW USER'),
-
-                                                                                                                                                  Tab(text: 'SIGN IN'),
-
-                                                                                                                                                ],
-
-                                                                                                                                              ),
-
-                                                                                          AnimatedSize(
-
-                                                                                            duration: const Duration(milliseconds: 200),
-
-                                                                                            curve: Curves.easeInOut,
-
-                                                                                            child: Padding(
-
-                                                                                              padding: const EdgeInsets.all(24),
-
-                                                                                              child: _tabController.index == 0
-
-                                                                                                  ? _buildNewUserTab(auth, colorScheme)
-
-                                                                                                  : _buildSignInTab(auth, colorScheme),
-
-                                                                                            ),
-
-                                                                                          ),
-
-                                                                                        ],
-
-                                                                                      ),
-
-                                                                                    ),
-
-                        if (Platform.isLinux) ...[
-
-                          const SizedBox(height: 32),
-
-                          const Divider(),
-
-                          const SizedBox(height: 16),
-
-                          Text(
-
-                            'DEV LOGIN',
-
-                            style: TextStyle(
-
-                              fontSize: 12,
-
-                              fontWeight: FontWeight.bold,
-
-                              letterSpacing: 1.5,
-
-                              color: colorScheme.tertiary,
-
+                                Tab(text: 'SIGN IN'),
+                              ],
                             ),
 
-                          ),
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
 
-                          const SizedBox(height: 16),
+                              curve: Curves.easeInOut,
 
-                          TextField(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
 
-                            controller: _devUsernameController,
-
-                            decoration: const InputDecoration(
-
-                              labelText: 'Username',
-
-                              prefixText: '__test__',
-
+                                child: _tabController.index == 0
+                                    ? _buildNewUserTab(auth, colorScheme)
+                                    : _buildSignInTab(auth, colorScheme),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
 
-                            textInputAction: TextInputAction.done,
+                      if (Platform.isLinux) ...[
+                        const SizedBox(height: 32),
 
-                            autocorrect: false,
+                        const Divider(),
 
-                            onSubmitted: (_) => _devLogin(),
+                        const SizedBox(height: 16),
 
+                        Text(
+                          'DEV LOGIN',
+
+                          style: TextStyle(
+                            fontSize: 12,
+
+                            fontWeight: FontWeight.bold,
+
+                            letterSpacing: 1.5,
+
+                            color: colorScheme.tertiary,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        TextField(
+                          controller: _devUsernameController,
+
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+
+                            prefixText: '__test__',
                           ),
 
-                          const SizedBox(height: 16),
+                          textInputAction: TextInputAction.done,
 
-                          SizedBox(
+                          autocorrect: false,
 
-                            width: double.infinity,
+                          onSubmitted: (_) => _devLogin(),
+                        ),
 
-                            height: 48,
+                        const SizedBox(height: 16),
 
-                            child: OutlinedButton(
+                        SizedBox(
+                          width: double.infinity,
 
-                              onPressed: auth.isLoading ? null : _devLogin,
+                          height: 48,
 
-                              child: auth.isLoading
+                          child: OutlinedButton(
+                            onPressed: auth.isLoading ? null : _devLogin,
 
-                                  ? const SizedBox(
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    height: 20,
 
-                                      height: 20,
+                                    width: 20,
 
-                                      width: 20,
-
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-
-                                    )
-
-                                  : const Text('Dev Login'),
-
-                            ),
-
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Dev Login'),
                           ),
-
-                        ],
-
+                        ),
                       ],
-
-                    ),
-
+                    ],
                   ),
-
                 ),
+              ),
+            ),
+          ),
 
+          Positioned(
+            bottom: 24,
+
+            right: 24,
+
+            child: FloatingActionButton.small(
+              onPressed: () => themeProvider.toggle(),
+
+              backgroundColor: colorScheme.surface,
+
+              foregroundColor: colorScheme.onSurface,
+
+              elevation: 0,
+
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+
+                side: BorderSide(color: colorScheme.outline),
               ),
 
-            ),
+              child: Icon(
+                themeProvider.isDarkMode(context)
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined,
 
-            Positioned(
-
-              bottom: 24,
-
-              right: 24,
-
-              child: FloatingActionButton.small(
-
-                onPressed: () => themeProvider.toggle(),
-
-                backgroundColor: colorScheme.surface,
-
-                foregroundColor: colorScheme.onSurface,
-
-                elevation: 0,
-
-                shape: RoundedRectangleBorder(
-
-                  borderRadius: BorderRadius.circular(8),
-
-                  side: BorderSide(color: colorScheme.outline),
-
-                ),
-
-                child: Icon(
-
-                  themeProvider.isDarkMode(context)
-
-                      ? Icons.light_mode_outlined
-
-                      : Icons.dark_mode_outlined,
-
-                  size: 20,
-
-                ),
-
+                size: 20,
               ),
-
             ),
-
-          ],
-
-        ),
-
-      );
-
-    }
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildNewUserTab(AuthProvider auth, ColorScheme colorScheme) {
     return Column(
@@ -372,10 +312,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       children: [
         const Text(
           'What should we call you',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.normal,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -387,7 +324,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               color: colorScheme.tertiary.withValues(alpha: 0.4),
               fontWeight: FontWeight.normal,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 16,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: colorScheme.primary, width: 1.0),
@@ -397,9 +337,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),
-          inputFormatters: [
-            FilteringTextInputFormatter.deny(RegExp(r'\s')),
-          ],
+          inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
           textInputAction: TextInputAction.done,
           autocorrect: false,
           onSubmitted: (_) => _createAccount(),
@@ -469,9 +407,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('SIGN IN'),
             style: FilledButton.styleFrom(

@@ -35,7 +35,8 @@ class ParticipantCard extends StatelessWidget {
       timerText: status.timerText,
       timerColor: status.timerColor,
       set: status.proposedSet,
-      isComplete: status.stateLabel == 'Done' || status.stateLabel == 'Finished',
+      isComplete:
+          status.stateLabel == 'Done' || status.stateLabel == 'Finished',
       showHeader: false,
     );
   }
@@ -94,7 +95,9 @@ class ParticipantCard extends StatelessWidget {
         .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
         .toList();
     restingSets.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    final lastRestEnd = restingSets.isNotEmpty ? restingSets.first.restUntil.toInt() : 0;
+    final lastRestEnd = restingSets.isNotEmpty
+        ? restingSets.first.restUntil.toInt()
+        : 0;
     final nextSet = _findNextPending(p);
 
     if (lastRestEnd > 0 && lastRestEnd <= now && nextSet != null) {
@@ -125,8 +128,9 @@ class ParticipantCard extends StatelessWidget {
   }
 
   ProposedSet? _findNextPending(ParticipantStatus p) {
-    bool isDone(String setId) =>
-        p.completedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
+    bool isDone(String setId) => p.completedSets.any(
+      (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
+    );
     return p.proposedSets.cast<ProposedSet?>().firstWhere(
       (s) => !isDone(s!.id),
       orElse: () => null,

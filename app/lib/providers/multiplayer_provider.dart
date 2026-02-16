@@ -18,7 +18,8 @@ class MultiplayerProvider extends ChangeNotifier {
 
   String? get sessionId => _sessionId;
   SessionStatus? get sessionStatus => _sessionStatus;
-  List<ParticipantStatus> get participants => _sessionStatus?.participants ?? [];
+  List<ParticipantStatus> get participants =>
+      _sessionStatus?.participants ?? [];
   bool get isInSession => _sessionId != null;
   bool get isLoading => _isLoading;
 
@@ -50,7 +51,7 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error joining session: $e');
       final cleanError = cleanErrorMessage(e);
-      
+
       Fluttertoast.showToast(
         msg: cleanError.toUpperCase(),
         backgroundColor: Colors.red.shade600,
@@ -101,7 +102,9 @@ class MultiplayerProvider extends ChangeNotifier {
 
   Future<void> _poll() async {
     try {
-      final response = await _service.getCurrentSession(sessionId: _sessionId ?? "");
+      final response = await _service.getCurrentSession(
+        sessionId: _sessionId ?? "",
+      );
       if (response.sessionId.isNotEmpty) {
         _sessionId = response.sessionId;
         if (response.hasSessionStatus()) {

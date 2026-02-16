@@ -19,7 +19,10 @@ class PlateVisualization extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${weight.toInt()} LB BREAKDOWN', style: const TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(
+          '${weight.toInt()} LB BREAKDOWN',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -108,29 +111,34 @@ class PlateVisualization extends StatelessWidget {
         if (showText) ...[
           const SizedBox(height: 16),
           // Group plates for the text description
-          Builder(builder: (context) {
-            final Map<double, int> plateCounts = {};
-            for (var p in result.plates) {
-              plateCounts[p] = (plateCounts[p] ?? 0) + 1;
-            }
-            final plateDescription = plateCounts.entries
-                .map((e) => '${e.key % 1 == 0 ? e.key.toInt() : e.key} x ${e.value}')
-                .join('\n');
-            return Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                'Each side:\n$plateDescription',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey.shade600,
-                  height: 1.8,
-                  letterSpacing: 0.5,
+          Builder(
+            builder: (context) {
+              final Map<double, int> plateCounts = {};
+              for (var p in result.plates) {
+                plateCounts[p] = (plateCounts[p] ?? 0) + 1;
+              }
+              final plateDescription = plateCounts.entries
+                  .map(
+                    (e) =>
+                        '${e.key % 1 == 0 ? e.key.toInt() : e.key} x ${e.value}',
+                  )
+                  .join('\n');
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'Each side:\n$plateDescription',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey.shade600,
+                    height: 1.8,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ],
       ],
     );
@@ -148,10 +156,7 @@ class PlateVisualization extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: colorScheme.outline,
-                  width: 1.5,
-                ),
+                border: Border.all(color: colorScheme.outline, width: 1.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: content,
