@@ -41,6 +41,7 @@ class MainLayout extends StatelessWidget {
           ),
         ],
       ),
+      endDrawerEnableOpenDragGesture: false,
       endDrawer: Drawer(
         child: SafeArea(
           child: Column(
