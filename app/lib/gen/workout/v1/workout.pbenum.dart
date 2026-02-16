@@ -127,34 +127,5 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
-class ExerciseGroupType extends $pb.ProtobufEnum {
-  static const ExerciseGroupType EXERCISE_GROUP_TYPE_UNSPECIFIED =
-      ExerciseGroupType._(
-          0, _omitEnumNames ? '' : 'EXERCISE_GROUP_TYPE_UNSPECIFIED');
-  static const ExerciseGroupType EXERCISE_GROUP_TYPE_STRAIGHT =
-      ExerciseGroupType._(
-          1, _omitEnumNames ? '' : 'EXERCISE_GROUP_TYPE_STRAIGHT');
-  static const ExerciseGroupType EXERCISE_GROUP_TYPE_SUPERSET =
-      ExerciseGroupType._(
-          2, _omitEnumNames ? '' : 'EXERCISE_GROUP_TYPE_SUPERSET');
-  static const ExerciseGroupType EXERCISE_GROUP_TYPE_DROPSET =
-      ExerciseGroupType._(
-          3, _omitEnumNames ? '' : 'EXERCISE_GROUP_TYPE_DROPSET');
-
-  static const $core.List<ExerciseGroupType> values = <ExerciseGroupType>[
-    EXERCISE_GROUP_TYPE_UNSPECIFIED,
-    EXERCISE_GROUP_TYPE_STRAIGHT,
-    EXERCISE_GROUP_TYPE_SUPERSET,
-    EXERCISE_GROUP_TYPE_DROPSET,
-  ];
-
-  static final $core.List<ExerciseGroupType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
-  static ExerciseGroupType? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ExerciseGroupType._(super.value, super.name);
-}
-
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -1,4 +1,4 @@
-use lift::workout::v1::{CompletedSet, ProposedSet, User, Workout};
+use lift::workout::v1::{CompletedSet, ExerciseTypeConfig, ProposedSet, User, Workout};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -27,9 +27,20 @@ fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::Exe
         id: row.get("id"),
         workout_id: row.get("workout_id"),
         name: row.get("name"),
-        r#type: row.get("type"),
-        include_warmup: row.get("include_warmup"),
+        sets: row.get("sets"),
+        interleave_warmups: row.get("interleave_warmups"),
         workout_order: row.get("workout_order"),
+        exercise_configs: vec![], // filled by caller
+    }
+}
+
+fn row_to_exercise_type_config(row: sqlx::sqlite::SqliteRow) -> ExerciseTypeConfig {
+    ExerciseTypeConfig {
+        exercise: row.get("exercise"),
+        start_weight: row.get("start_weight"),
+        end_weight: row.get("end_weight"),
+        reps: row.get("reps"),
+        include_warmup: row.get("include_warmup"),
     }
 }
 
@@ -142,11 +153,25 @@ CREATE TABLE IF NOT EXISTS exercise_groups (
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    type INTEGER NOT NULL,
-    include_warmup BOOLEAN NOT NULL,
+    sets INTEGER NOT NULL,
+    interleave_warmups BOOLEAN NOT NULL,
     workout_order INTEGER NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
+);
+
+CREATE TABLE IF NOT EXISTS exercise_type_configs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    exercise_group_id TEXT NOT NULL,
+    exercise INTEGER NOT NULL,
+    start_weight REAL NOT NULL,
+    end_weight REAL NOT NULL,
+    reps INTEGER NOT NULL,
+    include_warmup BOOLEAN NOT NULL,
+    config_order INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
 );
 
 CREATE TABLE IF NOT EXISTS proposed_sets (
@@ -194,6 +219,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(session_id) WHERE lef
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_user_workout ON exercise_groups(user_id, workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_user_workout ON proposed_sets(user_id, workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_user_workout ON completed_sets(user_id, workout_id);
+CREATE INDEX IF NOT EXISTS idx_exercise_type_configs_group ON exercise_type_configs(exercise_group_id);
 
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
@@ -222,7 +248,7 @@ impl CentralDb {
             .busy_timeout(std::time::Duration::from_secs(30)); // Allow waiting for write lock
 
         let pool = SqlitePoolOptions::new()
-            .max_connections(10) 
+            .max_connections(10)
             .connect_with(options).await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
 
@@ -237,8 +263,8 @@ impl CentralDb {
             .await;
 
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
-        let db = Self { 
-            pool, 
+        let db = Self {
+            pool,
             auth_cache: Arc::new(DashMap::new()),
             user_by_name_cache: Arc::new(DashMap::new()),
             write_lock: Arc::new(tokio::sync::Mutex::new(())),
@@ -254,7 +280,7 @@ impl CentralDb {
     fn spawn_persistence_worker(self, mut rx: tokio::sync::mpsc::UnboundedReceiver<WriteCommand>) {
         tokio::spawn(async move {
             let mut buffer = Vec::with_capacity(1000);
-            
+
             loop {
                 // Wait for at least one command
                 match rx.recv().await {
@@ -302,18 +328,38 @@ impl CentralDb {
                 }
                 WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
                     sqlx::query(
-                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
+                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order)
                          VALUES (?, ?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&group.id)
                     .bind(user_id)
                     .bind(&group.workout_id)
                     .bind(&group.name)
-                    .bind(group.r#type)
-                    .bind(group.include_warmup)
+                    .bind(group.sets)
+                    .bind(group.interleave_warmups)
                     .bind(group.workout_order)
                     .execute(&mut *tx)
                     .await?;
+
+                    // Insert exercise_type_configs
+                    for (idx, config) in group.exercise_configs.iter().enumerate() {
+                        let config_id = Uuid::new_v4().to_string();
+                        sqlx::query(
+                            "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        )
+                        .bind(&config_id)
+                        .bind(user_id)
+                        .bind(&group.id)
+                        .bind(config.exercise)
+                        .bind(config.start_weight)
+                        .bind(config.end_weight)
+                        .bind(config.reps)
+                        .bind(config.include_warmup)
+                        .bind(idx as i32)
+                        .execute(&mut *tx)
+                        .await?;
+                    }
 
                     for set in sets {
                         sqlx::query(
@@ -464,10 +510,6 @@ impl CentralDb {
         &self,
         user_id: &str,
     ) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
-        // Check cache first (using the by_name cache would be tricky, but we can check if it exists in values)
-        // For now, let's keep a simple secondary cache or just check if it's already cached in some way.
-        // Actually, let's just add it to the user_by_name_cache after fetch so at least by_name is warm.
-        // Even better, let's just do the DB fetch and then cache it.
         let res = sqlx::query("SELECT id, name, created_at FROM users WHERE id = ?")
             .bind(user_id)
             .map(row_to_user)
@@ -494,7 +536,7 @@ impl CentralDb {
             .map(row_to_user)
             .fetch_optional(&self.pool)
             .await?;
-        
+
         if let Some(user) = &res {
             self.user_by_name_cache.insert(name.to_string(), user.clone());
         }
@@ -742,13 +784,13 @@ impl CentralDb {
             let user = entry.value().clone();
             let token = Uuid::new_v4().to_string();
             let expires_at = Self::now_plus_30_days();
-            
+
             // Optimistically update auth cache
             self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
-            
+
             // Queue session creation
             self.write_tx.send(WriteCommand::TestLoginUpsert(user.clone(), token.clone(), expires_at))?;
-            
+
             return Ok((user, token));
         }
 
@@ -796,15 +838,46 @@ impl CentralDb {
         user_id: &str,
         workout_id: &str,
     ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query(
-            "SELECT id, workout_id, name, type, include_warmup, workout_order
+        let mut groups: Vec<lift::workout::v1::ExerciseGroup> = sqlx::query(
+            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order
              FROM exercise_groups WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
         )
         .bind(user_id)
         .bind(workout_id)
         .map(row_to_exercise_group)
         .fetch_all(&self.pool)
-        .await?)
+        .await?;
+
+        // Fetch all configs for this workout's groups
+        let group_ids: Vec<String> = groups.iter().map(|g| g.id.clone()).collect();
+        if !group_ids.is_empty() {
+            let placeholders = group_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+            let query = format!(
+                "SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup
+                 FROM exercise_type_configs WHERE exercise_group_id IN ({}) ORDER BY config_order",
+                placeholders
+            );
+            let mut q = sqlx::query(&query);
+            for id in &group_ids {
+                q = q.bind(id);
+            }
+            let config_rows = q.fetch_all(&self.pool).await?;
+
+            let mut configs_by_group: HashMap<String, Vec<ExerciseTypeConfig>> = HashMap::new();
+            for row in config_rows {
+                let group_id: String = row.get("exercise_group_id");
+                let config = row_to_exercise_type_config(row);
+                configs_by_group.entry(group_id).or_default().push(config);
+            }
+
+            for group in &mut groups {
+                if let Some(configs) = configs_by_group.remove(&group.id) {
+                    group.exercise_configs = configs;
+                }
+            }
+        }
+
+        Ok(groups)
     }
 
     pub async fn get_workout(
@@ -994,7 +1067,15 @@ impl CentralDb {
         .execute(&mut *tx)
         .await?;
 
-        // Optimized DELETEs using new composite indexes
+        // Delete in order: configs -> completed_sets -> proposed_sets -> exercise_groups
+        // Delete configs for groups in this workout
+        sqlx::query("DELETE FROM exercise_type_configs WHERE user_id = ? AND exercise_group_id IN (SELECT id FROM exercise_groups WHERE user_id = ? AND workout_id = ?)")
+            .bind(user_id)
+            .bind(user_id)
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+
         sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ?")
             .bind(user_id)
             .bind(&workout.id)
@@ -1014,18 +1095,43 @@ impl CentralDb {
         // Batch inserts for groups
         if !exercise_groups.is_empty() {
             let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order) "
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order) "
             );
             query_builder.push_values(exercise_groups, |mut b, group| {
                 b.push_bind(&group.id)
                  .push_bind(user_id)
                  .push_bind(&group.workout_id)
                  .push_bind(&group.name)
-                 .push_bind(group.r#type)
-                 .push_bind(group.include_warmup)
+                 .push_bind(group.sets)
+                 .push_bind(group.interleave_warmups)
                  .push_bind(group.workout_order);
             });
             query_builder.build().execute(&mut *tx).await?;
+
+            // Insert configs for all groups
+            let all_configs: Vec<(String, i32, &ExerciseTypeConfig)> = exercise_groups.iter()
+                .flat_map(|g| g.exercise_configs.iter().enumerate().map(move |(idx, c)| (g.id.clone(), idx as i32, c)))
+                .collect();
+
+            if !all_configs.is_empty() {
+                for chunk in all_configs.chunks(100) {
+                    let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                        "INSERT INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order) "
+                    );
+                    query_builder.push_values(chunk, |mut b, (group_id, idx, config)| {
+                        b.push_bind(Uuid::new_v4().to_string())
+                         .push_bind(user_id)
+                         .push_bind(group_id)
+                         .push_bind(config.exercise)
+                         .push_bind(config.start_weight)
+                         .push_bind(config.end_weight)
+                         .push_bind(config.reps)
+                         .push_bind(config.include_warmup)
+                         .push_bind(idx);
+                    });
+                    query_builder.build().execute(&mut *tx).await?;
+                }
+            }
         }
 
         // Batch inserts for proposed sets

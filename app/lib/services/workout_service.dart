@@ -10,13 +10,11 @@ class WorkoutServiceWrapper {
   Future<String> startWorkout(
     String name,
     List<ExerciseGroup> exerciseGroups,
-    List<ProposedSet> proposedSets,
   ) async {
     final response = await _client.workoutService.startWorkout(
       StartWorkoutRequest()
         ..name = name
-        ..exerciseGroups.addAll(exerciseGroups)
-        ..proposedSets.addAll(proposedSets),
+        ..exerciseGroups.addAll(exerciseGroups),
     );
     return response.id;
   }
@@ -87,23 +85,17 @@ class WorkoutServiceWrapper {
   Future<CreateExerciseGroupResponse> createExerciseGroup({
     required String workoutId,
     required String name,
-    required ExerciseGroupType type,
-    required List<Exercise> exercises,
     required int sets,
-    required int reps,
-    required List<double> weights,
-    required bool includeWarmup,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
   }) async {
     return await _client.workoutService.createExerciseGroup(
       CreateExerciseGroupRequest()
         ..workoutId = workoutId
         ..name = name
-        ..type = type
-        ..exercises.addAll(exercises)
         ..sets = sets
-        ..reps = reps
-        ..weights.addAll(weights)
-        ..includeWarmup = includeWarmup,
+        ..interleaveWarmups = interleaveWarmups
+        ..exerciseConfigs.addAll(exerciseConfigs),
     );
   }
 
@@ -112,9 +104,8 @@ class WorkoutServiceWrapper {
     required String exerciseGroupId,
     required String name,
     required int sets,
-    required int reps,
-    required List<double> weights,
-    required bool includeWarmup,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
   }) async {
     return await _client.workoutService.updateExerciseGroup(
       UpdateExerciseGroupRequest()
@@ -122,9 +113,8 @@ class WorkoutServiceWrapper {
         ..exerciseGroupId = exerciseGroupId
         ..name = name
         ..sets = sets
-        ..reps = reps
-        ..weights.addAll(weights)
-        ..includeWarmup = includeWarmup,
+        ..interleaveWarmups = interleaveWarmups
+        ..exerciseConfigs.addAll(exerciseConfigs),
     );
   }
 

@@ -198,8 +198,7 @@ class ExerciseGroupWidget extends StatelessWidget {
       orElse: () => null,
     );
     final isActive = set.id == activeSetId;
-    final isSuperset =
-        group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET;
+    final isSuperset = group.exercises.length > 1;
     final exerciseName = shortNames[set.exercise] ?? set.exercise.name;
 
     String text = '';

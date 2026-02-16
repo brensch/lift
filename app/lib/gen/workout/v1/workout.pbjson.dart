@@ -83,23 +83,6 @@ final $typed_data.Uint8List exerciseDescriptor = $convert.base64Decode(
     'HgoaRVhFUkNJU0VfUk9NQU5JQU5fREVBRExJRlQQCBIZChVFWEVSQ0lTRV9HTFVURV9CUklER0'
     'UQCRISCg5FWEVSQ0lTRV9MVU5HRRAKEhUKEUVYRVJDSVNFX0xFR19DVVJMEAs=');
 
-@$core.Deprecated('Use exerciseGroupTypeDescriptor instead')
-const ExerciseGroupType$json = {
-  '1': 'ExerciseGroupType',
-  '2': [
-    {'1': 'EXERCISE_GROUP_TYPE_UNSPECIFIED', '2': 0},
-    {'1': 'EXERCISE_GROUP_TYPE_STRAIGHT', '2': 1},
-    {'1': 'EXERCISE_GROUP_TYPE_SUPERSET', '2': 2},
-    {'1': 'EXERCISE_GROUP_TYPE_DROPSET', '2': 3},
-  ],
-};
-
-/// Descriptor for `ExerciseGroupType`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List exerciseGroupTypeDescriptor = $convert.base64Decode(
-    'ChFFeGVyY2lzZUdyb3VwVHlwZRIjCh9FWEVSQ0lTRV9HUk9VUF9UWVBFX1VOU1BFQ0lGSUVEEA'
-    'ASIAocRVhFUkNJU0VfR1JPVVBfVFlQRV9TVFJBSUdIVBABEiAKHEVYRVJDSVNFX0dST1VQX1RZ'
-    'UEVfU1VQRVJTRVQQAhIfChtFWEVSQ0lTRV9HUk9VUF9UWVBFX0RST1BTRVQQAw==');
-
 @$core.Deprecated('Use userDescriptor instead')
 const User$json = {
   '1': 'User',
@@ -131,6 +114,32 @@ final $typed_data.Uint8List workoutDescriptor = $convert.base64Decode(
     'CgdXb3Jrb3V0Eg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEh0KCnN0YXJ0X3'
     'RpbWUYAyABKANSCXN0YXJ0VGltZRIZCghlbmRfdGltZRgEIAEoA1IHZW5kVGltZQ==');
 
+@$core.Deprecated('Use exerciseTypeConfigDescriptor instead')
+const ExerciseTypeConfig$json = {
+  '1': 'ExerciseTypeConfig',
+  '2': [
+    {
+      '1': 'exercise',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercise'
+    },
+    {'1': 'start_weight', '3': 2, '4': 1, '5': 2, '10': 'startWeight'},
+    {'1': 'end_weight', '3': 3, '4': 1, '5': 2, '10': 'endWeight'},
+    {'1': 'reps', '3': 4, '4': 1, '5': 5, '10': 'reps'},
+    {'1': 'include_warmup', '3': 5, '4': 1, '5': 8, '10': 'includeWarmup'},
+  ],
+};
+
+/// Descriptor for `ExerciseTypeConfig`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exerciseTypeConfigDescriptor = $convert.base64Decode(
+    'ChJFeGVyY2lzZVR5cGVDb25maWcSMAoIZXhlcmNpc2UYASABKA4yFC53b3Jrb3V0LnYxLkV4ZX'
+    'JjaXNlUghleGVyY2lzZRIhCgxzdGFydF93ZWlnaHQYAiABKAJSC3N0YXJ0V2VpZ2h0Eh0KCmVu'
+    'ZF93ZWlnaHQYAyABKAJSCWVuZFdlaWdodBISCgRyZXBzGAQgASgFUgRyZXBzEiUKDmluY2x1ZG'
+    'Vfd2FybXVwGAUgASgIUg1pbmNsdWRlV2FybXVw');
+
 @$core.Deprecated('Use exerciseGroupDescriptor instead')
 const ExerciseGroup$json = {
   '1': 'ExerciseGroup',
@@ -138,25 +147,33 @@ const ExerciseGroup$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
     {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'sets', '3': 4, '4': 1, '5': 5, '10': 'sets'},
     {
-      '1': 'type',
-      '3': 4,
+      '1': 'interleave_warmups',
+      '3': 5,
       '4': 1,
-      '5': 14,
-      '6': '.workout.v1.ExerciseGroupType',
-      '10': 'type'
+      '5': 8,
+      '10': 'interleaveWarmups'
     },
-    {'1': 'include_warmup', '3': 5, '4': 1, '5': 8, '10': 'includeWarmup'},
     {'1': 'workout_order', '3': 6, '4': 1, '5': 5, '10': 'workoutOrder'},
+    {
+      '1': 'exercise_configs',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseTypeConfig',
+      '10': 'exerciseConfigs'
+    },
   ],
 };
 
 /// Descriptor for `ExerciseGroup`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List exerciseGroupDescriptor = $convert.base64Decode(
     'Cg1FeGVyY2lzZUdyb3VwEg4KAmlkGAEgASgJUgJpZBIdCgp3b3Jrb3V0X2lkGAIgASgJUgl3b3'
-    'Jrb3V0SWQSEgoEbmFtZRgDIAEoCVIEbmFtZRIxCgR0eXBlGAQgASgOMh0ud29ya291dC52MS5F'
-    'eGVyY2lzZUdyb3VwVHlwZVIEdHlwZRIlCg5pbmNsdWRlX3dhcm11cBgFIAEoCFINaW5jbHVkZV'
-    'dhcm11cBIjCg13b3Jrb3V0X29yZGVyGAYgASgFUgx3b3Jrb3V0T3JkZXI=');
+    'Jrb3V0SWQSEgoEbmFtZRgDIAEoCVIEbmFtZRISCgRzZXRzGAQgASgFUgRzZXRzEi0KEmludGVy'
+    'bGVhdmVfd2FybXVwcxgFIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMSIwoNd29ya291dF9vcmRlch'
+    'gGIAEoBVIMd29ya291dE9yZGVyEkkKEGV4ZXJjaXNlX2NvbmZpZ3MYByADKAsyHi53b3Jrb3V0'
+    'LnYxLkV4ZXJjaXNlVHlwZUNvbmZpZ1IPZXhlcmNpc2VDb25maWdz');
 
 @$core.Deprecated('Use proposedSetDescriptor instead')
 const ProposedSet$json = {
@@ -225,23 +242,13 @@ const StartWorkoutRequest$json = {
       '6': '.workout.v1.ExerciseGroup',
       '10': 'exerciseGroups'
     },
-    {
-      '1': 'proposed_sets',
-      '3': 3,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.ProposedSet',
-      '10': 'proposedSets'
-    },
   ],
 };
 
 /// Descriptor for `StartWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List startWorkoutRequestDescriptor = $convert.base64Decode(
     'ChNTdGFydFdvcmtvdXRSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSQgoPZXhlcmNpc2VfZ3'
-    'JvdXBzGAIgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lzZUdyb3VwcxI8'
-    'Cg1wcm9wb3NlZF9zZXRzGAMgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldFIMcHJvcG9zZW'
-    'RTZXRz');
+    'JvdXBzGAIgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lzZUdyb3Vwcw==');
 
 @$core.Deprecated('Use startWorkoutResponseDescriptor instead')
 const StartWorkoutResponse$json = {
@@ -349,37 +356,31 @@ const CreateExerciseGroupRequest$json = {
   '2': [
     {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'sets', '3': 3, '4': 1, '5': 5, '10': 'sets'},
     {
-      '1': 'type',
-      '3': 3,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.ExerciseGroupType',
-      '10': 'type'
-    },
-    {
-      '1': 'exercises',
+      '1': 'interleave_warmups',
       '3': 4,
-      '4': 3,
-      '5': 14,
-      '6': '.workout.v1.Exercise',
-      '10': 'exercises'
+      '4': 1,
+      '5': 8,
+      '10': 'interleaveWarmups'
     },
-    {'1': 'sets', '3': 5, '4': 1, '5': 5, '10': 'sets'},
-    {'1': 'reps', '3': 6, '4': 1, '5': 5, '10': 'reps'},
-    {'1': 'weights', '3': 7, '4': 3, '5': 2, '10': 'weights'},
-    {'1': 'include_warmup', '3': 8, '4': 1, '5': 8, '10': 'includeWarmup'},
+    {
+      '1': 'exercise_configs',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseTypeConfig',
+      '10': 'exerciseConfigs'
+    },
   ],
 };
 
 /// Descriptor for `CreateExerciseGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List createExerciseGroupRequestDescriptor = $convert.base64Decode(
     'ChpDcmVhdGVFeGVyY2lzZUdyb3VwUmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3'
-    'V0SWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIxCgR0eXBlGAMgASgOMh0ud29ya291dC52MS5FeGVy'
-    'Y2lzZUdyb3VwVHlwZVIEdHlwZRIyCglleGVyY2lzZXMYBCADKA4yFC53b3Jrb3V0LnYxLkV4ZX'
-    'JjaXNlUglleGVyY2lzZXMSEgoEc2V0cxgFIAEoBVIEc2V0cxISCgRyZXBzGAYgASgFUgRyZXBz'
-    'EhgKB3dlaWdodHMYByADKAJSB3dlaWdodHMSJQoOaW5jbHVkZV93YXJtdXAYCCABKAhSDWluY2'
-    'x1ZGVXYXJtdXA=');
+    'V0SWQSEgoEbmFtZRgCIAEoCVIEbmFtZRISCgRzZXRzGAMgASgFUgRzZXRzEi0KEmludGVybGVh'
+    'dmVfd2FybXVwcxgEIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMSSQoQZXhlcmNpc2VfY29uZmlncx'
+    'gFIAMoCzIeLndvcmtvdXQudjEuRXhlcmNpc2VUeXBlQ29uZmlnUg9leGVyY2lzZUNvbmZpZ3M=');
 
 @$core.Deprecated('Use createExerciseGroupResponseDescriptor instead')
 const CreateExerciseGroupResponse$json = {
@@ -603,6 +604,37 @@ final $typed_data.Uint8List exerciseStatusDescriptor = $convert.base64Decode(
     'dheXNfaW5jbHVkZRgKIAEoCFINYWx3YXlzSW5jbHVkZRI4CghjYXRlZ29yeRgLIAEoDjIcLndv'
     'cmtvdXQudjEuRXhlcmNpc2VDYXRlZ29yeVIIY2F0ZWdvcnk=');
 
+@$core.Deprecated('Use proposedExerciseGroupDescriptor instead')
+const ProposedExerciseGroup$json = {
+  '1': 'ProposedExerciseGroup',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'sets', '3': 2, '4': 1, '5': 5, '10': 'sets'},
+    {
+      '1': 'interleave_warmups',
+      '3': 3,
+      '4': 1,
+      '5': 8,
+      '10': 'interleaveWarmups'
+    },
+    {
+      '1': 'exercise_configs',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseTypeConfig',
+      '10': 'exerciseConfigs'
+    },
+  ],
+};
+
+/// Descriptor for `ProposedExerciseGroup`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Decode(
+    'ChVQcm9wb3NlZEV4ZXJjaXNlR3JvdXASEgoEbmFtZRgBIAEoCVIEbmFtZRISCgRzZXRzGAIgAS'
+    'gFUgRzZXRzEi0KEmludGVybGVhdmVfd2FybXVwcxgDIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMS'
+    'SQoQZXhlcmNpc2VfY29uZmlncxgEIAMoCzIeLndvcmtvdXQudjEuRXhlcmNpc2VUeXBlQ29uZm'
+    'lnUg9leGVyY2lzZUNvbmZpZ3M=');
+
 @$core.Deprecated('Use getProposedWorkoutScheduleResponseDescriptor instead')
 const GetProposedWorkoutScheduleResponse$json = {
   '1': 'GetProposedWorkoutScheduleResponse',
@@ -616,6 +648,14 @@ const GetProposedWorkoutScheduleResponse$json = {
       '10': 'exerciseStatuses'
     },
     {'1': 'active_workout_id', '3': 2, '4': 1, '5': 9, '10': 'activeWorkoutId'},
+    {
+      '1': 'proposed_groups',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ProposedExerciseGroup',
+      '10': 'proposedGroups'
+    },
   ],
 };
 
@@ -624,7 +664,9 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor =
     $convert.base64Decode(
         'CiJHZXRQcm9wb3NlZFdvcmtvdXRTY2hlZHVsZVJlc3BvbnNlEkcKEWV4ZXJjaXNlX3N0YXR1c2'
         'VzGAEgAygLMhoud29ya291dC52MS5FeGVyY2lzZVN0YXR1c1IQZXhlcmNpc2VTdGF0dXNlcxIq'
-        'ChFhY3RpdmVfd29ya291dF9pZBgCIAEoCVIPYWN0aXZlV29ya291dElk');
+        'ChFhY3RpdmVfd29ya291dF9pZBgCIAEoCVIPYWN0aXZlV29ya291dElkEkoKD3Byb3Bvc2VkX2'
+        'dyb3VwcxgDIAMoCzIhLndvcmtvdXQudjEuUHJvcG9zZWRFeGVyY2lzZUdyb3VwUg5wcm9wb3Nl'
+        'ZEdyb3Vwcw==');
 
 @$core.Deprecated('Use getActiveWorkoutRequestDescriptor instead')
 const GetActiveWorkoutRequest$json = {
@@ -663,10 +705,22 @@ const UpdateExerciseGroupRequest$json = {
     {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
     {'1': 'exercise_group_id', '3': 2, '4': 1, '5': 9, '10': 'exerciseGroupId'},
     {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'weights', '3': 4, '4': 3, '5': 2, '10': 'weights'},
-    {'1': 'sets', '3': 5, '4': 1, '5': 5, '10': 'sets'},
-    {'1': 'reps', '3': 6, '4': 1, '5': 5, '10': 'reps'},
-    {'1': 'include_warmup', '3': 7, '4': 1, '5': 8, '10': 'includeWarmup'},
+    {'1': 'sets', '3': 4, '4': 1, '5': 5, '10': 'sets'},
+    {
+      '1': 'interleave_warmups',
+      '3': 5,
+      '4': 1,
+      '5': 8,
+      '10': 'interleaveWarmups'
+    },
+    {
+      '1': 'exercise_configs',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseTypeConfig',
+      '10': 'exerciseConfigs'
+    },
   ],
 };
 
@@ -674,9 +728,9 @@ const UpdateExerciseGroupRequest$json = {
 final $typed_data.Uint8List updateExerciseGroupRequestDescriptor = $convert.base64Decode(
     'ChpVcGRhdGVFeGVyY2lzZUdyb3VwUmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3'
     'V0SWQSKgoRZXhlcmNpc2VfZ3JvdXBfaWQYAiABKAlSD2V4ZXJjaXNlR3JvdXBJZBISCgRuYW1l'
-    'GAMgASgJUgRuYW1lEhgKB3dlaWdodHMYBCADKAJSB3dlaWdodHMSEgoEc2V0cxgFIAEoBVIEc2'
-    'V0cxISCgRyZXBzGAYgASgFUgRyZXBzEiUKDmluY2x1ZGVfd2FybXVwGAcgASgIUg1pbmNsdWRl'
-    'V2FybXVw');
+    'GAMgASgJUgRuYW1lEhIKBHNldHMYBCABKAVSBHNldHMSLQoSaW50ZXJsZWF2ZV93YXJtdXBzGA'
+    'UgASgIUhFpbnRlcmxlYXZlV2FybXVwcxJJChBleGVyY2lzZV9jb25maWdzGAYgAygLMh4ud29y'
+    'a291dC52MS5FeGVyY2lzZVR5cGVDb25maWdSD2V4ZXJjaXNlQ29uZmlncw==');
 
 @$core.Deprecated('Use updateExerciseGroupResponseDescriptor instead')
 const UpdateExerciseGroupResponse$json = {
