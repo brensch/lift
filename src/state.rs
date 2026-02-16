@@ -70,6 +70,8 @@ pub struct AppState {
     pub user_sessions: DashMap<String, String>,
     /// Cached user info: user_id -> User proto
     pub users: DashMap<String, User>,
+    /// Users we've already checked for crash recovery (avoids repeated DB lookups)
+    checked_users: DashMap<String, ()>,
 }
 
 impl AppState {
@@ -79,6 +81,51 @@ impl AppState {
             sessions: DashMap::new(),
             user_sessions: DashMap::new(),
             users: DashMap::new(),
+            checked_users: DashMap::new(),
+        }
+    }
+
+    /// Lazy crash recovery: on first access per user, check their UserDb for
+    /// an active workout left over from a crash. No-op if already checked.
+    pub async fn try_recover_user(&self, user_id: &str) {
+        // Fast path: already checked
+        if self.checked_users.contains_key(user_id) {
+            return;
+        }
+        self.checked_users.insert(user_id.to_string(), ());
+
+        // Already have an active workout in memory — nothing to recover
+        if self.workouts.contains_key(user_id) {
+            return;
+        }
+
+        // Check UserDb for un-ended workout
+        let user_db = match UserDb::new(user_id).await {
+            Ok(db) => db,
+            Err(_) => return,
+        };
+
+        let active = match user_db.get_active_workout().await {
+            Ok(Some(w)) => w,
+            _ => return,
+        };
+
+        let groups = user_db.get_exercise_groups(&active.id).await.unwrap_or_default();
+        let proposed = user_db.get_proposed_sets(&active.id).await.unwrap_or_default();
+        let completed = user_db.get_completed_sets(&active.id).await.unwrap_or_default();
+
+        self.workouts.insert(
+            user_id.to_string(),
+            ActiveWorkout::new(active, groups, proposed, completed),
+        );
+
+        // Recover session membership
+        if let Ok(Some(session_id)) = user_db.get_active_session().await {
+            self.user_sessions.insert(user_id.to_string(), session_id.clone());
+            self.sessions
+                .entry(session_id)
+                .or_insert_with(HashSet::new)
+                .insert(user_id.to_string());
         }
     }
 
@@ -126,66 +173,6 @@ impl AppState {
         }
     }
 
-    /// Load un-ended workouts from UserDb on startup for crash recovery
-    pub async fn recover_active_workouts(
-        &self,
-        central_db: &crate::db::CentralDb,
-    ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-        // Scan all user DBs for active (un-ended) workouts
-        let data_dir = "data/user_dbs";
-        let path = std::path::Path::new(data_dir);
-        if !path.exists() {
-            return Ok(0);
-        }
-
-        let mut count = 0;
-        for entry in std::fs::read_dir(path)? {
-            let entry = entry?;
-            let filename = entry.file_name();
-            let name = filename.to_string_lossy();
-            if !name.ends_with(".sqlite") {
-                continue;
-            }
-            let user_id = name.trim_end_matches(".sqlite").to_string();
-
-            let user_db = match UserDb::new(&user_id).await {
-                Ok(db) => db,
-                Err(_) => continue,
-            };
-
-            let active = match user_db.get_active_workout().await {
-                Ok(Some(w)) => w,
-                _ => continue,
-            };
-
-            let groups = user_db.get_exercise_groups(&active.id).await.unwrap_or_default();
-            let proposed = user_db.get_proposed_sets(&active.id).await.unwrap_or_default();
-            let completed = user_db.get_completed_sets(&active.id).await.unwrap_or_default();
-
-            self.workouts.insert(
-                user_id.clone(),
-                ActiveWorkout::new(active, groups, proposed, completed),
-            );
-
-            // Cache user info
-            if let Ok(Some(user)) = central_db.get_user(&user_id).await {
-                self.users.insert(user_id.clone(), user);
-            }
-
-            // Recover session membership from user_sessions table
-            if let Ok(Some(session_id)) = user_db.get_active_session().await {
-                self.user_sessions.insert(user_id.clone(), session_id.clone());
-                self.sessions
-                    .entry(session_id)
-                    .or_insert_with(HashSet::new)
-                    .insert(user_id);
-            }
-
-            count += 1;
-        }
-
-        Ok(count)
-    }
 }
 
 pub fn spawn_checkpoint_task(state: Arc<AppState>) {

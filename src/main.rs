@@ -40,12 +40,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let central_db = CentralDb::new().await?;
     let app_state = Arc::new(AppState::new());
 
-    // Recover active workouts from UserDb (crash recovery)
-    let recovered = app_state.recover_active_workouts(&central_db).await?;
-    if recovered > 0 {
-        info!("Recovered {} active workouts from disk", recovered);
-    }
-
     // Spawn periodic checkpoint task (flushes dirty workouts every 30s)
     state::spawn_checkpoint_task(app_state.clone());
 

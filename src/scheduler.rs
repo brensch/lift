@@ -242,31 +242,28 @@ impl Scheduler {
         Self { user_db }
     }
 
-    /// Generate exercise statuses with weight progression and recovery info
+    /// Generate exercise statuses with weight progression and recovery info.
+    /// Uses 2 total DB queries (bulk fetch all exercises at once).
     pub async fn get_proposed_schedule(
         &self,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
-        // Collect last_performed_at for ALL exercises first (needed for muscle group recovery)
-        let mut exercise_last_performed: Vec<(Exercise, i64)> = Vec::new();
-        for config in EXERCISE_CONFIGS {
-            let history = self
-                .user_db
-                .get_exercise_history(config.exercise as i32, 1)
-                .await?;
-            let last_performed = history.first().map(|(_, _, date)| *date).unwrap_or(0);
-            exercise_last_performed.push((config.exercise, last_performed));
-        }
+        // 2 queries total: bulk history + bulk max weights for ALL exercises
+        let (all_history, all_max_weights) =
+            self.user_db.get_all_exercise_history(10).await?;
 
-        // Build a map of muscle group -> most recent time it was worked
+        // Build muscle group recovery map from the fetched data
         let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =
             std::collections::HashMap::new();
-        for (i, config) in EXERCISE_CONFIGS.iter().enumerate() {
-            let last_performed = exercise_last_performed[i].1;
+        for config in EXERCISE_CONFIGS {
+            let exercise = config.exercise as i32;
+            let last_performed = all_history
+                .get(&exercise)
+                .and_then(|h| h.first())
+                .map(|(_, _, date)| *date)
+                .unwrap_or(0);
             if last_performed > 0 {
                 for mg in config.muscle_groups {
-                    let entry = muscle_group_last_worked
-                        .entry(*mg as i32)
-                        .or_insert(0);
+                    let entry = muscle_group_last_worked.entry(*mg as i32).or_insert(0);
                     if last_performed > *entry {
                         *entry = last_performed;
                     }
@@ -278,20 +275,25 @@ impl Scheduler {
         let recovery_seconds = RECOVERY_HOURS * 3600;
 
         let mut exercise_statuses = Vec::new();
-        for (i, config) in EXERCISE_CONFIGS.iter().enumerate() {
-            let (weight, explanation, last_perf, weight_history) = self
-                .calculate_sophisticated_weight(config.exercise as i32, config.default_weight)
-                .await?;
+        for config in EXERCISE_CONFIGS {
+            let exercise = config.exercise as i32;
+            let empty_history = Vec::new();
+            let history = all_history.get(&exercise).unwrap_or(&empty_history);
+            let max_weight = all_max_weights.get(&exercise).copied().unwrap_or(0.0);
+            let (weight, explanation, last_perf, weight_history) =
+                Self::calculate_weight_from_data(
+                    exercise,
+                    config.default_weight,
+                    history,
+                    max_weight,
+                );
 
-            // Check if ALL muscle groups for this exercise have recovered
             let recovered = config.muscle_groups.iter().all(|mg| {
                 match muscle_group_last_worked.get(&(*mg as i32)) {
-                    None => true, // never worked = recovered
+                    None => true,
                     Some(&last) => (now - last) >= recovery_seconds,
                 }
             });
-
-            let _ = i; // suppress unused warning
 
             exercise_statuses.push(ExerciseStatus {
                 exercise: config.exercise as i32,
@@ -308,34 +310,29 @@ impl Scheduler {
             });
         }
 
-        let active_workout = self.user_db.get_active_workout().await?;
-        let active_workout_id = active_workout.map(|w| w.id).unwrap_or_default();
-
+        // active_workout_id is set by the service handler from in-memory state
         Ok(GetProposedWorkoutScheduleResponse {
             exercise_statuses,
-            active_workout_id,
+            active_workout_id: String::new(),
         })
     }
 
-    async fn calculate_sophisticated_weight(
-        &self,
+    /// Pure function: calculate weight from pre-fetched data (no DB calls).
+    fn calculate_weight_from_data(
         exercise: i32,
         default: f32,
-    ) -> Result<(f32, String, i64, Vec<f32>), Box<dyn std::error::Error + Send + Sync>> {
-        let history = self.user_db.get_exercise_history(exercise, 10).await?;
-        let max_weight = self
-            .user_db
-            .get_all_time_max_weight_for_exercise(exercise)
-            .await?;
+        history: &[(f32, bool, i64)],
+        max_weight: f32,
+    ) -> (f32, String, i64, Vec<f32>) {
         let weight_history: Vec<f32> = history.iter().rev().map(|(w, _, _)| *w).collect();
 
         if history.is_empty() {
-            return Ok((
+            return (
                 default,
                 format!("Starting at {} lbs.", default),
                 0,
                 weight_history,
-            ));
+            );
         }
 
         let (last_weight, last_success, last_date) = history[0];
@@ -354,7 +351,7 @@ impl Scheduler {
         if days_since > 14 {
             let deload_pct = if days_since > 30 { 0.8 } else { 0.9 };
             let new_weight = (last_weight * deload_pct / 5.0).round() * 5.0;
-            return Ok((
+            return (
                 new_weight.max(default),
                 format!(
                     "Decreasing from {} to {} lbs because of {} day break.",
@@ -362,7 +359,7 @@ impl Scheduler {
                 ),
                 last_date,
                 weight_history,
-            ));
+            );
         }
 
         // 2. Plateau Detection (3 consecutive failures at same weight)
@@ -371,7 +368,7 @@ impl Scheduler {
             let all_failed = !history[0].1 && !history[1].1 && !history[2].1;
             if same_weight && all_failed {
                 let new_weight = (last_weight * 0.9 / 5.0).round() * 5.0;
-                return Ok((
+                return (
                     new_weight.max(default),
                     format!(
                         "Decreasing from {} to {} lbs to reset progression after plateau.",
@@ -379,13 +376,13 @@ impl Scheduler {
                     ),
                     last_date,
                     weight_history,
-                ));
+                );
             }
         }
 
         // 3. Recent Failure (1 or 2 times)
         if !last_success {
-            return Ok((
+            return (
                 last_weight,
                 format!(
                     "Maintaining at {} lbs to master form after last failure.",
@@ -393,7 +390,7 @@ impl Scheduler {
                 ),
                 last_date,
                 weight_history,
-            ));
+            );
         }
 
         // 4. Return to Weight Mode
@@ -405,7 +402,7 @@ impl Scheduler {
             if successes_since_deload >= 2 {
                 let fast_increment = increment * 2.0;
                 let new_weight = last_weight + fast_increment;
-                return Ok((
+                return (
                     new_weight,
                     format!(
                         "Increasing from {} to {} lbs to reclaim previous max of {} lbs.",
@@ -413,13 +410,13 @@ impl Scheduler {
                     ),
                     last_date,
                     weight_history,
-                ));
+                );
             }
         }
 
         // 5. Standard Progression
         let new_weight = last_weight + increment;
-        Ok((
+        (
             new_weight,
             format!(
                 "Increasing from {} to {} lbs after successful last session.",
@@ -427,6 +424,6 @@ impl Scheduler {
             ),
             last_date,
             weight_history,
-        ))
+        )
     }
 }
