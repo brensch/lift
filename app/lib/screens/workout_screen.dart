@@ -436,53 +436,103 @@ class WorkoutScreen extends StatelessWidget {
 
         
 
-                if (!isEnded) ...[
+                                if (!isEnded) ...[
 
-                  const SizedBox(height: 8),
+        
 
-                                    Padding(
+                                  const SizedBox(height: 8),
 
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+        
 
-                                      child: SizedBox(
+                                  Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
-                                        width: double.infinity,
+        
 
-                                        height: 44,
+                                  Padding(
 
-                                        child: OutlinedButton(
+        
 
-                                          onPressed: () => endWorkout(context),
+                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
 
-                                          style: OutlinedButton.styleFrom(
+        
 
-                                            foregroundColor: colorScheme.error,
+                                    child: SizedBox(
 
-                                            side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+        
 
-                                          ),
+                                      width: double.infinity,
 
-                                          child: const Text(
+        
 
-                                            'End Workout',
+                                      height: 44,
 
-                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        
 
-                                          ),
+                                      child: OutlinedButton(
+
+        
+
+                                        onPressed: () => endWorkout(context),
+
+        
+
+                                        style: OutlinedButton.styleFrom(
+
+        
+
+                                          foregroundColor: colorScheme.error,
+
+        
+
+                                          side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+
+        
 
                                         ),
 
+        
+
+                                        child: const Text(
+
+        
+
+                                          'End Workout',
+
+        
+
+                                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+
+        
+
+                                        ),
+
+        
+
                                       ),
+
+        
 
                                     ),
 
-                                  ],
+        
+
+                                  ),
+
+        
 
                                 ],
 
-                              );
+        
 
-                    }
+                              ],
+
+        
+
+                            );
+
+        
+
+                          }
 
                   
 
