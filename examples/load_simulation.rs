@@ -164,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let elapsed = start_time.elapsed().as_secs_f64();
         if elapsed >= args.duration as f64 { break; }
 
-        let target_groups = (elapsed * 20.0).floor() as usize + 1;
+        let target_groups = (elapsed * 100.0).floor() as usize + 1;
 
         while current_group_count < target_groups {
             let group_index = current_group_count;
