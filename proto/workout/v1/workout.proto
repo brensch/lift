@@ -49,6 +49,22 @@ enum Exercise {
   EXERCISE_LEG_CURL = 11;
 }
 
+enum ExerciseGroupType {
+  EXERCISE_GROUP_TYPE_UNSPECIFIED = 0;
+  EXERCISE_GROUP_TYPE_STRAIGHT = 1; // e.g. 5x5, 3x10
+  EXERCISE_GROUP_TYPE_SUPERSET = 2;
+  EXERCISE_GROUP_TYPE_DROPSET = 3;
+}
+
+message ExerciseGroup {
+  string id = 1;
+  string workout_id = 2;
+  string name = 3;
+  ExerciseGroupType type = 4;
+  bool include_warmup = 5;
+  int32 workout_order = 6;
+}
+
 message ProposedSet {
   string id = 1;
   string workout_id = 2;
@@ -57,6 +73,7 @@ message ProposedSet {
   int32 target_reps = 5;
   float target_weight = 6;
   bool warmup = 7;
+  string exercise_group_id = 8;
 }
 
 message CompletedSet {
@@ -74,7 +91,8 @@ message CompletedSet {
 
 message StartWorkoutRequest {
   string name = 1;
-  repeated ProposedSet proposed_sets = 2;
+  repeated ExerciseGroup exercise_groups = 2;
+  repeated ProposedSet proposed_sets = 3;
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -85,8 +103,9 @@ message GetWorkoutRequest {
 }
 message GetWorkoutResponse {
   Workout workout = 1;
-  repeated ProposedSet proposed_sets = 2;
-  repeated CompletedSet completed_sets = 3;
+  repeated ExerciseGroup exercise_groups = 2;
+  repeated ProposedSet proposed_sets = 3;
+  repeated CompletedSet completed_sets = 4;
 }
 
 message ListWorkoutsRequest {}
@@ -95,12 +114,20 @@ message ListWorkoutsResponse {
   repeated Workout workouts = 1;
 }
 
-message ModifyProposedSetsRequest {
+message CreateExerciseGroupRequest {
   string workout_id = 1;
-  repeated ProposedSet proposed_sets = 2;
+  string name = 2;
+  ExerciseGroupType type = 3;
+  repeated Exercise exercises = 4;
+  int32 sets = 5;
+  int32 reps = 6;
+  repeated float weights = 7;
+  bool include_warmup = 8;
 }
-message ModifyProposedSetsResponse {
-  repeated ProposedSet proposed_sets = 1;
+
+message CreateExerciseGroupResponse {
+  ExerciseGroup group = 1;
+  repeated ProposedSet generated_sets = 2;
 }
 
 message StartSetRequest {
@@ -162,6 +189,35 @@ message GetActiveWorkoutResponse {
   Workout workout = 1;
 }
 
+message UpdateExerciseGroupRequest {
+  string workout_id = 1;
+  string exercise_group_id = 2;
+  string name = 3;
+  repeated float weights = 4;
+  int32 sets = 5;
+  int32 reps = 6;
+  bool include_warmup = 7;
+}
+
+message UpdateExerciseGroupResponse {
+  ExerciseGroup group = 1;
+  repeated ProposedSet generated_sets = 2;
+}
+
+message DeleteExerciseGroupRequest {
+  string workout_id = 1;
+  string exercise_group_id = 2;
+}
+
+message DeleteExerciseGroupResponse {}
+
+message ReorderExerciseGroupsRequest {
+  string workout_id = 1;
+  repeated string exercise_group_ids = 2;
+}
+
+message ReorderExerciseGroupsResponse {}
+
 // --- Service Definition ---
 
 service WorkoutService {
@@ -172,8 +228,11 @@ service WorkoutService {
 
   // List all workouts for the user (user from auth context)
   rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
-  // Update the proposed sets for a workout. The user has to send all proposed sets.
-  rpc ModifyProposedSets(ModifyProposedSetsRequest) returns (ModifyProposedSetsResponse);
+
+  rpc CreateExerciseGroup(CreateExerciseGroupRequest) returns (CreateExerciseGroupResponse);
+  rpc UpdateExerciseGroup(UpdateExerciseGroupRequest) returns (UpdateExerciseGroupResponse);
+  rpc DeleteExerciseGroup(DeleteExerciseGroupRequest) returns (DeleteExerciseGroupResponse);
+  rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
 
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);

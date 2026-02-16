@@ -49,7 +49,8 @@ GroupNextUpData? computeGroupNextUp(
 
     bool isPDone(String setId) =>
         p.completedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
-    final pNext = p.proposedSets.cast<ProposedSet?>().firstWhere(
+    final sortedProposed = List<ProposedSet>.from(p.proposedSets)..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    final pNext = sortedProposed.cast<ProposedSet?>().firstWhere(
       (s) => !isPDone(s!.id),
       orElse: () => null,
     );

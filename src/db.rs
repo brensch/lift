@@ -1,7 +1,7 @@
 use lift::workout::v1::{CompletedSet, ProposedSet, User, Workout};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
-    Arguments, Pool, Row, Sqlite,
+    Pool, Row, Sqlite,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS workouts (
     end_time INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS exercise_groups (
+    id TEXT PRIMARY KEY,
+    workout_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    include_warmup BOOLEAN NOT NULL,
+    workout_order INTEGER NOT NULL,
+    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+);
+
 CREATE TABLE IF NOT EXISTS proposed_sets (
     id TEXT PRIMARY KEY,
     workout_id TEXT NOT NULL,
@@ -32,7 +42,9 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_reps INTEGER NOT NULL,
     target_weight REAL NOT NULL,
     warmup BOOLEAN NOT NULL,
-    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+    exercise_group_id TEXT,
+    FOREIGN KEY(workout_id) REFERENCES workouts(id),
+    FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
 );
 
 CREATE TABLE IF NOT EXISTS completed_sets (
@@ -52,7 +64,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     is_active BOOLEAN NOT NULL DEFAULT 0
 );
 
+CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
+CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_group_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
@@ -68,6 +82,17 @@ fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
     }
 }
 
+fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::ExerciseGroup {
+    lift::workout::v1::ExerciseGroup {
+        id: row.get("id"),
+        workout_id: row.get("workout_id"),
+        name: row.get("name"),
+        r#type: row.get("type"),
+        include_warmup: row.get("include_warmup"),
+        workout_order: row.get("workout_order"),
+    }
+}
+
 fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
     ProposedSet {
         id: row.get("id"),
@@ -77,6 +102,7 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         target_reps: row.get("target_reps"),
         target_weight: row.get("target_weight"),
         warmup: row.get("warmup"),
+        exercise_group_id: row.get::<Option<String>, _>("exercise_group_id").unwrap_or_default(),
     }
 }
 
@@ -155,17 +181,36 @@ impl UserDb {
     pub async fn create_workout(
         &self,
         name: &str,
+        exercise_groups: Vec<lift::workout::v1::ExerciseGroup>,
         proposed_sets: Vec<ProposedSet>,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let workout_id = Uuid::new_v4().to_string();
         let start_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
+        let mut tx = self.pool.begin().await?;
+
         sqlx::query("INSERT INTO workouts (id, name, start_time, end_time) VALUES (?, ?, ?, NULL)")
             .bind(&workout_id)
             .bind(name)
             .bind(start_time)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        for mut group in exercise_groups {
+            group.workout_id = workout_id.clone();
+            sqlx::query(
+                "INSERT INTO exercise_groups (id, workout_id, name, type, include_warmup, workout_order)
+                 VALUES (?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&group.id)
+            .bind(&group.workout_id)
+            .bind(&group.name)
+            .bind(group.r#type)
+            .bind(group.include_warmup)
+            .bind(group.workout_order)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         for set in proposed_sets {
             let set_id = if set.id.is_empty() {
@@ -174,8 +219,8 @@ impl UserDb {
                 set.id
             };
             sqlx::query(
-                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(&set_id)
             .bind(&workout_id)
@@ -184,11 +229,224 @@ impl UserDb {
             .bind(set.target_reps)
             .bind(set.target_weight)
             .bind(set.warmup)
-            .execute(&self.pool)
+            .bind(if set.exercise_group_id.is_empty() { None } else { Some(set.exercise_group_id) })
+            .execute(&mut *tx)
             .await?;
         }
 
+        self.reindex_sets_tx(&mut *tx, &workout_id).await?;
+
+        tx.commit().await?;
         Ok(workout_id)
+    }
+
+    pub async fn create_exercise_group(
+        &self,
+        group: lift::workout::v1::ExerciseGroup,
+        proposed_sets: Vec<ProposedSet>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "INSERT INTO exercise_groups (id, workout_id, name, type, include_warmup, workout_order)
+             VALUES (?, ?, ?, ?, ?, ?)"
+        )
+        .bind(&group.id)
+        .bind(&group.workout_id)
+        .bind(&group.name)
+        .bind(group.r#type)
+        .bind(group.include_warmup)
+        .bind(group.workout_order)
+        .execute(&mut *tx)
+        .await?;
+
+        for set in proposed_sets {
+            let set_id = if set.id.is_empty() {
+                Uuid::new_v4().to_string()
+            } else {
+                set.id
+            };
+            sqlx::query(
+                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&set_id)
+            .bind(&set.workout_id)
+            .bind(set.workout_order)
+            .bind(set.exercise)
+            .bind(set.target_reps)
+            .bind(set.target_weight)
+            .bind(set.warmup)
+            .bind(&group.id)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        self.reindex_sets_tx(&mut *tx, &group.workout_id).await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn update_exercise_group(
+        &self,
+        group: lift::workout::v1::ExerciseGroup,
+        proposed_sets: Vec<ProposedSet>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "UPDATE exercise_groups SET name = ?, type = ?, include_warmup = ?, workout_order = ?
+             WHERE id = ?"
+        )
+        .bind(&group.name)
+        .bind(group.r#type)
+        .bind(group.include_warmup)
+        .bind(group.workout_order)
+        .bind(&group.id)
+        .execute(&mut *tx)
+        .await?;
+
+        // Delete only PENDING sets for this group. Completed sets must be preserved.
+        // Wait, the handover said "Completed sets are always preserved; only pending sets get replaced."
+        // I need to check which sets are completed.
+        
+        // Actually, proposed_sets table only has PROPOSED sets. 
+        // Completed sets are in completed_sets table and linked via proposed_set_id.
+        
+        // So I should delete proposed_sets that DON'T have a corresponding entry in completed_sets.
+        sqlx::query(
+            "DELETE FROM proposed_sets 
+             WHERE exercise_group_id = ? AND id NOT IN (SELECT proposed_set_id FROM completed_sets WHERE workout_id = ? AND proposed_set_id IS NOT NULL)"
+        )
+        .bind(&group.id)
+        .bind(&group.workout_id)
+        .execute(&mut *tx)
+        .await?;
+
+        for set in proposed_sets {
+            // Check if this set already exists (it might if it was completed and we passed it back)
+            // But usually we generate NEW pending sets.
+            let set_id = if set.id.is_empty() {
+                Uuid::new_v4().to_string()
+            } else {
+                set.id
+            };
+            
+            sqlx::query(
+                "INSERT OR IGNORE INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&set_id)
+            .bind(&set.workout_id)
+            .bind(set.workout_order)
+            .bind(set.exercise)
+            .bind(set.target_reps)
+            .bind(set.target_weight)
+            .bind(set.warmup)
+            .bind(&group.id)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        self.reindex_sets_tx(&mut *tx, &group.workout_id).await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn delete_exercise_group(
+        &self,
+        workout_id: &str,
+        exercise_group_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        // Delete all proposed sets for this group that are NOT completed.
+        sqlx::query(
+            "DELETE FROM proposed_sets 
+             WHERE exercise_group_id = ? AND id NOT IN (SELECT proposed_set_id FROM completed_sets WHERE workout_id = ? AND proposed_set_id IS NOT NULL)"
+        )
+        .bind(exercise_group_id)
+        .bind(workout_id)
+        .execute(&mut *tx)
+        .await?;
+
+        // Remove exercise_group_id from completed sets instead of deleting them? 
+        // Or just keep them. If we delete the group, we usually want to keep the completed sets in the workout but maybe they become "orphaned".
+        // For now, let's just delete the group.
+        sqlx::query("DELETE FROM exercise_groups WHERE id = ?")
+            .bind(exercise_group_id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn reorder_exercise_groups(
+        &self,
+        workout_id: &str,
+        exercise_group_ids: Vec<String>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        for (idx, group_id) in exercise_group_ids.iter().enumerate() {
+            sqlx::query(
+                "UPDATE exercise_groups SET workout_order = ? WHERE id = ? AND workout_id = ?"
+            )
+            .bind(idx as i32)
+            .bind(group_id)
+            .bind(workout_id)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        self.reindex_sets_tx(&mut *tx, workout_id).await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    async fn reindex_sets_tx(
+        &self,
+        executor: &mut sqlx::SqliteConnection,
+        workout_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let all_sets = sqlx::query(
+            "SELECT ps.id FROM proposed_sets ps
+             LEFT JOIN exercise_groups eg ON ps.exercise_group_id = eg.id
+             WHERE ps.workout_id = ?
+             ORDER BY eg.workout_order, ps.workout_order"
+        )
+        .bind(workout_id)
+        .fetch_all(&mut *executor)
+        .await?;
+
+        for (idx, row) in all_sets.iter().enumerate() {
+            let set_id: String = row.get("id");
+            sqlx::query("UPDATE proposed_sets SET workout_order = ? WHERE id = ?")
+                .bind(idx as i32)
+                .bind(set_id)
+                .execute(&mut *executor)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_exercise_groups(
+        &self,
+        workout_id: &str,
+    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query(
+            "SELECT id, workout_id, name, type, include_warmup, workout_order
+             FROM exercise_groups WHERE workout_id = ? ORDER BY workout_order",
+        )
+        .bind(workout_id)
+        .map(row_to_exercise_group)
+        .fetch_all(&self.pool)
+        .await?)
     }
 
     pub async fn get_workout(
@@ -218,7 +476,7 @@ impl UserDb {
         workout_id: &str,
     ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id
              FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
         )
         .bind(workout_id)
@@ -305,67 +563,6 @@ impl UserDb {
         .unwrap_or(0.0))
     }
 
-    pub async fn modify_proposed_sets(
-        &self,
-        workout_id: &str,
-        proposed_sets: Vec<ProposedSet>,
-    ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query("DELETE FROM proposed_sets WHERE workout_id = ?")
-            .bind(workout_id)
-            .execute(&mut *tx)
-            .await?;
-
-        let mut result = Vec::new();
-        let mut args = sqlx::sqlite::SqliteArguments::default();
-        let mut values_placeholders: Vec<String> = Vec::new();
-
-        for (idx, set) in proposed_sets.into_iter().enumerate() {
-            let set_id = if set.id.is_empty() {
-                Uuid::new_v4().to_string()
-            } else {
-                set.id
-            };
-            let workout_order = if set.workout_order == 0 {
-                idx as i32
-            } else {
-                set.workout_order
-            };
-
-            values_placeholders.push("(?, ?, ?, ?, ?, ?, ?)".to_string());
-            args.add(set_id.clone())?;
-            args.add(workout_id)?;
-            args.add(workout_order)?;
-            args.add(set.exercise)?;
-            args.add(set.target_reps)?;
-            args.add(set.target_weight)?;
-            args.add(set.warmup)?;
-
-            result.push(ProposedSet {
-                id: set_id,
-                workout_id: workout_id.to_string(),
-                workout_order,
-                exercise: set.exercise,
-                target_reps: set.target_reps,
-                target_weight: set.target_weight,
-                warmup: set.warmup,
-            });
-        }
-
-        if !result.is_empty() {
-            let query_sql = format!(
-                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup) VALUES {}",
-                values_placeholders.join(", ")
-            );
-
-            sqlx::query_with(&query_sql, args).execute(&mut *tx).await?;
-        }
-
-        tx.commit().await?;
-        Ok(result)
-    }
-
     pub async fn start_set(
         &self,
         workout_id: &str,
@@ -375,7 +572,7 @@ impl UserDb {
         let started_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         let proposed: Option<ProposedSet> = sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup FROM proposed_sets WHERE id = ?"
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id FROM proposed_sets WHERE id = ?"
         )
         .bind(proposed_set_id)
         .map(row_to_proposed_set)
@@ -927,6 +1124,17 @@ CREATE TABLE IF NOT EXISTS workouts (
     end_time INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS exercise_groups (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    include_warmup BOOLEAN NOT NULL,
+    workout_order INTEGER NOT NULL,
+    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+);
+
 CREATE TABLE IF NOT EXISTS proposed_sets (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -936,7 +1144,9 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_reps INTEGER NOT NULL,
     target_weight REAL NOT NULL,
     warmup BOOLEAN NOT NULL,
-    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+    exercise_group_id TEXT,
+    FOREIGN KEY(workout_id) REFERENCES workouts(id),
+    FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
 );
 
 CREATE TABLE IF NOT EXISTS completed_sets (
@@ -952,7 +1162,9 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
+CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_group_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
@@ -1030,8 +1242,8 @@ impl SessionDb {
         let mut tx = self.pool.begin().await?;
         for set in sets {
             sqlx::query(
-                "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             )
             .bind(&set.id)
             .bind(user_id)
@@ -1041,6 +1253,32 @@ impl SessionDb {
             .bind(set.target_reps)
             .bind(set.target_weight)
             .bind(set.warmup)
+            .bind(if set.exercise_group_id.is_empty() { None } else { Some(&set.exercise_group_id) })
+            .execute(&mut *tx)
+            .await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn upsert_exercise_groups(
+        &self,
+        user_id: &str,
+        groups: &[lift::workout::v1::ExerciseGroup],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+        for group in groups {
+            sqlx::query(
+                "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            )
+            .bind(&group.id)
+            .bind(user_id)
+            .bind(&group.workout_id)
+            .bind(&group.name)
+            .bind(group.r#type)
+            .bind(group.include_warmup)
+            .bind(group.workout_order)
             .execute(&mut *tx)
             .await?;
         }
@@ -1095,12 +1333,26 @@ impl SessionDb {
         )
     }
 
+    pub async fn get_exercise_groups(
+        &self,
+        workout_id: &str,
+    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query(
+            "SELECT id, workout_id, name, type, include_warmup, workout_order
+             FROM exercise_groups WHERE workout_id = ? ORDER BY workout_order",
+        )
+        .bind(workout_id)
+        .map(row_to_exercise_group)
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
     pub async fn get_proposed_sets(
         &self,
         workout_id: &str,
     ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id
              FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
         )
         .bind(workout_id)

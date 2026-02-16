@@ -102,30 +102,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final proposedSets = <ProposedSet>[];
-      int order = 0;
+      final exerciseGroups = <ExerciseGroup>[];
+      int setOrder = 0;
+      int groupOrder = 0;
 
       for (final status in _schedule!) {
         if (!_selectedExercises.contains(status.exercise)) continue;
+
+        final groupId = _uuid.v4();
+        exerciseGroups.add(ExerciseGroup()
+          ..id = groupId
+          ..name = exerciseNames[status.exercise] ?? status.exercise.name
+          ..type = ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT
+          ..includeWarmup = true
+          ..workoutOrder = groupOrder++);
 
         final warmupDefs = generateWarmupDefs(status.targetWeight.toDouble());
         for (final def in warmupDefs) {
           proposedSets.add(ProposedSet()
             ..id = _uuid.v4()
-            ..workoutOrder = order++
+            ..workoutOrder = setOrder++
             ..exercise = status.exercise
             ..targetReps = def.reps
             ..targetWeight = def.weight
-            ..warmup = true);
+            ..warmup = true
+            ..exerciseGroupId = groupId);
         }
 
         for (int i = 0; i < status.defaultSets; i++) {
           proposedSets.add(ProposedSet()
             ..id = _uuid.v4()
-            ..workoutOrder = order++
+            ..workoutOrder = setOrder++
             ..exercise = status.exercise
             ..targetReps = status.defaultReps
             ..targetWeight = status.targetWeight
-            ..warmup = false);
+            ..warmup = false
+            ..exerciseGroupId = groupId);
         }
       }
 
@@ -143,7 +155,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final workoutName = "$dateStr - $exerciseSummary - $baseName".toUpperCase();
 
       final workoutProvider = context.read<WorkoutProvider>();
-      final workoutId = await workoutProvider.startWorkout(workoutName, proposedSets);
+      
+      // We need to pass the weights for each group
+      // The startWorkout wrapper should handle this if I updated it correctly
+      // But wait, the startWorkout method in WorkoutProvider currently takes (String name, List<ExerciseGroup> groups, List<ProposedSet> sets)
+      // The groups already contain the configuration? No, ExerciseGroup proto doesn't have weights.
+      // The weights are in the ProposedSet objects.
+      
+      final workoutId = await workoutProvider.startWorkout(workoutName, exerciseGroups, proposedSets);
 
       if (workoutId != null && mounted) {
         final mp = context.read<MultiplayerProvider>();

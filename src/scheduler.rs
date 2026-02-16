@@ -65,6 +65,7 @@ fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> 
                 target_reps: reps[i],
                 target_weight: weight,
                 warmup: true,
+                exercise_group_id: String::new(),
             };
             *order += 1;
             set
@@ -91,6 +92,7 @@ fn create_exercise_sets(
             target_reps: reps,
             target_weight: weight,
             warmup: false,
+            exercise_group_id: String::new(),
         });
         *order += 1;
     }

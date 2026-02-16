@@ -1,4 +1,4 @@
-import type { ProposedSet, CompletedSet } from '@/gen/workout/v1/workout_pb'
+import type { ProposedSet, CompletedSet, ExerciseGroup as ExerciseGroupProto } from '@/gen/workout/v1/workout_pb'
 import { Exercise } from '@/gen/workout/v1/workout_pb'
 import { Pencil } from 'lucide-react'
 import { SHORT_NAMES } from '@/lib/exercises'
@@ -6,6 +6,7 @@ import { SHORT_NAMES } from '@/lib/exercises'
 export interface ExerciseGroupData {
   exercise: Exercise
   sets: ProposedSet[]
+  group?: ExerciseGroupProto
 }
 
 interface ExerciseGroupProps {
@@ -72,22 +73,24 @@ export function ExerciseGroup({
       )}
 
       {/* Set indicators */}
-      <div className="flex gap-1.5 flex-wrap flex-1">
+      <div className="flex gap-2 flex-wrap flex-1">
         {group.sets.map((set) => {
           const completed = completedSets.find(
             (c) => c.proposedSetId === set.id && c.endedAt > 0n
           )
           const isActive = set.id === activeSetId
+          const isSuperset = group.group?.type === 2 // ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET
+          const exerciseName = SHORT_NAMES[set.exercise]
 
           if (completed) {
             if (set.warmup) {
               return (
                 <span
                   key={set.id}
-                  className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600"
+                  className="text-[13px] px-2 py-1 rounded bg-blue-500/20 text-blue-600 font-bold"
                   title={`Warmup: ${completed.actualReps}×${completed.actualWeight}`}
                 >
-                  W
+                  {isSuperset && `${exerciseName} `}W
                 </span>
               )
             }
@@ -95,10 +98,10 @@ export function ExerciseGroup({
             return (
               <span
                 key={set.id}
-                className={`text-xs px-1.5 py-0.5 rounded ${hitTarget ? 'bg-green-500/20 text-green-600' : 'bg-yellow-500/20 text-yellow-600'}`}
+                className={`text-[13px] px-2 py-1 rounded font-bold ${hitTarget ? 'bg-green-500/20 text-green-600' : 'bg-yellow-500/20 text-yellow-600'}`}
                 title={`${completed.actualReps}×${completed.actualWeight}`}
               >
-                ✓{completed.actualReps < set.targetReps ? completed.actualReps : ''}
+                {isSuperset && `${exerciseName} `}✓{completed.actualReps < set.targetReps ? completed.actualReps : ''}
               </span>
             )
           }
@@ -107,13 +110,13 @@ export function ExerciseGroup({
             return (
               <span
                 key={set.id}
-                className={`text-xs px-1.5 py-0.5 rounded ${
+                className={`text-[13px] px-2 py-1 rounded ${
                   isActive
                     ? 'bg-blue-500/20 text-blue-600 font-bold ring-1 ring-blue-500'
                     : 'border border-blue-500/40 text-blue-600'
                 }`}
               >
-                W:{set.targetReps}×{set.targetWeight}
+                {isSuperset && `${exerciseName} `}W:{set.targetReps}×{set.targetWeight}
               </span>
             )
           }
@@ -121,13 +124,13 @@ export function ExerciseGroup({
           return (
             <span
               key={set.id}
-              className={`text-xs px-1.5 py-0.5 rounded ${
+              className={`text-[13px] px-2 py-1 rounded ${
                 isActive
                   ? 'bg-primary/20 text-primary font-bold ring-1 ring-primary'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {set.targetReps}×{set.targetWeight}
+              {isSuperset && `${exerciseName} `}{set.targetReps}×{set.targetWeight}
             </span>
           )
         })}

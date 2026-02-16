@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
 import '../logic/group_next_up.dart';
-import '../logic/warmup.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -15,8 +12,6 @@ import '../widgets/exercise_group_widget.dart';
 import '../widgets/participant_ticker.dart';
 import '../widgets/set_log.dart';
 import '../widgets/workout_modals.dart';
-
-const _uuid = Uuid();
 
 class WorkoutScreen extends StatelessWidget {
   const WorkoutScreen({super.key});
@@ -213,25 +208,35 @@ class WorkoutScreen extends StatelessWidget {
 
                           physics: const NeverScrollableScrollPhysics(),
 
-                          onReorder: (oldIndex, newIndex) {
+                                                    onReorder: (oldIndex, newIndex) {
 
-                            if (isEnded) return;
+                                                      if (isEnded) return;
 
-                            if (oldIndex < newIndex) {
+                          
 
-                              newIndex -= 1;
+                                                      if (oldIndex < newIndex) {
 
-                            }
+                                                        newIndex -= 1;
 
-                            final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
+                                                      }
 
-                            final item = items.removeAt(oldIndex);
+                          
 
-                            items.insert(newIndex, item);
+                                                      final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
 
-                            wp.saveGroups(items);
+                                                      final item = items.removeAt(oldIndex);
 
-                          },
+                                                      items.insert(newIndex, item);
+
+                          
+
+                                                      final groupIds = items.map((g) => g.group!.id).toList();
+
+                                                      wp.reorderExerciseGroups(groupIds);
+
+                                                    },
+
+                          
 
                           children: groups.asMap().entries.map((entry) {
 
@@ -241,13 +246,13 @@ class WorkoutScreen extends StatelessWidget {
 
                             final stableKey = group.sets.isNotEmpty ? group.sets.first.id : 'empty-$idx';
 
-                            return Padding(
+                                                        return Padding(
 
-                              key: ValueKey(stableKey),
+                                                          key: ValueKey(stableKey),
 
-                              padding: const EdgeInsets.only(bottom: 8),
+                                                          padding: const EdgeInsets.only(bottom: 12),
 
-                              child: Dismissible(
+                                                          child: Dismissible(
 
                                 key: ValueKey('dismiss-$stableKey'),
 
@@ -263,23 +268,23 @@ class WorkoutScreen extends StatelessWidget {
 
                                 onDismissed: (_) => _deleteGroup(context, wp, idx),
 
-                                background: Container(
+                                                                background: Container(
 
-                                  alignment: Alignment.centerRight,
+                                                                  alignment: Alignment.centerRight,
 
-                                  padding: const EdgeInsets.only(right: 16),
+                                                                  padding: const EdgeInsets.only(right: 16),
 
-                                  decoration: BoxDecoration(
+                                                                  decoration: BoxDecoration(
 
-                                    color: colorScheme.error,
+                                                                    color: colorScheme.error,
 
-                                    borderRadius: BorderRadius.circular(8),
+                                                                    borderRadius: BorderRadius.circular(12),
 
-                                  ),
+                                                                  ),
 
-                                  child: Icon(Icons.delete, color: colorScheme.onError),
+                                                                  child: Icon(Icons.delete, color: colorScheme.onError),
 
-                                ),
+                                                                ),
 
                                 child: ExerciseGroupWidget(
 
@@ -482,11 +487,7 @@ class WorkoutScreen extends StatelessWidget {
                   
 
                     void _deleteGroup(BuildContext context, WorkoutProvider wp, int index) {
-    final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
-    if (index >= 0 && index < groups.length) {
-      groups.removeAt(index);
-      wp.saveGroups(groups);
-    }
+    wp.deleteExerciseGroup(index);
   }
 
   void _editGroup(BuildContext context, WorkoutProvider wp, int index, ExerciseGroupData group) {
@@ -496,8 +497,8 @@ class WorkoutScreen extends StatelessWidget {
       groupIndex: index,
       exerciseStatuses: wp.exerciseStatuses,
       isSetDone: wp.isSetDone,
-      onSave: (groupIndex, {required double targetWeight, bool? warmups, int? setCount}) {
-        wp.rebuildGroup(groupIndex, targetWeight: targetWeight, warmups: warmups, setCount: setCount);
+      onSave: (groupIndex, {required List<double> targetWeights, bool? warmups, int? setCount}) {
+        wp.rebuildGroup(groupIndex, targetWeights: targetWeights, warmups: warmups, setCount: setCount);
       },
     );
   }
@@ -506,31 +507,34 @@ class WorkoutScreen extends StatelessWidget {
     showAddExerciseDialog(
       context,
       exerciseStatuses: wp.exerciseStatuses,
-      onAdd: (exercise, weight, sets, reps) {
-        final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
-        final newSets = <ProposedSet>[];
-
-        final warmupDefs = generateWarmupDefs(weight);
-        for (final def in warmupDefs) {
-          newSets.add(ProposedSet()
-            ..id = _uuid.v4()
-            ..exercise = exercise
-            ..targetReps = def.reps
-            ..targetWeight = def.weight
-            ..warmup = true);
+      onAdd: (customName, exercises, weight, sets, reps, type) {
+        final exerciseNamesStr = exercises.map((e) => exerciseNames[e] ?? e.name).join(' / ');
+        final finalName = customName.isEmpty ? exerciseNamesStr : '$customName - $exerciseNamesStr';
+        
+        final List<double> weights = [];
+        if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET) {
+          // For superset creation, we'll use the same weight for all exercises initially
+          // The user can edit individual weights later, or we could add more complex UI now.
+          // Let's just use the single weight for all.
+          weights.addAll(List.generate(exercises.length, (_) => weight));
+        } else if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
+          // For dropset creation, let's generate a simple decrementing list
+          for (int i = 0; i < sets; i++) {
+            weights.add((weight - (i * 10)).clamp(0, 1000));
+          }
+        } else {
+          weights.add(weight);
         }
 
-        for (int i = 0; i < sets; i++) {
-          newSets.add(ProposedSet()
-            ..id = _uuid.v4()
-            ..exercise = exercise
-            ..targetReps = reps
-            ..targetWeight = weight
-            ..warmup = false);
-        }
-
-        groups.add(ExerciseGroupData(exercise: exercise, sets: newSets));
-        wp.saveGroups(groups);
+        wp.addExerciseGroup(
+          name: finalName,
+          type: type,
+          exercises: exercises,
+          sets: sets,
+          reps: reps,
+          weights: weights,
+          includeWarmup: true,
+        );
       },
     );
   }

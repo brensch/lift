@@ -70,9 +70,17 @@ message SessionStatus {
 }
 
 message ParticipantStatus {
+
   User user = 1;
+
   string active_workout_id = 2;
+
   Workout active_workout = 3;
-  repeated ProposedSet proposed_sets = 4;
-  repeated CompletedSet completed_sets = 5;
+
+  repeated ExerciseGroup exercise_groups = 4;
+
+  repeated ProposedSet proposed_sets = 5;
+
+  repeated CompletedSet completed_sets = 6;
+
 }

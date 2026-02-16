@@ -46,6 +46,21 @@ impl SessionManager {
             if let Some(workout) = user_db.get_workout(wid).await? {
                 session_db.upsert_workout(user_id, &workout).await?;
 
+                // Clear old data for this user/workout to handle deletions and reorders
+                sqlx::query("DELETE FROM exercise_groups WHERE user_id = ? AND workout_id = ?")
+                    .bind(user_id)
+                    .bind(wid)
+                    .execute(&session_db.pool)
+                    .await?;
+                sqlx::query("DELETE FROM proposed_sets WHERE user_id = ? AND workout_id = ?")
+                    .bind(user_id)
+                    .bind(wid)
+                    .execute(&session_db.pool)
+                    .await?;
+
+                let groups = user_db.get_exercise_groups(wid).await?;
+                session_db.upsert_exercise_groups(user_id, &groups).await?;
+
                 let proposed = user_db.get_proposed_sets(wid).await?;
                 session_db.upsert_proposed_sets(user_id, &proposed).await?;
 
@@ -175,27 +190,31 @@ impl MultiplayerService for GroupService {
                 .map_err(|e| Status::internal(e.to_string()))?;
             
              // Read from SessionDb
-             let workout = session_db.get_workout(&req.workout_id).await
-                 .map_err(|e| Status::internal(e.to_string()))?
-                 .ok_or_else(|| Status::not_found("Workout not found"))?;
-
-             let proposed = session_db.get_proposed_sets(&req.workout_id).await
-                 .map_err(|e| Status::internal(e.to_string()))?;
-             let completed = session_db.get_completed_sets(&req.workout_id).await
-                 .map_err(|e| Status::internal(e.to_string()))?;
+                          let workout = session_db.get_workout(&req.workout_id).await
+                             .map_err(|e| Status::internal(e.to_string()))?
+                             .ok_or_else(|| Status::not_found("Workout not found"))?;
              
-             // We need User info.
-             let user = self.central_db.get_user(&req.user_id).await
-                 .map_err(|e| Status::internal(e.to_string()))?
-                 .ok_or_else(|| Status::not_found("User not found"))?;
-
-             return Ok(Response::new(ParticipantStatus {
-                user: Some(user),
-                active_workout_id: workout.id.clone(),
-                active_workout: Some(workout),
-                proposed_sets: proposed,
-                completed_sets: completed,
-             }));
+                          let groups = session_db.get_exercise_groups(&req.workout_id).await
+                              .map_err(|e| Status::internal(e.to_string()))?;
+                          let proposed = session_db.get_proposed_sets(&req.workout_id).await
+                              .map_err(|e| Status::internal(e.to_string()))?;
+                          let completed = session_db.get_completed_sets(&req.workout_id).await
+                              .map_err(|e| Status::internal(e.to_string()))?;
+                          
+                          // We need User info.
+                          let user = self.central_db.get_user(&req.user_id).await
+                              .map_err(|e| Status::internal(e.to_string()))?
+                              .ok_or_else(|| Status::not_found("User not found"))?;
+             
+                          return Ok(Response::new(ParticipantStatus {
+                             user: Some(user),
+                             active_workout_id: workout.id.clone(),
+                             active_workout: Some(workout),
+                             exercise_groups: groups,
+                             proposed_sets: proposed,
+                             completed_sets: completed,
+                          }));
+             
         }
 
         Err(Status::not_found("Participant not in an active session or workout not found in session context"))
@@ -239,6 +258,8 @@ impl MultiplayerService for GroupService {
                     let workout = session_db.get_workout(&workout_id).await
                          .map_err(|e| Status::internal(e.to_string()))?
                          .unwrap_or_default();
+                    let groups = session_db.get_exercise_groups(&workout_id).await
+                         .map_err(|e| Status::internal(e.to_string()))?;
                     let proposed = session_db.get_proposed_sets(&workout_id).await
                          .map_err(|e| Status::internal(e.to_string()))?;
                     let completed = session_db.get_completed_sets(&workout_id).await
@@ -248,6 +269,7 @@ impl MultiplayerService for GroupService {
                         user: Some(user),
                         active_workout_id: workout_id,
                         active_workout: Some(workout),
+                        exercise_groups: groups,
                         proposed_sets: proposed,
                         completed_sets: completed,
                     });

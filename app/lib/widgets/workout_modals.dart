@@ -34,24 +34,34 @@ Future<void> showEditExerciseDialog(
   required int groupIndex,
   required List<ExerciseStatus> exerciseStatuses,
   required bool Function(String setId) isSetDone,
-  required void Function(int groupIndex, {required double targetWeight, bool? warmups, int? setCount}) onSave,
+  required void Function(int groupIndex, {required List<double> targetWeights, bool? warmups, int? setCount}) onSave,
 }) async {
   final workingSets = group.sets.where((s) => !s.warmup).toList();
-  final unfinishedWorkingSets = workingSets.where((s) => !isSetDone(s.id)).toList();
-
-  // Initialize from the first unfinished working set if available, otherwise from the first working set
-  final referenceSet = unfinishedWorkingSets.isNotEmpty ? unfinishedWorkingSets.first : (workingSets.isNotEmpty ? workingSets.first : null);
   
-  double weight = referenceSet?.targetWeight.toDouble() ?? 45.0;
-  bool warmups = true; // Always start with warmups selected as requested
-  int sets = workingSets.length;
+  // Get unique exercises in this group
+  final List<Exercise> exercisesInGroup = [];
+  for (final s in group.sets) {
+    if (!exercisesInGroup.contains(s.exercise)) exercisesInGroup.add(s.exercise);
+  }
 
-  final weightController = TextEditingController(text: weight.toStringAsFixed(1).replaceAll('.0', ''));
+  // Initial weights
+  final List<double> currentWeights = [];
+  if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET) {
+    for (final ex in exercisesInGroup) {
+      currentWeights.add(group.sets.firstWhere((s) => s.exercise == ex).targetWeight.toDouble());
+    }
+  } else if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
+    for (final s in workingSets) {
+      currentWeights.add(s.targetWeight.toDouble());
+    }
+  } else {
+    currentWeights.add(workingSets.firstOrNull?.targetWeight.toDouble() ?? 45.0);
+  }
 
-  final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-        (s) => s!.exercise == group.exercise,
-        orElse: () => null,
-      );
+  bool warmups = group.group?.includeWarmup ?? true;
+  int sets = group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET 
+      ? workingSets.length ~/ exercisesInGroup.length
+      : workingSets.length;
 
   await showModalBottomSheet(
     context: context,
@@ -62,15 +72,6 @@ Future<void> showEditExerciseDialog(
       return StatefulBuilder(
         builder: (ctx, setState) {
           final colorScheme = Theme.of(ctx).colorScheme;
-
-          void updateWeight(double newWeight) {
-            setState(() {
-              weight = newWeight;
-              final text = weight.toStringAsFixed(1).replaceAll('.0', '');
-              weightController.text = text;
-              weightController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
-            });
-          }
 
           return Container(
             decoration: BoxDecoration(
@@ -84,192 +85,148 @@ Future<void> showEditExerciseDialog(
               right: 24,
               top: 24,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'EDIT ${exerciseNames[group.exercise]?.toUpperCase()}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                if (status != null && status.explanation.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline, size: 16, color: colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            status.explanation,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.onSurfaceVariant,
-                              height: 1.3,
-                            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'EDIT ${group.group?.name.toUpperCase() ?? exerciseNames[group.exercise]?.toUpperCase()}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
                           ),
                         ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Weights editing
+                  if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET)
+                    ...exercisesInGroup.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final ex = entry.value;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(exerciseNames[ex] ?? '?', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          _WeightSlider(
+                            weight: currentWeights[i],
+                            onChanged: (v) => setState(() => currentWeights[i] = v),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    }).toList()
+                  else if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('SET WEIGHTS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        ...List.generate(sets, (i) {
+                          if (i >= currentWeights.length) currentWeights.add((currentWeights.last - 10).clamp(0, 1000));
+                          return Row(
+                            children: [
+                              Text('SET ${i+1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                              Expanded(
+                                child: _WeightSlider(
+                                  weight: currentWeights[i],
+                                  onChanged: (v) => setState(() => currentWeights[i] = v),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
                       ],
+                    )
+                  else
+                    _WeightSlider(
+                      weight: currentWeights[0],
+                      onChanged: (v) => setState(() => currentWeights[0] = v),
+                    ),
+
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET ? 'ROUNDS' : 'WORKING SETS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.tertiary,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                _CountButton(icon: Icons.remove, onPressed: () => setState(() => sets = (sets - 1).clamp(1, 10))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Text(
+                                    '$sets',
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                                _CountButton(icon: Icons.add, onPressed: () => setState(() => sets = (sets + 1).clamp(1, 10))),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'WARMUPS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.tertiary,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                            Switch(
+                              value: warmups,
+                              onChanged: (v) => setState(() => warmups = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onSave(groupIndex, targetWeights: currentWeights, warmups: warmups, setCount: sets);
+                      },
+                      child: const Text(
+                        'SAVE CHANGES',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                      ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 16),
-                Center(
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          IntrinsicWidth(
-                            child: TextField(
-                              controller: weightController,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: 'monospace',
-                                letterSpacing: -2,
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              onChanged: (v) {
-                                final val = double.tryParse(v);
-                                if (val != null) {
-                                  setState(() => weight = val);
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'LB',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: colorScheme.tertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      PlateVisualization(weight: weight, scale: 1.5),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _WeightButton(label: '-45', onPressed: () => updateWeight((weight - 45).clamp(0, 1000))),
-                    _WeightButton(label: '-5', onPressed: () => updateWeight((weight - 5).clamp(0, 1000))),
-                    _WeightButton(label: '+5', onPressed: () => updateWeight((weight + 5).clamp(0, 1000))),
-                    _WeightButton(label: '+45', onPressed: () => updateWeight((weight + 45).clamp(0, 1000))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Slider(
-                  value: weight.clamp(0, 500),
-                  min: 0,
-                  max: 500,
-                  divisions: 100,
-                  label: weight.toStringAsFixed(1),
-                  onChanged: (v) => updateWeight(v),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'WORKING SETS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.tertiary,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _CountButton(icon: Icons.remove, onPressed: () => setState(() => sets = (sets - 1).clamp(1, 10))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  '$sets',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                                ),
-                              ),
-                              _CountButton(icon: Icons.add, onPressed: () => setState(() => sets = (sets + 1).clamp(1, 10))),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'WARMUPS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.tertiary,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          Switch(
-                            value: warmups,
-                            onChanged: (v) => setState(() => warmups = v),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      onSave(groupIndex, targetWeight: weight, warmups: warmups, setCount: sets);
-                    },
-                    child: const Text(
-                      'SAVE CHANGES',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },
@@ -278,16 +235,56 @@ Future<void> showEditExerciseDialog(
   );
 }
 
+class _WeightSlider extends StatelessWidget {
+  final double weight;
+  final ValueChanged<double> onChanged;
+
+  const _WeightSlider({required this.weight, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${weight.toInt()}',
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'LB',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: colorScheme.tertiary),
+            ),
+          ],
+        ),
+        Slider(
+          value: weight.clamp(0, 500),
+          min: 0,
+          max: 500,
+          divisions: 100,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
 Future<void> showAddExerciseDialog(
   BuildContext context, {
   required List<ExerciseStatus> exerciseStatuses,
-  required void Function(Exercise exercise, double weight, int sets, int reps) onAdd,
+  required void Function(String name, List<Exercise> exercises, double weight, int sets, int reps, ExerciseGroupType type) onAdd,
 }) async {
-  Exercise? selected;
+  List<Exercise> selectedExercises = [];
+  String customName = '';
   double weight = 45;
   int sets = 3;
   int reps = 5;
+  ExerciseGroupType type = ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT;
 
+  final nameController = TextEditingController();
   final weightController = TextEditingController(text: '45');
   final setsController = TextEditingController(text: '3');
   final repsController = TextEditingController(text: '5');
@@ -298,8 +295,10 @@ Future<void> showAddExerciseDialog(
       return StatefulBuilder(
         builder: (ctx, setState) {
           final colorScheme = Theme.of(ctx).colorScheme;
+          
+          Exercise? firstSelected = selectedExercises.isNotEmpty ? selectedExercises.first : null;
           final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-                (s) => s!.exercise == selected,
+                (s) => s!.exercise == firstSelected,
                 orElse: () => null,
               );
 
@@ -313,38 +312,107 @@ Future<void> showAddExerciseDialog(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<Exercise>(
-                    value: selected,
-                    hint: const Text('Select exercise'),
-                    isExpanded: true,
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Group Name (Optional)',
+                      hintText: 'e.g. Heavy Day',
+                    ),
+                    onChanged: (v) => customName = v,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<ExerciseGroupType>(
+                    value: type,
                     decoration: const InputDecoration(
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      labelText: 'Group Type',
                     ),
-                    items: Exercise.values
-                        .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
-                        .map((e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(exerciseNames[e] ?? '?'),
-                            ))
-                        .toList(),
+                    items: [
+                      DropdownMenuItem(
+                        value: ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT,
+                        child: const Text('Straight Sets'),
+                      ),
+                      DropdownMenuItem(
+                        value: ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET,
+                        child: const Text('Superset'),
+                      ),
+                    ],
                     onChanged: (v) {
-                      setState(() {
-                        selected = v;
-                        final s = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-                              (status) => status!.exercise == v,
-                              orElse: () => null,
-                            );
-                        if (s != null) {
-                          weight = s.targetWeight;
-                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
-                          sets = s.defaultSets > 0 ? s.defaultSets : 3;
-                          setsController.text = sets.toString();
-                          reps = s.defaultReps > 0 ? s.defaultReps : 5;
-                          repsController.text = reps.toString();
-                        }
-                      });
+                      if (v != null) {
+                        setState(() {
+                          type = v;
+                          if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT && selectedExercises.length > 1) {
+                            selectedExercises = [selectedExercises.first];
+                          }
+                        });
+                      }
                     },
                   ),
+                  const SizedBox(height: 12),
+                  if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT)
+                    DropdownButtonFormField<Exercise>(
+                      value: firstSelected,
+                      hint: const Text('Select exercise'),
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        labelText: 'Exercise',
+                      ),
+                      items: Exercise.values
+                          .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(exerciseNames[e] ?? '?'),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          selectedExercises = [v];
+                          final s = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
+                                (status) => status!.exercise == v,
+                                orElse: () => null,
+                              );
+                          if (s != null) {
+                            weight = s.targetWeight;
+                            weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                            sets = s.defaultSets > 0 ? s.defaultSets : 3;
+                            setsController.text = sets.toString();
+                            reps = s.defaultReps > 0 ? s.defaultReps : 5;
+                            repsController.text = reps.toString();
+                          }
+                        });
+                      },
+                    )
+                  else
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Select Exercises', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: Exercise.values
+                              .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
+                              .map((e) {
+                            final isSelected = selectedExercises.contains(e);
+                            return FilterChip(
+                              label: Text(exerciseNames[e] ?? '?', style: const TextStyle(fontSize: 11)),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    selectedExercises.add(e);
+                                  } else {
+                                    selectedExercises.remove(e);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   if (status != null && status.explanation.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Container(
@@ -410,11 +478,11 @@ Future<void> showAddExerciseDialog(
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: selected == null
+                onPressed: selectedExercises.isEmpty
                     ? null
                     : () {
                         Navigator.pop(ctx);
-                        onAdd(selected!, weight, sets, reps);
+                        onAdd(customName, selectedExercises, weight, sets, reps, type);
                       },
                 child: const Text('Add'),
               ),

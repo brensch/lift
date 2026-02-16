@@ -201,8 +201,16 @@ const ParticipantStatus$json = {
       '10': 'activeWorkout'
     },
     {
-      '1': 'proposed_sets',
+      '1': 'exercise_groups',
       '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseGroup',
+      '10': 'exerciseGroups'
+    },
+    {
+      '1': 'proposed_sets',
+      '3': 5,
       '4': 3,
       '5': 11,
       '6': '.workout.v1.ProposedSet',
@@ -210,7 +218,7 @@ const ParticipantStatus$json = {
     },
     {
       '1': 'completed_sets',
-      '3': 5,
+      '3': 6,
       '4': 3,
       '5': 11,
       '6': '.workout.v1.CompletedSet',
@@ -223,7 +231,8 @@ const ParticipantStatus$json = {
 final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'ChFQYXJ0aWNpcGFudFN0YXR1cxIkCgR1c2VyGAEgASgLMhAud29ya291dC52MS5Vc2VyUgR1c2'
     'VyEioKEWFjdGl2ZV93b3Jrb3V0X2lkGAIgASgJUg9hY3RpdmVXb3Jrb3V0SWQSOgoOYWN0aXZl'
-    'X3dvcmtvdXQYAyABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXRSDWFjdGl2ZVdvcmtvdXQSPAoNcH'
-    'JvcG9zZWRfc2V0cxgEIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXRSDHByb3Bvc2VkU2V0'
-    'cxI/Cg5jb21wbGV0ZWRfc2V0cxgFIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0Ug1jb2'
-    '1wbGV0ZWRTZXRz');
+    'X3dvcmtvdXQYAyABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXRSDWFjdGl2ZVdvcmtvdXQSQgoPZX'
+    'hlcmNpc2VfZ3JvdXBzGAQgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lz'
+    'ZUdyb3VwcxI8Cg1wcm9wb3NlZF9zZXRzGAUgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldF'
+    'IMcHJvcG9zZWRTZXRzEj8KDmNvbXBsZXRlZF9zZXRzGAYgAygLMhgud29ya291dC52MS5Db21w'
+    'bGV0ZWRTZXRSDWNvbXBsZXRlZFNldHM=');
