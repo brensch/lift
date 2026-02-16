@@ -280,12 +280,13 @@ class WorkoutBottomBar extends StatelessWidget {
 
     return StatusBox(
       sideLabel: 'GROUP',
-      header: name,
+      header: 'UP NEXT: $name',
       stateLabel: groupState,
       color: boxColor,
       timerText: groupTimer,
       timerColor: groupTimerColor,
       set: groupSet,
+      showHeader: true,
     );
   }
 }

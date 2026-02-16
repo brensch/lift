@@ -28,7 +28,7 @@ class ParticipantCard extends StatelessWidget {
     final status = _getStatus(participant);
 
     return StatusBox(
-      sideLabel: 'USER',
+      sideLabel: participant.user.name,
       header: participant.user.name,
       stateLabel: status.stateLabel,
       color: status.stateColor,
@@ -36,6 +36,7 @@ class ParticipantCard extends StatelessWidget {
       timerColor: status.timerColor,
       set: status.proposedSet,
       isComplete: status.stateLabel == 'Done' || status.stateLabel == 'Finished',
+      showHeader: false,
     );
   }
 
