@@ -14,13 +14,14 @@ class DebugNotificationsScreen extends StatefulWidget {
 
 class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
   List<PendingNotificationRequest> _pending = [];
+  List<ActiveNotification> _active = [];
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _loadPending();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _loadPending());
+    _loadData();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _loadData());
   }
 
   @override
@@ -29,9 +30,15 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadPending() async {
+  Future<void> _loadData() async {
     final pending = await NotificationService.getPendingNotifications();
-    if (mounted) setState(() => _pending = pending);
+    final active = await NotificationService.getActiveNotifications();
+    if (mounted) {
+      setState(() {
+        _pending = pending;
+        _active = active;
+      });
+    }
   }
 
   @override
@@ -46,7 +53,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadPending,
+            onPressed: _loadData,
           ),
         ],
       ),
@@ -78,9 +85,18 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
           ], colorScheme),
           const SizedBox(height: 16),
           _section('Pending OS Notifications (${_pending.length})', [
-            if (_pending.isEmpty)
-              _row('', 'None')
-            else
+            if (_pending.isEmpty) ...[
+              _row('', 'None'),
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'NOTE: "None" here means no future notifications are scheduled. '
+                  'If a notification fires now, it was likely already in the OS '
+                  'delivery pipeline or was just moved from "Pending" to "Active".',
+                  style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
+                ),
+              ),
+            ] else
               for (final n in _pending)
                 _row('id=${n.id}', () {
                   final scheduledUnix = int.tryParse(n.payload ?? '');
@@ -91,6 +107,14 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                   }
                   return '${n.title}: ${n.body}';
                 }()),
+          ], colorScheme),
+          const SizedBox(height: 16),
+          _section('Active (Delivered) Notifications (${_active.length})', [
+            if (_active.isEmpty)
+              _row('', 'None')
+            else
+              for (final n in _active)
+                _row('id=${n.id}', '${n.title}: ${n.body}'),
           ], colorScheme),
           const SizedBox(height: 16),
           _section('Completed Sets (${wp.completedSets.length})', [

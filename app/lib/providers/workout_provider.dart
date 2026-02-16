@@ -98,11 +98,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final restUntil = latest.restUntil.toInt();
     final isCurrentlyResting = restUntil > nowUnix;
 
+    // If a set is active (lifting), we are by definition not "resting" in a way
+    // that should trigger an alert for a previous set.
+    if (activeSetId != null) {
+      _wasResting = false;
+      _lastSoundedRestUntil = restUntil;
+      return;
+    }
+
     if (_wasResting && !isCurrentlyResting && _lastSoundedRestUntil != restUntil) {
       // Rest just ended — cancel scheduled notification (prevent double sound),
       // play in-app sound, and show buzz notification for watches
       _lastSoundedRestUntil = restUntil;
-      await NotificationService.cancelRestNotification();
+      await NotificationService.cancelAll();
       _soundProvider?.playCurrentSound();
       await NotificationService.showBuzzNotification(body: _nextSetBody());
     }
@@ -290,6 +298,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<String?> startWorkout(String name, List<ExerciseGroup> groups, List<ProposedSet> sets) async {
     try {
+      await NotificationService.cancelAll();
+      _lastSoundedRestUntil = null;
+      _wasResting = false;
       final workoutId = await _service.startWorkout(name, groups, sets);
       await _loadWorkout(workoutId);
       return workoutId;
@@ -335,7 +346,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      await NotificationService.cancelRestNotification();
+      final resting = restingSet;
+      if (resting != null) {
+        _lastSoundedRestUntil = resting.restUntil.toInt();
+      }
+      await NotificationService.cancelAll();
       _wasResting = false;
       final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
       _activeCompletedSets.add(completed);
@@ -384,7 +399,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _service.deleteCompletedSet(_activeWorkout!.id, completedSetId);
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
-      await NotificationService.cancelRestNotification();
+      await NotificationService.cancelAll();
       _wasResting = false;
       notifyListeners();
     } catch (e) {
@@ -401,7 +416,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (proposed == null) return;
 
     try {
-      await NotificationService.cancelRestNotification();
+      final resting = restingSet;
+      if (resting != null) {
+        _lastSoundedRestUntil = resting.restUntil.toInt();
+      }
+      await NotificationService.cancelAll();
       final completed = await _service.completeSet(
         _activeWorkout!.id,
         proposedSetId,
