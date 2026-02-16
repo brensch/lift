@@ -1,3 +1,4 @@
+use dashmap::DashMap;
 use lift::workout::v1::{CompletedSet, ProposedSet, User, Workout};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -9,12 +10,12 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
-// Global cache of per-user database pools
-static USER_DB_CACHE: std::sync::LazyLock<Arc<Mutex<HashMap<String, Pool<Sqlite>>>>> =
-    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
+// Global cache of per-user database pools — DashMap for per-shard locking
+static USER_DB_CACHE: std::sync::LazyLock<DashMap<String, Pool<Sqlite>>> =
+    std::sync::LazyLock::new(|| DashMap::new());
 
 const SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS workouts (
@@ -137,12 +138,12 @@ pub struct UserDb {
 
 impl UserDb {
     pub async fn new(user_id: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let mut cache = USER_DB_CACHE.lock().await;
-
-        if let Some(pool) = cache.get(user_id) {
+        // Fast path: pool already cached (no global lock, just DashMap shard lock)
+        if let Some(pool) = USER_DB_CACHE.get(user_id) {
             return Ok(Self { pool: pool.clone() });
         }
 
+        // Slow path: create pool (only blocks the shard for this user_id)
         let data_dir = "data/user_dbs";
         if !Path::new(data_dir).exists() {
             fs::create_dir_all(data_dir)?;
@@ -158,7 +159,7 @@ impl UserDb {
         let pool = SqlitePoolOptions::new().connect_with(options).await?;
         sqlx::query(SCHEMA).execute(&pool).await?;
 
-        cache.insert(user_id.to_string(), pool.clone());
+        USER_DB_CACHE.insert(user_id.to_string(), pool.clone());
         Ok(Self { pool })
     }
 
@@ -237,57 +238,66 @@ impl UserDb {
         .await?)
     }
 
-    pub async fn get_exercise_history(
+    /// Fetch workout history for ALL exercises in 2 queries total.
+    /// Returns a map of exercise_id -> Vec<(weight, successful, ended_at)> ordered by most recent first,
+    /// and a map of exercise_id -> all-time max weight.
+    pub async fn get_all_exercise_history(
         &self,
-        exercise: i32,
-        limit: i32,
-    ) -> Result<Vec<(f32, bool, i64)>, Box<dyn std::error::Error + Send + Sync>> {
-        // We use a single query to get the history.
-        // Success is defined as: (number of proposed non-warmup sets) == (number of completed sets) 
-        // AND (every completed set met its target reps).
+        limit_per_exercise: i32,
+    ) -> Result<
+        (HashMap<i32, Vec<(f32, bool, i64)>>, HashMap<i32, f32>),
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
+        // Query 1: Last N workout results per exercise using window function
+        // ROW_NUMBER() partitions by (exercise, workout_id) so we rank workouts per exercise
         let rows = sqlx::query(
-            "SELECT 
-                target_weight,
-                (COUNT(ps.id) = COUNT(cs.id) AND MIN(CASE WHEN cs.actual_reps >= ps.target_reps THEN 1 ELSE 0 END) = 1) as successful,
-                MAX(cs.ended_at) as ended_at
-             FROM proposed_sets ps
-             LEFT JOIN completed_sets cs ON ps.id = cs.proposed_set_id AND cs.ended_at > 0
-             WHERE ps.exercise = ? AND ps.warmup = 0
-             GROUP BY ps.workout_id
-             HAVING ended_at IS NOT NULL
-             ORDER BY ended_at DESC
-             LIMIT ?"
+            "SELECT exercise, target_weight, successful, ended_at FROM (
+                SELECT
+                    ps.exercise,
+                    ps.target_weight,
+                    (COUNT(ps.id) = COUNT(cs.id) AND MIN(CASE WHEN cs.actual_reps >= ps.target_reps THEN 1 ELSE 0 END) = 1) as successful,
+                    MAX(cs.ended_at) as ended_at,
+                    ROW_NUMBER() OVER (PARTITION BY ps.exercise ORDER BY MAX(cs.ended_at) DESC) as rn
+                FROM proposed_sets ps
+                LEFT JOIN completed_sets cs ON ps.id = cs.proposed_set_id AND cs.ended_at > 0
+                WHERE ps.warmup = 0
+                GROUP BY ps.exercise, ps.workout_id
+                HAVING ended_at IS NOT NULL
+             ) WHERE rn <= ?",
         )
-        .bind(exercise)
-        .bind(limit)
+        .bind(limit_per_exercise)
         .fetch_all(&self.pool)
         .await?;
 
-        let mut history = Vec::new();
+        let mut history: HashMap<i32, Vec<(f32, bool, i64)>> = HashMap::new();
         for row in rows {
+            let exercise = row.get::<i32, _>("exercise");
             let weight = row.get::<f32, _>("target_weight");
             let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
-            history.push((weight, successful, ended_at));
+            history.entry(exercise).or_default().push((weight, successful, ended_at));
         }
 
-        Ok(history)
-    }
-
-    pub async fn get_all_time_max_weight_for_exercise(
-        &self,
-        exercise: i32,
-    ) -> Result<f32, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query_scalar(
-            "SELECT MAX(cs.actual_weight) FROM completed_sets cs
+        // Query 2: All-time max successful weight per exercise
+        let max_rows = sqlx::query(
+            "SELECT ps.exercise, MAX(cs.actual_weight) as max_weight
+             FROM completed_sets cs
              JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
-             WHERE ps.exercise = ? AND cs.ended_at > 0 AND ps.warmup = 0
-             AND cs.actual_reps >= ps.target_reps",
+             WHERE cs.ended_at > 0 AND ps.warmup = 0
+             AND cs.actual_reps >= ps.target_reps
+             GROUP BY ps.exercise",
         )
-        .bind(exercise)
-        .fetch_optional(&self.pool)
-        .await?
-        .unwrap_or(0.0))
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut max_weights: HashMap<i32, f32> = HashMap::new();
+        for row in max_rows {
+            let exercise = row.get::<i32, _>("exercise");
+            let max_weight = row.get::<f32, _>("max_weight");
+            max_weights.insert(exercise, max_weight);
+        }
+
+        Ok((history, max_weights))
     }
 
     pub async fn add_session(

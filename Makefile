@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-frontend run-app run-android run-linux run-prod check install-deps proto-dart print-cert-hashes
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-linux run-prod check install-deps proto-dart print-cert-hashes
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -20,6 +20,14 @@ run-backend:
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
 	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
 	cargo watch -x "run --bin lift --features test-auth"
+
+run-backend-release:
+	@pkill -x lift || true
+	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
+	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
+	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
+	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
+	cargo run --release --bin lift --features test-auth
 
 run-frontend:
 	cd web && $(BUN) run dev
@@ -51,7 +59,7 @@ stop-app:
 	@pkill -9 -f "flutter_assets" || true
 
 load-test:
-	cargo run --example load_simulation --all-features -- --duration 300
+	cargo run --release --example load_simulation --all-features -- --duration 300
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release

@@ -128,9 +128,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             let mut methods: Vec<_> = s.method_stats.iter().collect();
-            methods.sort_by(|a, b| b.1.max_latency.cmp(&a.1.max_latency));
+            methods.sort_by(|a, b| b.1.requests.cmp(&a.1.requests));
 
-            for (name, ms) in methods.iter().take(5) {
+            for (name, ms) in methods.iter() {
                 let avg = if ms.requests > 0 {
                     ms.total_latency.as_millis() as f64 / ms.requests as f64
                 } else {
@@ -156,8 +156,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rng.gen_range(1000..9999)
     };
 
-    // Exponential ramp up: user_count = 1.1^time
-    let mut current_user_count = 0;
+    // Linear ramp up: group_count = time / 10 (one group every 10 seconds)
+    let mut current_group_count = 0;
     loop {
         let elapsed = start_time.elapsed().as_secs_f64();
         if elapsed >= args.duration as f64 {
@@ -172,43 +172,52 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // target_users grows exponentially with time
-        // 1.1^60 ~= 304 users
-        // 1.1^90 ~= 5313 users
-        let target_users = 1.1_f64.powf(elapsed).floor() as usize;
+        // target_groups grows linearly with time at a rate of 50 groups per second
+        let target_groups = (elapsed * 50.0).floor() as usize + 1;
 
-        while current_user_count < target_users {
-            let user_index = current_user_count;
+        while current_group_count < target_groups {
+            let group_index = current_group_count;
             let addr = args.addr.clone();
             let stats = Arc::clone(&stats);
             let registry = Arc::clone(&session_registry);
-            let username = format!("__test__sim_{}_{}", session_id_prefix, user_index);
+            
+            let mut rng = rand::thread_rng();
+            let group_size = rng.gen_range(3..5); // 3 or 4
 
-            tokio::spawn(async move {
-                {
-                    let mut s = stats.lock().await;
-                    s.active_users += 1;
-                }
+            for member_index in 0..group_size {
+                let user_index = group_index * 100 + member_index; // unique-ish user index
+                let username = format!("__test__sim_{}_{}_{}", session_id_prefix, group_index, member_index);
+                let stats = Arc::clone(&stats);
+                let registry = Arc::clone(&registry);
+                let addr = addr.clone();
+                let is_leader = member_index == 0;
 
-                if let Err(e) = run_user_simulation(username, user_index, addr, stats.clone(), registry, start_time, duration).await {
-                    // Ignore errors during shutdown or if they are just timeouts we are looking for
-                    if !e.to_string().contains("transport error") {
-                        eprintln!("User simulation failed: {}", e);
+                tokio::spawn(async move {
+                    {
+                        let mut s = stats.lock().await;
+                        s.active_users += 1;
                     }
-                    let mut s = stats.lock().await;
-                    s.total_errors += 1;
-                }
 
-                {
-                    let mut s = stats.lock().await;
-                    s.active_users -= 1;
-                }
-            });
+                    if let Err(e) = run_user_simulation(username, group_index, is_leader, addr, stats.clone(), registry, start_time, duration).await {
+                        // Ignore errors during shutdown or if they are just timeouts we are looking for
+                        if !e.to_string().contains("transport error") {
+                            eprintln!("User simulation failed: {}", e);
+                        }
+                        let mut s = stats.lock().await;
+                        s.total_errors += 1;
+                    }
 
-            current_user_count += 1;
+                    {
+                        let mut s = stats.lock().await;
+                        s.active_users -= 1;
+                    }
+                });
+            }
+
+            current_group_count += 1;
         }
 
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        tokio::time::sleep(Duration::from_millis(1000)).await;
     }
 
     // Wait for duration to finish
@@ -223,7 +232,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn run_user_simulation(
     username: String,
-    user_index: usize,
+    group_index: usize,
+    is_leader: bool,
     addr: String,
     stats: Arc<Mutex<GlobalStats>>,
     session_registry: Arc<RwLock<SessionRegistry>>,
@@ -260,10 +270,6 @@ async fn run_user_simulation(
         }
     });
 
-    // Grouping: users [0,1,2,3] are group 0, [4,5,6,7] are group 1...
-    let group_index = user_index / 4;
-    let is_leader = user_index % 4 == 0;
-
     // Scripted actions
     while start_time.elapsed() < total_duration {
         // 1. Initial check
@@ -281,38 +287,47 @@ async fn run_user_simulation(
             proposed_sets: vec![],
         }, "StartWorkout").await?.id;
 
-        // Multiplayer logic: Leader starts session, others join.
-        if is_leader {
-            let mut req = Request::new(StartSessionRequest { workout_id: workout_id.clone() });
-            req.metadata_mut().insert("x-session-token", token.clone());
-            
-            let req_start = Instant::now();
-            let res = multiplayer_client.start_session(req).await;
-            let latency = req_start.elapsed();
-            
+        // Realistic-ish multiplayer chaos:
+        // 1. Everyone starts their own session initially
+        let mut my_req = Request::new(StartSessionRequest { workout_id: workout_id.clone() });
+        my_req.metadata_mut().insert("x-session-token", token.clone());
+        
+        let req_start = Instant::now();
+        let res = multiplayer_client.start_session(my_req).await;
+        let latency = req_start.elapsed();
+        
+        {
             let mut s = stats.lock().await;
             s.record("StartSession", latency, res.is_err());
-            
-            if let Ok(res) = res {
-                let session_id = res.into_inner().session_id;
+        }
+        
+        if let Ok(res) = res {
+            let session_id = res.into_inner().session_id;
+            if is_leader {
+                // Leader publishes their session for the group
                 let mut reg = session_registry.write().await;
                 reg.sessions.insert(group_index, session_id);
             }
-        } else {
-            // Wait for leader to create session
-            let mut session_id = None;
+        }
+
+        // 2. Non-leaders "realize" they should join the leader instead
+        if !is_leader {
+            // Small delay to simulate "realization"
+            tokio::time::sleep(Duration::from_millis(500)).await;
+
+            let mut leader_session_id = None;
             for _ in 0..10 {
                 {
                     let reg = session_registry.read().await;
                     if let Some(sid) = reg.sessions.get(&group_index) {
-                        session_id = Some(sid.clone());
+                        leader_session_id = Some(sid.clone());
                         break;
                     }
                 }
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
 
-            if let Some(sid) = session_id {
+            if let Some(sid) = leader_session_id {
                 let mut req = Request::new(JoinSessionRequest { session_id: sid, workout_id: workout_id.clone() });
                 req.metadata_mut().insert("x-session-token", token.clone());
                 

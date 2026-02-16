@@ -289,18 +289,11 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        // Check if there's already an active workout in memory
+        // Lazy crash recovery: check UserDb once per user for un-ended workouts
+        self.state.try_recover_user(&user_id).await;
+
         if self.state.workouts.contains_key(&user_id) {
             return Err(Status::failed_precondition("A workout is already in progress. End it before starting a new one."));
-        }
-
-        // Also check UserDb for un-ended workouts not in memory
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        if let Some(active) = user_db.get_active_workout().await
-            .map_err(|e| Status::internal(format!("Failed to check for active workout: {}", e)))? {
-            return Err(Status::failed_precondition(format!("A workout is already in progress (id: {}). End it before starting a new one.", active.id)));
         }
 
         let workout_id = Uuid::new_v4().to_string();
@@ -326,7 +319,9 @@ impl WorkoutService for MyWorkoutService {
             }
         }
 
-        // Write initial workout row to UserDb (for the ID / crash recovery)
+        // Write initial workout row to UserDb (for crash recovery)
+        let user_db = UserDb::new(&user_id).await
+            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
         user_db.flush_workout(&workout, &exercise_groups, &proposed_sets, &[]).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
@@ -809,19 +804,11 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
-        // Check in-memory first
-        if let Some(w) = self.state.workouts.get(&user_id) {
-            return Ok(Response::new(GetActiveWorkoutResponse {
-                workout: Some(w.workout.clone()),
-            }));
-        }
+        // Lazy crash recovery: check UserDb once per user for un-ended workouts
+        self.state.try_recover_user(&user_id).await;
 
-        // Fall back to UserDb
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        let workout = user_db.get_active_workout().await
-            .map_err(|e| Status::internal(format!("Failed to get active workout: {}", e)))?;
+        let workout = self.state.workouts.get(&user_id)
+            .map(|w| w.workout.clone());
 
         Ok(Response::new(GetActiveWorkoutResponse { workout }))
     }
