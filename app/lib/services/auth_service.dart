@@ -53,6 +53,18 @@ class AuthService {
     );
   }
 
+  Future<AuthResponse> testLogin(String username) async {
+    final response = await grpcClient.authService.testLogin(
+      TestLoginRequest(username: username),
+    );
+
+    return AuthResponse(
+      sessionToken: response.sessionToken,
+      userId: response.userId,
+      username: response.username,
+    );
+  }
+
   Future<AuthResponse> passkeyRegister(String username) async {
     await _ensureCredentialManager();
 
@@ -75,7 +87,7 @@ class AuthService {
       RegisterFinishRequest(
         userId: startResponse.userId,
         credentialJson: jsonEncode(_stripNulls(credential.toJson())),
-        name: 'android',
+        name: 'signup key',
       ),
     );
 
@@ -101,6 +113,7 @@ class AuthService {
       passKeyOption: CredentialLoginOptions.fromJson(
         optionsJson['publicKey'],
       ),
+      fetchOptions: FetchOptionsAndroid(passKey: true),
     );
 
     // Step 3: Send credential back to server
@@ -115,6 +128,39 @@ class AuthService {
       sessionToken: finishResponse.sessionToken,
       userId: finishResponse.userId,
       username: finishResponse.username,
+    );
+  }
+
+  Future<List<PasskeyInfo>> listPasskeys() async {
+    final response = await grpcClient.authService.listPasskeys(ListPasskeysRequest());
+    return response.passkeys;
+  }
+
+  Future<void> addPasskey(String name) async {
+    await _ensureCredentialManager();
+
+    final startResponse = await grpcClient.authService.addPasskeyStart(
+      AddPasskeyStartRequest(),
+    );
+
+    final optionsJson = jsonDecode(startResponse.optionsJson);
+    final credential = await _credentialManager.savePasskeyCredentials(
+      request: CredentialCreationOptions.fromJson(
+        optionsJson['publicKey'],
+      ),
+    );
+
+    await grpcClient.authService.addPasskeyFinish(
+      AddPasskeyFinishRequest(
+        credentialJson: jsonEncode(_stripNulls(credential.toJson())),
+        name: name,
+      ),
+    );
+  }
+
+  Future<void> deletePasskey(String credentialId) async {
+    await grpcClient.authService.deletePasskey(
+      DeletePasskeyRequest(credentialId: credentialId),
     );
   }
 

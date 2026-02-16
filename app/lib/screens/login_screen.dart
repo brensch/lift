@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -12,11 +13,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
+  final _devUsernameController = TextEditingController();
   bool _showCreateAccount = false;
 
   @override
   void dispose() {
     _usernameController.dispose();
+    _devUsernameController.dispose();
     super.dispose();
   }
 
@@ -28,6 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _usernameController.text.trim();
     if (username.isEmpty) return;
     context.read<AuthProvider>().passkeyRegister(username);
+  }
+
+  void _devLogin() {
+    final username = _devUsernameController.text.trim();
+    if (username.isEmpty) return;
+    context.read<AuthProvider>().testLogin('__test__$username');
   }
 
   @override
@@ -147,6 +156,50 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'New here? Create an account',
                     ),
                   ),
+                  if (Platform.isLinux) ...[
+                    const Divider(height: 32),
+                    Text(
+                      'DEV LOGIN',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: colorScheme.tertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _devUsernameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Username',
+                        prefixText: '__test__',
+                      ),
+                      textInputAction: TextInputAction.done,
+                      autocorrect: false,
+                      onSubmitted: (_) => _devLogin(),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: auth.isLoading ? null : _devLogin,
+                        child: auth.isLoading
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : const Text(
+                                'Dev Login',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

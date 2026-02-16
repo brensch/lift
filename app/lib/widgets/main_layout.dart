@@ -101,6 +101,16 @@ class MainLayout extends StatelessWidget {
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
+                      icon: Icons.key_outlined,
+                      label: 'PASSKEYS',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/passkeys');
+                      },
+                      isActive: GoRouterState.of(context).uri.toString() == '/passkeys',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
                       icon: Icons.notifications_outlined,
                       label: 'PICK SOUND',
                       onTap: () {

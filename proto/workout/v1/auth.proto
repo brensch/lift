@@ -78,6 +78,10 @@ message PasswordLoginRequest {
   string password = 2;
 }
 
+message TestLoginRequest {
+  string username = 1;
+}
+
 service AuthService {
   rpc RegisterStart(RegisterStartRequest) returns (RegisterStartResponse);
   rpc RegisterFinish(RegisterFinishRequest) returns (AuthResponse);
@@ -90,4 +94,5 @@ service AuthService {
   rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
   rpc PasswordRegister(PasswordRegisterRequest) returns (AuthResponse);
   rpc PasswordLogin(PasswordLoginRequest) returns (AuthResponse);
+  rpc TestLogin(TestLoginRequest) returns (AuthResponse);
 }
