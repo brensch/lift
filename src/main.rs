@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::net::SocketAddr;
+use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use tower_http::cors::{Any, CorsLayer};
 use lift::workout::v1::{
@@ -69,8 +70,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .add_service(auth_service_web)
         .into_router();
 
-    // Use gRPC router with CORS
-    let app = grpc_router.layer(cors);
+    // Assetlinks handler for Android passkey verification
+    let app = grpc_router
+        .route("/.well-known/assetlinks.json", get(assetlinks_handler))
+        .layer(cors);
 
     println!("Server listening on {} (gRPC-Web)", addr);
 
@@ -82,4 +85,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .await?;
 
     Ok(())
+}
+
+async fn assetlinks_handler() -> Json<serde_json::Value> {
+    let sha256 = std::env::var("ANDROID_CERT_SHA256").unwrap_or_default();
+    Json(serde_json::json!([{
+        "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.lift.lift",
+            "sha256_cert_fingerprints": [sha256]
+        }
+    }]))
 }

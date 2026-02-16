@@ -69,6 +69,38 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> passkeyRegister(String username) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _authService.passkeyRegister(username);
+      await _saveSession(response);
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> passkeyLogin() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _authService.passkeyLogin();
+      await _saveSession(response);
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     if (_sessionToken != null) {
       try {

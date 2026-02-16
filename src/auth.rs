@@ -32,11 +32,17 @@ impl AuthState {
             .unwrap_or_else(|_| "http://localhost:5173".to_string());
         let rp_origin = Url::parse(&rp_origin_str).expect("Invalid WEBAUTHN_RP_ORIGIN URL");
 
-        let webauthn = WebauthnBuilder::new(&rp_id, &rp_origin)
+        let mut builder = WebauthnBuilder::new(&rp_id, &rp_origin)
             .expect("Failed to create WebauthnBuilder")
-            .rp_name("Lift")
-            .build()
-            .expect("Failed to build Webauthn");
+            .rp_name("Lift");
+
+        if let Ok(android_origin_str) = std::env::var("WEBAUTHN_ANDROID_ORIGIN") {
+            let android_origin =
+                Url::parse(&android_origin_str).expect("Invalid WEBAUTHN_ANDROID_ORIGIN URL");
+            builder = builder.append_allowed_origin(&android_origin);
+        }
+
+        let webauthn = builder.build().expect("Failed to build Webauthn");
 
         Self {
             webauthn: Arc::new(webauthn),

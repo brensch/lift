@@ -1,8 +1,13 @@
-.PHONY: run-dev run-backend run-frontend run-app run-prod check install-deps proto-dart
+.PHONY: run-dev run-backend run-frontend run-app run-android run-linux run-prod check install-deps proto-dart print-cert-hashes
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
+
+# Debug keystore config
+DEBUG_KEYSTORE = $(HOME)/.android/debug.keystore
+DEBUG_ALIAS = androiddebugkey
+DEBUG_STOREPASS = android
 
 run-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
@@ -10,6 +15,10 @@ run-dev:
 
 run-backend:
 	@pkill -x lift || true
+	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
+	WEBAUTHN_RP_ORIGIN=http://localhost:5173 \
+	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
+	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
 	cargo watch -x "run --bin lift"
 
 run-frontend:
@@ -17,9 +26,19 @@ run-frontend:
 
 ADB = $(HOME)/android-sdk/platform-tools/adb
 
+run-android:
+	$(ADB) reverse tcp:50051 tcp:50051 || true
+	cd app && $(FLUTTER) run -d android
+
+run-linux:
+	cd app && $(FLUTTER) run -d linux
+
 run-app:
-	$(ADB) reverse tcp:50051 tcp:50051
-	cd app && $(FLUTTER) run
+	$(ADB) reverse tcp:50051 tcp:50051 || true
+	cd app && $(FLUTTER) run -d all
+
+load-test:
+	cargo run --bin load_test -- --concurrency 100 --duration 30 --ramp-up 5
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release
@@ -54,6 +73,16 @@ install-deps:
 	@echo ""
 	@echo "Optional: add Flutter to your PATH permanently:"
 	@echo '  echo '\''export PATH="$(HOME)/flutter-sdk/bin:$$PATH"'\'' >> ~/.bashrc'
+
+print-cert-hashes:
+	@echo "=== Debug keystore ==="
+	@echo "SHA256 (colon-separated):"
+	@keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: /  /'
+	@echo "APK key hash (base64url):"
+	@echo -n "  android:apk-key-hash:" && keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '='
+	@echo ""
+	@echo "To get release keystore hashes, run:"
+	@echo "  make print-cert-hashes DEBUG_KEYSTORE=/path/to/release.keystore DEBUG_ALIAS=myalias DEBUG_STOREPASS=mypass"
 
 proto-dart:
 	@echo "=== Generating Dart protobuf files ==="
