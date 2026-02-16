@@ -13,7 +13,7 @@ use lift::workout::v1::{
     multiplayer_service_server::MultiplayerServiceServer,
     auth_service_server::AuthServiceServer,
 };
-use log::info;
+use log::{info, error};
 
 mod auth;
 mod db;
@@ -36,6 +36,20 @@ use state::AppState;
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::init();
     info!("Starting server...");
+
+    // Catch panics and log them
+    std::panic::set_hook(Box::new(|panic_info| {
+        let location = panic_info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_else(|| "unknown".to_string());
+        let payload = panic_info.payload();
+        let message = if let Some(s) = payload.downcast_ref::<&str>() {
+            *s
+        } else if let Some(s) = payload.downcast_ref::<String>() {
+            s.as_str()
+        } else {
+            "no message"
+        };
+        error!("PANIC at {}: {}", location, message);
+    }));
 
     let central_db = CentralDb::new().await?;
     let app_state = Arc::new(AppState::new());

@@ -114,10 +114,18 @@ impl AppState {
         let proposed = user_db.get_proposed_sets(&active.id).await.unwrap_or_default();
         let completed = user_db.get_completed_sets(&active.id).await.unwrap_or_default();
 
-        self.workouts.insert(
-            user_id.to_string(),
-            ActiveWorkout::new(active, groups, proposed, completed),
-        );
+        // Re-check workouts to avoid overwriting a workout that might have started 
+        // during the awaits above.
+        use dashmap::mapref::entry::Entry;
+        match self.workouts.entry(user_id.to_string()) {
+            Entry::Vacant(v) => {
+                v.insert(ActiveWorkout::new(active, groups, proposed, completed));
+            }
+            Entry::Occupied(_) => {
+                // Someone else started a workout while we were fetching from DB
+                return;
+            }
+        }
 
         // Recover session membership
         if let Ok(Some(session_id)) = user_db.get_active_session().await {
@@ -134,26 +142,45 @@ impl AppState {
         &self,
         user_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let workout_ref = match self.workouts.get(user_id) {
-            Some(r) => r,
-            None => return Ok(()),
+        // 1. Extract data while holding the lock
+        let workout_data = {
+            let workout_ref = match self.workouts.get(user_id) {
+                Some(r) => r,
+                None => return Ok(()),
+            };
+
+            if !workout_ref.dirty.load(Ordering::Relaxed) {
+                return Ok(());
+            }
+
+            // Clone data to avoid holding the guard across .await
+            (
+                workout_ref.workout.clone(),
+                workout_ref.exercise_groups.clone(),
+                workout_ref.proposed_sets.clone(),
+                workout_ref.completed_sets.clone(),
+            )
         };
 
-        if !workout_ref.dirty.load(Ordering::Relaxed) {
-            return Ok(());
-        }
-
+        // 2. Perform IO outside the lock
+        let (workout, groups, proposed, completed) = workout_data;
         let user_db = UserDb::new(user_id).await?;
         user_db
             .flush_workout(
-                &workout_ref.workout,
-                &workout_ref.exercise_groups,
-                &workout_ref.proposed_sets,
-                &workout_ref.completed_sets,
+                &workout,
+                &groups,
+                &proposed,
+                &completed,
             )
             .await?;
 
-        workout_ref.clear_dirty();
+        // 3. Re-acquire lock to clear dirty flag if it's still the same workout
+        if let Some(workout_ref) = self.workouts.get(user_id) {
+            if workout_ref.workout.id == workout.id {
+                workout_ref.clear_dirty();
+            }
+        }
+        
         Ok(())
     }
 

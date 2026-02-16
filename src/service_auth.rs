@@ -319,17 +319,27 @@ impl AuthService for MyAuthService {
             }
 
             // Upsert: find existing user or create new one
-            let user = match self.auth_state.central_db.get_user_by_name(&username).await
-                .map_err(|e| Status::internal(e.to_string()))? {
-                Some(user) => user,
-                None => {
-                    self.auth_state.central_db.create_user(&username).await
-                        .map_err(|e| Status::internal(e.to_string()))?
+            let user = match self.auth_state.central_db.get_user_by_name(&username).await {
+                Ok(Some(user)) => user,
+                Ok(None) => {
+                    match self.auth_state.central_db.create_user(&username).await {
+                        Ok(user) => user,
+                        Err(e) => {
+                            return Err(Status::internal(e.to_string()));
+                        }
+                    }
+                },
+                Err(e) => {
+                    return Err(Status::internal(e.to_string()));
                 }
             };
 
-            let token = self.auth_state.central_db.create_auth_session(&user.id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
+            let token = match self.auth_state.central_db.create_auth_session(&user.id).await {
+                Ok(token) => token,
+                Err(e) => {
+                    return Err(Status::internal(e.to_string()));
+                }
+            };
 
             Ok(Response::new(AuthResponse {
                 session_token: token,
