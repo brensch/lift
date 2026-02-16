@@ -1181,9 +1181,20 @@ pub struct SessionDb {
 
 impl SessionDb {
     pub async fn new(session_id: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        // Sanitize session_id to prevent injection or invalid filenames.
+        // Also prevents '?' from being interpreted as a connection string option.
+        let session_id: String = session_id
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
+            .collect();
+
+        if session_id.is_empty() {
+            return Err("Invalid session_id".into());
+        }
+
         let mut cache = SESSION_DB_CACHE.lock().await;
 
-        if let Some(pool) = cache.get(session_id) {
+        if let Some(pool) = cache.get(&session_id) {
             return Ok(Self { pool: pool.clone() });
         }
 

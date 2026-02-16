@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../services/multiplayer_service.dart';
 
@@ -53,6 +55,13 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       _sessionId = await _service.joinSession(sessionId, workoutId: workoutId);
       _startPolling();
+      Fluttertoast.showToast(
+        msg: "JOINED GROUP",
+        backgroundColor: Colors.green.shade600,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+        fontSize: 14.0,
+      );
       return true;
     } catch (e) {
       debugPrint('Error joining session: $e');
