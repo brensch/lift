@@ -69,7 +69,7 @@ class WorkoutBottomBar extends StatelessWidget {
       displaySet = null;
       actionButton = _BigButton(
         label: 'End Workout',
-        onPressed: () => _endWorkout(context, wp),
+        onPressed: () => endWorkout(context),
       );
     } else if (activeSetId != null) {
       final proposed = wp.activeProposedSets.cast<ProposedSet?>().firstWhere(
@@ -285,21 +285,6 @@ class WorkoutBottomBar extends StatelessWidget {
       timerColor: groupTimerColor,
       set: groupSet,
     );
-  }
-
-  Future<void> _endWorkout(BuildContext context, WorkoutProvider wp) async {
-    final confirmed = await showEndWorkoutConfirmDialog(context);
-    if (confirmed) {
-      final workoutId = wp.workout!.id;
-      await wp.endWorkout();
-      if (context.mounted) {
-        final mp = context.read<MultiplayerProvider>();
-        if (mp.isInSession) {
-          await mp.leaveSession();
-        }
-        context.push('/workout/$workoutId/completed');
-      }
-    }
   }
 }
 

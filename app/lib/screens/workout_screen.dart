@@ -435,54 +435,53 @@ class WorkoutScreen extends StatelessWidget {
 
                   const SizedBox(height: 8),
 
-                  Padding(
+                                    Padding(
 
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
 
-                    child: SizedBox(
+                                      child: SizedBox(
 
-                      width: double.infinity,
+                                        width: double.infinity,
 
-                      height: 44,
+                                        height: 44,
 
-                      child: OutlinedButton(
+                                        child: OutlinedButton(
 
-                        onPressed: () => _endWorkout(context, wp),
+                                          onPressed: () => endWorkout(context),
 
-                        style: OutlinedButton.styleFrom(
+                                          style: OutlinedButton.styleFrom(
 
-                          foregroundColor: colorScheme.error,
+                                            foregroundColor: colorScheme.error,
 
-                          side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-
-                        ),
-
-                                                child: const Text(
-
-                                                  'End Workout',
-
-                                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-
-                                                ),
-
-                                              ),
-
-                                            ),
+                                            side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
 
                                           ),
 
-                                        ],
+                                          child: const Text(
 
-                                      ],
+                                            'End Workout',
 
-                                    );
+                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
 
-        
+                                          ),
 
-    
-  }
+                                        ),
 
-  void _deleteGroup(BuildContext context, WorkoutProvider wp, int index) {
+                                      ),
+
+                                    ),
+
+                                  ],
+
+                                ],
+
+                              );
+
+                    }
+
+                  
+
+                    void _deleteGroup(BuildContext context, WorkoutProvider wp, int index) {
     final groups = List<ExerciseGroupData>.from(wp.exerciseGroups);
     if (index >= 0 && index < groups.length) {
       groups.removeAt(index);
@@ -534,21 +533,6 @@ class WorkoutScreen extends StatelessWidget {
         wp.saveGroups(groups);
       },
     );
-  }
-
-  Future<void> _endWorkout(BuildContext context, WorkoutProvider wp) async {
-    final confirmed = await showEndWorkoutConfirmDialog(context);
-    if (confirmed) {
-      final workoutId = wp.workout!.id;
-      await wp.endWorkout();
-      if (context.mounted) {
-        final mp = context.read<MultiplayerProvider>();
-        if (mp.isInSession) {
-          await mp.leaveSession();
-        }
-        context.push('/workout/$workoutId/completed');
-      }
-    }
   }
 
   String _formatDuration(Duration d) {
