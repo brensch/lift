@@ -3,13 +3,13 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
 };
+use dashmap::DashMap;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::RwLock;
 use uuid::Uuid;
 
 // Row mapping functions - single place to define DB <-> Proto mapping. Yes
@@ -73,7 +73,8 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 pub struct CentralDb {
     pub pool: Pool<Sqlite>,
     // In-memory cache: token -> (user_id, expires_at_secs)
-    auth_cache: Arc<RwLock<HashMap<String, (String, i64)>>>,
+    // Using DashMap for shard-level locking instead of global RwLock
+    auth_cache: Arc<DashMap<String, (String, i64)>>,
 }
 
 const CENTRAL_SCHEMA: &str = r#"
@@ -171,6 +172,11 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_joined_at ON sessions(joined_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(session_id) WHERE left_at IS NULL;
 
+-- Speed up deletion during flush
+CREATE INDEX IF NOT EXISTS idx_exercise_groups_user_workout ON exercise_groups(user_id, workout_id);
+CREATE INDEX IF NOT EXISTS idx_proposed_sets_user_workout ON proposed_sets(user_id, workout_id);
+CREATE INDEX IF NOT EXISTS idx_completed_sets_user_workout ON completed_sets(user_id, workout_id);
+
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_group_id);
@@ -193,9 +199,11 @@ impl CentralDb {
         let options = SqliteConnectOptions::from_str(&db_url)?
             .create_if_missing(true)
             .synchronous(SqliteSynchronous::Normal)
-            .journal_mode(SqliteJournalMode::Wal);
+            .journal_mode(SqliteJournalMode::Wal)
+            .busy_timeout(std::time::Duration::from_secs(10)); // Allow waiting for write lock
+
         let pool = SqlitePoolOptions::new()
-            .max_connections(100) // Increased connection limit for single DB
+            .max_connections(50) 
             .connect_with(options).await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
 
@@ -209,7 +217,7 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
-        Ok(Self { pool, auth_cache: Arc::new(RwLock::new(HashMap::new())) })
+        Ok(Self { pool, auth_cache: Arc::new(DashMap::new()) })
     }
 
     pub async fn create_user(
@@ -373,9 +381,7 @@ impl CentralDb {
             .execute(&self.pool)
             .await?;
 
-        // Populate auth cache
-        let mut cache = self.auth_cache.write().await;
-        cache.insert(token.clone(), (user_id.to_string(), expires_at));
+        self.auth_cache.insert(token.clone(), (user_id.to_string(), expires_at));
 
         Ok(token)
     }
@@ -386,13 +392,10 @@ impl CentralDb {
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
-        // Check in-memory cache first (fast path — no DB hit)
-        {
-            let cache = self.auth_cache.read().await;
-            if let Some((user_id, expires_at)) = cache.get(token) {
-                if *expires_at > now {
-                    return Ok(Some(user_id.clone()));
-                }
+        if let Some(entry) = self.auth_cache.get(token) {
+            let (user_id, expires_at) = entry.value();
+            if *expires_at > now {
+                return Ok(Some(user_id.clone()));
             }
         }
 
@@ -406,8 +409,7 @@ impl CentralDb {
         .await?;
 
         if let Some((user_id, expires_at)) = &result {
-            let mut cache = self.auth_cache.write().await;
-            cache.insert(token.to_string(), (user_id.clone(), *expires_at));
+            self.auth_cache.insert(token.to_string(), (user_id.clone(), *expires_at));
         }
 
         Ok(result.map(|(user_id, _)| user_id))
@@ -417,11 +419,7 @@ impl CentralDb {
         &self,
         token: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Remove from cache
-        {
-            let mut cache = self.auth_cache.write().await;
-            cache.remove(token);
-        }
+        self.auth_cache.remove(token);
         sqlx::query("DELETE FROM auth_sessions WHERE token = ?")
             .bind(token)
             .execute(&self.pool)
@@ -688,10 +686,7 @@ impl CentralDb {
         .execute(&mut *tx)
         .await?;
 
-        // Clear and re-insert logic
-        // IMPORTANT: We need to filter by user_id here as well, although filtering by workout_id (which is UUID) 
-        // should essentially be unique. However, adding user_id ensures strict isolation.
-        
+        // Optimized DELETEs using new composite indexes
         sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ?")
             .bind(user_id)
             .bind(&workout.id)
@@ -708,68 +703,77 @@ impl CentralDb {
             .execute(&mut *tx)
             .await?;
 
-        for group in exercise_groups {
-            sqlx::query(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&group.id)
-            .bind(user_id)
-            .bind(&group.workout_id)
-            .bind(&group.name)
-            .bind(group.r#type)
-            .bind(group.include_warmup)
-            .bind(group.workout_order)
-            .execute(&mut *tx)
-            .await?;
+        // Batch inserts for groups
+        if !exercise_groups.is_empty() {
+            let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order) "
+            );
+            query_builder.push_values(exercise_groups, |mut b, group| {
+                b.push_bind(&group.id)
+                 .push_bind(user_id)
+                 .push_bind(&group.workout_id)
+                 .push_bind(&group.name)
+                 .push_bind(group.r#type)
+                 .push_bind(group.include_warmup)
+                 .push_bind(group.workout_order);
+            });
+            query_builder.build().execute(&mut *tx).await?;
         }
 
-        for set in proposed_sets {
-            sqlx::query(
-                "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&set.id)
-            .bind(user_id)
-            .bind(&set.workout_id)
-            .bind(set.workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .bind(if set.exercise_group_id.is_empty() {
-                None
-            } else {
-                Some(&set.exercise_group_id)
-            })
-            .execute(&mut *tx)
-            .await?;
+        // Batch inserts for proposed sets
+        if !proposed_sets.is_empty() {
+            // SQLite has a limit on parameters per query (usually 999 or 32766 depending on version)
+            // ProposedSet has 9 columns. 100 sets = 900 params. Let's chunk it at 100.
+            for chunk in proposed_sets.chunks(100) {
+                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
+                );
+                query_builder.push_values(chunk, |mut b, set| {
+                    b.push_bind(&set.id)
+                     .push_bind(user_id)
+                     .push_bind(&set.workout_id)
+                     .push_bind(set.workout_order)
+                     .push_bind(set.exercise)
+                     .push_bind(set.target_reps)
+                     .push_bind(set.target_weight)
+                     .push_bind(set.warmup)
+                     .push_bind(if set.exercise_group_id.is_empty() {
+                         None
+                     } else {
+                         Some(&set.exercise_group_id)
+                     });
+                });
+                query_builder.build().execute(&mut *tx).await?;
+            }
         }
 
-        for set in completed_sets {
-            sqlx::query(
-                "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&set.id)
-            .bind(user_id)
-            .bind(&set.workout_id)
-            .bind(if set.proposed_set_id.is_empty() {
-                None
-            } else {
-                Some(&set.proposed_set_id)
-            })
-            .bind(set.actual_reps)
-            .bind(set.actual_weight)
-            .bind(set.started_at)
-            .bind(set.ended_at)
-            .bind(if set.rest_until == 0 {
-                None
-            } else {
-                Some(set.rest_until)
-            })
-            .execute(&mut *tx)
-            .await?;
+        // Batch inserts for completed sets
+        if !completed_sets.is_empty() {
+            for chunk in completed_sets.chunks(100) {
+                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                    "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until) "
+                );
+                query_builder.push_values(chunk, |mut b, set| {
+                    b.push_bind(&set.id)
+                     .push_bind(user_id)
+                     .push_bind(&set.workout_id)
+                     .push_bind(if set.proposed_set_id.is_empty() {
+                         None
+                     } else {
+                         Some(&set.proposed_set_id)
+                     })
+                     .push_bind(set.actual_reps)
+                     .push_bind(set.actual_weight)
+                     .push_bind(set.started_at)
+                     .push_bind(set.ended_at)
+                     .push_bind(if set.rest_until == 0 {
+                         None
+                     } else {
+                         Some(set.rest_until)
+                     });
+                });
+                query_builder.build().execute(&mut *tx).await?;
+            }
         }
 
         tx.commit().await?;
