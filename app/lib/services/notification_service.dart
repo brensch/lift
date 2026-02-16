@@ -47,7 +47,7 @@ class NotificationService {
     required String soundPresetId,
     String body = 'Time to start your next set!',
   }) async {
-    await cancelRestNotification();
+    await cancelAll();
 
     final scheduledTime = tz.TZDateTime.fromMillisecondsSinceEpoch(
       tz.local,
@@ -144,5 +144,17 @@ class NotificationService {
 
   static Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     return _plugin.pendingNotificationRequests();
+  }
+
+  static Future<List<ActiveNotification>> getActiveNotifications() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      return android.getActiveNotifications();
+    }
+    // On iOS/Darwin, this is also available via the general plugin in newer versions,
+    // but getActiveNotifications is specifically an Android-heavy API in some versions.
+    // However, the latest flutter_local_notifications supports it.
+    return _plugin.getActiveNotifications();
   }
 }
