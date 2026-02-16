@@ -32,20 +32,13 @@ class MultiplayerServiceClient extends $grpc.Client {
 
   MultiplayerServiceClient(super.channel, {super.options, super.interceptors});
 
-  /// Start a new session
-  $grpc.ResponseFuture<$0.StartSessionResponse> startSession(
-    $0.StartSessionRequest request, {
+  /// Join a session by providing the user ID of someone already in (or starting) that session.
+  /// If the target user is not in a session, a new session is created for both.
+  $grpc.ResponseFuture<$0.JoinUserResponse> joinUser(
+    $0.JoinUserRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$startSession, request, options: options);
-  }
-
-  /// Join someone's session via a session ID
-  $grpc.ResponseFuture<$0.JoinSessionResponse> joinSession(
-    $0.JoinSessionRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$joinSession, request, options: options);
+    return $createUnaryCall(_$joinUser, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.LeaveSessionResponse> leaveSession(
@@ -82,16 +75,11 @@ class MultiplayerServiceClient extends $grpc.Client {
 
   // method descriptors
 
-  static final _$startSession =
-      $grpc.ClientMethod<$0.StartSessionRequest, $0.StartSessionResponse>(
-          '/workout.v1.MultiplayerService/StartSession',
-          ($0.StartSessionRequest value) => value.writeToBuffer(),
-          $0.StartSessionResponse.fromBuffer);
-  static final _$joinSession =
-      $grpc.ClientMethod<$0.JoinSessionRequest, $0.JoinSessionResponse>(
-          '/workout.v1.MultiplayerService/JoinSession',
-          ($0.JoinSessionRequest value) => value.writeToBuffer(),
-          $0.JoinSessionResponse.fromBuffer);
+  static final _$joinUser =
+      $grpc.ClientMethod<$0.JoinUserRequest, $0.JoinUserResponse>(
+          '/workout.v1.MultiplayerService/JoinUser',
+          ($0.JoinUserRequest value) => value.writeToBuffer(),
+          $0.JoinUserResponse.fromBuffer);
   static final _$leaveSession =
       $grpc.ClientMethod<$0.LeaveSessionRequest, $0.LeaveSessionResponse>(
           '/workout.v1.MultiplayerService/LeaveSession',
@@ -119,24 +107,13 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
   $core.String get $name => 'workout.v1.MultiplayerService';
 
   MultiplayerServiceBase() {
-    $addMethod(
-        $grpc.ServiceMethod<$0.StartSessionRequest, $0.StartSessionResponse>(
-            'StartSession',
-            startSession_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $0.StartSessionRequest.fromBuffer(value),
-            ($0.StartSessionResponse value) => value.writeToBuffer()));
-    $addMethod(
-        $grpc.ServiceMethod<$0.JoinSessionRequest, $0.JoinSessionResponse>(
-            'JoinSession',
-            joinSession_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $0.JoinSessionRequest.fromBuffer(value),
-            ($0.JoinSessionResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.JoinUserRequest, $0.JoinUserResponse>(
+        'JoinUser',
+        joinUser_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.JoinUserRequest.fromBuffer(value),
+        ($0.JoinUserResponse value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.LeaveSessionRequest, $0.LeaveSessionResponse>(
             'LeaveSession',
@@ -175,22 +152,13 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($0.UpdateActiveWorkoutResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$0.StartSessionResponse> startSession_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.StartSessionRequest> $request) async {
-    return startSession($call, await $request);
+  $async.Future<$0.JoinUserResponse> joinUser_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.JoinUserRequest> $request) async {
+    return joinUser($call, await $request);
   }
 
-  $async.Future<$0.StartSessionResponse> startSession(
-      $grpc.ServiceCall call, $0.StartSessionRequest request);
-
-  $async.Future<$0.JoinSessionResponse> joinSession_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.JoinSessionRequest> $request) async {
-    return joinSession($call, await $request);
-  }
-
-  $async.Future<$0.JoinSessionResponse> joinSession(
-      $grpc.ServiceCall call, $0.JoinSessionRequest request);
+  $async.Future<$0.JoinUserResponse> joinUser(
+      $grpc.ServiceCall call, $0.JoinUserRequest request);
 
   $async.Future<$0.LeaveSessionResponse> leaveSession_Pre(
       $grpc.ServiceCall $call,

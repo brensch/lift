@@ -15,55 +15,29 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-@$core.Deprecated('Use startSessionRequestDescriptor instead')
-const StartSessionRequest$json = {
-  '1': 'StartSessionRequest',
+@$core.Deprecated('Use joinUserRequestDescriptor instead')
+const JoinUserRequest$json = {
+  '1': 'JoinUserRequest',
   '2': [
-    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
   ],
 };
 
-/// Descriptor for `StartSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startSessionRequestDescriptor = $convert.base64Decode(
-    'ChNTdGFydFNlc3Npb25SZXF1ZXN0Eh0KCndvcmtvdXRfaWQYASABKAlSCXdvcmtvdXRJZA==');
+/// Descriptor for `JoinUserRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinUserRequestDescriptor = $convert
+    .base64Decode('Cg9Kb2luVXNlclJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklk');
 
-@$core.Deprecated('Use startSessionResponseDescriptor instead')
-const StartSessionResponse$json = {
-  '1': 'StartSessionResponse',
-  '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
-  ],
-};
-
-/// Descriptor for `StartSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startSessionResponseDescriptor = $convert.base64Decode(
-    'ChRTdGFydFNlc3Npb25SZXNwb25zZRIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW9uSWQ=');
-
-@$core.Deprecated('Use joinSessionRequestDescriptor instead')
-const JoinSessionRequest$json = {
-  '1': 'JoinSessionRequest',
-  '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
-    {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
-  ],
-};
-
-/// Descriptor for `JoinSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinSessionRequestDescriptor = $convert.base64Decode(
-    'ChJKb2luU2Vzc2lvblJlcXVlc3QSHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbklkEh0KCn'
-    'dvcmtvdXRfaWQYAiABKAlSCXdvcmtvdXRJZA==');
-
-@$core.Deprecated('Use joinSessionResponseDescriptor instead')
-const JoinSessionResponse$json = {
-  '1': 'JoinSessionResponse',
+@$core.Deprecated('Use joinUserResponseDescriptor instead')
+const JoinUserResponse$json = {
+  '1': 'JoinUserResponse',
   '2': [
     {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
   ],
 };
 
-/// Descriptor for `JoinSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinSessionResponseDescriptor = $convert.base64Decode(
-    'ChNKb2luU2Vzc2lvblJlc3BvbnNlEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZA==');
+/// Descriptor for `JoinUserResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinUserResponseDescriptor = $convert.base64Decode(
+    'ChBKb2luVXNlclJlc3BvbnNlEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZA==');
 
 @$core.Deprecated('Use leaveSessionRequestDescriptor instead')
 const LeaveSessionRequest$json = {

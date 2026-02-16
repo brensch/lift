@@ -62,60 +62,73 @@ impl MultiplayerService for GroupService {
             return Err(Status::invalid_argument("Cannot join yourself"));
         }
 
-        // 1. Check if target is already in a session
+        // Recover both users to ensure we have their latest session info
+        self.state.try_recover_user(&self.central_db, &caller_id).await;
+        self.state.try_recover_user(&self.central_db, &target_id).await;
+
+        let caller_session_id = self.state.user_sessions.get(&caller_id).map(|r| r.clone());
         let target_session_id = self.state.user_sessions.get(&target_id).map(|r| r.clone());
 
-        let session_id = if let Some(sid) = target_session_id {
-            // Target is in a session, join it
-            sid
-        } else {
-            // Target is not in a session, create a new one for both
-            let sid = uuid::Uuid::new_v4().to_string();
-            
-            {
-                // Use a block to ensure the entry lock is dropped before any awaits or other map operations
+        let session_id = match (caller_session_id, target_session_id) {
+            (Some(c_sid), Some(t_sid)) => {
+                if c_sid == t_sid {
+                    c_sid
+                } else {
+                    return Err(Status::failed_precondition("Both users are already in different active sessions. Leave your current session first."));
+                }
+            }
+            (None, Some(t_sid)) => {
+                // Caller joins target's session
+                self.state.user_sessions.insert(caller_id.clone(), t_sid.clone());
+                self.state.sessions.entry(t_sid.clone()).or_insert_with(HashSet::new).insert(caller_id.clone());
+                self.central_db.join_session(&caller_id, &t_sid).await
+                    .map_err(|e| Status::internal(e.to_string()))?;
+                t_sid
+            }
+            (Some(c_sid), None) => {
+                // Target joins caller's session
+                self.state.user_sessions.insert(target_id.clone(), c_sid.clone());
+                self.state.sessions.entry(c_sid.clone()).or_insert_with(HashSet::new).insert(target_id.clone());
+                self.central_db.join_session(&target_id, &c_sid).await
+                    .map_err(|e| Status::internal(e.to_string()))?;
+                c_sid
+            }
+            (None, None) => {
+                // Create new session for both
+                let sid = uuid::Uuid::new_v4().to_string();
+                
+                // Use entry logic to avoid race conditions where both create sessions simultaneously
                 use dashmap::mapref::entry::Entry;
                 match self.state.user_sessions.entry(target_id.clone()) {
                     Entry::Occupied(existing) => {
-                        // Someone else created a session for this user just now
-                        existing.get().clone()
+                        // Someone else just put the target in a session
+                        let sid = existing.get().clone();
+                        self.state.user_sessions.insert(caller_id.clone(), sid.clone());
+                        self.state.sessions.entry(sid.clone()).or_insert_with(HashSet::new).insert(caller_id.clone());
+                        self.central_db.join_session(&caller_id, &sid).await
+                            .map_err(|e| Status::internal(e.to_string()))?;
+                        sid
                     }
                     Entry::Vacant(vacant) => {
                         vacant.insert(sid.clone());
+                        self.state.user_sessions.insert(caller_id.clone(), sid.clone());
                         
-                        // Add target to session
-                        self.state.sessions
-                            .entry(sid.clone())
-                            .or_insert_with(HashSet::new)
-                            .insert(target_id.clone());
-                        
-                        sid.clone()
+                        let mut members = HashSet::new();
+                        members.insert(caller_id.clone());
+                        members.insert(target_id.clone());
+                        self.state.sessions.insert(sid.clone(), members);
+
+                        self.central_db.join_session(&caller_id, &sid).await
+                            .map_err(|e| Status::internal(e.to_string()))?;
+                        self.central_db.join_session(&target_id, &sid).await
+                            .map_err(|e| Status::internal(e.to_string()))?;
+                        sid
                     }
                 }
-            };
-
-            // If we actually created/joined a NEW session for the target, we need to update their DB.
-            // Note: In the Occupied case above, we might be double-joining, but let's keep it simple for now.
-            // The key is that the lock is GONE here.
-            
-            self.central_db.join_session(&target_id, &sid).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-
-            sid
+            }
         };
 
-        // 2. Add caller to the session
-        self.state.sessions
-            .entry(session_id.clone())
-            .or_insert_with(HashSet::new)
-            .insert(caller_id.clone());
-        self.state.user_sessions.insert(caller_id.clone(), session_id.clone());
-
-        // 3. Update caller's DB
-        self.central_db.join_session(&caller_id, &session_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        // Cache user infos if needed
+        // Cache user info if needed
         for uid in &[&caller_id, &target_id] {
             if !self.state.users.contains_key(*uid) {
                 if let Ok(Some(user)) = self.central_db.get_user(uid).await {
@@ -134,6 +147,7 @@ impl MultiplayerService for GroupService {
         request: Request<LeaveSessionRequest>,
     ) -> Result<Response<LeaveSessionResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        self.state.try_recover_user(&self.central_db, &user_id).await;
 
         if let Some((_, session_id)) = self.state.user_sessions.remove(&user_id) {
             if let Some(mut members) = self.state.sessions.get_mut(&session_id) {
@@ -157,6 +171,9 @@ impl MultiplayerService for GroupService {
         let _ = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
+        // Ensure target is recovered if possible
+        self.state.try_recover_user(&self.central_db, &req.user_id).await;
+
         // Read directly from in-memory state
         let status = self.build_participant_status(&req.user_id);
         if status.active_workout_id.is_empty() {
@@ -173,6 +190,9 @@ impl MultiplayerService for GroupService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
+        // Ensure user is recovered if possible
+        self.state.try_recover_user(&self.central_db, &user_id).await;
+
         // Determine session ID
         let session_id = if !req.session_id.is_empty() {
             Some(req.session_id)
@@ -181,6 +201,16 @@ impl MultiplayerService for GroupService {
         };
 
         if let Some(sid) = session_id {
+            let members = self.state.sessions.get(&sid)
+                .map(|r| r.clone())
+                .unwrap_or_default();
+
+            // Try to recover all members to ensure they are in memory
+            for member_id in &members {
+                self.state.try_recover_user(&self.central_db, member_id).await;
+            }
+
+            // Re-read members after recovery in case more were found
             let members = self.state.sessions.get(&sid)
                 .map(|r| r.clone())
                 .unwrap_or_default();

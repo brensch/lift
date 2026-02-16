@@ -70,13 +70,28 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 }
 
 #[derive(Clone)]
+pub enum WriteCommand {
+    CreateWorkout(String, Workout),
+    InsertGroupWithSets(String, lift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
+    UpsertCompletedSet(String, CompletedSet),
+    UpdateWorkoutEnd(String, String, i64),
+    DeleteCompletedSet(String, String, String),
+    JoinSession(String, String),
+    LeaveSession(String, String),
+    TestLoginUpsert(User, String, i64),
+}
+
+#[derive(Clone)]
 pub struct CentralDb {
     pub pool: Pool<Sqlite>,
     // In-memory cache: token -> (user_id, expires_at_secs)
-    // Using DashMap for shard-level locking instead of global RwLock
     auth_cache: Arc<DashMap<String, (String, i64)>>,
+    // Cache for user lookups by name to speed up TestLogin
+    user_by_name_cache: Arc<DashMap<String, User>>,
     // Serializes all write operations to prevent SQLite lock contention
     write_lock: Arc<tokio::sync::Mutex<()>>,
+    // Channel to send write commands to the background worker
+    write_tx: tokio::sync::mpsc::UnboundedSender<WriteCommand>,
 }
 
 const CENTRAL_SCHEMA: &str = r#"
@@ -220,11 +235,186 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
-        Ok(Self { 
+        let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
+        let db = Self { 
             pool, 
             auth_cache: Arc::new(DashMap::new()),
+            user_by_name_cache: Arc::new(DashMap::new()),
             write_lock: Arc::new(tokio::sync::Mutex::new(())),
-        })
+            write_tx,
+        };
+
+        // Start background persistence worker
+        db.clone().spawn_persistence_worker(write_rx);
+
+        Ok(db)
+    }
+
+    fn spawn_persistence_worker(self, mut rx: tokio::sync::mpsc::UnboundedReceiver<WriteCommand>) {
+        tokio::spawn(async move {
+            let mut buffer = Vec::with_capacity(1000);
+            
+            loop {
+                // Wait for at least one command
+                match rx.recv().await {
+                    Some(cmd) => buffer.push(cmd),
+                    None => break, // Channel closed
+                }
+
+                // Collect more commands if available immediately
+                while buffer.len() < 1000 {
+                    match rx.try_recv() {
+                        Ok(cmd) => buffer.push(cmd),
+                        Err(_) => break,
+                    }
+                }
+
+                // Batch process the buffer
+                if let Err(e) = self.process_batch(&buffer).await {
+                    eprintln!("Persistence worker error: {}", e);
+                }
+                buffer.clear();
+
+                // Pacing: don't spin 100% CPU if the channel is constantly full
+                tokio::task::yield_now().await;
+            }
+        });
+    }
+
+    async fn process_batch(&self, commands: &[WriteCommand]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
+
+        for cmd in commands {
+            match cmd {
+                WriteCommand::CreateWorkout(user_id, workout) => {
+                    sqlx::query(
+                        "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                    )
+                    .bind(&workout.id)
+                    .bind(user_id)
+                    .bind(&workout.name)
+                    .bind(workout.start_time)
+                    .bind(if workout.end_time == 0 { None } else { Some(workout.end_time) })
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
+                    sqlx::query(
+                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind(&group.id)
+                    .bind(user_id)
+                    .bind(&group.workout_id)
+                    .bind(&group.name)
+                    .bind(group.r#type)
+                    .bind(group.include_warmup)
+                    .bind(group.workout_order)
+                    .execute(&mut *tx)
+                    .await?;
+
+                    for set in sets {
+                        sqlx::query(
+                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        )
+                        .bind(&set.id)
+                        .bind(user_id)
+                        .bind(&set.workout_id)
+                        .bind(set.workout_order)
+                        .bind(set.exercise)
+                        .bind(set.target_reps)
+                        .bind(set.target_weight)
+                        .bind(set.warmup)
+                        .bind(if set.exercise_group_id.is_empty() { None } else { Some(&set.exercise_group_id) })
+                        .execute(&mut *tx)
+                        .await?;
+                    }
+                }
+                WriteCommand::UpsertCompletedSet(user_id, set) => {
+                    sqlx::query(
+                        "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind(&set.id)
+                    .bind(user_id)
+                    .bind(&set.workout_id)
+                    .bind(if set.proposed_set_id.is_empty() { None } else { Some(&set.proposed_set_id) })
+                    .bind(set.actual_reps)
+                    .bind(set.actual_weight)
+                    .bind(set.started_at)
+                    .bind(set.ended_at)
+                    .bind(if set.rest_until == 0 { None } else { Some(set.rest_until) })
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
+                    sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
+                        .bind(end_time)
+                        .bind(user_id)
+                        .bind(workout_id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                WriteCommand::DeleteCompletedSet(user_id, workout_id, set_id) => {
+                    sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?")
+                        .bind(user_id)
+                        .bind(workout_id)
+                        .bind(set_id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                WriteCommand::JoinSession(user_id, session_id) => {
+                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                    sqlx::query("INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)")
+                        .bind(session_id)
+                        .bind(user_id)
+                        .bind(now)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                WriteCommand::LeaveSession(user_id, session_id) => {
+                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                    sqlx::query("UPDATE sessions SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at IS NULL")
+                        .bind(now)
+                        .bind(user_id)
+                        .bind(session_id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                WriteCommand::TestLoginUpsert(user, token, expires_at) => {
+                    // Double-check user existence in case cache was cold
+                    let user_id = match sqlx::query_scalar::<_, String>("SELECT id FROM users WHERE lower(name) = lower(?)")
+                        .bind(&user.name)
+                        .fetch_optional(&mut *tx)
+                        .await? {
+                        Some(id) => id,
+                        None => {
+                            sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
+                                .bind(&user.id)
+                                .bind(&user.name)
+                                .bind(user.created_at)
+                                .execute(&mut *tx)
+                                .await?;
+                            user.id.clone()
+                        }
+                    };
+
+                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                    sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
+                        .bind(&token)
+                        .bind(&user_id)
+                        .bind(now)
+                        .bind(expires_at)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+        }
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn create_user(
@@ -285,13 +475,21 @@ impl CentralDb {
         &self,
         name: &str,
     ) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
-                .bind(name)
-                .map(row_to_user)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
+        if let Some(user) = self.user_by_name_cache.get(name) {
+            return Ok(Some(user.value().clone()));
+        }
+
+        let res = sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
+            .bind(name)
+            .map(row_to_user)
+            .fetch_optional(&self.pool)
+            .await?;
+        
+        if let Some(user) = &res {
+            self.user_by_name_cache.insert(name.to_string(), user.clone());
+        }
+
+        Ok(res)
     }
 
     pub async fn store_credential(
@@ -494,17 +692,7 @@ impl CentralDb {
         user_id: &str,
         workout: &Workout,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        sqlx::query(
-            "INSERT INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(&workout.id)
-        .bind(user_id)
-        .bind(&workout.name)
-        .bind(workout.start_time)
-        .bind(None::<i64>)
-        .execute(&self.pool)
-        .await?;
+        self.write_tx.send(WriteCommand::CreateWorkout(user_id.to_string(), workout.clone()))?;
         Ok(())
     }
 
@@ -514,48 +702,7 @@ impl CentralDb {
         group: &lift::workout::v1::ExerciseGroup,
         sets: &[ProposedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query(
-            "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&group.id)
-        .bind(user_id)
-        .bind(&group.workout_id)
-        .bind(&group.name)
-        .bind(group.r#type)
-        .bind(group.include_warmup)
-        .bind(group.workout_order)
-        .execute(&mut *tx)
-        .await?;
-
-        if !sets.is_empty() {
-            for chunk in sets.chunks(100) {
-                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
-                );
-                query_builder.push_values(chunk, |mut b, set| {
-                    b.push_bind(&set.id)
-                     .push_bind(user_id)
-                     .push_bind(&set.workout_id)
-                     .push_bind(set.workout_order)
-                     .push_bind(set.exercise)
-                     .push_bind(set.target_reps)
-                     .push_bind(set.target_weight)
-                     .push_bind(set.warmup)
-                     .push_bind(if set.exercise_group_id.is_empty() {
-                         None
-                     } else {
-                         Some(&set.exercise_group_id)
-                     });
-                });
-                query_builder.build().execute(&mut *tx).await?;
-            }
-        }
-
-        tx.commit().await?;
+        self.write_tx.send(WriteCommand::InsertGroupWithSets(user_id.to_string(), group.clone(), sets.to_vec()))?;
         Ok(())
     }
 
@@ -564,22 +711,7 @@ impl CentralDb {
         user_id: &str,
         set: &CompletedSet,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        sqlx::query(
-            "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&set.id)
-        .bind(user_id)
-        .bind(&set.workout_id)
-        .bind(if set.proposed_set_id.is_empty() { None } else { Some(&set.proposed_set_id) })
-        .bind(set.actual_reps)
-        .bind(set.actual_weight)
-        .bind(set.started_at)
-        .bind(set.ended_at)
-        .bind(if set.rest_until == 0 { None } else { Some(set.rest_until) })
-        .execute(&self.pool)
-        .await?;
+        self.write_tx.send(WriteCommand::UpsertCompletedSet(user_id.to_string(), set.clone()))?;
         Ok(())
     }
 
@@ -589,59 +721,43 @@ impl CentralDb {
         workout_id: &str,
         end_time: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
-            .bind(end_time)
-            .bind(user_id)
-            .bind(workout_id)
-            .execute(&self.pool)
-            .await?;
+        self.write_tx.send(WriteCommand::UpdateWorkoutEnd(user_id.to_string(), workout_id.to_string(), end_time))?;
         Ok(())
     }
 
     pub async fn test_login_upsert(&self, username: &str) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let mut tx = self.pool.begin().await?;
+        // 1. Check cache first
+        if let Some(entry) = self.user_by_name_cache.get(username) {
+            let user = entry.value().clone();
+            let token = Uuid::new_v4().to_string();
+            let expires_at = Self::now_plus_30_days();
+            
+            // Optimistically update auth cache
+            self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
+            
+            // Queue session creation
+            self.write_tx.send(WriteCommand::TestLoginUpsert(user.clone(), token.clone(), expires_at))?;
+            
+            return Ok((user, token));
+        }
 
-        // 1. Try to find user
-        let user_opt = sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
-            .bind(username)
-            .map(row_to_user)
-            .fetch_optional(&mut *tx)
-            .await?;
-
-        let user = match user_opt {
-            Some(u) => u,
-            None => {
-                // 2. Create user if not found
-                let id = Uuid::new_v4().to_string();
-                let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
-                    .bind(&id)
-                    .bind(username)
-                    .bind(created_at)
-                    .execute(&mut *tx)
-                    .await?;
-                User { id, name: username.to_string(), created_at }
-            }
+        // 2. Cold cache: Generate new ID and queue full upsert
+        let id = Uuid::new_v4().to_string();
+        let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let user = User {
+            id,
+            name: username.to_string(),
+            created_at,
         };
-
-        // 3. Create session
         let token = Uuid::new_v4().to_string();
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        let expires_at = now + 30 * 24 * 60 * 60; // 30 days
-        sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
-            .bind(&token)
-            .bind(&user.id)
-            .bind(now)
-            .bind(expires_at)
-            .execute(&mut *tx)
-            .await?;
+        let expires_at = Self::now_plus_30_days();
 
-        tx.commit().await?;
-
-        // 4. Update cache
+        // Optimistically cache both
+        self.user_by_name_cache.insert(username.to_string(), user.clone());
         self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
+
+        // Queue background upsert
+        self.write_tx.send(WriteCommand::TestLoginUpsert(user.clone(), token.clone(), expires_at))?;
 
         Ok((user, token))
     }
@@ -657,13 +773,7 @@ impl CentralDb {
         workout_id: &str,
         completed_set_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?")
-            .bind(user_id)
-            .bind(workout_id)
-            .bind(completed_set_id)
-            .execute(&self.pool)
-            .await?;
+        self.write_tx.send(WriteCommand::DeleteCompletedSet(user_id.to_string(), workout_id.to_string(), completed_set_id.to_string()))?;
         Ok(())
     }
 
@@ -820,14 +930,7 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        sqlx::query("INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)")
-            .bind(session_id)
-            .bind(user_id)
-            .bind(now)
-            .execute(&self.pool)
-            .await?;
+        self.write_tx.send(WriteCommand::JoinSession(user_id.to_string(), session_id.to_string()))?;
         Ok(())
     }
 
@@ -836,14 +939,7 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        sqlx::query("UPDATE sessions SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at IS NULL")
-            .bind(now)
-            .bind(user_id)
-            .bind(session_id)
-            .execute(&self.pool)
-            .await?;
+        self.write_tx.send(WriteCommand::LeaveSession(user_id.to_string(), session_id.to_string()))?;
         Ok(())
     }
 

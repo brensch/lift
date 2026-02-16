@@ -7,17 +7,9 @@ class MultiplayerServiceWrapper {
 
   MultiplayerServiceWrapper(this._client);
 
-  Future<String> startSession({String? workoutId}) async {
-    final req = StartSessionRequest();
-    if (workoutId != null) req.workoutId = workoutId;
-    final response = await _client.multiplayerService.startSession(req);
-    return response.sessionId;
-  }
-
-  Future<String> joinSession(String sessionId, {String? workoutId}) async {
-    final req = JoinSessionRequest()..sessionId = sessionId;
-    if (workoutId != null) req.workoutId = workoutId;
-    final response = await _client.multiplayerService.joinSession(req);
+  Future<String> joinUser(String userId) async {
+    final req = JoinUserRequest()..userId = userId;
+    final response = await _client.multiplayerService.joinUser(req);
     return response.sessionId;
   }
 

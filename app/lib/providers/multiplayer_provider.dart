@@ -22,39 +22,22 @@ class MultiplayerProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> checkForSession() async {
+    _startPolling();
     try {
       final response = await _service.getCurrentSession();
       if (response.sessionId.isNotEmpty) {
         _sessionId = response.sessionId;
         _sessionStatus = response.sessionStatus;
-        _startPolling();
         notifyListeners();
       }
     } catch (_) {}
   }
 
-  Future<String?> startSession({String? workoutId}) async {
+  Future<bool> joinSession(String userId, {String? workoutId}) async {
     _isLoading = true;
     notifyListeners();
     try {
-      _sessionId = await _service.startSession(workoutId: workoutId);
-      _startPolling();
-      return _sessionId;
-    } catch (e) {
-      debugPrint('Error starting session: $e');
-      return null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<bool> joinSession(String sessionId, {String? workoutId}) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      _sessionId = await _service.joinSession(sessionId, workoutId: workoutId);
-      _startPolling();
+      _sessionId = await _service.joinUser(userId);
       Fluttertoast.showToast(
         msg: "JOINED GROUP",
         backgroundColor: Colors.green.shade600,
@@ -78,7 +61,6 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (_) {}
     _sessionId = null;
     _sessionStatus = null;
-    _stopPolling();
     notifyListeners();
   }
 
@@ -93,13 +75,12 @@ class MultiplayerProvider extends ChangeNotifier {
   void clear() {
     _sessionId = null;
     _sessionStatus = null;
-    _stopPolling();
     notifyListeners();
   }
 
   void _startPolling() {
     _stopPolling();
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _poll());
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
   }
 
   void _stopPolling() {
@@ -108,12 +89,20 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   Future<void> _poll() async {
-    if (_sessionId == null) return;
     try {
-      final response = await _service.getCurrentSession(sessionId: _sessionId);
-      if (response.hasSessionStatus()) {
-        _sessionStatus = response.sessionStatus;
+      final response = await _service.getCurrentSession(sessionId: _sessionId ?? "");
+      if (response.sessionId.isNotEmpty) {
+        _sessionId = response.sessionId;
+        if (response.hasSessionStatus()) {
+          _sessionStatus = response.sessionStatus;
+        }
         notifyListeners();
+      } else {
+        if (_sessionId != null) {
+          _sessionId = null;
+          _sessionStatus = null;
+          notifyListeners();
+        }
       }
     } catch (_) {}
   }

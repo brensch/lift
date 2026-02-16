@@ -59,7 +59,7 @@ stop-app:
 	@pkill -9 -f "flutter_assets" || true
 
 load-test:
-	cargo run --release --example load_simulation --all-features -- --duration 300
+	cargo run --release --example load_simulation --all-features -- --duration 3000
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release
