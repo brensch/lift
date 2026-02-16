@@ -117,6 +117,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         let mut last_requests = 0;
         let mut last_time = Instant::now();
+        let mut method_last_counts = std::collections::HashMap::new();
+
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
             let current_requests = stats_reporter.total_requests.load(Ordering::Relaxed);
@@ -136,12 +138,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             for (name, ms) in methods {
                 let reqs = ms.requests.load(Ordering::Relaxed);
+                let last_reqs = method_last_counts.get(&name).copied().unwrap_or(0);
+                let interval_qps = (reqs - last_reqs) as f64 / elapsed;
+                method_last_counts.insert(name.clone(), reqs);
+
+                let active_users = stats_reporter.active_users.load(Ordering::Relaxed);
+                let qps_per_user = if active_users > 0 { interval_qps / active_users as f64 } else { 0.0 };
+
                 let errs = ms.errors.load(Ordering::Relaxed);
                 let total_ms = ms.total_latency_ms.load(Ordering::Relaxed);
                 let max_ms = ms.max_latency_ms.load(Ordering::Relaxed);
                 let avg = if reqs > 0 { total_ms as f64 / reqs as f64 } else { 0.0 };
-                println!("  {:25}: avg={:6.1}ms, max={:6.1}ms, req={:<5}, err={}", 
-                         name, avg, max_ms as f64, reqs, errs);
+                println!("  {:25}: qps={:7.1}, qps/u={:7.4}, avg={:6.1}ms, max={:6.1}ms, req={:<5}, err={}", 
+                         name, interval_qps, qps_per_user, avg, max_ms as f64, reqs, errs);
             }
             last_requests = current_requests;
             last_time = Instant::now();
@@ -155,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let elapsed = start_time.elapsed().as_secs_f64();
         if elapsed >= args.duration as f64 { break; }
 
-        let target_groups = (elapsed * 10.0).floor() as usize + 1;
+        let target_groups = (elapsed * 20.0).floor() as usize + 1;
 
         while current_group_count < target_groups {
             let group_index = current_group_count;
@@ -265,7 +274,16 @@ async fn run_user_simulation(
 
     while start_time.elapsed() < total_duration {
         perform_request(&mut workout_client, &token, &stats, GetActiveWorkoutRequest {}, "GetActiveWorkout").await?;
+        {
+            let ms = rand::thread_rng().gen_range(500..1500);
+            tokio::time::sleep(Duration::from_millis(ms)).await;
+        }
+        
         perform_request(&mut workout_client, &token, &stats, GetProposedWorkoutScheduleRequest { user_id: user_id.clone() }, "GetProposedSchedule").await?;
+        {
+            let ms = rand::thread_rng().gen_range(500..1500);
+            tokio::time::sleep(Duration::from_millis(ms)).await;
+        }
         
         let workout_id = perform_request(&mut workout_client, &token, &stats, StartWorkoutRequest {
             name: "Simulated Workout".to_string(),
@@ -274,6 +292,10 @@ async fn run_user_simulation(
         }, "StartWorkout").await?.id;
 
         for g_idx in 0..2 {
+            {
+                let ms = rand::thread_rng().gen_range(1000..3000);
+                tokio::time::sleep(Duration::from_millis(ms)).await;
+            }
             let group_res = perform_request(&mut workout_client, &token, &stats, CreateExerciseGroupRequest {
                 workout_id: workout_id.clone(),
                 name: format!("Group {}", g_idx),
@@ -286,19 +308,46 @@ async fn run_user_simulation(
             }, "CreateExerciseGroup").await?;
             
             for p_set in group_res.generated_sets {
+                // Simulate "getting ready"
+                {
+                    let ms = rand::thread_rng().gen_range(500..2000);
+                    tokio::time::sleep(Duration::from_millis(ms)).await;
+                }
+                
                 perform_request(&mut workout_client, &token, &stats, StartSetRequest { workout_id: workout_id.clone(), proposed_set_id: p_set.id.clone() }, "StartSet").await?;
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                
+                // Simulate doing the set (2-5 seconds)
+                {
+                    let ms = rand::thread_rng().gen_range(2000..5000);
+                    tokio::time::sleep(Duration::from_millis(ms)).await;
+                }
+                
                 perform_request(&mut workout_client, &token, &stats, CompleteSetRequest {
                     workout_id: workout_id.clone(),
                     proposed_set_id: p_set.id.clone(),
                     actual_reps: p_set.target_reps,
                     actual_weight: p_set.target_weight,
                 }, "CompleteSet").await?;
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                
+                // Simulate rest (2-5 seconds)
+                {
+                    let ms = rand::thread_rng().gen_range(2000..5000);
+                    tokio::time::sleep(Duration::from_millis(ms)).await;
+                }
             }
         }
+        
+        {
+            let ms = rand::thread_rng().gen_range(1000..3000);
+            tokio::time::sleep(Duration::from_millis(ms)).await;
+        }
         perform_request(&mut workout_client, &token, &stats, EndWorkoutRequest { workout_id: workout_id.clone() }, "EndWorkout").await?;
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        
+        // Gap between workouts
+        {
+            let ms = rand::thread_rng().gen_range(5000..10000);
+            tokio::time::sleep(Duration::from_millis(ms)).await;
+        }
     }
 
     Ok(())

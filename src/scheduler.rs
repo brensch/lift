@@ -4,7 +4,7 @@ use lift::workout::v1::{
     ProposedSet,
 };
 
-use crate::db::UserDb;
+use crate::db::CentralDb;
 
 /// Plate-friendly warmup stops (bar + combinations of 45/25 plates per side).
 /// Must match PLATE_STOPS in web/src/lib/warmup.ts.
@@ -234,22 +234,23 @@ const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
 ];
 
 pub struct Scheduler {
-    user_db: UserDb,
+    central_db: CentralDb,
 }
 
 impl Scheduler {
-    pub fn new(user_db: UserDb) -> Self {
-        Self { user_db }
+    pub fn new(central_db: CentralDb) -> Self {
+        Self { central_db }
     }
 
     /// Generate exercise statuses with weight progression and recovery info.
     /// Uses 2 total DB queries (bulk fetch all exercises at once).
     pub async fn get_proposed_schedule(
         &self,
+        user_id: &str,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
         // 2 queries total: bulk history + bulk max weights for ALL exercises
         let (all_history, all_max_weights) =
-            self.user_db.get_all_exercise_history(10).await?;
+            self.central_db.get_all_exercise_history(user_id, 10).await?;
 
         // Build muscle group recovery map from the fetched data
         let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =

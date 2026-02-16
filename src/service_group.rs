@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
-use crate::db::{CentralDb, UserDb};
+use crate::db::CentralDb;
 use crate::service_workout::get_user_id_authenticated;
 use crate::state::AppState;
 use lift::workout::v1::multiplayer_service_server::MultiplayerService;
@@ -98,9 +98,7 @@ impl MultiplayerService for GroupService {
             // Note: In the Occupied case above, we might be double-joining, but let's keep it simple for now.
             // The key is that the lock is GONE here.
             
-            let target_db = UserDb::new(&target_id).await
-                .map_err(|e| Status::internal(e.to_string()))?;
-            target_db.join_session(&sid).await
+            self.central_db.join_session(&target_id, &sid).await
                 .map_err(|e| Status::internal(e.to_string()))?;
 
             sid
@@ -114,9 +112,7 @@ impl MultiplayerService for GroupService {
         self.state.user_sessions.insert(caller_id.clone(), session_id.clone());
 
         // 3. Update caller's DB
-        let caller_db = UserDb::new(&caller_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        caller_db.join_session(&session_id).await
+        self.central_db.join_session(&caller_id, &session_id).await
             .map_err(|e| Status::internal(e.to_string()))?;
 
         // Cache user infos if needed
@@ -148,9 +144,7 @@ impl MultiplayerService for GroupService {
                 }
             }
             // Record in user's DB
-            if let Ok(user_db) = UserDb::new(&user_id).await {
-                let _ = user_db.leave_session(&session_id).await;
-            }
+            let _ = self.central_db.leave_session(&user_id, &session_id).await;
         }
 
         Ok(Response::new(LeaveSessionResponse {}))

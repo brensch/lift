@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app_state = Arc::new(AppState::new());
 
     // Spawn periodic checkpoint task (flushes dirty workouts every 30s)
-    state::spawn_checkpoint_task(app_state.clone());
+    state::spawn_checkpoint_task(app_state.clone(), central_db.clone());
 
     let addr: SocketAddr = "0.0.0.0:50051".parse()?;
     let workout_service = MyWorkoutService::new(central_db.clone(), app_state.clone());
