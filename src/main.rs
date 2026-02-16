@@ -22,13 +22,15 @@ mod service_workout;
 mod service_user;
 mod service_group;
 mod service_auth;
+mod state;
 
 use auth::AuthState;
 use db::CentralDb;
 use service_workout::MyWorkoutService;
 use service_user::MyUserService;
-use service_group::{GroupService, SessionManager};
+use service_group::GroupService;
 use service_auth::MyAuthService;
+use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -36,13 +38,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Starting server...");
 
     let central_db = CentralDb::new().await?;
-    let session_manager = Arc::new(SessionManager::new(central_db.clone()));
+    let app_state = Arc::new(AppState::new());
+
+    // Recover active workouts from UserDb (crash recovery)
+    let recovered = app_state.recover_active_workouts(&central_db).await?;
+    if recovered > 0 {
+        info!("Recovered {} active workouts from disk", recovered);
+    }
+
+    // Spawn periodic checkpoint task (flushes dirty workouts every 30s)
+    state::spawn_checkpoint_task(app_state.clone());
 
     let addr: SocketAddr = "0.0.0.0:50051".parse()?;
-    let workout_service = MyWorkoutService::new(central_db.clone(), session_manager.clone());
+    let workout_service = MyWorkoutService::new(central_db.clone(), app_state.clone());
     let user_service = MyUserService::new(central_db.clone());
-    let group_service = GroupService::new(central_db.clone(), session_manager.clone());
-    
+    let group_service = GroupService::new(central_db.clone(), app_state.clone());
+
     let auth_state = Arc::new(AuthState::new(central_db.clone()));
     let auth_service = MyAuthService { auth_state: auth_state.clone() };
 

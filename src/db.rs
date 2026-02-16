@@ -9,7 +9,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
 // Global cache of per-user database pools
@@ -129,22 +129,6 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
     }
 }
 
-fn compute_rest_seconds(
-    target_reps: i32,
-    actual_reps: i32,
-    warmup: bool,
-    last_warmup: bool,
-) -> i64 {
-    if warmup && last_warmup {
-        180 // 3 minutes before first working set
-    } else if warmup {
-        10
-    } else if actual_reps >= target_reps {
-        180 // 3 minutes
-    } else {
-        300 // 5 minutes
-    }
-}
 
 #[derive(Clone)]
 pub struct UserDb {
@@ -176,263 +160,6 @@ impl UserDb {
 
         cache.insert(user_id.to_string(), pool.clone());
         Ok(Self { pool })
-    }
-
-    pub async fn create_workout(
-        &self,
-        name: &str,
-        exercise_groups: Vec<lift::workout::v1::ExerciseGroup>,
-        proposed_sets: Vec<ProposedSet>,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let workout_id = Uuid::new_v4().to_string();
-        let start_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query("INSERT INTO workouts (id, name, start_time, end_time) VALUES (?, ?, ?, NULL)")
-            .bind(&workout_id)
-            .bind(name)
-            .bind(start_time)
-            .execute(&mut *tx)
-            .await?;
-
-        for mut group in exercise_groups {
-            group.workout_id = workout_id.clone();
-            sqlx::query(
-                "INSERT INTO exercise_groups (id, workout_id, name, type, include_warmup, workout_order)
-                 VALUES (?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&group.id)
-            .bind(&group.workout_id)
-            .bind(&group.name)
-            .bind(group.r#type)
-            .bind(group.include_warmup)
-            .bind(group.workout_order)
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        for set in proposed_sets {
-            let set_id = if set.id.is_empty() {
-                Uuid::new_v4().to_string()
-            } else {
-                set.id
-            };
-            sqlx::query(
-                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&set_id)
-            .bind(&workout_id)
-            .bind(set.workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .bind(if set.exercise_group_id.is_empty() { None } else { Some(set.exercise_group_id) })
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        self.reindex_sets_tx(&mut *tx, &workout_id).await?;
-
-        tx.commit().await?;
-        Ok(workout_id)
-    }
-
-    pub async fn create_exercise_group(
-        &self,
-        group: lift::workout::v1::ExerciseGroup,
-        proposed_sets: Vec<ProposedSet>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query(
-            "INSERT INTO exercise_groups (id, workout_id, name, type, include_warmup, workout_order)
-             VALUES (?, ?, ?, ?, ?, ?)"
-        )
-        .bind(&group.id)
-        .bind(&group.workout_id)
-        .bind(&group.name)
-        .bind(group.r#type)
-        .bind(group.include_warmup)
-        .bind(group.workout_order)
-        .execute(&mut *tx)
-        .await?;
-
-        for set in proposed_sets {
-            let set_id = if set.id.is_empty() {
-                Uuid::new_v4().to_string()
-            } else {
-                set.id
-            };
-            sqlx::query(
-                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&set_id)
-            .bind(&set.workout_id)
-            .bind(set.workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .bind(&group.id)
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        self.reindex_sets_tx(&mut *tx, &group.workout_id).await?;
-
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn update_exercise_group(
-        &self,
-        group: lift::workout::v1::ExerciseGroup,
-        proposed_sets: Vec<ProposedSet>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-
-        sqlx::query(
-            "UPDATE exercise_groups SET name = ?, type = ?, include_warmup = ?, workout_order = ?
-             WHERE id = ?"
-        )
-        .bind(&group.name)
-        .bind(group.r#type)
-        .bind(group.include_warmup)
-        .bind(group.workout_order)
-        .bind(&group.id)
-        .execute(&mut *tx)
-        .await?;
-
-        // Delete only PENDING sets for this group. Completed sets must be preserved.
-        // Wait, the handover said "Completed sets are always preserved; only pending sets get replaced."
-        // I need to check which sets are completed.
-        
-        // Actually, proposed_sets table only has PROPOSED sets. 
-        // Completed sets are in completed_sets table and linked via proposed_set_id.
-        
-        // So I should delete proposed_sets that DON'T have a corresponding entry in completed_sets.
-        sqlx::query(
-            "DELETE FROM proposed_sets 
-             WHERE exercise_group_id = ? AND id NOT IN (SELECT proposed_set_id FROM completed_sets WHERE workout_id = ? AND proposed_set_id IS NOT NULL)"
-        )
-        .bind(&group.id)
-        .bind(&group.workout_id)
-        .execute(&mut *tx)
-        .await?;
-
-        for set in proposed_sets {
-            // Check if this set already exists (it might if it was completed and we passed it back)
-            // But usually we generate NEW pending sets.
-            let set_id = if set.id.is_empty() {
-                Uuid::new_v4().to_string()
-            } else {
-                set.id
-            };
-            
-            sqlx::query(
-                "INSERT OR IGNORE INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&set_id)
-            .bind(&set.workout_id)
-            .bind(set.workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .bind(&group.id)
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        self.reindex_sets_tx(&mut *tx, &group.workout_id).await?;
-
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn delete_exercise_group(
-        &self,
-        workout_id: &str,
-        exercise_group_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-
-        // Delete all proposed sets for this group that are NOT completed.
-        sqlx::query(
-            "DELETE FROM proposed_sets 
-             WHERE exercise_group_id = ? AND id NOT IN (SELECT proposed_set_id FROM completed_sets WHERE workout_id = ? AND proposed_set_id IS NOT NULL)"
-        )
-        .bind(exercise_group_id)
-        .bind(workout_id)
-        .execute(&mut *tx)
-        .await?;
-
-        // Remove exercise_group_id from completed sets instead of deleting them? 
-        // Or just keep them. If we delete the group, we usually want to keep the completed sets in the workout but maybe they become "orphaned".
-        // For now, let's just delete the group.
-        sqlx::query("DELETE FROM exercise_groups WHERE id = ?")
-            .bind(exercise_group_id)
-            .execute(&mut *tx)
-            .await?;
-
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn reorder_exercise_groups(
-        &self,
-        workout_id: &str,
-        exercise_group_ids: Vec<String>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-
-        for (idx, group_id) in exercise_group_ids.iter().enumerate() {
-            sqlx::query(
-                "UPDATE exercise_groups SET workout_order = ? WHERE id = ? AND workout_id = ?"
-            )
-            .bind(idx as i32)
-            .bind(group_id)
-            .bind(workout_id)
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        self.reindex_sets_tx(&mut *tx, workout_id).await?;
-
-        tx.commit().await?;
-        Ok(())
-    }
-
-    async fn reindex_sets_tx(
-        &self,
-        executor: &mut sqlx::SqliteConnection,
-        workout_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let all_sets = sqlx::query(
-            "SELECT ps.id FROM proposed_sets ps
-             LEFT JOIN exercise_groups eg ON ps.exercise_group_id = eg.id
-             WHERE ps.workout_id = ?
-             ORDER BY eg.workout_order, ps.workout_order"
-        )
-        .bind(workout_id)
-        .fetch_all(&mut *executor)
-        .await?;
-
-        for (idx, row) in all_sets.iter().enumerate() {
-            let set_id: String = row.get("id");
-            sqlx::query("UPDATE proposed_sets SET workout_order = ? WHERE id = ?")
-                .bind(idx as i32)
-                .bind(set_id)
-                .execute(&mut *executor)
-                .await?;
-        }
-
-        Ok(())
     }
 
     pub async fn get_exercise_groups(
@@ -563,174 +290,6 @@ impl UserDb {
         .unwrap_or(0.0))
     }
 
-    pub async fn start_set(
-        &self,
-        workout_id: &str,
-        proposed_set_id: &str,
-    ) -> Result<CompletedSet, Box<dyn std::error::Error + Send + Sync>> {
-        let id = Uuid::new_v4().to_string();
-        let started_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-
-        let proposed: Option<ProposedSet> = sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id FROM proposed_sets WHERE id = ?"
-        )
-        .bind(proposed_set_id)
-        .map(row_to_proposed_set)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        let (actual_reps, actual_weight) = proposed
-            .map(|p| (p.target_reps, p.target_weight))
-            .unwrap_or((0, 0.0));
-
-        sqlx::query(
-            "INSERT INTO completed_sets (id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
-             VALUES (?, ?, ?, ?, ?, ?, 0, NULL)"
-        )
-        .bind(&id)
-        .bind(workout_id)
-        .bind(proposed_set_id)
-        .bind(actual_reps)
-        .bind(actual_weight)
-        .bind(started_at)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(CompletedSet {
-            id,
-            workout_id: workout_id.to_string(),
-            proposed_set_id: proposed_set_id.to_string(),
-            actual_reps,
-            actual_weight,
-            started_at,
-            ended_at: 0,
-            rest_until: 0,
-        })
-    }
-
-    pub async fn complete_set(
-        &self,
-        workout_id: &str,
-        proposed_set_id: &str,
-        actual_reps: i32,
-        actual_weight: f32,
-    ) -> Result<CompletedSet, Box<dyn std::error::Error + Send + Sync>> {
-        let ended_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-
-        // Look up target_reps, warmup flag, exercise, and workout_order to compute rest
-        let proposed_info: Option<(i32, bool, i32, i32)> = sqlx::query_as(
-            "SELECT target_reps, warmup, exercise, workout_order FROM proposed_sets WHERE id = ?",
-        )
-        .bind(proposed_set_id)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        let (target_reps, warmup, exercise, workout_order) =
-            proposed_info.unwrap_or((0, false, 0, 0));
-
-        // Check if this is the last warmup in its exercise group:
-        // the next set (by workout_order) is either not a warmup or a different exercise.
-        let last_warmup = if warmup {
-            let next: Option<(bool, i32)> = sqlx::query_as(
-                "SELECT warmup, exercise FROM proposed_sets WHERE workout_id = ? AND workout_order > ? ORDER BY workout_order ASC LIMIT 1"
-            )
-            .bind(workout_id)
-            .bind(workout_order)
-            .fetch_optional(&self.pool)
-            .await?;
-            match next {
-                Some((true, ex)) if ex == exercise => false, // more warmups in this group
-                _ => true, // last warmup (next is working set, different exercise, or no next set)
-            }
-        } else {
-            false
-        };
-
-        let rest_seconds = compute_rest_seconds(target_reps, actual_reps, warmup, last_warmup);
-        let rest_until = ended_at + rest_seconds;
-
-        let existing: Option<(String, i64)> = sqlx::query_as(
-            "SELECT id, started_at FROM completed_sets WHERE workout_id = ? AND proposed_set_id = ? AND ended_at = 0"
-        )
-        .bind(workout_id)
-        .bind(proposed_set_id)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        let (id, started_at) = if let Some((existing_id, existing_started)) = existing {
-            sqlx::query(
-                "UPDATE completed_sets SET actual_reps = ?, actual_weight = ?, ended_at = ?, rest_until = ? WHERE id = ?"
-            )
-            .bind(actual_reps)
-            .bind(actual_weight)
-            .bind(ended_at)
-            .bind(rest_until)
-            .bind(&existing_id)
-            .execute(&self.pool)
-            .await?;
-
-            (existing_id, existing_started)
-        } else {
-            let id = Uuid::new_v4().to_string();
-
-            sqlx::query(
-                "INSERT INTO completed_sets (id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&id)
-            .bind(workout_id)
-            .bind(proposed_set_id)
-            .bind(actual_reps)
-            .bind(actual_weight)
-            .bind(ended_at)
-            .bind(ended_at)
-            .bind(rest_until)
-            .execute(&self.pool)
-            .await?;
-
-            (id, ended_at)
-        };
-
-        Ok(CompletedSet {
-            id,
-            workout_id: workout_id.to_string(),
-            proposed_set_id: proposed_set_id.to_string(),
-            actual_reps,
-            actual_weight,
-            started_at,
-            ended_at,
-            rest_until,
-        })
-    }
-
-    pub async fn delete_completed_set(
-        &self,
-        workout_id: &str,
-        completed_set_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query("DELETE FROM completed_sets WHERE workout_id = ? AND id = ?")
-            .bind(workout_id)
-            .bind(completed_set_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn end_workout(
-        &self,
-        workout_id: &str,
-    ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
-        let end_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-
-        sqlx::query("UPDATE workouts SET end_time = ? WHERE id = ?")
-            .bind(end_time)
-            .bind(workout_id)
-            .execute(&self.pool)
-            .await?;
-
-        self.get_workout(workout_id).await
-    }
-
     pub async fn add_session(
         &self,
         session_id: &str,
@@ -749,11 +308,128 @@ impl UserDb {
         Ok(())
     }
 
+    pub async fn get_active_session(
+        &self,
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(
+            sqlx::query_scalar("SELECT session_id FROM user_sessions WHERE is_active = 1 LIMIT 1")
+                .fetch_optional(&self.pool)
+                .await?,
+        )
+    }
+
+    /// Batch flush an entire active workout state to the DB in a single transaction.
+    /// This does a full DELETE + re-INSERT for the workout's data.
+    pub async fn flush_workout(
+        &self,
+        workout: &Workout,
+        exercise_groups: &[lift::workout::v1::ExerciseGroup],
+        proposed_sets: &[ProposedSet],
+        completed_sets: &[CompletedSet],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut tx = self.pool.begin().await?;
+
+        // Upsert workout
+        sqlx::query(
+            "INSERT OR REPLACE INTO workouts (id, name, start_time, end_time) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&workout.id)
+        .bind(&workout.name)
+        .bind(workout.start_time)
+        .bind(if workout.end_time == 0 {
+            None
+        } else {
+            Some(workout.end_time)
+        })
+        .execute(&mut *tx)
+        .await?;
+
+        // Clear and re-insert exercise_groups, proposed_sets, completed_sets
+        sqlx::query("DELETE FROM completed_sets WHERE workout_id = ?")
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM proposed_sets WHERE workout_id = ?")
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM exercise_groups WHERE workout_id = ?")
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+
+        for group in exercise_groups {
+            sqlx::query(
+                "INSERT INTO exercise_groups (id, workout_id, name, type, include_warmup, workout_order)
+                 VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&group.id)
+            .bind(&group.workout_id)
+            .bind(&group.name)
+            .bind(group.r#type)
+            .bind(group.include_warmup)
+            .bind(group.workout_order)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        for set in proposed_sets {
+            sqlx::query(
+                "INSERT INTO proposed_sets (id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&set.id)
+            .bind(&set.workout_id)
+            .bind(set.workout_order)
+            .bind(set.exercise)
+            .bind(set.target_reps)
+            .bind(set.target_weight)
+            .bind(set.warmup)
+            .bind(if set.exercise_group_id.is_empty() {
+                None
+            } else {
+                Some(&set.exercise_group_id)
+            })
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        for set in completed_sets {
+            sqlx::query(
+                "INSERT INTO completed_sets (id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&set.id)
+            .bind(&set.workout_id)
+            .bind(if set.proposed_set_id.is_empty() {
+                None
+            } else {
+                Some(&set.proposed_set_id)
+            })
+            .bind(set.actual_reps)
+            .bind(set.actual_weight)
+            .bind(set.started_at)
+            .bind(set.ended_at)
+            .bind(if set.rest_until == 0 {
+                None
+            } else {
+                Some(set.rest_until)
+            })
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
 }
 
 #[derive(Clone)]
 pub struct CentralDb {
     pub pool: Pool<Sqlite>,
+    // In-memory cache: token -> (user_id, expires_at_secs)
+    auth_cache: Arc<RwLock<HashMap<String, (String, i64)>>>,
 }
 
 const CENTRAL_SCHEMA: &str = r#"
@@ -800,8 +476,13 @@ impl CentralDb {
         let db_path = format!("{}/central.sqlite", data_dir);
         let db_url = format!("sqlite://{}", db_path);
 
-        let options = SqliteConnectOptions::from_str(&db_url)?.create_if_missing(true);
-        let pool = SqlitePoolOptions::new().connect_with(options).await?;
+        let options = SqliteConnectOptions::from_str(&db_url)?
+            .create_if_missing(true)
+            .synchronous(SqliteSynchronous::Normal)
+            .journal_mode(SqliteJournalMode::Wal);
+        let pool = SqlitePoolOptions::new()
+            .max_connections(10)
+            .connect_with(options).await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
 
         // Manual migration for created_at_ip column
@@ -814,7 +495,7 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
-        Ok(Self { pool })
+        Ok(Self { pool, auth_cache: Arc::new(RwLock::new(HashMap::new())) })
     }
 
     pub async fn create_user(
@@ -877,58 +558,6 @@ impl CentralDb {
             sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
                 .bind(name)
                 .map(row_to_user)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
-    }
-
-    pub async fn join_session(
-        &self,
-        user_id: &str,
-        session_id: &str,
-        workout_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        sqlx::query("INSERT OR REPLACE INTO active_sessions (user_id, session_id, workout_id, joined_at) VALUES (?, ?, ?, ?)")
-            .bind(user_id)
-            .bind(session_id)
-            .bind(workout_id)
-            .bind(now)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn leave_session(
-        &self,
-        user_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query("DELETE FROM active_sessions WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn get_session_id(
-        &self,
-        user_id: &str,
-    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query_scalar("SELECT session_id FROM active_sessions WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
-    }
-
-    pub async fn get_session_workout_id(
-        &self,
-        user_id: &str,
-    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query_scalar("SELECT workout_id FROM active_sessions WHERE user_id = ?")
-                .bind(user_id)
                 .fetch_optional(&self.pool)
                 .await?,
         )
@@ -1031,6 +660,11 @@ impl CentralDb {
             .bind(expires_at)
             .execute(&self.pool)
             .await?;
+
+        // Populate auth cache
+        let mut cache = self.auth_cache.write().await;
+        cache.insert(token.clone(), (user_id.to_string(), expires_at));
+
         Ok(token)
     }
 
@@ -1039,19 +673,43 @@ impl CentralDb {
         token: &str,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        Ok(sqlx::query_scalar(
-            "SELECT user_id FROM auth_sessions WHERE token = ? AND expires_at > ?",
+
+        // Check in-memory cache first (fast path — no DB hit)
+        {
+            let cache = self.auth_cache.read().await;
+            if let Some((user_id, expires_at)) = cache.get(token) {
+                if *expires_at > now {
+                    return Ok(Some(user_id.clone()));
+                }
+            }
+        }
+
+        // Cache miss — fall back to DB
+        let result: Option<(String, i64)> = sqlx::query_as(
+            "SELECT user_id, expires_at FROM auth_sessions WHERE token = ? AND expires_at > ?",
         )
         .bind(token)
         .bind(now)
         .fetch_optional(&self.pool)
-        .await?)
+        .await?;
+
+        if let Some((user_id, expires_at)) = &result {
+            let mut cache = self.auth_cache.write().await;
+            cache.insert(token.to_string(), (user_id.clone(), *expires_at));
+        }
+
+        Ok(result.map(|(user_id, _)| user_id))
     }
 
     pub async fn invalidate_auth_session(
         &self,
         token: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Remove from cache
+        {
+            let mut cache = self.auth_cache.write().await;
+            cache.remove(token);
+        }
         sqlx::query("DELETE FROM auth_sessions WHERE token = ?")
             .bind(token)
             .execute(&self.pool)
@@ -1105,288 +763,3 @@ impl CentralDb {
     }
 }
 
-// Global cache of per-session database pools
-static SESSION_DB_CACHE: std::sync::LazyLock<Arc<Mutex<HashMap<String, Pool<Sqlite>>>>> =
-    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
-
-const SESSION_SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS participants (
-    user_id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    active_workout_id TEXT
-);
-
-CREATE TABLE IF NOT EXISTS workouts (
-    id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL DEFAULT '',
-    start_time INTEGER NOT NULL,
-    end_time INTEGER,
-    PRIMARY KEY (id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS exercise_groups (
-    id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    type INTEGER NOT NULL,
-    include_warmup BOOLEAN NOT NULL,
-    workout_order INTEGER NOT NULL,
-    PRIMARY KEY (id, user_id),
-    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS proposed_sets (
-    id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    workout_order INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
-    target_reps INTEGER NOT NULL,
-    target_weight REAL NOT NULL,
-    warmup BOOLEAN NOT NULL,
-    exercise_group_id TEXT,
-    PRIMARY KEY (id, user_id),
-    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id),
-    FOREIGN KEY(exercise_group_id, user_id) REFERENCES exercise_groups(id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS completed_sets (
-    id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    proposed_set_id TEXT,
-    actual_reps INTEGER NOT NULL,
-    actual_weight REAL NOT NULL,
-    started_at INTEGER NOT NULL,
-    ended_at INTEGER NOT NULL,
-    rest_until INTEGER,
-    PRIMARY KEY (id, user_id),
-    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
-CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
-CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_group_id);
-CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
-CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
-CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
-"#;
-
-#[derive(Clone)]
-pub struct SessionDb {
-    pub pool: Pool<Sqlite>,
-}
-
-impl SessionDb {
-    pub async fn new(session_id: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        // Sanitize session_id to prevent injection or invalid filenames.
-        // Also prevents '?' from being interpreted as a connection string option.
-        let session_id: String = session_id
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_')
-            .collect();
-
-        if session_id.is_empty() {
-            return Err("Invalid session_id".into());
-        }
-
-        let mut cache = SESSION_DB_CACHE.lock().await;
-
-        if let Some(pool) = cache.get(&session_id) {
-            return Ok(Self { pool: pool.clone() });
-        }
-
-        let data_dir = "data/session_dbs";
-        if !Path::new(data_dir).exists() {
-            fs::create_dir_all(data_dir)?;
-        }
-
-        let db_path = format!("{}/{}.sqlite", data_dir, session_id);
-        let db_url = format!("sqlite://{}", db_path);
-
-        let options = SqliteConnectOptions::from_str(&db_url)?
-            .create_if_missing(true)
-            .synchronous(SqliteSynchronous::Normal)
-            .journal_mode(SqliteJournalMode::Wal);
-        let pool = SqlitePoolOptions::new().connect_with(options).await?;
-        sqlx::query(SESSION_SCHEMA).execute(&pool).await?;
-
-        cache.insert(session_id.to_string(), pool.clone());
-        Ok(Self { pool })
-    }
-
-    pub async fn upsert_participant(
-        &self,
-        user_id: &str,
-        name: &str,
-        active_workout_id: Option<&str>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query("INSERT OR REPLACE INTO participants (user_id, name, active_workout_id) VALUES (?, ?, ?)")
-            .bind(user_id)
-            .bind(name)
-            .bind(active_workout_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-
-    pub async fn upsert_workout(
-        &self,
-        user_id: &str,
-        workout: &Workout,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query("INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)")
-            .bind(&workout.id)
-            .bind(user_id)
-            .bind(&workout.name)
-            .bind(workout.start_time)
-            .bind(if workout.end_time == 0 { None } else { Some(workout.end_time) })
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn upsert_proposed_sets(
-        &self,
-        user_id: &str,
-        sets: &[ProposedSet],
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-        for set in sets {
-            sqlx::query(
-                "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&set.id)
-            .bind(user_id)
-            .bind(&set.workout_id)
-            .bind(set.workout_order)
-            .bind(set.exercise)
-            .bind(set.target_reps)
-            .bind(set.target_weight)
-            .bind(set.warmup)
-            .bind(if set.exercise_group_id.is_empty() { None } else { Some(&set.exercise_group_id) })
-            .execute(&mut *tx)
-            .await?;
-        }
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn upsert_exercise_groups(
-        &self,
-        user_id: &str,
-        groups: &[lift::workout::v1::ExerciseGroup],
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut tx = self.pool.begin().await?;
-        for group in groups {
-            sqlx::query(
-                "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
-            )
-            .bind(&group.id)
-            .bind(user_id)
-            .bind(&group.workout_id)
-            .bind(&group.name)
-            .bind(group.r#type)
-            .bind(group.include_warmup)
-            .bind(group.workout_order)
-            .execute(&mut *tx)
-            .await?;
-        }
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn upsert_completed_set(
-        &self,
-        user_id: &str,
-        set: &CompletedSet,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        sqlx::query(
-            "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .bind(&set.id)
-        .bind(user_id)
-        .bind(&set.workout_id)
-        .bind(&set.proposed_set_id)
-        .bind(set.actual_reps)
-        .bind(set.actual_weight)
-        .bind(set.started_at)
-        .bind(set.ended_at)
-        .bind(set.rest_until)
-        .execute(&self.pool)
-        .await?;
-        Ok(())
-    }
-
-    pub async fn get_participants(
-        &self,
-    ) -> Result<Vec<(String, String, Option<String>)>, Box<dyn std::error::Error + Send + Sync>>
-    {
-        Ok(
-            sqlx::query_as("SELECT user_id, name, active_workout_id FROM participants")
-                .fetch_all(&self.pool)
-                .await?,
-        )
-    }
-
-    pub async fn get_workout(
-        &self,
-        workout_id: &str,
-    ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query("SELECT id, name, start_time, end_time FROM workouts WHERE id = ?")
-                .bind(workout_id)
-                .map(row_to_workout)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
-    }
-
-    pub async fn get_exercise_groups(
-        &self,
-        workout_id: &str,
-    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query(
-            "SELECT id, workout_id, name, type, include_warmup, workout_order
-             FROM exercise_groups WHERE workout_id = ? ORDER BY workout_order",
-        )
-        .bind(workout_id)
-        .map(row_to_exercise_group)
-        .fetch_all(&self.pool)
-        .await?)
-    }
-
-    pub async fn get_proposed_sets(
-        &self,
-        workout_id: &str,
-    ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id
-             FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
-        )
-        .bind(workout_id)
-        .map(row_to_proposed_set)
-        .fetch_all(&self.pool)
-        .await?)
-    }
-
-    pub async fn get_completed_sets(
-        &self,
-        workout_id: &str,
-    ) -> Result<Vec<CompletedSet>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query(
-            "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until
-             FROM completed_sets WHERE workout_id = ? ORDER BY started_at"
-        )
-        .bind(workout_id)
-        .map(row_to_completed_set)
-        .fetch_all(&self.pool)
-        .await?)
-    }
-}

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Response, Status};
 use lift::workout::v1::{
     workout_service_server::WorkoutService,
@@ -15,28 +16,26 @@ use lift::workout::v1::{
     UpdateExerciseGroupRequest, UpdateExerciseGroupResponse,
     DeleteExerciseGroupRequest, DeleteExerciseGroupResponse,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse,
-    ExerciseGroup, ProposedSet, ExerciseGroupType, Exercise,
+    ExerciseGroup, ProposedSet, CompletedSet, ExerciseGroupType, Exercise, Workout,
 };
 use crate::db::{CentralDb, UserDb};
 use crate::scheduler::Scheduler;
-use crate::service_group::SessionManager;
+use crate::state::{ActiveWorkout, AppState};
 use uuid::Uuid;
 
 pub struct MyWorkoutService {
     central_db: CentralDb,
-    session_manager: Arc<SessionManager>,
+    state: Arc<AppState>,
 }
 
 impl MyWorkoutService {
-    pub fn new(central_db: CentralDb, session_manager: Arc<SessionManager>) -> Self {
-        Self { central_db, session_manager }
+    pub fn new(central_db: CentralDb, state: Arc<AppState>) -> Self {
+        Self { central_db, state }
     }
 }
 
 // Helper to extract user_id from request metadata.
-// Prefers x-session-token (validated via DB), falls back to x-user-id.
 pub async fn get_user_id_authenticated<T>(request: &Request<T>, central_db: &CentralDb) -> Result<String, Status> {
-    // First try session token
     if let Some(token) = request.metadata().get("x-session-token").and_then(|v| v.to_str().ok()) {
         if let Ok(Some(user_id)) = central_db.validate_auth_session(token).await {
             return Ok(user_id);
@@ -78,7 +77,7 @@ fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
         4 => vec![5, 5, 3, 2],
         _ => vec![5; selected.len()],
     };
-    
+
     selected.into_iter().zip(reps.into_iter()).collect()
 }
 
@@ -164,7 +163,6 @@ impl ExerciseGroupGenerator for SupersetGenerator {
         mut start_order: i32,
     ) -> Vec<ProposedSet> {
         let mut generated = Vec::new();
-        // Warmups sequential
         for (i, &exercise) in exercises.iter().enumerate() {
             if include_warmup {
                 let weight = weights.get(i).copied().unwrap_or(0.0);
@@ -184,7 +182,6 @@ impl ExerciseGroupGenerator for SupersetGenerator {
                 }
             }
         }
-        // Working sets alternating
         for _ in 0..sets {
             for (i, &exercise) in exercises.iter().enumerate() {
                 let weight = weights.get(i).copied().unwrap_or(0.0);
@@ -266,6 +263,23 @@ fn get_generator(group_type: i32) -> Box<dyn ExerciseGroupGenerator> {
     }
 }
 
+fn compute_rest_seconds(
+    target_reps: i32,
+    actual_reps: i32,
+    warmup: bool,
+    last_warmup: bool,
+) -> i64 {
+    if warmup && last_warmup {
+        180
+    } else if warmup {
+        10
+    } else if actual_reps >= target_reps {
+        180
+    } else {
+        300
+    }
+}
+
 #[tonic::async_trait]
 impl WorkoutService for MyWorkoutService {
     async fn start_workout(
@@ -275,6 +289,12 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
+        // Check if there's already an active workout in memory
+        if self.state.workouts.contains_key(&user_id) {
+            return Err(Status::failed_precondition("A workout is already in progress. End it before starting a new one."));
+        }
+
+        // Also check UserDb for un-ended workouts not in memory
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
@@ -283,11 +303,38 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::failed_precondition(format!("A workout is already in progress (id: {}). End it before starting a new one.", active.id)));
         }
 
-        let workout_id = user_db.create_workout(&req.name, req.exercise_groups, req.proposed_sets).await
+        let workout_id = Uuid::new_v4().to_string();
+        let start_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+        let workout = Workout {
+            id: workout_id.clone(),
+            name: req.name.clone(),
+            start_time,
+            end_time: 0,
+        };
+
+        // Assign workout_id to exercise_groups and proposed_sets
+        let mut exercise_groups = req.exercise_groups;
+        for g in &mut exercise_groups {
+            g.workout_id = workout_id.clone();
+        }
+        let mut proposed_sets = req.proposed_sets;
+        for s in &mut proposed_sets {
+            s.workout_id = workout_id.clone();
+            if s.id.is_empty() {
+                s.id = Uuid::new_v4().to_string();
+            }
+        }
+
+        // Write initial workout row to UserDb (for the ID / crash recovery)
+        user_db.flush_workout(&workout, &exercise_groups, &proposed_sets, &[]).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
-        let _ = self.session_manager.update_active_workout(&user_id, &workout_id).await;
-        self.session_manager.notify_user_update(&user_id).await;
+        // Store in memory
+        let mut active = ActiveWorkout::new(workout, exercise_groups, proposed_sets, vec![]);
+        active.reindex_sets();
+        self.state.workouts.insert(user_id.clone(), active);
+
 
         Ok(Response::new(StartWorkoutResponse { id: workout_id }))
     }
@@ -303,6 +350,19 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("workout_id is required"));
         }
 
+        // Check in-memory first
+        if let Some(w) = self.state.workouts.get(&user_id) {
+            if w.workout.id == req.workout_id {
+                return Ok(Response::new(GetWorkoutResponse {
+                    workout: Some(w.workout.clone()),
+                    exercise_groups: w.exercise_groups.clone(),
+                    proposed_sets: w.proposed_sets.clone(),
+                    completed_sets: w.completed_sets.clone(),
+                }));
+            }
+        }
+
+        // Fall back to UserDb for historical workouts
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
@@ -334,15 +394,15 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+
+        if workout_ref.workout.id != req.workout_id {
+            return Err(Status::failed_precondition("Workout ID mismatch"));
+        }
 
         let group_id = Uuid::new_v4().to_string();
-        
-        // Fetch existing groups to determine workout_order
-        let existing_groups = user_db.get_exercise_groups(&req.workout_id).await
-            .map_err(|e| Status::internal(format!("Failed to fetch existing groups: {}", e)))?;
-        let workout_order = existing_groups.len() as i32;
+        let workout_order = workout_ref.exercise_groups.len() as i32;
 
         let group = ExerciseGroup {
             id: group_id.clone(),
@@ -353,14 +413,9 @@ impl WorkoutService for MyWorkoutService {
             workout_order,
         };
 
-        let mut set_order = 0;
-
-        // Fetch existing sets to determine starting workout_order for sets
-        let existing_sets = user_db.get_proposed_sets(&req.workout_id).await
-            .map_err(|e| Status::internal(format!("Failed to fetch existing sets: {}", e)))?;
-        if let Some(last_set) = existing_sets.last() {
-            set_order = last_set.workout_order + 1;
-        }
+        let set_order = workout_ref.proposed_sets.last()
+            .map(|s| s.workout_order + 1)
+            .unwrap_or(0);
 
         let generator = get_generator(req.r#type);
         let generated_sets = generator.generate(
@@ -374,10 +429,10 @@ impl WorkoutService for MyWorkoutService {
             set_order,
         );
 
-        user_db.create_exercise_group(group.clone(), generated_sets.clone()).await
-            .map_err(|e| Status::internal(format!("Failed to save exercise group: {}", e)))?;
-
-        self.session_manager.notify_user_update(&user_id).await;
+        workout_ref.exercise_groups.push(group.clone());
+        workout_ref.proposed_sets.extend(generated_sets.clone());
+        workout_ref.reindex_sets();
+        workout_ref.mark_dirty();
 
         Ok(Response::new(CreateExerciseGroupResponse {
             group: Some(group),
@@ -392,37 +447,37 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        // 1. Fetch existing group
-        let groups = user_db.get_exercise_groups(&req.workout_id).await
-            .map_err(|e| Status::internal(format!("Failed to fetch groups: {}", e)))?;
-        let mut group = groups.into_iter().find(|g| g.id == req.exercise_group_id)
+        // Find the group
+        let group = workout_ref.exercise_groups.iter_mut()
+            .find(|g| g.id == req.exercise_group_id)
             .ok_or_else(|| Status::not_found("Exercise group not found"))?;
 
-        // 2. Update group fields
         if !req.name.is_empty() { group.name = req.name.clone(); }
         group.include_warmup = req.include_warmup;
+        let group = group.clone();
 
-        // 3. Fetch existing sets and completed sets
-        let all_proposed = user_db.get_proposed_sets(&req.workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let group_proposed: Vec<_> = all_proposed.into_iter().filter(|p| p.exercise_group_id == group.id).collect();
-        
-        let completed = user_db.get_completed_sets(&req.workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let completed_ids: std::collections::HashSet<_> = completed.into_iter().map(|c| c.proposed_set_id).collect();
+        // Find completed set IDs
+        let completed_ids: std::collections::HashSet<String> = workout_ref.completed_sets
+            .iter()
+            .map(|c| c.proposed_set_id.clone())
+            .collect();
 
-        // 4. Determine which sets to keep (completed) and which to replace
-        let mut new_sets = Vec::new();
-        let completed_group_sets: Vec<_> = group_proposed.clone().into_iter().filter(|p| completed_ids.contains(&p.id)).collect();
-        
-        // Add completed sets back
-        new_sets.extend(completed_group_sets.clone());
+        // Separate group's proposed sets into completed and pending
+        let group_proposed: Vec<ProposedSet> = workout_ref.proposed_sets
+            .iter()
+            .filter(|p| p.exercise_group_id == group.id)
+            .cloned()
+            .collect();
 
-        // 5. Generate new sets
-        // Determine unique exercises involved in this group from existing sets (preserving order)
+        let completed_group_sets: Vec<ProposedSet> = group_proposed.iter()
+            .filter(|p| completed_ids.contains(&p.id))
+            .cloned()
+            .collect();
+
+        // Determine exercises from existing sets
         let mut exercises = Vec::new();
         for p in &group_proposed {
             if !exercises.contains(&p.exercise) {
@@ -430,6 +485,8 @@ impl WorkoutService for MyWorkoutService {
             }
         }
         if exercises.is_empty() { exercises.push(Exercise::Unspecified as i32); }
+
+        let mut new_sets = completed_group_sets.clone();
 
         let mut set_order = new_sets.iter().map(|s| s.workout_order).max().unwrap_or(0);
         if !new_sets.is_empty() { set_order += 1; }
@@ -446,34 +503,33 @@ impl WorkoutService for MyWorkoutService {
             set_order,
         );
 
-        // Filter out sets that were already completed (master of masters)
         for gen_set in &all_generated {
             let is_already_completed = new_sets.iter().any(|s| {
-                s.exercise == gen_set.exercise && s.warmup == gen_set.warmup && 
-                // This is a heuristic: if we have N completed sets of this type, we skip the first N generated sets of this type
-                new_sets.iter().filter(|existing| existing.exercise == gen_set.exercise && existing.warmup == gen_set.warmup).count() > 
+                s.exercise == gen_set.exercise && s.warmup == gen_set.warmup &&
+                new_sets.iter().filter(|existing| existing.exercise == gen_set.exercise && existing.warmup == gen_set.warmup).count() >
                 all_generated.iter().filter(|g| g.exercise == gen_set.exercise && g.warmup == gen_set.warmup && g.workout_order < gen_set.workout_order).count()
             });
-
             if !is_already_completed {
                 new_sets.push(gen_set.clone());
             }
         }
 
-        user_db.update_exercise_group(group.clone(), new_sets).await
-            .map_err(|e| Status::internal(format!("Failed to update group: {}", e)))?;
+        // Remove old group sets and add new ones
+        workout_ref.proposed_sets.retain(|p| p.exercise_group_id != group.id);
+        workout_ref.proposed_sets.extend(new_sets.clone());
+        workout_ref.reindex_sets();
+        workout_ref.mark_dirty();
 
-        // 6. Fetch the definitive re-indexed state from the DB to return
-        let updated_group = user_db.get_exercise_groups(&req.workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .into_iter().find(|g| g.id == req.exercise_group_id)
+        // Build response from current state
+        let updated_group = workout_ref.exercise_groups.iter()
+            .find(|g| g.id == req.exercise_group_id)
+            .cloned()
             .ok_or_else(|| Status::not_found("Exercise group not found after update"))?;
 
-        let updated_sets = user_db.get_proposed_sets(&req.workout_id).await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .into_iter().filter(|p| p.exercise_group_id == updated_group.id).collect();
-
-        self.session_manager.notify_user_update(&user_id).await;
+        let updated_sets: Vec<ProposedSet> = workout_ref.proposed_sets.iter()
+            .filter(|p| p.exercise_group_id == updated_group.id)
+            .cloned()
+            .collect();
 
         Ok(Response::new(UpdateExerciseGroupResponse {
             group: Some(updated_group),
@@ -488,13 +544,22 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        user_db.delete_exercise_group(&req.workout_id, &req.exercise_group_id).await
-            .map_err(|e| Status::internal(format!("Failed to delete exercise group: {}", e)))?;
+        let completed_ids: std::collections::HashSet<String> = workout_ref.completed_sets
+            .iter()
+            .map(|c| c.proposed_set_id.clone())
+            .collect();
 
-        self.session_manager.notify_user_update(&user_id).await;
+        // Remove pending (non-completed) proposed sets for this group
+        workout_ref.proposed_sets.retain(|p| {
+            p.exercise_group_id != req.exercise_group_id || completed_ids.contains(&p.id)
+        });
+
+        // Remove the group
+        workout_ref.exercise_groups.retain(|g| g.id != req.exercise_group_id);
+        workout_ref.mark_dirty();
 
         Ok(Response::new(DeleteExerciseGroupResponse {}))
     }
@@ -506,13 +571,17 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        user_db.reorder_exercise_groups(&req.workout_id, req.exercise_group_ids).await
-            .map_err(|e| Status::internal(format!("Failed to reorder exercise groups: {}", e)))?;
+        for (idx, group_id) in req.exercise_group_ids.iter().enumerate() {
+            if let Some(g) = workout_ref.exercise_groups.iter_mut().find(|g| &g.id == group_id) {
+                g.workout_order = idx as i32;
+            }
+        }
 
-        self.session_manager.notify_user_update(&user_id).await;
+        workout_ref.reindex_sets();
+        workout_ref.mark_dirty();
 
         Ok(Response::new(ReorderExerciseGroupsResponse {}))
     }
@@ -526,8 +595,15 @@ impl WorkoutService for MyWorkoutService {
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
-        let workouts = user_db.list_workouts().await
+        let mut workouts = user_db.list_workouts().await
             .map_err(|e| Status::internal(format!("Failed to list workouts: {}", e)))?;
+
+        // If there's an active workout in memory, make sure it's in the list
+        if let Some(w) = self.state.workouts.get(&user_id) {
+            if !workouts.iter().any(|existing| existing.id == w.workout.id) {
+                workouts.insert(0, w.workout.clone());
+            }
+        }
 
         Ok(Response::new(ListWorkoutsResponse { workouts }))
     }
@@ -546,13 +622,32 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        let completed_set = user_db.start_set(&req.workout_id, &req.proposed_set_id).await
-            .map_err(|e| Status::internal(format!("Failed to start set: {}", e)))?;
+        let proposed = workout_ref.proposed_sets.iter()
+            .find(|p| p.id == req.proposed_set_id);
 
-        self.session_manager.notify_user_update(&user_id).await;
+        let (actual_reps, actual_weight) = proposed
+            .map(|p| (p.target_reps, p.target_weight))
+            .unwrap_or((0, 0.0));
+
+        let id = Uuid::new_v4().to_string();
+        let started_at = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+
+        let completed_set = CompletedSet {
+            id,
+            workout_id: req.workout_id,
+            proposed_set_id: req.proposed_set_id,
+            actual_reps,
+            actual_weight,
+            started_at,
+            ended_at: 0,
+            rest_until: 0,
+        };
+
+        workout_ref.completed_sets.push(completed_set.clone());
+        workout_ref.mark_dirty();
 
         Ok(Response::new(StartSetResponse {
             completed_set: Some(completed_set),
@@ -573,18 +668,63 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        let completed_set = user_db.complete_set(
-            &req.workout_id,
-            &req.proposed_set_id,
-            req.actual_reps,
-            req.actual_weight,
-        ).await
-            .map_err(|e| Status::internal(format!("Failed to complete set: {}", e)))?;
+        let ended_at = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
 
-        self.session_manager.notify_user_update(&user_id).await;
+        // Look up proposed set info for rest computation
+        let proposed = workout_ref.proposed_sets.iter()
+            .find(|p| p.id == req.proposed_set_id);
+
+        let (target_reps, warmup, exercise, workout_order) = proposed
+            .map(|p| (p.target_reps, p.warmup, p.exercise, p.workout_order))
+            .unwrap_or((0, false, 0, 0));
+
+        // Check if this is the last warmup
+        let last_warmup = if warmup {
+            let next = workout_ref.proposed_sets.iter()
+                .filter(|p| p.workout_order > workout_order)
+                .min_by_key(|p| p.workout_order);
+            match next {
+                Some(n) if n.warmup && n.exercise == exercise => false,
+                _ => true,
+            }
+        } else {
+            false
+        };
+
+        let rest_seconds = compute_rest_seconds(target_reps, req.actual_reps, warmup, last_warmup);
+        let rest_until = ended_at + rest_seconds;
+
+        // Find existing started set or create new
+        let existing_idx = workout_ref.completed_sets.iter().position(|c| {
+            c.workout_id == req.workout_id && c.proposed_set_id == req.proposed_set_id && c.ended_at == 0
+        });
+
+        let completed_set = if let Some(idx) = existing_idx {
+            let cs = &mut workout_ref.completed_sets[idx];
+            cs.actual_reps = req.actual_reps;
+            cs.actual_weight = req.actual_weight;
+            cs.ended_at = ended_at;
+            cs.rest_until = rest_until;
+            cs.clone()
+        } else {
+            let cs = CompletedSet {
+                id: Uuid::new_v4().to_string(),
+                workout_id: req.workout_id,
+                proposed_set_id: req.proposed_set_id,
+                actual_reps: req.actual_reps,
+                actual_weight: req.actual_weight,
+                started_at: ended_at,
+                ended_at,
+                rest_until,
+            };
+            workout_ref.completed_sets.push(cs.clone());
+            cs
+        };
+
+        workout_ref.mark_dirty();
 
         Ok(Response::new(CompleteSetResponse {
             completed_set: Some(completed_set),
@@ -605,13 +745,13 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("completed_set_id is required"));
         }
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
+        let mut workout_ref = self.state.workouts.get_mut(&user_id)
+            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-        user_db.delete_completed_set(&req.workout_id, &req.completed_set_id).await
-            .map_err(|e| Status::internal(format!("Failed to delete completed set: {}", e)))?;
-
-        self.session_manager.notify_user_update(&user_id).await;
+        workout_ref.completed_sets.retain(|c| {
+            !(c.workout_id == req.workout_id && c.id == req.completed_set_id)
+        });
+        workout_ref.mark_dirty();
 
         Ok(Response::new(DeleteCompletedSetResponse {}))
     }
@@ -627,21 +767,39 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("workout_id is required"));
         }
 
+        // Remove from memory, flush to DB
+        let (_, mut active) = self.state.workouts.remove(&user_id)
+            .ok_or_else(|| Status::not_found("No active workout found"))?;
+
+        let end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        active.workout.end_time = end_time;
+
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
-        let workout = user_db.end_workout(&req.workout_id).await
-            .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?
-            .ok_or_else(|| Status::not_found("Workout not found"))?;
+        user_db.flush_workout(
+            &active.workout,
+            &active.exercise_groups,
+            &active.proposed_sets,
+            &active.completed_sets,
+        ).await
+            .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?;
 
-        // Sync final workout state to session DB, then leave the session.
-        // The participant row is kept so their finished workout remains visible.
-        self.session_manager.notify_user_update(&user_id).await;
-        self.session_manager.finish_session(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to finish session: {}", e)))?;
+        // Leave session
+        if let Some((_, session_id)) = self.state.user_sessions.remove(&user_id) {
+            if let Some(mut members) = self.state.sessions.get_mut(&session_id) {
+                members.remove(&user_id);
+                if members.is_empty() {
+                    drop(members);
+                    self.state.sessions.remove(&session_id);
+                }
+            }
+            // Record session in user's DB
+            let _ = user_db.add_session(&session_id, false).await;
+        }
 
         Ok(Response::new(EndWorkoutResponse {
-            workout: Some(workout),
+            workout: Some(active.workout),
         }))
     }
 
@@ -651,6 +809,14 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
+        // Check in-memory first
+        if let Some(w) = self.state.workouts.get(&user_id) {
+            return Ok(Response::new(GetActiveWorkoutResponse {
+                workout: Some(w.workout.clone()),
+            }));
+        }
+
+        // Fall back to UserDb
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
@@ -670,8 +836,13 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
         let scheduler = Scheduler::new(user_db);
-        let response = scheduler.get_proposed_schedule().await
+        let mut response = scheduler.get_proposed_schedule().await
             .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
+
+        // Override active_workout_id from in-memory state if present
+        if let Some(w) = self.state.workouts.get(&user_id) {
+            response.active_workout_id = w.workout.id.clone();
+        }
 
         Ok(Response::new(response))
     }
