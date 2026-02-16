@@ -260,6 +260,19 @@ class _WeightSlider extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 4),
+        PlateVisualization(weight: weight),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _WeightButton(label: '-45', onPressed: () => onChanged((weight - 45).clamp(0, 1000))),
+            _WeightButton(label: '-5', onPressed: () => onChanged((weight - 5).clamp(0, 1000))),
+            _WeightButton(label: '+5', onPressed: () => onChanged((weight + 5).clamp(0, 1000))),
+            _WeightButton(label: '+45', onPressed: () => onChanged((weight + 45).clamp(0, 1000))),
+          ],
+        ),
+        const SizedBox(height: 8),
         Slider(
           value: weight.clamp(0, 500),
           min: 0,
@@ -445,7 +458,47 @@ Future<void> showAddExerciseDialog(
                     controller: weightController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Weight (lbs)'),
-                    onChanged: (v) => weight = double.tryParse(v) ?? weight,
+                    onChanged: (v) {
+                      setState(() {
+                        weight = double.tryParse(v) ?? weight;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Center(child: PlateVisualization(weight: weight)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _WeightButton(
+                        label: '-45',
+                        onPressed: () => setState(() {
+                          weight = (weight - 45).clamp(0, 1000);
+                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                        }),
+                      ),
+                      _WeightButton(
+                        label: '-5',
+                        onPressed: () => setState(() {
+                          weight = (weight - 5).clamp(0, 1000);
+                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                        }),
+                      ),
+                      _WeightButton(
+                        label: '+5',
+                        onPressed: () => setState(() {
+                          weight = (weight + 5).clamp(0, 1000);
+                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                        }),
+                      ),
+                      _WeightButton(
+                        label: '+45',
+                        onPressed: () => setState(() {
+                          weight = (weight + 45).clamp(0, 1000);
+                          weightController.text = weight.toStringAsFixed(1).replaceAll('.0', '');
+                        }),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Row(

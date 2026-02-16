@@ -18,11 +18,11 @@ function Box({ accent, children, className }: { accent: string; children: React.
   )
 }
 
-const PLATE_H: Record<number, string> = { 45: 'h-8', 25: 'h-7', 10: 'h-6', 5: 'h-5', 2.5: 'h-4' }
-const PLATE_W: Record<number, string> = { 45: 'w-2.5', 25: 'w-2', 10: 'w-1.5', 5: 'w-1.5', 2.5: 'w-1' }
+const PLATE_H: Record<number, string> = { 45: 'h-8', 25: 'h-8', 10: 'h-8', 5: 'h-8', 2.5: 'h-8' }
+const PLATE_W: Record<number, string> = { 45: 'w-2.5', 25: 'w-2', 10: 'w-1.5', 5: 'w-1', 2.5: 'w-0.5' }
 
-const FULL_H: Record<number, string> = { 45: 'h-20', 25: 'h-16', 10: 'h-14', 5: 'h-12', 2.5: 'h-10' }
-const FULL_W: Record<number, string> = { 45: 'w-4', 25: 'w-3.5', 10: 'w-3', 5: 'w-2.5', 2.5: 'w-2' }
+const FULL_H: Record<number, string> = { 45: 'h-28', 25: 'h-28', 10: 'h-28', 5: 'h-28', 2.5: 'h-28' }
+const FULL_W: Record<number, string> = { 45: 'w-6', 25: 'w-5', 10: 'w-4', 5: 'w-3', 2.5: 'w-2' }
 
 /** Inline barbell plate visualization — tap to see full detail */
 function InlinePlates({ weight }: { weight: number }) {
@@ -31,7 +31,10 @@ function InlinePlates({ weight }: { weight: number }) {
   const isEmpty = plates.length === 0
   return (
     <>
-      <button className="flex items-center gap-[2px]" onClick={() => setShowDetail(true)}>
+      <button 
+        className="flex items-center gap-[2px] px-4 py-2.5 rounded-xl border-2 border-border bg-muted/40 hover:bg-muted/60 hover:border-primary/30 transition-all shadow-sm active:scale-95" 
+        onClick={() => setShowDetail(true)}
+      >
         {!isEmpty && (
           <div className="flex items-center gap-[2px] flex-row-reverse">
             {plates.map((p, i) => (
@@ -39,7 +42,7 @@ function InlinePlates({ weight }: { weight: number }) {
             ))}
           </div>
         )}
-        <div className="h-1 w-6 bg-gray-500" />
+        <div className="h-1 w-6 bg-black" />
         {!isEmpty && (
           <div className="flex items-center gap-[2px]">
             {plates.map((p, i) => (
@@ -51,7 +54,7 @@ function InlinePlates({ weight }: { weight: number }) {
       {showDetail && (
         <Modal title={`${weight} lb`} onClose={() => setShowDetail(false)} className="max-w-sm">
           <div className="p-6 space-y-3">
-            <div className="flex items-center justify-center h-24 gap-0">
+            <div className="flex items-center justify-center h-32 gap-0">
               {!isEmpty && (
                 <div className="flex items-center gap-0.5 flex-row-reverse">
                   {plates.map((p, i) => (
@@ -59,7 +62,7 @@ function InlinePlates({ weight }: { weight: number }) {
                   ))}
                 </div>
               )}
-              <div className="h-2 w-16 bg-gray-500" />
+              <div className="h-2.5 w-20 bg-black" />
               {!isEmpty && (
                 <div className="flex items-center gap-0.5">
                   {plates.map((p, i) => (
@@ -78,9 +81,9 @@ function InlinePlates({ weight }: { weight: number }) {
                 ))}
               </div>
             )}
-            <p className="text-center text-sm text-muted-foreground">
-              {isEmpty ? 'Empty bar' : `${plates.join(' + ')} per side`}
-            </p>
+            <div className="text-center text-xl font-black text-muted-foreground whitespace-pre-line leading-loose tracking-wide pt-4">
+              {isEmpty ? 'Empty bar' : `Each side:\n${Array.from(new Set(plates)).map(p => `${p} x ${plates.filter(x => x === p).length}`).join('\n')}`}
+            </div>
           </div>
         </Modal>
       )}

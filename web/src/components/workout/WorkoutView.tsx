@@ -194,7 +194,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
     } catch (e) { console.error(e) }
   }
 
-  const handleEditExercise = async (groupIdx: number, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
+  const handleEditExercise = async (groupIdx: number, opts: { warmups: boolean; setCount: number; targetWeights: number[] }) => {
     const groups = exerciseGroups.length > 0 
       ? exerciseGroups.map(eg => ({
           exercise: proposedSets.find(s => s.exerciseGroupId === eg.id)?.exercise ?? Exercise.UNSPECIFIED,
@@ -213,7 +213,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
         name: group.group.name,
         sets: opts.setCount,
         reps: 5, // Default reps if not specified
-        weight: opts.targetWeight,
+        weights: opts.targetWeights,
         includeWarmup: opts.warmups,
       }, withUserId(userId))
       
@@ -294,7 +294,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  const handleAddExercise = async (ex: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
+  const handleAddExercise = async (ex: Exercise, opts: { warmups: boolean; setCount: number; targetWeights: number[] }) => {
     try {
       const res = await workoutClient.createExerciseGroup({
         workoutId,
@@ -303,7 +303,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
         exercises: [ex],
         sets: opts.setCount,
         reps: 5,
-        weight: opts.targetWeight,
+        weights: opts.targetWeights,
         includeWarmup: opts.warmups,
       }, withUserId(userId))
       

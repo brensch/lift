@@ -69,14 +69,14 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
               final allDone = wp.activeProposedSets.isNotEmpty &&
                   wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
                   activeSetId == null;
-              if (allDone) return 'ALL DONE';
-              if (activeSetId != null) return 'LIFTING';
-              if (isResting) return 'RESTING (${wp.restSecondsRemaining}s)';
+              if (allDone) return 'All done';
+              if (activeSetId != null) return 'Lifting';
+              if (isResting) return 'Resting (${wp.restSecondsRemaining}s)';
               if (!isResting && activeSetId == null && lastRestEnd > 0 && lastRestEnd <= nowUnix && nextSet != null) {
-                return 'CHATTING (+${nowUnix - lastRestEnd}s)';
+                return 'Yapping (+${nowUnix - lastRestEnd}s)';
               }
-              if (nextSet != null) return 'NEXT UP';
-              return 'IDLE';
+              if (nextSet != null) return 'Next up';
+              return 'Idle';
             }()),
             _row('wasResting', '${wp.debugWasResting}'),
             _row('lastSoundedRestUntil', '${wp.debugLastSoundedRestUntil ?? "null"}'),
