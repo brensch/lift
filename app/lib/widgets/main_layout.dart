@@ -29,7 +29,7 @@ class MainLayout extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: GestureDetector(
           onTap: () => context.go('/'),
-          child: const WobblyText(text: 'LIFT', fontSize: 24, maxOffset: 1),
+          child: const WobblyText(text: 'LIFT', fontSize: 24, maxOffset: 2),
         ),
         actions: [
           _buildMultiplayerButton(context, mp),

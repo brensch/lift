@@ -37,6 +37,9 @@ impl AuthService for MyAuthService {
         if username.is_empty() {
             return Err(Status::invalid_argument("username is required"));
         }
+        if username.contains(' ') {
+            return Err(Status::invalid_argument("username cannot contain spaces"));
+        }
 
         let existing = self.auth_state.central_db.get_user_by_name(&username).await
             .map_err(|e| Status::internal(e.to_string()))?;
@@ -234,6 +237,9 @@ impl AuthService for MyAuthService {
         if username.is_empty() {
             return Err(Status::invalid_argument("username is required"));
         }
+        if username.contains(' ') {
+            return Err(Status::invalid_argument("username cannot contain spaces"));
+        }
         if req.password.len() < 4 {
             return Err(Status::invalid_argument("password must be at least 4 characters"));
         }
@@ -314,6 +320,12 @@ impl AuthService for MyAuthService {
             let req = request.into_inner();
             let username = req.username.trim().to_string();
 
+            if username.is_empty() {
+                return Err(Status::invalid_argument("username is required"));
+            }
+            if username.contains(' ') {
+                return Err(Status::invalid_argument("username cannot contain spaces"));
+            }
             if !username.starts_with("__test__") {
                 return Err(Status::invalid_argument("TestLogin only accepts usernames starting with __test__"));
             }
