@@ -9,6 +9,7 @@ import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
+import '../logic/utils.dart';
 import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
@@ -88,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = cleanErrorMessage(e);
           _isLoading = false;
         });
       }

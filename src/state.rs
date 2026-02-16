@@ -78,13 +78,20 @@ impl AppState {
     /// Lazy crash recovery: on first access per user, check their UserDb for
     /// an active workout left over from a crash. No-op if already checked.
     pub async fn try_recover_user(&self, central_db: &CentralDb, user_id: &str) {
-        // Fast path: already checked
+        // 1. Ensure user info is cached (needed for names in multiplayer)
+        if !self.users.contains_key(user_id) {
+            if let Ok(Some(user)) = central_db.get_user(user_id).await {
+                self.users.insert(user_id.to_string(), user);
+            }
+        }
+
+        // Fast path: already checked for workout recovery
         if self.checked_users.contains_key(user_id) {
             return;
         }
         self.checked_users.insert(user_id.to_string(), ());
 
-        // Already have an active workout in memory — nothing to recover
+        // Already have an active workout in memory — nothing more to recover
         if self.workouts.contains_key(user_id) {
             return;
         }

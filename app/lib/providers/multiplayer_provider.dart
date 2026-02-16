@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../services/multiplayer_service.dart';
+import '../logic/utils.dart';
 
 class MultiplayerProvider extends ChangeNotifier {
   final MultiplayerServiceWrapper _service;
@@ -33,7 +34,7 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<bool> joinSession(String userId, {String? workoutId}) async {
+  Future<String?> joinSession(String userId, {String? workoutId}) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -45,10 +46,20 @@ class MultiplayerProvider extends ChangeNotifier {
         gravity: ToastGravity.TOP,
         fontSize: 14.0,
       );
-      return true;
+      return null; // Success
     } catch (e) {
       debugPrint('Error joining session: $e');
-      return false;
+      final cleanError = cleanErrorMessage(e);
+      
+      Fluttertoast.showToast(
+        msg: cleanError.toUpperCase(),
+        backgroundColor: Colors.red.shade600,
+        textColor: Colors.white,
+        gravity: ToastGravity.TOP,
+        fontSize: 14.0,
+        toastLength: Toast.LENGTH_LONG,
+      );
+      return cleanError;
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -3,6 +3,7 @@ import 'package:credential_manager/credential_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/grpc_client.dart';
+import '../logic/utils.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
@@ -157,6 +158,6 @@ class AuthProvider extends ChangeNotifier {
     if (e is CredentialException) {
       return e.message;
     }
-    return e.toString().replaceFirst('Exception: ', '');
+    return cleanErrorMessage(e);
   }
 }
