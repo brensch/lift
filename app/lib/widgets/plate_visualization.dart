@@ -4,85 +4,180 @@ import '../logic/plate_calculator.dart';
 class PlateVisualization extends StatelessWidget {
   final double weight;
   final double scale;
+  final bool showText;
+  final bool isInteractive;
 
   const PlateVisualization({
     super.key,
     required this.weight,
     this.scale = 1.0,
+    this.showText = false,
+    this.isInteractive = true,
   });
+
+  void _showDetailModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${weight.toInt()} LB BREAKDOWN', style: const TextStyle(fontWeight: FontWeight.w900)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 20),
+            PlateVisualization(
+              weight: weight,
+              scale: 2.0,
+              showText: true,
+              isInteractive: false,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final result = calcPlatesPerSide(weight);
     if (result.plates.isEmpty) return const SizedBox.shrink();
 
-    return Transform.scale(
-      scale: scale,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Left Side Plates
-          ...result.plates.reversed.map((plate) {
-            final height = _plateHeight(plate);
-            final color = _plateColor(plate);
-            return Padding(
-              padding: const EdgeInsets.only(left: 1),
-              child: Container(
-                width: 8,
-                height: height,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(1),
+    Widget content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Transform.scale(
+            scale: scale,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Left Side Plates
+                ...result.plates.reversed.map((plate) {
+                  final width = _plateWidth(plate);
+                  final color = _plateColor(plate);
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 1),
+                    child: Container(
+                      width: width,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(width: 1),
+                // Bar
+                Container(
+                  width: 24,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
                 ),
-              ),
-            );
-          }),
-          const SizedBox(width: 1),
-          // Bar
-          Container(
-            width: 24,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outline,
-              borderRadius: BorderRadius.circular(1),
+                const SizedBox(width: 1),
+                // Right Side Plates
+                ...result.plates.map((plate) {
+                  final width = _plateWidth(plate);
+                  final color = _plateColor(plate);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 1),
+                    child: Container(
+                      width: width,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  );
+                }),
+              ],
             ),
           ),
-          const SizedBox(width: 1),
-          // Right Side Plates
-          ...result.plates.map((plate) {
-            final height = _plateHeight(plate);
-            final color = _plateColor(plate);
+        ),
+        if (showText) ...[
+          const SizedBox(height: 16),
+          // Group plates for the text description
+          Builder(builder: (context) {
+            final Map<double, int> plateCounts = {};
+            for (var p in result.plates) {
+              plateCounts[p] = (plateCounts[p] ?? 0) + 1;
+            }
+            final plateDescription = plateCounts.entries
+                .map((e) => '${e.key % 1 == 0 ? e.key.toInt() : e.key} x ${e.value}')
+                .join('\n');
             return Padding(
-              padding: const EdgeInsets.only(right: 1),
-              child: Container(
-                width: 8,
-                height: height,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(1),
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                'Each side:\n$plateDescription',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey.shade600,
+                  height: 1.8,
+                  letterSpacing: 0.5,
                 ),
               ),
             );
           }),
         ],
-      ),
+      ],
     );
+
+    if (isInteractive) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: Material(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => _showDetailModal(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: colorScheme.outline,
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: content,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return content;
   }
 
-  double _plateHeight(double plate) {
+  double _plateWidth(double plate) {
     switch (plate) {
       case 45:
-        return 32;
+        return 10;
       case 25:
-        return 28;
+        return 8;
       case 10:
-        return 22;
+        return 6;
       case 5:
-        return 18;
+        return 4;
       case 2.5:
-        return 12;
+        return 2;
       default:
-        return 14;
+        return 3;
     }
   }
 

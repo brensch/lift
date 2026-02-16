@@ -4,8 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
-  static const _notificationId = 1;
-  static const _buzzNotificationId = 2;
+  static const _restNotificationId = 1;
   static const _startSetActionId = 'start_next_set';
 
   /// Callback for when the "Start Set" notification action is tapped.
@@ -42,12 +41,15 @@ class NotificationService {
     }
   }
 
-  static Future<void> scheduleRestNotification({
+  /// Schedules a rest-complete notification for the future.
+  /// Used when the app might go into the background.
+  static Future<void> scheduleRest({
     required int restUntilUnix,
     required String soundPresetId,
-    String body = 'Time to start your next set!',
+    required String body,
   }) async {
-    await cancelAll();
+    // Clear any existing rest notifications first
+    await cancelRest();
 
     final scheduledTime = tz.TZDateTime.fromMillisecondsSinceEpoch(
       tz.local,
@@ -88,7 +90,7 @@ class NotificationService {
     );
 
     await _plugin.zonedSchedule(
-      _notificationId,
+      _restNotificationId,
       'Rest Complete',
       body,
       scheduledTime,
@@ -99,18 +101,9 @@ class NotificationService {
     );
   }
 
-  static Future<void> cancelRestNotification() async {
-    await _plugin.cancel(_notificationId);
-  }
-
-  static Future<void> cancelAll() async {
-    await _plugin.cancelAll();
-  }
-
-  /// Show a silent notification with vibration only (no sound).
-  /// Used when rest ends while app is in foreground — the in-app ding handles
-  /// sound, but we still want watches to buzz.
-  static Future<void> showBuzzNotification({String body = 'Time to start your next set!'}) async {
+  /// Shows a rest-complete notification immediately.
+  /// Used for foreground alerts where we handle sound manually but want watch vibration.
+  static Future<void> showRestNow({required String body}) async {
     const androidDetails = AndroidNotificationDetails(
       'rest_timer_buzz',
       'Rest Timer Buzz',
@@ -135,11 +128,21 @@ class NotificationService {
     );
 
     await _plugin.show(
-      _buzzNotificationId,
+      _restNotificationId,
       'Rest Complete',
       body,
       const NotificationDetails(android: androidDetails, iOS: darwinDetails),
     );
+  }
+
+  /// Cancels any pending or active rest notifications.
+  static Future<void> cancelRest() async {
+    await _plugin.cancel(_restNotificationId);
+  }
+
+  /// Comprehensive cleanup of all notifications.
+  static Future<void> cancelAll() async {
+    await _plugin.cancelAll();
   }
 
   static Future<List<PendingNotificationRequest>> getPendingNotifications() async {

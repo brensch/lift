@@ -8,7 +8,7 @@ import '../widgets/plate_visualization.dart';
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
   final s = seconds.abs() % 60;
-  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  return '$m:${s.toString().padLeft(2, '0')}';
 }
 
 // ─── Shared components ──────────────────────────────────────────────

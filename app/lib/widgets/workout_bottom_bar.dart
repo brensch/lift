@@ -15,7 +15,7 @@ import '../widgets/workout_status_box.dart';
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
   final s = seconds.abs() % 60;
-  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  return '$m:${s.toString().padLeft(2, '0')}';
 }
 
 class WorkoutBottomBar extends StatelessWidget {
@@ -64,7 +64,7 @@ class WorkoutBottomBar extends StatelessWidget {
     Widget actionButton = const SizedBox.shrink();
 
     if (allDone) {
-      stateLabel = 'ALL SETS COMPLETE';
+      stateLabel = 'All sets complete';
       stateColor = AppTheme.successFg;
       displaySet = null;
       actionButton = _BigButton(
@@ -86,7 +86,7 @@ class WorkoutBottomBar extends StatelessWidget {
           ? (wp.now.millisecondsSinceEpoch ~/ 1000) - activeCompleted.startedAt.toInt()
           : 0;
 
-      stateLabel = proposed.warmup ? 'WARMUP' : 'LIFTING';
+      stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       stateColor = proposed.warmup ? const Color(0xFF3B82F6) : colorScheme.primary;
       timerText = _fmt(elapsedSecs);
       timerColor = colorScheme.tertiary;
@@ -97,7 +97,7 @@ class WorkoutBottomBar extends StatelessWidget {
         onSkipWarmup: proposed.warmup ? () => wp.skipWarmup(activeSetId) : null,
       );
     } else if (isResting) {
-      stateLabel = 'RESTING';
+      stateLabel = 'Resting';
       stateColor = const Color(0xFF3B82F6);
       timerText = _fmt(restSeconds);
       timerColor = null; // default
@@ -111,7 +111,7 @@ class WorkoutBottomBar extends StatelessWidget {
         onSecondary: nextSet?.warmup == true ? () => wp.skipWarmup(nextSet!.id) : null,
       );
     } else if (isChatTime) {
-      stateLabel = 'CHATTING';
+      stateLabel = 'Yapping';
       stateColor = const Color(0xFFF97316);
       timerText = '+${_fmt(chatElapsed)}';
       timerColor = const Color(0xFFF97316);
@@ -123,7 +123,7 @@ class WorkoutBottomBar extends StatelessWidget {
         onSecondary: nextSet.warmup ? () => wp.skipWarmup(nextSet.id) : null,
       );
     } else if (nextSet != null) {
-      stateLabel = 'NEXT UP';
+      stateLabel = 'Next up';
       stateColor = colorScheme.tertiary;
       displaySet = nextSet;
       actionButton = _BigButton(
@@ -160,7 +160,8 @@ class WorkoutBottomBar extends StatelessWidget {
               children: [
                 // Row 1: Current user status box
                 StatusBox(
-                  label: 'NEXT FOR YOU ($stateLabel)',
+                  sideLabel: 'YOU',
+                  stateLabel: stateLabel,
                   color: stateColor,
                   timerText: timerText,
                   timerColor: timerColor,
@@ -215,7 +216,7 @@ class WorkoutBottomBar extends StatelessWidget {
               orElse: () => null,
             );
         groupActive = p;
-        groupState = proposed?.warmup == true ? 'WARMUP' : 'LIFTING';
+        groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
         groupTimer = _fmt(nowUnix - active.startedAt.toInt());
         groupSet = proposed;
         break;
@@ -232,15 +233,15 @@ class WorkoutBottomBar extends StatelessWidget {
           groupActive = nextUp.participant;
           final remaining = nextUp.restUntil - nowUnix;
           if (remaining > 0) {
-            groupState = 'RESTING';
+            groupState = 'Resting';
             groupTimer = _fmt(remaining);
           } else if (nextUp.restUntil > 0) {
-            groupState = 'CHATTING';
+            groupState = 'Yapping';
             groupTimer = '+${_fmt(nowUnix - nextUp.restUntil)}';
             groupTimerColor = orange;
           } else {
-            groupState = 'READY';
-            groupTimer = 'READY';
+            groupState = 'Ready';
+            groupTimer = 'Ready';
           }
           groupSet = nextUp.nextSet;
         }
@@ -260,7 +261,7 @@ class WorkoutBottomBar extends StatelessWidget {
             Icon(Icons.check_circle_outline, color: purple, size: 18),
             SizedBox(width: 8),
             Text(
-              "YOU'RE UP NEXT IN THE GROUP",
+              "You're up next in the group",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
@@ -275,11 +276,12 @@ class WorkoutBottomBar extends StatelessWidget {
 
     if (groupActive == null) return const SizedBox.shrink();
 
-    final name = groupActive.user.name.toUpperCase();
-    final label = 'NEXT FOR GROUP: $name ($groupState)';
+    final name = groupActive.user.name;
 
     return StatusBox(
-      label: label,
+      sideLabel: 'GROUP',
+      header: name,
+      stateLabel: groupState,
       color: boxColor,
       timerText: groupTimer,
       timerColor: groupTimerColor,

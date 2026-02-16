@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
 import { PlateCalculator } from '@/components/PlateCalculator'
@@ -6,7 +6,7 @@ import { Exercise, type ProposedSet } from '@/gen/workout/v1/workout_pb'
 import { EXERCISE_NAMES } from '@/lib/exercises'
 
 export function AddSetModal({ onAdd, onClose }: {
-  onAdd: (exercise: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => void
+  onAdd: (exercise: Exercise, opts: { warmups: boolean; setCount: number; targetWeights: number[] }) => void
   onClose: () => void
 }) {
   const [exercise, setExercise] = useState<Exercise>(Exercise.SQUAT)
@@ -45,7 +45,7 @@ export function AddSetModal({ onAdd, onClose }: {
           <span className="text-sm font-medium">Warmup sets</span>
         </label>
 
-        <Button className="w-full" onClick={() => onAdd(exercise, { warmups, setCount, targetWeight: weight })}>
+        <Button className="w-full" onClick={() => onAdd(exercise, { warmups, setCount, targetWeights: [weight] })}>
           Add
         </Button>
       </div>
@@ -54,27 +54,91 @@ export function AddSetModal({ onAdd, onClose }: {
 }
 
 export function EditExerciseModal({ group, onSave, onDelete, onClose }: {
-  group: { exercise: Exercise; sets: ProposedSet[] }
-  onSave: (opts: { warmups: boolean; setCount: number; targetWeight: number }) => void
+  group: { exercise: Exercise; sets: ProposedSet[]; group?: any }
+  onSave: (opts: { warmups: boolean; setCount: number; targetWeights: number[] }) => void
   onDelete: () => void
   onClose: () => void
 }) {
   const workingSets = group.sets.filter((s) => !s.warmup)
   const hasWarmups = group.sets.some((s) => s.warmup)
-  const workingWeight = workingSets[0]?.targetWeight ?? 45
+
+  // Get unique exercises in this group to handle supersets
+  const uniqueExercises = useMemo(() => {
+    const exercises: Exercise[] = []
+    group.sets.forEach(s => {
+      if (!exercises.includes(s.exercise)) exercises.push(s.exercise)
+    })
+    return exercises
+  }, [group.sets])
+
+  // Initial weights
+  const initialWeights = useMemo(() => {
+    if (group.group?.type === 2) { // SUPERSET
+      return uniqueExercises.map(ex => group.sets.find(s => s.exercise === ex)?.targetWeight ?? 45)
+    } else if (group.group?.type === 3) { // DROPSET
+      return workingSets.map(s => s.targetWeight)
+    } else {
+      return [workingSets[0]?.targetWeight ?? 45]
+    }
+  }, [group, uniqueExercises, workingSets])
 
   const [warmups, setWarmups] = useState(hasWarmups)
-  const [setCount, setSetCount] = useState(workingSets.length)
-  const [weight, setWeight] = useState(workingWeight)
+  const [setCount, setSetCount] = useState(
+    group.group?.type === 2 
+      ? workingSets.length / uniqueExercises.length 
+      : workingSets.length
+  )
+  const [weights, setWeights] = useState<number[]>(initialWeights)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  return (
-    <Modal title={`Edit ${EXERCISE_NAMES[group.exercise]}`} onClose={onClose} className="max-w-sm">
-      <div className="p-6 space-y-4">
-        <PlateCalculator weight={weight} onChange={setWeight} />
+  const updateWeight = (idx: number, w: number) => {
+    const next = [...weights]
+    next[idx] = w
+    setWeights(next)
+  }
 
-        <div>
-          <label className="text-sm font-medium mb-1 block">Working Sets</label>
+  return (
+    <Modal title={`Edit ${group.group?.name || EXERCISE_NAMES[group.exercise]}`} onClose={onClose} className="max-w-sm">
+      <div className="p-6 space-y-4">
+        <div className="space-y-6">
+          {group.group?.type === 2 ? (
+            uniqueExercises.map((ex, i) => (
+              <div key={ex} className="space-y-2">
+                <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  {EXERCISE_NAMES[ex]}
+                </label>
+                <PlateCalculator weight={weights[i] || 45} onChange={(w) => updateWeight(i, w)} />
+              </div>
+            ))
+          ) : group.group?.type === 3 ? (
+            <div className="space-y-4">
+              <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Set Weights (Dropset)
+              </label>
+              {Array.from({ length: setCount }).map((_, i) => {
+                // Ensure we have enough weights in the state
+                if (i >= weights.length) {
+                  const lastWeight = weights[weights.length - 1] || 45
+                  const nextWeight = Math.max(0, lastWeight - 10)
+                  setWeights([...weights, nextWeight])
+                }
+                return (
+                  <div key={i} className="space-y-2 border-t pt-4 first:border-0 first:pt-0">
+                    <span className="text-xs font-bold text-muted-foreground">SET {i + 1}</span>
+                    <PlateCalculator weight={weights[i] || 45} onChange={(w) => updateWeight(i, w)} />
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <PlateCalculator weight={weights[0] || 45} onChange={(w) => updateWeight(0, w)} />
+          )}
+        </div>
+
+        <div className="pt-4 border-t">
+          <label className="text-sm font-medium mb-1 block">
+            {group.group?.type === 2 ? 'Rounds' : 'Working Sets'}
+          </label>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => setSetCount(Math.max(1, setCount - 1))} disabled={setCount <= 1}>-</Button>
             <span className="text-lg font-bold w-8 text-center">{setCount}</span>
@@ -87,7 +151,7 @@ export function EditExerciseModal({ group, onSave, onDelete, onClose }: {
           <span className="text-sm font-medium">Warmup sets</span>
         </label>
 
-        <Button className="w-full" onClick={() => onSave({ warmups, setCount, targetWeight: weight })}>
+        <Button className="w-full" onClick={() => onSave({ warmups, setCount, targetWeights: weights })}>
           Save
         </Button>
 

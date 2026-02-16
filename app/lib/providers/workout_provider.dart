@@ -110,9 +110,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Rest just ended — cancel scheduled notification (prevent double sound),
       // play in-app sound, and show buzz notification for watches
       _lastSoundedRestUntil = restUntil;
-      await NotificationService.cancelAll();
+      await NotificationService.cancelRest();
       _soundProvider?.playCurrentSound();
-      await NotificationService.showBuzzNotification(body: _nextSetBody());
+      await NotificationService.showRestNow(body: _nextSetBody());
     }
     _wasResting = isCurrentlyResting;
   }
@@ -350,7 +350,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (resting != null) {
         _lastSoundedRestUntil = resting.restUntil.toInt();
       }
-      await NotificationService.cancelAll();
+      await NotificationService.cancelRest();
       _wasResting = false;
       final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
       _activeCompletedSets.add(completed);
@@ -382,7 +382,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _wasResting = true;
         // Schedule background notification for when rest ends
         final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
-        await NotificationService.scheduleRestNotification(
+        await NotificationService.scheduleRest(
           restUntilUnix: completed.restUntil.toInt(),
           soundPresetId: presetId,
           body: _nextSetBody(),
@@ -399,7 +399,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _service.deleteCompletedSet(_activeWorkout!.id, completedSetId);
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
-      await NotificationService.cancelAll();
+      await NotificationService.cancelRest();
       _wasResting = false;
       notifyListeners();
     } catch (e) {
@@ -420,7 +420,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (resting != null) {
         _lastSoundedRestUntil = resting.restUntil.toInt();
       }
-      await NotificationService.cancelAll();
+      await NotificationService.cancelRest();
       final completed = await _service.completeSet(
         _activeWorkout!.id,
         proposedSetId,

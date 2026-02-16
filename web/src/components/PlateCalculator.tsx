@@ -11,19 +11,19 @@ export const PLATE_COLORS: Record<number, string> = {
 }
 
 const PLATE_WIDTHS: Record<number, string> = {
-  45: 'w-4',
-  25: 'w-3.5',
-  10: 'w-3',
-  5: 'w-2.5',
+  45: 'w-6',
+  25: 'w-5',
+  10: 'w-4',
+  5: 'w-3',
   2.5: 'w-2',
 }
 
 const PLATE_HEIGHTS: Record<number, string> = {
-  45: 'h-20',
-  25: 'h-16',
-  10: 'h-14',
-  5: 'h-12',
-  2.5: 'h-10',
+  45: 'h-28',
+  25: 'h-28',
+  10: 'h-28',
+  5: 'h-28',
+  2.5: 'h-28',
 }
 
 export function calcPlatesPerSide(weight: number): number[] {
@@ -67,7 +67,7 @@ export function PlateCalculator({ weight, onChange }: PlateCalculatorProps) {
   return (
     <div className="space-y-3">
       {/* Barbell visualization */}
-      <div className="flex items-center justify-center h-24 gap-0">
+      <div className="flex items-center justify-center h-32 gap-0">
         <div className="flex items-center gap-0.5 flex-row-reverse">
           {plates.map((p, i) => (
             <div
@@ -77,7 +77,7 @@ export function PlateCalculator({ weight, onChange }: PlateCalculatorProps) {
             />
           ))}
         </div>
-        <div className="h-2 w-16 bg-gray-500" />
+        <div className="h-2.5 w-20 bg-black" />
         <div className="flex items-center gap-0.5">
           {plates.map((p, i) => (
             <div
@@ -110,9 +110,9 @@ export function PlateCalculator({ weight, onChange }: PlateCalculatorProps) {
           max={500}
           step={5}
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          {clamped === 45 ? 'Empty bar' : `${plates.join(' + ')} per side`}
-        </p>
+        <div className="text-base font-black text-muted-foreground mt-4 whitespace-pre-line leading-loose tracking-wide">
+          {clamped === 45 ? 'Empty bar' : `Each side:\n${Array.from(new Set(plates)).map(p => `${p} x ${plates.filter(x => x === p).length}`).join('\n')}`}
+        </div>
       </div>
 
       {/* Slider */}

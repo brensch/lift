@@ -8,7 +8,7 @@ import '../widgets/workout_status_box.dart';
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
   final s = seconds.abs() % 60;
-  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  return '$m:${s.toString().padLeft(2, '0')}';
 }
 
 /// Card showing a participant's current workout state.
@@ -28,12 +28,14 @@ class ParticipantCard extends StatelessWidget {
     final status = _getStatus(participant);
 
     return StatusBox(
-      label: '${participant.user.name.toUpperCase()} (${status.stateLabel})',
+      sideLabel: 'USER',
+      header: participant.user.name,
+      stateLabel: status.stateLabel,
       color: status.stateColor,
       timerText: status.timerText,
       timerColor: status.timerColor,
       set: status.proposedSet,
-      isComplete: status.stateLabel == 'DONE' || status.stateLabel == 'FINISHED',
+      isComplete: status.stateLabel == 'Done' || status.stateLabel == 'Finished',
     );
   }
 
@@ -43,7 +45,7 @@ class ParticipantCard extends StatelessWidget {
     // Check if workout is ended
     if (p.hasActiveWorkout() && p.activeWorkout.endTime != Int64.ZERO) {
       return _ParticipantStatusInfo(
-        stateLabel: 'FINISHED',
+        stateLabel: 'Finished',
         stateColor: AppTheme.successFg,
       );
     }
@@ -60,7 +62,7 @@ class ParticipantCard extends StatelessWidget {
       );
       final elapsed = now - activeSet.startedAt.toInt();
       return _ParticipantStatusInfo(
-        stateLabel: proposed?.warmup == true ? 'WARMUP' : 'LIFTING',
+        stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
         stateColor: AppTheme.activeFg,
         proposedSet: proposed,
         timerText: _fmt(elapsed),
@@ -78,7 +80,7 @@ class ParticipantCard extends StatelessWidget {
       // Find next pending set
       final nextSet = _findNextPending(p);
       return _ParticipantStatusInfo(
-        stateLabel: 'RESTING',
+        stateLabel: 'Resting',
         stateColor: const Color(0xFF3B82F6),
         proposedSet: nextSet,
         timerText: _fmt(remaining),
@@ -86,7 +88,7 @@ class ParticipantCard extends StatelessWidget {
       );
     }
 
-    // Check for chatting (rest ended, next set pending)
+    // Check for yapping (rest ended, next set pending)
     final restingSets = p.completedSets
         .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
         .toList();
@@ -97,7 +99,7 @@ class ParticipantCard extends StatelessWidget {
     if (lastRestEnd > 0 && lastRestEnd <= now && nextSet != null) {
       final elapsed = now - lastRestEnd;
       return _ParticipantStatusInfo(
-        stateLabel: 'CHATTING',
+        stateLabel: 'Yapping',
         stateColor: const Color(0xFFF97316),
         proposedSet: nextSet,
         timerText: '+${_fmt(elapsed)}',
@@ -108,7 +110,7 @@ class ParticipantCard extends StatelessWidget {
     // Idle / next up
     if (nextSet != null) {
       return _ParticipantStatusInfo(
-        stateLabel: 'NEXT UP',
+        stateLabel: 'Next up',
         stateColor: AppTheme.warmupFg,
         proposedSet: nextSet,
       );
@@ -116,7 +118,7 @@ class ParticipantCard extends StatelessWidget {
 
     // All done
     return _ParticipantStatusInfo(
-      stateLabel: 'DONE',
+      stateLabel: 'Done',
       stateColor: AppTheme.successFg,
     );
   }
