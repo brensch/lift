@@ -154,6 +154,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setError(String message) {
+    _error = message;
+    notifyListeners();
+  }
+
   static String _formatError(Object e) {
     if (e is CredentialException) {
       return e.message;

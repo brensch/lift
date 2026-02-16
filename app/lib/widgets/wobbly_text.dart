@@ -31,7 +31,7 @@ class WobblyText extends StatelessWidget {
               (rng.nextDouble() * 2 - 1) * maxOffset,
             ),
             child: Transform.rotate(
-              angle: (rng.nextDouble() * 2 - 1) * 0.05,
+              angle: (rng.nextDouble() * 2 - 1) * 0.1,
               child: Text(
                 ch,
                 style: TextStyle(

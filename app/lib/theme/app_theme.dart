@@ -39,8 +39,8 @@ class AppTheme {
       error: Color(0xFFDC2626),
       onError: Colors.white,
       surfaceContainerHighest: Color(0xFFF5F5F5),
-      outline: Color(0xFFE5E5E5),       // border
-      outlineVariant: Color(0xFFE5E5E5),
+      outline: Color(0xFFA3A3A3),       // even darker border for light mode
+      outlineVariant: Color(0xFFA3A3A3),
     ),
     dividerColor: const Color(0xFFE5E5E5),
     appBarTheme: const AppBarTheme(
@@ -83,14 +83,14 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Colors.transparent,
       border: OutlineInputBorder(
         borderRadius: _borderRadius,
-        borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+        borderSide: const BorderSide(color: Color(0xFFA3A3A3)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: _borderRadius,
-        borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+        borderSide: const BorderSide(color: Color(0xFFA3A3A3)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: _borderRadius,
@@ -158,8 +158,8 @@ class AppTheme {
       error: Color(0xFFEF4444),
       onError: Colors.white,
       surfaceContainerHighest: Color(0xFF1A1A1A),
-      outline: Color(0xFF262626),       // border
-      outlineVariant: Color(0xFF262626),
+      outline: Color(0xFF525252),       // lighter border for dark mode
+      outlineVariant: Color(0xFF525252),
     ),
     dividerColor: const Color(0xFF262626),
     appBarTheme: const AppBarTheme(
@@ -202,14 +202,14 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF141414),
+      fillColor: Colors.transparent,
       border: OutlineInputBorder(
         borderRadius: _borderRadius,
-        borderSide: const BorderSide(color: Color(0xFF262626)),
+        borderSide: const BorderSide(color: Color(0xFF525252)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: _borderRadius,
-        borderSide: const BorderSide(color: Color(0xFF262626)),
+        borderSide: const BorderSide(color: Color(0xFF525252)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: _borderRadius,
