@@ -27,3 +27,5 @@ data/
 .DS_Store
 
 user_dbs/
+
+.tmp/

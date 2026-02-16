@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:app_links/app_links.dart' as app_links;
 
 import 'services/notification_service.dart';
 import 'services/grpc_client.dart';
@@ -51,6 +54,7 @@ class _LiftAppState extends State<LiftApp> {
   late final SoundProvider _soundProvider;
   late final ThemeProvider _themeProvider;
   late final GoRouter _router;
+  StreamSubscription? _linkSubscription;
 
   @override
   void initState() {
@@ -96,14 +100,6 @@ class _LiftAppState extends State<LiftApp> {
         if (!loggedIn && !isLogin) return '/login';
         if (loggedIn && isLogin) return '/';
 
-        // Auto-redirect to workout if one is active
-        // Removed: Logic moved to HomeScreen "Resume" button to prevent loops and improve UX
-        // if (loggedIn &&
-        //     state.matchedLocation == '/' &&
-        //     _workoutProvider.hasActiveWorkout) {
-        //   return '/workout';
-        // }
-
         return null;
       },
       routes: [
@@ -128,10 +124,48 @@ class _LiftAppState extends State<LiftApp> {
         ),
       ],
     );
+
+    // Initial deep link
+    app_links.AppLinks().getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    });
+
+    // Subscribed deep links
+    _linkSubscription = app_links.AppLinks().uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+
+    // Deferred join check via clipboard
+    _checkClipboardForJoin();
+  }
+
+  Future<void> _checkClipboardForJoin() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null && data!.text!.startsWith('lift-join:')) {
+      final joinId = data.text!.replaceFirst('lift-join:', '');
+      // Clear clipboard so we don't keep joining
+      await Clipboard.setData(const ClipboardData(text: ''));
+      _joinById(joinId);
+    }
+  }
+
+  void _handleDeepLink(Uri uri) {
+    final joinId = uri.queryParameters['join'];
+    if (joinId != null) {
+      _joinById(joinId);
+    }
+  }
+
+  void _joinById(String joinId) {
+    if (_authProvider.isLoggedIn) {
+      final workoutId = _workoutProvider.hasActiveWorkout ? _workoutProvider.workout?.id : null;
+      _multiplayerProvider.joinSession(joinId, workoutId: workoutId);
+    }
   }
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _grpcClient.shutdown();
     _authProvider.dispose();
     _workoutProvider.dispose();

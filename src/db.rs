@@ -1117,26 +1117,28 @@ CREATE TABLE IF NOT EXISTS participants (
 );
 
 CREATE TABLE IF NOT EXISTS workouts (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     start_time INTEGER NOT NULL,
-    end_time INTEGER
+    end_time INTEGER,
+    PRIMARY KEY (id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS exercise_groups (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     name TEXT NOT NULL,
     type INTEGER NOT NULL,
     include_warmup BOOLEAN NOT NULL,
     workout_order INTEGER NOT NULL,
-    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+    PRIMARY KEY (id, user_id),
+    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS proposed_sets (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     workout_order INTEGER NOT NULL,
@@ -1145,12 +1147,13 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_weight REAL NOT NULL,
     warmup BOOLEAN NOT NULL,
     exercise_group_id TEXT,
-    FOREIGN KEY(workout_id) REFERENCES workouts(id),
-    FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
+    PRIMARY KEY (id, user_id),
+    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id),
+    FOREIGN KEY(exercise_group_id, user_id) REFERENCES exercise_groups(id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS completed_sets (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     proposed_set_id TEXT,
@@ -1159,7 +1162,8 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     started_at INTEGER NOT NULL,
     ended_at INTEGER NOT NULL,
     rest_until INTEGER,
-    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+    PRIMARY KEY (id, user_id),
+    FOREIGN KEY(workout_id, user_id) REFERENCES workouts(id, user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);

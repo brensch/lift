@@ -16,6 +16,13 @@ class MultiplayerModal extends StatefulWidget {
 
 class _MultiplayerModalState extends State<MultiplayerModal> {
   bool _isScanning = false;
+  final TextEditingController _idController = TextEditingController();
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    super.dispose();
+  }
 
   void _handleScan(BarcodeCapture capture) {
     final List<Barcode> barcodes = capture.barcodes;
@@ -70,7 +77,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
   Future<void> _shareSession(String sessionId) async {
     try {
-      await Share.share('Join my workout on Lift: https://lift.brensch.com/?join=$sessionId');
+      await Share.share('Join my workout on Lift: https://lift.snek2.ddns.net/?join=$sessionId');
     } catch (e) {
       debugPrint('Error sharing: $e');
       if (mounted) {
@@ -82,7 +89,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
   }
 
   Future<void> _copyLink(String sessionId) async {
-    await Clipboard.setData(ClipboardData(text: 'https://lift.brensch.com/?join=$sessionId'));
+    await Clipboard.setData(ClipboardData(text: 'https://lift.snek2.ddns.net/?join=$sessionId'));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Link copied to clipboard')),
@@ -166,6 +173,46 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   label: const Text('Scan QR Code'),
                 ),
               ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'OR PASTE ID',
+                  style: TextStyle(
+                    color: colorScheme.tertiary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _idController,
+                      decoration: InputDecoration(
+                        hintText: 'Enter Session ID',
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: () {
+                        if (_idController.text.isNotEmpty) {
+                          _joinSession(_idController.text.trim());
+                        }
+                      },
+                      child: const Text('Join'),
+                    ),
+                  ),
+                ],
+              ),
             ],
             if (_isScanning)
               Padding(
@@ -184,11 +231,12 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 border: Border.all(color: colorScheme.outline),
               ),
               child: Center(
-                child: QrImageView(
-                  data: 'https://lift.brensch.com/?join=$sessionId',
-                  version: QrVersions.auto,
-                  size: 200.0,
-                ),
+                              child: QrImageView(
+                                data: 'https://lift.snek2.ddns.net/?join=$sessionId',
+                                version: QrVersions.auto,
+                                size: 200.0,
+                              ),
+                
               ),
             ),
             const SizedBox(height: 16),

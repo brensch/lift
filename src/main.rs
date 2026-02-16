@@ -1,6 +1,10 @@
 use std::sync::Arc;
 use std::net::SocketAddr;
-use axum::{routing::get, Json};
+use axum::{
+    routing::get,
+    response::Html,
+    Json,
+};
 use http::{header::HeaderName, Method};
 use tower_http::cors::{Any, CorsLayer};
 use lift::workout::v1::{
@@ -72,6 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Assetlinks handler for Android passkey verification
     let app = grpc_router
+        .route("/", get(root_handler))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
         .layer(cors);
 
@@ -85,6 +90,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .await?;
 
     Ok(())
+}
+
+async fn root_handler() -> Html<&'static str> {
+    Html(include_str!("../index.html"))
 }
 
 async fn assetlinks_handler() -> Json<serde_json::Value> {

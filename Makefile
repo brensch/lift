@@ -35,15 +35,20 @@ setup-flutter:
 	mkdir -p $(HOME)/.config/flutter
 	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
+WINDOW_WIDTH = 450
+WINDOW_HEIGHT = 900
+
 run-app:
+	@make stop-app || true
 	@$(ADB) reverse tcp:50051 tcp:50051 || true
-	cd app && $(FLUTTER) run -d all
+	@mkdir -p .tmp/linux-1 .tmp/linux-2
+# 	cd app && $(FLUTTER) build linux --debug
+# 	@if $(ADB) devices | grep -q "device$$"; then cd app && $(FLUTTER) build apk --debug; fi
+	cd app && $(FLUTTER) run -d all --dart-define=WINDOW_WIDTH=$(WINDOW_WIDTH) --dart-define=WINDOW_HEIGHT=$(WINDOW_HEIGHT)
 
 stop-app:
-	pkill -f "lift" || true
-	pkill -f "flutter_assets" || true
-	pkill -f "lift" || true
-	pkill -f "flutter_assets" || true
+	@pkill -f "XDG_DATA_HOME=$$(pwd)/.tmp/linux" || true
+	@pkill -f "flutter_assets" || true
 
 load-test:
 	cargo run --bin load_test --features test-auth -- --concurrency 100 --duration 30 --ramp-up 5
