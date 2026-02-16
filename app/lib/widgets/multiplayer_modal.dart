@@ -40,8 +40,15 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     }
   }
 
-  Future<void> _joinSession(String sessionId) async {
+  Future<void> _joinSession(String sessionIdOrUrl) async {
     if (!mounted) return;
+
+    String sessionId = sessionIdOrUrl.trim();
+    // If it's a URL, try to extract the join parameter
+    final uri = Uri.tryParse(sessionId);
+    if (uri != null && uri.queryParameters.containsKey('join')) {
+      sessionId = uri.queryParameters['join']!;
+    }
 
     setState(() => _isScanning = false);
 
@@ -52,9 +59,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final success = await mp.joinSession(sessionId, workoutId: workoutId);
     if (success && mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Joined session successfully')),
-      );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to join session')),

@@ -236,14 +236,17 @@ class MainLayout extends StatelessWidget {
       }
     }
 
+    final participantCount = mp.participants.length;
+    final buttonLabel = participantCount > 1 ? 'MULTIPLAYER ($participantCount)' : 'MULTIPLAYER';
+
     Widget button = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: FilledButton.icon(
         onPressed: () => _showMultiplayerModal(context),
         icon: const Icon(Icons.group_add, size: 16),
-        label: const Text(
-          'MULTIPLAYER',
-          style: TextStyle(
+        label: Text(
+          buttonLabel,
+          style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 11,
             letterSpacing: 0.5,
