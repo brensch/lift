@@ -3,7 +3,6 @@ use lift::workout::v1::{
     CompletedSet, ExerciseGroup, ProposedSet, User, Workout,
 };
 use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::db::CentralDb;
