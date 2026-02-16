@@ -57,13 +57,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final wp = context.read<WorkoutProvider>();
     final workoutId = wp.hasActiveWorkout ? wp.workout?.id : null;
 
-    final success = await mp.joinSession(sessionId, workoutId: workoutId);
-    if (success && mounted) {
+    final error = await mp.joinSession(sessionId, workoutId: workoutId);
+    if (error == null && mounted) {
       Navigator.pop(context);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to join session')),
-      );
     }
   }
 

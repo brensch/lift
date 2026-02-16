@@ -462,13 +462,21 @@ impl CentralDb {
         &self,
         user_id: &str,
     ) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query("SELECT id, name, created_at FROM users WHERE id = ?")
-                .bind(user_id)
-                .map(row_to_user)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
+        // Check cache first (using the by_name cache would be tricky, but we can check if it exists in values)
+        // For now, let's keep a simple secondary cache or just check if it's already cached in some way.
+        // Actually, let's just add it to the user_by_name_cache after fetch so at least by_name is warm.
+        // Even better, let's just do the DB fetch and then cache it.
+        let res = sqlx::query("SELECT id, name, created_at FROM users WHERE id = ?")
+            .bind(user_id)
+            .map(row_to_user)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(user) = &res {
+            self.user_by_name_cache.insert(user.name.clone(), user.clone());
+        }
+
+        Ok(res)
     }
 
     pub async fn get_user_by_name(

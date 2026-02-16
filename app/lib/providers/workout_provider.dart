@@ -11,6 +11,7 @@ import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
 import '../services/health_service.dart' show HealthService, HealthWriteResult;
 import '../logic/exercises.dart';
+import '../logic/utils.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final WorkoutServiceWrapper _service;
@@ -119,14 +120,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _handleError(Object e) {
     if (e is GrpcError && e.code == StatusCode.unauthenticated) return;
-    String message;
-    if (e is GrpcError) {
-      message = e.message ?? 'Server error';
-    } else {
-      message = e.toString().replaceFirst('Exception: ', '');
-    }
+    final message = cleanErrorMessage(e);
     Fluttertoast.showToast(
-      msg: message,
+      msg: message.toUpperCase(),
       toastLength: Toast.LENGTH_LONG,
       gravity: ToastGravity.BOTTOM,
       backgroundColor: Colors.red,
@@ -505,7 +501,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (result == HealthWriteResult.success) {
         final storeName = Platform.isAndroid ? 'Health Connect' : 'Apple Health';
         Fluttertoast.showToast(
-          msg: 'Successfully uploaded to $storeName',
+          msg: 'SUCCESSFULLY UPLOADED TO ${storeName.toUpperCase()}',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.green,
@@ -513,7 +509,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         );
       } else if (result == HealthWriteResult.permissionDenied) {
         Fluttertoast.showToast(
-          msg: 'Health Connect permission denied — enable in Settings > Apps > Lift',
+          msg: 'HEALTH CONNECT PERMISSION DENIED — ENABLE IN SETTINGS',
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.orange,
@@ -523,7 +519,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e, st) {
       debugPrint('Health: write failed: $e\n$st');
       Fluttertoast.showToast(
-        msg: 'Failed to sync workout to Health Connect',
+        msg: 'FAILED TO SYNC WORKOUT TO HEALTH CONNECT',
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.red,
