@@ -18,7 +18,7 @@ use lift::workout::v1::{
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse,
     ExerciseGroup, ProposedSet, CompletedSet, ExerciseGroupType, Exercise, Workout,
 };
-use crate::db::{CentralDb, UserDb};
+use crate::db::CentralDb;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
 use uuid::Uuid;
@@ -289,8 +289,8 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        // Lazy crash recovery: check UserDb once per user for un-ended workouts
-        self.state.try_recover_user(&user_id).await;
+        // Lazy crash recovery: check CentralDb once per user for un-ended workouts
+        self.state.try_recover_user(&self.central_db, &user_id).await;
 
         if self.state.workouts.contains_key(&user_id) {
             return Err(Status::failed_precondition("A workout is already in progress. End it before starting a new one."));
@@ -319,10 +319,8 @@ impl WorkoutService for MyWorkoutService {
             }
         }
 
-        // Write initial workout row to UserDb (for crash recovery)
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-        user_db.flush_workout(&workout, &exercise_groups, &proposed_sets, &[]).await
+        // Write initial workout row to CentralDb (for crash recovery)
+        self.central_db.flush_workout(&user_id, &workout, &exercise_groups, &proposed_sets, &[]).await
             .map_err(|e| Status::internal(format!("Failed to create workout: {}", e)))?;
 
         // Store in memory
@@ -363,21 +361,18 @@ impl WorkoutService for MyWorkoutService {
             }));
         }
 
-        // Fall back to UserDb for historical workouts
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        let workout = user_db.get_workout(&req.workout_id).await
+        // Fall back to CentralDb for historical workouts
+        let workout = self.central_db.get_workout(&user_id, &req.workout_id).await
             .map_err(|e| Status::internal(format!("Failed to get workout: {}", e)))?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
 
-        let exercise_groups = user_db.get_exercise_groups(&req.workout_id).await
+        let exercise_groups = self.central_db.get_exercise_groups(&user_id, &req.workout_id).await
             .map_err(|e| Status::internal(format!("Failed to get exercise groups: {}", e)))?;
 
-        let proposed_sets = user_db.get_proposed_sets(&req.workout_id).await
+        let proposed_sets = self.central_db.get_proposed_sets(&user_id, &req.workout_id).await
             .map_err(|e| Status::internal(format!("Failed to get proposed sets: {}", e)))?;
 
-        let completed_sets = user_db.get_completed_sets(&req.workout_id).await
+        let completed_sets = self.central_db.get_completed_sets(&user_id, &req.workout_id).await
             .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?;
 
         Ok(Response::new(GetWorkoutResponse {
@@ -597,10 +592,7 @@ impl WorkoutService for MyWorkoutService {
         let active_workout = self.state.workouts.get(&user_id).map(|w| w.workout.clone());
 
         // 2. Perform DB IO outside the lock
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        let mut workouts = user_db.list_workouts().await
+        let mut workouts = self.central_db.list_workouts(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to list workouts: {}", e)))?;
 
         // If there's an active workout in memory, make sure it's in the list
@@ -779,10 +771,8 @@ impl WorkoutService for MyWorkoutService {
         let end_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         active.workout.end_time = end_time;
 
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        user_db.flush_workout(
+        self.central_db.flush_workout(
+            &user_id,
             &active.workout,
             &active.exercise_groups,
             &active.proposed_sets,
@@ -800,7 +790,7 @@ impl WorkoutService for MyWorkoutService {
                 }
             }
             // Record session in user's DB
-            let _ = user_db.leave_session(&session_id).await;
+            let _ = self.central_db.leave_session(&user_id, &session_id).await;
         }
 
         Ok(Response::new(EndWorkoutResponse {
@@ -814,8 +804,8 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
-        // Lazy crash recovery: check UserDb once per user for un-ended workouts
-        self.state.try_recover_user(&user_id).await;
+        // Lazy crash recovery: check CentralDb once per user for un-ended workouts
+        self.state.try_recover_user(&self.central_db, &user_id).await;
 
         let workout = self.state.workouts.get(&user_id)
             .map(|w| w.workout.clone());
@@ -834,11 +824,8 @@ impl WorkoutService for MyWorkoutService {
             .map(|w| w.workout.id.clone());
 
         // 2. Perform DB IO outside the lock
-        let user_db = UserDb::new(&user_id).await
-            .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
-
-        let scheduler = Scheduler::new(user_db);
-        let mut response = scheduler.get_proposed_schedule().await
+        let scheduler = Scheduler::new(self.central_db.clone());
+        let mut response = scheduler.get_proposed_schedule(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
 
         // 3. Override active_workout_id from in-memory state if present

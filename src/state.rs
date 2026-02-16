@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use crate::db::UserDb;
+use crate::db::CentralDb;
 
 pub struct ActiveWorkout {
     pub workout: Workout,
@@ -87,7 +87,7 @@ impl AppState {
 
     /// Lazy crash recovery: on first access per user, check their UserDb for
     /// an active workout left over from a crash. No-op if already checked.
-    pub async fn try_recover_user(&self, user_id: &str) {
+    pub async fn try_recover_user(&self, central_db: &CentralDb, user_id: &str) {
         // Fast path: already checked
         if self.checked_users.contains_key(user_id) {
             return;
@@ -99,20 +99,15 @@ impl AppState {
             return;
         }
 
-        // Check UserDb for un-ended workout
-        let user_db = match UserDb::new(user_id).await {
-            Ok(db) => db,
-            Err(_) => return,
-        };
-
-        let active = match user_db.get_active_workout().await {
+        // Check CentralDb for un-ended workout
+        let active = match central_db.get_active_workout(user_id).await {
             Ok(Some(w)) => w,
             _ => return,
         };
 
-        let groups = user_db.get_exercise_groups(&active.id).await.unwrap_or_default();
-        let proposed = user_db.get_proposed_sets(&active.id).await.unwrap_or_default();
-        let completed = user_db.get_completed_sets(&active.id).await.unwrap_or_default();
+        let groups = central_db.get_exercise_groups(user_id, &active.id).await.unwrap_or_default();
+        let proposed = central_db.get_proposed_sets(user_id, &active.id).await.unwrap_or_default();
+        let completed = central_db.get_completed_sets(user_id, &active.id).await.unwrap_or_default();
 
         // Re-check workouts to avoid overwriting a workout that might have started 
         // during the awaits above.
@@ -128,7 +123,7 @@ impl AppState {
         }
 
         // Recover session membership
-        if let Ok(Some(session_id)) = user_db.get_active_session().await {
+        if let Ok(Some(session_id)) = central_db.get_active_session(user_id).await {
             self.user_sessions.insert(user_id.to_string(), session_id.clone());
             self.sessions
                 .entry(session_id)
@@ -140,6 +135,7 @@ impl AppState {
     /// Flush a single user's active workout to their UserDb
     pub async fn flush_workout(
         &self,
+        central_db: &CentralDb,
         user_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // 1. Extract data while holding the lock
@@ -164,9 +160,10 @@ impl AppState {
 
         // 2. Perform IO outside the lock
         let (workout, groups, proposed, completed) = workout_data;
-        let user_db = UserDb::new(user_id).await?;
-        user_db
+        
+        central_db
             .flush_workout(
+                user_id,
                 &workout,
                 &groups,
                 &proposed,
@@ -185,7 +182,7 @@ impl AppState {
     }
 
     /// Flush all dirty workouts (called by checkpoint task)
-    pub async fn flush_all_dirty(&self) {
+    pub async fn flush_all_dirty(&self, central_db: &CentralDb) {
         let user_ids: Vec<String> = self
             .workouts
             .iter()
@@ -194,7 +191,7 @@ impl AppState {
             .collect();
 
         for user_id in user_ids {
-            if let Err(e) = self.flush_workout(&user_id).await {
+            if let Err(e) = self.flush_workout(central_db, &user_id).await {
                 eprintln!("Checkpoint flush failed for {}: {}", user_id, e);
             }
         }
@@ -202,12 +199,12 @@ impl AppState {
 
 }
 
-pub fn spawn_checkpoint_task(state: Arc<AppState>) {
+pub fn spawn_checkpoint_task(state: Arc<AppState>, central_db: CentralDb) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
         loop {
             interval.tick().await;
-            state.flush_all_dirty().await;
+            state.flush_all_dirty(&central_db).await;
         }
     });
 }
