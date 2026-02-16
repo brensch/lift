@@ -1,111 +1,18 @@
 use chrono::Utc;
 use lift::workout::v1::{
-    Exercise, ExerciseCategory, ExerciseStatus, GetProposedWorkoutScheduleResponse, MuscleGroup,
-    ProposedSet,
+    Exercise, ExerciseCategory, ExerciseStatus, ExerciseTypeConfig,
+    GetProposedWorkoutScheduleResponse, MuscleGroup, ProposedExerciseGroup,
 };
 
 use crate::db::CentralDb;
 
-/// Plate-friendly warmup stops (bar + combinations of 45/25 plates per side).
-/// Must match PLATE_STOPS in web/src/lib/warmup.ts.
-#[allow(dead_code)]
-const PLATE_STOPS: &[f32] = &[
-    45.0, 95.0, 135.0, 185.0, 225.0, 275.0, 315.0, 365.0, 405.0, 455.0, 495.0, 545.0, 585.0,
-    635.0,
-];
-
-#[allow(dead_code)]
-const REP_SCHEMES: &[&[i32]] = &[
-    &[5],          // 1 warmup
-    &[5, 5],       // 2 warmups
-    &[5, 5, 3],    // 3 warmups
-    &[5, 5, 3, 2], // 4 warmups
-];
-
-/// Generate progressive warmup sets for a given exercise and working weight.
-#[allow(dead_code)]
-fn generate_warmup_sets(exercise: i32, working_weight: f32, order: &mut i32) -> Vec<ProposedSet> {
-    if working_weight <= 45.0 {
-        return Vec::new();
-    }
-
-    let candidates: Vec<f32> = PLATE_STOPS
-        .iter()
-        .copied()
-        .filter(|&w| w < working_weight)
-        .collect();
-    if candidates.is_empty() {
-        return Vec::new();
-    }
-
-    let selected: Vec<f32> = if candidates.len() <= 4 {
-        candidates
-    } else {
-        let n = candidates.len();
-        let step = (n - 1) as f64 / 3.0;
-        vec![
-            candidates[0],
-            candidates[step.round() as usize],
-            candidates[(step * 2.0).round() as usize],
-            candidates[n - 1],
-        ]
-    };
-
-    let reps = REP_SCHEMES[selected.len() - 1];
-
-    selected
-        .iter()
-        .enumerate()
-        .map(|(i, &weight)| {
-            let set = ProposedSet {
-                id: String::new(),
-                workout_id: String::new(),
-                workout_order: *order,
-                exercise,
-                target_reps: reps[i],
-                target_weight: weight,
-                warmup: true,
-                exercise_group_id: String::new(),
-            };
-            *order += 1;
-            set
-        })
-        .collect()
-}
-
-/// Create warmup + working sets for an exercise.
-#[allow(dead_code)]
-fn create_exercise_sets(
-    exercise: i32,
-    weight: f32,
-    set_count: usize,
-    reps: i32,
-    order: &mut i32,
-) -> Vec<ProposedSet> {
-    let mut sets = generate_warmup_sets(exercise, weight, order);
-    for _ in 0..set_count {
-        sets.push(ProposedSet {
-            id: String::new(),
-            workout_id: String::new(),
-            workout_order: *order,
-            exercise,
-            target_reps: reps,
-            target_weight: weight,
-            warmup: false,
-            exercise_group_id: String::new(),
-        });
-        *order += 1;
-    }
-    sets
-}
+/// Recovery time in hours for each muscle group
+const RECOVERY_HOURS: i64 = 24;
 
 // Weight increments per successful workout
 const UPPER_BODY_INCREMENT: f32 = 5.0;
 const LOWER_BODY_INCREMENT: f32 = 5.0;
 const DEADLIFT_INCREMENT: f32 = 10.0;
-
-/// Recovery time in hours for each muscle group
-const RECOVERY_HOURS: i64 = 24;
 
 struct ExerciseConfig {
     exercise: Exercise,
@@ -233,6 +140,10 @@ const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
     },
 ];
 
+fn get_exercise_config(exercise: Exercise) -> Option<&'static ExerciseConfig> {
+    EXERCISE_CONFIGS.iter().find(|c| c.exercise == exercise)
+}
+
 pub struct Scheduler {
     central_db: CentralDb,
 }
@@ -311,11 +222,124 @@ impl Scheduler {
             });
         }
 
+        // Build proposed groups from exercise statuses
+        let proposed_groups = Self::build_proposed_groups(&exercise_statuses);
+
         // active_workout_id is set by the service handler from in-memory state
         Ok(GetProposedWorkoutScheduleResponse {
             exercise_statuses,
             active_workout_id: String::new(),
+            proposed_groups,
         })
+    }
+
+    /// Build proposed exercise groups with smart grouping.
+    /// Solo groups for heavy compounds (Squat, Deadlift).
+    /// Antagonist supersets: Bench+Row, OHP+accessory.
+    fn build_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<ProposedExerciseGroup> {
+        let mut groups = Vec::new();
+
+        let find_status = |ex: Exercise| -> Option<&ExerciseStatus> {
+            statuses.iter().find(|s| s.exercise == ex as i32)
+        };
+
+        let make_config = |status: &ExerciseStatus| -> ExerciseTypeConfig {
+            let config = get_exercise_config(Exercise::try_from(status.exercise).unwrap_or(Exercise::Unspecified));
+            ExerciseTypeConfig {
+                exercise: status.exercise,
+                start_weight: status.target_weight,
+                end_weight: status.target_weight,
+                reps: config.map(|c| c.default_reps).unwrap_or(5),
+                include_warmup: true,
+            }
+        };
+
+        // Squat — solo
+        if let Some(s) = find_status(Exercise::Squat) {
+            groups.push(ProposedExerciseGroup {
+                name: "Squat".to_string(),
+                sets: s.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(s)],
+            });
+        }
+
+        // Bench Press — solo
+        if let Some(bench) = find_status(Exercise::BenchPress) {
+            groups.push(ProposedExerciseGroup {
+                name: "Bench Press".to_string(),
+                sets: bench.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(bench)],
+            });
+        }
+
+        // Barbell Row — solo
+        if let Some(row) = find_status(Exercise::BarbellRow) {
+            groups.push(ProposedExerciseGroup {
+                name: "Barbell Row".to_string(),
+                sets: row.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(row)],
+            });
+        }
+
+        // Deadlift — solo
+        if let Some(s) = find_status(Exercise::Deadlift) {
+            groups.push(ProposedExerciseGroup {
+                name: "Deadlift".to_string(),
+                sets: s.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(s)],
+            });
+        }
+
+        // OHP — solo
+        if let Some(s) = find_status(Exercise::OverheadPress) {
+            groups.push(ProposedExerciseGroup {
+                name: "Overhead Press".to_string(),
+                sets: s.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(s)],
+            });
+        }
+
+        // Auxiliary exercises — group complementary pairs
+        let aux_pairs: Vec<(Exercise, Exercise)> = vec![
+            (Exercise::HipThrust, Exercise::BulgarianSplitSquat),
+            (Exercise::RomanianDeadlift, Exercise::LegCurl),
+            (Exercise::GluteBridge, Exercise::Lunge),
+        ];
+
+        for (ex_a, ex_b) in &aux_pairs {
+            if let (Some(a), Some(b)) = (find_status(*ex_a), find_status(*ex_b)) {
+                groups.push(ProposedExerciseGroup {
+                    name: format!("{} + {}", exercise_display_name(*ex_a), exercise_display_name(*ex_b)),
+                    sets: a.default_sets,
+                    interleave_warmups: true,
+                    exercise_configs: vec![make_config(a), make_config(b)],
+                });
+            } else {
+                if let Some(a) = find_status(*ex_a) {
+                    groups.push(ProposedExerciseGroup {
+                        name: exercise_display_name(*ex_a),
+                        sets: a.default_sets,
+                        interleave_warmups: false,
+                        exercise_configs: vec![make_config(a)],
+                    });
+                }
+                if let Some(b) = find_status(*ex_b) {
+                    groups.push(ProposedExerciseGroup {
+                        name: exercise_display_name(*ex_b),
+                        sets: b.default_sets,
+                        interleave_warmups: false,
+                        exercise_configs: vec![make_config(b)],
+                    });
+                }
+            }
+        }
+
+        groups
     }
 
     /// Pure function: calculate weight from pre-fetched data (no DB calls).
@@ -426,5 +450,22 @@ impl Scheduler {
             last_date,
             weight_history,
         )
+    }
+}
+
+fn exercise_display_name(exercise: Exercise) -> String {
+    match exercise {
+        Exercise::Squat => "Squat".to_string(),
+        Exercise::BenchPress => "Bench Press".to_string(),
+        Exercise::Deadlift => "Deadlift".to_string(),
+        Exercise::OverheadPress => "Overhead Press".to_string(),
+        Exercise::BarbellRow => "Barbell Row".to_string(),
+        Exercise::HipThrust => "Hip Thrust".to_string(),
+        Exercise::BulgarianSplitSquat => "Bulgarian Split Squat".to_string(),
+        Exercise::RomanianDeadlift => "Romanian Deadlift".to_string(),
+        Exercise::GluteBridge => "Glute Bridge".to_string(),
+        Exercise::Lunge => "Lunge".to_string(),
+        Exercise::LegCurl => "Leg Curl".to_string(),
+        _ => "Unknown".to_string(),
     }
 }

@@ -26,6 +26,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> _activeProposedSets = [];
   List<CompletedSet> _activeCompletedSets = [];
   List<ExerciseStatus> _exerciseStatuses = [];
+  List<ProposedExerciseGroup> _proposedGroups = [];
 
   // Track whether we already played the sound for the current rest period
   bool _wasResting = false;
@@ -145,6 +146,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> get proposedSets => _activeProposedSets;
   List<CompletedSet> get completedSets => _activeCompletedSets;
   List<ExerciseStatus> get exerciseStatuses => _exerciseStatuses;
+  List<ProposedExerciseGroup> get proposedGroups => _proposedGroups;
 
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
@@ -165,10 +167,28 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           .where((s) => s.exerciseGroupId == group.id)
           .toList();
       sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-      final exercise = sets.isNotEmpty
-          ? sets.first.exercise
-          : Exercise.EXERCISE_UNSPECIFIED;
-      return ExerciseGroupData(exercise: exercise, sets: sets, group: group);
+
+      // Get primary exercise from configs, fallback to first set
+      final exercise = group.exerciseConfigs.isNotEmpty
+          ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
+              Exercise.EXERCISE_UNSPECIFIED
+          : (sets.isNotEmpty
+              ? sets.first.exercise
+              : Exercise.EXERCISE_UNSPECIFIED);
+
+      // Get all exercises in group
+      final exercises = <Exercise>[];
+      for (final config in group.exerciseConfigs) {
+        final ex = Exercise.valueOf(config.exercise.value);
+        if (ex != null && !exercises.contains(ex)) exercises.add(ex);
+      }
+
+      return ExerciseGroupData(
+        exercise: exercise,
+        sets: sets,
+        group: group,
+        exercises: exercises,
+      );
     }).toList();
   }
 
@@ -285,6 +305,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         userId,
       );
       _exerciseStatuses = proposedSchedule.exerciseStatuses;
+      _proposedGroups = proposedSchedule.proposedGroups;
     } catch (e) {
       _handleError(e);
     } finally {
@@ -316,13 +337,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<String?> startWorkout(
     String name,
     List<ExerciseGroup> groups,
-    List<ProposedSet> sets,
   ) async {
     try {
       await NotificationService.cancelAll();
       _lastSoundedRestUntil = null;
       _wasResting = false;
-      final workoutId = await _service.startWorkout(name, groups, sets);
+      final workoutId = await _service.startWorkout(name, groups);
       await _loadWorkout(workoutId);
       return workoutId;
     } catch (e) {
@@ -468,6 +488,93 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> addExerciseGroup({
+    required String name,
+    required int sets,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
+  }) async {
+    if (_activeWorkout == null) return;
+    try {
+      final response = await _service.createExerciseGroup(
+        workoutId: _activeWorkout!.id,
+        name: name,
+        sets: sets,
+        interleaveWarmups: interleaveWarmups,
+        exerciseConfigs: exerciseConfigs,
+      );
+      _activeExerciseGroups.add(response.group);
+      _activeProposedSets.addAll(response.generatedSets);
+      _sortState();
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> updateGroup(
+    int groupIndex, {
+    required int sets,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
+  }) async {
+    final groups = exerciseGroups;
+    if (groupIndex < 0 || groupIndex >= groups.length) return;
+    final groupData = groups[groupIndex];
+    if (groupData.group == null) return;
+
+    try {
+      final response = await _service.updateExerciseGroup(
+        workoutId: _activeWorkout!.id,
+        exerciseGroupId: groupData.group!.id,
+        name: groupData.group!.name,
+        sets: sets,
+        interleaveWarmups: interleaveWarmups,
+        exerciseConfigs: exerciseConfigs,
+      );
+
+      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
+      _activeExerciseGroups.add(response.group);
+
+      _activeProposedSets.removeWhere(
+        (s) => s.exerciseGroupId == groupData.group!.id,
+      );
+      _activeProposedSets.addAll(response.generatedSets);
+
+      _sortState();
+
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> deleteExerciseGroup(int groupIndex) async {
+    final groups = exerciseGroups;
+    if (groupIndex < 0 || groupIndex >= groups.length) return;
+    final groupData = groups[groupIndex];
+
+    if (_activeWorkout == null) return;
+
+    if (groupData.group == null) {
+      return;
+    }
+
+    try {
+      await _service.deleteExerciseGroup(
+        _activeWorkout!.id,
+        groupData.group!.id,
+      );
+      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
+      _activeProposedSets.removeWhere(
+        (s) => s.exerciseGroupId == groupData.group!.id,
+      );
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
   /// Ends the workout on the server and returns immediately.
   /// Health write happens in the background — check [lastHealthResult] after.
   Future<void> endWorkout() async {
@@ -557,125 +664,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         backgroundColor: Colors.red,
         textColor: Colors.white,
       );
-    }
-  }
-
-  void rebuildGroup(
-    int groupIndex, {
-    required List<double> targetWeights,
-    bool? warmups,
-    int? setCount,
-  }) {
-    final groups = exerciseGroups;
-    if (groupIndex < 0 || groupIndex >= groups.length) return;
-
-    final groupData = groups[groupIndex];
-    if (groupData.group != null) {
-      final reps =
-          groupData.sets.where((s) => !s.warmup).firstOrNull?.targetReps ?? 5;
-      updateGroup(
-        groupIndex,
-        targetWeights: targetWeights,
-        reps: reps,
-        setCount: setCount ?? groupData.sets.where((s) => !s.warmup).length,
-        warmups: warmups,
-      );
-      return;
-    }
-  }
-
-  Future<void> addExerciseGroup({
-    required String name,
-    required ExerciseGroupType type,
-    required List<Exercise> exercises,
-    required int sets,
-    required int reps,
-    required List<double> weights,
-    required bool includeWarmup,
-  }) async {
-    if (_activeWorkout == null) return;
-    try {
-      final response = await _service.createExerciseGroup(
-        workoutId: _activeWorkout!.id,
-        name: name,
-        type: type,
-        exercises: exercises,
-        sets: sets,
-        reps: reps,
-        weights: weights,
-        includeWarmup: includeWarmup,
-      );
-      _activeExerciseGroups.add(response.group);
-      _activeProposedSets.addAll(response.generatedSets);
-      _sortState();
-      notifyListeners();
-    } catch (e) {
-      _handleError(e);
-    }
-  }
-
-  Future<void> updateGroup(
-    int groupIndex, {
-    required List<double> targetWeights,
-    required int reps,
-    required int setCount,
-    bool? warmups,
-  }) async {
-    final groups = exerciseGroups;
-    if (groupIndex < 0 || groupIndex >= groups.length) return;
-    final groupData = groups[groupIndex];
-    if (groupData.group == null) return;
-
-    try {
-      final response = await _service.updateExerciseGroup(
-        workoutId: _activeWorkout!.id,
-        exerciseGroupId: groupData.group!.id,
-        name: groupData.group!.name,
-        sets: setCount,
-        reps: reps,
-        weights: targetWeights,
-        includeWarmup: warmups ?? groupData.group!.includeWarmup,
-      );
-
-      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
-      _activeExerciseGroups.add(response.group);
-
-      _activeProposedSets.removeWhere(
-        (s) => s.exerciseGroupId == groupData.group!.id,
-      );
-      _activeProposedSets.addAll(response.generatedSets);
-
-      _sortState();
-
-      notifyListeners();
-    } catch (e) {
-      _handleError(e);
-    }
-  }
-
-  Future<void> deleteExerciseGroup(int groupIndex) async {
-    final groups = exerciseGroups;
-    if (groupIndex < 0 || groupIndex >= groups.length) return;
-    final groupData = groups[groupIndex];
-
-    if (_activeWorkout == null) return;
-
-    if (groupData.group == null) {
-      return;
-    }
-
-    try {
-      await _service.deleteExerciseGroup(
-        _activeWorkout!.id,
-        groupData.group!.id,
-      );
-      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
-      _activeProposedSets.removeWhere(
-        (s) => s.exerciseGroupId == groupData.group!.id,
-      );
-      notifyListeners();
-    } catch (e) {
-      _handleError(e);
     }
   }
 

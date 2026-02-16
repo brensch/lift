@@ -16,7 +16,7 @@ use lift::workout::v1::{
     UpdateExerciseGroupRequest, UpdateExerciseGroupResponse,
     DeleteExerciseGroupRequest, DeleteExerciseGroupResponse,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse,
-    ExerciseGroup, ProposedSet, CompletedSet, ExerciseGroupType, Exercise, Workout,
+    ExerciseGroup, ProposedSet, CompletedSet, Workout,
 };
 use crate::db::CentralDb;
 use crate::scheduler::Scheduler;
@@ -81,187 +81,99 @@ fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
     selected.into_iter().zip(reps.into_iter()).collect()
 }
 
+/// Unified set generation from ExerciseGroup with ExerciseTypeConfigs.
+/// Generates warmup sets and working sets based on group configuration.
+fn generate_sets_for_group(
+    workout_id: &str,
+    group: &ExerciseGroup,
+    start_order: i32,
+) -> Vec<ProposedSet> {
+    let mut sets = Vec::new();
+    let mut order = start_order;
 
-// --- Exercise Group Generation ---
-
-trait ExerciseGroupGenerator: Send + Sync {
-    fn generate(
-        &self,
-        workout_id: &str,
-        group_id: &str,
-        exercises: &[i32],
-        weights: &[f32],
-        sets: i32,
-        reps: i32,
-        include_warmup: bool,
-        start_order: i32,
-    ) -> Vec<ProposedSet>;
-}
-
-struct StraightSetsGenerator;
-impl ExerciseGroupGenerator for StraightSetsGenerator {
-    fn generate(
-        &self,
-        workout_id: &str,
-        group_id: &str,
-        exercises: &[i32],
-        weights: &[f32],
-        sets: i32,
-        reps: i32,
-        include_warmup: bool,
-        mut start_order: i32,
-    ) -> Vec<ProposedSet> {
-        let mut generated = Vec::new();
-        let weight = weights.first().copied().unwrap_or(0.0);
-        for &exercise in exercises {
-            if include_warmup {
-                let warmups = generate_warmup_defs(weight);
-                for (w, r) in warmups {
-                    generated.push(ProposedSet {
-                        id: Uuid::new_v4().to_string(),
-                        workout_id: workout_id.to_string(),
-                        workout_order: start_order,
-                        exercise,
-                        target_reps: r,
-                        target_weight: w,
-                        warmup: true,
-                        exercise_group_id: group_id.to_string(),
-                    });
-                    start_order += 1;
-                }
-            }
-
-            for _ in 0..sets {
-                generated.push(ProposedSet {
-                    id: Uuid::new_v4().to_string(),
-                    workout_id: workout_id.to_string(),
-                    workout_order: start_order,
-                    exercise,
-                    target_reps: reps,
-                    target_weight: weight,
-                    warmup: false,
-                    exercise_group_id: group_id.to_string(),
-                });
-                start_order += 1;
-            }
-        }
-        generated
+    let configs = &group.exercise_configs;
+    if configs.is_empty() {
+        return sets;
     }
-}
 
-struct SupersetGenerator;
-impl ExerciseGroupGenerator for SupersetGenerator {
-    fn generate(
-        &self,
-        workout_id: &str,
-        group_id: &str,
-        exercises: &[i32],
-        weights: &[f32],
-        sets: i32,
-        reps: i32,
-        include_warmup: bool,
-        mut start_order: i32,
-    ) -> Vec<ProposedSet> {
-        let mut generated = Vec::new();
-        for (i, &exercise) in exercises.iter().enumerate() {
-            if include_warmup {
-                let weight = weights.get(i).copied().unwrap_or(0.0);
-                let warmups = generate_warmup_defs(weight);
-                for (w, r) in warmups {
-                    generated.push(ProposedSet {
+    // Generate warmup defs per config
+    let warmup_defs: Vec<Vec<(f32, i32)>> = configs.iter().map(|c| {
+        if c.include_warmup {
+            generate_warmup_defs(c.start_weight)
+        } else {
+            Vec::new()
+        }
+    }).collect();
+
+    // Place warmups
+    if group.interleave_warmups && configs.len() > 1 {
+        // Round-robin warmups: A_w1, B_w1, A_w2, B_w2, ...
+        let max_warmups = warmup_defs.iter().map(|d| d.len()).max().unwrap_or(0);
+        for round in 0..max_warmups {
+            for (cfg_idx, config) in configs.iter().enumerate() {
+                if let Some(&(weight, reps)) = warmup_defs[cfg_idx].get(round) {
+                    sets.push(ProposedSet {
                         id: Uuid::new_v4().to_string(),
                         workout_id: workout_id.to_string(),
-                        workout_order: start_order,
-                        exercise,
-                        target_reps: r,
-                        target_weight: w,
+                        workout_order: order,
+                        exercise: config.exercise,
+                        target_reps: reps,
+                        target_weight: weight,
                         warmup: true,
-                        exercise_group_id: group_id.to_string(),
+                        exercise_group_id: group.id.clone(),
                     });
-                    start_order += 1;
+                    order += 1;
                 }
             }
         }
-        for _ in 0..sets {
-            for (i, &exercise) in exercises.iter().enumerate() {
-                let weight = weights.get(i).copied().unwrap_or(0.0);
-                generated.push(ProposedSet {
+    } else {
+        // Sequential warmups: all A warmups, then all B warmups
+        for (cfg_idx, config) in configs.iter().enumerate() {
+            for &(weight, reps) in &warmup_defs[cfg_idx] {
+                sets.push(ProposedSet {
                     id: Uuid::new_v4().to_string(),
                     workout_id: workout_id.to_string(),
-                    workout_order: start_order,
-                    exercise,
+                    workout_order: order,
+                    exercise: config.exercise,
                     target_reps: reps,
                     target_weight: weight,
-                    warmup: false,
-                    exercise_group_id: group_id.to_string(),
-                });
-                start_order += 1;
-            }
-        }
-        generated
-    }
-}
-
-struct DropsetGenerator;
-impl ExerciseGroupGenerator for DropsetGenerator {
-    fn generate(
-        &self,
-        workout_id: &str,
-        group_id: &str,
-        exercises: &[i32],
-        weights: &[f32],
-        _sets: i32,
-        reps: i32,
-        include_warmup: bool,
-        mut start_order: i32,
-    ) -> Vec<ProposedSet> {
-        let mut generated = Vec::new();
-        let &exercise = exercises.first().unwrap_or(&(Exercise::Unspecified as i32));
-        let first_weight = weights.first().copied().unwrap_or(0.0);
-
-        if include_warmup {
-            let warmups = generate_warmup_defs(first_weight);
-            for (w, r) in warmups {
-                generated.push(ProposedSet {
-                    id: Uuid::new_v4().to_string(),
-                    workout_id: workout_id.to_string(),
-                    workout_order: start_order,
-                    exercise,
-                    target_reps: r,
-                    target_weight: w,
                     warmup: true,
-                    exercise_group_id: group_id.to_string(),
+                    exercise_group_id: group.id.clone(),
                 });
-                start_order += 1;
+                order += 1;
             }
         }
+    }
 
-        for &weight in weights {
-            generated.push(ProposedSet {
+    // Working sets always interleave: A1, B1, A2, B2, ... for group.sets rounds
+    let num_sets = group.sets.max(1);
+    for set_idx in 0..num_sets {
+        for config in configs {
+            let weight = if num_sets <= 1 {
+                config.start_weight
+            } else {
+                config.start_weight + (set_idx as f32 / (num_sets - 1) as f32) * (config.end_weight - config.start_weight)
+            };
+            // Round to nearest 0.5
+            let weight = (weight * 2.0).round() / 2.0;
+
+            sets.push(ProposedSet {
                 id: Uuid::new_v4().to_string(),
                 workout_id: workout_id.to_string(),
-                workout_order: start_order,
-                exercise,
-                target_reps: reps,
+                workout_order: order,
+                exercise: config.exercise,
+                target_reps: config.reps,
                 target_weight: weight,
                 warmup: false,
-                exercise_group_id: group_id.to_string(),
+                exercise_group_id: group.id.clone(),
             });
-            start_order += 1;
+            order += 1;
         }
-        generated
     }
+
+    sets
 }
 
-fn get_generator(group_type: i32) -> Box<dyn ExerciseGroupGenerator> {
-    if group_type == ExerciseGroupType::Superset as i32 {
-        Box::new(SupersetGenerator)
-    } else if group_type == ExerciseGroupType::Dropset as i32 {
-        Box::new(DropsetGenerator)
-    } else {
-        Box::new(StraightSetsGenerator)
-    }
-}
 
 fn compute_rest_seconds(
     target_reps: i32,
@@ -306,17 +218,19 @@ impl WorkoutService for MyWorkoutService {
             end_time: 0,
         };
 
-        // Assign workout_id to exercise_groups and proposed_sets
+        // Assign workout_id to exercise_groups and generate sets server-side
         let mut exercise_groups = req.exercise_groups;
+        let mut all_proposed_sets = Vec::new();
+        let mut set_order = 0i32;
+
         for g in &mut exercise_groups {
             g.workout_id = workout_id.clone();
-        }
-        let mut proposed_sets = req.proposed_sets;
-        for s in &mut proposed_sets {
-            s.workout_id = workout_id.clone();
-            if s.id.is_empty() {
-                s.id = Uuid::new_v4().to_string();
+            if g.id.is_empty() {
+                g.id = Uuid::new_v4().to_string();
             }
+            let generated = generate_sets_for_group(&workout_id, g, set_order);
+            set_order += generated.len() as i32;
+            all_proposed_sets.extend(generated);
         }
 
         // Incremental write: Create workout record
@@ -325,13 +239,13 @@ impl WorkoutService for MyWorkoutService {
 
         // Incremental write: Create groups and proposed sets
         for g in &exercise_groups {
-            let sets: Vec<_> = proposed_sets.iter().filter(|s| s.exercise_group_id == g.id).cloned().collect();
+            let sets: Vec<_> = all_proposed_sets.iter().filter(|s| s.exercise_group_id == g.id).cloned().collect();
             self.central_db.insert_exercise_group_with_sets(&user_id, g, &sets).await
                 .map_err(|e| Status::internal(format!("Failed to save workout group: {}", e)))?;
         }
 
         // Store in memory
-        let mut active = ActiveWorkout::new(workout, exercise_groups, proposed_sets, vec![]);
+        let mut active = ActiveWorkout::new(workout, exercise_groups, all_proposed_sets, vec![]);
         active.reindex_sets();
         self.state.workouts.insert(user_id.clone(), active);
 
@@ -412,24 +326,19 @@ impl WorkoutService for MyWorkoutService {
                 id: group_id.clone(),
                 workout_id: req.workout_id.clone(),
                 name: req.name.clone(),
-                r#type: req.r#type,
-                include_warmup: req.include_warmup,
+                sets: req.sets,
+                interleave_warmups: req.interleave_warmups,
                 workout_order,
+                exercise_configs: req.exercise_configs.clone(),
             };
 
             let set_order = workout_ref.proposed_sets.last()
                 .map(|s| s.workout_order + 1)
                 .unwrap_or(0);
 
-            let generator = get_generator(req.r#type);
-            let generated_sets = generator.generate(
+            let generated_sets = generate_sets_for_group(
                 &req.workout_id,
-                &group_id,
-                &req.exercises,
-                &req.weights,
-                req.sets,
-                req.reps,
-                req.include_warmup,
+                &group,
                 set_order,
             );
 
@@ -465,8 +374,11 @@ impl WorkoutService for MyWorkoutService {
                 .find(|g| g.id == req.exercise_group_id)
                 .ok_or_else(|| Status::not_found("Exercise group not found"))?;
 
+            // Update group fields
             if !req.name.is_empty() { group.name = req.name.clone(); }
-            group.include_warmup = req.include_warmup;
+            group.sets = req.sets;
+            group.interleave_warmups = req.interleave_warmups;
+            group.exercise_configs = req.exercise_configs.clone();
             let group = group.clone();
 
             // Find completed set IDs
@@ -475,54 +387,30 @@ impl WorkoutService for MyWorkoutService {
                 .map(|c| c.proposed_set_id.clone())
                 .collect();
 
-            // Separate group's proposed sets into completed and pending
-            let group_proposed: Vec<ProposedSet> = workout_ref.proposed_sets
+            // Keep completed proposed sets for this group
+            let completed_group_sets: Vec<ProposedSet> = workout_ref.proposed_sets
                 .iter()
-                .filter(|p| p.exercise_group_id == group.id)
+                .filter(|p| p.exercise_group_id == group.id && completed_ids.contains(&p.id))
                 .cloned()
                 .collect();
 
-            let completed_group_sets: Vec<ProposedSet> = group_proposed.iter()
-                .filter(|p| completed_ids.contains(&p.id))
-                .cloned()
-                .collect();
+            // Generate new sets from updated configs
+            let set_order = completed_group_sets.iter().map(|s| s.workout_order).max().unwrap_or(0)
+                + if completed_group_sets.is_empty() { 0 } else { 1 };
 
-            // Determine exercises from existing sets
-            let mut exercises = Vec::new();
-            for p in &group_proposed {
-                if !exercises.contains(&p.exercise) {
-                    exercises.push(p.exercise);
-                }
-            }
-            if exercises.is_empty() { exercises.push(Exercise::Unspecified as i32); }
-
-            let mut new_sets = completed_group_sets.clone();
-
-            let mut set_order = new_sets.iter().map(|s| s.workout_order).max().unwrap_or(0);
-            if !new_sets.is_empty() { set_order += 1; }
-
-            let generator = get_generator(group.r#type);
-            let all_generated = generator.generate(
+            let generated = generate_sets_for_group(
                 &req.workout_id,
-                &group.id,
-                &exercises,
-                &req.weights,
-                req.sets,
-                req.reps,
-                group.include_warmup,
+                &group,
                 set_order,
             );
 
-            for gen_set in &all_generated {
-                let is_already_completed = new_sets.iter().any(|s| {
-                    s.exercise == gen_set.exercise && s.warmup == gen_set.warmup &&
-                    new_sets.iter().filter(|existing| existing.exercise == gen_set.exercise && existing.warmup == gen_set.warmup).count() >
-                    all_generated.iter().filter(|g| g.exercise == gen_set.exercise && g.warmup == gen_set.warmup && g.workout_order < gen_set.workout_order).count()
-                });
-                if !is_already_completed {
-                    new_sets.push(gen_set.clone());
-                }
-            }
+            // Only keep generated sets that aren't already completed
+            let pending_generated: Vec<ProposedSet> = generated.into_iter()
+                .filter(|g| !completed_ids.contains(&g.id))
+                .collect();
+
+            let mut new_sets = completed_group_sets;
+            new_sets.extend(pending_generated);
 
             // Remove old group sets and add new ones
             workout_ref.proposed_sets.retain(|p| p.exercise_group_id != group.id);

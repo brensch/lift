@@ -36,44 +36,49 @@ Future<void> showEditExerciseDialog(
   required bool Function(String setId) isSetDone,
   required void Function(
     int groupIndex, {
-    required List<double> targetWeights,
-    bool? warmups,
-    int? setCount,
+    required int sets,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
   })
   onSave,
 }) async {
-  final workingSets = group.sets.where((s) => !s.warmup).toList();
+  int sets = group.group?.sets ?? 5;
+  bool interleaveWarmups = group.group?.interleaveWarmups ?? false;
 
-  // Get unique exercises in this group
-  final List<Exercise> exercisesInGroup = [];
-  for (final s in group.sets) {
-    if (!exercisesInGroup.contains(s.exercise))
-      exercisesInGroup.add(s.exercise);
-  }
-
-  // Initial weights
-  final List<double> currentWeights = [];
-  if (group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET) {
-    for (final ex in exercisesInGroup) {
-      currentWeights.add(
-        group.sets.firstWhere((s) => s.exercise == ex).targetWeight.toDouble(),
-      );
-    }
-  } else if (group.group?.type ==
-      ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
-    for (final s in workingSets) {
-      currentWeights.add(s.targetWeight.toDouble());
+  List<_EditableConfig> editableConfigs = [];
+  if (group.group != null && group.group!.exerciseConfigs.isNotEmpty) {
+    for (final config in group.group!.exerciseConfigs) {
+      editableConfigs.add(_EditableConfig(
+        exercise: Exercise.valueOf(config.exercise.value) ?? Exercise.EXERCISE_UNSPECIFIED,
+        startWeight: config.startWeight,
+        endWeight: config.endWeight,
+        reps: config.reps,
+        includeWarmup: config.includeWarmup,
+      ));
     }
   } else {
-    currentWeights.add(
-      workingSets.firstOrNull?.targetWeight.toDouble() ?? 45.0,
-    );
+    final workingSets = group.sets.where((s) => !s.warmup).toList();
+    final exercises = <Exercise>[];
+    for (final s in group.sets) {
+      if (!exercises.contains(s.exercise)) exercises.add(s.exercise);
+    }
+    for (final ex in exercises) {
+      final weight = workingSets.firstWhere(
+        (s) => s.exercise == ex,
+        orElse: () => workingSets.first,
+      ).targetWeight.toDouble();
+      editableConfigs.add(_EditableConfig(
+        exercise: ex,
+        startWeight: weight,
+        endWeight: weight,
+        reps: workingSets.firstOrNull?.targetReps ?? 5,
+        includeWarmup: group.sets.any((s) => s.warmup && s.exercise == ex),
+      ));
+    }
   }
 
-  bool warmups = group.group?.includeWarmup ?? true;
-  int sets = group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET
-      ? workingSets.length ~/ exercisesInGroup.length
-      : workingSets.length;
+  // Track which exercise is expanded for weight editing
+  int? expandedIndex;
 
   await showModalBottomSheet(
     context: context,
@@ -125,163 +130,90 @@ Future<void> showEditExerciseDialog(
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+
+                  // Add exercise chips
+                  _ExerciseChipSelector(
+                    configs: editableConfigs,
+                    exerciseStatuses: exerciseStatuses,
+                    onToggle: (exercise, selected) {
+                      setState(() {
+                        if (selected) {
+                          final status = exerciseStatuses
+                              .cast<ExerciseStatus?>()
+                              .firstWhere(
+                                (s) => s!.exercise == exercise,
+                                orElse: () => null,
+                              );
+                          editableConfigs.add(_EditableConfig(
+                            exercise: exercise,
+                            startWeight: status?.targetWeight ?? 45,
+                            endWeight: status?.targetWeight ?? 45,
+                            reps: status?.defaultReps ?? 5,
+                            includeWarmup: true,
+                          ));
+                        } else {
+                          editableConfigs.removeWhere((c) => c.exercise == exercise);
+                          if (expandedIndex != null && expandedIndex! >= editableConfigs.length) {
+                            expandedIndex = null;
+                          }
+                        }
+                      });
+                    },
+                  ),
                   const SizedBox(height: 16),
 
-                  // Weights editing
-                  if (group.group?.type ==
-                      ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET)
-                    ...exercisesInGroup.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final ex = entry.value;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            exerciseNames[ex] ?? '?',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          _WeightSlider(
-                            weight: currentWeights[i],
-                            onChanged: (v) =>
-                                setState(() => currentWeights[i] = v),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    }).toList()
-                  else if (group.group?.type ==
-                      ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'SET WEIGHTS',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...List.generate(sets, (i) {
-                          if (i >= currentWeights.length)
-                            currentWeights.add(
-                              (currentWeights.last - 10).clamp(0, 1000),
-                            );
-                          return Row(
-                            children: [
-                              Text(
-                                'SET ${i + 1}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Expanded(
-                                child: _WeightSlider(
-                                  weight: currentWeights[i],
-                                  onChanged: (v) =>
-                                      setState(() => currentWeights[i] = v),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
-                    )
-                  else
-                    _WeightSlider(
-                      weight: currentWeights[0],
-                      onChanged: (v) => setState(() => currentWeights[0] = v),
-                    ),
+                  // Compact exercise configs
+                  ...editableConfigs.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final config = entry.value;
+                    final isExpanded = expandedIndex == idx;
+                    return _CompactExerciseConfig(
+                      config: config,
+                      isExpanded: isExpanded,
+                      onTap: () => setState(() {
+                        expandedIndex = isExpanded ? null : idx;
+                      }),
+                      onStartWeightChanged: (v) => setState(() {
+                        config.startWeight = v;
+                        if (config.startWeight == config.endWeight) {
+                          config.endWeight = v;
+                        }
+                      }),
+                      onEndWeightChanged: (v) => setState(() {
+                        config.endWeight = v;
+                      }),
+                      onWarmupChanged: (v) => setState(() => config.includeWarmup = v),
+                    );
+                  }),
 
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              group.group?.type ==
-                                      ExerciseGroupType
-                                          .EXERCISE_GROUP_TYPE_SUPERSET
-                                  ? 'ROUNDS'
-                                  : 'WORKING SETS',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.tertiary,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                _CountButton(
-                                  icon: Icons.remove,
-                                  onPressed: () => setState(
-                                    () => sets = (sets - 1).clamp(1, 10),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: Text(
-                                    '$sets',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                                _CountButton(
-                                  icon: Icons.add,
-                                  onPressed: () => setState(
-                                    () => sets = (sets + 1).clamp(1, 10),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'WARMUPS',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.tertiary,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                            Switch(
-                              value: warmups,
-                              onChanged: (v) => setState(() => warmups = v),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+                  _GroupSettings(
+                    sets: sets,
+                    interleaveWarmups: interleaveWarmups,
+                    showInterleave: editableConfigs.length > 1,
+                    onSetsChanged: (v) => setState(() => sets = v),
+                    onInterleaveChanged: (v) => setState(() => interleaveWarmups = v),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   SizedBox(
                     height: 56,
                     child: FilledButton(
-                      onPressed: () {
+                      onPressed: editableConfigs.isEmpty ? null : () {
                         Navigator.pop(ctx);
+                        final configs = editableConfigs.map((c) =>
+                          ExerciseTypeConfig()
+                            ..exercise = c.exercise
+                            ..startWeight = c.startWeight
+                            ..endWeight = c.endWeight
+                            ..reps = c.reps
+                            ..includeWarmup = c.includeWarmup,
+                        ).toList();
                         onSave(
                           groupIndex,
-                          targetWeights: currentWeights,
-                          warmups: warmups,
-                          setCount: sets,
+                          sets: sets,
+                          interleaveWarmups: interleaveWarmups,
+                          exerciseConfigs: configs,
                         );
                       },
                       child: const Text(
@@ -303,11 +235,526 @@ Future<void> showEditExerciseDialog(
   );
 }
 
-class _WeightSlider extends StatelessWidget {
+Future<void> showAddExerciseDialog(
+  BuildContext context, {
+  required List<ExerciseStatus> exerciseStatuses,
+  required void Function(
+    String name,
+    int sets,
+    bool interleaveWarmups,
+    List<ExerciseTypeConfig> exerciseConfigs,
+  )
+  onAdd,
+}) async {
+  List<_EditableConfig> configs = [];
+  String customName = '';
+  int sets = 3;
+  bool interleaveWarmups = false;
+  int? expandedIndex;
+
+  final nameController = TextEditingController();
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          final colorScheme = Theme.of(ctx).colorScheme;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.secondary,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'ADD EXERCISE GROUP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Group name (optional)',
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    onChanged: (v) => customName = v,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Exercise chips
+                  _ExerciseChipSelector(
+                    configs: configs,
+                    exerciseStatuses: exerciseStatuses,
+                    onToggle: (exercise, selected) {
+                      setState(() {
+                        if (selected) {
+                          final status = exerciseStatuses
+                              .cast<ExerciseStatus?>()
+                              .firstWhere(
+                                (s) => s!.exercise == exercise,
+                                orElse: () => null,
+                              );
+                          configs.add(_EditableConfig(
+                            exercise: exercise,
+                            startWeight: status?.targetWeight ?? 45,
+                            endWeight: status?.targetWeight ?? 45,
+                            reps: status?.defaultReps ?? 5,
+                            includeWarmup: true,
+                          ));
+                          if (configs.length == 1) {
+                            sets = status?.defaultSets ?? 3;
+                          }
+                        } else {
+                          configs.removeWhere((c) => c.exercise == exercise);
+                          if (expandedIndex != null && expandedIndex! >= configs.length) {
+                            expandedIndex = null;
+                          }
+                        }
+                        if (configs.length > 1) {
+                          interleaveWarmups = true;
+                        }
+                      });
+                    },
+                  ),
+
+                  if (configs.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+
+                    // Compact exercise configs
+                    ...configs.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final config = entry.value;
+                      final isExpanded = expandedIndex == idx;
+                      return _CompactExerciseConfig(
+                        config: config,
+                        isExpanded: isExpanded,
+                        onTap: () => setState(() {
+                          expandedIndex = isExpanded ? null : idx;
+                        }),
+                        onStartWeightChanged: (v) => setState(() {
+                          config.startWeight = v;
+                          if (config.startWeight == config.endWeight) {
+                            config.endWeight = v;
+                          }
+                        }),
+                        onEndWeightChanged: (v) => setState(() {
+                          config.endWeight = v;
+                        }),
+                        onWarmupChanged: (v) => setState(() => config.includeWarmup = v),
+                      );
+                    }),
+
+                    const SizedBox(height: 16),
+                    _GroupSettings(
+                      sets: sets,
+                      interleaveWarmups: interleaveWarmups,
+                      showInterleave: configs.length > 1,
+                      onSetsChanged: (v) => setState(() => sets = v),
+                      onInterleaveChanged: (v) => setState(() => interleaveWarmups = v),
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      onPressed: configs.isEmpty ? null : () {
+                        Navigator.pop(ctx);
+                        final exerciseConfigs = configs.map((c) =>
+                          ExerciseTypeConfig()
+                            ..exercise = c.exercise
+                            ..startWeight = c.startWeight
+                            ..endWeight = c.endWeight
+                            ..reps = c.reps
+                            ..includeWarmup = c.includeWarmup,
+                        ).toList();
+                        onAdd(
+                          customName,
+                          sets,
+                          interleaveWarmups,
+                          exerciseConfigs,
+                        );
+                      },
+                      child: const Text(
+                        'ADD GROUP',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+// --- Shared widgets ---
+
+class _EditableConfig {
+  Exercise exercise;
+  double startWeight;
+  double endWeight;
+  int reps;
+  bool includeWarmup;
+
+  _EditableConfig({
+    required this.exercise,
+    required this.startWeight,
+    required this.endWeight,
+    required this.reps,
+    required this.includeWarmup,
+  });
+}
+
+class _ExerciseChipSelector extends StatelessWidget {
+  final List<_EditableConfig> configs;
+  final List<ExerciseStatus> exerciseStatuses;
+  final void Function(Exercise exercise, bool selected) onToggle;
+
+  const _ExerciseChipSelector({
+    required this.configs,
+    required this.exerciseStatuses,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'EXERCISES',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: Exercise.values
+              .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
+              .map((e) {
+                final isAdded = configs.any((c) => c.exercise == e);
+                return FilterChip(
+                  label: Text(
+                    exerciseNames[e] ?? '?',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  selected: isAdded,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onSelected: (selected) => onToggle(e, selected),
+                );
+              })
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+/// Compact exercise config row. Tap to expand weight editor.
+class _CompactExerciseConfig extends StatelessWidget {
+  final _EditableConfig config;
+  final bool isExpanded;
+  final VoidCallback onTap;
+  final ValueChanged<double> onStartWeightChanged;
+  final ValueChanged<double> onEndWeightChanged;
+  final ValueChanged<bool> onWarmupChanged;
+
+  const _CompactExerciseConfig({
+    required this.config,
+    required this.isExpanded,
+    required this.onTap,
+    required this.onStartWeightChanged,
+    required this.onEndWeightChanged,
+    required this.onWarmupChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final name = exerciseNames[config.exercise] ?? '?';
+    final hasEndWeight = config.startWeight != config.endWeight;
+
+    String formatWeight(double w) =>
+        w == w.roundToDouble() ? w.toInt().toString() : w.toStringAsFixed(1);
+
+    final weightLabel = hasEndWeight
+        ? '${formatWeight(config.startWeight)}→${formatWeight(config.endWeight)}lb'
+        : '${formatWeight(config.startWeight)}lb';
+
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isExpanded
+                  ? colorScheme.primary.withValues(alpha: 0.05)
+                  : Colors.transparent,
+              border: Border.all(
+                color: isExpanded ? colorScheme.primary.withValues(alpha: 0.3) : colorScheme.outline,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                Text(
+                  weightLabel,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'x${config.reps}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: colorScheme.tertiary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Icon(
+                  config.includeWarmup ? Icons.whatshot : Icons.whatshot_outlined,
+                  size: 16,
+                  color: config.includeWarmup
+                      ? colorScheme.primary
+                      : colorScheme.outline,
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: colorScheme.tertiary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isExpanded) ...[
+          const SizedBox(height: 8),
+          _WeightEditor(
+            startWeight: config.startWeight,
+            endWeight: config.endWeight,
+            includeWarmup: config.includeWarmup,
+            onStartWeightChanged: onStartWeightChanged,
+            onEndWeightChanged: onEndWeightChanged,
+            onWarmupChanged: onWarmupChanged,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (!isExpanded) const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+/// Inline weight editor with plate viz, buttons, and optional end weight.
+class _WeightEditor extends StatelessWidget {
+  final double startWeight;
+  final double endWeight;
+  final bool includeWarmup;
+  final ValueChanged<double> onStartWeightChanged;
+  final ValueChanged<double> onEndWeightChanged;
+  final ValueChanged<bool> onWarmupChanged;
+
+  const _WeightEditor({
+    required this.startWeight,
+    required this.endWeight,
+    required this.includeWarmup,
+    required this.onStartWeightChanged,
+    required this.onEndWeightChanged,
+    required this.onWarmupChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasEndWeight = startWeight != endWeight;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          // Start weight section
+          if (hasEndWeight)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                'START WEIGHT',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: colorScheme.tertiary,
+                ),
+              ),
+            ),
+          _WeightControl(
+            weight: startWeight,
+            onChanged: onStartWeightChanged,
+          ),
+
+          // End weight toggle + section
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              if (hasEndWeight) {
+                onEndWeightChanged(startWeight);
+              } else {
+                onEndWeightChanged(startWeight);
+                // Set a default drop: 80% of start weight rounded to 5
+                final drop = ((startWeight * 0.8) / 5).round() * 5.0;
+                onEndWeightChanged(drop.clamp(0, 1000));
+              }
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    hasEndWeight ? Icons.check_box : Icons.check_box_outline_blank,
+                    size: 18,
+                    color: hasEndWeight ? colorScheme.primary : colorScheme.tertiary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'DIFFERENT END WEIGHT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: hasEndWeight ? colorScheme.primary : colorScheme.tertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (hasEndWeight) ...[
+            const SizedBox(height: 8),
+            Text(
+              'END WEIGHT',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+                color: colorScheme.tertiary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            _WeightControl(
+              weight: endWeight,
+              onChanged: onEndWeightChanged,
+            ),
+          ],
+
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'WARMUP',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.tertiary,
+                ),
+              ),
+              Switch(
+                value: includeWarmup,
+                onChanged: onWarmupChanged,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reusable weight display + buttons + slider.
+class _WeightControl extends StatelessWidget {
   final double weight;
   final ValueChanged<double> onChanged;
 
-  const _WeightSlider({required this.weight, required this.onChanged});
+  const _WeightControl({required this.weight, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -319,13 +766,13 @@ class _WeightSlider extends StatelessWidget {
           children: [
             Text(
               '${weight.toInt()}',
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
             ),
             const SizedBox(width: 4),
             Text(
               'LB',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w900,
                 color: colorScheme.tertiary,
               ),
@@ -334,7 +781,7 @@ class _WeightSlider extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         PlateVisualization(weight: weight),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -369,326 +816,90 @@ class _WeightSlider extends StatelessWidget {
   }
 }
 
-Future<void> showAddExerciseDialog(
-  BuildContext context, {
-  required List<ExerciseStatus> exerciseStatuses,
-  required void Function(
-    String name,
-    List<Exercise> exercises,
-    double weight,
-    int sets,
-    int reps,
-    ExerciseGroupType type,
-  )
-  onAdd,
-}) async {
-  List<Exercise> selectedExercises = [];
-  String customName = '';
-  double weight = 45;
-  int sets = 3;
-  int reps = 5;
-  ExerciseGroupType type = ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT;
+/// Group-level settings: sets count + interleave warmups toggle.
+class _GroupSettings extends StatelessWidget {
+  final int sets;
+  final bool interleaveWarmups;
+  final bool showInterleave;
+  final ValueChanged<int> onSetsChanged;
+  final ValueChanged<bool> onInterleaveChanged;
 
-  final nameController = TextEditingController();
-  final weightController = TextEditingController(text: '45');
-  final setsController = TextEditingController(text: '3');
-  final repsController = TextEditingController(text: '5');
+  const _GroupSettings({
+    required this.sets,
+    required this.interleaveWarmups,
+    required this.showInterleave,
+    required this.onSetsChanged,
+    required this.onInterleaveChanged,
+  });
 
-  await showDialog(
-    context: context,
-    builder: (ctx) {
-      return StatefulBuilder(
-        builder: (ctx, setState) {
-          final colorScheme = Theme.of(ctx).colorScheme;
-
-          Exercise? firstSelected = selectedExercises.isNotEmpty
-              ? selectedExercises.first
-              : null;
-          final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-            (s) => s!.exercise == firstSelected,
-            orElse: () => null,
-          );
-
-          return AlertDialog(
-            title: const Text(
-              'Add Exercise',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'WORKING SETS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.tertiary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Group Name (Optional)',
-                      hintText: 'e.g. Heavy Day',
-                    ),
-                    onChanged: (v) => customName = v,
+                  _CountButton(
+                    icon: Icons.remove,
+                    onPressed: () => onSetsChanged((sets - 1).clamp(1, 10)),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<ExerciseGroupType>(
-                    value: type,
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      '$sets',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
                       ),
-                      labelText: 'Group Type',
                     ),
-                    items: [
-                      DropdownMenuItem(
-                        value: ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT,
-                        child: const Text('Straight Sets'),
-                      ),
-                      DropdownMenuItem(
-                        value: ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET,
-                        child: const Text('Superset'),
-                      ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          type = v;
-                          if (type ==
-                                  ExerciseGroupType
-                                      .EXERCISE_GROUP_TYPE_STRAIGHT &&
-                              selectedExercises.length > 1) {
-                            selectedExercises = [selectedExercises.first];
-                          }
-                        });
-                      }
-                    },
                   ),
-                  const SizedBox(height: 12),
-                  if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_STRAIGHT)
-                    DropdownButtonFormField<Exercise>(
-                      value: firstSelected,
-                      hint: const Text('Select exercise'),
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        labelText: 'Exercise',
-                      ),
-                      items: Exercise.values
-                          .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(exerciseNames[e] ?? '?'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() {
-                          selectedExercises = [v];
-                          final s = exerciseStatuses
-                              .cast<ExerciseStatus?>()
-                              .firstWhere(
-                                (status) => status!.exercise == v,
-                                orElse: () => null,
-                              );
-                          if (s != null) {
-                            weight = s.targetWeight;
-                            weightController.text = weight
-                                .toStringAsFixed(1)
-                                .replaceAll('.0', '');
-                            sets = s.defaultSets > 0 ? s.defaultSets : 3;
-                            setsController.text = sets.toString();
-                            reps = s.defaultReps > 0 ? s.defaultReps : 5;
-                            repsController.text = reps.toString();
-                          }
-                        });
-                      },
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Select Exercises',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: Exercise.values
-                              .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
-                              .map((e) {
-                                final isSelected = selectedExercises.contains(
-                                  e,
-                                );
-                                return FilterChip(
-                                  label: Text(
-                                    exerciseNames[e] ?? '?',
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  selected: isSelected,
-                                  onSelected: (selected) {
-                                    setState(() {
-                                      if (selected) {
-                                        selectedExercises.add(e);
-                                      } else {
-                                        selectedExercises.remove(e);
-                                      }
-                                    });
-                                  },
-                                );
-                              })
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                  if (status != null && status.explanation.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 16,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              status.explanation,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colorScheme.onSurfaceVariant,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: weightController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Weight (lbs)',
-                    ),
-                    onChanged: (v) {
-                      setState(() {
-                        weight = double.tryParse(v) ?? weight;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Center(child: PlateVisualization(weight: weight)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _WeightButton(
-                        label: '-45',
-                        onPressed: () => setState(() {
-                          weight = (weight - 45).clamp(0, 1000);
-                          weightController.text = weight
-                              .toStringAsFixed(1)
-                              .replaceAll('.0', '');
-                        }),
-                      ),
-                      _WeightButton(
-                        label: '-5',
-                        onPressed: () => setState(() {
-                          weight = (weight - 5).clamp(0, 1000);
-                          weightController.text = weight
-                              .toStringAsFixed(1)
-                              .replaceAll('.0', '');
-                        }),
-                      ),
-                      _WeightButton(
-                        label: '+5',
-                        onPressed: () => setState(() {
-                          weight = (weight + 5).clamp(0, 1000);
-                          weightController.text = weight
-                              .toStringAsFixed(1)
-                              .replaceAll('.0', '');
-                        }),
-                      ),
-                      _WeightButton(
-                        label: '+45',
-                        onPressed: () => setState(() {
-                          weight = (weight + 45).clamp(0, 1000);
-                          weightController.text = weight
-                              .toStringAsFixed(1)
-                              .replaceAll('.0', '');
-                        }),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: setsController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Sets'),
-                          onChanged: (v) => sets = int.tryParse(v) ?? sets,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: repsController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Reps'),
-                          onChanged: (v) => reps = int.tryParse(v) ?? reps,
-                        ),
-                      ),
-                    ],
+                  _CountButton(
+                    icon: Icons.add,
+                    onPressed: () => onSetsChanged((sets + 1).clamp(1, 10)),
                   ),
                 ],
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: selectedExercises.isEmpty
-                    ? null
-                    : () {
-                        Navigator.pop(ctx);
-                        onAdd(
-                          customName,
-                          selectedExercises,
-                          weight,
-                          sets,
-                          reps,
-                          type,
-                        );
-                      },
-                child: const Text('Add'),
-              ),
             ],
-          );
-        },
-      );
-    },
-  );
+          ),
+        ),
+        if (showInterleave)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'INTERLEAVE WARMUPS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.tertiary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Switch(
+                  value: interleaveWarmups,
+                  onChanged: onInterleaveChanged,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 Future<bool> showEndWorkoutConfirmDialog(BuildContext context) async {
@@ -763,13 +974,13 @@ class _WeightButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(64, 44),
+        minimumSize: const Size(56, 36),
         padding: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
       ),
     );
   }

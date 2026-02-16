@@ -49,20 +49,22 @@ enum Exercise {
   EXERCISE_LEG_CURL = 11;
 }
 
-enum ExerciseGroupType {
-  EXERCISE_GROUP_TYPE_UNSPECIFIED = 0;
-  EXERCISE_GROUP_TYPE_STRAIGHT = 1; // e.g. 5x5, 3x10
-  EXERCISE_GROUP_TYPE_SUPERSET = 2;
-  EXERCISE_GROUP_TYPE_DROPSET = 3;
+message ExerciseTypeConfig {
+  Exercise exercise = 1;
+  float start_weight = 2;   // first working set weight
+  float end_weight = 3;     // last working set weight (equal=flat, lower=drop, higher=ramp)
+  int32 reps = 4;
+  bool include_warmup = 5;
 }
 
 message ExerciseGroup {
   string id = 1;
   string workout_id = 2;
   string name = 3;
-  ExerciseGroupType type = 4;
-  bool include_warmup = 5;
+  int32 sets = 4;                // working sets per exercise
+  bool interleave_warmups = 5;   // true=alternate warmups between exercises
   int32 workout_order = 6;
+  repeated ExerciseTypeConfig exercise_configs = 7;
 }
 
 message ProposedSet {
@@ -92,7 +94,6 @@ message CompletedSet {
 message StartWorkoutRequest {
   string name = 1;
   repeated ExerciseGroup exercise_groups = 2;
-  repeated ProposedSet proposed_sets = 3;
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -117,12 +118,9 @@ message ListWorkoutsResponse {
 message CreateExerciseGroupRequest {
   string workout_id = 1;
   string name = 2;
-  ExerciseGroupType type = 3;
-  repeated Exercise exercises = 4;
-  int32 sets = 5;
-  int32 reps = 6;
-  repeated float weights = 7;
-  bool include_warmup = 8;
+  int32 sets = 3;
+  bool interleave_warmups = 4;
+  repeated ExerciseTypeConfig exercise_configs = 5;
 }
 
 message CreateExerciseGroupResponse {
@@ -179,9 +177,17 @@ message ExerciseStatus {
   ExerciseCategory category = 11;
 }
 
+message ProposedExerciseGroup {
+  string name = 1;
+  int32 sets = 2;
+  bool interleave_warmups = 3;
+  repeated ExerciseTypeConfig exercise_configs = 4;
+}
+
 message GetProposedWorkoutScheduleResponse {
   repeated ExerciseStatus exercise_statuses = 1;
   string active_workout_id = 2;
+  repeated ProposedExerciseGroup proposed_groups = 3;
 }
 
 message GetActiveWorkoutRequest {}
@@ -193,10 +199,9 @@ message UpdateExerciseGroupRequest {
   string workout_id = 1;
   string exercise_group_id = 2;
   string name = 3;
-  repeated float weights = 4;
-  int32 sets = 5;
-  int32 reps = 6;
-  bool include_warmup = 7;
+  int32 sets = 4;
+  bool interleave_warmups = 5;
+  repeated ExerciseTypeConfig exercise_configs = 6;
 }
 
 message UpdateExerciseGroupResponse {

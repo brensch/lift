@@ -388,20 +388,19 @@ class WorkoutScreen extends StatelessWidget {
       groupIndex: index,
       exerciseStatuses: wp.exerciseStatuses,
       isSetDone: wp.isSetDone,
-      onSave:
-          (
-            groupIndex, {
-            required List<double> targetWeights,
-            bool? warmups,
-            int? setCount,
-          }) {
-            wp.rebuildGroup(
-              groupIndex,
-              targetWeights: targetWeights,
-              warmups: warmups,
-              setCount: setCount,
-            );
-          },
+      onSave: (
+        groupIndex, {
+        required int sets,
+        required bool interleaveWarmups,
+        required List<ExerciseTypeConfig> exerciseConfigs,
+      }) {
+        wp.updateGroup(
+          groupIndex,
+          sets: sets,
+          interleaveWarmups: interleaveWarmups,
+          exerciseConfigs: exerciseConfigs,
+        );
+      },
     );
   }
 
@@ -409,37 +408,18 @@ class WorkoutScreen extends StatelessWidget {
     showAddExerciseDialog(
       context,
       exerciseStatuses: wp.exerciseStatuses,
-      onAdd: (customName, exercises, weight, sets, reps, type) {
-        final exerciseNamesStr = exercises
-            .map((e) => exerciseNames[e] ?? e.name)
-            .join(' / ');
-        final finalName = customName.isEmpty
-            ? exerciseNamesStr
-            : '$customName - $exerciseNamesStr';
-
-        final List<double> weights = [];
-        if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET) {
-          // For superset creation, we'll use the same weight for all exercises initially
-          // The user can edit individual weights later, or we could add more complex UI now.
-          // Let's just use the single weight for all.
-          weights.addAll(List.generate(exercises.length, (_) => weight));
-        } else if (type == ExerciseGroupType.EXERCISE_GROUP_TYPE_DROPSET) {
-          // For dropset creation, let's generate a simple decrementing list
-          for (int i = 0; i < sets; i++) {
-            weights.add((weight - (i * 10)).clamp(0, 1000));
-          }
-        } else {
-          weights.add(weight);
-        }
+      onAdd: (name, sets, interleaveWarmups, exerciseConfigs) {
+        final finalName = name.isNotEmpty
+            ? name
+            : exerciseConfigs
+                .map((c) => exerciseNames[Exercise.valueOf(c.exercise.value)] ?? '?')
+                .join(' / ');
 
         wp.addExerciseGroup(
           name: finalName,
-          type: type,
-          exercises: exercises,
           sets: sets,
-          reps: reps,
-          weights: weights,
-          includeWarmup: true,
+          interleaveWarmups: interleaveWarmups,
+          exerciseConfigs: exerciseConfigs,
         );
       },
     );
