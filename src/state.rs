@@ -13,7 +13,6 @@ pub struct ActiveWorkout {
     pub exercise_groups: Vec<ExerciseGroup>,
     pub proposed_sets: Vec<ProposedSet>,
     pub completed_sets: Vec<CompletedSet>,
-    pub dirty: AtomicBool,
 }
 
 impl ActiveWorkout {
@@ -28,16 +27,7 @@ impl ActiveWorkout {
             exercise_groups,
             proposed_sets,
             completed_sets,
-            dirty: AtomicBool::new(false),
         }
-    }
-
-    pub fn mark_dirty(&self) {
-        self.dirty.store(true, Ordering::Relaxed);
-    }
-
-    pub fn clear_dirty(&self) -> bool {
-        self.dirty.swap(false, Ordering::Relaxed)
     }
 
     /// Reindex proposed_sets workout_order based on exercise_group workout_order
@@ -131,80 +121,9 @@ impl AppState {
                 .insert(user_id.to_string());
         }
     }
-
-    /// Flush a single user's active workout to their UserDb
-    pub async fn flush_workout(
-        &self,
-        central_db: &CentralDb,
-        user_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // 1. Extract data while holding the lock
-        let workout_data = {
-            let workout_ref = match self.workouts.get(user_id) {
-                Some(r) => r,
-                None => return Ok(()),
-            };
-
-            if !workout_ref.dirty.load(Ordering::Relaxed) {
-                return Ok(());
-            }
-
-            // Clone data to avoid holding the guard across .await
-            (
-                workout_ref.workout.clone(),
-                workout_ref.exercise_groups.clone(),
-                workout_ref.proposed_sets.clone(),
-                workout_ref.completed_sets.clone(),
-            )
-        };
-
-        // 2. Perform IO outside the lock
-        let (workout, groups, proposed, completed) = workout_data;
-        
-        central_db
-            .flush_workout(
-                user_id,
-                &workout,
-                &groups,
-                &proposed,
-                &completed,
-            )
-            .await?;
-
-        // 3. Re-acquire lock to clear dirty flag if it's still the same workout
-        if let Some(workout_ref) = self.workouts.get(user_id) {
-            if workout_ref.workout.id == workout.id {
-                workout_ref.clear_dirty();
-            }
-        }
-        
-        Ok(())
-    }
-
-    /// Flush all dirty workouts (called by checkpoint task)
-    pub async fn flush_all_dirty(&self, central_db: &CentralDb) {
-        let user_ids: Vec<String> = self
-            .workouts
-            .iter()
-            .filter(|entry| entry.value().dirty.load(Ordering::Relaxed))
-            .map(|entry| entry.key().clone())
-            .collect();
-
-        for user_id in user_ids {
-            if let Err(e) = self.flush_workout(central_db, &user_id).await {
-                eprintln!("Checkpoint flush failed for {}: {}", user_id, e);
-            }
-        }
-    }
-
 }
 
-pub fn spawn_checkpoint_task(state: Arc<AppState>, central_db: CentralDb) {
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-        loop {
-            interval.tick().await;
-            state.flush_all_dirty(&central_db).await;
-        }
-    });
+pub fn spawn_checkpoint_task(_state: Arc<AppState>, _central_db: CentralDb) {
+    // No-op: Incremental writes mean we don't need a checkpoint task.
+    // Keeping the function signature to avoid breaking main.rs for now.
 }

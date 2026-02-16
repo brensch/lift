@@ -318,28 +318,8 @@ impl AuthService for MyAuthService {
                 return Err(Status::invalid_argument("TestLogin only accepts usernames starting with __test__"));
             }
 
-            // Upsert: find existing user or create new one
-            let user = match self.auth_state.central_db.get_user_by_name(&username).await {
-                Ok(Some(user)) => user,
-                Ok(None) => {
-                    match self.auth_state.central_db.create_user(&username).await {
-                        Ok(user) => user,
-                        Err(e) => {
-                            return Err(Status::internal(e.to_string()));
-                        }
-                    }
-                },
-                Err(e) => {
-                    return Err(Status::internal(e.to_string()));
-                }
-            };
-
-            let token = match self.auth_state.central_db.create_auth_session(&user.id).await {
-                Ok(token) => token,
-                Err(e) => {
-                    return Err(Status::internal(e.to_string()));
-                }
-            };
+            let (user, token) = self.auth_state.central_db.test_login_upsert(&username).await
+                .map_err(|e| Status::internal(e.to_string()))?;
 
             Ok(Response::new(AuthResponse {
                 session_token: token,
