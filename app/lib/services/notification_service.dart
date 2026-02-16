@@ -19,9 +19,13 @@ class NotificationService {
       requestSoundPermission: true,
       requestBadgePermission: false,
     );
+    const linuxSettings = LinuxInitializationSettings(
+      defaultActionName: 'Open notification',
+    );
     const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
+      linux: linuxSettings,
     );
     await _plugin.initialize(
       initSettings,
@@ -89,12 +93,20 @@ class NotificationService {
       presentAlert: true,
     );
 
+    const linuxDetails = LinuxNotificationDetails(
+      defaultActionName: 'Start Set',
+    );
+
     await _plugin.zonedSchedule(
       _restNotificationId,
       'Rest Complete',
       body,
       scheduledTime,
-      NotificationDetails(android: androidDetails, iOS: darwinDetails),
+      NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+        linux: linuxDetails,
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: null,
       payload: '$restUntilUnix',
@@ -127,11 +139,19 @@ class NotificationService {
       presentAlert: true,
     );
 
+    const linuxDetails = LinuxNotificationDetails(
+      defaultActionName: 'Start Set',
+    );
+
     await _plugin.show(
       _restNotificationId,
       'Rest Complete',
       body,
-      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
+      const NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+        linux: linuxDetails,
+      ),
     );
   }
 

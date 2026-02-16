@@ -9,6 +9,8 @@ services:
       - RUST_LOG=info
       - WEBAUTHN_RP_ID=lift.snek2.ddns.net
       - WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net
+      - WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:oX5Jnmwq_UQ8_8dpupoKwQlGNOmMSUbcVSLLHh-lwsg
+      - ANDROID_CERT_SHA256=A1:7E:49:9E:6C:2A:FD:44:3C:FF:C7:69:BA:9A:0A:C1:09:46:34:E9:8C:49:46:DC:55:22:CB:1E:1F:A5:C2:C8
     expose:
       - "50051"
     networks:
