@@ -41,10 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getDefaultWorkoutName() {
-    final now = DateTime.now();
-    final date = "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
-    final time = greetingTime().toLowerCase();
-    return "$date $time";
+    return greetingTime().toUpperCase();
   }
 
   Future<void> _loadData() async {
@@ -85,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _schedule = schedule;
         _selectedExercises = autoSelected;
+        _nameController.text = _getDefaultWorkoutName();
         _isLoading = false;
       });
     } catch (e) {
@@ -131,9 +129,18 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      final workoutName = _nameController.text.trim().isEmpty 
+      final now = DateTime.now();
+      final dateStr = "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
+      final exerciseSummary = _selectedExercises
+          .map((e) => shortNames[e] ?? "")
+          .where((s) => s.isNotEmpty)
+          .join(' ');
+      
+      final baseName = _nameController.text.trim().isEmpty 
           ? _getDefaultWorkoutName() 
-          : _nameController.text.trim();
+          : _nameController.text.trim().toUpperCase();
+
+      final workoutName = "$dateStr - $exerciseSummary - $baseName".toUpperCase();
 
       final workoutProvider = context.read<WorkoutProvider>();
       final workoutId = await workoutProvider.startWorkout(workoutName, proposedSets);
@@ -244,17 +251,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            Text(
+              'WORKOUT NAME (OPTIONAL)',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+                color: colorScheme.tertiary,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'WORKOUT NAME (OPTIONAL)',
-                labelStyle: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                  color: colorScheme.tertiary,
-                ),
-                floatingLabelBehavior: FloatingLabelBehavior.always,
                 hintText: _getDefaultWorkoutName(),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(

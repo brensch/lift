@@ -399,7 +399,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> endWorkout() async {
     if (_activeWorkout == null) return;
     try {
-      NotificationService.cancelRestNotification();
+      NotificationService.cancelAll();
       final ended = await _service.endWorkout(_activeWorkout!.id);
       _activeWorkout = ended;
       _stopTimer();
@@ -506,7 +506,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void clear() {
-    NotificationService.cancelRestNotification();
+    NotificationService.cancelAll();
     _activeWorkout = null;
     _activeProposedSets = [];
     _activeCompletedSets = [];

@@ -103,6 +103,10 @@ class NotificationService {
     await _plugin.cancel(_notificationId);
   }
 
+  static Future<void> cancelAll() async {
+    await _plugin.cancelAll();
+  }
+
   /// Show a silent notification with vibration only (no sound).
   /// Used when rest ends while app is in foreground — the in-app ding handles
   /// sound, but we still want watches to buzz.

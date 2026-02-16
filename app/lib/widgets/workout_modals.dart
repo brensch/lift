@@ -1,9 +1,32 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
+import '../providers/workout_provider.dart';
+import '../providers/multiplayer_provider.dart';
 import 'plate_visualization.dart';
+
+Future<void> endWorkout(BuildContext context) async {
+  final confirmed = await showEndWorkoutConfirmDialog(context);
+  if (confirmed && context.mounted) {
+    final wp = context.read<WorkoutProvider>();
+    final mp = context.read<MultiplayerProvider>();
+
+    final workoutId = wp.workout?.id;
+    if (workoutId == null) return;
+
+    await wp.endWorkout();
+    if (context.mounted) {
+      if (mp.isInSession) {
+        await mp.leaveSession();
+      }
+      context.push('/workout/$workoutId/completed');
+    }
+  }
+}
 
 Future<void> showEditExerciseDialog(
   BuildContext context, {
