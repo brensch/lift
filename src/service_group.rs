@@ -46,13 +46,19 @@ impl SessionManager {
             if let Some(workout) = user_db.get_workout(wid).await? {
                 session_db.upsert_workout(user_id, &workout).await?;
 
-                // Clear old data for this user/workout to handle deletions and reorders
-                sqlx::query("DELETE FROM exercise_groups WHERE user_id = ? AND workout_id = ?")
+                // Clear old data for this user/workout to handle deletions and reorders.
+                // We must delete proposed_sets first because they reference exercise_groups.
+                sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ?")
                     .bind(user_id)
                     .bind(wid)
                     .execute(&session_db.pool)
                     .await?;
                 sqlx::query("DELETE FROM proposed_sets WHERE user_id = ? AND workout_id = ?")
+                    .bind(user_id)
+                    .bind(wid)
+                    .execute(&session_db.pool)
+                    .await?;
+                sqlx::query("DELETE FROM exercise_groups WHERE user_id = ? AND workout_id = ?")
                     .bind(user_id)
                     .bind(wid)
                     .execute(&session_db.pool)

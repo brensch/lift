@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lift Workout Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+        }
+        h1 {
+            font-weight: 900;
+            letter-spacing: -1px;
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background-color: #fff;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LIFT</h1>
+        <p>Opening session in the app...</p>
+        <a href="https://play.google.com/store/apps/details?id=com.lift.lift" class="btn" id="download-btn">
+            Download on Play Store
+        </a>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const joinId = urlParams.get('join');
+        
+        const androidUrl = "https://play.google.com/store/apps/details?id=com.lift.lift";
+        const iosUrl = "https://apps.apple.com/app/lift-workout-tracker/id6742123456"; // Placeholder ID
+        
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        // Update download button link based on OS
+        const downloadBtn = document.getElementById('download-btn');
+        if (isIOS) {
+            downloadBtn.href = iosUrl;
+            downloadBtn.innerText = "Download on App Store";
+        } else {
+            downloadBtn.href = androidUrl;
+        }
+
+        // CLIPBOARD HACK:
+        // If there's a join ID, copy it to the clipboard. 
+        // When the app opens for the first time, it can check the clipboard for a Lift ID.
+        if (joinId) {
+            const tempInput = document.createElement("input");
+            tempInput.value = `lift-join:${joinId}`;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand("copy");
+                console.log("Session ID copied to clipboard for deferred join.");
+            } catch (e) {}
+            document.body.removeChild(tempInput);
+        }
+
+        // Redirect after a delay if the app didn't open
+        setTimeout(() => {
+            if (isIOS) {
+                window.location.href = iosUrl;
+            } else {
+                window.location.href = androidUrl;
+            }
+        }, 2500);
+    </script>
+</body>
+</html>
