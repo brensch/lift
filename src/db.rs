@@ -60,10 +60,15 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
 
-CREATE TABLE IF NOT EXISTS user_sessions (
-    session_id TEXT PRIMARY KEY,
-    is_active BOOLEAN NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT NOT NULL,
+    joined_at INTEGER NOT NULL,
+    left_at INTEGER,
+    PRIMARY KEY(session_id, joined_at)
 );
+
+CREATE INDEX IF NOT EXISTS idx_sessions_joined_at ON sessions(joined_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(session_id) WHERE left_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
@@ -138,29 +143,46 @@ pub struct UserDb {
 
 impl UserDb {
     pub async fn new(user_id: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        // Fast path: pool already cached (no global lock, just DashMap shard lock)
+        // Fast path: pool already cached
         if let Some(pool) = USER_DB_CACHE.get(user_id) {
             return Ok(Self { pool: pool.clone() });
         }
 
-        // Slow path: create pool (only blocks the shard for this user_id)
-        let data_dir = "data/user_dbs";
-        if !Path::new(data_dir).exists() {
-            fs::create_dir_all(data_dir)?;
-        }
+        // Slow path: create pool
+        let pool = {
+            let data_dir = "data/user_dbs";
+            if !Path::new(data_dir).exists() {
+                fs::create_dir_all(data_dir)?;
+            }
 
-        let db_path = format!("{}/{}.sqlite", data_dir, user_id);
-        let db_url = format!("sqlite://{}", db_path);
+            let db_path = format!("{}/{}.sqlite", data_dir, user_id);
+            let db_url = format!("sqlite://{}", db_path);
 
-        let options = SqliteConnectOptions::from_str(&db_url)?
-            .create_if_missing(true)
-            .synchronous(SqliteSynchronous::Normal)
-            .journal_mode(SqliteJournalMode::Wal);
-        let pool = SqlitePoolOptions::new().connect_with(options).await?;
+            let options = SqliteConnectOptions::from_str(&db_url)?
+                .create_if_missing(true)
+                .synchronous(SqliteSynchronous::Normal)
+                .journal_mode(SqliteJournalMode::Wal);
+            
+            // Perform the async connect outside any map locks
+            SqlitePoolOptions::new()
+                .max_connections(5) // Limit connections per user to save file descriptors
+                .connect_with(options).await?
+        };
+
         sqlx::query(SCHEMA).execute(&pool).await?;
 
-        USER_DB_CACHE.insert(user_id.to_string(), pool.clone());
-        Ok(Self { pool })
+        // Re-check cache before inserting to handle race condition
+        use dashmap::mapref::entry::Entry;
+        match USER_DB_CACHE.entry(user_id.to_string()) {
+            Entry::Vacant(v) => {
+                v.insert(pool.clone());
+                Ok(Self { pool })
+            }
+            Entry::Occupied(existing) => {
+                // Someone else created it while we were connecting
+                Ok(Self { pool: existing.get().clone() })
+            }
+        }
     }
 
     pub async fn get_exercise_groups(
@@ -300,19 +322,27 @@ impl UserDb {
         Ok((history, max_weights))
     }
 
-    pub async fn add_session(
+    pub async fn join_session(
         &self,
         session_id: &str,
-        is_active: bool,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        if is_active {
-            sqlx::query("UPDATE user_sessions SET is_active = 0")
-                .execute(&self.pool)
-                .await?;
-        }
-        sqlx::query("INSERT OR REPLACE INTO user_sessions (session_id, is_active) VALUES (?, ?)")
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        sqlx::query("INSERT INTO sessions (session_id, joined_at) VALUES (?, ?)")
             .bind(session_id)
-            .bind(is_active)
+            .bind(now)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn leave_session(
+        &self,
+        session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        sqlx::query("UPDATE sessions SET left_at = ? WHERE session_id = ? AND left_at IS NULL")
+            .bind(now)
+            .bind(session_id)
             .execute(&self.pool)
             .await?;
         Ok(())
@@ -322,7 +352,7 @@ impl UserDb {
         &self,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(
-            sqlx::query_scalar("SELECT session_id FROM user_sessions WHERE is_active = 1 LIMIT 1")
+            sqlx::query_scalar("SELECT session_id FROM sessions WHERE left_at IS NULL ORDER BY joined_at DESC LIMIT 1")
                 .fetch_optional(&self.pool)
                 .await?,
         )

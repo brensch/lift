@@ -345,16 +345,22 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("workout_id is required"));
         }
 
-        // Check in-memory first
-        if let Some(w) = self.state.workouts.get(&user_id) {
+        // Check in-memory first - clone data to release lock
+        let cached = self.state.workouts.get(&user_id).and_then(|w| {
             if w.workout.id == req.workout_id {
-                return Ok(Response::new(GetWorkoutResponse {
-                    workout: Some(w.workout.clone()),
-                    exercise_groups: w.exercise_groups.clone(),
-                    proposed_sets: w.proposed_sets.clone(),
-                    completed_sets: w.completed_sets.clone(),
-                }));
+                Some((w.workout.clone(), w.exercise_groups.clone(), w.proposed_sets.clone(), w.completed_sets.clone()))
+            } else {
+                None
             }
+        });
+
+        if let Some((workout, groups, proposed, completed)) = cached {
+            return Ok(Response::new(GetWorkoutResponse {
+                workout: Some(workout),
+                exercise_groups: groups,
+                proposed_sets: proposed,
+                completed_sets: completed,
+            }));
         }
 
         // Fall back to UserDb for historical workouts
@@ -587,6 +593,10 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<ListWorkoutsResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
+        // 1. Get active workout while holding the lock
+        let active_workout = self.state.workouts.get(&user_id).map(|w| w.workout.clone());
+
+        // 2. Perform DB IO outside the lock
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
@@ -594,9 +604,9 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to list workouts: {}", e)))?;
 
         // If there's an active workout in memory, make sure it's in the list
-        if let Some(w) = self.state.workouts.get(&user_id) {
-            if !workouts.iter().any(|existing| existing.id == w.workout.id) {
-                workouts.insert(0, w.workout.clone());
+        if let Some(active) = active_workout {
+            if !workouts.iter().any(|existing| existing.id == active.id) {
+                workouts.insert(0, active);
             }
         }
 
@@ -790,7 +800,7 @@ impl WorkoutService for MyWorkoutService {
                 }
             }
             // Record session in user's DB
-            let _ = user_db.add_session(&session_id, false).await;
+            let _ = user_db.leave_session(&session_id).await;
         }
 
         Ok(Response::new(EndWorkoutResponse {
@@ -819,6 +829,11 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
 
+        // 1. Get active workout ID while holding lock
+        let active_workout_id = self.state.workouts.get(&user_id)
+            .map(|w| w.workout.id.clone());
+
+        // 2. Perform DB IO outside the lock
         let user_db = UserDb::new(&user_id).await
             .map_err(|e| Status::internal(format!("Failed to connect to user db: {}", e)))?;
 
@@ -826,9 +841,9 @@ impl WorkoutService for MyWorkoutService {
         let mut response = scheduler.get_proposed_schedule().await
             .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
 
-        // Override active_workout_id from in-memory state if present
-        if let Some(w) = self.state.workouts.get(&user_id) {
-            response.active_workout_id = w.workout.id.clone();
+        // 3. Override active_workout_id from in-memory state if present
+        if let Some(id) = active_workout_id {
+            response.active_workout_id = id;
         }
 
         Ok(Response::new(response))
