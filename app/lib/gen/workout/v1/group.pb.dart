@@ -679,6 +679,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $1.User? user,
     $core.String? activeWorkoutId,
     $1.Workout? activeWorkout,
+    $core.Iterable<$1.ExerciseGroup>? exerciseGroups,
     $core.Iterable<$1.ProposedSet>? proposedSets,
     $core.Iterable<$1.CompletedSet>? completedSets,
   }) {
@@ -686,6 +687,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (user != null) result.user = user;
     if (activeWorkoutId != null) result.activeWorkoutId = activeWorkoutId;
     if (activeWorkout != null) result.activeWorkout = activeWorkout;
+    if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
     return result;
@@ -708,9 +710,11 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'activeWorkoutId')
     ..aOM<$1.Workout>(3, _omitFieldNames ? '' : 'activeWorkout',
         subBuilder: $1.Workout.create)
-    ..pPM<$1.ProposedSet>(4, _omitFieldNames ? '' : 'proposedSets',
+    ..pPM<$1.ExerciseGroup>(4, _omitFieldNames ? '' : 'exerciseGroups',
+        subBuilder: $1.ExerciseGroup.create)
+    ..pPM<$1.ProposedSet>(5, _omitFieldNames ? '' : 'proposedSets',
         subBuilder: $1.ProposedSet.create)
-    ..pPM<$1.CompletedSet>(5, _omitFieldNames ? '' : 'completedSets',
+    ..pPM<$1.CompletedSet>(6, _omitFieldNames ? '' : 'completedSets',
         subBuilder: $1.CompletedSet.create)
     ..hasRequiredFields = false;
 
@@ -765,10 +769,13 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   $1.Workout ensureActiveWorkout() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $pb.PbList<$1.ProposedSet> get proposedSets => $_getList(3);
+  $pb.PbList<$1.ExerciseGroup> get exerciseGroups => $_getList(3);
 
   @$pb.TagNumber(5)
-  $pb.PbList<$1.CompletedSet> get completedSets => $_getList(4);
+  $pb.PbList<$1.ProposedSet> get proposedSets => $_getList(4);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<$1.CompletedSet> get completedSets => $_getList(5);
 }
 
 const $core.bool _omitFieldNames =

@@ -6,7 +6,6 @@ import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
-import '../logic/warmup.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
@@ -22,6 +21,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Active workout state
   Workout? _activeWorkout;
+  List<ExerciseGroup> _activeExerciseGroups = [];
   List<ProposedSet> _activeProposedSets = [];
   List<CompletedSet> _activeCompletedSets = [];
   List<ExerciseStatus> _exerciseStatuses = [];
@@ -79,7 +79,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void _checkRestSound() {
+  void _sortState() {
+    _activeExerciseGroups.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    _activeProposedSets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+  }
+
+  Future<void> _checkRestSound() async {
     final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
     final resting = _activeCompletedSets
         .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > 0)
@@ -97,9 +102,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Rest just ended — cancel scheduled notification (prevent double sound),
       // play in-app sound, and show buzz notification for watches
       _lastSoundedRestUntil = restUntil;
-      NotificationService.cancelRestNotification();
+      await NotificationService.cancelRestNotification();
       _soundProvider?.playCurrentSound();
-      NotificationService.showBuzzNotification(body: _nextSetBody());
+      await NotificationService.showBuzzNotification(body: _nextSetBody());
     }
     _wasResting = isCurrentlyResting;
   }
@@ -138,7 +143,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isWorkoutEnded => _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
   DateTime get now => _now;
 
-  List<ExerciseGroupData> get exerciseGroups => groupSetsByExercise(_activeProposedSets);
+  List<ExerciseGroupData> get exerciseGroups {
+    if (_activeExerciseGroups.isEmpty) {
+      return groupSetsByExercise(_activeProposedSets);
+    }
+
+    return _activeExerciseGroups.map((group) {
+      final sets = _activeProposedSets.where((s) => s.exerciseGroupId == group.id).toList();
+      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      final exercise = sets.isNotEmpty ? sets.first.exercise : Exercise.EXERCISE_UNSPECIFIED;
+      return ExerciseGroupData(exercise: exercise, sets: sets, group: group);
+    }).toList();
+  }
 
   String _nextSetBody() {
     final next = nextPendingSet;
@@ -227,13 +243,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (active != null) {
         final response = await _service.getWorkout(active.id);
         _activeWorkout = response.workout;
+        _activeExerciseGroups = List.from(response.exerciseGroups);
         _activeProposedSets = List.from(response.proposedSets);
         _activeCompletedSets = List.from(response.completedSets);
+        _sortState();
         // Initialize rest tracking state so we don't false-trigger sound on load
         _initRestState();
         _startTimer();
       } else {
         _activeWorkout = null;
+        _activeExerciseGroups = [];
         _activeProposedSets = [];
         _activeCompletedSets = [];
         _stopTimer();
@@ -253,8 +272,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final response = await _service.getWorkout(workoutId);
       _activeWorkout = response.workout;
+      _activeExerciseGroups = List.from(response.exerciseGroups);
       _activeProposedSets = List.from(response.proposedSets);
       _activeCompletedSets = List.from(response.completedSets);
+      _sortState();
       _initRestState();
       if (hasActiveWorkout) {
         _startTimer();
@@ -267,9 +288,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> startWorkout(String name, List<ProposedSet> sets) async {
+  Future<String?> startWorkout(String name, List<ExerciseGroup> groups, List<ProposedSet> sets) async {
     try {
-      final workoutId = await _service.startWorkout(name, sets);
+      final workoutId = await _service.startWorkout(name, groups, sets);
       await _loadWorkout(workoutId);
       return workoutId;
     } catch (e) {
@@ -278,25 +299,33 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> saveGroups(List<ExerciseGroupData> groups) async {
+  Future<void> reorderExerciseGroups(List<String> groupIds) async {
     if (_activeWorkout == null) return;
 
-    final allSets = <ProposedSet>[];
-    for (final group in groups) {
-      for (final set in group.sets) {
-        allSets.add(ProposedSet()
-          ..mergeFromMessage(set)
-          ..workoutOrder = allSets.length);
+    // Optimistically update local state
+    final orderedGroups = <ExerciseGroup>[];
+    for (final id in groupIds) {
+      final group = _activeExerciseGroups.firstWhere((g) => g.id == id);
+      orderedGroups.add(group..workoutOrder = orderedGroups.length);
+    }
+    _activeExerciseGroups = orderedGroups;
+
+    // Reorder sets to match groups
+    final orderedSets = <ProposedSet>[];
+    for (final group in orderedGroups) {
+      final sets = _activeProposedSets.where((s) => s.exerciseGroupId == group.id).toList();
+      for (final set in sets) {
+        orderedSets.add(set..workoutOrder = orderedSets.length);
       }
     }
+    _activeProposedSets = orderedSets;
 
-    _activeProposedSets = allSets;
+    _sortState();
+
     notifyListeners();
 
     try {
-      final updated = await _service.modifyProposedSets(_activeWorkout!.id, allSets);
-      _activeProposedSets = List.from(updated);
-      notifyListeners();
+      await _service.reorderExerciseGroups(_activeWorkout!.id, groupIds);
     } catch (e) {
       _handleError(e);
       await _loadWorkout(_activeWorkout!.id);
@@ -306,7 +335,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      NotificationService.cancelRestNotification();
+      await NotificationService.cancelRestNotification();
       _wasResting = false;
       final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
       _activeCompletedSets.add(completed);
@@ -338,7 +367,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _wasResting = true;
         // Schedule background notification for when rest ends
         final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
-        NotificationService.scheduleRestNotification(
+        await NotificationService.scheduleRestNotification(
           restUntilUnix: completed.restUntil.toInt(),
           soundPresetId: presetId,
           body: _nextSetBody(),
@@ -355,7 +384,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _service.deleteCompletedSet(_activeWorkout!.id, completedSetId);
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
-      NotificationService.cancelRestNotification();
+      await NotificationService.cancelRestNotification();
       _wasResting = false;
       notifyListeners();
     } catch (e) {
@@ -372,7 +401,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (proposed == null) return;
 
     try {
-      NotificationService.cancelRestNotification();
+      await NotificationService.cancelRestNotification();
       final completed = await _service.completeSet(
         _activeWorkout!.id,
         proposedSetId,
@@ -399,7 +428,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> endWorkout() async {
     if (_activeWorkout == null) return;
     try {
-      NotificationService.cancelAll();
+      await NotificationService.cancelAll();
       final ended = await _service.endWorkout(_activeWorkout!.id);
       _activeWorkout = ended;
       _stopTimer();
@@ -484,29 +513,113 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void rebuildGroup(int groupIndex, {required double targetWeight, bool? warmups, int? setCount}) {
+  void rebuildGroup(int groupIndex, {required List<double> targetWeights, bool? warmups, int? setCount}) {
     final groups = exerciseGroups;
     if (groupIndex < 0 || groupIndex >= groups.length) return;
 
-    final newSets = rebuildExerciseSets(
-      groups[groupIndex].sets,
-      targetWeight: targetWeight,
-      warmups: warmups,
-      setCount: setCount,
-      isSetDone: isSetDone,
-    );
-
-    final updatedGroups = List<ExerciseGroupData>.from(groups);
-    updatedGroups[groupIndex] = ExerciseGroupData(
-      exercise: groups[groupIndex].exercise,
-      sets: newSets,
-    );
-
-    saveGroups(updatedGroups);
+    final groupData = groups[groupIndex];
+    if (groupData.group != null) {
+      final reps = groupData.sets.where((s) => !s.warmup).firstOrNull?.targetReps ?? 5;
+      updateGroup(
+        groupIndex,
+        targetWeights: targetWeights,
+        reps: reps,
+        setCount: setCount ?? groupData.sets.where((s) => !s.warmup).length,
+        warmups: warmups,
+      );
+      return;
+    }
   }
 
-  void clear() {
-    NotificationService.cancelAll();
+  Future<void> addExerciseGroup({
+    required String name,
+    required ExerciseGroupType type,
+    required List<Exercise> exercises,
+    required int sets,
+    required int reps,
+    required List<double> weights,
+    required bool includeWarmup,
+  }) async {
+    if (_activeWorkout == null) return;
+    try {
+      final response = await _service.createExerciseGroup(
+        workoutId: _activeWorkout!.id,
+        name: name,
+        type: type,
+        exercises: exercises,
+        sets: sets,
+        reps: reps,
+        weights: weights,
+        includeWarmup: includeWarmup,
+      );
+      _activeExerciseGroups.add(response.group);
+      _activeProposedSets.addAll(response.generatedSets);
+      _sortState();
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> updateGroup(int groupIndex, {
+    required List<double> targetWeights,
+    required int reps,
+    required int setCount,
+    bool? warmups,
+  }) async {
+    final groups = exerciseGroups;
+    if (groupIndex < 0 || groupIndex >= groups.length) return;
+    final groupData = groups[groupIndex];
+    if (groupData.group == null) return;
+
+    try {
+      final response = await _service.updateExerciseGroup(
+        workoutId: _activeWorkout!.id,
+        exerciseGroupId: groupData.group!.id,
+        name: groupData.group!.name,
+        sets: setCount,
+        reps: reps,
+        weights: targetWeights,
+        includeWarmup: warmups ?? groupData.group!.includeWarmup,
+      );
+
+      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
+      _activeExerciseGroups.add(response.group);
+
+      _activeProposedSets.removeWhere((s) => s.exerciseGroupId == groupData.group!.id);
+      _activeProposedSets.addAll(response.generatedSets);
+      
+      _sortState();
+
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> deleteExerciseGroup(int groupIndex) async {
+    final groups = exerciseGroups;
+    if (groupIndex < 0 || groupIndex >= groups.length) return;
+    final groupData = groups[groupIndex];
+
+    if (_activeWorkout == null) return;
+
+    if (groupData.group == null) {
+      return;
+    }
+
+    try {
+      await _service.deleteExerciseGroup(_activeWorkout!.id, groupData.group!.id);
+      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
+      _activeProposedSets.removeWhere((s) => s.exerciseGroupId == groupData.group!.id);
+      notifyListeners();
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> clear() async {
+    await NotificationService.cancelAll();
     _activeWorkout = null;
     _activeProposedSets = [];
     _activeCompletedSets = [];

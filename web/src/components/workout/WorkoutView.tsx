@@ -36,6 +36,7 @@ interface WorkoutViewProps {
 
 export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   const [workout, setWorkout] = useState<Workout | null>(null)
+  const [exerciseGroups, setExerciseGroups] = useState<ExerciseGroup[]>([])
   const [proposedSets, setProposedSets] = useState<ProposedSet[]>([])
   const [completedSets, setCompletedSets] = useState<CompletedSet[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,7 +46,6 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   const [editingExerciseIdx, setEditingExerciseIdx] = useState<number | null>(null)
   const [setToDelete, setSetToDelete] = useState<string | null>(null)
   const [showEndModal, setShowEndModal] = useState(false)
-  const saveCounterRef = useRef(0)
   const sessionStatus = useMultiplayer(userId, workoutId)
 
   // --- Load ---
@@ -55,7 +55,8 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
       const response = await workoutClient.getWorkout({ workoutId }, withUserId(userId))
       if (response.workout) {
         setWorkout(response.workout)
-        setProposedSets(response.proposedSets)
+        setExerciseGroups(response.exerciseGroups.sort((a, b) => a.workoutOrder - b.workoutOrder))
+        setProposedSets(response.proposedSets.sort((a, b) => Number(a.workoutOrder - b.workoutOrder)))
         setCompletedSets(response.completedSets)
 
         const activeSet = response.completedSets.find(c => c.endedAt === 0n)
@@ -103,7 +104,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   const isSetDone = (setId: string) => completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
   const activeCompleted = completedSets.find((c) => c.endedAt === 0n)
   const activeProposed = activeCompleted ? proposedSets.find((p) => p.id === activeCompleted.proposedSetId) : undefined
-  const nextSet = proposedSets.find((p) => !isSetDone(p.id) && p.id !== activeProposed?.id)
+  const nextSet = [...proposedSets].sort((a, b) => Number(a.workoutOrder - b.workoutOrder)).find((p) => !isSetDone(p.id) && p.id !== activeProposed?.id)
   const allSetsDone = proposedSets.length > 0 && proposedSets.every((p) => isSetDone(p.id)) && !activeCompleted
 
   // Determine "Next Up" for group
@@ -125,7 +126,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
 
       // Find next set
       const isPSetDone = (setId: string) => p.completedSets.some((c) => c.proposedSetId === setId && c.endedAt > 0n)
-      const pNextSet = p.proposedSets.find((s) => !isPSetDone(s.id))
+      const pNextSet = [...p.proposedSets].sort((a, b) => Number(a.workoutOrder - b.workoutOrder)).find((s) => !isPSetDone(s.id))
 
       if (!pNextSet) return null
 
@@ -193,38 +194,75 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
     } catch (e) { console.error(e) }
   }
 
-  /** Re-number all sets across groups, optimistic-update, then persist to server. */
-  const saveGroups = (groups: { exercise: Exercise; sets: ProposedSet[] }[]) => {
-    const thisCounter = ++saveCounterRef.current
-    let order = 0
-    const updatedSets = groups.flatMap((g) =>
-      g.sets.map((s) => create(ProposedSetSchema, { ...s, workoutOrder: order++ }))
-    )
-    setProposedSets(updatedSets)
-    workoutClient.modifyProposedSets({ workoutId, proposedSets: updatedSets }, withUserId(userId))
-      .then((res) => {
-        if (saveCounterRef.current === thisCounter) setProposedSets(res.proposedSets)
-      }).catch(console.error)
-  }
+  const handleEditExercise = async (groupIdx: number, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
+    const groups = exerciseGroups.length > 0 
+      ? exerciseGroups.map(eg => ({
+          exercise: proposedSets.find(s => s.exerciseGroupId === eg.id)?.exercise ?? Exercise.UNSPECIFIED,
+          sets: proposedSets.filter(s => s.exerciseGroupId === eg.id),
+          group: eg
+        }))
+      : groupSetsByExercise(proposedSets)
 
-  const handleEditExercise = (groupIdx: number, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
-    const groups = groupSetsByExercise(proposedSets)
-    if (!groups[groupIdx]) return
-    const rebuilt = rebuildExerciseSets(groups[groupIdx].sets, opts, isSetDone)
-    saveGroups(groups.map((g, i) => i === groupIdx ? { ...g, sets: rebuilt } : g))
+    const group = groups[groupIdx]
+    if (!group || !group.group) return
+
+    try {
+      const res = await workoutClient.updateExerciseGroup({
+        workoutId,
+        exerciseGroupId: group.group.id,
+        name: group.group.name,
+        sets: opts.setCount,
+        reps: 5, // Default reps if not specified
+        weight: opts.targetWeight,
+        includeWarmup: opts.warmups,
+      }, withUserId(userId))
+      
+      setExerciseGroups(prev => prev.map(g => g.id === res.group?.id ? res.group : g).sort((a, b) => a.workoutOrder - b.workoutOrder))
+      setProposedSets(prev => [
+        ...prev.filter(s => s.exerciseGroupId !== res.group?.id),
+        ...res.generatedSets
+      ].sort((a, b) => Number(a.workoutOrder - b.workoutOrder)))
+    } catch (e) { console.error(e) }
     setEditingExerciseIdx(null)
   }
 
-  const handleDeleteExercise = (groupIdx: number) => {
-    saveGroups(groupSetsByExercise(proposedSets).filter((_, i) => i !== groupIdx))
+  const handleDeleteExercise = async (groupIdx: number) => {
+    const groups = exerciseGroups.length > 0 
+      ? exerciseGroups.map(eg => ({
+          exercise: proposedSets.find(s => s.exerciseGroupId === eg.id)?.exercise ?? Exercise.UNSPECIFIED,
+          sets: proposedSets.filter(s => s.exerciseGroupId === eg.id),
+          group: eg
+        }))
+      : groupSetsByExercise(proposedSets)
+
+    const group = groups[groupIdx]
+    if (!group || !group.group) return
+
+    try {
+      await workoutClient.deleteExerciseGroup({ workoutId, exerciseGroupId: group.group.id }, withUserId(userId))
+      setExerciseGroups(prev => prev.filter(g => g.id !== group.group?.id))
+      setProposedSets(prev => prev.filter(s => s.exerciseGroupId !== group.group?.id))
+    } catch (e) { console.error(e) }
     setEditingExerciseIdx(null)
   }
 
-  const handleMoveGroup = (from: number, to: number) => {
-    const groups = [...groupSetsByExercise(proposedSets)]
-    const [moved] = groups.splice(from, 1)
-    groups.splice(to, 0, moved)
-    saveGroups(groups)
+  const handleMoveGroup = async (from: number, to: number) => {
+    const ids = [...exerciseGroups.map(g => g.id)]
+    const [moved] = ids.splice(from, 1)
+    ids.splice(to, 0, moved)
+    
+    // Optimistic
+    setExerciseGroups(prev => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next.map((g, i) => ({ ...g, workoutOrder: i })).sort((a, b) => a.workoutOrder - b.workoutOrder)
+    })
+
+    try {
+      await workoutClient.reorderExerciseGroups({ workoutId, exerciseGroupIds: ids }, withUserId(userId))
+      await loadWorkout() // Reload to get correct set order
+    } catch (e) { console.error(e); loadWorkout() }
   }
 
   const handleSkipWarmup = async (setId: string) => {
@@ -256,14 +294,22 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
-  const handleAddExercise = (ex: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
-    const seed = [create(ProposedSetSchema, {
-      id: crypto.randomUUID(),
-      exercise: ex, targetReps: 5, targetWeight: opts.targetWeight, warmup: false,
-    })]
-    const newSets = rebuildExerciseSets(seed, opts, () => false)
-    const groups = groupSetsByExercise(proposedSets)
-    saveGroups([...groups, { exercise: ex, sets: newSets }])
+  const handleAddExercise = async (ex: Exercise, opts: { warmups: boolean; setCount: number; targetWeight: number }) => {
+    try {
+      const res = await workoutClient.createExerciseGroup({
+        workoutId,
+        name: Exercise[ex], // Or look up short name
+        type: 1, // STRAIGHT
+        exercises: [ex],
+        sets: opts.setCount,
+        reps: 5,
+        weight: opts.targetWeight,
+        includeWarmup: opts.warmups,
+      }, withUserId(userId))
+      
+      if (res.group) setExerciseGroups(prev => [...prev, res.group!])
+      setProposedSets(prev => [...prev, ...res.generatedSets].sort((a, b) => Number(a.workoutOrder - b.workoutOrder)))
+    } catch (e) { console.error(e) }
     setShowAddModal(false)
   }
 
@@ -350,6 +396,7 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
 
         {/* Exercise Groups */}
         <ExerciseGroupsList
+          exerciseGroups={exerciseGroups}
           proposedSets={proposedSets} completedSets={completedSets} activeSetId={activeProposed?.id}
           onMove={handleMoveGroup} onEdit={(idx) => setEditingExerciseIdx(idx)} onAdd={() => setShowAddModal(true)}
         />
@@ -380,7 +427,8 @@ export function WorkoutView({ workoutId, userId }: WorkoutViewProps) {
   )
 }
 
-function ExerciseGroupsList({ proposedSets, completedSets, activeSetId, onMove, onEdit, onAdd }: {
+function ExerciseGroupsList({ exerciseGroups, proposedSets, completedSets, activeSetId, onMove, onEdit, onAdd }: {
+  exerciseGroups: ExerciseGroup[]
   proposedSets: ProposedSet[]
   completedSets: CompletedSet[]
   activeSetId?: string
@@ -388,12 +436,22 @@ function ExerciseGroupsList({ proposedSets, completedSets, activeSetId, onMove, 
   onEdit: (groupIdx: number) => void
   onAdd: () => void
 }) {
-  const groups = groupSetsByExercise(proposedSets)
+  const groups = useMemo(() => {
+    if (exerciseGroups.length === 0) {
+      return groupSetsByExercise(proposedSets)
+    }
+    return exerciseGroups.map(eg => ({
+      exercise: proposedSets.find(s => s.exerciseGroupId === eg.id)?.exercise ?? Exercise.UNSPECIFIED,
+      sets: proposedSets.filter(s => s.exerciseGroupId === eg.id),
+      group: eg
+    }))
+  }, [exerciseGroups, proposedSets])
+
   return (
     <div className="space-y-1">
       {groups.map((group, idx) => (
         <ExerciseGroup
-          key={`${group.exercise}-${idx}`}
+          key={group.group?.id ?? `${group.exercise}-${idx}`}
           group={group} groupIndex={idx} totalGroups={groups.length}
           completedSets={completedSets} activeSetId={activeSetId} isWorkoutEnded={false}
           onMoveUp={() => onMove(idx, idx - 1)} onMoveDown={() => onMove(idx, idx + 1)}

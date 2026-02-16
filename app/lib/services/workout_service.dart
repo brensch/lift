@@ -7,10 +7,11 @@ class WorkoutServiceWrapper {
 
   WorkoutServiceWrapper(this._client);
 
-  Future<String> startWorkout(String name, List<ProposedSet> proposedSets) async {
+  Future<String> startWorkout(String name, List<ExerciseGroup> exerciseGroups, List<ProposedSet> proposedSets) async {
     final response = await _client.workoutService.startWorkout(
       StartWorkoutRequest()
         ..name = name
+        ..exerciseGroups.addAll(exerciseGroups)
         ..proposedSets.addAll(proposedSets),
     );
     return response.id;
@@ -34,18 +35,6 @@ class WorkoutServiceWrapper {
       ListWorkoutsRequest(),
     );
     return response.workouts;
-  }
-
-  Future<List<ProposedSet>> modifyProposedSets(
-    String workoutId,
-    List<ProposedSet> proposedSets,
-  ) async {
-    final response = await _client.workoutService.modifyProposedSets(
-      ModifyProposedSetsRequest()
-        ..workoutId = workoutId
-        ..proposedSets.addAll(proposedSets),
-    );
-    return response.proposedSets;
   }
 
   Future<CompletedSet> startSet(String workoutId, String proposedSetId) async {
@@ -86,6 +75,66 @@ class WorkoutServiceWrapper {
       EndWorkoutRequest()..workoutId = workoutId,
     );
     return response.workout;
+  }
+
+  Future<CreateExerciseGroupResponse> createExerciseGroup({
+    required String workoutId,
+    required String name,
+    required ExerciseGroupType type,
+    required List<Exercise> exercises,
+    required int sets,
+    required int reps,
+    required List<double> weights,
+    required bool includeWarmup,
+  }) async {
+    return await _client.workoutService.createExerciseGroup(
+      CreateExerciseGroupRequest()
+        ..workoutId = workoutId
+        ..name = name
+        ..type = type
+        ..exercises.addAll(exercises)
+        ..sets = sets
+        ..reps = reps
+        ..weights.addAll(weights)
+        ..includeWarmup = includeWarmup,
+    );
+  }
+
+  Future<UpdateExerciseGroupResponse> updateExerciseGroup({
+    required String workoutId,
+    required String exerciseGroupId,
+    required String name,
+    required int sets,
+    required int reps,
+    required List<double> weights,
+    required bool includeWarmup,
+  }) async {
+    return await _client.workoutService.updateExerciseGroup(
+      UpdateExerciseGroupRequest()
+        ..workoutId = workoutId
+        ..exerciseGroupId = exerciseGroupId
+        ..name = name
+        ..sets = sets
+        ..reps = reps
+        ..weights.addAll(weights)
+        ..includeWarmup = includeWarmup,
+    );
+  }
+
+  Future<void> deleteExerciseGroup(String workoutId, String exerciseGroupId) async {
+    await _client.workoutService.deleteExerciseGroup(
+      DeleteExerciseGroupRequest()
+        ..workoutId = workoutId
+        ..exerciseGroupId = exerciseGroupId,
+    );
+  }
+
+  Future<void> reorderExerciseGroups(String workoutId, List<String> exerciseGroupIds) async {
+    await _client.workoutService.reorderExerciseGroups(
+      ReorderExerciseGroupsRequest()
+        ..workoutId = workoutId
+        ..exerciseGroupIds.addAll(exerciseGroupIds),
+    );
   }
 
   Future<GetProposedWorkoutScheduleResponse> getProposedWorkoutSchedule(

@@ -3,8 +3,9 @@ import '../gen/workout/v1/workout.pb.dart';
 class ExerciseGroupData {
   final Exercise exercise;
   final List<ProposedSet> sets;
+  final ExerciseGroup? group;
 
-  ExerciseGroupData({required this.exercise, required this.sets});
+  ExerciseGroupData({required this.exercise, required this.sets, this.group});
 }
 
 List<ExerciseGroupData> groupSetsByExercise(List<ProposedSet> sets) {
