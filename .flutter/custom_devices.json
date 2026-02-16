@@ -1,0 +1,32 @@
+{
+  "custom-devices": [
+    {
+      "id": "linux-1",
+      "label": "Linux Instance 1",
+      "sdkNameAndVersion": "Linux",
+      "platform": null,
+      "enabled": true,
+      "ping": ["ls", "/"],
+      "runDebug": ["bash", "-c", "mkdir -p /home/brensch/lift/.tmp/linux-1 && XDG_DATA_HOME=/home/brensch/lift/.tmp/linux-1 /home/brensch/lift/app/build/linux/x64/debug/bundle/lift"],
+      "postBuild": null,
+      "install": ["ls", "/"],
+      "uninstall": ["ls", "/"],
+      "forwardPort": null,
+      "screenshot": null
+    },
+    {
+      "id": "linux-2",
+      "label": "Linux Instance 2",
+      "sdkNameAndVersion": "Linux",
+      "platform": null,
+      "enabled": true,
+      "ping": ["ls", "/"],
+      "runDebug": ["bash", "-c", "mkdir -p /home/brensch/lift/.tmp/linux-2 && XDG_DATA_HOME=/home/brensch/lift/.tmp/linux-2 /home/brensch/lift/app/build/linux/x64/debug/bundle/lift"],
+      "postBuild": null,
+      "install": ["ls", "/"],
+      "uninstall": ["ls", "/"],
+      "forwardPort": null,
+      "screenshot": null
+    }
+  ]
+}

@@ -21,6 +21,7 @@ import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
+import 'screens/passkeys_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
@@ -121,6 +122,7 @@ class _LiftAppState extends State<LiftApp> {
             GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
             GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
             GoRoute(path: '/sound-settings', builder: (_, __) => const SoundSettingsScreen()),
+            GoRoute(path: '/passkeys', builder: (_, __) => const PasskeysScreen()),
             GoRoute(path: '/debug-notifications', builder: (_, __) => const DebugNotificationsScreen()),
           ],
         ),
@@ -144,6 +146,7 @@ class _LiftAppState extends State<LiftApp> {
     return MultiProvider(
       providers: [
         Provider<GrpcClient>.value(value: _grpcClient),
+        Provider<AuthService>.value(value: _authService),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         ChangeNotifierProvider<WorkoutProvider>.value(value: _workoutProvider),
         ChangeNotifierProvider<MultiplayerProvider>.value(value: _multiplayerProvider),

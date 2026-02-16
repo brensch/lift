@@ -1,4 +1,4 @@
-# Android Development
+# Android Development (Physical Device)
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Android devices can't reach your host machine's `localhost` directly. The `adb r
 ~/android-sdk/platform-tools/adb reverse tcp:50051 tcp:50051
 ```
 
-This is already included in `make run-app`, so it happens automatically.
+This is already included in `make run-android` and `make run-app`, so it happens automatically.
 
 To verify the connection manually:
 
@@ -47,7 +47,7 @@ adb reverse --remove tcp:50051
 
 3. Run the app (sets up `adb reverse` automatically):
    ```bash
-   make run-app
+   make run-android
    ```
 
    Flutter will detect the connected device and deploy to it. If multiple devices are connected, use:

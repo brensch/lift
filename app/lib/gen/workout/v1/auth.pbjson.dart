@@ -306,3 +306,15 @@ const PasswordLoginRequest$json = {
 final $typed_data.Uint8List passwordLoginRequestDescriptor = $convert.base64Decode(
     'ChRQYXNzd29yZExvZ2luUmVxdWVzdBIaCgh1c2VybmFtZRgBIAEoCVIIdXNlcm5hbWUSGgoIcG'
     'Fzc3dvcmQYAiABKAlSCHBhc3N3b3Jk');
+
+@$core.Deprecated('Use testLoginRequestDescriptor instead')
+const TestLoginRequest$json = {
+  '1': 'TestLoginRequest',
+  '2': [
+    {'1': 'username', '3': 1, '4': 1, '5': 9, '10': 'username'},
+  ],
+};
+
+/// Descriptor for `TestLoginRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List testLoginRequestDescriptor = $convert.base64Decode(
+    'ChBUZXN0TG9naW5SZXF1ZXN0EhoKCHVzZXJuYW1lGAEgASgJUgh1c2VybmFtZQ==');

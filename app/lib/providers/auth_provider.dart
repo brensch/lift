@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:credential_manager/credential_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/grpc_client.dart';
@@ -46,7 +47,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.register(username, password);
       await _saveSession(response);
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      _error = _formatError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,7 +63,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.login(username, password);
       await _saveSession(response);
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      _error = _formatError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -78,7 +79,23 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.passkeyRegister(username);
       await _saveSession(response);
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      _error = _formatError(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> testLogin(String username) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _authService.testLogin(username);
+      await _saveSession(response);
+    } catch (e) {
+      _error = _formatError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -94,7 +111,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.passkeyLogin();
       await _saveSession(response);
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      _error = _formatError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -134,5 +151,12 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  static String _formatError(Object e) {
+    if (e is CredentialException) {
+      return e.message;
+    }
+    return e.toString().replaceFirst('Exception: ', '');
   }
 }

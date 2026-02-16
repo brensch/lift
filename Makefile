@@ -16,10 +16,10 @@ run-dev:
 run-backend:
 	@pkill -x lift || true
 	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
-	WEBAUTHN_RP_ORIGIN=http://localhost:5173 \
+	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
 	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
-	cargo watch -x "run --bin lift"
+	cargo watch -x "run --bin lift --features test-auth"
 
 run-frontend:
 	cd web && $(BUN) run dev
@@ -30,15 +30,23 @@ run-android:
 	$(ADB) reverse tcp:50051 tcp:50051 || true
 	cd app && $(FLUTTER) run -d android
 
-run-linux:
-	cd app && $(FLUTTER) run -d linux
+setup-flutter:
+	$(FLUTTER) config --enable-custom-devices
+	mkdir -p $(HOME)/.config/flutter
+	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
 run-app:
-	$(ADB) reverse tcp:50051 tcp:50051 || true
+	@$(ADB) reverse tcp:50051 tcp:50051 || true
 	cd app && $(FLUTTER) run -d all
 
+stop-app:
+	pkill -f "lift" || true
+	pkill -f "flutter_assets" || true
+	pkill -f "lift" || true
+	pkill -f "flutter_assets" || true
+
 load-test:
-	cargo run --bin load_test -- --concurrency 100 --duration 30 --ramp-up 5
+	cargo run --bin load_test --features test-auth -- --concurrency 100 --duration 30 --ramp-up 5
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release

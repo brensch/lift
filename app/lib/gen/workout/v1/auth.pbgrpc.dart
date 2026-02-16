@@ -109,6 +109,13 @@ class AuthServiceClient extends $grpc.Client {
     return $createUnaryCall(_$passwordLogin, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.AuthResponse> testLogin(
+    $0.TestLoginRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$testLogin, request, options: options);
+  }
+
   // method descriptors
 
   static final _$registerStart =
@@ -165,6 +172,11 @@ class AuthServiceClient extends $grpc.Client {
       $grpc.ClientMethod<$0.PasswordLoginRequest, $0.AuthResponse>(
           '/workout.v1.AuthService/PasswordLogin',
           ($0.PasswordLoginRequest value) => value.writeToBuffer(),
+          $0.AuthResponse.fromBuffer);
+  static final _$testLogin =
+      $grpc.ClientMethod<$0.TestLoginRequest, $0.AuthResponse>(
+          '/workout.v1.AuthService/TestLogin',
+          ($0.TestLoginRequest value) => value.writeToBuffer(),
           $0.AuthResponse.fromBuffer);
 }
 
@@ -264,6 +276,13 @@ abstract class AuthServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.PasswordLoginRequest.fromBuffer(value),
         ($0.AuthResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.TestLoginRequest, $0.AuthResponse>(
+        'TestLogin',
+        testLogin_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.TestLoginRequest.fromBuffer(value),
+        ($0.AuthResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.RegisterStartResponse> registerStart_Pre(
@@ -358,4 +377,12 @@ abstract class AuthServiceBase extends $grpc.Service {
 
   $async.Future<$0.AuthResponse> passwordLogin(
       $grpc.ServiceCall call, $0.PasswordLoginRequest request);
+
+  $async.Future<$0.AuthResponse> testLogin_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.TestLoginRequest> $request) async {
+    return testLogin($call, await $request);
+  }
+
+  $async.Future<$0.AuthResponse> testLogin(
+      $grpc.ServiceCall call, $0.TestLoginRequest request);
 }

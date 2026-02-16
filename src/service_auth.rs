@@ -12,6 +12,7 @@ use lift::workout::v1::{
     DeletePasskeyRequest, DeletePasskeyResponse,
     ListPasskeysRequest, ListPasskeysResponse,
     PasswordRegisterRequest, PasswordLoginRequest,
+    TestLoginRequest,
     PasskeyInfo,
 };
 use crate::service_workout::get_user_id_authenticated;
@@ -296,5 +297,45 @@ impl AuthService for MyAuthService {
             user_id: user.id,
             username: user.name,
         }))
+    }
+
+    async fn test_login(
+        &self,
+        request: Request<TestLoginRequest>,
+    ) -> Result<Response<AuthResponse>, Status> {
+        #[cfg(not(feature = "test-auth"))]
+        {
+            let _ = request;
+            return Err(Status::unimplemented("TestLogin is not available in this build"));
+        }
+
+        #[cfg(feature = "test-auth")]
+        {
+            let req = request.into_inner();
+            let username = req.username.trim().to_string();
+
+            if !username.starts_with("__test__") {
+                return Err(Status::invalid_argument("TestLogin only accepts usernames starting with __test__"));
+            }
+
+            // Upsert: find existing user or create new one
+            let user = match self.auth_state.central_db.get_user_by_name(&username).await
+                .map_err(|e| Status::internal(e.to_string()))? {
+                Some(user) => user,
+                None => {
+                    self.auth_state.central_db.create_user(&username).await
+                        .map_err(|e| Status::internal(e.to_string()))?
+                }
+            };
+
+            let token = self.auth_state.central_db.create_auth_session(&user.id).await
+                .map_err(|e| Status::internal(e.to_string()))?;
+
+            Ok(Response::new(AuthResponse {
+                session_token: token,
+                user_id: user.id,
+                username: user.name,
+            }))
+        }
     }
 }
