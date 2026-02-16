@@ -19,9 +19,7 @@ class SetLog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final done = completedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .toList()
+    final done = completedSets.where((c) => c.endedAt != Int64.ZERO).toList()
       ..sort((a, b) => b.endedAt.compareTo(a.endedAt));
 
     if (done.isEmpty) return const SizedBox.shrink();
@@ -46,9 +44,13 @@ class SetLog extends StatelessWidget {
             (p) => p!.id == completed.proposedSetId,
             orElse: () => null,
           );
-          final name = proposed != null ? (shortNames[proposed.exercise] ?? '?') : '?';
+          final name = proposed != null
+              ? (shortNames[proposed.exercise] ?? '?')
+              : '?';
           final isWarmup = proposed?.warmup ?? false;
-          final hitTarget = proposed != null ? completed.actualReps >= proposed.targetReps : true;
+          final hitTarget = proposed != null
+              ? completed.actualReps >= proposed.targetReps
+              : true;
 
           Color fg;
           String label;
@@ -64,10 +66,16 @@ class SetLog extends StatelessWidget {
             label = 'S';
           }
 
-          final finishTime = DateTime.fromMillisecondsSinceEpoch(completed.endedAt.toInt() * 1000);
-          final timeStr = "${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}";
-          final durationSecs = (completed.endedAt - completed.startedAt).toInt();
-          final durationStr = durationSecs < 60 ? "${durationSecs}s" : "${durationSecs ~/ 60}m${durationSecs % 60}s";
+          final finishTime = DateTime.fromMillisecondsSinceEpoch(
+            completed.endedAt.toInt() * 1000,
+          );
+          final timeStr =
+              "${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}";
+          final durationSecs = (completed.endedAt - completed.startedAt)
+              .toInt();
+          final durationStr = durationSecs < 60
+              ? "${durationSecs}s"
+              : "${durationSecs ~/ 60}m${durationSecs % 60}s";
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
@@ -105,7 +113,11 @@ class SetLog extends StatelessWidget {
                     onTap: () => onDelete!(completed.id),
                     child: Padding(
                       padding: const EdgeInsets.only(left: 8),
-                      child: Icon(Icons.close, size: 14, color: colorScheme.error.withValues(alpha: 0.5)),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: colorScheme.error.withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
               ],

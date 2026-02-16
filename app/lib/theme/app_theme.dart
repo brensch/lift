@@ -9,18 +9,20 @@ class AppTheme {
   static const _fontFamily = 'Inter'; // Falls back to system sans-serif
   static const _radius = 8.0;
   static final _borderRadius = BorderRadius.circular(_radius);
-  static final _buttonShape = RoundedRectangleBorder(borderRadius: _borderRadius);
+  static final _buttonShape = RoundedRectangleBorder(
+    borderRadius: _borderRadius,
+  );
 
   // ─── Semantic colors (same in both modes, used via extension) ──────
   static const warmupLight = Color(0x1A6B7280); // gray-500 @ 10%
-  static const warmupFg = Color(0xFF6B7280);    // gray-500
-  static const successBg = Color(0x1A22C55E);   // green-500 @ 10%
-  static const successFg = Color(0xFF16A34A);    // green-600
-  static const warningBg = Color(0x1AF59E0B);   // yellow-500 @ 10%
-  static const warningFg = Color(0xFFCA8A04);    // yellow-600
-  static const activeBg = Color(0x1AF97316);     // orange-500 @ 10%
-  static const activeFg = Color(0xFFEA580C);     // orange-600
-  static const destructive = Color(0xFFDC2626);  // red-600
+  static const warmupFg = Color(0xFF6B7280); // gray-500
+  static const successBg = Color(0x1A22C55E); // green-500 @ 10%
+  static const successFg = Color(0xFF16A34A); // green-600
+  static const warningBg = Color(0x1AF59E0B); // yellow-500 @ 10%
+  static const warningFg = Color(0xFFCA8A04); // yellow-600
+  static const activeBg = Color(0x1AF97316); // orange-500 @ 10%
+  static const activeFg = Color(0xFFEA580C); // orange-600
+  static const destructive = Color(0xFFDC2626); // red-600
 
   // ─── Light theme ───────────────────────────────────────────────────
   static final light = ThemeData(
@@ -31,15 +33,15 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       surface: Colors.white,
       onSurface: Color(0xFF0A0A0A),
-      primary: Color(0xFF171717),       // near-black primary
+      primary: Color(0xFF171717), // near-black primary
       onPrimary: Color(0xFFFAFAFA),
-      secondary: Color(0xFFE5E5E5),     // darker gray for better contrast
+      secondary: Color(0xFFE5E5E5), // darker gray for better contrast
       onSecondary: Color(0xFF171717),
-      tertiary: Color(0xFF737373),      // muted text
+      tertiary: Color(0xFF737373), // muted text
       error: Color(0xFFDC2626),
       onError: Colors.white,
       surfaceContainerHighest: Color(0xFFF5F5F5),
-      outline: Color(0xFFA3A3A3),       // even darker border for light mode
+      outline: Color(0xFFA3A3A3), // even darker border for light mode
       outlineVariant: Color(0xFFA3A3A3),
     ),
     dividerColor: const Color(0xFFE5E5E5),
@@ -64,7 +66,10 @@ class AppTheme {
         backgroundColor: const Color(0xFF171717),
         foregroundColor: const Color(0xFFFAFAFA),
         shape: _buttonShape,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -72,7 +77,10 @@ class AppTheme {
         foregroundColor: const Color(0xFF171717),
         side: const BorderSide(color: Color(0xFFE5E5E5)),
         shape: _buttonShape,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -120,11 +128,13 @@ class AppTheme {
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return const Color(0xFF171717);
+        if (states.contains(WidgetState.selected))
+          return const Color(0xFF171717);
         return const Color(0xFFD4D4D4);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return const Color(0xFF171717).withValues(alpha: 0.5);
+        if (states.contains(WidgetState.selected))
+          return const Color(0xFF171717).withValues(alpha: 0.5);
         return const Color(0xFFE5E5E5);
       }),
     ),
@@ -150,15 +160,15 @@ class AppTheme {
     colorScheme: const ColorScheme.dark(
       surface: Color(0xFF0A0A0A),
       onSurface: Color(0xFFFAFAFA),
-      primary: Color(0xFFFAFAFA),       // white primary (inverted)
+      primary: Color(0xFFFAFAFA), // white primary (inverted)
       onPrimary: Color(0xFF0A0A0A),
-      secondary: Color(0xFF262626),     // dark gray
+      secondary: Color(0xFF262626), // dark gray
       onSecondary: Color(0xFFFAFAFA),
-      tertiary: Color(0xFFA3A3A3),      // muted text
+      tertiary: Color(0xFFA3A3A3), // muted text
       error: Color(0xFFEF4444),
       onError: Colors.white,
       surfaceContainerHighest: Color(0xFF1A1A1A),
-      outline: Color(0xFF525252),       // lighter border for dark mode
+      outline: Color(0xFF525252), // lighter border for dark mode
       outlineVariant: Color(0xFF525252),
     ),
     dividerColor: const Color(0xFF262626),
@@ -183,7 +193,10 @@ class AppTheme {
         backgroundColor: const Color(0xFFFAFAFA),
         foregroundColor: const Color(0xFF0A0A0A),
         shape: _buttonShape,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -191,7 +204,10 @@ class AppTheme {
         foregroundColor: const Color(0xFFFAFAFA),
         side: const BorderSide(color: Color(0xFF262626)),
         shape: _buttonShape,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -239,11 +255,13 @@ class AppTheme {
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return const Color(0xFFFAFAFA);
+        if (states.contains(WidgetState.selected))
+          return const Color(0xFFFAFAFA);
         return const Color(0xFF525252);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return const Color(0xFFFAFAFA).withValues(alpha: 0.5);
+        if (states.contains(WidgetState.selected))
+          return const Color(0xFFFAFAFA).withValues(alpha: 0.5);
         return const Color(0xFF262626);
       }),
     ),

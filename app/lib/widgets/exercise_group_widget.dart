@@ -26,10 +26,15 @@ class ExerciseGroupWidget extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final workingSets = group.sets.where((s) => !s.warmup).toList();
     final completedWorkingSets = workingSets
-        .where((s) => completedSets.any((c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO))
+        .where(
+          (s) => completedSets.any(
+            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+          ),
+        )
         .length;
-    final allCompleted = workingSets.isNotEmpty && completedWorkingSets == workingSets.length;
-    
+    final allCompleted =
+        workingSets.isNotEmpty && completedWorkingSets == workingSets.length;
+
     final hasActiveSet = group.sets.any((s) => s.id == activeSetId);
 
     Color statusColor = colorScheme.outline;
@@ -44,7 +49,9 @@ class ExerciseGroupWidget extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: hasActiveSet ? statusColor.withValues(alpha: 0.5) : colorScheme.outline,
+          color: hasActiveSet
+              ? statusColor.withValues(alpha: 0.5)
+              : colorScheme.outline,
           width: hasActiveSet ? 1.5 : 1,
         ),
       ),
@@ -54,11 +61,8 @@ class ExerciseGroupWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Left Status Bar
-            Container(
-              width: 6,
-              color: statusColor,
-            ),
-            
+            Container(width: 6, color: statusColor),
+
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -73,12 +77,17 @@ class ExerciseGroupWidget extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                (group.group?.name ?? exerciseNames[group.exercise] ?? 'Unknown').toUpperCase(),
+                                (group.group?.name ??
+                                        exerciseNames[group.exercise] ??
+                                        'Unknown')
+                                    .toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
-                                  color: allCompleted ? colorScheme.tertiary : colorScheme.onSurface,
+                                  color: allCompleted
+                                      ? colorScheme.tertiary
+                                      : colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -88,7 +97,9 @@ class ExerciseGroupWidget extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
-                                  color: allCompleted ? AppTheme.successFg : colorScheme.tertiary,
+                                  color: allCompleted
+                                      ? AppTheme.successFg
+                                      : colorScheme.tertiary,
                                 ),
                               ),
                             ],
@@ -105,11 +116,19 @@ class ExerciseGroupWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     if (group.sets.any((s) => s.warmup)) ...[
-                      _buildSetRow(context, 'WARMUP', group.sets.where((s) => s.warmup).toList()),
+                      _buildSetRow(
+                        context,
+                        'WARMUP',
+                        group.sets.where((s) => s.warmup).toList(),
+                      ),
                       const SizedBox(height: 8),
                     ],
                     if (group.sets.any((s) => !s.warmup))
-                      _buildSetRow(context, 'WORKING', group.sets.where((s) => !s.warmup).toList()),
+                      _buildSetRow(
+                        context,
+                        'WORKING',
+                        group.sets.where((s) => !s.warmup).toList(),
+                      ),
                   ],
                 ),
               ),
@@ -135,7 +154,11 @@ class ExerciseGroupWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSetRow(BuildContext context, String label, List<ProposedSet> sets) {
+  Widget _buildSetRow(
+    BuildContext context,
+    String label,
+    List<ProposedSet> sets,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +182,9 @@ class ExerciseGroupWidget extends StatelessWidget {
           child: Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: sets.map((set) => _buildSetIndicator(context, set)).toList(),
+            children: sets
+                .map((set) => _buildSetIndicator(context, set))
+                .toList(),
           ),
         ),
       ],
@@ -173,7 +198,8 @@ class ExerciseGroupWidget extends StatelessWidget {
       orElse: () => null,
     );
     final isActive = set.id == activeSetId;
-    final isSuperset = group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET;
+    final isSuperset =
+        group.group?.type == ExerciseGroupType.EXERCISE_GROUP_TYPE_SUPERSET;
     final exerciseName = shortNames[set.exercise] ?? set.exercise.name;
 
     String text = '';
@@ -217,7 +243,13 @@ class ExerciseGroupWidget extends StatelessWidget {
     );
   }
 
-  Widget _chip(String text, Color bg, Color fg, {Color? border, bool bold = false}) {
+  Widget _chip(
+    String text,
+    Color bg,
+    Color fg, {
+    Color? border,
+    bool bold = false,
+  }) {
     return Container(
       constraints: const BoxConstraints(minWidth: 48),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

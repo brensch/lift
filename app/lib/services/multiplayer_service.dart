@@ -17,7 +17,9 @@ class MultiplayerServiceWrapper {
     await _client.multiplayerService.leaveSession(LeaveSessionRequest());
   }
 
-  Future<GetCurrentSessionResponse> getCurrentSession({String? sessionId}) async {
+  Future<GetCurrentSessionResponse> getCurrentSession({
+    String? sessionId,
+  }) async {
     final req = GetCurrentSessionRequest();
     if (sessionId != null) req.sessionId = sessionId;
     return await _client.multiplayerService.getCurrentSession(req);

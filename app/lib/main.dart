@@ -30,7 +30,9 @@ import 'widgets/main_layout.dart';
 // Configure server address - change for production
 const serverHost = kReleaseMode ? 'lift.snek2.ddns.net' : 'localhost';
 const serverPort = kReleaseMode ? 443 : 50051;
-const serverBaseUrl = kReleaseMode ? 'https://$serverHost' : 'http://$serverHost:$serverPort';
+const serverBaseUrl = kReleaseMode
+    ? 'https://$serverHost'
+    : 'http://$serverHost:$serverPort';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +73,9 @@ class _LiftAppState extends State<LiftApp> {
     _soundProvider = SoundProvider();
     _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
     _workoutProvider.setSoundProvider(_soundProvider);
-    _multiplayerProvider = MultiplayerProvider(MultiplayerServiceWrapper(_grpcClient));
+    _multiplayerProvider = MultiplayerProvider(
+      MultiplayerServiceWrapper(_grpcClient),
+    );
     _themeProvider = ThemeProvider();
 
     // Listen to auth changes to clear state on logout
@@ -115,11 +119,26 @@ class _LiftAppState extends State<LiftApp> {
                 isHistory: state.uri.queryParameters['isHistory'] == 'true',
               ),
             ),
-            GoRoute(path: '/progress', builder: (_, __) => const ProgressScreen()),
-            GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
-            GoRoute(path: '/sound-settings', builder: (_, __) => const SoundSettingsScreen()),
-            GoRoute(path: '/passkeys', builder: (_, __) => const PasskeysScreen()),
-            GoRoute(path: '/debug-notifications', builder: (_, __) => const DebugNotificationsScreen()),
+            GoRoute(
+              path: '/progress',
+              builder: (_, __) => const ProgressScreen(),
+            ),
+            GoRoute(
+              path: '/history',
+              builder: (_, __) => const HistoryScreen(),
+            ),
+            GoRoute(
+              path: '/sound-settings',
+              builder: (_, __) => const SoundSettingsScreen(),
+            ),
+            GoRoute(
+              path: '/passkeys',
+              builder: (_, __) => const PasskeysScreen(),
+            ),
+            GoRoute(
+              path: '/debug-notifications',
+              builder: (_, __) => const DebugNotificationsScreen(),
+            ),
           ],
         ),
       ],
@@ -158,7 +177,9 @@ class _LiftAppState extends State<LiftApp> {
 
   void _joinById(String joinId) {
     if (_authProvider.isLoggedIn) {
-      final workoutId = _workoutProvider.hasActiveWorkout ? _workoutProvider.workout?.id : null;
+      final workoutId = _workoutProvider.hasActiveWorkout
+          ? _workoutProvider.workout?.id
+          : null;
       _multiplayerProvider.joinSession(joinId, workoutId: workoutId);
     }
   }
@@ -183,7 +204,9 @@ class _LiftAppState extends State<LiftApp> {
         Provider<AuthService>.value(value: _authService),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         ChangeNotifierProvider<WorkoutProvider>.value(value: _workoutProvider),
-        ChangeNotifierProvider<MultiplayerProvider>.value(value: _multiplayerProvider),
+        ChangeNotifierProvider<MultiplayerProvider>.value(
+          value: _multiplayerProvider,
+        ),
         ChangeNotifierProvider<SoundProvider>.value(value: _soundProvider),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],

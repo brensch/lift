@@ -57,12 +57,12 @@ class _WorkoutTabState extends State<WorkoutTab> {
     final wp = context.watch<WorkoutProvider>();
 
     if (wp.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final child = wp.hasActiveWorkout ? const WorkoutScreen() : const HomeScreen();
+    final child = wp.hasActiveWorkout
+        ? const WorkoutScreen()
+        : const HomeScreen();
 
     return PopScope(
       canPop: false,

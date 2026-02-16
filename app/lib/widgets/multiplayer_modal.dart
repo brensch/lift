@@ -70,23 +70,31 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
   Future<void> _shareSession(String joinId) async {
     try {
-      await Share.share('Join my workout on Lift: https://lift.snek2.ddns.net/?join=$joinId');
+      await Share.share(
+        'Join my workout on Lift: https://lift.snek2.ddns.net/?join=$joinId',
+      );
     } catch (e) {
       debugPrint('Error sharing: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sharing not supported on this device. Use "Copy" instead.')),
+          const SnackBar(
+            content: Text(
+              'Sharing not supported on this device. Use "Copy" instead.',
+            ),
+          ),
         );
       }
     }
   }
 
   Future<void> _copyLink(String joinId) async {
-    await Clipboard.setData(ClipboardData(text: 'https://lift.snek2.ddns.net/?join=$joinId'));
+    await Clipboard.setData(
+      ClipboardData(text: 'https://lift.snek2.ddns.net/?join=$joinId'),
+    );
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link copied to clipboard')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
     }
   }
 
@@ -137,9 +145,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     height: 300,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: MobileScanner(
-                        onDetect: _handleScan,
-                      ),
+                      child: MobileScanner(onDetect: _handleScan),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -255,7 +261,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.5),
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -266,7 +274,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           radius: 12,
                           backgroundColor: colorScheme.primaryContainer,
                           child: Text(
-                            p.user.name.isNotEmpty ? p.user.name[0].toUpperCase() : '?',
+                            p.user.name.isNotEmpty
+                                ? p.user.name[0].toUpperCase()
+                                : '?',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -292,7 +302,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     onPressed: _leaveSession,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colorScheme.error,
-                      side: BorderSide(color: colorScheme.error.withValues(alpha: 0.3)),
+                      side: BorderSide(
+                        color: colorScheme.error.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: const Text('Leave Session'),
                   ),
@@ -307,7 +319,10 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                         decoration: InputDecoration(
                           hintText: 'Paste Join ID',
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

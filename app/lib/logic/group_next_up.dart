@@ -47,9 +47,11 @@ GroupNextUpData? computeGroupNextUp(
     final hasActive = p.completedSets.any((c) => c.endedAt == Int64.ZERO);
     if (hasActive) continue;
 
-    bool isPDone(String setId) =>
-        p.completedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
-    final sortedProposed = List<ProposedSet>.from(p.proposedSets)..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    bool isPDone(String setId) => p.completedSets.any(
+      (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
+    );
+    final sortedProposed = List<ProposedSet>.from(p.proposedSets)
+      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     final pNext = sortedProposed.cast<ProposedSet?>().firstWhere(
       (s) => !isPDone(s!.id),
       orElse: () => null,
@@ -60,19 +62,23 @@ GroupNextUpData? computeGroupNextUp(
         .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
         .toList();
     restingSets.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    final restUntil = restingSets.isNotEmpty ? restingSets.first.restUntil.toInt() : 0;
+    final restUntil = restingSets.isNotEmpty
+        ? restingSets.first.restUntil.toInt()
+        : 0;
 
     final isResting = restUntil > nowUnix;
     final score = isResting ? (restUntil - nowUnix) : (nowUnix - restUntil);
 
-    candidates.add(_GroupNextUpCandidate(
-      participant: p,
-      nextSet: pNext,
-      restUntil: restUntil,
-      isResting: isResting,
-      score: score,
-      isMe: p.user.id == myUserId,
-    ));
+    candidates.add(
+      _GroupNextUpCandidate(
+        participant: p,
+        nextSet: pNext,
+        restUntil: restUntil,
+        isResting: isResting,
+        score: score,
+        isMe: p.user.id == myUserId,
+      ),
+    );
   }
 
   if (candidates.isEmpty) return null;

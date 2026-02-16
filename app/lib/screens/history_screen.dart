@@ -62,10 +62,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             )
           : ListView.separated(
               itemCount: _workouts!.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 1,
-                color: colorScheme.outline,
-              ),
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: colorScheme.outline),
               itemBuilder: (context, index) {
                 final workout = _workouts![index];
                 final date = DateTime.fromMillisecondsSinceEpoch(
@@ -77,16 +75,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 return ListTile(
                   title: Text(
-                    workout.name.isNotEmpty ? workout.name : '${date.month}/${date.day}/${date.year}',
+                    workout.name.isNotEmpty
+                        ? workout.name
+                        : '${date.month}/${date.day}/${date.year}',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
                     '${date.month}/${date.day}/${date.year} · ${_formatDuration(duration)}',
                     style: TextStyle(color: colorScheme.tertiary, fontSize: 13),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: colorScheme.tertiary),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: colorScheme.tertiary,
+                  ),
                   onTap: () {
-                    context.push('/workout/${workout.id}/completed?isHistory=true');
+                    context.push(
+                      '/workout/${workout.id}/completed?isHistory=true',
+                    );
                   },
                 );
               },

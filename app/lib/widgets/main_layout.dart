@@ -48,7 +48,10 @@ class MainLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -88,7 +91,9 @@ class MainLayout extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/progress');
                       },
-                      isActive: GoRouterState.of(context).uri.toString() == '/progress',
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/progress',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
@@ -98,7 +103,9 @@ class MainLayout extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/history');
                       },
-                      isActive: GoRouterState.of(context).uri.toString() == '/history',
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/history',
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
@@ -108,7 +115,9 @@ class MainLayout extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/passkeys');
                       },
-                      isActive: GoRouterState.of(context).uri.toString() == '/passkeys',
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/passkeys',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
@@ -118,7 +127,9 @@ class MainLayout extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/sound-settings');
                       },
-                      isActive: GoRouterState.of(context).uri.toString() == '/sound-settings',
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/sound-settings',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
@@ -128,7 +139,9 @@ class MainLayout extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/debug-notifications');
                       },
-                      isActive: GoRouterState.of(context).uri.toString() == '/debug-notifications',
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/debug-notifications',
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     // Dark mode toggle
@@ -136,7 +149,10 @@ class MainLayout extends StatelessWidget {
                       onTap: () => themeProvider.toggle(),
                       borderRadius: BorderRadius.circular(8),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Row(
                           children: [
                             Icon(
@@ -149,7 +165,9 @@ class MainLayout extends StatelessWidget {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
-                                themeProvider.isDarkMode(context) ? 'LIGHT MODE' : 'DARK MODE',
+                                themeProvider.isDarkMode(context)
+                                    ? 'LIGHT MODE'
+                                    : 'DARK MODE',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 14,
@@ -179,10 +197,18 @@ class MainLayout extends StatelessWidget {
                   children: [
                     if (userName.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                        padding: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                        ),
                         child: Row(
                           children: [
-                            Icon(Icons.person_outline, size: 20, color: colorScheme.tertiary),
+                            Icon(
+                              Icons.person_outline,
+                              size: 20,
+                              color: colorScheme.tertiary,
+                            ),
                             const SizedBox(width: 16),
                             Text(
                               userName.toUpperCase(),
@@ -226,11 +252,13 @@ class MainLayout extends StatelessWidget {
   Widget _buildMultiplayerButton(BuildContext context, MultiplayerProvider mp) {
     final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     // Check workout duration if active
     bool shouldShake = !mp.isInSession;
     if (wp.hasActiveWorkout && wp.activeWorkout!.startTime != Int64.ZERO) {
-      final startTime = DateTime.fromMillisecondsSinceEpoch(wp.activeWorkout!.startTime.toInt() * 1000);
+      final startTime = DateTime.fromMillisecondsSinceEpoch(
+        wp.activeWorkout!.startTime.toInt() * 1000,
+      );
       final duration = DateTime.now().difference(startTime);
       if (duration.inMinutes >= 5) {
         shouldShake = false;
@@ -238,7 +266,9 @@ class MainLayout extends StatelessWidget {
     }
 
     final participantCount = mp.participants.length;
-    final buttonLabel = participantCount > 1 ? 'MULTIPLAYER ($participantCount)' : 'MULTIPLAYER';
+    final buttonLabel = participantCount > 1
+        ? 'MULTIPLAYER ($participantCount)'
+        : 'MULTIPLAYER';
 
     Widget button = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -341,7 +371,8 @@ class _ShakingWidget extends StatefulWidget {
   State<_ShakingWidget> createState() => _ShakingWidgetState();
 }
 
-class _ShakingWidgetState extends State<_ShakingWidget> with SingleTickerProviderStateMixin {
+class _ShakingWidgetState extends State<_ShakingWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -383,10 +414,7 @@ class _ShakingWidgetState extends State<_ShakingWidget> with SingleTickerProvide
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        return Transform.rotate(
-          angle: _animation.value,
-          child: child,
-        );
+        return Transform.rotate(angle: _animation.value, child: child);
       },
       child: widget.child,
     );

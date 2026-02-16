@@ -81,8 +81,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _sortState() {
-    _activeExerciseGroups.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-    _activeProposedSets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    _activeExerciseGroups.sort(
+      (a, b) => a.workoutOrder.compareTo(b.workoutOrder),
+    );
+    _activeProposedSets.sort(
+      (a, b) => a.workoutOrder.compareTo(b.workoutOrder),
+    );
   }
 
   Future<void> _checkRestSound() async {
@@ -107,7 +111,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    if (_wasResting && !isCurrentlyResting && _lastSoundedRestUntil != restUntil) {
+    if (_wasResting &&
+        !isCurrentlyResting &&
+        _lastSoundedRestUntil != restUntil) {
       // Rest just ended — cancel scheduled notification (prevent double sound),
       // play in-app sound, and show buzz notification for watches
       _lastSoundedRestUntil = restUntil;
@@ -143,8 +149,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
   List<CompletedSet> get activeCompletedSets => _activeCompletedSets;
-  bool get hasActiveWorkout => _activeWorkout != null && _activeWorkout!.endTime == Int64.ZERO;
-  bool get isWorkoutEnded => _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
+  bool get hasActiveWorkout =>
+      _activeWorkout != null && _activeWorkout!.endTime == Int64.ZERO;
+  bool get isWorkoutEnded =>
+      _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
   DateTime get now => _now;
 
   List<ExerciseGroupData> get exerciseGroups {
@@ -153,9 +161,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     return _activeExerciseGroups.map((group) {
-      final sets = _activeProposedSets.where((s) => s.exerciseGroupId == group.id).toList();
+      final sets = _activeProposedSets
+          .where((s) => s.exerciseGroupId == group.id)
+          .toList();
       sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-      final exercise = sets.isNotEmpty ? sets.first.exercise : Exercise.EXERCISE_UNSPECIFIED;
+      final exercise = sets.isNotEmpty
+          ? sets.first.exercise
+          : Exercise.EXERCISE_UNSPECIFIED;
       return ExerciseGroupData(exercise: exercise, sets: sets, group: group);
     }).toList();
   }
@@ -166,7 +178,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final name = exerciseNames[next.exercise] ?? '?';
     final prefix = next.warmup ? 'Warmup ' : '';
     final w = next.targetWeight.toDouble();
-    final weightStr = w == w.roundToDouble() ? w.toInt().toString() : w.toStringAsFixed(1);
+    final weightStr = w == w.roundToDouble()
+        ? w.toInt().toString()
+        : w.toStringAsFixed(1);
     return 'Next up: $prefix$name — ${weightStr}kg x ${next.targetReps}';
   }
 
@@ -175,11 +189,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   int? get debugLastSoundedRestUntil => _lastSoundedRestUntil;
 
   bool isSetDone(String setId) {
-    return _activeCompletedSets.any((c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO);
+    return _activeCompletedSets.any(
+      (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
+    );
   }
 
   bool isSetActive(String setId) {
-    return _activeCompletedSets.any((c) => c.proposedSetId == setId && c.endedAt == Int64.ZERO);
+    return _activeCompletedSets.any(
+      (c) => c.proposedSetId == setId && c.endedAt == Int64.ZERO,
+    );
   }
 
   String? get activeSetId {
@@ -212,7 +230,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get restSecondsRemaining {
     final resting = restingSet;
     if (resting == null) return 0;
-    final remaining = resting.restUntil.toInt() - (_now.millisecondsSinceEpoch ~/ 1000);
+    final remaining =
+        resting.restUntil.toInt() - (_now.millisecondsSinceEpoch ~/ 1000);
     return remaining > 0 ? remaining : 0;
   }
 
@@ -262,7 +281,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _stopTimer();
       }
 
-      final proposedSchedule = await _service.getProposedWorkoutSchedule(userId);
+      final proposedSchedule = await _service.getProposedWorkoutSchedule(
+        userId,
+      );
       _exerciseStatuses = proposedSchedule.exerciseStatuses;
     } catch (e) {
       _handleError(e);
@@ -292,7 +313,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> startWorkout(String name, List<ExerciseGroup> groups, List<ProposedSet> sets) async {
+  Future<String?> startWorkout(
+    String name,
+    List<ExerciseGroup> groups,
+    List<ProposedSet> sets,
+  ) async {
     try {
       await NotificationService.cancelAll();
       _lastSoundedRestUntil = null;
@@ -320,7 +345,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Reorder sets to match groups
     final orderedSets = <ProposedSet>[];
     for (final group in orderedGroups) {
-      final sets = _activeProposedSets.where((s) => s.exerciseGroupId == group.id).toList();
+      final sets = _activeProposedSets
+          .where((s) => s.exerciseGroupId == group.id)
+          .toList();
       for (final set in sets) {
         orderedSets.add(set..workoutOrder = orderedSets.length);
       }
@@ -348,7 +375,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       await NotificationService.cancelRest();
       _wasResting = false;
-      final completed = await _service.startSet(_activeWorkout!.id, proposedSetId);
+      final completed = await _service.startSet(
+        _activeWorkout!.id,
+        proposedSetId,
+      );
       _activeCompletedSets.add(completed);
       notifyListeners();
     } catch (e) {
@@ -499,7 +529,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
 
       if (result == HealthWriteResult.success) {
-        final storeName = Platform.isAndroid ? 'Health Connect' : 'Apple Health';
+        final storeName = Platform.isAndroid
+            ? 'Health Connect'
+            : 'Apple Health';
         Fluttertoast.showToast(
           msg: 'SUCCESSFULLY UPLOADED TO ${storeName.toUpperCase()}',
           toastLength: Toast.LENGTH_SHORT,
@@ -528,13 +560,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void rebuildGroup(int groupIndex, {required List<double> targetWeights, bool? warmups, int? setCount}) {
+  void rebuildGroup(
+    int groupIndex, {
+    required List<double> targetWeights,
+    bool? warmups,
+    int? setCount,
+  }) {
     final groups = exerciseGroups;
     if (groupIndex < 0 || groupIndex >= groups.length) return;
 
     final groupData = groups[groupIndex];
     if (groupData.group != null) {
-      final reps = groupData.sets.where((s) => !s.warmup).firstOrNull?.targetReps ?? 5;
+      final reps =
+          groupData.sets.where((s) => !s.warmup).firstOrNull?.targetReps ?? 5;
       updateGroup(
         groupIndex,
         targetWeights: targetWeights,
@@ -576,7 +614,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> updateGroup(int groupIndex, {
+  Future<void> updateGroup(
+    int groupIndex, {
     required List<double> targetWeights,
     required int reps,
     required int setCount,
@@ -601,9 +640,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
       _activeExerciseGroups.add(response.group);
 
-      _activeProposedSets.removeWhere((s) => s.exerciseGroupId == groupData.group!.id);
+      _activeProposedSets.removeWhere(
+        (s) => s.exerciseGroupId == groupData.group!.id,
+      );
       _activeProposedSets.addAll(response.generatedSets);
-      
+
       _sortState();
 
       notifyListeners();
@@ -624,9 +665,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      await _service.deleteExerciseGroup(_activeWorkout!.id, groupData.group!.id);
+      await _service.deleteExerciseGroup(
+        _activeWorkout!.id,
+        groupData.group!.id,
+      );
       _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
-      _activeProposedSets.removeWhere((s) => s.exerciseGroupId == groupData.group!.id);
+      _activeProposedSets.removeWhere(
+        (s) => s.exerciseGroupId == groupData.group!.id,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);

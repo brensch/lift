@@ -66,10 +66,7 @@ class StatusBox extends StatelessWidget {
               ),
             ),
             // Vertical Line
-            Container(
-              width: 1,
-              color: color.withValues(alpha: 0.2),
-            ),
+            Container(width: 1, color: color.withValues(alpha: 0.2)),
             // Main Content
             Expanded(
               child: Padding(
@@ -137,7 +134,9 @@ class StatusBox extends StatelessWidget {
                           Expanded(
                             flex: 4,
                             child: Center(
-                              child: PlateVisualization(weight: set!.targetWeight.toDouble()),
+                              child: PlateVisualization(
+                                weight: set!.targetWeight.toDouble(),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),

@@ -116,7 +116,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   Text(
                     '${points.first.weight.toInt()} lbs',
                     style: TextStyle(color: colorScheme.tertiary),
@@ -164,9 +167,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             ),
                           ),
                         ),
-                        bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
@@ -174,10 +183,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           spots: points
                               .asMap()
                               .entries
-                              .map((e) => FlSpot(
-                                    e.key.toDouble(),
-                                    e.value.weight,
-                                  ))
+                              .map(
+                                (e) => FlSpot(e.key.toDouble(), e.value.weight),
+                              )
                               .toList(),
                           isCurved: true,
                           color: colorScheme.onSurface,
@@ -186,14 +194,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             show: true,
                             getDotPainter: (spot, percent, barData, index) =>
                                 FlDotCirclePainter(
-                              radius: 3,
-                              color: colorScheme.onSurface,
-                              strokeWidth: 0,
-                            ),
+                                  radius: 3,
+                                  color: colorScheme.onSurface,
+                                  strokeWidth: 0,
+                                ),
                           ),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: colorScheme.onSurface.withValues(alpha: 0.05),
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
                           ),
                         ),
                       ],
