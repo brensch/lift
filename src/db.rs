@@ -78,6 +78,7 @@ pub enum WriteCommand {
     DeleteCompletedSet(String, String, String),
     JoinSession(String, String),
     LeaveSession(String, String),
+    #[cfg(feature = "test-auth")]
     TestLoginUpsert(User, String, i64),
 }
 
@@ -383,6 +384,7 @@ impl CentralDb {
                         .execute(&mut *tx)
                         .await?;
                 }
+                #[cfg(feature = "test-auth")]
                 WriteCommand::TestLoginUpsert(user, token, expires_at) => {
                     // Double-check user existence in case cache was cold
                     let user_id = match sqlx::query_scalar::<_, String>("SELECT id FROM users WHERE lower(name) = lower(?)")
@@ -733,6 +735,7 @@ impl CentralDb {
         Ok(())
     }
 
+    #[cfg(feature = "test-auth")]
     pub async fn test_login_upsert(&self, username: &str) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
         // 1. Check cache first
         if let Some(entry) = self.user_by_name_cache.get(username) {
@@ -770,6 +773,7 @@ impl CentralDb {
         Ok((user, token))
     }
 
+    #[cfg(feature = "test-auth")]
     fn now_plus_30_days() -> i64 {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         now + 30 * 24 * 60 * 60
