@@ -75,6 +75,8 @@ pub struct CentralDb {
     // In-memory cache: token -> (user_id, expires_at_secs)
     // Using DashMap for shard-level locking instead of global RwLock
     auth_cache: Arc<DashMap<String, (String, i64)>>,
+    // Serializes all write operations to prevent SQLite lock contention
+    write_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 const CENTRAL_SCHEMA: &str = r#"
@@ -201,7 +203,7 @@ impl CentralDb {
             .create_if_missing(true)
             .synchronous(SqliteSynchronous::Normal)
             .journal_mode(SqliteJournalMode::Wal)
-            .busy_timeout(std::time::Duration::from_secs(10)); // Allow waiting for write lock
+            .busy_timeout(std::time::Duration::from_secs(30)); // Allow waiting for write lock
 
         let pool = SqlitePoolOptions::new()
             .max_connections(10) 
@@ -218,7 +220,11 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
-        Ok(Self { pool, auth_cache: Arc::new(DashMap::new()) })
+        Ok(Self { 
+            pool, 
+            auth_cache: Arc::new(DashMap::new()),
+            write_lock: Arc::new(tokio::sync::Mutex::new(())),
+        })
     }
 
     pub async fn create_user(
@@ -234,6 +240,7 @@ impl CentralDb {
         id: &str,
         name: &str,
     ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
 
         sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
@@ -294,6 +301,7 @@ impl CentralDb {
         credential_json: &str,
         created_at_ip: Option<&str>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
         sqlx::query("INSERT OR REPLACE INTO passkey_credentials (credential_id, user_id, credential_json, created_at, created_at_ip) VALUES (?, ?, ?, ?, ?)")
             .bind(credential_id)
@@ -311,35 +319,27 @@ impl CentralDb {
         user_id: &str,
         credential_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query("BEGIN IMMEDIATE").execute(&mut *conn).await?;
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
 
-        let res = async {
-            // Check how many credentials the user has
-            let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_credentials WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_one(&mut *conn)
-                .await?;
+        // Check how many credentials the user has
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_credentials WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_one(&mut *tx)
+            .await?;
 
-            if count <= 1 {
-                return Err("Cannot delete the last passkey".into());
-            }
-
-            sqlx::query("DELETE FROM passkey_credentials WHERE user_id = ? AND credential_id = ?")
-                .bind(user_id)
-                .bind(credential_id)
-                .execute(&mut *conn)
-                .await?;
-            
-            Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-        }.await;
-
-        if res.is_ok() {
-            sqlx::query("COMMIT").execute(&mut *conn).await?;
-        } else {
-            let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
+        if count <= 1 {
+            return Err("Cannot delete the last passkey".into());
         }
-        res
+
+        sqlx::query("DELETE FROM passkey_credentials WHERE user_id = ? AND credential_id = ?")
+            .bind(user_id)
+            .bind(credential_id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn update_credential_json(
@@ -347,6 +347,7 @@ impl CentralDb {
         credential_id: &str,
         new_json: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         sqlx::query("UPDATE passkey_credentials SET credential_json = ? WHERE credential_id = ?")
             .bind(new_json)
             .bind(credential_id)
@@ -383,6 +384,7 @@ impl CentralDb {
         &self,
         user_id: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let token = Uuid::new_v4().to_string();
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
         let expires_at = now + 30 * 24 * 60 * 60; // 30 days
@@ -432,6 +434,7 @@ impl CentralDb {
         &self,
         token: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         self.auth_cache.remove(token);
         sqlx::query("DELETE FROM auth_sessions WHERE token = ?")
             .bind(token)
@@ -445,6 +448,7 @@ impl CentralDb {
         name: &str,
         password_hash: &str,
     ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let existing = self.get_user_by_name(name).await?;
         if existing.is_some() {
             return Err(Box::new(std::io::Error::new(
@@ -490,6 +494,7 @@ impl CentralDb {
         user_id: &str,
         workout: &Workout,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         sqlx::query(
             "INSERT INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
         )
@@ -509,56 +514,49 @@ impl CentralDb {
         group: &lift::workout::v1::ExerciseGroup,
         sets: &[ProposedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query("BEGIN IMMEDIATE").execute(&mut *conn).await?;
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
 
-        let res = async {
-            sqlx::query(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&group.id)
-            .bind(user_id)
-            .bind(&group.workout_id)
-            .bind(&group.name)
-            .bind(group.r#type)
-            .bind(group.include_warmup)
-            .bind(group.workout_order)
-            .execute(&mut *conn)
-            .await?;
+        sqlx::query(
+            "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&group.id)
+        .bind(user_id)
+        .bind(&group.workout_id)
+        .bind(&group.name)
+        .bind(group.r#type)
+        .bind(group.include_warmup)
+        .bind(group.workout_order)
+        .execute(&mut *tx)
+        .await?;
 
-            if !sets.is_empty() {
-                for chunk in sets.chunks(100) {
-                    let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                        "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
-                    );
-                    query_builder.push_values(chunk, |mut b, set| {
-                        b.push_bind(&set.id)
-                         .push_bind(user_id)
-                         .push_bind(&set.workout_id)
-                         .push_bind(set.workout_order)
-                         .push_bind(set.exercise)
-                         .push_bind(set.target_reps)
-                         .push_bind(set.target_weight)
-                         .push_bind(set.warmup)
-                         .push_bind(if set.exercise_group_id.is_empty() {
-                             None
-                         } else {
-                             Some(&set.exercise_group_id)
-                         });
-                    });
-                    query_builder.build().execute(&mut *conn).await?;
-                }
+        if !sets.is_empty() {
+            for chunk in sets.chunks(100) {
+                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
+                );
+                query_builder.push_values(chunk, |mut b, set| {
+                    b.push_bind(&set.id)
+                     .push_bind(user_id)
+                     .push_bind(&set.workout_id)
+                     .push_bind(set.workout_order)
+                     .push_bind(set.exercise)
+                     .push_bind(set.target_reps)
+                     .push_bind(set.target_weight)
+                     .push_bind(set.warmup)
+                     .push_bind(if set.exercise_group_id.is_empty() {
+                         None
+                     } else {
+                         Some(&set.exercise_group_id)
+                     });
+                });
+                query_builder.build().execute(&mut *tx).await?;
             }
-            Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-        }.await;
-
-        if res.is_ok() {
-            sqlx::query("COMMIT").execute(&mut *conn).await?;
-        } else {
-            let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
         }
-        res
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn upsert_completed_set(
@@ -566,6 +564,7 @@ impl CentralDb {
         user_id: &str,
         set: &CompletedSet,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         sqlx::query(
             "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -590,6 +589,7 @@ impl CentralDb {
         workout_id: &str,
         end_time: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
             .bind(end_time)
             .bind(user_id)
@@ -600,59 +600,50 @@ impl CentralDb {
     }
 
     pub async fn test_login_upsert(&self, username: &str) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query("BEGIN IMMEDIATE").execute(&mut *conn).await?;
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
 
-        let res = async {
-            // 1. Try to find user
-            let user_opt = sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
-                .bind(username)
-                .map(row_to_user)
-                .fetch_optional(&mut *conn)
-                .await?;
+        // 1. Try to find user
+        let user_opt = sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
+            .bind(username)
+            .map(row_to_user)
+            .fetch_optional(&mut *tx)
+            .await?;
 
-            let user = match user_opt {
-                Some(u) => u,
-                None => {
-                    // 2. Create user if not found
-                    let id = Uuid::new_v4().to_string();
-                    let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
-                        .bind(&id)
-                        .bind(username)
-                        .bind(created_at)
-                        .execute(&mut *conn)
-                        .await?;
-                    User { id, name: username.to_string(), created_at }
-                }
-            };
-
-            // 3. Create session
-            let token = Uuid::new_v4().to_string();
-            let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-            let expires_at = now + 30 * 24 * 60 * 60; // 30 days
-            sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
-                .bind(&token)
-                .bind(&user.id)
-                .bind(now)
-                .bind(expires_at)
-                .execute(&mut *conn)
-                .await?;
-            
-            Ok::< (User, String), Box<dyn std::error::Error + Send + Sync>>((user, token))
-        }.await;
-
-        match res {
-            Ok((user, token)) => {
-                sqlx::query("COMMIT").execute(&mut *conn).await?;
-                self.auth_cache.insert(token.clone(), (user.id.clone(), Self::now_plus_30_days()));
-                Ok((user, token))
+        let user = match user_opt {
+            Some(u) => u,
+            None => {
+                // 2. Create user if not found
+                let id = Uuid::new_v4().to_string();
+                let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
+                    .bind(&id)
+                    .bind(username)
+                    .bind(created_at)
+                    .execute(&mut *tx)
+                    .await?;
+                User { id, name: username.to_string(), created_at }
             }
-            Err(e) => {
-                let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
-                Err(e)
-            }
-        }
+        };
+
+        // 3. Create session
+        let token = Uuid::new_v4().to_string();
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let expires_at = now + 30 * 24 * 60 * 60; // 30 days
+        sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
+            .bind(&token)
+            .bind(&user.id)
+            .bind(now)
+            .bind(expires_at)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+
+        // 4. Update cache
+        self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
+
+        Ok((user, token))
     }
 
     fn now_plus_30_days() -> i64 {
@@ -666,6 +657,7 @@ impl CentralDb {
         workout_id: &str,
         completed_set_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?")
             .bind(user_id)
             .bind(workout_id)
@@ -828,6 +820,7 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
         sqlx::query("INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)")
             .bind(session_id)
@@ -843,6 +836,7 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
         sqlx::query("UPDATE sessions SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at IS NULL")
             .bind(now)
@@ -873,121 +867,114 @@ impl CentralDb {
         proposed_sets: &[ProposedSet],
         completed_sets: &[CompletedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query("BEGIN IMMEDIATE").execute(&mut *conn).await?;
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
 
-        let res = async {
-            // Upsert workout
-            sqlx::query(
-                "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
-            )
-            .bind(&workout.id)
+        // Upsert workout
+        sqlx::query(
+            "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&workout.id)
+        .bind(user_id)
+        .bind(&workout.name)
+        .bind(workout.start_time)
+        .bind(if workout.end_time == 0 {
+            None
+        } else {
+            Some(workout.end_time)
+        })
+        .execute(&mut *tx)
+        .await?;
+
+        // Optimized DELETEs using new composite indexes
+        sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ?")
             .bind(user_id)
-            .bind(&workout.name)
-            .bind(workout.start_time)
-            .bind(if workout.end_time == 0 {
-                None
-            } else {
-                Some(workout.end_time)
-            })
-            .execute(&mut *conn)
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM proposed_sets WHERE user_id = ? AND workout_id = ?")
+            .bind(user_id)
+            .bind(&workout.id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM exercise_groups WHERE user_id = ? AND workout_id = ?")
+            .bind(user_id)
+            .bind(&workout.id)
+            .execute(&mut *tx)
             .await?;
 
-            // Optimized DELETEs using new composite indexes
-            sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ?")
-                .bind(user_id)
-                .bind(&workout.id)
-                .execute(&mut *conn)
-                .await?;
-            sqlx::query("DELETE FROM proposed_sets WHERE user_id = ? AND workout_id = ?")
-                .bind(user_id)
-                .bind(&workout.id)
-                .execute(&mut *conn)
-                .await?;
-            sqlx::query("DELETE FROM exercise_groups WHERE user_id = ? AND workout_id = ?")
-                .bind(user_id)
-                .bind(&workout.id)
-                .execute(&mut *conn)
-                .await?;
-
-            // Batch inserts for groups
-            if !exercise_groups.is_empty() {
-                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                    "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order) "
-                );
-                query_builder.push_values(exercise_groups, |mut b, group| {
-                    b.push_bind(&group.id)
-                     .push_bind(user_id)
-                     .push_bind(&group.workout_id)
-                     .push_bind(&group.name)
-                     .push_bind(group.r#type)
-                     .push_bind(group.include_warmup)
-                     .push_bind(group.workout_order);
-                });
-                query_builder.build().execute(&mut *conn).await?;
-            }
-
-            // Batch inserts for proposed sets
-            if !proposed_sets.is_empty() {
-                for chunk in proposed_sets.chunks(100) {
-                    let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                        "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
-                    );
-                    query_builder.push_values(chunk, |mut b, set| {
-                        b.push_bind(&set.id)
-                         .push_bind(user_id)
-                         .push_bind(&set.workout_id)
-                         .push_bind(set.workout_order)
-                         .push_bind(set.exercise)
-                         .push_bind(set.target_reps)
-                         .push_bind(set.target_weight)
-                         .push_bind(set.warmup)
-                         .push_bind(if set.exercise_group_id.is_empty() {
-                             None
-                         } else {
-                             Some(&set.exercise_group_id)
-                         });
-                    });
-                    query_builder.build().execute(&mut *conn).await?;
-                }
-            }
-
-            // Batch inserts for completed sets
-            if !completed_sets.is_empty() {
-                for chunk in completed_sets.chunks(100) {
-                    let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                        "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until) "
-                    );
-                    query_builder.push_values(chunk, |mut b, set| {
-                        b.push_bind(&set.id)
-                         .push_bind(user_id)
-                         .push_bind(&set.workout_id)
-                         .push_bind(if set.proposed_set_id.is_empty() {
-                             None
-                         } else {
-                             Some(&set.proposed_set_id)
-                         })
-                         .push_bind(set.actual_reps)
-                         .push_bind(set.actual_weight)
-                         .push_bind(set.started_at)
-                         .push_bind(set.ended_at)
-                         .push_bind(if set.rest_until == 0 {
-                             None
-                         } else {
-                             Some(set.rest_until)
-                         });
-                    });
-                    query_builder.build().execute(&mut *conn).await?;
-                }
-            }
-            Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-        }.await;
-
-        if res.is_ok() {
-            sqlx::query("COMMIT").execute(&mut *conn).await?;
-        } else {
-            let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
+        // Batch inserts for groups
+        if !exercise_groups.is_empty() {
+            let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, type, include_warmup, workout_order) "
+            );
+            query_builder.push_values(exercise_groups, |mut b, group| {
+                b.push_bind(&group.id)
+                 .push_bind(user_id)
+                 .push_bind(&group.workout_id)
+                 .push_bind(&group.name)
+                 .push_bind(group.r#type)
+                 .push_bind(group.include_warmup)
+                 .push_bind(group.workout_order);
+            });
+            query_builder.build().execute(&mut *tx).await?;
         }
-        res
+
+        // Batch inserts for proposed sets
+        if !proposed_sets.is_empty() {
+            for chunk in proposed_sets.chunks(100) {
+                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
+                );
+                query_builder.push_values(chunk, |mut b, set| {
+                    b.push_bind(&set.id)
+                     .push_bind(user_id)
+                     .push_bind(&set.workout_id)
+                     .push_bind(set.workout_order)
+                     .push_bind(set.exercise)
+                     .push_bind(set.target_reps)
+                     .push_bind(set.target_weight)
+                     .push_bind(set.warmup)
+                     .push_bind(if set.exercise_group_id.is_empty() {
+                         None
+                     } else {
+                         Some(&set.exercise_group_id)
+                     });
+                });
+                query_builder.build().execute(&mut *tx).await?;
+            }
+        }
+
+        // Batch inserts for completed sets
+        if !completed_sets.is_empty() {
+            for chunk in completed_sets.chunks(100) {
+                let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                    "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until) "
+                );
+                query_builder.push_values(chunk, |mut b, set| {
+                    b.push_bind(&set.id)
+                     .push_bind(user_id)
+                     .push_bind(&set.workout_id)
+                     .push_bind(if set.proposed_set_id.is_empty() {
+                         None
+                     } else {
+                         Some(&set.proposed_set_id)
+                     })
+                     .push_bind(set.actual_reps)
+                     .push_bind(set.actual_weight)
+                     .push_bind(set.started_at)
+                     .push_bind(set.ended_at)
+                     .push_bind(if set.rest_until == 0 {
+                         None
+                     } else {
+                         Some(set.rest_until)
+                     });
+                });
+                query_builder.build().execute(&mut *tx).await?;
+            }
+        }
+
+        tx.commit().await?;
+        Ok(())
     }
 }
