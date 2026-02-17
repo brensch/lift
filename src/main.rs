@@ -116,13 +116,23 @@ async fn root_handler() -> Html<&'static str> {
 }
 
 async fn assetlinks_handler() -> Json<serde_json::Value> {
-    let sha256 = std::env::var("ANDROID_CERT_SHA256").unwrap_or_default();
+    // Always include the Play/upload signing fingerprint.
+    // Optionally include ANDROID_CERT_SHA256 (e.g. local debug cert) for dev installs.
+    let mut fingerprints = vec![
+        "1F:0C:6B:FD:A7:5A:7D:18:7A:AE:53:1B:33:30:CD:11:7F:31:F5:05:8E:05:A9:21:FF:23:B0:E8:74:C2:21:EC".to_string(),
+    ];
+    if let Ok(env_fp) = std::env::var("ANDROID_CERT_SHA256") {
+        let env_fp = env_fp.trim();
+        if !env_fp.is_empty() && !fingerprints.iter().any(|f| f == env_fp) {
+            fingerprints.push(env_fp.to_string());
+        }
+    }
     Json(serde_json::json!([{
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
             "package_name": "com.brensch.lift",
-            "sha256_cert_fingerprints": [sha256]
+            "sha256_cert_fingerprints": fingerprints
         }
     }]))
 }
