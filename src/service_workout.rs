@@ -154,8 +154,8 @@ fn generate_sets_for_group(
             } else {
                 config.start_weight + (set_idx as f32 / (num_sets - 1) as f32) * (config.end_weight - config.start_weight)
             };
-            // Round to nearest 0.5
-            let weight = (weight * 2.0).round() / 2.0;
+            // Round to nearest 5.0 (standard plate increment)
+            let weight = (weight / 5.0).round() * 5.0;
 
             sets.push(ProposedSet {
                 id: Uuid::new_v4().to_string(),
