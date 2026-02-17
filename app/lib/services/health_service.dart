@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
+import '../gen/workout/v1/workout.pb.dart';
 
 enum HealthWriteResult { success, permissionDenied, error }
 
@@ -65,5 +66,42 @@ class HealthService {
 
     debugPrint('Health: writeWorkoutData result=$success');
     return success ? HealthWriteResult.success : HealthWriteResult.error;
+  }
+
+  static Future<void> writeHeartRateSamples({
+    required String workoutId,
+    required List<WorkoutHeartRatePoint> samples,
+  }) async {
+    if (samples.isEmpty) return;
+
+    final health = Health();
+    await health.configure();
+
+    const types = [HealthDataType.HEART_RATE];
+    const permissions = [HealthDataAccess.WRITE];
+
+    final hasPerms = await health.hasPermissions(
+      types,
+      permissions: permissions,
+    );
+    if (hasPerms != true) {
+      final granted = await health.requestAuthorization(
+        types,
+        permissions: permissions,
+      );
+      if (!granted) return;
+    }
+
+    for (final sample in samples) {
+      final ts = DateTime.fromMillisecondsSinceEpoch(sample.sampledAt.toInt());
+      await health.writeHealthData(
+        value: sample.bpm.toDouble(),
+        type: HealthDataType.HEART_RATE,
+        startTime: ts,
+        endTime: ts,
+        clientRecordId: 'lift_hr_${workoutId}_${sample.sampledAt.toInt()}',
+        clientRecordVersion: 1,
+      );
+    }
   }
 }

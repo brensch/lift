@@ -3,6 +3,7 @@ package com.lift.lift.wear
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -27,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
@@ -46,33 +48,64 @@ import workout.v1.Wearable
 class MainActivity : ComponentActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var heartRateStreamer: HeartRateStreamer
+    private lateinit var exerciseSessionManager: WearExerciseSessionManager
 
     private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+            val denied = grants.filterValues { granted -> !granted }.keys
+            if (denied.isEmpty()) {
+                WearDebugLog.add("Permissions granted")
+                ensureCompanionSessionIfNeeded()
+            } else {
+                WearDebugLog.add("Permissions denied: ${denied.joinToString()}")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         heartRateStreamer = HeartRateStreamer(applicationContext)
+        exerciseSessionManager = WearExerciseSessionManager(applicationContext)
+        WearDebugLog.add("Watch app started")
 
-        maybeRequestHeartRatePermission()
+        maybeRequestRuntimePermissions()
 
         setContent {
             MaterialTheme {
                 WearApp(
                     onAction = { action -> sendAction(action) },
                     heartRateStreamer = heartRateStreamer,
+                    exerciseSessionManager = exerciseSessionManager,
+                    ensurePermissions = { maybeRequestRuntimePermissions() },
                 )
             }
         }
     }
 
-    private fun maybeRequestHeartRatePermission() {
-        val granted = ContextCompat.checkSelfPermission(
-            this,
+    private fun ensureCompanionSessionIfNeeded() {
+        val snapshot = WearDataRepository.snapshot.value ?: return
+        if (snapshot.workoutId.isBlank()) return
+        if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return
+        heartRateStreamer.start(snapshot.workoutId)
+        exerciseSessionManager.ensureSessionActive()
+    }
+
+    private fun maybeRequestRuntimePermissions() {
+        val requiredPermissions = mutableListOf(
             Manifest.permission.BODY_SENSORS,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            permissionLauncher.launch(Manifest.permission.BODY_SENSORS)
+            Manifest.permission.ACTIVITY_RECOGNITION,
+        ).apply {
+            if (Build.VERSION.SDK_INT >= 36) {
+                add("android.permission.health.READ_HEART_RATE")
+            }
+        }
+        val missing = requiredPermissions.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            WearDebugLog.add("Requesting perms: ${missing.joinToString()}")
+            permissionLauncher.launch(missing.toTypedArray())
+        } else {
+            WearDebugLog.add("Runtime perms already granted")
         }
     }
 
@@ -139,6 +172,7 @@ class MainActivity : ComponentActivity() {
                 }
             }.onFailure { error ->
                 Log.e("LiftWear", "Failed to send action to phone", error)
+                WearDebugLog.add("Action send failed: ${error.message ?: error.javaClass.simpleName}")
                 Toast.makeText(
                     this@MainActivity,
                     "Phone not connected",
@@ -153,18 +187,29 @@ class MainActivity : ComponentActivity() {
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
     heartRateStreamer: HeartRateStreamer,
+    exerciseSessionManager: WearExerciseSessionManager,
+    ensurePermissions: () -> Unit,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
+    val debugLines by WearDebugLog.lines.collectAsState()
 
     DisposableEffect(snapshot?.workoutId, snapshot?.state) {
         val shouldStream = snapshot?.workoutId?.isNotEmpty() == true &&
             snapshot?.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE
         if (shouldStream) {
+            ensurePermissions()
+            WearDebugLog.add("Workout active; enabling HR/session")
             heartRateStreamer.start(snapshot!!.workoutId)
+            exerciseSessionManager.ensureSessionActive()
         } else {
+            WearDebugLog.add("Workout inactive; disabling HR/session")
             heartRateStreamer.stop()
+            exerciseSessionManager.endSessionIfActive()
         }
-        onDispose { heartRateStreamer.stop() }
+        onDispose {
+            heartRateStreamer.stop()
+            exerciseSessionManager.endSessionIfActive()
+        }
     }
 
     if (snapshot == null) {
@@ -179,6 +224,8 @@ private fun WearApp(
             Text("LIFT", style = MaterialTheme.typography.title2)
             Spacer(modifier = Modifier.height(6.dp))
             Text("Waiting for phone", style = MaterialTheme.typography.caption2)
+            Spacer(modifier = Modifier.height(8.dp))
+            DebugPanel(lines = debugLines)
         }
         return
     }
@@ -195,10 +242,8 @@ private fun WearApp(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp),
-        contentPadding = PaddingValues(vertical = 12.dp),
+        contentPadding = PaddingValues(top = 2.dp, bottom = 8.dp),
     ) {
-        item { TimeText() }
-
         item {
             StatusPanel(
                 label = data.youCard.sideLabel.ifEmpty { "YOU" },
@@ -274,6 +319,43 @@ private fun WearApp(
             ) {
                 Text(action.label)
             }
+        }
+
+        item {
+            DebugPanel(lines = debugLines)
+        }
+    }
+}
+
+@Composable
+private fun DebugPanel(lines: List<String>) {
+    val recent = lines.takeLast(6).asReversed()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colors.surface,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .border(
+                width = 1.dp,
+                color = Color(0xFFF59E0B).copy(alpha = 0.45f),
+                shape = RoundedCornerShape(12.dp),
+            )
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+    ) {
+        Text("DEBUG", color = Color(0xFFF59E0B), style = MaterialTheme.typography.caption3)
+        if (recent.isEmpty()) {
+            Text("No logs yet", style = MaterialTheme.typography.caption3)
+            return
+        }
+        for (line in recent) {
+            Text(
+                line,
+                style = MaterialTheme.typography.caption3,
+                maxLines = 3,
+                overflow = TextOverflow.Clip,
+            )
         }
     }
 }

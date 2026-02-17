@@ -754,6 +754,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     try {
       await _service.appendWorkoutHeartRate(workout.id, batch);
+      unawaited(
+        HealthService.writeHeartRateSamples(
+          workoutId: workout.id,
+          samples: batch,
+        ),
+      );
     } catch (e) {
       _pendingWearHeartRateUploads.insertAll(0, batch);
       debugPrint('Heart rate upload failed: $e');

@@ -39,7 +39,7 @@ ADB = $(HOME)/android-sdk/platform-tools/adb
 run-android:
 	@bash -ec '\
 		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
 			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
 		done); \
 		if [ -z "$$SERIAL" ]; then \
@@ -55,7 +55,7 @@ run-android:
 run-android-clean:
 	@bash -ec '\
 		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
 			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
 		done); \
 		if [ -z "$$SERIAL" ]; then \
@@ -76,10 +76,13 @@ WEAR_SERIAL ?=
 run-wear:
 	@SERIAL="$(WEAR_SERIAL)"; \
 	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -n 1); \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
 	fi; \
 	if [ -z "$$SERIAL" ]; then \
-		echo "No connected device found."; \
+		echo "No connected Wear OS device found."; \
 		$(ADB) devices; \
 		exit 1; \
 	fi; \
@@ -92,7 +95,10 @@ run-wear:
 	fi
 	@SERIAL="$(WEAR_SERIAL)"; \
 	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -n 1); \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
 	fi; \
 	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
 	$(ADB) -s "$$SERIAL" shell am start -n com.lift.lift/com.lift.lift.wear.MainActivity
@@ -117,8 +123,8 @@ run-app:
 			ANDROID_DEVICE_ARGS=""; \
 			while read -r DEVICE_ID DEVICE_STATE; do \
 				[ "$$DEVICE_STATE" = "device" ] || continue; \
-				CHARACTERISTICS=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-				MODEL=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.product.model 2>/dev/null | tr -d "\r"); \
+				CHARACTERISTICS=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+				MODEL=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d "\r"); \
 				if echo "$$CHARACTERISTICS" | grep -q "watch"; then \
 					echo "Skipping Wear OS device: $$DEVICE_ID ($$MODEL)"; \
 					continue; \

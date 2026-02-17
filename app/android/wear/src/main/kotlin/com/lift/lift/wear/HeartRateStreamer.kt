@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,8 +30,14 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         if (this.workoutId == workoutId && flushJob?.isActive == true) return
         stop()
         this.workoutId = workoutId
-        val sensor = heartRateSensor ?: return
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        val sensor = heartRateSensor
+        if (sensor == null) {
+            WearDebugLog.add("HR sensor unavailable")
+            return
+        }
+        WearDebugLog.add("HR start workout=$workoutId sensor=${sensor.name}")
+        val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        WearDebugLog.add("HR listener registered=$registered")
         flushJob = scope.launch {
             while (isActive) {
                 delay(5000)
@@ -41,6 +48,9 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
 
     fun stop() {
         flushPending()
+        if (workoutId != null) {
+            WearDebugLog.add("HR stop")
+        }
         workoutId = null
         flushJob?.cancel()
         flushJob = null
@@ -88,6 +98,10 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
                     envelope.toByteArray(),
                 )
             }
+                .onFailure {
+                    Log.e("LiftWear", "Failed to send HR batch", it)
+                    WearDebugLog.add("HR batch send failed: ${it.message ?: it.javaClass.simpleName}")
+                }
         }
     }
 }
