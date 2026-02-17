@@ -34,30 +34,32 @@ Future<void> showEditExerciseDialog(
   required int groupIndex,
   required List<ExerciseStatus> exerciseStatuses,
   required bool Function(String setId) isSetDone,
-  required void Function(
-    int groupIndex, {
-    required int sets,
-    required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
-  })
-  onSave,
-}) async {
-  int sets = group.group?.sets ?? 5;
-  bool interleaveWarmups = group.group?.interleaveWarmups ?? false;
-
-  List<_EditableConfig> editableConfigs = [];
-  if (group.group != null && group.group!.exerciseConfigs.isNotEmpty) {
-    for (final config in group.group!.exerciseConfigs) {
-      editableConfigs.add(_EditableConfig(
-        exercise: Exercise.valueOf(config.exercise.value) ?? Exercise.EXERCISE_UNSPECIFIED,
-        startWeight: config.startWeight,
-        endWeight: config.endWeight,
-        reps: config.reps,
-        includeWarmup: config.includeWarmup,
-      ));
-    }
-  } else {
-    final workingSets = group.sets.where((s) => !s.warmup).toList();
+      required void Function(
+      int groupIndex, {
+      required int sets,
+      required bool interleaveWarmups,
+      required List<ExerciseTypeConfig> exerciseConfigs,
+      RestConfig? restConfig,
+    })
+    onSave,
+  }) async {
+    int sets = group.group?.sets ?? 5;
+    bool interleaveWarmups = group.group?.interleaveWarmups ?? false;
+    RestConfig restConfig = group.group?.restConfig.deepCopy() ?? RestConfig();
+  
+    List<_EditableConfig> editableConfigs = [];
+    if (group.group != null && group.group!.exerciseConfigs.isNotEmpty) {
+      for (final config in group.group!.exerciseConfigs) {
+        editableConfigs.add(_EditableConfig(
+          exercise: Exercise.valueOf(config.exercise.value) ?? Exercise.EXERCISE_UNSPECIFIED,
+          startWeight: config.startWeight,
+          endWeight: config.endWeight,
+          reps: config.reps,
+          includeWarmup: config.includeWarmup,
+          restConfig: config.hasRestConfig() ? config.restConfig.deepCopy() : null,
+        ));
+      }
+    } else {    final workingSets = group.sets.where((s) => !s.warmup).toList();
     final exercises = <Exercise>[];
     for (final s in group.sets) {
       if (!exercises.contains(s.exercise)) exercises.add(s.exercise);
@@ -184,6 +186,7 @@ Future<void> showEditExerciseDialog(
                         config.endWeight = v;
                       }),
                       onWarmupChanged: (v) => setState(() => config.includeWarmup = v),
+                      onRestChanged: (v) => setState(() => config.restConfig = v),
                     );
                   }),
 
@@ -195,25 +198,35 @@ Future<void> showEditExerciseDialog(
                     onSetsChanged: (v) => setState(() => sets = v),
                     onInterleaveChanged: (v) => setState(() => interleaveWarmups = v),
                   ),
+                  const SizedBox(height: 16),
+                  _RestSettings(
+                    restConfig: restConfig,
+                    onChanged: (v) => setState(() => restConfig = v),
+                  ),
                   const SizedBox(height: 24),
                   SizedBox(
                     height: 56,
                     child: FilledButton(
                       onPressed: editableConfigs.isEmpty ? null : () {
                         Navigator.pop(ctx);
-                        final configs = editableConfigs.map((c) =>
-                          ExerciseTypeConfig()
+                        final configs = editableConfigs.map((c) {
+                          final config = ExerciseTypeConfig()
                             ..exercise = c.exercise
                             ..startWeight = c.startWeight
                             ..endWeight = c.endWeight
                             ..reps = c.reps
-                            ..includeWarmup = c.includeWarmup,
-                        ).toList();
+                            ..includeWarmup = c.includeWarmup;
+                          if (c.restConfig != null) {
+                            config.restConfig = c.restConfig!;
+                          }
+                          return config;
+                        }).toList();
                         onSave(
                           groupIndex,
                           sets: sets,
                           interleaveWarmups: interleaveWarmups,
                           exerciseConfigs: configs,
+                          restConfig: restConfig,
                         );
                       },
                       child: const Text(
@@ -243,6 +256,7 @@ Future<void> showAddExerciseDialog(
     int sets,
     bool interleaveWarmups,
     List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig restConfig,
   )
   onAdd,
 }) async {
@@ -250,6 +264,7 @@ Future<void> showAddExerciseDialog(
   String customName = '';
   int sets = 3;
   bool interleaveWarmups = false;
+  RestConfig restConfig = RestConfig();
   int? expandedIndex;
 
   final nameController = TextEditingController();
@@ -381,6 +396,7 @@ Future<void> showAddExerciseDialog(
                           config.endWeight = v;
                         }),
                         onWarmupChanged: (v) => setState(() => config.includeWarmup = v),
+                        onRestChanged: (v) => setState(() => config.restConfig = v),
                       );
                     }),
 
@@ -392,6 +408,11 @@ Future<void> showAddExerciseDialog(
                       onSetsChanged: (v) => setState(() => sets = v),
                       onInterleaveChanged: (v) => setState(() => interleaveWarmups = v),
                     ),
+                    const SizedBox(height: 16),
+                    _RestSettings(
+                      restConfig: restConfig,
+                      onChanged: (v) => setState(() => restConfig = v),
+                    ),
                   ],
 
                   const SizedBox(height: 24),
@@ -400,19 +421,24 @@ Future<void> showAddExerciseDialog(
                     child: FilledButton(
                       onPressed: configs.isEmpty ? null : () {
                         Navigator.pop(ctx);
-                        final exerciseConfigs = configs.map((c) =>
-                          ExerciseTypeConfig()
+                        final exerciseConfigs = configs.map((c) {
+                          final config = ExerciseTypeConfig()
                             ..exercise = c.exercise
                             ..startWeight = c.startWeight
                             ..endWeight = c.endWeight
                             ..reps = c.reps
-                            ..includeWarmup = c.includeWarmup,
-                        ).toList();
+                            ..includeWarmup = c.includeWarmup;
+                          if (c.restConfig != null) {
+                            config.restConfig = c.restConfig!;
+                          }
+                          return config;
+                        }).toList();
                         onAdd(
                           customName,
                           sets,
                           interleaveWarmups,
                           exerciseConfigs,
+                          restConfig,
                         );
                       },
                       child: const Text(
@@ -442,6 +468,7 @@ class _EditableConfig {
   double endWeight;
   int reps;
   bool includeWarmup;
+  RestConfig? restConfig;
 
   _EditableConfig({
     required this.exercise,
@@ -449,6 +476,7 @@ class _EditableConfig {
     required this.endWeight,
     required this.reps,
     required this.includeWarmup,
+    this.restConfig,
   });
 }
 
@@ -512,6 +540,7 @@ class _CompactExerciseConfig extends StatelessWidget {
   final ValueChanged<double> onStartWeightChanged;
   final ValueChanged<double> onEndWeightChanged;
   final ValueChanged<bool> onWarmupChanged;
+  final ValueChanged<RestConfig> onRestChanged;
 
   const _CompactExerciseConfig({
     required this.config,
@@ -520,6 +549,7 @@ class _CompactExerciseConfig extends StatelessWidget {
     required this.onStartWeightChanged,
     required this.onEndWeightChanged,
     required this.onWarmupChanged,
+    required this.onRestChanged,
   });
 
   @override
@@ -1036,4 +1066,118 @@ Future<void> showHealthPermissionDialog(BuildContext context) async {
       ],
     ),
   );
+}
+
+class _RestSettings extends StatelessWidget {
+  final RestConfig restConfig;
+  final ValueChanged<RestConfig> onChanged;
+
+  const _RestSettings({
+    required this.restConfig,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    // Default values if not set
+    final success = restConfig.restAfterSuccess > 0 ? restConfig.restAfterSuccess : 180;
+    final failure = restConfig.restAfterFailure > 0 ? restConfig.restAfterFailure : 300;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'REST SETTINGS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.tertiary,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _RestField(
+                label: 'SUCCESS',
+                seconds: success,
+                onChanged: (v) {
+                  final newRc = restConfig.deepCopy()..restAfterSuccess = v;
+                  onChanged(newRc);
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _RestField(
+                label: 'FAILURE',
+                seconds: failure,
+                onChanged: (v) {
+                  final newRc = restConfig.deepCopy()..restAfterFailure = v;
+                  onChanged(newRc);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RestField extends StatelessWidget {
+  final String label;
+  final int seconds;
+  final ValueChanged<int> onChanged;
+
+  const _RestField({
+    required this.label,
+    required this.seconds,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            _CountButton(
+              icon: Icons.remove,
+              onPressed: () => onChanged((seconds - 15).clamp(0, 600)),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  '${seconds}s',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            _CountButton(
+              icon: Icons.add,
+              onPressed: () => onChanged((seconds + 15).clamp(0, 600)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }

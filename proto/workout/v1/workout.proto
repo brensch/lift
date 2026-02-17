@@ -55,6 +55,14 @@ message ExerciseTypeConfig {
   float end_weight = 3;     // last working set weight (equal=flat, lower=drop, higher=ramp)
   int32 reps = 4;
   bool include_warmup = 5;
+  RestConfig rest_config = 6;
+}
+
+message RestConfig {
+  int32 rest_after_success = 1;
+  int32 rest_after_failure = 2;
+  int32 rest_after_warmup = 3;
+  int32 rest_after_last_warmup = 4;
 }
 
 message ExerciseGroup {
@@ -65,6 +73,7 @@ message ExerciseGroup {
   bool interleave_warmups = 5;   // true=alternate warmups between exercises
   int32 workout_order = 6;
   repeated ExerciseTypeConfig exercise_configs = 7;
+  RestConfig rest_config = 8;
 }
 
 message ProposedSet {
@@ -76,6 +85,8 @@ message ProposedSet {
   float target_weight = 6;
   bool warmup = 7;
   string exercise_group_id = 8;
+  int32 rest_after_success = 9;
+  int32 rest_after_failure = 10;
 }
 
 message CompletedSet {
@@ -116,92 +127,185 @@ message ListWorkoutsResponse {
 }
 
 message CreateExerciseGroupRequest {
+
   string workout_id = 1;
+
   string name = 2;
+
   int32 sets = 3;
+
   bool interleave_warmups = 4;
+
   repeated ExerciseTypeConfig exercise_configs = 5;
+
+  RestConfig rest_config = 6;
+
 }
+
+
 
 message CreateExerciseGroupResponse {
+
   ExerciseGroup group = 1;
+
   repeated ProposedSet generated_sets = 2;
+
 }
+
+
 
 message StartSetRequest {
+
   string workout_id = 1;
+
   string proposed_set_id = 2;
+
 }
+
 message StartSetResponse {
+
   CompletedSet completed_set = 1;
+
 }
+
+
 
 message CompleteSetRequest {
+
   string workout_id = 1;
+
   string proposed_set_id = 2;
+
   int32 actual_reps = 3;
+
   float actual_weight = 4;
+
 }
+
 message CompleteSetResponse {
+
   CompletedSet completed_set = 1;
+
 }
+
+
 
 message DeleteCompletedSetRequest {
+
   string workout_id = 1;
+
   string completed_set_id = 2;
+
 }
+
 message DeleteCompletedSetResponse {}
 
+
+
 message EndWorkoutRequest {
+
   string workout_id = 1;
+
 }
+
 message EndWorkoutResponse {
+
   Workout workout = 1;
+
 }
+
+
 
 message GetProposedWorkoutScheduleRequest {
+
   string user_id = 1;
+
 }
+
+
 
 message ExerciseStatus {
+
   Exercise exercise = 1;
+
   float target_weight = 2;
+
   string explanation = 3;
+
   int64 last_performed_at = 4;
+
   repeated float weight_history = 5;
+
   repeated MuscleGroup muscle_groups = 6;
+
   int32 default_sets = 7;
+
   int32 default_reps = 8;
+
   bool recovered = 9;
+
   bool always_include = 10;
+
   ExerciseCategory category = 11;
+
 }
+
+
 
 message ProposedExerciseGroup {
+
   string name = 1;
+
   int32 sets = 2;
+
   bool interleave_warmups = 3;
+
   repeated ExerciseTypeConfig exercise_configs = 4;
+
+  RestConfig rest_config = 5;
+
 }
+
+
 
 message GetProposedWorkoutScheduleResponse {
+
   repeated ExerciseStatus exercise_statuses = 1;
+
   string active_workout_id = 2;
+
   repeated ProposedExerciseGroup proposed_groups = 3;
+
 }
+
+
 
 message GetActiveWorkoutRequest {}
+
 message GetActiveWorkoutResponse {
+
   Workout workout = 1;
+
 }
 
+
+
 message UpdateExerciseGroupRequest {
+
   string workout_id = 1;
+
   string exercise_group_id = 2;
+
   string name = 3;
+
   int32 sets = 4;
+
   bool interleave_warmups = 5;
+
   repeated ExerciseTypeConfig exercise_configs = 6;
+
+  RestConfig rest_config = 7;
+
 }
 
 message UpdateExerciseGroupResponse {

@@ -194,6 +194,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     $core.double? endWeight,
     $core.int? reps,
     $core.bool? includeWarmup,
+    RestConfig? restConfig,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -201,6 +202,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     if (endWeight != null) result.endWeight = endWeight;
     if (reps != null) result.reps = reps;
     if (includeWarmup != null) result.includeWarmup = includeWarmup;
+    if (restConfig != null) result.restConfig = restConfig;
     return result;
   }
 
@@ -223,6 +225,8 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     ..aD(3, _omitFieldNames ? '' : 'endWeight', fieldType: $pb.PbFieldType.OF)
     ..aI(4, _omitFieldNames ? '' : 'reps')
     ..aOB(5, _omitFieldNames ? '' : 'includeWarmup')
+    ..aOM<RestConfig>(6, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -288,6 +292,107 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
   $core.bool hasIncludeWarmup() => $_has(4);
   @$pb.TagNumber(5)
   void clearIncludeWarmup() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  RestConfig get restConfig => $_getN(5);
+  @$pb.TagNumber(6)
+  set restConfig(RestConfig value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRestConfig() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRestConfig() => $_clearField(6);
+  @$pb.TagNumber(6)
+  RestConfig ensureRestConfig() => $_ensure(5);
+}
+
+class RestConfig extends $pb.GeneratedMessage {
+  factory RestConfig({
+    $core.int? restAfterSuccess,
+    $core.int? restAfterFailure,
+    $core.int? restAfterWarmup,
+    $core.int? restAfterLastWarmup,
+  }) {
+    final result = create();
+    if (restAfterSuccess != null) result.restAfterSuccess = restAfterSuccess;
+    if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
+    if (restAfterWarmup != null) result.restAfterWarmup = restAfterWarmup;
+    if (restAfterLastWarmup != null)
+      result.restAfterLastWarmup = restAfterLastWarmup;
+    return result;
+  }
+
+  RestConfig._();
+
+  factory RestConfig.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RestConfig.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RestConfig',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'restAfterSuccess')
+    ..aI(2, _omitFieldNames ? '' : 'restAfterFailure')
+    ..aI(3, _omitFieldNames ? '' : 'restAfterWarmup')
+    ..aI(4, _omitFieldNames ? '' : 'restAfterLastWarmup')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RestConfig clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RestConfig copyWith(void Function(RestConfig) updates) =>
+      super.copyWith((message) => updates(message as RestConfig)) as RestConfig;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RestConfig create() => RestConfig._();
+  @$core.override
+  RestConfig createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RestConfig getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RestConfig>(create);
+  static RestConfig? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get restAfterSuccess => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set restAfterSuccess($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRestAfterSuccess() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRestAfterSuccess() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get restAfterFailure => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set restAfterFailure($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRestAfterFailure() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRestAfterFailure() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get restAfterWarmup => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set restAfterWarmup($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasRestAfterWarmup() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRestAfterWarmup() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get restAfterLastWarmup => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set restAfterLastWarmup($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRestAfterLastWarmup() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRestAfterLastWarmup() => $_clearField(4);
 }
 
 class ExerciseGroup extends $pb.GeneratedMessage {
@@ -299,6 +404,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     $core.bool? interleaveWarmups,
     $core.int? workoutOrder,
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
+    RestConfig? restConfig,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -308,6 +414,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     if (interleaveWarmups != null) result.interleaveWarmups = interleaveWarmups;
     if (workoutOrder != null) result.workoutOrder = workoutOrder;
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) result.restConfig = restConfig;
     return result;
   }
 
@@ -332,6 +439,8 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     ..aI(6, _omitFieldNames ? '' : 'workoutOrder')
     ..pPM<ExerciseTypeConfig>(7, _omitFieldNames ? '' : 'exerciseConfigs',
         subBuilder: ExerciseTypeConfig.create)
+    ..aOM<RestConfig>(8, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -409,6 +518,17 @@ class ExerciseGroup extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(7)
   $pb.PbList<ExerciseTypeConfig> get exerciseConfigs => $_getList(6);
+
+  @$pb.TagNumber(8)
+  RestConfig get restConfig => $_getN(7);
+  @$pb.TagNumber(8)
+  set restConfig(RestConfig value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasRestConfig() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearRestConfig() => $_clearField(8);
+  @$pb.TagNumber(8)
+  RestConfig ensureRestConfig() => $_ensure(7);
 }
 
 class ProposedSet extends $pb.GeneratedMessage {
@@ -421,6 +541,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.double? targetWeight,
     $core.bool? warmup,
     $core.String? exerciseGroupId,
+    $core.int? restAfterSuccess,
+    $core.int? restAfterFailure,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -431,6 +553,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (targetWeight != null) result.targetWeight = targetWeight;
     if (warmup != null) result.warmup = warmup;
     if (exerciseGroupId != null) result.exerciseGroupId = exerciseGroupId;
+    if (restAfterSuccess != null) result.restAfterSuccess = restAfterSuccess;
+    if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
     return result;
   }
 
@@ -457,6 +581,8 @@ class ProposedSet extends $pb.GeneratedMessage {
         fieldType: $pb.PbFieldType.OF)
     ..aOB(7, _omitFieldNames ? '' : 'warmup')
     ..aOS(8, _omitFieldNames ? '' : 'exerciseGroupId')
+    ..aI(9, _omitFieldNames ? '' : 'restAfterSuccess')
+    ..aI(10, _omitFieldNames ? '' : 'restAfterFailure')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -549,6 +675,24 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasExerciseGroupId() => $_has(7);
   @$pb.TagNumber(8)
   void clearExerciseGroupId() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get restAfterSuccess => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set restAfterSuccess($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasRestAfterSuccess() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearRestAfterSuccess() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.int get restAfterFailure => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set restAfterFailure($core.int value) => $_setSignedInt32(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasRestAfterFailure() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearRestAfterFailure() => $_clearField(10);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -1031,6 +1175,7 @@ class CreateExerciseGroupRequest extends $pb.GeneratedMessage {
     $core.int? sets,
     $core.bool? interleaveWarmups,
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
+    RestConfig? restConfig,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -1038,6 +1183,7 @@ class CreateExerciseGroupRequest extends $pb.GeneratedMessage {
     if (sets != null) result.sets = sets;
     if (interleaveWarmups != null) result.interleaveWarmups = interleaveWarmups;
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) result.restConfig = restConfig;
     return result;
   }
 
@@ -1060,6 +1206,8 @@ class CreateExerciseGroupRequest extends $pb.GeneratedMessage {
     ..aOB(4, _omitFieldNames ? '' : 'interleaveWarmups')
     ..pPM<ExerciseTypeConfig>(5, _omitFieldNames ? '' : 'exerciseConfigs',
         subBuilder: ExerciseTypeConfig.create)
+    ..aOM<RestConfig>(6, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1121,6 +1269,17 @@ class CreateExerciseGroupRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(5)
   $pb.PbList<ExerciseTypeConfig> get exerciseConfigs => $_getList(4);
+
+  @$pb.TagNumber(6)
+  RestConfig get restConfig => $_getN(5);
+  @$pb.TagNumber(6)
+  set restConfig(RestConfig value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRestConfig() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRestConfig() => $_clearField(6);
+  @$pb.TagNumber(6)
+  RestConfig ensureRestConfig() => $_ensure(5);
 }
 
 class CreateExerciseGroupResponse extends $pb.GeneratedMessage {
@@ -1914,12 +2073,14 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     $core.int? sets,
     $core.bool? interleaveWarmups,
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
+    RestConfig? restConfig,
   }) {
     final result = create();
     if (name != null) result.name = name;
     if (sets != null) result.sets = sets;
     if (interleaveWarmups != null) result.interleaveWarmups = interleaveWarmups;
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) result.restConfig = restConfig;
     return result;
   }
 
@@ -1941,6 +2102,8 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     ..aOB(3, _omitFieldNames ? '' : 'interleaveWarmups')
     ..pPM<ExerciseTypeConfig>(4, _omitFieldNames ? '' : 'exerciseConfigs',
         subBuilder: ExerciseTypeConfig.create)
+    ..aOM<RestConfig>(5, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1992,6 +2155,17 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $pb.PbList<ExerciseTypeConfig> get exerciseConfigs => $_getList(3);
+
+  @$pb.TagNumber(5)
+  RestConfig get restConfig => $_getN(4);
+  @$pb.TagNumber(5)
+  set restConfig(RestConfig value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRestConfig() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRestConfig() => $_clearField(5);
+  @$pb.TagNumber(5)
+  RestConfig ensureRestConfig() => $_ensure(4);
 }
 
 class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
@@ -2173,6 +2347,7 @@ class UpdateExerciseGroupRequest extends $pb.GeneratedMessage {
     $core.int? sets,
     $core.bool? interleaveWarmups,
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
+    RestConfig? restConfig,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -2181,6 +2356,7 @@ class UpdateExerciseGroupRequest extends $pb.GeneratedMessage {
     if (sets != null) result.sets = sets;
     if (interleaveWarmups != null) result.interleaveWarmups = interleaveWarmups;
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) result.restConfig = restConfig;
     return result;
   }
 
@@ -2204,6 +2380,8 @@ class UpdateExerciseGroupRequest extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'interleaveWarmups')
     ..pPM<ExerciseTypeConfig>(6, _omitFieldNames ? '' : 'exerciseConfigs',
         subBuilder: ExerciseTypeConfig.create)
+    ..aOM<RestConfig>(7, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2274,6 +2452,17 @@ class UpdateExerciseGroupRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<ExerciseTypeConfig> get exerciseConfigs => $_getList(5);
+
+  @$pb.TagNumber(7)
+  RestConfig get restConfig => $_getN(6);
+  @$pb.TagNumber(7)
+  set restConfig(RestConfig value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasRestConfig() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearRestConfig() => $_clearField(7);
+  @$pb.TagNumber(7)
+  RestConfig ensureRestConfig() => $_ensure(6);
 }
 
 class UpdateExerciseGroupResponse extends $pb.GeneratedMessage {
