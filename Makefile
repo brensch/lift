@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -236,7 +236,49 @@ load-test:
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release
-	$(ADB) install -r app/build/app/outputs/flutter-apk/app-release.apk
+	@SERIAL="$$($(ADB) devices | awk 'NR > 1 && $$2 == "device" { print $$1 }' | while read -r ID; do \
+		CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+		if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+	done)"; \
+	if [ -z "$$SERIAL" ]; then \
+		echo "No non-watch Android device found."; \
+		$(ADB) devices; \
+		exit 1; \
+	fi; \
+	echo "Deploying android release to: $$SERIAL"; \
+	if ! $(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; then \
+		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
+		$(ADB) -s "$$SERIAL" uninstall com.brensch.lift || true; \
+		$(ADB) -s "$$SERIAL" install app/build/app/outputs/flutter-apk/app-release.apk || exit 1; \
+	fi
+
+build-wear-release:
+	cd app/android && ./gradlew :wear:assembleRelease
+
+deploy-wear: build-wear-release
+	@SERIAL="$(WEAR_SERIAL)"; \
+	if [ -z "$$SERIAL" ]; then \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+	fi; \
+	if [ -z "$$SERIAL" ]; then \
+		echo "No connected Wear OS device found."; \
+		$(ADB) devices; \
+		exit 1; \
+	fi; \
+	if [ ! -f "app/build/wear/outputs/apk/release/wear-release.apk" ]; then \
+		echo "Wear release APK not found at app/build/wear/outputs/apk/release/wear-release.apk"; \
+		exit 1; \
+	fi; \
+	echo "Deploying wear release to: $$SERIAL"; \
+	if ! $(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/release/wear-release.apk; then \
+		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
+		$(ADB) -s "$$SERIAL" uninstall com.brensch.lift || true; \
+		$(ADB) -s "$$SERIAL" install app/build/wear/outputs/apk/release/wear-release.apk || exit 1; \
+	fi; \
+	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.lift/com.brensch.lift.wear.MainActivity
 
 ci-android-prepare-signing:
 	@bash -ec '\
