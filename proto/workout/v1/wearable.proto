@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package workout.v1;
+
+import "workout/v1/workout.proto";
+
+// Messages exchanged between phone and wearable companions.
+
+enum WearActionType {
+  WEAR_ACTION_TYPE_UNSPECIFIED = 0;
+  WEAR_ACTION_TYPE_START_SET = 1;
+  WEAR_ACTION_TYPE_COMPLETE_SET = 2;
+  WEAR_ACTION_TYPE_SKIP_WARMUP = 3;
+  WEAR_ACTION_TYPE_END_WORKOUT = 4;
+}
+
+enum WearActionStyle {
+  WEAR_ACTION_STYLE_UNSPECIFIED = 0;
+  WEAR_ACTION_STYLE_PRIMARY = 1;
+  WEAR_ACTION_STYLE_SECONDARY = 2;
+  WEAR_ACTION_STYLE_REP_OPTION = 3;
+}
+
+enum HeartRateAvailability {
+  HEART_RATE_AVAILABILITY_UNSPECIFIED = 0;
+  HEART_RATE_AVAILABILITY_AVAILABLE = 1;
+  HEART_RATE_AVAILABILITY_ACQUIRING = 2;
+  HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;
+}
+
+message WearStatusCard {
+  string side_label = 1; // e.g. "YOU", "GROUP"
+  string header = 2; // optional
+  string state_label = 3;
+  string timer_text = 4; // optional
+  bool is_complete = 5;
+  ProposedSet display_set = 6; // optional
+}
+
+message WearAction {
+  WearActionType type = 1;
+  WearActionStyle style = 2;
+  string label = 3;
+  string set_id = 4; // used by set-scoped actions
+  int32 reps = 5; // used for COMPLETE_SET rep buttons
+  float actual_weight = 6; // optional override for COMPLETE_SET
+}
+
+message WearWorkoutSnapshot {
+  string workout_id = 1;
+  int64 emitted_at = 2; // Unix seconds
+  WorkoutState state = 3;
+
+  int64 workout_start_time = 4;
+  int64 active_started_at = 5;
+  int64 rest_until = 6;
+  int64 last_rest_end = 7;
+
+  string elapsed_text = 8;
+  WearStatusCard you_card = 9;
+  WearStatusCard group_card = 10; // optional
+  repeated WearAction actions = 11;
+}
+
+message StartSetIntent {
+  string workout_id = 1;
+  string set_id = 2;
+}
+
+message CompleteSetIntent {
+  string workout_id = 1;
+  string set_id = 2;
+  int32 reps = 3;
+  float actual_weight = 4;
+}
+
+message SkipWarmupIntent {
+  string workout_id = 1;
+  string set_id = 2;
+}
+
+message EndWorkoutIntent {
+  string workout_id = 1;
+}
+
+message WearIntent {
+  string intent_id = 1; // client-generated UUID for dedupe
+  int64 sent_at = 2; // Unix seconds
+
+  oneof intent {
+    StartSetIntent start_set = 10;
+    CompleteSetIntent complete_set = 11;
+    SkipWarmupIntent skip_warmup = 12;
+    EndWorkoutIntent end_workout = 13;
+  }
+}
+
+message HeartRateSample {
+  int64 sampled_at = 1; // Unix milliseconds
+  float bpm = 2;
+  HeartRateAvailability availability = 3;
+}
+
+message WearSensorBatch {
+  string workout_id = 1;
+  repeated HeartRateSample heart_rate_samples = 2;
+}
+
+message PhoneToWearEnvelope {
+  oneof payload {
+    WearWorkoutSnapshot snapshot = 1;
+  }
+}
+
+message WearToPhoneEnvelope {
+  oneof payload {
+    WearIntent intent = 1;
+    WearSensorBatch sensor_batch = 2;
+  }
+}

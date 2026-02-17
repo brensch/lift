@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-linux run-prod check install-deps proto-dart print-cert-hashes
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -39,6 +39,18 @@ ADB = $(HOME)/android-sdk/platform-tools/adb
 run-android:
 	$(ADB) reverse tcp:50051 tcp:50051 || true
 	cd app && $(FLUTTER) run -d android
+
+WEAR_SERIAL ?=
+
+run-wear:
+	@if [ -z "$(WEAR_SERIAL)" ]; then \
+		echo "Set WEAR_SERIAL to your watch/emulator device id (adb devices)."; \
+		$(ADB) devices; \
+		exit 1; \
+	fi
+	cd app/android && ./gradlew :wear:assembleDebug
+	$(ADB) -s $(WEAR_SERIAL) install -r app/android/wear/build/outputs/apk/debug/wear-debug.apk
+	$(ADB) -s $(WEAR_SERIAL) shell am start -n com.lift.lift.wear/com.lift.lift.wear.MainActivity
 
 setup-flutter:
 	$(FLUTTER) config --enable-custom-devices
@@ -157,10 +169,20 @@ proto-dart:
 	PATH="$(HOME)/flutter-sdk/bin:$(HOME)/.pub-cache/bin:$$PATH" \
 		protoc --dart_out=grpc:app/lib/gen/workout/v1 \
 		--proto_path=proto \
-		proto/workout/v1/workout.proto proto/workout/v1/group.proto proto/workout/v1/auth.proto
+		proto/workout/v1/workout.proto proto/workout/v1/group.proto proto/workout/v1/auth.proto proto/workout/v1/wearable.proto
 	@# Fix nested directory structure from protoc
 	@if [ -d "app/lib/gen/workout/v1/workout/v1" ]; then \
 		mv app/lib/gen/workout/v1/workout/v1/*.dart app/lib/gen/workout/v1/; \
 		rm -rf app/lib/gen/workout/v1/workout; \
 	fi
 	@echo "Done. Generated files in app/lib/gen/workout/v1/"
+
+proto-android:
+	@echo "=== Generating Android protobuf files (lite) ==="
+	mkdir -p app/android/shared-proto/src/main/java
+	protoc --java_out=lite:app/android/shared-proto/src/main/java \
+		--proto_path=proto \
+		proto/workout/v1/workout.proto proto/workout/v1/wearable.proto
+	@echo "Done. Generated files in app/android/shared-proto/src/main/java/"
+
+proto-all: proto-dart proto-android

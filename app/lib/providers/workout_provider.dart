@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
@@ -30,6 +31,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutStateSnapshot? _stateSnapshot;
   List<ExerciseStatus> _exerciseStatuses = [];
   List<ProposedExerciseGroup> _proposedGroups = [];
+  final List<HeartRateSample> _wearHeartRateSamples = [];
 
   // Track whether we already played the sound for the current rest period
   bool _wasResting = false;
@@ -157,6 +159,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isWorkoutEnded =>
       _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
   DateTime get now => _now;
+  List<HeartRateSample> get wearHeartRateSamples =>
+      List.unmodifiable(_wearHeartRateSamples);
 
   List<ExerciseGroupData> get exerciseGroups {
     if (_activeExerciseGroups.isEmpty) {
@@ -698,7 +702,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeCompletedSets = [];
     _backendNextUpSet = null;
     _stateSnapshot = null;
+    _wearHeartRateSamples.clear();
     _stopTimer();
+    notifyListeners();
+  }
+
+  void ingestWearHeartRateBatch(WearSensorBatch batch) {
+    if (_activeWorkout == null) return;
+    if (batch.workoutId != _activeWorkout!.id) return;
+    _wearHeartRateSamples.addAll(batch.heartRateSamples);
+    // Keep a rolling buffer in memory to avoid unbounded growth.
+    if (_wearHeartRateSamples.length > 5000) {
+      _wearHeartRateSamples.removeRange(0, _wearHeartRateSamples.length - 5000);
+    }
     notifyListeners();
   }
 
