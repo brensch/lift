@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
+import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/workout_provider.dart';
 import '../services/notification_service.dart';
 
@@ -48,6 +49,22 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final hr60s = wp.wearHeartRateSamples
+        .where((s) => s.sampledAt.toInt() >= nowMs - 60000)
+        .toList()
+      ..sort((a, b) => b.sampledAt.compareTo(a.sampledAt));
+    final bpmValues = hr60s.map((s) => s.bpm).toList();
+    final latest = hr60s.isNotEmpty ? hr60s.first : null;
+    final minBpm = bpmValues.isEmpty
+        ? null
+        : bpmValues.reduce((a, b) => a < b ? a : b);
+    final maxBpm = bpmValues.isEmpty
+        ? null
+        : bpmValues.reduce((a, b) => a > b ? a : b);
+    final avgBpm = bpmValues.isEmpty
+        ? null
+        : bpmValues.reduce((a, b) => a + b) / bpmValues.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +113,16 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
             ),
             _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
             _row('now (unix)', '$nowUnix'),
+          ], colorScheme),
+          const SizedBox(height: 16),
+          _section('Wear Heart Rate (Last 60s)', [
+            _row('sampleCount', '${hr60s.length}'),
+            _row('latestBpm', latest != null ? latest.bpm.toStringAsFixed(1) : 'n/a'),
+            _row('minBpm', minBpm != null ? minBpm.toStringAsFixed(1) : 'n/a'),
+            _row('maxBpm', maxBpm != null ? maxBpm.toStringAsFixed(1) : 'n/a'),
+            _row('avgBpm', avgBpm != null ? avgBpm.toStringAsFixed(1) : 'n/a'),
+            const Divider(height: 1),
+            _hrTable(hr60s, nowMs),
           ], colorScheme),
           const SizedBox(height: 16),
           _section('Pending OS Notifications (${_pending.length})', [
@@ -197,6 +224,97 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
             const SizedBox(width: 8),
           ],
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+        ],
+      ),
+    );
+  }
+
+  Widget _hrTable(List<HeartRateSample> samples, int nowMs) {
+    if (samples.isEmpty) {
+      return _row('', 'No samples in the last 60s');
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 520),
+        child: Column(
+          children: [
+            _tableHeader(),
+            const Divider(height: 1),
+            for (final s in samples.take(120))
+              _tableRow(
+                time: _fmtTime(DateTime.fromMillisecondsSinceEpoch(s.sampledAt.toInt())),
+                ageSec:
+                    ((nowMs - s.sampledAt.toInt()) / 1000).clamp(0, 9999).toStringAsFixed(1),
+                bpm: s.bpm.toStringAsFixed(1),
+                availability: s.availability.value.toString(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtTime(DateTime dt) {
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final ss = dt.second.toString().padLeft(2, '0');
+    return '$hh:$mm:$ss';
+  }
+
+  Widget _tableHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: 90,
+            child: Text(
+              'Time',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+          SizedBox(
+            width: 70,
+            child: Text(
+              'Age(s)',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+          SizedBox(
+            width: 70,
+            child: Text(
+              'BPM',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+          SizedBox(
+            width: 100,
+            child: Text(
+              'Avail',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableRow({
+    required String time,
+    required String ageSec,
+    required String bpm,
+    required String availability,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(width: 90, child: Text(time, style: const TextStyle(fontSize: 12))),
+          SizedBox(width: 70, child: Text(ageSec, style: const TextStyle(fontSize: 12))),
+          SizedBox(width: 70, child: Text(bpm, style: const TextStyle(fontSize: 12))),
+          SizedBox(width: 100, child: Text(availability, style: const TextStyle(fontSize: 12))),
         ],
       ),
     );

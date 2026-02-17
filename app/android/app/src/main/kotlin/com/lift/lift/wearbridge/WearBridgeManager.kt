@@ -3,6 +3,7 @@ package com.lift.lift.wearbridge
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.google.android.gms.wearable.Wearable
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.CoroutineScope
@@ -43,8 +44,10 @@ object WearBridgeManager {
             val nodeClient = Wearable.getNodeClient(context)
             val messageClient = Wearable.getMessageClient(context)
             val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrDefault(emptyList())
+            Log.d("LiftWearBridge", "Publishing snapshot to ${nodes.size} node(s)")
             for (node in nodes) {
                 runCatching { messageClient.sendMessage(node.id, PHONE_TO_WEAR_PATH, bytes).await() }
+                    .onFailure { Log.e("LiftWearBridge", "Failed snapshot send to node=${node.id}", it) }
             }
         }
     }
@@ -58,7 +61,12 @@ object WearBridgeManager {
                 envelope.hasIntent() -> emitIntent(bytes)
                 envelope.hasSensorBatch() -> emitSensor(bytes)
             }
+            Log.d(
+                "LiftWearBridge",
+                "Received wear envelope payload=intent:${envelope.hasIntent()} sensor:${envelope.hasSensorBatch()}",
+            )
         }
+            .onFailure { Log.e("LiftWearBridge", "Failed to parse wear envelope", it) }
     }
 
     private fun emitIntent(bytes: ByteArray) {

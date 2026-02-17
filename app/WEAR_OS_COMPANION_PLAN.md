@@ -134,6 +134,26 @@ Android implementation options:
    - Connect with `adb pair` + `adb connect` over Wi-Fi (Bluetooth debugging is not supported on Wear OS 3+).
    - Run wear module directly from Android Studio.
 
+### WSL2 + Pixel Watch connection checklist
+
+1. On the watch:
+   - Settings -> Developer options -> enable `ADB debugging`.
+   - Enable `Wireless debugging`.
+   - Tap `Pair new device` and note `IP:PORT` + pairing code.
+2. In WSL2:
+   - `~/android-sdk/platform-tools/adb pair <WATCH_IP:PAIR_PORT>`
+   - enter the pairing code shown on watch.
+   - `~/android-sdk/platform-tools/adb connect <WATCH_IP:ADB_PORT>`
+   - verify with `~/android-sdk/platform-tools/adb devices` (watch should show as `device`).
+3. Run from repo root:
+   - `make run-wear`
+4. If the watch disappears after network changes:
+   - rerun `adb connect <WATCH_IP:ADB_PORT>`.
+5. Device targeting tips:
+   - `run-android` auto-selects the first non-watch Android device.
+   - `run-wear` auto-selects a connected watch device.
+   - Override manually when needed: `WEAR_SERIAL=<serial> make run-wear`.
+
 ### Functional test matrix
 
 - Pairing/connection:
