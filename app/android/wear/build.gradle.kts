@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.lift.lift.wear"
+        applicationId = "com.lift.lift"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
