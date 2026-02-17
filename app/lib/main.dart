@@ -12,6 +12,9 @@ import 'services/auth_service.dart';
 import 'services/workout_service.dart';
 import 'services/multiplayer_service.dart';
 import 'services/error_modal_service.dart';
+import 'services/platform_wearable_bridge_service.dart';
+import 'services/wearable_bridge_service.dart';
+import 'services/wearable_sync_coordinator.dart';
 import 'providers/auth_provider.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
@@ -56,6 +59,8 @@ class _LiftAppState extends State<LiftApp> {
   late final MultiplayerProvider _multiplayerProvider;
   late final SoundProvider _soundProvider;
   late final ThemeProvider _themeProvider;
+  late final WearableBridgeService _wearableBridgeService;
+  late final WearableSyncCoordinator _wearableSyncCoordinator;
   late final GoRouter _router;
   StreamSubscription? _linkSubscription;
 
@@ -78,6 +83,14 @@ class _LiftAppState extends State<LiftApp> {
       MultiplayerServiceWrapper(_grpcClient),
     );
     _themeProvider = ThemeProvider();
+    _wearableBridgeService = createWearableBridgeService();
+    _wearableSyncCoordinator = WearableSyncCoordinator(
+      workoutProvider: _workoutProvider,
+      multiplayerProvider: _multiplayerProvider,
+      bridgeService: _wearableBridgeService,
+      myUserId: () => _authProvider.userId ?? '',
+    );
+    unawaited(_wearableSyncCoordinator.init());
 
     // Listen to auth changes to clear state on logout
     _authProvider.addListener(() {
@@ -189,6 +202,7 @@ class _LiftAppState extends State<LiftApp> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    unawaited(_wearableSyncCoordinator.dispose());
     _grpcClient.shutdown();
     _authProvider.dispose();
     _workoutProvider.dispose();
