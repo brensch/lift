@@ -2268,6 +2268,25 @@ public final class Wearable {
      * <code>repeated .workout.v1.WearAction actions = 11 [json_name = "actions"];</code>
      */
     int getActionsCount();
+
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     * @return Whether the completionSummary field is set.
+     */
+    boolean hasCompletionSummary();
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     * @return The completionSummary.
+     */
+    workout.v1.Wearable.WearCompletionSummary getCompletionSummary();
   }
   /**
    * Protobuf type {@code workout.v1.WearWorkoutSnapshot}
@@ -2764,6 +2783,72 @@ public final class Wearable {
     private void removeActions(int index) {
       ensureActionsIsMutable();
       actions_.remove(index);
+    }
+
+    public static final int COMPLETION_SUMMARY_FIELD_NUMBER = 12;
+    private workout.v1.Wearable.WearCompletionSummary completionSummary_;
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     */
+    @java.lang.Override
+    public boolean hasCompletionSummary() {
+      return completionSummary_ != null;
+    }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearCompletionSummary getCompletionSummary() {
+      return completionSummary_ == null ? workout.v1.Wearable.WearCompletionSummary.getDefaultInstance() : completionSummary_;
+    }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     */
+    private void setCompletionSummary(workout.v1.Wearable.WearCompletionSummary value) {
+      value.getClass();
+  completionSummary_ = value;
+      
+      }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeCompletionSummary(workout.v1.Wearable.WearCompletionSummary value) {
+      value.getClass();
+  if (completionSummary_ != null &&
+          completionSummary_ != workout.v1.Wearable.WearCompletionSummary.getDefaultInstance()) {
+        completionSummary_ =
+          workout.v1.Wearable.WearCompletionSummary.newBuilder(completionSummary_).mergeFrom(value).buildPartial();
+      } else {
+        completionSummary_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+     */
+    private void clearCompletionSummary() {  completionSummary_ = null;
+      
     }
 
     public static workout.v1.Wearable.WearWorkoutSnapshot parseFrom(
@@ -3377,6 +3462,77 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      @java.lang.Override
+      public boolean hasCompletionSummary() {
+        return instance.hasCompletionSummary();
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearCompletionSummary getCompletionSummary() {
+        return instance.getCompletionSummary();
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      public Builder setCompletionSummary(workout.v1.Wearable.WearCompletionSummary value) {
+        copyOnWrite();
+        instance.setCompletionSummary(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      public Builder setCompletionSummary(
+          workout.v1.Wearable.WearCompletionSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCompletionSummary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      public Builder mergeCompletionSummary(workout.v1.Wearable.WearCompletionSummary value) {
+        copyOnWrite();
+        instance.mergeCompletionSummary(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>.workout.v1.WearCompletionSummary completion_summary = 12 [json_name = "completionSummary"];</code>
+       */
+      public Builder clearCompletionSummary() {  copyOnWrite();
+        instance.clearCompletionSummary();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearWorkoutSnapshot)
     }
     @java.lang.Override
@@ -3405,10 +3561,11 @@ public final class Wearable {
               "groupCard_",
               "actions_",
               workout.v1.Wearable.WearAction.class,
+              "completionSummary_",
             };
             java.lang.String info =
-                "\u0000\u000b\u0000\u0000\u0001\u000b\u000b\u0000\u0001\u0000\u0001\u0208\u0002\u0002" +
-                "\u0003\f\u0004\u0002\u0005\u0002\u0006\u0002\u0007\u0002\b\u0208\t\t\n\t\u000b\u001b" +
+                "\u0000\f\u0000\u0000\u0001\f\f\u0000\u0001\u0000\u0001\u0208\u0002\u0002\u0003\f" +
+                "\u0004\u0002\u0005\u0002\u0006\u0002\u0007\u0002\b\u0208\t\t\n\t\u000b\u001b\f\t" +
                 "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
@@ -3460,6 +3617,421 @@ public final class Wearable {
     private static volatile com.google.protobuf.Parser<WearWorkoutSnapshot> PARSER;
 
     public static com.google.protobuf.Parser<WearWorkoutSnapshot> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface WearCompletionSummaryOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearCompletionSummary)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @return The durationText.
+     */
+    java.lang.String getDurationText();
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @return The bytes for durationText.
+     */
+    com.google.protobuf.ByteString
+        getDurationTextBytes();
+
+    /**
+     * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+     * @return The completedWorkingSets.
+     */
+    int getCompletedWorkingSets();
+
+    /**
+     * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+     * @return The totalVolumeLb.
+     */
+    int getTotalVolumeLb();
+  }
+  /**
+   * Protobuf type {@code workout.v1.WearCompletionSummary}
+   */
+  public  static final class WearCompletionSummary extends
+      com.google.protobuf.GeneratedMessageLite<
+          WearCompletionSummary, WearCompletionSummary.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearCompletionSummary)
+      WearCompletionSummaryOrBuilder {
+    private WearCompletionSummary() {
+      durationText_ = "";
+    }
+    public static final int DURATION_TEXT_FIELD_NUMBER = 1;
+    private java.lang.String durationText_;
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @return The durationText.
+     */
+    @java.lang.Override
+    public java.lang.String getDurationText() {
+      return durationText_;
+    }
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @return The bytes for durationText.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getDurationTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(durationText_);
+    }
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @param value The durationText to set.
+     */
+    private void setDurationText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      durationText_ = value;
+    }
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     */
+    private void clearDurationText() {
+      
+      durationText_ = getDefaultInstance().getDurationText();
+    }
+    /**
+     * <code>string duration_text = 1 [json_name = "durationText"];</code>
+     * @param value The bytes for durationText to set.
+     */
+    private void setDurationTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      durationText_ = value.toStringUtf8();
+      
+    }
+
+    public static final int COMPLETED_WORKING_SETS_FIELD_NUMBER = 2;
+    private int completedWorkingSets_;
+    /**
+     * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+     * @return The completedWorkingSets.
+     */
+    @java.lang.Override
+    public int getCompletedWorkingSets() {
+      return completedWorkingSets_;
+    }
+    /**
+     * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+     * @param value The completedWorkingSets to set.
+     */
+    private void setCompletedWorkingSets(int value) {
+      
+      completedWorkingSets_ = value;
+    }
+    /**
+     * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+     */
+    private void clearCompletedWorkingSets() {
+      
+      completedWorkingSets_ = 0;
+    }
+
+    public static final int TOTAL_VOLUME_LB_FIELD_NUMBER = 3;
+    private int totalVolumeLb_;
+    /**
+     * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+     * @return The totalVolumeLb.
+     */
+    @java.lang.Override
+    public int getTotalVolumeLb() {
+      return totalVolumeLb_;
+    }
+    /**
+     * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+     * @param value The totalVolumeLb to set.
+     */
+    private void setTotalVolumeLb(int value) {
+      
+      totalVolumeLb_ = value;
+    }
+    /**
+     * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+     */
+    private void clearTotalVolumeLb() {
+      
+      totalVolumeLb_ = 0;
+    }
+
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearCompletionSummary parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.WearCompletionSummary prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.WearCompletionSummary}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.WearCompletionSummary, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearCompletionSummary)
+        workout.v1.Wearable.WearCompletionSummaryOrBuilder {
+      // Construct using workout.v1.Wearable.WearCompletionSummary.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string duration_text = 1 [json_name = "durationText"];</code>
+       * @return The durationText.
+       */
+      @java.lang.Override
+      public java.lang.String getDurationText() {
+        return instance.getDurationText();
+      }
+      /**
+       * <code>string duration_text = 1 [json_name = "durationText"];</code>
+       * @return The bytes for durationText.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getDurationTextBytes() {
+        return instance.getDurationTextBytes();
+      }
+      /**
+       * <code>string duration_text = 1 [json_name = "durationText"];</code>
+       * @param value The durationText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDurationText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setDurationText(value);
+        return this;
+      }
+      /**
+       * <code>string duration_text = 1 [json_name = "durationText"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDurationText() {
+        copyOnWrite();
+        instance.clearDurationText();
+        return this;
+      }
+      /**
+       * <code>string duration_text = 1 [json_name = "durationText"];</code>
+       * @param value The bytes for durationText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDurationTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setDurationTextBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+       * @return The completedWorkingSets.
+       */
+      @java.lang.Override
+      public int getCompletedWorkingSets() {
+        return instance.getCompletedWorkingSets();
+      }
+      /**
+       * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+       * @param value The completedWorkingSets to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCompletedWorkingSets(int value) {
+        copyOnWrite();
+        instance.setCompletedWorkingSets(value);
+        return this;
+      }
+      /**
+       * <code>int32 completed_working_sets = 2 [json_name = "completedWorkingSets"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCompletedWorkingSets() {
+        copyOnWrite();
+        instance.clearCompletedWorkingSets();
+        return this;
+      }
+
+      /**
+       * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+       * @return The totalVolumeLb.
+       */
+      @java.lang.Override
+      public int getTotalVolumeLb() {
+        return instance.getTotalVolumeLb();
+      }
+      /**
+       * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+       * @param value The totalVolumeLb to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTotalVolumeLb(int value) {
+        copyOnWrite();
+        instance.setTotalVolumeLb(value);
+        return this;
+      }
+      /**
+       * <code>int32 total_volume_lb = 3 [json_name = "totalVolumeLb"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTotalVolumeLb() {
+        copyOnWrite();
+        instance.clearTotalVolumeLb();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearCompletionSummary)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.WearCompletionSummary();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "durationText_",
+              "completedWorkingSets_",
+              "totalVolumeLb_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0004" +
+                "\u0003\u0004";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.WearCompletionSummary> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.WearCompletionSummary.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearCompletionSummary>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.WearCompletionSummary)
+    private static final workout.v1.Wearable.WearCompletionSummary DEFAULT_INSTANCE;
+    static {
+      WearCompletionSummary defaultInstance = new WearCompletionSummary();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        WearCompletionSummary.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.WearCompletionSummary getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<WearCompletionSummary> PARSER;
+
+    public static com.google.protobuf.Parser<WearCompletionSummary> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

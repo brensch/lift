@@ -71,7 +71,7 @@ class WearableSyncCoordinator {
   }
 
   void _publishSnapshot() {
-    if (!_workoutProvider.hasActiveWorkout) {
+    if (!_workoutProvider.hasActiveWorkout && !_workoutProvider.isWorkoutEnded) {
       return;
     }
 

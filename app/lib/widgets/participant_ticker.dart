@@ -91,10 +91,10 @@ class ParticipantCard extends StatelessWidget {
       final elapsed = now - restUntil;
       return _ParticipantStatusInfo(
         stateLabel: 'Yapping',
-        stateColor: const Color(0xFFF97316),
+        stateColor: AppTheme.destructive,
         proposedSet: nextSet,
         timerText: '+${_fmt(elapsed)}',
-        timerColor: const Color(0xFFF97316),
+        timerColor: AppTheme.destructive,
       );
     }
 
