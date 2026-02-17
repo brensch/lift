@@ -11,6 +11,7 @@ import 'services/grpc_client.dart';
 import 'services/auth_service.dart';
 import 'services/workout_service.dart';
 import 'services/multiplayer_service.dart';
+import 'services/error_modal_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
@@ -96,6 +97,7 @@ class _LiftAppState extends State<LiftApp> {
     });
 
     _router = GoRouter(
+      navigatorKey: ErrorModalService.rootNavigatorKey,
       refreshListenable: _authProvider,
       redirect: (context, state) {
         final loggedIn = _authProvider.isLoggedIn;

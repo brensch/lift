@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../services/multiplayer_service.dart';
+import '../services/error_modal_service.dart';
 import '../logic/utils.dart';
 
 class MultiplayerProvider extends ChangeNotifier {
@@ -51,15 +52,7 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error joining session: $e');
       final cleanError = cleanErrorMessage(e);
-
-      Fluttertoast.showToast(
-        msg: cleanError.toUpperCase(),
-        backgroundColor: Colors.red.shade600,
-        textColor: Colors.white,
-        gravity: ToastGravity.TOP,
-        fontSize: 14.0,
-        toastLength: Toast.LENGTH_LONG,
-      );
+      ErrorModalService.showError(cleanError.toUpperCase());
       return cleanError;
     } finally {
       _isLoading = false;
