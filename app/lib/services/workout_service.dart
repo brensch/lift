@@ -88,15 +88,16 @@ class WorkoutServiceWrapper {
     required int sets,
     required bool interleaveWarmups,
     required List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig? restConfig,
   }) async {
-    return await _client.workoutService.createExerciseGroup(
-      CreateExerciseGroupRequest()
-        ..workoutId = workoutId
-        ..name = name
-        ..sets = sets
-        ..interleaveWarmups = interleaveWarmups
-        ..exerciseConfigs.addAll(exerciseConfigs),
-    );
+    final req = CreateExerciseGroupRequest()
+      ..workoutId = workoutId
+      ..name = name
+      ..sets = sets
+      ..interleaveWarmups = interleaveWarmups
+      ..exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) req.restConfig = restConfig;
+    return await _client.workoutService.createExerciseGroup(req);
   }
 
   Future<UpdateExerciseGroupResponse> updateExerciseGroup({
@@ -106,16 +107,17 @@ class WorkoutServiceWrapper {
     required int sets,
     required bool interleaveWarmups,
     required List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig? restConfig,
   }) async {
-    return await _client.workoutService.updateExerciseGroup(
-      UpdateExerciseGroupRequest()
-        ..workoutId = workoutId
-        ..exerciseGroupId = exerciseGroupId
-        ..name = name
-        ..sets = sets
-        ..interleaveWarmups = interleaveWarmups
-        ..exerciseConfigs.addAll(exerciseConfigs),
-    );
+    final req = UpdateExerciseGroupRequest()
+      ..workoutId = workoutId
+      ..exerciseGroupId = exerciseGroupId
+      ..name = name
+      ..sets = sets
+      ..interleaveWarmups = interleaveWarmups
+      ..exerciseConfigs.addAll(exerciseConfigs);
+    if (restConfig != null) req.restConfig = restConfig;
+    return await _client.workoutService.updateExerciseGroup(req);
   }
 
   Future<void> deleteExerciseGroup(

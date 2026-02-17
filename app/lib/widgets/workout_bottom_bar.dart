@@ -18,6 +18,16 @@ String _fmt(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
+String _fmtElapsed(int totalSeconds) {
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
 class WorkoutBottomBar extends StatelessWidget {
   const WorkoutBottomBar({super.key});
 
@@ -37,6 +47,11 @@ class WorkoutBottomBar extends StatelessWidget {
     final activeSetId = wp.activeSetId;
     final nextSet = wp.nextPendingSet;
     final isResting = wp.restingSet != null;
+    final workout = wp.activeWorkout;
+    final elapsedSeconds = workout != null && workout.startTime != Int64.ZERO
+        ? (wp.now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
+        : 0;
+    final elapsedText = _fmtElapsed(elapsedSeconds < 0 ? 0 : elapsedSeconds);
 
     final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
     final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
@@ -194,7 +209,50 @@ class WorkoutBottomBar extends StatelessWidget {
                   ),
                 ],
 
-                // Row 3: full-width action button
+                // Row 3: total workout time
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'TOTAL ',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.0,
+                              color: colorScheme.tertiary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: elapsedText,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Row 4: full-width action button
                 const SizedBox(height: 12),
                 actionButton,
               ],

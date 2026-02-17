@@ -7,7 +7,7 @@ use lift::workout::v1::{
     CreateExerciseGroupRequest, EndWorkoutRequest, GetActiveWorkoutRequest,
     GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, JoinUserRequest,
     StartWorkoutRequest, TestLoginRequest,
-    Exercise, ExerciseGroupType, StartSetRequest, CompleteSetRequest,
+    CompleteSetRequest, Exercise, ExerciseTypeConfig, StartSetRequest,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -288,7 +288,6 @@ async fn run_user_simulation(
         let workout_id = perform_request(&mut workout_client, &token, &stats, StartWorkoutRequest {
             name: "Simulated Workout".to_string(),
             exercise_groups: vec![],
-            proposed_sets: vec![],
         }, "StartWorkout").await?.id;
 
         for g_idx in 0..2 {
@@ -299,12 +298,17 @@ async fn run_user_simulation(
             let group_res = perform_request(&mut workout_client, &token, &stats, CreateExerciseGroupRequest {
                 workout_id: workout_id.clone(),
                 name: format!("Group {}", g_idx),
-                r#type: ExerciseGroupType::Straight as i32,
-                exercises: vec![Exercise::Squat as i32],
                 sets: 3,
-                reps: 5,
-                weights: vec![100.0],
-                include_warmup: false,
+                interleave_warmups: false,
+                exercise_configs: vec![ExerciseTypeConfig {
+                    exercise: Exercise::Squat as i32,
+                    start_weight: 100.0,
+                    end_weight: 100.0,
+                    reps: 5,
+                    include_warmup: false,
+                    rest_config: None,
+                }],
+                rest_config: None,
             }, "CreateExerciseGroup").await?;
             
             for p_set in group_res.generated_sets {

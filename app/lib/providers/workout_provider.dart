@@ -493,6 +493,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     required int sets,
     required bool interleaveWarmups,
     required List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig? restConfig,
   }) async {
     if (_activeWorkout == null) return;
     try {
@@ -502,6 +503,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
+        restConfig: restConfig,
       );
       _activeExerciseGroups.add(response.group);
       _activeProposedSets.addAll(response.generatedSets);
@@ -517,6 +519,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     required int sets,
     required bool interleaveWarmups,
     required List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig? restConfig,
   }) async {
     final groups = exerciseGroups;
     if (groupIndex < 0 || groupIndex >= groups.length) return;
@@ -531,6 +534,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
+        restConfig: restConfig,
       );
 
       _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);

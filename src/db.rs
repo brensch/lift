@@ -1,9 +1,9 @@
-use lift::workout::v1::{CompletedSet, ExerciseTypeConfig, ProposedSet, User, Workout};
+use dashmap::DashMap;
+use lift::workout::v1::{CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
 };
-use dashmap::DashMap;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -13,6 +13,30 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 // Row mapping functions - single place to define DB <-> Proto mapping. Yes
+fn rest_config_from_columns(
+    rest_success: Option<i32>,
+    rest_failure: Option<i32>,
+    rest_warmup: Option<i32>,
+    rest_last_warmup: Option<i32>,
+) -> Option<RestConfig> {
+    let rest_config = RestConfig {
+        rest_after_success: rest_success.unwrap_or(0),
+        rest_after_failure: rest_failure.unwrap_or(0),
+        rest_after_warmup: rest_warmup.unwrap_or(0),
+        rest_after_last_warmup: rest_last_warmup.unwrap_or(0),
+    };
+
+    if rest_config.rest_after_success > 0
+        || rest_config.rest_after_failure > 0
+        || rest_config.rest_after_warmup > 0
+        || rest_config.rest_after_last_warmup > 0
+    {
+        Some(rest_config)
+    } else {
+        None
+    }
+}
+
 fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
     Workout {
         id: row.get("id"),
@@ -31,6 +55,12 @@ fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::Exe
         interleave_warmups: row.get("interleave_warmups"),
         workout_order: row.get("workout_order"),
         exercise_configs: vec![], // filled by caller
+        rest_config: rest_config_from_columns(
+            row.get::<Option<i32>, _>("rest_success"),
+            row.get::<Option<i32>, _>("rest_failure"),
+            row.get::<Option<i32>, _>("rest_warmup"),
+            row.get::<Option<i32>, _>("rest_last_warmup"),
+        ),
     }
 }
 
@@ -41,6 +71,12 @@ fn row_to_exercise_type_config(row: sqlx::sqlite::SqliteRow) -> ExerciseTypeConf
         end_weight: row.get("end_weight"),
         reps: row.get("reps"),
         include_warmup: row.get("include_warmup"),
+        rest_config: rest_config_from_columns(
+            row.get::<Option<i32>, _>("rest_success"),
+            row.get::<Option<i32>, _>("rest_failure"),
+            row.get::<Option<i32>, _>("rest_warmup"),
+            row.get::<Option<i32>, _>("rest_last_warmup"),
+        ),
     }
 }
 
@@ -53,7 +89,11 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         target_reps: row.get("target_reps"),
         target_weight: row.get("target_weight"),
         warmup: row.get("warmup"),
-        exercise_group_id: row.get::<Option<String>, _>("exercise_group_id").unwrap_or_default(),
+        exercise_group_id: row
+            .get::<Option<String>, _>("exercise_group_id")
+            .unwrap_or_default(),
+        rest_after_success: row.get::<Option<i32>, _>("rest_after_success").unwrap_or(0),
+        rest_after_failure: row.get::<Option<i32>, _>("rest_after_failure").unwrap_or(0),
     }
 }
 
@@ -156,6 +196,10 @@ CREATE TABLE IF NOT EXISTS exercise_groups (
     sets INTEGER NOT NULL,
     interleave_warmups BOOLEAN NOT NULL,
     workout_order INTEGER NOT NULL,
+    rest_success INTEGER,
+    rest_failure INTEGER,
+    rest_warmup INTEGER,
+    rest_last_warmup INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
@@ -170,6 +214,10 @@ CREATE TABLE IF NOT EXISTS exercise_type_configs (
     reps INTEGER NOT NULL,
     include_warmup BOOLEAN NOT NULL,
     config_order INTEGER NOT NULL,
+    rest_success INTEGER,
+    rest_failure INTEGER,
+    rest_warmup INTEGER,
+    rest_last_warmup INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
 );
@@ -184,6 +232,8 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_weight REAL NOT NULL,
     warmup BOOLEAN NOT NULL,
     exercise_group_id TEXT,
+    rest_after_success INTEGER,
+    rest_after_failure INTEGER,
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(workout_id) REFERENCES workouts(id),
     FOREIGN KEY(exercise_group_id) REFERENCES exercise_groups(id)
@@ -249,7 +299,8 @@ impl CentralDb {
 
         let pool = SqlitePoolOptions::new()
             .max_connections(10)
-            .connect_with(options).await?;
+            .connect_with(options)
+            .await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
 
         // Manual migration for created_at_ip column
@@ -308,7 +359,10 @@ impl CentralDb {
         });
     }
 
-    async fn process_batch(&self, commands: &[WriteCommand]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn process_batch(
+        &self,
+        commands: &[WriteCommand],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let _lock = self.write_lock.lock().await;
         let mut tx = self.pool.begin().await?;
 
@@ -414,12 +468,14 @@ impl CentralDb {
                 }
                 WriteCommand::JoinSession(user_id, session_id) => {
                     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query("INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)")
-                        .bind(session_id)
-                        .bind(user_id)
-                        .bind(now)
-                        .execute(&mut *tx)
-                        .await?;
+                    sqlx::query(
+                        "INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)",
+                    )
+                    .bind(session_id)
+                    .bind(user_id)
+                    .bind(now)
+                    .execute(&mut *tx)
+                    .await?;
                 }
                 WriteCommand::LeaveSession(user_id, session_id) => {
                     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
@@ -433,18 +489,23 @@ impl CentralDb {
                 #[cfg(feature = "test-auth")]
                 WriteCommand::TestLoginUpsert(user, token, expires_at) => {
                     // Double-check user existence in case cache was cold
-                    let user_id = match sqlx::query_scalar::<_, String>("SELECT id FROM users WHERE lower(name) = lower(?)")
-                        .bind(&user.name)
-                        .fetch_optional(&mut *tx)
-                        .await? {
+                    let user_id = match sqlx::query_scalar::<_, String>(
+                        "SELECT id FROM users WHERE lower(name) = lower(?)",
+                    )
+                    .bind(&user.name)
+                    .fetch_optional(&mut *tx)
+                    .await?
+                    {
                         Some(id) => id,
                         None => {
-                            sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
-                                .bind(&user.id)
-                                .bind(&user.name)
-                                .bind(user.created_at)
-                                .execute(&mut *tx)
-                                .await?;
+                            sqlx::query(
+                                "INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)",
+                            )
+                            .bind(&user.id)
+                            .bind(&user.name)
+                            .bind(user.created_at)
+                            .execute(&mut *tx)
+                            .await?;
                             user.id.clone()
                         }
                     };
@@ -489,11 +550,13 @@ impl CentralDb {
             .await
             .map_err(|e| {
                 if let Some(sqlite_error) = e.as_database_error().and_then(|de| de.code()) {
-                    if sqlite_error == "2067" || sqlite_error == "1555" { // UNIQUE or PRIMARY KEY constraint
+                    if sqlite_error == "2067" || sqlite_error == "1555" {
+                        // UNIQUE or PRIMARY KEY constraint
                         return Box::new(std::io::Error::new(
                             std::io::ErrorKind::AlreadyExists,
                             "User already exists",
-                        )) as Box<dyn std::error::Error + Send + Sync>;
+                        ))
+                            as Box<dyn std::error::Error + Send + Sync>;
                     }
                 }
                 Box::new(e) as Box<dyn std::error::Error + Send + Sync>
@@ -517,7 +580,8 @@ impl CentralDb {
             .await?;
 
         if let Some(user) = &res {
-            self.user_by_name_cache.insert(user.name.clone(), user.clone());
+            self.user_by_name_cache
+                .insert(user.name.clone(), user.clone());
         }
 
         Ok(res)
@@ -531,14 +595,16 @@ impl CentralDb {
             return Ok(Some(user.value().clone()));
         }
 
-        let res = sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
-            .bind(name)
-            .map(row_to_user)
-            .fetch_optional(&self.pool)
-            .await?;
+        let res =
+            sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
+                .bind(name)
+                .map(row_to_user)
+                .fetch_optional(&self.pool)
+                .await?;
 
         if let Some(user) = &res {
-            self.user_by_name_cache.insert(name.to_string(), user.clone());
+            self.user_by_name_cache
+                .insert(name.to_string(), user.clone());
         }
 
         Ok(res)
@@ -573,10 +639,11 @@ impl CentralDb {
         let mut tx = self.pool.begin().await?;
 
         // Check how many credentials the user has
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_credentials WHERE user_id = ?")
-            .bind(user_id)
-            .fetch_one(&mut *tx)
-            .await?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM passkey_credentials WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_one(&mut *tx)
+                .await?;
 
         if count <= 1 {
             return Err("Cannot delete the last passkey".into());
@@ -621,7 +688,8 @@ impl CentralDb {
     pub async fn list_passkey_metadata(
         &self,
         user_id: &str,
-    ) -> Result<Vec<(String, i64, String, Option<String>)>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<(String, i64, String, Option<String>)>, Box<dyn std::error::Error + Send + Sync>>
+    {
         Ok(sqlx::query_as(
             "SELECT credential_id, created_at, credential_json, created_at_ip FROM passkey_credentials WHERE user_id = ?",
         )
@@ -646,7 +714,8 @@ impl CentralDb {
             .execute(&self.pool)
             .await?;
 
-        self.auth_cache.insert(token.clone(), (user_id.to_string(), expires_at));
+        self.auth_cache
+            .insert(token.clone(), (user_id.to_string(), expires_at));
 
         Ok(token)
     }
@@ -674,7 +743,8 @@ impl CentralDb {
         .await?;
 
         if let Some((user_id, expires_at)) = &result {
-            self.auth_cache.insert(token.to_string(), (user_id.clone(), *expires_at));
+            self.auth_cache
+                .insert(token.to_string(), (user_id.clone(), *expires_at));
         }
 
         Ok(result.map(|(user_id, _)| user_id))
@@ -744,7 +814,10 @@ impl CentralDb {
         user_id: &str,
         workout: &Workout,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::CreateWorkout(user_id.to_string(), workout.clone()))?;
+        self.write_tx.send(WriteCommand::CreateWorkout(
+            user_id.to_string(),
+            workout.clone(),
+        ))?;
         Ok(())
     }
 
@@ -754,7 +827,11 @@ impl CentralDb {
         group: &lift::workout::v1::ExerciseGroup,
         sets: &[ProposedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::InsertGroupWithSets(user_id.to_string(), group.clone(), sets.to_vec()))?;
+        self.write_tx.send(WriteCommand::InsertGroupWithSets(
+            user_id.to_string(),
+            group.clone(),
+            sets.to_vec(),
+        ))?;
         Ok(())
     }
 
@@ -763,7 +840,10 @@ impl CentralDb {
         user_id: &str,
         set: &CompletedSet,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::UpsertCompletedSet(user_id.to_string(), set.clone()))?;
+        self.write_tx.send(WriteCommand::UpsertCompletedSet(
+            user_id.to_string(),
+            set.clone(),
+        ))?;
         Ok(())
     }
 
@@ -773,12 +853,19 @@ impl CentralDb {
         workout_id: &str,
         end_time: i64,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::UpdateWorkoutEnd(user_id.to_string(), workout_id.to_string(), end_time))?;
+        self.write_tx.send(WriteCommand::UpdateWorkoutEnd(
+            user_id.to_string(),
+            workout_id.to_string(),
+            end_time,
+        ))?;
         Ok(())
     }
 
     #[cfg(feature = "test-auth")]
-    pub async fn test_login_upsert(&self, username: &str) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn test_login_upsert(
+        &self,
+        username: &str,
+    ) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
         // 1. Check cache first
         if let Some(entry) = self.user_by_name_cache.get(username) {
             let user = entry.value().clone();
@@ -786,10 +873,15 @@ impl CentralDb {
             let expires_at = Self::now_plus_30_days();
 
             // Optimistically update auth cache
-            self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
+            self.auth_cache
+                .insert(token.clone(), (user.id.clone(), expires_at));
 
             // Queue session creation
-            self.write_tx.send(WriteCommand::TestLoginUpsert(user.clone(), token.clone(), expires_at))?;
+            self.write_tx.send(WriteCommand::TestLoginUpsert(
+                user.clone(),
+                token.clone(),
+                expires_at,
+            ))?;
 
             return Ok((user, token));
         }
@@ -806,18 +898,27 @@ impl CentralDb {
         let expires_at = Self::now_plus_30_days();
 
         // Optimistically cache both
-        self.user_by_name_cache.insert(username.to_string(), user.clone());
-        self.auth_cache.insert(token.clone(), (user.id.clone(), expires_at));
+        self.user_by_name_cache
+            .insert(username.to_string(), user.clone());
+        self.auth_cache
+            .insert(token.clone(), (user.id.clone(), expires_at));
 
         // Queue background upsert
-        self.write_tx.send(WriteCommand::TestLoginUpsert(user.clone(), token.clone(), expires_at))?;
+        self.write_tx.send(WriteCommand::TestLoginUpsert(
+            user.clone(),
+            token.clone(),
+            expires_at,
+        ))?;
 
         Ok((user, token))
     }
 
     #[cfg(feature = "test-auth")]
     fn now_plus_30_days() -> i64 {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
         now + 30 * 24 * 60 * 60
     }
 
@@ -827,7 +928,11 @@ impl CentralDb {
         workout_id: &str,
         completed_set_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::DeleteCompletedSet(user_id.to_string(), workout_id.to_string(), completed_set_id.to_string()))?;
+        self.write_tx.send(WriteCommand::DeleteCompletedSet(
+            user_id.to_string(),
+            workout_id.to_string(),
+            completed_set_id.to_string(),
+        ))?;
         Ok(())
     }
 
@@ -837,9 +942,10 @@ impl CentralDb {
         &self,
         user_id: &str,
         workout_id: &str,
-    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>>
+    {
         let mut groups: Vec<lift::workout::v1::ExerciseGroup> = sqlx::query(
-            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order
+            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
              FROM exercise_groups WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
         )
         .bind(user_id)
@@ -853,7 +959,7 @@ impl CentralDb {
         if !group_ids.is_empty() {
             let placeholders = group_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
             let query = format!(
-                "SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup
+                "SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, rest_success, rest_failure, rest_warmup, rest_last_warmup \
                  FROM exercise_type_configs WHERE exercise_group_id IN ({}) ORDER BY config_order",
                 placeholders
             );
@@ -885,14 +991,14 @@ impl CentralDb {
         user_id: &str,
         workout_id: &str,
     ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query("SELECT id, name, start_time, end_time FROM workouts WHERE user_id = ? AND id = ?")
-                .bind(user_id)
-                .bind(workout_id)
-                .map(row_to_workout)
-                .fetch_optional(&self.pool)
-                .await?,
+        Ok(sqlx::query(
+            "SELECT id, name, start_time, end_time FROM workouts WHERE user_id = ? AND id = ?",
         )
+        .bind(user_id)
+        .bind(workout_id)
+        .map(row_to_workout)
+        .fetch_optional(&self.pool)
+        .await?)
     }
 
     pub async fn get_active_workout(
@@ -912,7 +1018,7 @@ impl CentralDb {
         workout_id: &str,
     ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure \
              FROM proposed_sets WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
         )
         .bind(user_id)
@@ -985,7 +1091,10 @@ impl CentralDb {
             let weight = row.get::<f32, _>("target_weight");
             let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
-            history.entry(exercise).or_default().push((weight, successful, ended_at));
+            history
+                .entry(exercise)
+                .or_default()
+                .push((weight, successful, ended_at));
         }
 
         let max_rows = sqlx::query(
@@ -1015,7 +1124,10 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::JoinSession(user_id.to_string(), session_id.to_string()))?;
+        self.write_tx.send(WriteCommand::JoinSession(
+            user_id.to_string(),
+            session_id.to_string(),
+        ))?;
         Ok(())
     }
 
@@ -1024,7 +1136,10 @@ impl CentralDb {
         user_id: &str,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::LeaveSession(user_id.to_string(), session_id.to_string()))?;
+        self.write_tx.send(WriteCommand::LeaveSession(
+            user_id.to_string(),
+            session_id.to_string(),
+        ))?;
         Ok(())
     }
 
@@ -1095,39 +1210,63 @@ impl CentralDb {
         // Batch inserts for groups
         if !exercise_groups.is_empty() {
             let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order) "
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
             );
             query_builder.push_values(exercise_groups, |mut b, group| {
                 b.push_bind(&group.id)
-                 .push_bind(user_id)
-                 .push_bind(&group.workout_id)
-                 .push_bind(&group.name)
-                 .push_bind(group.sets)
-                 .push_bind(group.interleave_warmups)
-                 .push_bind(group.workout_order);
+                    .push_bind(user_id)
+                    .push_bind(&group.workout_id)
+                    .push_bind(&group.name)
+                    .push_bind(group.sets)
+                    .push_bind(group.interleave_warmups)
+                    .push_bind(group.workout_order)
+                    .push_bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
+                    .push_bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+                    .push_bind(group.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+                    .push_bind(
+                        group
+                            .rest_config
+                            .as_ref()
+                            .map(|rc| rc.rest_after_last_warmup),
+                    );
             });
             query_builder.build().execute(&mut *tx).await?;
 
             // Insert configs for all groups
-            let all_configs: Vec<(String, i32, &ExerciseTypeConfig)> = exercise_groups.iter()
-                .flat_map(|g| g.exercise_configs.iter().enumerate().map(move |(idx, c)| (g.id.clone(), idx as i32, c)))
+            let all_configs: Vec<(String, i32, &ExerciseTypeConfig)> = exercise_groups
+                .iter()
+                .flat_map(|g| {
+                    g.exercise_configs
+                        .iter()
+                        .enumerate()
+                        .map(move |(idx, c)| (g.id.clone(), idx as i32, c))
+                })
                 .collect();
 
             if !all_configs.is_empty() {
                 for chunk in all_configs.chunks(100) {
                     let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                        "INSERT INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order) "
+                        "INSERT INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
                     );
                     query_builder.push_values(chunk, |mut b, (group_id, idx, config)| {
                         b.push_bind(Uuid::new_v4().to_string())
-                         .push_bind(user_id)
-                         .push_bind(group_id)
-                         .push_bind(config.exercise)
-                         .push_bind(config.start_weight)
-                         .push_bind(config.end_weight)
-                         .push_bind(config.reps)
-                         .push_bind(config.include_warmup)
-                         .push_bind(idx);
+                            .push_bind(user_id)
+                            .push_bind(group_id)
+                            .push_bind(config.exercise)
+                            .push_bind(config.start_weight)
+                            .push_bind(config.end_weight)
+                            .push_bind(config.reps)
+                            .push_bind(config.include_warmup)
+                            .push_bind(idx)
+                            .push_bind(config.rest_config.as_ref().map(|rc| rc.rest_after_success))
+                            .push_bind(config.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+                            .push_bind(config.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+                            .push_bind(
+                                config
+                                    .rest_config
+                                    .as_ref()
+                                    .map(|rc| rc.rest_after_last_warmup),
+                            );
                     });
                     query_builder.build().execute(&mut *tx).await?;
                 }
@@ -1138,22 +1277,24 @@ impl CentralDb {
         if !proposed_sets.is_empty() {
             for chunk in proposed_sets.chunks(100) {
                 let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id) "
+                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure) "
                 );
                 query_builder.push_values(chunk, |mut b, set| {
                     b.push_bind(&set.id)
-                     .push_bind(user_id)
-                     .push_bind(&set.workout_id)
-                     .push_bind(set.workout_order)
-                     .push_bind(set.exercise)
-                     .push_bind(set.target_reps)
-                     .push_bind(set.target_weight)
-                     .push_bind(set.warmup)
-                     .push_bind(if set.exercise_group_id.is_empty() {
-                         None
-                     } else {
-                         Some(&set.exercise_group_id)
-                     });
+                        .push_bind(user_id)
+                        .push_bind(&set.workout_id)
+                        .push_bind(set.workout_order)
+                        .push_bind(set.exercise)
+                        .push_bind(set.target_reps)
+                        .push_bind(set.target_weight)
+                        .push_bind(set.warmup)
+                        .push_bind(if set.exercise_group_id.is_empty() {
+                            None
+                        } else {
+                            Some(&set.exercise_group_id)
+                        })
+                        .push_bind(set.rest_after_success)
+                        .push_bind(set.rest_after_failure);
                 });
                 query_builder.build().execute(&mut *tx).await?;
             }
@@ -1167,22 +1308,22 @@ impl CentralDb {
                 );
                 query_builder.push_values(chunk, |mut b, set| {
                     b.push_bind(&set.id)
-                     .push_bind(user_id)
-                     .push_bind(&set.workout_id)
-                     .push_bind(if set.proposed_set_id.is_empty() {
-                         None
-                     } else {
-                         Some(&set.proposed_set_id)
-                     })
-                     .push_bind(set.actual_reps)
-                     .push_bind(set.actual_weight)
-                     .push_bind(set.started_at)
-                     .push_bind(set.ended_at)
-                     .push_bind(if set.rest_until == 0 {
-                         None
-                     } else {
-                         Some(set.rest_until)
-                     });
+                        .push_bind(user_id)
+                        .push_bind(&set.workout_id)
+                        .push_bind(if set.proposed_set_id.is_empty() {
+                            None
+                        } else {
+                            Some(&set.proposed_set_id)
+                        })
+                        .push_bind(set.actual_reps)
+                        .push_bind(set.actual_weight)
+                        .push_bind(set.started_at)
+                        .push_bind(set.ended_at)
+                        .push_bind(if set.rest_until == 0 {
+                            None
+                        } else {
+                            Some(set.rest_until)
+                        });
                 });
                 query_builder.build().execute(&mut *tx).await?;
             }

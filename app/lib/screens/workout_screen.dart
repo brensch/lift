@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
@@ -43,13 +42,6 @@ class WorkoutScreen extends StatelessWidget {
         .toList();
 
     final workout = wp.workout!;
-    final startTime = DateTime.fromMillisecondsSinceEpoch(
-      workout.startTime.toInt() * 1000,
-    );
-    final endTime = workout.endTime != Int64.ZERO
-        ? DateTime.fromMillisecondsSinceEpoch(workout.endTime.toInt() * 1000)
-        : wp.now;
-    final duration = endTime.difference(startTime);
 
     return ListView(
       physics: const ClampingScrollPhysics(),
@@ -57,81 +49,27 @@ class WorkoutScreen extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-            crossAxisAlignment: CrossAxisAlignment.end,
-
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Text(
-                      isEnded ? 'WORKOUT COMPLETED' : 'WORKOUT IN PROGRESS',
-
-                      style: TextStyle(
-                        fontSize: 11,
-
-                        fontWeight: FontWeight.bold,
-
-                        letterSpacing: 1.5,
-
-                        color: colorScheme.tertiary,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      workout.name.toUpperCase(),
-
-                      style: const TextStyle(
-                        fontSize: 24,
-
-                        fontWeight: FontWeight.w900,
-
-                        letterSpacing: -1.0,
-
-                        height: 1.0,
-                      ),
-                    ),
-                  ],
+              Text(
+                isEnded ? 'WORKOUT COMPLETED' : 'WORKOUT IN PROGRESS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                  color: colorScheme.tertiary,
                 ),
               ),
-
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-
-                children: [
-                  Text(
-                    'TOTAL TIME',
-
-                    style: TextStyle(
-                      fontSize: 10,
-
-                      fontWeight: FontWeight.bold,
-
-                      letterSpacing: 1.0,
-
-                      color: colorScheme.tertiary,
-                    ),
-                  ),
-
-                  Text(
-                    _formatDuration(duration),
-
-                    style: const TextStyle(
-                      fontSize: 20,
-
-                      fontWeight: FontWeight.w900,
-
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                workout.name.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                  height: 1.0,
+                ),
               ),
             ],
           ),
@@ -388,19 +326,22 @@ class WorkoutScreen extends StatelessWidget {
       groupIndex: index,
       exerciseStatuses: wp.exerciseStatuses,
       isSetDone: wp.isSetDone,
-      onSave: (
-        groupIndex, {
-        required int sets,
-        required bool interleaveWarmups,
-        required List<ExerciseTypeConfig> exerciseConfigs,
-      }) {
-        wp.updateGroup(
-          groupIndex,
-          sets: sets,
-          interleaveWarmups: interleaveWarmups,
-          exerciseConfigs: exerciseConfigs,
-        );
-      },
+      onSave:
+          (
+            groupIndex, {
+            required int sets,
+            required bool interleaveWarmups,
+            required List<ExerciseTypeConfig> exerciseConfigs,
+            RestConfig? restConfig,
+          }) {
+            wp.updateGroup(
+              groupIndex,
+              sets: sets,
+              interleaveWarmups: interleaveWarmups,
+              exerciseConfigs: exerciseConfigs,
+              restConfig: restConfig,
+            );
+          },
     );
   }
 
@@ -408,33 +349,25 @@ class WorkoutScreen extends StatelessWidget {
     showAddExerciseDialog(
       context,
       exerciseStatuses: wp.exerciseStatuses,
-      onAdd: (name, sets, interleaveWarmups, exerciseConfigs) {
+      onAdd: (name, sets, interleaveWarmups, exerciseConfigs, restConfig) {
         final finalName = name.isNotEmpty
             ? name
             : exerciseConfigs
-                .map((c) => exerciseNames[Exercise.valueOf(c.exercise.value)] ?? '?')
-                .join(' / ');
+                  .map(
+                    (c) =>
+                        exerciseNames[Exercise.valueOf(c.exercise.value)] ??
+                        '?',
+                  )
+                  .join(' / ');
 
         wp.addExerciseGroup(
           name: finalName,
           sets: sets,
           interleaveWarmups: interleaveWarmups,
           exerciseConfigs: exerciseConfigs,
+          restConfig: restConfig,
         );
       },
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes.remainder(60);
-    final seconds = d.inSeconds.remainder(60);
-    if (hours > 0) {
-      return '${hours}h ${minutes}m ${seconds}s';
-    } else if (minutes > 0) {
-      return '${minutes}m ${seconds}s';
-    } else {
-      return '${seconds}s';
-    }
   }
 }

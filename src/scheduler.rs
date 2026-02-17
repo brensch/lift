@@ -160,8 +160,10 @@ impl Scheduler {
         user_id: &str,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
         // 2 queries total: bulk history + bulk max weights for ALL exercises
-        let (all_history, all_max_weights) =
-            self.central_db.get_all_exercise_history(user_id, 10).await?;
+        let (all_history, all_max_weights) = self
+            .central_db
+            .get_all_exercise_history(user_id, 10)
+            .await?;
 
         // Build muscle group recovery map from the fetched data
         let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =
@@ -192,13 +194,12 @@ impl Scheduler {
             let empty_history = Vec::new();
             let history = all_history.get(&exercise).unwrap_or(&empty_history);
             let max_weight = all_max_weights.get(&exercise).copied().unwrap_or(0.0);
-            let (weight, explanation, last_perf, weight_history) =
-                Self::calculate_weight_from_data(
-                    exercise,
-                    config.default_weight,
-                    history,
-                    max_weight,
-                );
+            let (weight, explanation, last_perf, weight_history) = Self::calculate_weight_from_data(
+                exercise,
+                config.default_weight,
+                history,
+                max_weight,
+            );
 
             let recovered = config.muscle_groups.iter().all(|mg| {
                 match muscle_group_last_worked.get(&(*mg as i32)) {
@@ -244,13 +245,16 @@ impl Scheduler {
         };
 
         let make_config = |status: &ExerciseStatus| -> ExerciseTypeConfig {
-            let config = get_exercise_config(Exercise::try_from(status.exercise).unwrap_or(Exercise::Unspecified));
+            let config = get_exercise_config(
+                Exercise::try_from(status.exercise).unwrap_or(Exercise::Unspecified),
+            );
             ExerciseTypeConfig {
                 exercise: status.exercise,
                 start_weight: status.target_weight,
                 end_weight: status.target_weight,
                 reps: config.map(|c| c.default_reps).unwrap_or(5),
                 include_warmup: true,
+                rest_config: None,
             }
         };
 
@@ -261,6 +265,7 @@ impl Scheduler {
                 sets: s.default_sets,
                 interleave_warmups: false,
                 exercise_configs: vec![make_config(s)],
+                rest_config: None,
             });
         }
 
@@ -271,6 +276,7 @@ impl Scheduler {
                 sets: bench.default_sets,
                 interleave_warmups: false,
                 exercise_configs: vec![make_config(bench)],
+                rest_config: None,
             });
         }
 
@@ -281,6 +287,7 @@ impl Scheduler {
                 sets: row.default_sets,
                 interleave_warmups: false,
                 exercise_configs: vec![make_config(row)],
+                rest_config: None,
             });
         }
 
@@ -291,6 +298,7 @@ impl Scheduler {
                 sets: s.default_sets,
                 interleave_warmups: false,
                 exercise_configs: vec![make_config(s)],
+                rest_config: None,
             });
         }
 
@@ -301,6 +309,7 @@ impl Scheduler {
                 sets: s.default_sets,
                 interleave_warmups: false,
                 exercise_configs: vec![make_config(s)],
+                rest_config: None,
             });
         }
 
@@ -314,10 +323,15 @@ impl Scheduler {
         for (ex_a, ex_b) in &aux_pairs {
             if let (Some(a), Some(b)) = (find_status(*ex_a), find_status(*ex_b)) {
                 groups.push(ProposedExerciseGroup {
-                    name: format!("{} + {}", exercise_display_name(*ex_a), exercise_display_name(*ex_b)),
+                    name: format!(
+                        "{} + {}",
+                        exercise_display_name(*ex_a),
+                        exercise_display_name(*ex_b)
+                    ),
                     sets: a.default_sets,
                     interleave_warmups: true,
                     exercise_configs: vec![make_config(a), make_config(b)],
+                    rest_config: None,
                 });
             } else {
                 if let Some(a) = find_status(*ex_a) {
@@ -326,6 +340,7 @@ impl Scheduler {
                         sets: a.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(a)],
+                        rest_config: None,
                     });
                 }
                 if let Some(b) = find_status(*ex_b) {
@@ -334,6 +349,7 @@ impl Scheduler {
                         sets: b.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(b)],
+                        rest_config: None,
                     });
                 }
             }
