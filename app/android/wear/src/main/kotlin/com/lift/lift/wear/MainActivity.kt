@@ -9,8 +9,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,23 +30,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberPickerState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import workout.v1.Wearable
 
 class MainActivity : ComponentActivity() {
@@ -181,6 +189,12 @@ private fun WearApp(
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by heartRateStreamer.latestBpm.collectAsState()
+    val currentClock by produceState(initialValue = formatNowClock()) {
+        while (true) {
+            value = formatNowClock()
+            delay(1000)
+        }
+    }
 
     if (snapshot == null) {
         Box(
@@ -204,10 +218,6 @@ private fun WearApp(
     val primaryAction = data.actionsList.firstOrNull {
         it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
     } ?: data.actionsList.firstOrNull()
-    val secondaryAction = data.actionsList.firstOrNull {
-        it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_SECONDARY
-    }
-
     DisposableEffect(data.workoutId, data.state) {
         val shouldStream = data.workoutId.isNotEmpty() &&
             data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE
@@ -226,7 +236,17 @@ private fun WearApp(
     }
 
     val hrColor = heartRateColor(latestBpm)
-    val startLabel = buildStartLabel(primaryAction, currentSet)
+    val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
+    val repsWeightText = if (currentSet != null) "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}" else ""
+    val weightOnlyText = if (currentSet != null) "x${currentSet.targetWeight.toInt()}" else ""
+    val startButtonTitle = if (currentSet != null) {
+        "Start\n$exerciseName"
+    } else {
+        "Start"
+    }
+    val completeButtonText = "Complete\n$exerciseName"
+    val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
+    val timerColor = if (isResting) Color(0xFF86EFAC) else Color.White
     val maxReps = currentSet?.targetReps ?: 0
     val pickerState = rememberPickerState(
         initialNumberOfOptions = (maxReps + 1).coerceAtLeast(1),
@@ -236,33 +256,55 @@ private fun WearApp(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF090B10)),
+            .background(Color.Black),
     ) {
         Column(
             modifier = Modifier
                 .weight(0.5f)
                 .fillMaxHeight()
                 .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.End,
         ) {
-            MidLineText(data.youCard.stateLabel, Color.White)
             if (data.youCard.timerText.isNotEmpty()) {
-                MidLineText(data.youCard.timerText, Color(0xFF93C5FD))
-            }
-            if (currentSet != null) {
-                MidLineText(
-                    "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}",
-                    Color(0xFFD8B4FE),
+                Text(
+                    text = data.youCard.timerText,
+                    color = timerColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 34.sp,
                 )
             }
-            if (data.hasGroupCard()) {
-                MidLineText("G ${data.groupCard.stateLabel}", Color(0xFF86EFAC))
+            Text(
+                text = data.youCard.stateLabel,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = 19.sp,
+            )
+            if (data.youCard.timerText.isNotEmpty()) {
+                StatLine(
+                    text = currentClock,
+                    icon = Icons.Filled.AccessTime,
+                    color = Color(0xFFE5E7EB),
+                    fontSizeSp = 18,
+                )
             }
-            MidLineText("T ${data.elapsedText}", Color(0xFFCBD5E1))
-            MidLineText(
-                if (latestBpm != null) "HR ${latestBpm!!.toInt()}" else "HR --",
-                hrColor,
+            StatLine(
+                text = data.elapsedText,
+                icon = Icons.Filled.HourglassBottom,
+                color = Color(0xFFCBD5E1),
+                fontSizeSp = 19,
+            )
+            StatLine(
+                text = if (latestBpm != null) "${latestBpm!!.toInt()}" else "--",
+                icon = Icons.Filled.Favorite,
+                color = hrColor,
+                fontSizeSp = 21,
             )
         }
 
@@ -280,72 +322,111 @@ private fun WearApp(
                     enabled = primaryAction != null,
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color.White,
+                        contentColor = Color.Black,
+                    ),
                 ) {
-                    Text(
-                        text = startLabel,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        fontSize = 18.sp,
-                    )
-                }
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.5f),
-                        contentAlignment = Alignment.Center,
+                            .fillMaxSize()
+                            .padding(start = 10.dp, end = 6.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        Picker(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(0.7f),
-                            state = pickerState,
-                            gradientRatio = 0.1f,
-                            contentDescription = "Completed reps picker",
-                            option = { index ->
-                                Text(
-                                    text = index.toString(),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    fontSize = if (index == pickerState.selectedOption) 38.sp else 24.sp,
-                                    color = if (index == pickerState.selectedOption) Color.White else Color(0xFF9CA3AF),
-                                )
-                            },
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            val set = currentSet
-                            val template = completeTemplate
-                            if (set != null && template != null) {
-                                val action = template.toBuilder()
-                                    .setSetId(set.id)
-                                    .setReps(pickerState.selectedOption)
-                                    .setActualWeight(
-                                        if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
-                                    )
-                                    .build()
-                                onAction(action)
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.5f),
-                        shape = RoundedCornerShape(0.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(start = 10.dp, top = 8.dp),
-                            contentAlignment = Alignment.TopStart,
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start,
                         ) {
                             Text(
-                                text = "Completed\nreps",
-                                fontSize = 15.sp,
+                                text = startButtonTitle,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier.fillMaxWidth(),
+                                fontSize = 18.sp,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = repsWeightText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier.fillMaxWidth(),
+                                fontSize = 24.sp,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val set = currentSet
+                        val template = completeTemplate
+                        if (set != null && template != null) {
+                            val action = template.toBuilder()
+                                .setSetId(set.id)
+                                .setReps(pickerState.selectedOption)
+                                .setActualWeight(
+                                    if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
+                                )
+                                .build()
+                            onAction(action)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color.White,
+                        contentColor = Color.Black,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 10.dp, end = 0.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.Start,
+                    ) {
+                        Text(
+                            text = completeButtonText,
+                            color = Color.Black,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Start,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(26.dp)
+                                    .height(84.dp)
+                                    .padding(top = 2.dp),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
+                                Picker(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    state = pickerState,
+                                    gradientRatio = 0f,
+                                    contentDescription = "Completed reps picker",
+                                    option = { index ->
+                                        Text(
+                                            text = index.toString(),
+                                            textAlign = TextAlign.End,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            fontSize = if (index == pickerState.selectedOption) 42.sp else 28.sp,
+                                            color = if (index == pickerState.selectedOption) Color.Black else Color(0xFF6B7280),
+                                        )
+                                    },
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(0.dp))
+                            Text(
+                                text = weightOnlyText,
+                                color = Color.Black,
+                                fontSize = 28.sp,
                                 textAlign = TextAlign.Start,
                             )
                         }
@@ -357,16 +438,36 @@ private fun WearApp(
 }
 
 @Composable
-private fun MidLineText(text: String, color: Color) {
-    Text(
-        text = text,
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.End,
+private fun StatLine(
+    text: String,
+    icon: ImageVector,
+    color: Color,
+    fontSizeSp: Int,
+) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        fontSize = 17.sp,
-    )
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = text,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f),
+            fontSize = fontSizeSp.sp,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+        )
+    }
+}
+
+private fun formatNowClock(): String {
+    return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
 }
 
 private fun heartRateColor(bpm: Float?): Color {
@@ -377,18 +478,6 @@ private fun heartRateColor(bpm: Float?): Color {
         bpm < 165f -> Color(0xFFF97316)
         else -> Color(0xFFEF4444)
     }
-}
-
-private fun buildStartLabel(
-    primaryAction: Wearable.WearAction?,
-    currentSet: workout.v1.WorkoutOuterClass.ProposedSet?,
-): String {
-    if (primaryAction == null) return "Action"
-    if (primaryAction.type != Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET || currentSet == null) {
-        return primaryAction.label
-    }
-    val exerciseName = formatExerciseName(currentSet.exercise.name)
-    return "Start ${currentSet.targetReps}x${currentSet.targetWeight.toInt()} $exerciseName"
 }
 
 private fun formatExerciseName(raw: String): String {

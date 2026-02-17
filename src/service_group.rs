@@ -350,11 +350,13 @@ mod tests {
     use crate::state::AppState;
     use lift::workout::v1::workout_service_server::WorkoutService;
     use lift::workout::v1::{
-        CancelProposedSetRequest, CompleteSetRequest, ExerciseGroup, ExerciseTypeConfig,
-        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, RestConfig, StartSetRequest,
-        StartWorkoutRequest, UpdateExerciseGroupRequest,
+        CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
+        EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig, GetCurrentSessionRequest,
+        GetWorkoutRequest, JoinUserRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
+        UpdateExerciseGroupRequest,
     };
     use std::sync::Arc;
+    use tokio::time::{sleep, Duration};
     use tonic::{metadata::MetadataValue, Request};
 
     fn with_token<T>(payload: T, token: &str) -> Request<T> {
@@ -775,5 +777,108 @@ mod tests {
         assert_eq!(stats.cancelled_total, 1);
         assert_eq!(stats.cancelled_warmups, 1);
         assert_eq!(stats.cancelled_working, 0);
+    }
+
+    #[tokio::test]
+    async fn persisted_workout_sets_keep_rest_values_across_db_reload() {
+        let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+        let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+        let state = Arc::new(AppState::new());
+        let workout_service = MyWorkoutService::new(central_db.clone(), state);
+
+        let user = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user");
+        let token = central_db
+            .create_auth_session(&user.id)
+            .await
+            .expect("token");
+
+        let started = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "w".to_string(),
+                    exercise_groups: vec![single_exercise_group("g1", "Squat", 155.0, 3, 0)],
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("start")
+        .into_inner();
+
+        let _ = WorkoutService::create_exercise_group(
+            &workout_service,
+            with_token(
+                CreateExerciseGroupRequest {
+                    workout_id: started.id.clone(),
+                    name: "Bench".to_string(),
+                    sets: 2,
+                    interleave_warmups: false,
+                    exercise_configs: vec![ExerciseTypeConfig {
+                        exercise: 2,
+                        start_weight: 185.0,
+                        end_weight: 185.0,
+                        reps: 5,
+                        include_warmup: true,
+                        rest_config: Some(RestConfig {
+                            rest_after_success: 95,
+                            rest_after_failure: 205,
+                            rest_after_warmup: 12,
+                            rest_after_last_warmup: 95,
+                        }),
+                    }],
+                    rest_config: None,
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("create group");
+
+        let _ = WorkoutService::end_workout(
+            &workout_service,
+            with_token(
+                EndWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("end");
+
+        // Ended workouts are loaded from DB, not in-memory active state.
+        // Persistence worker is async, so retry briefly until the workout is visible.
+        let mut loaded = None;
+        for _ in 0..25 {
+            let result = WorkoutService::get_workout(
+                &workout_service,
+                with_token(
+                    GetWorkoutRequest {
+                        workout_id: started.id.clone(),
+                    },
+                    &token,
+                ),
+            )
+            .await;
+            if let Ok(response) = result {
+                loaded = Some(response.into_inner());
+                break;
+            }
+            sleep(Duration::from_millis(20)).await;
+        }
+        let workout = loaded.expect("load from db");
+
+        assert!(!workout.proposed_sets.is_empty());
+        assert!(
+            workout
+                .proposed_sets
+                .iter()
+                .all(|set| set.rest_after_success > 0 && set.rest_after_failure > 0),
+            "all proposed sets should carry persisted rest values"
+        );
     }
 }
