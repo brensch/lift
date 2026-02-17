@@ -3,8 +3,8 @@ name: Android Release
 on:
   workflow_dispatch:
   push:
-    tags:
-      - "android-v*"
+    branches:
+      - main
 
 jobs:
   build-release:
@@ -85,9 +85,11 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/android-v')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: android-main-${{ github.run_id }}
+          target_commitish: ${{ github.sha }}
+          name: Android Release ${{ github.run_number }}
           generate_release_notes: true
           files: |
             app/build/app/outputs/bundle/release/app-release.aab
