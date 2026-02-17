@@ -36,7 +36,17 @@ impl AuthState {
             .expect("Failed to create WebauthnBuilder")
             .rp_name("Lift");
 
-        if let Ok(android_origin_str) = std::env::var("WEBAUTHN_ANDROID_ORIGIN") {
+        if let Ok(android_origins) = std::env::var("WEBAUTHN_ANDROID_ORIGINS") {
+            for origin in android_origins
+                .split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                let android_origin =
+                    Url::parse(origin).expect("Invalid entry in WEBAUTHN_ANDROID_ORIGINS");
+                builder = builder.append_allowed_origin(&android_origin);
+            }
+        } else if let Ok(android_origin_str) = std::env::var("WEBAUTHN_ANDROID_ORIGIN") {
             let android_origin =
                 Url::parse(&android_origin_str).expect("Invalid WEBAUTHN_ANDROID_ORIGIN URL");
             builder = builder.append_allowed_origin(&android_origin);
