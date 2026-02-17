@@ -94,6 +94,7 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
             .unwrap_or_default(),
         rest_after_success: row.get::<Option<i32>, _>("rest_after_success").unwrap_or(0),
         rest_after_failure: row.get::<Option<i32>, _>("rest_after_failure").unwrap_or(0),
+        cancelled: row.get::<Option<bool>, _>("cancelled").unwrap_or(false),
     }
 }
 
@@ -231,6 +232,7 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_reps INTEGER NOT NULL,
     target_weight REAL NOT NULL,
     warmup BOOLEAN NOT NULL,
+    cancelled BOOLEAN NOT NULL DEFAULT 0,
     exercise_group_id TEXT,
     rest_after_success INTEGER,
     rest_after_failure INTEGER,
@@ -274,6 +276,7 @@ CREATE INDEX IF NOT EXISTS idx_exercise_type_configs_group ON exercise_type_conf
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout_id ON exercise_groups(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout_id ON proposed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_group_id);
+CREATE INDEX IF NOT EXISTS idx_proposed_sets_cancelled ON proposed_sets(user_id, workout_id, cancelled);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
@@ -283,12 +286,18 @@ CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users(lower(name));
 
 impl CentralDb {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let data_dir = "data";
-        if !Path::new(data_dir).exists() {
-            fs::create_dir(data_dir)?;
+        Self::new_in_dir("data").await
+    }
+
+    pub async fn new_in_dir(
+        data_dir: impl AsRef<Path>,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let data_dir = data_dir.as_ref();
+        if !data_dir.exists() {
+            fs::create_dir_all(data_dir)?;
         }
 
-        let db_path = format!("{}/central.sqlite", data_dir);
+        let db_path = format!("{}/central.sqlite", data_dir.display());
         let db_url = format!("sqlite://{}", db_path);
 
         let options = SqliteConnectOptions::from_str(&db_url)?
@@ -312,6 +321,13 @@ impl CentralDb {
         let _ = sqlx::query("ALTER TABLE users ADD COLUMN password_hash TEXT")
             .execute(&pool)
             .await;
+
+        // Manual migration for proposed set cancellation tracking
+        let _ = sqlx::query(
+            "ALTER TABLE proposed_sets ADD COLUMN cancelled BOOLEAN NOT NULL DEFAULT 0",
+        )
+        .execute(&pool)
+        .await;
 
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
         let db = Self {
@@ -417,8 +433,8 @@ impl CentralDb {
 
                     for set in sets {
                         sqlx::query(
-                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
                         .bind(&set.id)
                         .bind(user_id)
@@ -428,6 +444,7 @@ impl CentralDb {
                         .bind(set.target_reps)
                         .bind(set.target_weight)
                         .bind(set.warmup)
+                        .bind(set.cancelled)
                         .bind(if set.exercise_group_id.is_empty() { None } else { Some(&set.exercise_group_id) })
                         .execute(&mut *tx)
                         .await?;
@@ -1018,8 +1035,8 @@ impl CentralDb {
         workout_id: &str,
     ) -> Result<Vec<ProposedSet>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure \
-             FROM proposed_sets WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure, cancelled \
+             FROM proposed_sets WHERE user_id = ? AND workout_id = ? AND cancelled = 0 ORDER BY workout_order",
         )
         .bind(user_id)
         .bind(workout_id)
@@ -1057,6 +1074,29 @@ impl CentralDb {
         .await?)
     }
 
+    #[allow(dead_code)]
+    pub async fn get_workout_plan_change_stats(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+    ) -> Result<(i64, i64, i64), Box<dyn std::error::Error + Send + Sync>> {
+        let (cancelled_total, cancelled_warmups, cancelled_working): (i64, i64, i64) =
+            sqlx::query_as(
+                "SELECT
+                COUNT(*) as cancelled_total,
+                COALESCE(SUM(CASE WHEN warmup = 1 THEN 1 ELSE 0 END), 0) as cancelled_warmups,
+                COALESCE(SUM(CASE WHEN warmup = 0 THEN 1 ELSE 0 END), 0) as cancelled_working
+             FROM proposed_sets
+             WHERE user_id = ? AND workout_id = ? AND cancelled = 1",
+            )
+            .bind(user_id)
+            .bind(workout_id)
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok((cancelled_total, cancelled_warmups, cancelled_working))
+    }
+
     pub async fn get_all_exercise_history(
         &self,
         user_id: &str,
@@ -1075,7 +1115,7 @@ impl CentralDb {
                     ROW_NUMBER() OVER (PARTITION BY ps.exercise ORDER BY MAX(cs.ended_at) DESC) as rn
                 FROM proposed_sets ps
                 LEFT JOIN completed_sets cs ON ps.id = cs.proposed_set_id AND cs.ended_at > 0
-                WHERE ps.user_id = ? AND ps.warmup = 0
+                WHERE ps.user_id = ? AND ps.warmup = 0 AND ps.cancelled = 0
                 GROUP BY ps.exercise, ps.workout_id
                 HAVING ended_at IS NOT NULL
              ) WHERE rn <= ?",
@@ -1101,7 +1141,7 @@ impl CentralDb {
             "SELECT ps.exercise, MAX(cs.actual_weight) as max_weight
              FROM completed_sets cs
              JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
-             WHERE cs.user_id = ? AND cs.ended_at > 0 AND ps.warmup = 0
+             WHERE cs.user_id = ? AND cs.ended_at > 0 AND ps.warmup = 0 AND ps.cancelled = 0
              AND cs.actual_reps >= ps.target_reps
              GROUP BY ps.exercise",
         )
@@ -1277,7 +1317,7 @@ impl CentralDb {
         if !proposed_sets.is_empty() {
             for chunk in proposed_sets.chunks(100) {
                 let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure) "
+                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id, rest_after_success, rest_after_failure) "
                 );
                 query_builder.push_values(chunk, |mut b, set| {
                     b.push_bind(&set.id)
@@ -1288,6 +1328,7 @@ impl CentralDb {
                         .push_bind(set.target_reps)
                         .push_bind(set.target_weight)
                         .push_bind(set.warmup)
+                        .push_bind(set.cancelled)
                         .push_bind(if set.exercise_group_id.is_empty() {
                             None
                         } else {

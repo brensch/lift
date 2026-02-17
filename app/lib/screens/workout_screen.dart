@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
-import '../logic/group_next_up.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -30,13 +29,7 @@ class WorkoutScreen extends StatelessWidget {
     final activeSetId = wp.activeSetId;
     final isEnded = wp.isWorkoutEnded;
 
-    // Group next up for highlighting
-    final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
-    final groupNextUp = computeGroupNextUp(
-      mp.sessionStatus,
-      auth.userId,
-      nowUnix,
-    );
+    final nextUpUserId = mp.sessionStatus?.nextUpUserId ?? '';
     final otherParticipants = mp.participants
         .where((p) => p.user.id != auth.userId)
         .toList();
@@ -246,7 +239,7 @@ class WorkoutScreen extends StatelessWidget {
 
                 ...otherParticipants.map((p) {
                   final isNextUp =
-                      groupNextUp?.participant.user.id == p.user.id;
+                      nextUpUserId.isNotEmpty && nextUpUserId == p.user.id;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),

@@ -117,6 +117,13 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$deleteCompletedSet, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.CancelProposedSetResponse> cancelProposedSet(
+    $0.CancelProposedSetRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$cancelProposedSet, request, options: options);
+  }
+
   /// Get the next scheduled workouts for the user according to preferences and weight progression etc
   $grpc.ResponseFuture<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule(
@@ -189,6 +196,11 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/DeleteCompletedSet',
       ($0.DeleteCompletedSetRequest value) => value.writeToBuffer(),
       $0.DeleteCompletedSetResponse.fromBuffer);
+  static final _$cancelProposedSet = $grpc.ClientMethod<
+          $0.CancelProposedSetRequest, $0.CancelProposedSetResponse>(
+      '/workout.v1.WorkoutService/CancelProposedSet',
+      ($0.CancelProposedSetRequest value) => value.writeToBuffer(),
+      $0.CancelProposedSetResponse.fromBuffer);
   static final _$getProposedWorkoutSchedule = $grpc.ClientMethod<
           $0.GetProposedWorkoutScheduleRequest,
           $0.GetProposedWorkoutScheduleResponse>(
@@ -304,6 +316,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.DeleteCompletedSetRequest.fromBuffer(value),
         ($0.DeleteCompletedSetResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CancelProposedSetRequest,
+            $0.CancelProposedSetResponse>(
+        'CancelProposedSet',
+        cancelProposedSet_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.CancelProposedSetRequest.fromBuffer(value),
+        ($0.CancelProposedSetResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetProposedWorkoutScheduleRequest,
             $0.GetProposedWorkoutScheduleResponse>(
         'GetProposedWorkoutSchedule',
@@ -419,6 +440,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.DeleteCompletedSetResponse> deleteCompletedSet(
       $grpc.ServiceCall call, $0.DeleteCompletedSetRequest request);
+
+  $async.Future<$0.CancelProposedSetResponse> cancelProposedSet_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CancelProposedSetRequest> $request) async {
+    return cancelProposedSet($call, await $request);
+  }
+
+  $async.Future<$0.CancelProposedSetResponse> cancelProposedSet(
+      $grpc.ServiceCall call, $0.CancelProposedSetRequest request);
 
   $async.Future<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule_Pre($grpc.ServiceCall $call,

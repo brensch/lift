@@ -57,6 +57,9 @@ message UpdateActiveWorkoutResponse {}
 message SessionStatus {
   string session_id = 1;
   repeated ParticipantStatus participants = 2;
+  string next_up_user_id = 3;
+  ProposedSet next_up_set = 4;
+  int64 next_up_rest_until = 5;
 }
 
 message ParticipantStatus {
@@ -72,5 +75,11 @@ message ParticipantStatus {
   repeated ProposedSet proposed_sets = 5;
 
   repeated CompletedSet completed_sets = 6;
+
+  ProposedSet next_up_set = 7;
+
+  int64 rest_until = 8;
+
+  bool has_active_set = 9;
 
 }

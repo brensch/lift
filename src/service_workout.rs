@@ -1,16 +1,18 @@
 use crate::db::CentralDb;
+use crate::progress::compute_next_up_set;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
 use lift::workout::v1::{
-    workout_service_server::WorkoutService, CompleteSetRequest, CompleteSetResponse, CompletedSet,
-    CreateExerciseGroupRequest, CreateExerciseGroupResponse, DeleteCompletedSetRequest,
-    DeleteCompletedSetResponse, DeleteExerciseGroupRequest, DeleteExerciseGroupResponse,
-    EndWorkoutRequest, EndWorkoutResponse, ExerciseGroup, ExerciseTypeConfig,
-    GetActiveWorkoutRequest, GetActiveWorkoutResponse, GetProposedWorkoutScheduleRequest,
-    GetProposedWorkoutScheduleResponse, GetWorkoutRequest, GetWorkoutResponse, ListWorkoutsRequest,
-    ListWorkoutsResponse, ProposedSet, ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse,
-    RestConfig, StartSetRequest, StartSetResponse, StartWorkoutRequest, StartWorkoutResponse,
-    UpdateExerciseGroupRequest, UpdateExerciseGroupResponse, Workout,
+    workout_service_server::WorkoutService, CancelProposedSetRequest, CancelProposedSetResponse,
+    CompleteSetRequest, CompleteSetResponse, CompletedSet, CreateExerciseGroupRequest,
+    CreateExerciseGroupResponse, DeleteCompletedSetRequest, DeleteCompletedSetResponse,
+    DeleteExerciseGroupRequest, DeleteExerciseGroupResponse, EndWorkoutRequest, EndWorkoutResponse,
+    ExerciseGroup, ExerciseTypeConfig, GetActiveWorkoutRequest, GetActiveWorkoutResponse,
+    GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse, GetWorkoutRequest,
+    GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, ProposedSet,
+    ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, RestConfig, StartSetRequest,
+    StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest,
+    UpdateExerciseGroupResponse, Workout, WorkoutPlanChangeStats,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -135,6 +137,7 @@ fn generate_sets_for_group(
                         exercise_group_id: group.id.clone(),
                         rest_after_success: rest_s,
                         rest_after_failure: rest_f,
+                        cancelled: false,
                     });
                     order += 1;
                 }
@@ -158,6 +161,7 @@ fn generate_sets_for_group(
                     exercise_group_id: group.id.clone(),
                     rest_after_success: rest_s,
                     rest_after_failure: rest_f,
+                    cancelled: false,
                 });
                 order += 1;
             }
@@ -190,6 +194,7 @@ fn generate_sets_for_group(
                 exercise_group_id: group.id.clone(),
                 rest_after_success: rest_s,
                 rest_after_failure: rest_f,
+                cancelled: false,
             });
             order += 1;
         }
@@ -298,6 +303,7 @@ fn apply_update_exercise_group(
     let completed_ids: std::collections::HashSet<String> = workout_ref
         .completed_sets
         .iter()
+        .filter(|c| !c.proposed_set_id.is_empty())
         .map(|c| c.proposed_set_id.clone())
         .collect();
 
@@ -309,17 +315,39 @@ fn apply_update_exercise_group(
         .collect();
     completed_group_sets.sort_by_key(|s| s.workout_order);
 
-    let completed_count = completed_group_sets.len();
     let generated = generate_sets_for_group(&req.workout_id, &group, 0);
-    let pending_generated: Vec<ProposedSet> = generated.into_iter().skip(completed_count).collect();
+    let mut completed_slots_by_key: std::collections::HashMap<(i32, bool), usize> =
+        std::collections::HashMap::new();
+    for set in &completed_group_sets {
+        *completed_slots_by_key
+            .entry((set.exercise, set.warmup))
+            .or_insert(0) += 1;
+    }
 
-    let mut new_sets = completed_group_sets;
-    new_sets.extend(pending_generated);
-
-    workout_ref
+    // Cancel all pending sets in this group. Completed-associated proposed sets stay unchanged.
+    for set in workout_ref
         .proposed_sets
-        .retain(|p| p.exercise_group_id != group.id);
-    workout_ref.proposed_sets.extend(new_sets);
+        .iter_mut()
+        .filter(|p| p.exercise_group_id == group.id)
+    {
+        if !completed_ids.contains(&set.id) {
+            set.cancelled = true;
+        }
+    }
+
+    // Generate only the remaining sets not already satisfied by completed-associated set slots.
+    let mut pending_generated = Vec::new();
+    for set in generated {
+        let key = (set.exercise, set.warmup);
+        if let Some(remaining) = completed_slots_by_key.get_mut(&key) {
+            if *remaining > 0 {
+                *remaining -= 1;
+                continue;
+            }
+        }
+        pending_generated.push(set);
+    }
+    workout_ref.proposed_sets.extend(pending_generated);
     workout_ref.reindex_sets();
 
     let updated_group = workout_ref
@@ -332,11 +360,36 @@ fn apply_update_exercise_group(
     let updated_sets: Vec<ProposedSet> = workout_ref
         .proposed_sets
         .iter()
-        .filter(|p| p.exercise_group_id == updated_group.id)
+        .filter(|p| p.exercise_group_id == updated_group.id && !p.cancelled)
         .cloned()
         .collect();
 
     Ok((updated_group, updated_sets))
+}
+
+fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
+    proposed_sets
+        .iter()
+        .filter(|set| !set.cancelled)
+        .cloned()
+        .collect()
+}
+
+fn workout_plan_change_stats_from_sets(proposed_sets: &[ProposedSet]) -> WorkoutPlanChangeStats {
+    let cancelled_total = proposed_sets.iter().filter(|set| set.cancelled).count() as i32;
+    let cancelled_warmups = proposed_sets
+        .iter()
+        .filter(|set| set.cancelled && set.warmup)
+        .count() as i32;
+    let cancelled_working = proposed_sets
+        .iter()
+        .filter(|set| set.cancelled && !set.warmup)
+        .count() as i32;
+    WorkoutPlanChangeStats {
+        cancelled_total,
+        cancelled_warmups,
+        cancelled_working,
+    }
 }
 
 #[tonic::async_trait]
@@ -440,11 +493,16 @@ impl WorkoutService for MyWorkoutService {
         });
 
         if let Some((workout, groups, proposed, completed)) = cached {
+            let proposed_active = active_proposed_sets(&proposed);
+            let next_up_set = compute_next_up_set(&proposed_active, &completed);
+            let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed));
             return Ok(Response::new(GetWorkoutResponse {
                 workout: Some(workout),
                 exercise_groups: groups,
-                proposed_sets: proposed,
+                proposed_sets: proposed_active,
                 completed_sets: completed,
+                next_up_set,
+                plan_change_stats,
             }));
         }
 
@@ -473,12 +531,25 @@ impl WorkoutService for MyWorkoutService {
             .get_completed_sets(&user_id, &req.workout_id)
             .await
             .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?;
+        let next_up_set = compute_next_up_set(&proposed_sets, &completed_sets);
+        let (cancelled_total, cancelled_warmups, cancelled_working) = self
+            .central_db
+            .get_workout_plan_change_stats(&user_id, &req.workout_id)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get workout plan change stats: {}", e)))?;
+        let plan_change_stats = Some(WorkoutPlanChangeStats {
+            cancelled_total: cancelled_total as i32,
+            cancelled_warmups: cancelled_warmups as i32,
+            cancelled_working: cancelled_working as i32,
+        });
 
         Ok(Response::new(GetWorkoutResponse {
             workout: Some(workout),
             exercise_groups,
             proposed_sets,
             completed_sets,
+            next_up_set,
+            plan_change_stats,
         }))
     }
 
@@ -737,7 +808,10 @@ impl WorkoutService for MyWorkoutService {
             let proposed = workout_ref
                 .proposed_sets
                 .iter()
-                .find(|p| p.id == req.proposed_set_id);
+                .find(|p| p.id == req.proposed_set_id && !p.cancelled);
+            if proposed.is_none() {
+                return Err(Status::failed_precondition("Proposed set not available"));
+            }
 
             let (actual_reps, actual_weight) = proposed
                 .map(|p| (p.target_reps, p.target_weight))
@@ -805,7 +879,10 @@ impl WorkoutService for MyWorkoutService {
             let proposed = workout_ref
                 .proposed_sets
                 .iter()
-                .find(|p| p.id == req.proposed_set_id);
+                .find(|p| p.id == req.proposed_set_id && !p.cancelled);
+            if proposed.is_none() {
+                return Err(Status::failed_precondition("Proposed set not available"));
+            }
 
             let (target_reps, rest_s, rest_f) = proposed
                 .map(|p| (p.target_reps, p.rest_after_success, p.rest_after_failure))
@@ -892,6 +969,78 @@ impl WorkoutService for MyWorkoutService {
             .map_err(|e| Status::internal(format!("Failed to delete set from DB: {}", e)))?;
 
         Ok(Response::new(DeleteCompletedSetResponse {}))
+    }
+
+    async fn cancel_proposed_set(
+        &self,
+        request: Request<CancelProposedSetRequest>,
+    ) -> Result<Response<CancelProposedSetResponse>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        let req = request.into_inner();
+
+        if req.workout_id.is_empty() {
+            return Err(Status::invalid_argument("workout_id is required"));
+        }
+        if req.proposed_set_id.is_empty() {
+            return Err(Status::invalid_argument("proposed_set_id is required"));
+        }
+
+        let full_workout_state = {
+            let mut workout_ref = self
+                .state
+                .workouts
+                .get_mut(&user_id)
+                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+
+            let proposed_idx = workout_ref
+                .proposed_sets
+                .iter()
+                .position(|set| {
+                    set.workout_id == req.workout_id
+                        && set.id == req.proposed_set_id
+                        && !set.cancelled
+                })
+                .ok_or_else(|| Status::not_found("Proposed set not found"))?;
+
+            let proposed = &workout_ref.proposed_sets[proposed_idx];
+            if !proposed.warmup {
+                return Err(Status::failed_precondition(
+                    "Only warmup sets can be cancelled with this endpoint",
+                ));
+            }
+
+            let has_completed = workout_ref
+                .completed_sets
+                .iter()
+                .any(|set| set.proposed_set_id == req.proposed_set_id);
+            if has_completed {
+                return Err(Status::failed_precondition(
+                    "Cannot cancel a proposed set that has completed-set records",
+                ));
+            }
+
+            workout_ref.proposed_sets[proposed_idx].cancelled = true;
+
+            (
+                workout_ref.workout.clone(),
+                workout_ref.exercise_groups.clone(),
+                workout_ref.proposed_sets.clone(),
+                workout_ref.completed_sets.clone(),
+            )
+        }; // Guard dropped here
+
+        self.central_db
+            .flush_workout(
+                &user_id,
+                &full_workout_state.0,
+                &full_workout_state.1,
+                &full_workout_state.2,
+                &full_workout_state.3,
+            )
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(Response::new(CancelProposedSetResponse {}))
     }
 
     async fn end_workout(
@@ -1298,5 +1447,100 @@ mod tests {
         let last = warmups[warmups.len() - 1];
         assert_eq!(last.rest_after_success, 75);
         assert_eq!(last.rest_after_failure, 75);
+    }
+
+    #[test]
+    fn update_group_weight_change_cancels_old_pending_and_preserves_working_count() {
+        let initial_group = group(
+            "g1",
+            "Squat",
+            3,
+            0,
+            vec![config(1, 100.0, 100.0, 5, false, None)],
+            None,
+        );
+
+        let mut initial_sets = with_stable_ids(
+            &initial_group,
+            generate_sets_for_group("w1", &initial_group, 0),
+        );
+        assert_eq!(initial_sets.len(), 3);
+
+        let completed = CompletedSet {
+            id: "c1".to_string(),
+            workout_id: "w1".to_string(),
+            proposed_set_id: initial_sets.remove(0).id,
+            actual_reps: 5,
+            actual_weight: 100.0,
+            started_at: 0,
+            ended_at: 1,
+            rest_until: 10,
+        };
+
+        let mut workout = ActiveWorkout::new(
+            Workout {
+                id: "w1".to_string(),
+                name: "Test".to_string(),
+                start_time: 0,
+                end_time: 0,
+            },
+            vec![initial_group],
+            with_stable_ids(
+                &group(
+                    "g1",
+                    "Squat",
+                    3,
+                    0,
+                    vec![config(1, 100.0, 100.0, 5, false, None)],
+                    None,
+                ),
+                generate_sets_for_group(
+                    "w1",
+                    &group(
+                        "g1",
+                        "Squat",
+                        3,
+                        0,
+                        vec![config(1, 100.0, 100.0, 5, false, None)],
+                        None,
+                    ),
+                    0,
+                ),
+            ),
+            vec![completed],
+        );
+
+        let req = UpdateExerciseGroupRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: "g1".to_string(),
+            name: "Squat".to_string(),
+            sets: 3,
+            interleave_warmups: false,
+            exercise_configs: vec![config(1, 185.0, 185.0, 5, true, None)],
+            rest_config: None,
+        };
+
+        let _ = apply_update_exercise_group(&mut workout, &req).expect("update");
+
+        let active_group_sets: Vec<&ProposedSet> = workout
+            .proposed_sets
+            .iter()
+            .filter(|set| set.exercise_group_id == "g1" && !set.cancelled)
+            .collect();
+        let cancelled_group_sets: Vec<&ProposedSet> = workout
+            .proposed_sets
+            .iter()
+            .filter(|set| set.exercise_group_id == "g1" && set.cancelled)
+            .collect();
+        let working_active: Vec<&ProposedSet> = active_group_sets
+            .iter()
+            .copied()
+            .filter(|set| !set.warmup)
+            .collect();
+
+        // 3 warmups + 3 working in target plan, with 1 working already completed => 5 active pending+completed.
+        assert_eq!(active_group_sets.len(), 6);
+        assert_eq!(working_active.len(), 3);
+        assert_eq!(cancelled_group_sets.len(), 2);
     }
 }

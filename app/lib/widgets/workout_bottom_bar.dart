@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
-import '../logic/group_next_up.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -277,40 +276,51 @@ class WorkoutBottomBar extends StatelessWidget {
         orElse: () => null,
       );
 
-      if (active != null) {
+      if (p.hasActiveSet || active != null) {
         final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
-          (s) => s!.id == active.proposedSetId,
+          (s) => s!.id == active?.proposedSetId,
           orElse: () => null,
         );
         groupActive = p;
         groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-        groupTimer = _fmt(nowUnix - active.startedAt.toInt());
+        groupTimer = active != null
+            ? _fmt(nowUnix - active.startedAt.toInt())
+            : null;
         groupSet = proposed;
         break;
       }
     }
 
     if (groupActive == null) {
-      // Nobody is lifting, find the next one up using the logic
-      final nextUp = computeGroupNextUp(status, myUserId, nowUnix);
-      if (nextUp != null) {
-        if (nextUp.isMe) {
-          isMeNext = true;
-        } else {
-          groupActive = nextUp.participant;
-          final remaining = nextUp.restUntil - nowUnix;
+      final nextUpUserId = status.nextUpUserId;
+      if (nextUpUserId.isNotEmpty && nextUpUserId == myUserId) {
+        isMeNext = true;
+      } else if (nextUpUserId.isNotEmpty) {
+        final nextParticipant = status.participants
+            .cast<ParticipantStatus?>()
+            .firstWhere((p) => p!.user.id == nextUpUserId, orElse: () => null);
+        if (nextParticipant != null) {
+          groupActive = nextParticipant;
+          final nextRestUntil = status.nextUpRestUntil.toInt() > 0
+              ? status.nextUpRestUntil.toInt()
+              : nextParticipant.restUntil.toInt();
+          final remaining = nextRestUntil - nowUnix;
           if (remaining > 0) {
             groupState = 'Resting';
             groupTimer = _fmt(remaining);
-          } else if (nextUp.restUntil > 0) {
+          } else if (nextRestUntil > 0) {
             groupState = 'Yapping';
-            groupTimer = '+${_fmt(nowUnix - nextUp.restUntil)}';
+            groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
             groupTimerColor = orange;
           } else {
             groupState = 'Ready';
             groupTimer = 'Ready';
           }
-          groupSet = nextUp.nextSet;
+          if (nextParticipant.hasNextUpSet()) {
+            groupSet = nextParticipant.nextUpSet;
+          } else if (status.hasNextUpSet()) {
+            groupSet = status.nextUpSet;
+          }
         }
       }
     }
