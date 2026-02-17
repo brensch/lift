@@ -68,6 +68,24 @@ git tag -a android-v1.0.1 -m "Android release 1.0.1"
 git push origin android-v1.0.1
 ```
 
+### Local CI-equivalent checks
+
+Use Make targets that mirror the GitHub Android workflow:
+
+```bash
+# Fast fail (signing only)
+make ci-android-check-signing
+
+# Full local release build (phone + wear)
+make ci-android-build-release
+
+# Full chain (check + build)
+make ci-android-release-local
+
+# Remove local generated signing files
+make ci-android-clean-signing
+```
+
 ### 6) Upload to Play Console
 
 Site: https://play.google.com/console
