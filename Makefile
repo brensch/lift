@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -37,20 +37,65 @@ run-frontend:
 ADB = $(HOME)/android-sdk/platform-tools/adb
 
 run-android:
-	$(ADB) reverse tcp:50051 tcp:50051 || true
-	cd app && $(FLUTTER) run -d android
+	@bash -ec '\
+		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+		if [ -z "$$SERIAL" ]; then \
+			echo "No non-watch Android device found."; \
+			$(ADB) devices; \
+			exit 1; \
+		fi; \
+		echo "Using Android target: $$SERIAL"; \
+		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
+		cd app && $(FLUTTER) run -d "$$SERIAL"; \
+	'
+
+run-android-clean:
+	@bash -ec '\
+		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+		if [ -z "$$SERIAL" ]; then \
+			echo "No non-watch Android device found."; \
+			$(ADB) devices; \
+			exit 1; \
+		fi; \
+		echo "Using Android target: $$SERIAL"; \
+		(cd app/android && ./gradlew :wear:clean :app:clean); \
+		(cd app && $(FLUTTER) clean); \
+		(cd app && $(FLUTTER) pub get); \
+		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
+		(cd app && $(FLUTTER) run -d "$$SERIAL"); \
+	'
 
 WEAR_SERIAL ?=
 
 run-wear:
-	@if [ -z "$(WEAR_SERIAL)" ]; then \
-		echo "Set WEAR_SERIAL to your watch/emulator device id (adb devices)."; \
+	@SERIAL="$(WEAR_SERIAL)"; \
+	if [ -z "$$SERIAL" ]; then \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -n 1); \
+	fi; \
+	if [ -z "$$SERIAL" ]; then \
+		echo "No connected device found."; \
 		$(ADB) devices; \
 		exit 1; \
-	fi
+	fi; \
+	echo "Using wear target: $$SERIAL"; \
 	cd app/android && ./gradlew :wear:assembleDebug
-	$(ADB) -s $(WEAR_SERIAL) install -r app/android/wear/build/outputs/apk/debug/wear-debug.apk
-	$(ADB) -s $(WEAR_SERIAL) shell am start -n com.lift.lift.wear/com.lift.lift.wear.MainActivity
+	@if [ ! -f "app/build/wear/outputs/apk/debug/wear-debug.apk" ]; then \
+		echo "Wear APK not found at app/build/wear/outputs/apk/debug/wear-debug.apk"; \
+		echo "Check Gradle output and try again."; \
+		exit 1; \
+	fi
+	@SERIAL="$(WEAR_SERIAL)"; \
+	if [ -z "$$SERIAL" ]; then \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | head -n 1); \
+	fi; \
+	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
+	$(ADB) -s "$$SERIAL" shell am start -n com.lift.lift/com.lift.lift.wear.MainActivity
 
 setup-flutter:
 	$(FLUTTER) config --enable-custom-devices
@@ -67,17 +112,31 @@ run-app:
 		mkdir -p "$(TMP_RUN_DIR)"; \
 		if [ ! -x "$(ADB)" ]; then \
 			echo "adb not found at $(ADB); launching Flutter multi-device without adb prep."; \
+			ANDROID_DEVICE_ARGS=""; \
 		else \
-			DEVICE_ID=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1; exit }'\''); \
-			if [ -z "$$DEVICE_ID" ]; then \
-				echo "No attached Android device found; launching Linux only."; \
-			else \
-				echo "Android device detected: $$DEVICE_ID"; \
+			ANDROID_DEVICE_ARGS=""; \
+			while read -r DEVICE_ID DEVICE_STATE; do \
+				[ "$$DEVICE_STATE" = "device" ] || continue; \
+				CHARACTERISTICS=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.build.characteristics 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+				MODEL=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.product.model 2>/dev/null | tr -d "\r"); \
+				if echo "$$CHARACTERISTICS" | grep -q "watch"; then \
+					echo "Skipping Wear OS device: $$DEVICE_ID ($$MODEL)"; \
+					continue; \
+				fi; \
+				echo "Android device detected: $$DEVICE_ID ($$MODEL)"; \
+				ANDROID_DEVICE_ARGS="$$ANDROID_DEVICE_ARGS -d $$DEVICE_ID"; \
 				$(ADB) -s "$$DEVICE_ID" reverse tcp:50051 tcp:50051 || true; \
+			done < <($(ADB) devices | awk '\''NR > 1 { print $$1, $$2 }'\''); \
+			if [ -z "$$ANDROID_DEVICE_ARGS" ]; then \
+				echo "No non-watch Android device found; launching Linux only."; \
 			fi; \
 		fi; \
-		echo "Starting interactive Flutter hot-reload session (linux + attached android)..."; \
-		cd app && $(FLUTTER) run -d all --dart-define=INSTANCE=ubuntu; \
+		echo "Starting interactive Flutter hot-reload session (linux + non-watch android)..."; \
+		if [ -n "$$ANDROID_DEVICE_ARGS" ]; then \
+			cd app && $(FLUTTER) run -d linux $$ANDROID_DEVICE_ARGS --dart-define=INSTANCE=ubuntu; \
+		else \
+			cd app && $(FLUTTER) run -d linux --dart-define=INSTANCE=ubuntu; \
+		fi; \
 	'
 
 run-linux:
