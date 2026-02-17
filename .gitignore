@@ -31,3 +31,6 @@ user_dbs/
 .tmp/
 
 *.jks
+# Local secrets
+.env
+.env.*
