@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import android.annotation.SuppressLint
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var heartRateStreamer: HeartRateStreamer
     private lateinit var exerciseSessionManager: WearExerciseSessionManager
 
+    @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
             ensureCompanionSessionIfNeeded()
@@ -104,6 +106,8 @@ class MainActivity : ComponentActivity() {
         }
         if (missing.isNotEmpty()) {
             permissionLauncher.launch(missing.toTypedArray())
+        } else {
+            ensureCompanionSessionIfNeeded()
         }
     }
 
