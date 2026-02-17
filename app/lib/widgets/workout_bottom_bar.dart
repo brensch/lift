@@ -225,28 +225,13 @@ class WorkoutBottomBar extends StatelessWidget {
                         ),
                       ),
                       child: Center(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'TOTAL ',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.0,
-                                  color: colorScheme.tertiary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: elapsedText,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'monospace',
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
+                        child: Text(
+                          elapsedText,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
