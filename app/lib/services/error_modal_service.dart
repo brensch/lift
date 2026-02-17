@@ -11,24 +11,25 @@ class ErrorModalService {
     if (context == null || _isShowing) return;
 
     _isShowing = true;
-    unawaited(
-      showDialog<void>(
-        context: context,
-        useRootNavigator: true,
-        builder: (ctx) => AlertDialog(
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          content: Text(message),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
-            ),
-          ],
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) {
+      _isShowing = false;
+      return;
+    }
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$title: $message'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
         ),
-      ).whenComplete(() {
+      );
+
+    // Prevent snackbar spam from back-to-back failures.
+    unawaited(
+      Future<void>.delayed(const Duration(milliseconds: 600)).then((_) {
         _isShowing = false;
       }),
     );

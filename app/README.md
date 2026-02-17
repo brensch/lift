@@ -1,17 +1,10 @@
-# lift
+# lift app
 
-A new Flutter project.
+Flutter client app for lift.
 
-## Getting Started
+Deployment docs:
+- Root deployment guide: `README.md`
+- Android/Wear Play checklist: `app/PLAY_STORE_RELEASE.md`
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Flutter docs:
+- https://docs.flutter.dev/
