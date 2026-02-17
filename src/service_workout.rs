@@ -3,7 +3,8 @@ use crate::progress::compute_next_up_set;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
 use lift::workout::v1::{
-    workout_service_server::WorkoutService, CancelProposedSetRequest, CancelProposedSetResponse,
+    workout_service_server::WorkoutService, AppendWorkoutHeartRateRequest,
+    AppendWorkoutHeartRateResponse, CancelProposedSetRequest, CancelProposedSetResponse,
     CompleteSetRequest, CompleteSetResponse, CompletedSet, CreateExerciseGroupRequest,
     CreateExerciseGroupResponse, DeleteCompletedSetRequest, DeleteCompletedSetResponse,
     DeleteExerciseGroupRequest, DeleteExerciseGroupResponse, EndWorkoutRequest, EndWorkoutResponse,
@@ -1260,6 +1261,41 @@ impl WorkoutService for MyWorkoutService {
         Ok(Response::new(CancelProposedSetResponse {
             next_up_set,
             state_snapshot: Some(state_snapshot),
+        }))
+    }
+
+    async fn append_workout_heart_rate(
+        &self,
+        request: Request<AppendWorkoutHeartRateRequest>,
+    ) -> Result<Response<AppendWorkoutHeartRateResponse>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        let req = request.into_inner();
+
+        if req.workout_id.is_empty() {
+            return Err(Status::invalid_argument("workout_id is required"));
+        }
+        if req.samples.is_empty() {
+            return Ok(Response::new(AppendWorkoutHeartRateResponse { stored: 0 }));
+        }
+
+        {
+            let active = self
+                .state
+                .workouts
+                .get(&user_id)
+                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+            if active.workout.id != req.workout_id {
+                return Err(Status::failed_precondition("Workout ID mismatch"));
+            }
+        }
+
+        self.central_db
+            .insert_workout_heart_rate_samples(&user_id, &req.workout_id, &req.samples)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to persist heart rate samples: {}", e)))?;
+
+        Ok(Response::new(AppendWorkoutHeartRateResponse {
+            stored: req.samples.len() as i32,
         }))
     }
 

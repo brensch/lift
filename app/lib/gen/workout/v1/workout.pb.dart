@@ -3350,6 +3350,206 @@ class ReorderExerciseGroupsResponse extends $pb.GeneratedMessage {
   WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(1);
 }
 
+class WorkoutHeartRatePoint extends $pb.GeneratedMessage {
+  factory WorkoutHeartRatePoint({
+    $fixnum.Int64? sampledAt,
+    $core.double? bpm,
+    $core.int? availability,
+  }) {
+    final result = create();
+    if (sampledAt != null) result.sampledAt = sampledAt;
+    if (bpm != null) result.bpm = bpm;
+    if (availability != null) result.availability = availability;
+    return result;
+  }
+
+  WorkoutHeartRatePoint._();
+
+  factory WorkoutHeartRatePoint.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutHeartRatePoint.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutHeartRatePoint',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'sampledAt')
+    ..aD(2, _omitFieldNames ? '' : 'bpm', fieldType: $pb.PbFieldType.OF)
+    ..aI(3, _omitFieldNames ? '' : 'availability')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutHeartRatePoint clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutHeartRatePoint copyWith(
+          void Function(WorkoutHeartRatePoint) updates) =>
+      super.copyWith((message) => updates(message as WorkoutHeartRatePoint))
+          as WorkoutHeartRatePoint;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutHeartRatePoint create() => WorkoutHeartRatePoint._();
+  @$core.override
+  WorkoutHeartRatePoint createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutHeartRatePoint getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutHeartRatePoint>(create);
+  static WorkoutHeartRatePoint? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get sampledAt => $_getI64(0);
+  @$pb.TagNumber(1)
+  set sampledAt($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSampledAt() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSampledAt() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get bpm => $_getN(1);
+  @$pb.TagNumber(2)
+  set bpm($core.double value) => $_setFloat(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBpm() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBpm() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get availability => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set availability($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAvailability() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvailability() => $_clearField(3);
+}
+
+class AppendWorkoutHeartRateRequest extends $pb.GeneratedMessage {
+  factory AppendWorkoutHeartRateRequest({
+    $core.String? workoutId,
+    $core.Iterable<WorkoutHeartRatePoint>? samples,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (samples != null) result.samples.addAll(samples);
+    return result;
+  }
+
+  AppendWorkoutHeartRateRequest._();
+
+  factory AppendWorkoutHeartRateRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AppendWorkoutHeartRateRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AppendWorkoutHeartRateRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..pPM<WorkoutHeartRatePoint>(2, _omitFieldNames ? '' : 'samples',
+        subBuilder: WorkoutHeartRatePoint.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutHeartRateRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutHeartRateRequest copyWith(
+          void Function(AppendWorkoutHeartRateRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as AppendWorkoutHeartRateRequest))
+          as AppendWorkoutHeartRateRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutHeartRateRequest create() =>
+      AppendWorkoutHeartRateRequest._();
+  @$core.override
+  AppendWorkoutHeartRateRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutHeartRateRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AppendWorkoutHeartRateRequest>(create);
+  static AppendWorkoutHeartRateRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<WorkoutHeartRatePoint> get samples => $_getList(1);
+}
+
+class AppendWorkoutHeartRateResponse extends $pb.GeneratedMessage {
+  factory AppendWorkoutHeartRateResponse({
+    $core.int? stored,
+  }) {
+    final result = create();
+    if (stored != null) result.stored = stored;
+    return result;
+  }
+
+  AppendWorkoutHeartRateResponse._();
+
+  factory AppendWorkoutHeartRateResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AppendWorkoutHeartRateResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AppendWorkoutHeartRateResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'stored')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutHeartRateResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutHeartRateResponse copyWith(
+          void Function(AppendWorkoutHeartRateResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as AppendWorkoutHeartRateResponse))
+          as AppendWorkoutHeartRateResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutHeartRateResponse create() =>
+      AppendWorkoutHeartRateResponse._();
+  @$core.override
+  AppendWorkoutHeartRateResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutHeartRateResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AppendWorkoutHeartRateResponse>(create);
+  static AppendWorkoutHeartRateResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get stored => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set stored($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStored() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStored() => $_clearField(1);
+}
+
 class CreateUserRequest extends $pb.GeneratedMessage {
   factory CreateUserRequest({
     $core.String? name,

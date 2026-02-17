@@ -164,25 +164,13 @@ print-cert-hashes:
 	@echo "  make print-cert-hashes DEBUG_KEYSTORE=/path/to/release.keystore DEBUG_ALIAS=myalias DEBUG_STOREPASS=mypass"
 
 proto-dart:
-	@echo "=== Generating Dart protobuf files ==="
-	mkdir -p app/lib/gen/workout/v1
-	PATH="$(HOME)/flutter-sdk/bin:$(HOME)/.pub-cache/bin:$$PATH" \
-		protoc --dart_out=grpc:app/lib/gen/workout/v1 \
-		--proto_path=proto \
-		proto/workout/v1/workout.proto proto/workout/v1/group.proto proto/workout/v1/auth.proto proto/workout/v1/wearable.proto
-	@# Fix nested directory structure from protoc
-	@if [ -d "app/lib/gen/workout/v1/workout/v1" ]; then \
-		mv app/lib/gen/workout/v1/workout/v1/*.dart app/lib/gen/workout/v1/; \
-		rm -rf app/lib/gen/workout/v1/workout; \
-	fi
-	@echo "Done. Generated files in app/lib/gen/workout/v1/"
+	@echo "=== Generating Dart protobuf files with buf ==="
+	cd proto && PATH="$(HOME)/flutter-sdk/bin:$(HOME)/.pub-cache/bin:$$PATH" buf generate --template buf.gen.dart.yaml
+	@echo "Done. Generated files in app/lib/gen/"
 
 proto-android:
-	@echo "=== Generating Android protobuf files (lite) ==="
-	mkdir -p app/android/shared-proto/src/main/java
-	protoc --java_out=lite:app/android/shared-proto/src/main/java \
-		--proto_path=proto \
-		proto/workout/v1/workout.proto proto/workout/v1/wearable.proto
+	@echo "=== Generating Android protobuf files (lite) with buf ==="
+	cd proto && buf generate --template buf.gen.android.yaml
 	@echo "Done. Generated files in app/android/shared-proto/src/main/java/"
 
 proto-all: proto-dart proto-android

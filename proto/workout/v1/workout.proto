@@ -386,6 +386,21 @@ message ReorderExerciseGroupsResponse {
   WorkoutStateSnapshot state_snapshot = 2;
 }
 
+message WorkoutHeartRatePoint {
+  int64 sampled_at = 1; // Unix milliseconds
+  float bpm = 2;
+  int32 availability = 3;
+}
+
+message AppendWorkoutHeartRateRequest {
+  string workout_id = 1;
+  repeated WorkoutHeartRatePoint samples = 2;
+}
+
+message AppendWorkoutHeartRateResponse {
+  int32 stored = 1;
+}
+
 // --- Service Definition ---
 
 service WorkoutService {
@@ -406,6 +421,7 @@ service WorkoutService {
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
   rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
   rpc CancelProposedSet(CancelProposedSetRequest) returns (CancelProposedSetResponse);
+  rpc AppendWorkoutHeartRate(AppendWorkoutHeartRateRequest) returns (AppendWorkoutHeartRateResponse);
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);

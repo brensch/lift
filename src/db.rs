@@ -1,5 +1,8 @@
 use dashmap::DashMap;
-use lift::workout::v1::{CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout};
+use lift::workout::v1::{
+    CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout,
+    WorkoutHeartRatePoint,
+};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -126,6 +129,7 @@ pub enum WriteCommand {
     CreateWorkout(String, Workout),
     InsertGroupWithSets(String, lift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
     UpsertCompletedSet(String, CompletedSet),
+    InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
     UpdateWorkoutEnd(String, String, i64),
     DeleteCompletedSet(String, String, String),
     JoinSession(String, String),
@@ -255,6 +259,18 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
 
+CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    sampled_at INTEGER NOT NULL,
+    bpm REAL NOT NULL,
+    availability INTEGER NOT NULL,
+    source TEXT NOT NULL DEFAULT 'wear',
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -279,6 +295,7 @@ CREATE INDEX IF NOT EXISTS idx_proposed_sets_group_id ON proposed_sets(exercise_
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_cancelled ON proposed_sets(user_id, workout_id, cancelled);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
+CREATE INDEX IF NOT EXISTS idx_hr_samples_user_workout_time ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users(lower(name));
@@ -466,6 +483,25 @@ impl CentralDb {
                     .bind(if set.rest_until == 0 { None } else { Some(set.rest_until) })
                     .execute(&mut *tx)
                     .await?;
+                }
+                WriteCommand::InsertWorkoutHeartRate(user_id, workout_id, samples) => {
+                    if samples.is_empty() {
+                        continue;
+                    }
+                    for sample in samples {
+                        sqlx::query(
+                            "INSERT INTO workout_heart_rate_samples (id, user_id, workout_id, sampled_at, bpm, availability, source)
+                             VALUES (?, ?, ?, ?, ?, ?, 'wear')",
+                        )
+                        .bind(Uuid::new_v4().to_string())
+                        .bind(user_id)
+                        .bind(workout_id)
+                        .bind(sample.sampled_at)
+                        .bind(sample.bpm)
+                        .bind(sample.availability)
+                        .execute(&mut *tx)
+                        .await?;
+                    }
                 }
                 WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
                     sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
@@ -874,6 +910,23 @@ impl CentralDb {
             user_id.to_string(),
             workout_id.to_string(),
             end_time,
+        ))?;
+        Ok(())
+    }
+
+    pub async fn insert_workout_heart_rate_samples(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        samples: &[WorkoutHeartRatePoint],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if samples.is_empty() {
+            return Ok(());
+        }
+        self.write_tx.send(WriteCommand::InsertWorkoutHeartRate(
+            user_id.to_string(),
+            workout_id.to_string(),
+            samples.to_vec(),
         ))?;
         Ok(())
     }
