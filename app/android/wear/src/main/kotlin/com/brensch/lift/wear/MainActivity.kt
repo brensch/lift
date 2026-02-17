@@ -32,7 +32,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -224,20 +227,33 @@ private fun WearApp(
         it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
     } ?: data.actionsList.firstOrNull()
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
-    DisposableEffect(data.workoutId, data.state) {
-        val shouldStream = data.workoutId.isNotEmpty() &&
-            data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE
-        if (shouldStream) {
-            ensurePermissions()
-            heartRateStreamer.start(data.workoutId)
-            exerciseSessionManager.ensureSessionActive()
-        } else {
-            heartRateStreamer.stop()
-            exerciseSessionManager.endSessionIfActive()
-        }
+    val hasEndWorkoutAction = data.actionsList.any {
+        it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+    }
+    var isStreaming by remember(data.workoutId) { mutableStateOf(false) }
+    // Cleanup only when this workout leaves composition (workout swap/unmount).
+    DisposableEffect(data.workoutId) {
         onDispose {
             heartRateStreamer.stop()
             exerciseSessionManager.endSessionIfActive()
+        }
+    }
+
+    // Explicit lifecycle: start for active workout, stop when it reaches ALL_DONE.
+    LaunchedEffect(data.workoutId, data.state, hasEndWorkoutAction) {
+        // Keep session active while waiting on explicit End Workout action.
+        val shouldStream = data.workoutId.isNotEmpty() &&
+            (data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE ||
+                hasEndWorkoutAction)
+        if (shouldStream && !isStreaming) {
+            ensurePermissions()
+            heartRateStreamer.start(data.workoutId)
+            exerciseSessionManager.ensureSessionActive()
+            isStreaming = true
+        } else if (!shouldStream && isStreaming) {
+            heartRateStreamer.stop()
+            exerciseSessionManager.endSessionIfActive()
+            isStreaming = false
         }
     }
 

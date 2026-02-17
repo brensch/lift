@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -72,6 +72,7 @@ run-android-clean:
 	'
 
 WEAR_SERIAL ?=
+WEAR_LOG_FILTER ?= LiftWear:D LiftWearBridge:D Wearable:D WearTransport:D *:S
 
 run-wear:
 	@SERIAL="$(WEAR_SERIAL)"; \
@@ -87,7 +88,29 @@ run-wear:
 		exit 1; \
 	fi; \
 	echo "Using wear target: $$SERIAL"; \
-	cd app/android && ./gradlew :wear:assembleDebug
+	cd app/android && bash -ec '\
+		GRADLE_CMD="./gradlew"; \
+		if [ ! -x "$$GRADLE_CMD" ]; then \
+			PROP_FILE="gradle/wrapper/gradle-wrapper.properties"; \
+			if [ ! -f "$$PROP_FILE" ]; then \
+				echo "Missing $$PROP_FILE and no ./gradlew present."; \
+				exit 1; \
+			fi; \
+			DIST_URL=$$(sed -n '\''s/^distributionUrl=//p'\'' "$$PROP_FILE" | sed '\''s#\\:##g'\''); \
+			VER=$$(echo "$$DIST_URL" | sed -E '\''s#.*gradle-([0-9.]+)-.*#\1#'\''); \
+			ROOT_DIR="$$(cd ../.. && pwd)"; \
+			CACHE_DIR="$$ROOT_DIR/.tmp/gradle-$$VER"; \
+			ZIP_PATH="$$ROOT_DIR/.tmp/gradle-$$VER-bin.zip"; \
+			GRADLE_CMD="$$CACHE_DIR/bin/gradle"; \
+			if [ ! -x "$$GRADLE_CMD" ]; then \
+				echo "Bootstrapping Gradle $$VER from $$DIST_URL"; \
+				mkdir -p "$$ROOT_DIR/.tmp"; \
+				curl -fsSL "$$DIST_URL" -o "$$ZIP_PATH"; \
+				unzip -qo "$$ZIP_PATH" -d "$$ROOT_DIR/.tmp"; \
+			fi; \
+		fi; \
+		"$$GRADLE_CMD" :wear:assembleDebug; \
+	'
 	@if [ ! -f "app/build/wear/outputs/apk/debug/wear-debug.apk" ]; then \
 		echo "Wear APK not found at app/build/wear/outputs/apk/debug/wear-debug.apk"; \
 		echo "Check Gradle output and try again."; \
@@ -102,6 +125,32 @@ run-wear:
 	fi; \
 	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
 	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.lift/com.brensch.lift.wear.MainActivity
+
+run-wear-logs:
+	@SERIAL="$(WEAR_SERIAL)"; \
+	if [ -z "$$SERIAL" ]; then \
+		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+	fi; \
+	if [ -z "$$SERIAL" ]; then \
+		echo "No connected Wear OS device found."; \
+		$(ADB) devices; \
+		exit 1; \
+	fi; \
+	echo "Streaming Wear logs from: $$SERIAL"; \
+	echo "Filter: $(WEAR_LOG_FILTER)"; \
+	$(ADB) -s "$$SERIAL" logcat -c || true; \
+	$(ADB) -s "$$SERIAL" logcat $(WEAR_LOG_FILTER)
+
+run-wear-debug:
+	@bash -ec '\
+		trap "kill 0" SIGINT SIGTERM EXIT; \
+		$(MAKE) run-wear WEAR_SERIAL="$(WEAR_SERIAL)" & \
+		sleep 2; \
+		$(MAKE) run-wear-logs WEAR_SERIAL="$(WEAR_SERIAL)"; \
+	'
 
 setup-flutter:
 	$(FLUTTER) config --enable-custom-devices
