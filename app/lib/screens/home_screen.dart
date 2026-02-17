@@ -67,57 +67,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final schedule = scheduleRes.exerciseStatuses;
       final proposedGroups = scheduleRes.proposedGroups;
 
-      // Auto-select exactly 3 groups when available:
-      // 1) Squat always included.
-      // 2) Two additional groups that were worked out the longest ago.
+      // Backend provides default ordering; select top 3 by default.
       final autoSelected = <int>{};
-      final lastPerformedByExercise = <int, Int64>{
-        for (final s in schedule) s.exercise.value: s.lastPerformedAt,
-      };
-
-      int? squatIndex;
-      for (int i = 0; i < proposedGroups.length; i++) {
-        final hasSquat = proposedGroups[i].exerciseConfigs.any(
-          (c) => c.exercise == Exercise.EXERCISE_SQUAT,
-        );
-        if (hasSquat) {
-          squatIndex = i;
-          break;
-        }
-      }
-      if (squatIndex != null) {
-        autoSelected.add(squatIndex);
-      }
-
-      final candidateIndices = <int>[];
-      for (int i = 0; i < proposedGroups.length; i++) {
-        if (i == squatIndex) continue;
-        candidateIndices.add(i);
-      }
-      candidateIndices.sort((a, b) {
-        int groupLastPerformed(ProposedExerciseGroup g) {
-          if (g.exerciseConfigs.isEmpty) return 0;
-          var minTs =
-              lastPerformedByExercise[g.exerciseConfigs.first.exercise.value] ??
-              Int64.ZERO;
-          for (final c in g.exerciseConfigs.skip(1)) {
-            final ts = lastPerformedByExercise[c.exercise.value] ?? Int64.ZERO;
-            if (ts < minTs) {
-              minTs = ts;
-            }
-          }
-          return minTs.toInt();
-        }
-
-        final aTs = groupLastPerformed(proposedGroups[a]);
-        final bTs = groupLastPerformed(proposedGroups[b]);
-        final byTs = aTs.compareTo(bTs);
-        return byTs != 0 ? byTs : a.compareTo(b);
-      });
-
-      for (final idx in candidateIndices) {
-        if (autoSelected.length >= 3) break;
-        autoSelected.add(idx);
+      for (
+        int i = 0;
+        i < proposedGroups.length && autoSelected.length < 3;
+        i++
+      ) {
+        autoSelected.add(i);
       }
 
       setState(() {

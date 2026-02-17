@@ -56,6 +56,7 @@ dependencies {
 
     implementation("androidx.wear.compose:compose-material:1.4.1")
     implementation("androidx.wear.compose:compose-foundation:1.4.1")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.wear:wear:1.3.0")
     implementation("androidx.health:health-services-client:1.1.0-beta01")
 

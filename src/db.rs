@@ -83,6 +83,12 @@ fn row_to_exercise_type_config(row: sqlx::sqlite::SqliteRow) -> ExerciseTypeConf
 }
 
 fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
+    let rest_after_success = row
+        .get::<Option<i32>, _>("rest_after_success")
+        .unwrap_or(180);
+    let rest_after_failure = row
+        .get::<Option<i32>, _>("rest_after_failure")
+        .unwrap_or(300);
     ProposedSet {
         id: row.get("id"),
         workout_id: row.get("workout_id"),
@@ -94,8 +100,8 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         exercise_group_id: row
             .get::<Option<String>, _>("exercise_group_id")
             .unwrap_or_default(),
-        rest_after_success: row.get::<Option<i32>, _>("rest_after_success").unwrap_or(0),
-        rest_after_failure: row.get::<Option<i32>, _>("rest_after_failure").unwrap_or(0),
+        rest_after_success,
+        rest_after_failure,
         cancelled: row.get::<Option<bool>, _>("cancelled").unwrap_or(false),
     }
 }
@@ -414,8 +420,8 @@ impl CentralDb {
                 }
                 WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
                     sqlx::query(
-                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order)
-                         VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&group.id)
                     .bind(user_id)
@@ -424,6 +430,15 @@ impl CentralDb {
                     .bind(group.sets)
                     .bind(group.interleave_warmups)
                     .bind(group.workout_order)
+                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
+                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+                    .bind(
+                        group
+                            .rest_config
+                            .as_ref()
+                            .map(|rc| rc.rest_after_last_warmup),
+                    )
                     .execute(&mut *tx)
                     .await?;
 
@@ -431,8 +446,8 @@ impl CentralDb {
                     for (idx, config) in group.exercise_configs.iter().enumerate() {
                         let config_id = Uuid::new_v4().to_string();
                         sqlx::query(
-                            "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
                         .bind(&config_id)
                         .bind(user_id)
@@ -443,14 +458,23 @@ impl CentralDb {
                         .bind(config.reps)
                         .bind(config.include_warmup)
                         .bind(idx as i32)
+                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_success))
+                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+                        .bind(
+                            config
+                                .rest_config
+                                .as_ref()
+                                .map(|rc| rc.rest_after_last_warmup),
+                        )
                         .execute(&mut *tx)
                         .await?;
                     }
 
                     for set in sets {
                         sqlx::query(
-                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id, rest_after_success, rest_after_failure)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
                         .bind(&set.id)
                         .bind(user_id)
@@ -461,7 +485,13 @@ impl CentralDb {
                         .bind(set.target_weight)
                         .bind(set.warmup)
                         .bind(set.cancelled)
-                        .bind(if set.exercise_group_id.is_empty() { None } else { Some(&set.exercise_group_id) })
+                        .bind(if set.exercise_group_id.is_empty() {
+                            None
+                        } else {
+                            Some(&set.exercise_group_id)
+                        })
+                        .bind(set.rest_after_success)
+                        .bind(set.rest_after_failure)
                         .execute(&mut *tx)
                         .await?;
                     }

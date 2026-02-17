@@ -238,8 +238,10 @@ impl Scheduler {
     }
 
     /// Build proposed exercise groups with smart grouping.
-    /// Solo groups for heavy compounds (Squat, Deadlift).
-    /// Antagonist supersets: Bench+Row, OHP+accessory.
+    /// First 3 groups are backend defaults:
+    /// - always compound squat
+    /// - plus two stalest of bench/deadlift/overhead press/barbell row.
+    /// Remaining groups are optional (other compounds, then auxiliaries).
     fn build_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<ProposedExerciseGroup> {
         let mut groups = Vec::new();
 
@@ -266,59 +268,36 @@ impl Scheduler {
             }
         };
 
-        // Squat — solo
-        if let Some(s) = find_status(Exercise::Squat) {
-            groups.push(ProposedExerciseGroup {
-                name: "Squat".to_string(),
-                sets: s.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(s)],
-                rest_config: None,
-            });
+        let build_single_group = |exercise: Exercise, status: &ExerciseStatus| ProposedExerciseGroup {
+            name: format!("compound: {}", exercise_display_name(exercise).to_lowercase()),
+            sets: status.default_sets,
+            interleave_warmups: false,
+            exercise_configs: vec![make_config(status)],
+            rest_config: None,
+        };
+
+        if let Some(squat) = find_status(Exercise::Squat) {
+            groups.push(build_single_group(Exercise::Squat, squat));
         }
 
-        // Bench Press — solo
-        if let Some(bench) = find_status(Exercise::BenchPress) {
-            groups.push(ProposedExerciseGroup {
-                name: "Bench Press".to_string(),
-                sets: bench.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(bench)],
-                rest_config: None,
-            });
-        }
+        let mut rotation_candidates: Vec<(Exercise, &ExerciseStatus)> = vec![
+            Exercise::BenchPress,
+            Exercise::Deadlift,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ]
+        .into_iter()
+        .filter_map(|exercise| find_status(exercise).map(|status| (exercise, status)))
+        .collect();
 
-        // Barbell Row — solo
-        if let Some(row) = find_status(Exercise::BarbellRow) {
-            groups.push(ProposedExerciseGroup {
-                name: "Barbell Row".to_string(),
-                sets: row.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(row)],
-                rest_config: None,
-            });
-        }
+        rotation_candidates.sort_by(|(a_ex, a), (b_ex, b)| {
+            a.last_performed_at
+                .cmp(&b.last_performed_at)
+                .then((*a_ex as i32).cmp(&(*b_ex as i32)))
+        });
 
-        // Deadlift — solo
-        if let Some(s) = find_status(Exercise::Deadlift) {
-            groups.push(ProposedExerciseGroup {
-                name: "Deadlift".to_string(),
-                sets: s.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(s)],
-                rest_config: None,
-            });
-        }
-
-        // OHP — solo
-        if let Some(s) = find_status(Exercise::OverheadPress) {
-            groups.push(ProposedExerciseGroup {
-                name: "Overhead Press".to_string(),
-                sets: s.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(s)],
-                rest_config: None,
-            });
+        for (exercise, status) in rotation_candidates {
+            groups.push(build_single_group(exercise, status));
         }
 
         // Auxiliary exercises — group complementary pairs
@@ -332,9 +311,9 @@ impl Scheduler {
             if let (Some(a), Some(b)) = (find_status(*ex_a), find_status(*ex_b)) {
                 groups.push(ProposedExerciseGroup {
                     name: format!(
-                        "{} + {}",
-                        exercise_display_name(*ex_a),
-                        exercise_display_name(*ex_b)
+                        "auxiliary: {} + {}",
+                        exercise_display_name(*ex_a).to_lowercase(),
+                        exercise_display_name(*ex_b).to_lowercase()
                     ),
                     sets: a.default_sets,
                     interleave_warmups: true,
@@ -344,7 +323,10 @@ impl Scheduler {
             } else {
                 if let Some(a) = find_status(*ex_a) {
                     groups.push(ProposedExerciseGroup {
-                        name: exercise_display_name(*ex_a),
+                        name: format!(
+                            "auxiliary: {}",
+                            exercise_display_name(*ex_a).to_lowercase()
+                        ),
                         sets: a.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(a)],
@@ -353,7 +335,10 @@ impl Scheduler {
                 }
                 if let Some(b) = find_status(*ex_b) {
                     groups.push(ProposedExerciseGroup {
-                        name: exercise_display_name(*ex_b),
+                        name: format!(
+                            "auxiliary: {}",
+                            exercise_display_name(*ex_b).to_lowercase()
+                        ),
                         sets: b.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(b)],
@@ -474,6 +459,47 @@ impl Scheduler {
             last_date,
             weight_history,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn status(exercise: Exercise, last_performed_at: i64) -> ExerciseStatus {
+        ExerciseStatus {
+            exercise: exercise as i32,
+            target_weight: 100.0,
+            explanation: String::new(),
+            last_performed_at,
+            weight_history: vec![],
+            muscle_groups: vec![],
+            default_sets: 5,
+            default_reps: 5,
+            recovered: true,
+            always_include: exercise == Exercise::Squat,
+            category: ExerciseCategory::Compound as i32,
+        }
+    }
+
+    #[test]
+    fn proposed_groups_prioritize_compound_rotation_defaults() {
+        let statuses = vec![
+            status(Exercise::Squat, 1_000),
+            status(Exercise::BenchPress, 3_000),
+            status(Exercise::Deadlift, 2_000),
+            status(Exercise::OverheadPress, 4_000),
+            status(Exercise::BarbellRow, 1_500),
+            status(Exercise::HipThrust, 0),
+        ];
+
+        let groups = Scheduler::build_proposed_groups(&statuses);
+        let names: Vec<String> = groups.iter().map(|g| g.name.clone()).collect();
+
+        assert_eq!(names[0], "compound: squat");
+        assert_eq!(names[1], "compound: barbell row");
+        assert_eq!(names[2], "compound: deadlift");
+        assert!(names.iter().any(|name| name.starts_with("auxiliary: ")));
     }
 }
 
