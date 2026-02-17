@@ -60,6 +60,7 @@ message SessionStatus {
   string next_up_user_id = 3;
   ProposedSet next_up_set = 4;
   int64 next_up_rest_until = 5;
+  string currently_lifting_user_id = 6;
 }
 
 message ParticipantStatus {
