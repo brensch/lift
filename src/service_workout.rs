@@ -213,47 +213,44 @@ fn get_rest_for_config(
             .as_ref()
             .filter(|rest_config| rest_config_has_values(rest_config)));
 
+    let success_rest = rc
+        .and_then(|c| {
+            if c.rest_after_success > 0 {
+                Some(c.rest_after_success)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(180);
+
+    let failure_rest = rc
+        .and_then(|c| {
+            if c.rest_after_failure > 0 {
+                Some(c.rest_after_failure)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(300);
+
     if warmup {
-        let r = if last_warmup {
-            rc.and_then(|c| {
-                if c.rest_after_last_warmup > 0 {
-                    Some(c.rest_after_last_warmup)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(180)
+        if last_warmup {
+            // Last warmup should match the working-set success rest for this group/config.
+            (success_rest, success_rest)
         } else {
-            rc.and_then(|c| {
-                if c.rest_after_warmup > 0 {
-                    Some(c.rest_after_warmup)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(10)
-        };
-        (r, r)
+            let r = rc
+                .and_then(|c| {
+                    if c.rest_after_warmup > 0 {
+                        Some(c.rest_after_warmup)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(10);
+            (r, r)
+        }
     } else {
-        let s = rc
-            .and_then(|c| {
-                if c.rest_after_success > 0 {
-                    Some(c.rest_after_success)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(180);
-        let f = rc
-            .and_then(|c| {
-                if c.rest_after_failure > 0 {
-                    Some(c.rest_after_failure)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(300);
-        (s, f)
+        (success_rest, failure_rest)
     }
 }
 
@@ -1276,5 +1273,30 @@ mod tests {
                 .collect();
             assert_eq!(other_group_sets.len(), 1, "{}", case.name);
         }
+    }
+
+    #[test]
+    fn last_warmup_rest_matches_success_rest_for_group() {
+        let g = group(
+            "g1",
+            "Squat",
+            2,
+            0,
+            vec![config(1, 135.0, 155.0, 5, true, None)],
+            Some(rest(75, 135, 12, 240)),
+        );
+
+        let sets = generate_sets_for_group("w1", &g, 0);
+        let warmups: Vec<&ProposedSet> = sets.iter().filter(|s| s.warmup).collect();
+        assert!(warmups.len() >= 2);
+
+        // Non-last warmup keeps warmup rest.
+        assert_eq!(warmups[0].rest_after_success, 12);
+        assert_eq!(warmups[0].rest_after_failure, 12);
+
+        // Last warmup uses working-set success rest.
+        let last = warmups[warmups.len() - 1];
+        assert_eq!(last.rest_after_success, 75);
+        assert_eq!(last.rest_after_failure, 75);
     }
 }

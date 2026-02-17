@@ -49,7 +49,8 @@ class PlateVisualization extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = calcPlatesPerSide(weight);
-    if (result.plates.isEmpty) return const SizedBox.shrink();
+    final isDumbbellWeight = weight < barWeight;
+    final isBarOnly = weight == barWeight;
 
     Widget content = Column(
       mainAxisSize: MainAxisSize.min,
@@ -58,54 +59,9 @@ class PlateVisualization extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Transform.scale(
             scale: scale,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Left Side Plates
-                ...result.plates.reversed.map((plate) {
-                  final width = _plateWidth(plate);
-                  final color = _plateColor(plate);
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 1),
-                    child: Container(
-                      width: width,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(1),
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(width: 1),
-                // Bar
-                Container(
-                  width: 24,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-                const SizedBox(width: 1),
-                // Right Side Plates
-                ...result.plates.map((plate) {
-                  final width = _plateWidth(plate);
-                  final color = _plateColor(plate);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 1),
-                    child: Container(
-                      width: width,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(1),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
+            child: isDumbbellWeight
+                ? _buildDumbbell()
+                : _buildBarbell(result.plates),
           ),
         ),
         if (showText) ...[
@@ -113,6 +69,38 @@ class PlateVisualization extends StatelessWidget {
           // Group plates for the text description
           Builder(
             builder: (context) {
+              if (isDumbbellWeight) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    'Dumbbell setup',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey.shade600,
+                      height: 1.8,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                );
+              }
+              if (isBarOnly) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    'Bar only',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey.shade600,
+                      height: 1.8,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                );
+              }
               final Map<double, int> plateCounts = {};
               for (var p in result.plates) {
                 plateCounts[p] = (plateCounts[p] ?? 0) + 1;
@@ -167,6 +155,91 @@ class PlateVisualization extends StatelessWidget {
     }
 
     return content;
+  }
+
+  Widget _buildBarbell(List<double> plates) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Left side plates.
+        ...plates.reversed.map((plate) {
+          final width = _plateWidth(plate);
+          final color = _plateColor(plate);
+          return Padding(
+            padding: const EdgeInsets.only(left: 1),
+            child: Container(
+              width: width,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          );
+        }),
+        const SizedBox(width: 1),
+        // Bar.
+        Container(
+          width: 24,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+        const SizedBox(width: 1),
+        // Right side plates.
+        ...plates.map((plate) {
+          final width = _plateWidth(plate);
+          final color = _plateColor(plate);
+          return Padding(
+            padding: const EdgeInsets.only(right: 1),
+            child: Container(
+              width: width,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildDumbbell() {
+    const plateColor = Color(0xFF6B7280);
+    const handleColor = Color(0xFF111827);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 22,
+          decoration: BoxDecoration(
+            color: plateColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        Container(
+          width: 18,
+          height: 4,
+          decoration: BoxDecoration(
+            color: handleColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        Container(
+          width: 7,
+          height: 22,
+          decoration: BoxDecoration(
+            color: plateColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ],
+    );
   }
 
   double _plateWidth(double plate) {
