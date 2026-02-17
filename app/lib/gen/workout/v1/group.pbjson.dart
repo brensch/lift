@@ -160,6 +160,13 @@ const SessionStatus$json = {
       '5': 3,
       '10': 'nextUpRestUntil'
     },
+    {
+      '1': 'currently_lifting_user_id',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '10': 'currentlyLiftingUserId'
+    },
   ],
 };
 
@@ -169,7 +176,8 @@ final $typed_data.Uint8List sessionStatusDescriptor = $convert.base64Decode(
     'NpcGFudHMYAiADKAsyHS53b3Jrb3V0LnYxLlBhcnRpY2lwYW50U3RhdHVzUgxwYXJ0aWNpcGFu'
     'dHMSJQoPbmV4dF91cF91c2VyX2lkGAMgASgJUgxuZXh0VXBVc2VySWQSNwoLbmV4dF91cF9zZX'
     'QYBCABKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSKwoSbmV4dF91cF9y'
-    'ZXN0X3VudGlsGAUgASgDUg9uZXh0VXBSZXN0VW50aWw=');
+    'ZXN0X3VudGlsGAUgASgDUg9uZXh0VXBSZXN0VW50aWwSOQoZY3VycmVudGx5X2xpZnRpbmdfdX'
+    'Nlcl9pZBgGIAEoCVIWY3VycmVudGx5TGlmdGluZ1VzZXJJZA==');
 
 @$core.Deprecated('Use participantStatusDescriptor instead')
 const ParticipantStatus$json = {

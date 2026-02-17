@@ -58,6 +58,32 @@ impl GroupService {
             }
         }
     }
+
+    fn current_lifting_user_id(participants: &[ParticipantStatus]) -> String {
+        participants
+            .iter()
+            .filter_map(|participant| {
+                if !participant.has_active_set {
+                    return None;
+                }
+                let started_at = participant
+                    .completed_sets
+                    .iter()
+                    .filter(|set| set.ended_at == 0)
+                    .map(|set| set.started_at)
+                    .max()
+                    .unwrap_or(0);
+                let user_id = participant
+                    .user
+                    .as_ref()
+                    .map(|u| u.id.clone())
+                    .unwrap_or_default();
+                Some((started_at, user_id))
+            })
+            .max_by_key(|(started_at, _)| *started_at)
+            .map(|(_, user_id)| user_id)
+            .unwrap_or_default()
+    }
 }
 
 #[tonic::async_trait]
@@ -283,6 +309,7 @@ impl MultiplayerService for GroupService {
                 .map(|d| d.as_secs() as i64)
                 .unwrap_or(0);
             let session_next_up = compute_session_next_up(&participant_statuses, now_unix);
+            let currently_lifting_user_id = Self::current_lifting_user_id(&participant_statuses);
 
             Ok(Response::new(GetCurrentSessionResponse {
                 session_id: sid.clone(),
@@ -295,6 +322,7 @@ impl MultiplayerService for GroupService {
                         .unwrap_or_default(),
                     next_up_set: session_next_up.as_ref().map(|n| n.next_up_set.clone()),
                     next_up_rest_until: session_next_up.as_ref().map(|n| n.rest_until).unwrap_or(0),
+                    currently_lifting_user_id,
                 }),
             }))
         } else {
@@ -619,6 +647,7 @@ mod tests {
 
         assert_eq!(session.next_up_user_id, "u2");
         assert!(session.next_up_set.is_some());
+        assert_eq!(session.currently_lifting_user_id, "u1");
 
         let u1_status = session
             .participants

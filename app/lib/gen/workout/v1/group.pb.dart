@@ -501,6 +501,7 @@ class SessionStatus extends $pb.GeneratedMessage {
     $core.String? nextUpUserId,
     $1.ProposedSet? nextUpSet,
     $fixnum.Int64? nextUpRestUntil,
+    $core.String? currentlyLiftingUserId,
   }) {
     final result = create();
     if (sessionId != null) result.sessionId = sessionId;
@@ -508,6 +509,8 @@ class SessionStatus extends $pb.GeneratedMessage {
     if (nextUpUserId != null) result.nextUpUserId = nextUpUserId;
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
     if (nextUpRestUntil != null) result.nextUpRestUntil = nextUpRestUntil;
+    if (currentlyLiftingUserId != null)
+      result.currentlyLiftingUserId = currentlyLiftingUserId;
     return result;
   }
 
@@ -531,6 +534,7 @@ class SessionStatus extends $pb.GeneratedMessage {
     ..aOM<$1.ProposedSet>(4, _omitFieldNames ? '' : 'nextUpSet',
         subBuilder: $1.ProposedSet.create)
     ..aInt64(5, _omitFieldNames ? '' : 'nextUpRestUntil')
+    ..aOS(6, _omitFieldNames ? '' : 'currentlyLiftingUserId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -592,6 +596,15 @@ class SessionStatus extends $pb.GeneratedMessage {
   $core.bool hasNextUpRestUntil() => $_has(4);
   @$pb.TagNumber(5)
   void clearNextUpRestUntil() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get currentlyLiftingUserId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set currentlyLiftingUserId($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasCurrentlyLiftingUserId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCurrentlyLiftingUserId() => $_clearField(6);
 }
 
 class ParticipantStatus extends $pb.GeneratedMessage {

@@ -59,6 +59,7 @@ class WorkoutBottomBar extends StatelessWidget {
     final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
     final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
     final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
+    final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
     final restSeconds = restUntil > 0
         ? (restUntil - nowUnix).clamp(0, 1 << 30)
         : 0;
@@ -148,10 +149,12 @@ class WorkoutBottomBar extends StatelessWidget {
         );
       }
     } else if (_isReadyState(stateValue) || nextSet != null) {
-      stateLabel = 'Next up';
-      stateColor = colorScheme.tertiary;
-      timerText = null;
-      timerColor = null;
+      final isYapping =
+          nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
+      stateLabel = isYapping ? 'Yapping' : 'Next up';
+      stateColor = isYapping ? colorScheme.error : colorScheme.tertiary;
+      timerText = isYapping ? '-${_fmt(nowUnix - lastRestEnd)}' : null;
+      timerColor = isYapping ? colorScheme.error : null;
       displaySet = stateSnapshot?.hasDisplaySet() == true
           ? stateSnapshot!.displaySet
           : nextSet;
@@ -276,27 +279,27 @@ class WorkoutBottomBar extends StatelessWidget {
     Color boxColor = purple;
     bool isMeNext = false;
 
-    for (final p in status.participants) {
-      if (p.user.id == myUserId) continue;
-
-      // Check if lifting
-      final active = p.completedSets.cast<CompletedSet?>().firstWhere(
-        (c) => c!.endedAt == Int64.ZERO,
-        orElse: () => null,
-      );
-
-      if (p.hasActiveSet || active != null) {
-        final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
-          (s) => s!.id == active?.proposedSetId,
-          orElse: () => null,
-        );
-        groupActive = p;
+    final currentLifterId = status.currentlyLiftingUserId;
+    if (currentLifterId.isNotEmpty && currentLifterId != myUserId) {
+      final liftingParticipant = status.participants
+          .cast<ParticipantStatus?>()
+          .firstWhere((p) => p!.user.id == currentLifterId, orElse: () => null);
+      if (liftingParticipant != null) {
+        final active = liftingParticipant.completedSets
+            .cast<CompletedSet?>()
+            .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
+        final proposed = active == null
+            ? null
+            : liftingParticipant.proposedSets.cast<ProposedSet?>().firstWhere(
+                (s) => s!.id == active.proposedSetId,
+                orElse: () => null,
+              );
+        groupActive = liftingParticipant;
         groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
         groupTimer = active != null
             ? _fmt(nowUnix - active.startedAt.toInt())
             : null;
         groupSet = proposed;
-        break;
       }
     }
 

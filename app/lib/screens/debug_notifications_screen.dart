@@ -75,6 +75,14 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                 }
                 return 'Resting (${wp.restSecondsRemaining}s)';
               }
+              final lastRestEnd = snapshot?.lastRestEnd.toInt() ?? 0;
+              if ((state == WorkoutState.WORKOUT_STATE_READY ||
+                      nextSet != null) &&
+                  nextSet != null &&
+                  lastRestEnd > 0 &&
+                  lastRestEnd <= nowUnix) {
+                return 'Yapping (+${nowUnix - lastRestEnd}s)';
+              }
               if (state == WorkoutState.WORKOUT_STATE_READY ||
                   nextSet != null) {
                 return 'Next up';
