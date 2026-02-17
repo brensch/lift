@@ -10,6 +10,7 @@ import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
 import '../services/health_service.dart' show HealthService, HealthWriteResult;
+import '../services/error_modal_service.dart';
 import '../logic/exercises.dart';
 import '../logic/utils.dart';
 
@@ -134,14 +135,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _handleError(Object e) {
     if (e is GrpcError && e.code == StatusCode.unauthenticated) return;
     final message = cleanErrorMessage(e);
-    Fluttertoast.showToast(
-      msg: message.toUpperCase(),
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+    ErrorModalService.showError(message.toUpperCase());
   }
 
   // Loading state

@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -20,10 +21,10 @@ Future<void> endWorkout(BuildContext context) async {
 
     await wp.endWorkout();
     if (context.mounted) {
+      context.go('/workout/$workoutId/completed');
       if (mp.isInSession) {
-        await mp.leaveSession();
+        unawaited(mp.leaveSession());
       }
-      context.push('/workout/$workoutId/completed');
     }
   }
 }
