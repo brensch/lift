@@ -268,6 +268,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     WearStatusCard? youCard,
     WearStatusCard? groupCard,
     $core.Iterable<WearAction>? actions,
+    WearCompletionSummary? completionSummary,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -281,6 +282,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (youCard != null) result.youCard = youCard;
     if (groupCard != null) result.groupCard = groupCard;
     if (actions != null) result.actions.addAll(actions);
+    if (completionSummary != null) result.completionSummary = completionSummary;
     return result;
   }
 
@@ -312,6 +314,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
         subBuilder: WearStatusCard.create)
     ..pPM<WearAction>(11, _omitFieldNames ? '' : 'actions',
         subBuilder: WearAction.create)
+    ..aOM<WearCompletionSummary>(12, _omitFieldNames ? '' : 'completionSummary',
+        subBuilder: WearCompletionSummary.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -429,6 +433,97 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(11)
   $pb.PbList<WearAction> get actions => $_getList(10);
+
+  @$pb.TagNumber(12)
+  WearCompletionSummary get completionSummary => $_getN(11);
+  @$pb.TagNumber(12)
+  set completionSummary(WearCompletionSummary value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasCompletionSummary() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearCompletionSummary() => $_clearField(12);
+  @$pb.TagNumber(12)
+  WearCompletionSummary ensureCompletionSummary() => $_ensure(11);
+}
+
+class WearCompletionSummary extends $pb.GeneratedMessage {
+  factory WearCompletionSummary({
+    $core.String? durationText,
+    $core.int? completedWorkingSets,
+    $core.int? totalVolumeLb,
+  }) {
+    final result = create();
+    if (durationText != null) result.durationText = durationText;
+    if (completedWorkingSets != null)
+      result.completedWorkingSets = completedWorkingSets;
+    if (totalVolumeLb != null) result.totalVolumeLb = totalVolumeLb;
+    return result;
+  }
+
+  WearCompletionSummary._();
+
+  factory WearCompletionSummary.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WearCompletionSummary.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WearCompletionSummary',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'durationText')
+    ..aI(2, _omitFieldNames ? '' : 'completedWorkingSets')
+    ..aI(3, _omitFieldNames ? '' : 'totalVolumeLb')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearCompletionSummary clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearCompletionSummary copyWith(
+          void Function(WearCompletionSummary) updates) =>
+      super.copyWith((message) => updates(message as WearCompletionSummary))
+          as WearCompletionSummary;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WearCompletionSummary create() => WearCompletionSummary._();
+  @$core.override
+  WearCompletionSummary createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WearCompletionSummary getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearCompletionSummary>(create);
+  static WearCompletionSummary? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get durationText => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set durationText($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDurationText() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDurationText() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get completedWorkingSets => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set completedWorkingSets($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCompletedWorkingSets() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCompletedWorkingSets() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get totalVolumeLb => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set totalVolumeLb($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTotalVolumeLb() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalVolumeLb() => $_clearField(3);
 }
 
 class StartSetIntent extends $pb.GeneratedMessage {

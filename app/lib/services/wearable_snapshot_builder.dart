@@ -11,27 +11,31 @@ class WearableSnapshotBuilder {
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
   }) {
-    if (!workoutProvider.hasActiveWorkout) return null;
-
     final workout = workoutProvider.activeWorkout;
     if (workout == null) return null;
+    final isEnded = workout.endTime != Int64.ZERO;
+    final hasActive = workoutProvider.hasActiveWorkout;
+    if (!hasActive && !isEnded) return null;
 
     final stateSnapshot = workoutProvider.stateSnapshot;
-    final stateValue =
-        stateSnapshot?.state.value ??
-        WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
+    final stateValue = isEnded
+        ? WorkoutState.WORKOUT_STATE_ALL_DONE.value
+        : (stateSnapshot?.state.value ??
+              WorkoutState.WORKOUT_STATE_UNSPECIFIED.value);
     final now = workoutProvider.now;
     final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
     final nextSet = workoutProvider.nextPendingSet;
+    final proposedSets = workoutProvider.activeProposedSets;
+    final completedSets = workoutProvider.activeCompletedSets;
 
-    final elapsedSeconds = workout.startTime.toInt() > 0
-        ? nowUnix - workout.startTime.toInt()
-        : 0;
+    final elapsedSeconds = _elapsedSeconds(workout, nowUnix);
 
     final snapshot = WearWorkoutSnapshot(
       workoutId: workout.id,
       emittedAt: Int64(nowUnix),
-      state: stateSnapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED,
+      state: isEnded
+          ? WorkoutState.WORKOUT_STATE_ALL_DONE
+          : (stateSnapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED),
       workoutStartTime: workout.startTime,
       activeStartedAt: stateSnapshot?.activeStartedAt ?? Int64.ZERO,
       restUntil: stateSnapshot?.restUntil ?? Int64.ZERO,
@@ -45,16 +49,24 @@ class WearableSnapshotBuilder {
     if (_isAllDoneState(stateValue)) {
       youCard = WearStatusCard(
         sideLabel: 'YOU',
-        stateLabel: 'All sets complete',
+        stateLabel: isEnded ? 'Workout complete' : 'All sets complete',
         isComplete: true,
       );
-      actions.add(
-        WearAction(
-          type: WearActionType.WEAR_ACTION_TYPE_END_WORKOUT,
-          style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
-          label: 'End Workout',
-        ),
+      snapshot.completionSummary = _buildCompletionSummary(
+        workout: workout,
+        nowUnix: nowUnix,
+        proposedSets: proposedSets,
+        completedSets: completedSets,
       );
+      if (!isEnded) {
+        actions.add(
+          WearAction(
+            type: WearActionType.WEAR_ACTION_TYPE_END_WORKOUT,
+            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
+            label: 'End Workout',
+          ),
+        );
+      }
     } else if (_isLiftingState(stateValue)) {
       final liftingSnapshot = stateSnapshot;
       if (liftingSnapshot == null || !liftingSnapshot.hasDisplaySet()) {
@@ -269,6 +281,34 @@ class WearableSnapshotBuilder {
       displaySet: groupSet,
     );
   }
+
+  static WearCompletionSummary _buildCompletionSummary({
+    required Workout workout,
+    required int nowUnix,
+    required List<ProposedSet> proposedSets,
+    required List<CompletedSet> completedSets,
+  }) {
+    final durationSeconds = _elapsedSeconds(workout, nowUnix);
+    final proposedById = {
+      for (final set in proposedSets) set.id: set,
+    };
+
+    var completedWorkingSets = 0;
+    var totalVolume = 0.0;
+    for (final completed in completedSets) {
+      if (completed.endedAt == Int64.ZERO) continue;
+      final proposed = proposedById[completed.proposedSetId];
+      if (proposed == null || proposed.warmup) continue;
+      completedWorkingSets++;
+      totalVolume += completed.actualWeight * completed.actualReps;
+    }
+
+    return WearCompletionSummary(
+      durationText: _fmtDurationForSummary(durationSeconds),
+      completedWorkingSets: completedWorkingSets,
+      totalVolumeLb: totalVolume.round(),
+    );
+  }
 }
 
 bool _isAllDoneState(int state) =>
@@ -294,4 +334,18 @@ String _fmtElapsed(int totalSeconds) {
     return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
+}
+
+int _elapsedSeconds(Workout workout, int nowUnix) {
+  final start = workout.startTime.toInt();
+  if (start <= 0) return 0;
+  final end = workout.endTime.toInt() > 0 ? workout.endTime.toInt() : nowUnix;
+  return (end - start).clamp(0, 1 << 30);
+}
+
+String _fmtDurationForSummary(int totalSeconds) {
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  if (hours > 0) return '${hours}h ${minutes}m';
+  return '${minutes}m';
 }

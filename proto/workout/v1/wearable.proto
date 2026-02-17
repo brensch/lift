@@ -60,6 +60,13 @@ message WearWorkoutSnapshot {
   WearStatusCard you_card = 9;
   WearStatusCard group_card = 10; // optional
   repeated WearAction actions = 11;
+  WearCompletionSummary completion_summary = 12; // optional
+}
+
+message WearCompletionSummary {
+  string duration_text = 1;
+  int32 completed_working_sets = 2;
+  int32 total_volume_lb = 3;
 }
 
 message StartSetIntent {

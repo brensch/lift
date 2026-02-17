@@ -267,7 +267,7 @@ class WorkoutBottomBar extends StatelessWidget {
   ) {
     if (status == null) return const SizedBox.shrink();
     const purple = Color(0xFF9333EA);
-    const orange = Color(0xFFF97316);
+    final error = Theme.of(context).colorScheme.error;
     final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
 
     // Find someone in the group who is active or next
@@ -323,7 +323,8 @@ class WorkoutBottomBar extends StatelessWidget {
           } else if (nextRestUntil > 0) {
             groupState = 'Yapping';
             groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
-            groupTimerColor = orange;
+            groupTimerColor = error;
+            boxColor = error;
           } else {
             groupState = 'Ready';
             groupTimer = 'Ready';

@@ -351,10 +351,12 @@ mod tests {
     use lift::workout::v1::workout_service_server::WorkoutService;
     use lift::workout::v1::{
         CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
-        EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig, GetCurrentSessionRequest,
-        GetWorkoutRequest, JoinUserRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
+        DeleteCompletedSetRequest, EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig,
+        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest,
+        ReorderExerciseGroupsRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
         UpdateExerciseGroupRequest,
     };
+    use std::collections::HashSet;
     use std::sync::Arc;
     use tokio::time::{sleep, Duration};
     use tonic::{metadata::MetadataValue, Request};
@@ -879,6 +881,663 @@ mod tests {
                 .iter()
                 .all(|set| set.rest_after_success > 0 && set.rest_after_failure > 0),
             "all proposed sets should carry persisted rest values"
+        );
+    }
+
+    #[tokio::test]
+    async fn full_workout_flow_create_edit_reorder_complete_and_verify_db_state() {
+        let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+        let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+        let state = Arc::new(AppState::new());
+        let workout_service = MyWorkoutService::new(central_db.clone(), state);
+
+        let user = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user");
+        let token = central_db
+            .create_auth_session(&user.id)
+            .await
+            .expect("token");
+
+        // 1) Start workout with two groups.
+        let started = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "integration".to_string(),
+                    exercise_groups: vec![
+                        single_exercise_group("g1", "Squat", 100.0, 2, 0),
+                        single_exercise_group("g2", "Bench", 150.0, 2, 1),
+                    ],
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("start workout")
+        .into_inner();
+
+        let mut workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("get workout after start")
+        .into_inner();
+
+        assert_eq!(workout.exercise_groups.len(), 2);
+        assert_eq!(workout.exercise_groups[0].name, "Squat");
+        assert_eq!(workout.exercise_groups[1].name, "Bench");
+        assert_eq!(workout.proposed_sets.len(), 4);
+        assert_eq!(workout.proposed_sets[0].exercise_group_id, "g1");
+        assert_eq!(workout.proposed_sets[1].exercise_group_id, "g1");
+        assert_eq!(workout.proposed_sets[2].exercise_group_id, "g2");
+        assert_eq!(workout.proposed_sets[3].exercise_group_id, "g2");
+
+        // 2) Create a third group.
+        let created = WorkoutService::create_exercise_group(
+            &workout_service,
+            with_token(
+                CreateExerciseGroupRequest {
+                    workout_id: started.id.clone(),
+                    name: "Deadlift".to_string(),
+                    sets: 1,
+                    interleave_warmups: false,
+                    exercise_configs: vec![ExerciseTypeConfig {
+                        exercise: 3,
+                        start_weight: 200.0,
+                        end_weight: 200.0,
+                        reps: 5,
+                        include_warmup: false,
+                        rest_config: Some(RestConfig {
+                            rest_after_success: 120,
+                            rest_after_failure: 240,
+                            rest_after_warmup: 10,
+                            rest_after_last_warmup: 120,
+                        }),
+                    }],
+                    rest_config: None,
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("create group")
+        .into_inner();
+        let g3_id = created.group.expect("created group").id;
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("get workout after create group")
+        .into_inner();
+        assert_eq!(workout.exercise_groups.len(), 3);
+        assert_eq!(workout.proposed_sets.len(), 5);
+
+        // 3) Edit Bench group: 2 -> 3 sets, heavier weight.
+        let _ = WorkoutService::update_exercise_group(
+            &workout_service,
+            with_token(
+                UpdateExerciseGroupRequest {
+                    workout_id: started.id.clone(),
+                    exercise_group_id: "g2".to_string(),
+                    name: "Bench Updated".to_string(),
+                    sets: 3,
+                    interleave_warmups: false,
+                    exercise_configs: vec![ExerciseTypeConfig {
+                        exercise: 2,
+                        start_weight: 155.0,
+                        end_weight: 155.0,
+                        reps: 5,
+                        include_warmup: false,
+                        rest_config: Some(RestConfig {
+                            rest_after_success: 95,
+                            rest_after_failure: 205,
+                            rest_after_warmup: 10,
+                            rest_after_last_warmup: 95,
+                        }),
+                    }],
+                    rest_config: None,
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("update bench group");
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("get workout after update")
+        .into_inner();
+        let bench_group = workout
+            .exercise_groups
+            .iter()
+            .find(|g| g.id == "g2")
+            .expect("bench group");
+        assert_eq!(bench_group.name, "Bench Updated");
+        let bench_sets = workout
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise_group_id == "g2")
+            .collect::<Vec<_>>();
+        assert_eq!(bench_sets.len(), 3);
+        assert!(bench_sets.iter().all(|s| s.target_weight == 155.0));
+
+        // 4) Reorder groups to: Deadlift, Squat, Bench Updated.
+        let _ = WorkoutService::reorder_exercise_groups(
+            &workout_service,
+            with_token(
+                ReorderExerciseGroupsRequest {
+                    workout_id: started.id.clone(),
+                    exercise_group_ids: vec![g3_id.clone(), "g1".to_string(), "g2".to_string()],
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("reorder");
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("get workout after reorder")
+        .into_inner();
+        let mut groups_by_order = workout.exercise_groups.clone();
+        groups_by_order.sort_by_key(|g| g.workout_order);
+        let ordered_group_ids = groups_by_order
+            .iter()
+            .map(|g| g.id.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(ordered_group_ids, vec![g3_id.clone(), "g1".to_string(), "g2".to_string()]);
+        let ordered_set_group_ids = workout
+            .proposed_sets
+            .iter()
+            .map(|s| s.exercise_group_id.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ordered_set_group_ids,
+            vec![
+                g3_id.clone(),
+                "g1".to_string(),
+                "g1".to_string(),
+                "g2".to_string(),
+                "g2".to_string(),
+                "g2".to_string(),
+            ]
+        );
+
+        // 5) Complete all sets following next_up order.
+        let mut completion_order = Vec::<String>::new();
+        loop {
+            let current = WorkoutService::get_workout(
+                &workout_service,
+                with_token(
+                    GetWorkoutRequest {
+                        workout_id: started.id.clone(),
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("get workout during completion")
+            .into_inner();
+
+            let Some(next) = current.next_up_set else {
+                break;
+            };
+
+            let _ = WorkoutService::start_set(
+                &workout_service,
+                with_token(
+                    StartSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: next.id.clone(),
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("start set");
+
+            let _ = WorkoutService::complete_set(
+                &workout_service,
+                with_token(
+                    CompleteSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: next.id.clone(),
+                        actual_reps: next.target_reps,
+                        actual_weight: next.target_weight,
+                        completed_at: 0,
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("complete set");
+            completion_order.push(next.id);
+        }
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("get workout final")
+        .into_inner();
+        let expected_order = workout
+            .proposed_sets
+            .iter()
+            .map(|s| s.id.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(completion_order, expected_order);
+        let snapshot = workout.state_snapshot.expect("state snapshot");
+        assert_eq!(snapshot.state, 1, "expected WORKOUT_STATE_ALL_DONE");
+        assert!(workout.next_up_set.is_none());
+
+        // 6) End workout.
+        let _ = WorkoutService::end_workout(
+            &workout_service,
+            with_token(
+                EndWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("end workout");
+
+        // 7) Verify DB final state matches expectations.
+        let mut db_verified = false;
+        for _ in 0..50 {
+            let active = central_db
+                .get_active_workout(&user.id)
+                .await
+                .expect("active query");
+            let workout_db = central_db
+                .get_workout(&user.id, &started.id)
+                .await
+                .expect("workout query");
+            let groups_db = central_db
+                .get_exercise_groups(&user.id, &started.id)
+                .await
+                .expect("groups query");
+            let proposed_db = central_db
+                .get_proposed_sets(&user.id, &started.id)
+                .await
+                .expect("proposed query");
+            let completed_db = central_db
+                .get_completed_sets(&user.id, &started.id)
+                .await
+                .expect("completed query");
+
+            let groups_ok = groups_db.len() == 3
+                && groups_db.iter().map(|g| g.id.as_str()).collect::<Vec<_>>()
+                    == vec![g3_id.as_str(), "g1", "g2"];
+            let workout_ok = workout_db
+                .as_ref()
+                .map(|w| w.end_time > 0)
+                .unwrap_or(false);
+            let no_active_ok = active.is_none();
+            let proposed_ok = proposed_db.len() == 6
+                && proposed_db
+                    .iter()
+                    .all(|s| s.rest_after_success > 0 && s.rest_after_failure > 0);
+            let completed_ok = completed_db.len() == 6
+                && completed_db.iter().all(|c| c.ended_at > 0)
+                && completed_db
+                    .iter()
+                    .map(|c| c.proposed_set_id.clone())
+                    .collect::<HashSet<_>>()
+                    .len()
+                    == 6;
+
+            if groups_ok && workout_ok && no_active_ok && proposed_ok && completed_ok {
+                db_verified = true;
+                break;
+            }
+            sleep(Duration::from_millis(20)).await;
+        }
+
+        assert!(db_verified, "DB final state did not converge to expected values");
+    }
+
+    #[tokio::test]
+    async fn full_workout_flow_cancel_warmup_delete_completed_and_verify_db_state() {
+        let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+        let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+        let state = Arc::new(AppState::new());
+        let workout_service = MyWorkoutService::new(central_db.clone(), state);
+
+        let user = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user");
+        let token = central_db
+            .create_auth_session(&user.id)
+            .await
+            .expect("token");
+
+        // 1) Start workout with warmups enabled to exercise cancel warmup path.
+        let started = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "integration-warmup".to_string(),
+                    exercise_groups: vec![ExerciseGroup {
+                        id: "g1".to_string(),
+                        workout_id: String::new(),
+                        name: "Squat".to_string(),
+                        sets: 2,
+                        interleave_warmups: false,
+                        workout_order: 0,
+                        exercise_configs: vec![ExerciseTypeConfig {
+                            exercise: 1,
+                            start_weight: 185.0,
+                            end_weight: 185.0,
+                            reps: 5,
+                            include_warmup: true,
+                            rest_config: Some(RestConfig {
+                                rest_after_success: 90,
+                                rest_after_failure: 180,
+                                rest_after_warmup: 12,
+                                rest_after_last_warmup: 90,
+                            }),
+                        }],
+                        rest_config: None,
+                    }],
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("start workout")
+        .into_inner();
+
+        let mut workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("workout after start")
+        .into_inner();
+
+        let warmup_id = workout
+            .proposed_sets
+            .iter()
+            .find(|s| s.warmup)
+            .expect("warmup exists")
+            .id
+            .clone();
+
+        // 2) Cancel one warmup.
+        let _ = WorkoutService::cancel_proposed_set(
+            &workout_service,
+            with_token(
+                CancelProposedSetRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: warmup_id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("cancel warmup");
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("workout after cancel warmup")
+        .into_inner();
+        assert!(workout.proposed_sets.iter().all(|s| s.id != warmup_id));
+
+        // 3) Complete first next-up set, then delete that completed set.
+        let first_next = workout.next_up_set.expect("next set exists");
+        let _ = WorkoutService::start_set(
+            &workout_service,
+            with_token(
+                StartSetRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: first_next.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("start first set");
+
+        let completed_first = WorkoutService::complete_set(
+            &workout_service,
+            with_token(
+                CompleteSetRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: first_next.id.clone(),
+                    actual_reps: first_next.target_reps,
+                    actual_weight: first_next.target_weight,
+                    completed_at: 0,
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("complete first set")
+        .into_inner()
+        .completed_set
+        .expect("completed set response");
+
+        let _ = WorkoutService::delete_completed_set(
+            &workout_service,
+            with_token(
+                DeleteCompletedSetRequest {
+                    workout_id: started.id.clone(),
+                    completed_set_id: completed_first.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("delete completed set");
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("workout after delete completed")
+        .into_inner();
+        assert!(
+            !workout
+                .completed_sets
+                .iter()
+                .any(|c| c.id == completed_first.id),
+            "deleted completed set should be gone"
+        );
+        let next_after_delete = workout.next_up_set.expect("next should exist");
+        assert_eq!(next_after_delete.id, first_next.id);
+
+        // 4) Complete all remaining sets in next_up order.
+        let mut completed_ids = HashSet::<String>::new();
+        loop {
+            let current = WorkoutService::get_workout(
+                &workout_service,
+                with_token(
+                    GetWorkoutRequest {
+                        workout_id: started.id.clone(),
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("get workout in finish loop")
+            .into_inner();
+
+            let Some(next) = current.next_up_set else {
+                break;
+            };
+
+            let _ = WorkoutService::start_set(
+                &workout_service,
+                with_token(
+                    StartSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: next.id.clone(),
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("start next");
+
+            let done = WorkoutService::complete_set(
+                &workout_service,
+                with_token(
+                    CompleteSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: next.id,
+                        actual_reps: next.target_reps,
+                        actual_weight: next.target_weight,
+                        completed_at: 0,
+                    },
+                    &token,
+                ),
+            )
+            .await
+            .expect("complete next")
+            .into_inner()
+            .completed_set
+            .expect("completed");
+            completed_ids.insert(done.proposed_set_id);
+        }
+
+        workout = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("workout all done")
+        .into_inner();
+        let snapshot = workout.state_snapshot.expect("snapshot");
+        assert_eq!(snapshot.state, 1, "expected WORKOUT_STATE_ALL_DONE");
+        assert!(workout.next_up_set.is_none());
+
+        // 5) End workout.
+        let _ = WorkoutService::end_workout(
+            &workout_service,
+            with_token(
+                EndWorkoutRequest {
+                    workout_id: started.id.clone(),
+                },
+                &token,
+            ),
+        )
+        .await
+        .expect("end workout");
+
+        // 6) Verify DB final state converges.
+        let mut db_verified = false;
+        for _ in 0..50 {
+            let active = central_db
+                .get_active_workout(&user.id)
+                .await
+                .expect("active query");
+            let workout_db = central_db
+                .get_workout(&user.id, &started.id)
+                .await
+                .expect("workout query");
+            let proposed_db = central_db
+                .get_proposed_sets(&user.id, &started.id)
+                .await
+                .expect("proposed query");
+            let completed_db = central_db
+                .get_completed_sets(&user.id, &started.id)
+                .await
+                .expect("completed query");
+
+            let workout_ok = workout_db
+                .as_ref()
+                .map(|w| w.end_time > 0)
+                .unwrap_or(false);
+            let no_active_ok = active.is_none();
+            let proposed_ok = proposed_db
+                .iter()
+                .all(|s| s.rest_after_success > 0 && s.rest_after_failure > 0);
+            let completed_ok = !completed_db.is_empty()
+                && completed_db.iter().all(|c| c.ended_at > 0)
+                && completed_db
+                    .iter()
+                    .map(|c| c.proposed_set_id.clone())
+                    .collect::<HashSet<_>>()
+                    .len()
+                    == completed_db.len()
+                && completed_db
+                    .iter()
+                    .all(|c| completed_ids.contains(&c.proposed_set_id));
+
+            if workout_ok && no_active_ok && proposed_ok && completed_ok {
+                db_verified = true;
+                break;
+            }
+            sleep(Duration::from_millis(20)).await;
+        }
+
+        assert!(
+            db_verified,
+            "DB final state did not converge for warmup-cancel/delete-completed flow"
         );
     }
 }

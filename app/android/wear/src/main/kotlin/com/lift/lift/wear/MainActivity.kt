@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -35,6 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,6 +48,7 @@ import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Icon
+import androidx.wear.compose.material.LocalTextStyle
 import androidx.wear.compose.material.Picker
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.rememberPickerState
@@ -179,7 +185,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
@@ -218,6 +223,7 @@ private fun WearApp(
     val primaryAction = data.actionsList.firstOrNull {
         it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
     } ?: data.actionsList.firstOrNull()
+    val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
     DisposableEffect(data.workoutId, data.state) {
         val shouldStream = data.workoutId.isNotEmpty() &&
             data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE
@@ -248,16 +254,38 @@ private fun WearApp(
     val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
     val timerColor = if (isResting) Color(0xFF86EFAC) else Color.White
     val maxReps = currentSet?.targetReps ?: 0
+    val repOptionMax = (maxReps * 2).coerceAtLeast(0)
+    val repOptionCount = (repOptionMax + 1).coerceAtLeast(1)
     val pickerState = rememberPickerState(
-        initialNumberOfOptions = (maxReps + 1).coerceAtLeast(1),
+        initialNumberOfOptions = repOptionCount,
         initiallySelectedOption = maxReps.coerceAtLeast(0),
+        repeatItems = false,
     )
+    LaunchedEffect(repOptionCount, maxReps) {
+        pickerState.scrollToOption(maxReps.coerceAtLeast(0))
+    }
+    val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
+    CompositionLocalProvider(
+        LocalTextStyle provides TextStyle(
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = FontWeight.Medium,
+        ),
     ) {
+        if (data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE &&
+            completionSummary != null) {
+            WorkoutCompleteScreen(
+                summary = completionSummary,
+                onPrimary = if (primaryAction != null) ({ onAction(primaryAction) }) else null,
+                primaryLabel = primaryAction?.label ?: "Done",
+            )
+            return@CompositionLocalProvider
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
         Column(
             modifier = Modifier
                 .weight(0.5f)
@@ -365,7 +393,7 @@ private fun WearApp(
                         if (set != null && template != null) {
                             val action = template.toBuilder()
                                 .setSetId(set.id)
-                                .setReps(pickerState.selectedOption)
+                                .setReps(selectedReps)
                                 .setActualWeight(
                                     if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
                                 )
@@ -411,7 +439,7 @@ private fun WearApp(
                                     state = pickerState,
                                     gradientRatio = 0f,
                                     contentDescription = "Completed reps picker",
-                                    option = { index ->
+                                    option = { index: Int ->
                                         Text(
                                             text = index.toString(),
                                             textAlign = TextAlign.End,
@@ -436,7 +464,97 @@ private fun WearApp(
         }
     }
 }
+}
 
+@Composable
+private fun WorkoutCompleteScreen(
+    summary: Wearable.WearCompletionSummary,
+    onPrimary: (() -> Unit)?,
+    primaryLabel: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .padding(8.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight()
+                .padding(end = 6.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(
+                text = "Complete",
+                color = Color.White,
+                fontSize = 26.sp,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            CompletionMetric(label = "Time", value = summary.durationText)
+            CompletionMetric(label = "Sets", value = summary.completedWorkingSets.toString())
+            CompletionMetric(label = "Vol", value = "${summary.totalVolumeLb}lb")
+        }
+        Column(
+            modifier = Modifier
+                .weight(0.5f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Button(
+                onClick = { onPrimary?.invoke() },
+                enabled = onPrimary != null,
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color.White,
+                    contentColor = Color.Black,
+                ),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 10.dp, end = 4.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        text = primaryLabel,
+                        textAlign = TextAlign.Start,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 20.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompletionMetric(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = Color(0xFF9CA3AF),
+            fontSize = 13.sp,
+        )
+        Text(
+            text = value,
+            color = Color.White,
+            fontSize = 18.sp,
+        )
+    }
+}
 @Composable
 private fun StatLine(
     text: String,

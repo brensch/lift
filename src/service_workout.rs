@@ -465,6 +465,35 @@ fn workout_state_snapshot_from_state(
         };
     }
 
+    let all_done = if proposed_active.is_empty() {
+        // If there are no remaining active proposed sets (e.g. all were completed/cancelled),
+        // treat workout as complete so UI can offer a clean finish action.
+        true
+    } else {
+        proposed_active.iter().all(|set| {
+            completed_sets
+                .iter()
+                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
+        })
+    };
+
+    let last_rest_end = completed_sets
+        .iter()
+        .filter(|set| set.ended_at != 0 && set.rest_until != 0)
+        .max_by_key(|set| set.ended_at)
+        .map(|set| set.rest_until)
+        .unwrap_or(0);
+
+    if all_done {
+        return WorkoutStateSnapshot {
+            state: STATE_ALL_DONE,
+            display_set: None,
+            active_started_at: 0,
+            rest_until: 0,
+            last_rest_end,
+        };
+    }
+
     let resting = completed_sets
         .iter()
         .filter(|set| set.ended_at != 0 && set.rest_until > now)
@@ -477,30 +506,6 @@ fn workout_state_snapshot_from_state(
             active_started_at: 0,
             rest_until: resting.rest_until,
             last_rest_end: 0,
-        };
-    }
-
-    let last_rest_end = completed_sets
-        .iter()
-        .filter(|set| set.ended_at != 0 && set.rest_until != 0)
-        .max_by_key(|set| set.ended_at)
-        .map(|set| set.rest_until)
-        .unwrap_or(0);
-
-    let all_done = !proposed_active.is_empty()
-        && proposed_active.iter().all(|set| {
-            completed_sets
-                .iter()
-                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
-        });
-
-    if all_done {
-        return WorkoutStateSnapshot {
-            state: STATE_ALL_DONE,
-            display_set: None,
-            active_started_at: 0,
-            rest_until: 0,
-            last_rest_end,
         };
     }
 
@@ -1898,5 +1903,15 @@ mod tests {
             &proposed_sets,
             &completed_sets
         ));
+    }
+
+    #[test]
+    fn state_snapshot_is_all_done_when_no_active_proposed_sets_remain() {
+        let proposed_sets = Vec::<ProposedSet>::new();
+        let completed_sets = Vec::<CompletedSet>::new();
+
+        let snapshot = workout_state_snapshot_from_state(&proposed_sets, &completed_sets, 0);
+        assert_eq!(snapshot.state, 1);
+        assert!(snapshot.display_set.is_none());
     }
 }

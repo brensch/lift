@@ -180,6 +180,14 @@ const WearWorkoutSnapshot$json = {
       '6': '.workout.v1.WearAction',
       '10': 'actions'
     },
+    {
+      '1': 'completion_summary',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WearCompletionSummary',
+      '10': 'completionSummary'
+    },
   ],
 };
 
@@ -193,7 +201,31 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'xhc3RSZXN0RW5kEiEKDGVsYXBzZWRfdGV4dBgIIAEoCVILZWxhcHNlZFRleHQSNQoIeW91X2Nh'
     'cmQYCSABKAsyGi53b3Jrb3V0LnYxLldlYXJTdGF0dXNDYXJkUgd5b3VDYXJkEjkKCmdyb3VwX2'
     'NhcmQYCiABKAsyGi53b3Jrb3V0LnYxLldlYXJTdGF0dXNDYXJkUglncm91cENhcmQSMAoHYWN0'
-    'aW9ucxgLIAMoCzIWLndvcmtvdXQudjEuV2VhckFjdGlvblIHYWN0aW9ucw==');
+    'aW9ucxgLIAMoCzIWLndvcmtvdXQudjEuV2VhckFjdGlvblIHYWN0aW9ucxJQChJjb21wbGV0aW'
+    '9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21wbGV0aW9uU3VtbWFyeVIRY29t'
+    'cGxldGlvblN1bW1hcnk=');
+
+@$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
+const WearCompletionSummary$json = {
+  '1': 'WearCompletionSummary',
+  '2': [
+    {'1': 'duration_text', '3': 1, '4': 1, '5': 9, '10': 'durationText'},
+    {
+      '1': 'completed_working_sets',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'completedWorkingSets'
+    },
+    {'1': 'total_volume_lb', '3': 3, '4': 1, '5': 5, '10': 'totalVolumeLb'},
+  ],
+};
+
+/// Descriptor for `WearCompletionSummary`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearCompletionSummaryDescriptor = $convert.base64Decode(
+    'ChVXZWFyQ29tcGxldGlvblN1bW1hcnkSIwoNZHVyYXRpb25fdGV4dBgBIAEoCVIMZHVyYXRpb2'
+    '5UZXh0EjQKFmNvbXBsZXRlZF93b3JraW5nX3NldHMYAiABKAVSFGNvbXBsZXRlZFdvcmtpbmdT'
+    'ZXRzEiYKD3RvdGFsX3ZvbHVtZV9sYhgDIAEoBVINdG90YWxWb2x1bWVMYg==');
 
 @$core.Deprecated('Use startSetIntentDescriptor instead')
 const StartSetIntent$json = {
