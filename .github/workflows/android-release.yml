@@ -40,10 +40,16 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          test -n "$RELEASE_KEYSTORE_BASE64"
-          test -n "$RELEASE_KEYSTORE_PASSWORD"
-          test -n "$RELEASE_KEY_ALIAS"
-          test -n "$RELEASE_KEY_PASSWORD"
+          missing=0
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "Missing secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release-keystore.jks
           cat > key.properties <<EOF
           storeFile=release-keystore.jks
@@ -51,6 +57,10 @@ jobs:
           keyAlias=$RELEASE_KEY_ALIAS
           keyPassword=$RELEASE_KEY_PASSWORD
           EOF
+
+      - name: Validate signing config (fast fail)
+        working-directory: app/android
+        run: ./gradlew :app:validateSigningRelease :wear:validateSigningRelease --no-daemon
 
       - name: Build phone app bundle (.aab)
         working-directory: app

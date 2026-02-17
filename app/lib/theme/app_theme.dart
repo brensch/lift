@@ -28,6 +28,10 @@ class AppTheme {
   static final light = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
+    splashFactory: NoSplash.splashFactory,
+    splashColor: Colors.transparent,
+    highlightColor: Colors.transparent,
+    hoverColor: Colors.transparent,
     fontFamily: _fontFamily,
     scaffoldBackgroundColor: Colors.white,
     colorScheme: const ColorScheme.light(
@@ -155,6 +159,10 @@ class AppTheme {
   static final dark = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
+    splashFactory: NoSplash.splashFactory,
+    splashColor: Colors.transparent,
+    highlightColor: Colors.transparent,
+    hoverColor: Colors.transparent,
     fontFamily: _fontFamily,
     scaffoldBackgroundColor: const Color(0xFF0A0A0A),
     colorScheme: const ColorScheme.dark(
