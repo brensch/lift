@@ -32,6 +32,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ExerciseStatus> _exerciseStatuses = [];
   List<ProposedExerciseGroup> _proposedGroups = [];
   final List<HeartRateSample> _wearHeartRateSamples = [];
+  final List<WorkoutHeartRatePoint> _pendingWearHeartRateUploads = [];
+  DateTime? _lastWearHeartRateUploadAt;
+  bool _wearHeartRateUploadInFlight = false;
 
   // Track whether we already played the sound for the current rest period
   bool _wasResting = false;
@@ -257,6 +260,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _now = DateTime.now();
       _checkRestSound();
+      unawaited(_flushPendingWearHeartRateUploads());
       notifyListeners();
     });
   }
@@ -608,6 +612,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> endWorkout() async {
     if (_activeWorkout == null) return;
     try {
+      await _flushPendingWearHeartRateUploads(force: true);
       await NotificationService.cancelAll();
       final ended = await _service.endWorkout(_activeWorkout!.id);
       _activeWorkout = ended;
@@ -703,6 +708,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _backendNextUpSet = null;
     _stateSnapshot = null;
     _wearHeartRateSamples.clear();
+    _pendingWearHeartRateUploads.clear();
+    _lastWearHeartRateUploadAt = null;
+    _wearHeartRateUploadInFlight = false;
     _stopTimer();
     notifyListeners();
   }
@@ -715,7 +723,43 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_wearHeartRateSamples.length > 5000) {
       _wearHeartRateSamples.removeRange(0, _wearHeartRateSamples.length - 5000);
     }
-    notifyListeners();
+    for (final sample in batch.heartRateSamples) {
+      _pendingWearHeartRateUploads.add(
+        WorkoutHeartRatePoint()
+          ..sampledAt = sample.sampledAt
+          ..bpm = sample.bpm
+          ..availability = sample.availability.value,
+      );
+    }
+    unawaited(_flushPendingWearHeartRateUploads());
+  }
+
+  Future<void> _flushPendingWearHeartRateUploads({bool force = false}) async {
+    if (_wearHeartRateUploadInFlight) return;
+    final workout = _activeWorkout;
+    if (workout == null || workout.endTime != Int64.ZERO) return;
+    if (_pendingWearHeartRateUploads.isEmpty) return;
+
+    final now = DateTime.now();
+    if (!force &&
+        _lastWearHeartRateUploadAt != null &&
+        now.difference(_lastWearHeartRateUploadAt!) < const Duration(seconds: 5)) {
+      return;
+    }
+
+    _wearHeartRateUploadInFlight = true;
+    _lastWearHeartRateUploadAt = now;
+    final batch = List<WorkoutHeartRatePoint>.from(_pendingWearHeartRateUploads);
+    _pendingWearHeartRateUploads.clear();
+
+    try {
+      await _service.appendWorkoutHeartRate(workout.id, batch);
+    } catch (e) {
+      _pendingWearHeartRateUploads.insertAll(0, batch);
+      debugPrint('Heart rate upload failed: $e');
+    } finally {
+      _wearHeartRateUploadInFlight = false;
+    }
   }
 
   @override

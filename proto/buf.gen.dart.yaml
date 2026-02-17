@@ -1,0 +1,6 @@
+version: v2
+plugins:
+  - local: protoc-gen-dart
+    out: ../app/lib/gen
+    opt:
+      - grpc
