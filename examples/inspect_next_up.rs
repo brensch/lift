@@ -30,7 +30,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let db_url = format!("sqlite://{}", db_path);
     let options = SqliteConnectOptions::from_str(&db_url)?.read_only(true);
-    let pool = SqlitePoolOptions::new().max_connections(1).connect_with(options).await?;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await?;
 
     let workout_row = sqlx::query(
         "SELECT id, user_id, name, start_time

@@ -214,6 +214,8 @@ message CompleteSetRequest {
 
   float actual_weight = 4;
 
+  int64 completed_at = 5; // Unix seconds; if 0, server uses current time
+
 }
 
 message CompleteSetResponse {

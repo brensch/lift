@@ -419,6 +419,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     String proposedSetId,
     int actualReps,
     double actualWeight,
+    {int? completedAt}
   ) async {
     if (_activeWorkout == null) return;
     try {
@@ -427,6 +428,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         proposedSetId,
         actualReps,
         actualWeight,
+        completedAt,
       );
       final completed = response.completedSet;
       _activeCompletedSets.removeWhere(

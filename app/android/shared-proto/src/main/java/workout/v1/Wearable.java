@@ -3906,6 +3906,16 @@ public final class Wearable {
      * @return The actualWeight.
      */
     float getActualWeight();
+
+    /**
+     * <pre>
+     * Unix seconds, time of first tap
+     * </pre>
+     *
+     * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+     * @return The completedAt.
+     */
+    long getCompletedAt();
   }
   /**
    * Protobuf type {@code workout.v1.CompleteSetIntent}
@@ -4063,6 +4073,44 @@ public final class Wearable {
     private void clearActualWeight() {
       
       actualWeight_ = 0F;
+    }
+
+    public static final int COMPLETED_AT_FIELD_NUMBER = 5;
+    private long completedAt_;
+    /**
+     * <pre>
+     * Unix seconds, time of first tap
+     * </pre>
+     *
+     * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+     * @return The completedAt.
+     */
+    @java.lang.Override
+    public long getCompletedAt() {
+      return completedAt_;
+    }
+    /**
+     * <pre>
+     * Unix seconds, time of first tap
+     * </pre>
+     *
+     * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+     * @param value The completedAt to set.
+     */
+    private void setCompletedAt(long value) {
+      
+      completedAt_ = value;
+    }
+    /**
+     * <pre>
+     * Unix seconds, time of first tap
+     * </pre>
+     *
+     * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+     */
+    private void clearCompletedAt() {
+      
+      completedAt_ = 0L;
     }
 
     public static workout.v1.Wearable.CompleteSetIntent parseFrom(
@@ -4314,6 +4362,46 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * Unix seconds, time of first tap
+       * </pre>
+       *
+       * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+       * @return The completedAt.
+       */
+      @java.lang.Override
+      public long getCompletedAt() {
+        return instance.getCompletedAt();
+      }
+      /**
+       * <pre>
+       * Unix seconds, time of first tap
+       * </pre>
+       *
+       * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+       * @param value The completedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCompletedAt(long value) {
+        copyOnWrite();
+        instance.setCompletedAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Unix seconds, time of first tap
+       * </pre>
+       *
+       * <code>int64 completed_at = 5 [json_name = "completedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCompletedAt() {
+        copyOnWrite();
+        instance.clearCompletedAt();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.CompleteSetIntent)
     }
     @java.lang.Override
@@ -4334,10 +4422,11 @@ public final class Wearable {
               "setId_",
               "reps_",
               "actualWeight_",
+              "completedAt_",
             };
             java.lang.String info =
-                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0004\u0004\u0001";
+                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0004\u0004\u0001\u0005\u0002";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

@@ -678,6 +678,7 @@ const CompleteSetRequest$json = {
     {'1': 'proposed_set_id', '3': 2, '4': 1, '5': 9, '10': 'proposedSetId'},
     {'1': 'actual_reps', '3': 3, '4': 1, '5': 5, '10': 'actualReps'},
     {'1': 'actual_weight', '3': 4, '4': 1, '5': 2, '10': 'actualWeight'},
+    {'1': 'completed_at', '3': 5, '4': 1, '5': 3, '10': 'completedAt'},
   ],
 };
 
@@ -685,7 +686,8 @@ const CompleteSetRequest$json = {
 final $typed_data.Uint8List completeSetRequestDescriptor = $convert.base64Decode(
     'ChJDb21wbGV0ZVNldFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEiYKD3'
     'Byb3Bvc2VkX3NldF9pZBgCIAEoCVINcHJvcG9zZWRTZXRJZBIfCgthY3R1YWxfcmVwcxgDIAEo'
-    'BVIKYWN0dWFsUmVwcxIjCg1hY3R1YWxfd2VpZ2h0GAQgASgCUgxhY3R1YWxXZWlnaHQ=');
+    'BVIKYWN0dWFsUmVwcxIjCg1hY3R1YWxfd2VpZ2h0GAQgASgCUgxhY3R1YWxXZWlnaHQSIQoMY2'
+    '9tcGxldGVkX2F0GAUgASgDUgtjb21wbGV0ZWRBdA==');
 
 @$core.Deprecated('Use completeSetResponseDescriptor instead')
 const CompleteSetResponse$json = {

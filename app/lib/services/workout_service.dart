@@ -1,5 +1,6 @@
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
+import 'package:fixnum/fixnum.dart';
 import 'grpc_client.dart';
 
 class WorkoutServiceWrapper {
@@ -55,13 +56,15 @@ class WorkoutServiceWrapper {
     String proposedSetId,
     int actualReps,
     double actualWeight,
+    int? completedAt,
   ) async {
     return await _client.workoutService.completeSet(
       CompleteSetRequest()
         ..workoutId = workoutId
         ..proposedSetId = proposedSetId
         ..actualReps = actualReps
-        ..actualWeight = actualWeight,
+        ..actualWeight = actualWeight
+        ..completedAt = Int64(completedAt ?? 0),
     );
   }
 

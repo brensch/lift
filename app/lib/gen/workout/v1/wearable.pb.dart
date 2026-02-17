@@ -503,12 +503,14 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
     $core.String? setId,
     $core.int? reps,
     $core.double? actualWeight,
+    $fixnum.Int64? completedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (setId != null) result.setId = setId;
     if (reps != null) result.reps = reps;
     if (actualWeight != null) result.actualWeight = actualWeight;
+    if (completedAt != null) result.completedAt = completedAt;
     return result;
   }
 
@@ -530,6 +532,7 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
     ..aI(3, _omitFieldNames ? '' : 'reps')
     ..aD(4, _omitFieldNames ? '' : 'actualWeight',
         fieldType: $pb.PbFieldType.OF)
+    ..aInt64(5, _omitFieldNames ? '' : 'completedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -586,6 +589,15 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
   $core.bool hasActualWeight() => $_has(3);
   @$pb.TagNumber(4)
   void clearActualWeight() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get completedAt => $_getI64(4);
+  @$pb.TagNumber(5)
+  set completedAt($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCompletedAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCompletedAt() => $_clearField(5);
 }
 
 class SkipWarmupIntent extends $pb.GeneratedMessage {
