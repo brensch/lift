@@ -1023,6 +1023,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<CompletedSet>? completedSets,
     ProposedSet? nextUpSet,
     WorkoutPlanChangeStats? planChangeStats,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
@@ -1031,6 +1032,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (completedSets != null) result.completedSets.addAll(completedSets);
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
     if (planChangeStats != null) result.planChangeStats = planChangeStats;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -1059,6 +1061,8 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
         subBuilder: ProposedSet.create)
     ..aOM<WorkoutPlanChangeStats>(6, _omitFieldNames ? '' : 'planChangeStats',
         subBuilder: WorkoutPlanChangeStats.create)
+    ..aOM<WorkoutStateSnapshot>(7, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1121,6 +1125,17 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
   void clearPlanChangeStats() => $_clearField(6);
   @$pb.TagNumber(6)
   WorkoutPlanChangeStats ensurePlanChangeStats() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(6);
+  @$pb.TagNumber(7)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasStateSnapshot() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStateSnapshot() => $_clearField(7);
+  @$pb.TagNumber(7)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(6);
 }
 
 class WorkoutPlanChangeStats extends $pb.GeneratedMessage {
@@ -1200,6 +1215,112 @@ class WorkoutPlanChangeStats extends $pb.GeneratedMessage {
   $core.bool hasCancelledWorking() => $_has(2);
   @$pb.TagNumber(3)
   void clearCancelledWorking() => $_clearField(3);
+}
+
+class WorkoutStateSnapshot extends $pb.GeneratedMessage {
+  factory WorkoutStateSnapshot({
+    WorkoutState? state,
+    ProposedSet? displaySet,
+    $fixnum.Int64? activeStartedAt,
+    $fixnum.Int64? restUntil,
+    $fixnum.Int64? lastRestEnd,
+  }) {
+    final result = create();
+    if (state != null) result.state = state;
+    if (displaySet != null) result.displaySet = displaySet;
+    if (activeStartedAt != null) result.activeStartedAt = activeStartedAt;
+    if (restUntil != null) result.restUntil = restUntil;
+    if (lastRestEnd != null) result.lastRestEnd = lastRestEnd;
+    return result;
+  }
+
+  WorkoutStateSnapshot._();
+
+  factory WorkoutStateSnapshot.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutStateSnapshot.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutStateSnapshot',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<WorkoutState>(1, _omitFieldNames ? '' : 'state',
+        enumValues: WorkoutState.values)
+    ..aOM<ProposedSet>(2, _omitFieldNames ? '' : 'displaySet',
+        subBuilder: ProposedSet.create)
+    ..aInt64(3, _omitFieldNames ? '' : 'activeStartedAt')
+    ..aInt64(4, _omitFieldNames ? '' : 'restUntil')
+    ..aInt64(5, _omitFieldNames ? '' : 'lastRestEnd')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutStateSnapshot clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutStateSnapshot copyWith(void Function(WorkoutStateSnapshot) updates) =>
+      super.copyWith((message) => updates(message as WorkoutStateSnapshot))
+          as WorkoutStateSnapshot;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutStateSnapshot create() => WorkoutStateSnapshot._();
+  @$core.override
+  WorkoutStateSnapshot createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutStateSnapshot getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutStateSnapshot>(create);
+  static WorkoutStateSnapshot? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WorkoutState get state => $_getN(0);
+  @$pb.TagNumber(1)
+  set state(WorkoutState value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasState() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearState() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProposedSet get displaySet => $_getN(1);
+  @$pb.TagNumber(2)
+  set displaySet(ProposedSet value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDisplaySet() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDisplaySet() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProposedSet ensureDisplaySet() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get activeStartedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set activeStartedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasActiveStartedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearActiveStartedAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get restUntil => $_getI64(3);
+  @$pb.TagNumber(4)
+  set restUntil($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRestUntil() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRestUntil() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get lastRestEnd => $_getI64(4);
+  @$pb.TagNumber(5)
+  set lastRestEnd($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLastRestEnd() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLastRestEnd() => $_clearField(5);
 }
 
 class ListWorkoutsRequest extends $pb.GeneratedMessage {
@@ -1407,10 +1528,14 @@ class CreateExerciseGroupResponse extends $pb.GeneratedMessage {
   factory CreateExerciseGroupResponse({
     ExerciseGroup? group,
     $core.Iterable<ProposedSet>? generatedSets,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (group != null) result.group = group;
     if (generatedSets != null) result.generatedSets.addAll(generatedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -1431,6 +1556,10 @@ class CreateExerciseGroupResponse extends $pb.GeneratedMessage {
         subBuilder: ExerciseGroup.create)
     ..pPM<ProposedSet>(2, _omitFieldNames ? '' : 'generatedSets',
         subBuilder: ProposedSet.create)
+    ..aOM<ProposedSet>(3, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(4, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1468,6 +1597,28 @@ class CreateExerciseGroupResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<ProposedSet> get generatedSets => $_getList(1);
+
+  @$pb.TagNumber(3)
+  ProposedSet get nextUpSet => $_getN(2);
+  @$pb.TagNumber(3)
+  set nextUpSet(ProposedSet value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextUpSet() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextUpSet() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProposedSet ensureNextUpSet() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(3);
+  @$pb.TagNumber(4)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasStateSnapshot() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearStateSnapshot() => $_clearField(4);
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(3);
 }
 
 class StartSetRequest extends $pb.GeneratedMessage {
@@ -1539,9 +1690,13 @@ class StartSetRequest extends $pb.GeneratedMessage {
 class StartSetResponse extends $pb.GeneratedMessage {
   factory StartSetResponse({
     CompletedSet? completedSet,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (completedSet != null) result.completedSet = completedSet;
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -1560,6 +1715,10 @@ class StartSetResponse extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<CompletedSet>(1, _omitFieldNames ? '' : 'completedSet',
         subBuilder: CompletedSet.create)
+    ..aOM<ProposedSet>(2, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(3, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1591,6 +1750,28 @@ class StartSetResponse extends $pb.GeneratedMessage {
   void clearCompletedSet() => $_clearField(1);
   @$pb.TagNumber(1)
   CompletedSet ensureCompletedSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProposedSet get nextUpSet => $_getN(1);
+  @$pb.TagNumber(2)
+  set nextUpSet(ProposedSet value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNextUpSet() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNextUpSet() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProposedSet ensureNextUpSet() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(2);
+  @$pb.TagNumber(3)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStateSnapshot() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStateSnapshot() => $_clearField(3);
+  @$pb.TagNumber(3)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(2);
 }
 
 class CompleteSetRequest extends $pb.GeneratedMessage {
@@ -1687,9 +1868,13 @@ class CompleteSetRequest extends $pb.GeneratedMessage {
 class CompleteSetResponse extends $pb.GeneratedMessage {
   factory CompleteSetResponse({
     CompletedSet? completedSet,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (completedSet != null) result.completedSet = completedSet;
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -1708,6 +1893,10 @@ class CompleteSetResponse extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<CompletedSet>(1, _omitFieldNames ? '' : 'completedSet',
         subBuilder: CompletedSet.create)
+    ..aOM<ProposedSet>(2, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(3, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1739,6 +1928,28 @@ class CompleteSetResponse extends $pb.GeneratedMessage {
   void clearCompletedSet() => $_clearField(1);
   @$pb.TagNumber(1)
   CompletedSet ensureCompletedSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  ProposedSet get nextUpSet => $_getN(1);
+  @$pb.TagNumber(2)
+  set nextUpSet(ProposedSet value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNextUpSet() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNextUpSet() => $_clearField(2);
+  @$pb.TagNumber(2)
+  ProposedSet ensureNextUpSet() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(2);
+  @$pb.TagNumber(3)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStateSnapshot() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStateSnapshot() => $_clearField(3);
+  @$pb.TagNumber(3)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(2);
 }
 
 class DeleteCompletedSetRequest extends $pb.GeneratedMessage {
@@ -1809,7 +2020,15 @@ class DeleteCompletedSetRequest extends $pb.GeneratedMessage {
 }
 
 class DeleteCompletedSetResponse extends $pb.GeneratedMessage {
-  factory DeleteCompletedSetResponse() => create();
+  factory DeleteCompletedSetResponse({
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
+  }) {
+    final result = create();
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
+    return result;
+  }
 
   DeleteCompletedSetResponse._();
 
@@ -1824,6 +2043,10 @@ class DeleteCompletedSetResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'DeleteCompletedSetResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
+    ..aOM<ProposedSet>(1, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(2, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1846,6 +2069,28 @@ class DeleteCompletedSetResponse extends $pb.GeneratedMessage {
   static DeleteCompletedSetResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteCompletedSetResponse>(create);
   static DeleteCompletedSetResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProposedSet get nextUpSet => $_getN(0);
+  @$pb.TagNumber(1)
+  set nextUpSet(ProposedSet value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasNextUpSet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNextUpSet() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProposedSet ensureNextUpSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(1);
+  @$pb.TagNumber(2)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStateSnapshot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStateSnapshot() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(1);
 }
 
 class CancelProposedSetRequest extends $pb.GeneratedMessage {
@@ -1916,7 +2161,15 @@ class CancelProposedSetRequest extends $pb.GeneratedMessage {
 }
 
 class CancelProposedSetResponse extends $pb.GeneratedMessage {
-  factory CancelProposedSetResponse() => create();
+  factory CancelProposedSetResponse({
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
+  }) {
+    final result = create();
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
+    return result;
+  }
 
   CancelProposedSetResponse._();
 
@@ -1931,6 +2184,10 @@ class CancelProposedSetResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'CancelProposedSetResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
+    ..aOM<ProposedSet>(1, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(2, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1952,6 +2209,28 @@ class CancelProposedSetResponse extends $pb.GeneratedMessage {
   static CancelProposedSetResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CancelProposedSetResponse>(create);
   static CancelProposedSetResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProposedSet get nextUpSet => $_getN(0);
+  @$pb.TagNumber(1)
+  set nextUpSet(ProposedSet value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasNextUpSet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNextUpSet() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProposedSet ensureNextUpSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(1);
+  @$pb.TagNumber(2)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStateSnapshot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStateSnapshot() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(1);
 }
 
 class EndWorkoutRequest extends $pb.GeneratedMessage {
@@ -2696,10 +2975,14 @@ class UpdateExerciseGroupResponse extends $pb.GeneratedMessage {
   factory UpdateExerciseGroupResponse({
     ExerciseGroup? group,
     $core.Iterable<ProposedSet>? generatedSets,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (group != null) result.group = group;
     if (generatedSets != null) result.generatedSets.addAll(generatedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -2720,6 +3003,10 @@ class UpdateExerciseGroupResponse extends $pb.GeneratedMessage {
         subBuilder: ExerciseGroup.create)
     ..pPM<ProposedSet>(2, _omitFieldNames ? '' : 'generatedSets',
         subBuilder: ProposedSet.create)
+    ..aOM<ProposedSet>(3, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(4, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2757,6 +3044,28 @@ class UpdateExerciseGroupResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<ProposedSet> get generatedSets => $_getList(1);
+
+  @$pb.TagNumber(3)
+  ProposedSet get nextUpSet => $_getN(2);
+  @$pb.TagNumber(3)
+  set nextUpSet(ProposedSet value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextUpSet() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextUpSet() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProposedSet ensureNextUpSet() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(3);
+  @$pb.TagNumber(4)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasStateSnapshot() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearStateSnapshot() => $_clearField(4);
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(3);
 }
 
 class DeleteExerciseGroupRequest extends $pb.GeneratedMessage {
@@ -2828,7 +3137,15 @@ class DeleteExerciseGroupRequest extends $pb.GeneratedMessage {
 }
 
 class DeleteExerciseGroupResponse extends $pb.GeneratedMessage {
-  factory DeleteExerciseGroupResponse() => create();
+  factory DeleteExerciseGroupResponse({
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
+  }) {
+    final result = create();
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
+    return result;
+  }
 
   DeleteExerciseGroupResponse._();
 
@@ -2843,6 +3160,10 @@ class DeleteExerciseGroupResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'DeleteExerciseGroupResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
+    ..aOM<ProposedSet>(1, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(2, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2866,6 +3187,28 @@ class DeleteExerciseGroupResponse extends $pb.GeneratedMessage {
   static DeleteExerciseGroupResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteExerciseGroupResponse>(create);
   static DeleteExerciseGroupResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProposedSet get nextUpSet => $_getN(0);
+  @$pb.TagNumber(1)
+  set nextUpSet(ProposedSet value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasNextUpSet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNextUpSet() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProposedSet ensureNextUpSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(1);
+  @$pb.TagNumber(2)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStateSnapshot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStateSnapshot() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(1);
 }
 
 class ReorderExerciseGroupsRequest extends $pb.GeneratedMessage {
@@ -2933,7 +3276,15 @@ class ReorderExerciseGroupsRequest extends $pb.GeneratedMessage {
 }
 
 class ReorderExerciseGroupsResponse extends $pb.GeneratedMessage {
-  factory ReorderExerciseGroupsResponse() => create();
+  factory ReorderExerciseGroupsResponse({
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
+  }) {
+    final result = create();
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
+    return result;
+  }
 
   ReorderExerciseGroupsResponse._();
 
@@ -2948,6 +3299,10 @@ class ReorderExerciseGroupsResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'ReorderExerciseGroupsResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
+    ..aOM<ProposedSet>(1, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(2, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2971,6 +3326,28 @@ class ReorderExerciseGroupsResponse extends $pb.GeneratedMessage {
   static ReorderExerciseGroupsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ReorderExerciseGroupsResponse>(create);
   static ReorderExerciseGroupsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProposedSet get nextUpSet => $_getN(0);
+  @$pb.TagNumber(1)
+  set nextUpSet(ProposedSet value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasNextUpSet() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNextUpSet() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProposedSet ensureNextUpSet() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(1);
+  @$pb.TagNumber(2)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStateSnapshot() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStateSnapshot() => $_clearField(2);
+  @$pb.TagNumber(2)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(1);
 }
 
 class CreateUserRequest extends $pb.GeneratedMessage {

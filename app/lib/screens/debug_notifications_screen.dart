@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
+import '../gen/workout/v1/workout.pbenum.dart';
 import '../providers/workout_provider.dart';
 import '../services/notification_service.dart';
 
@@ -60,25 +61,24 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         children: [
           _section('Bottom Bar State', [
             _row('state', () {
-              final activeSetId = wp.activeSetId;
-              final isResting = wp.restingSet != null;
-              final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
+              final snapshot = wp.stateSnapshot;
+              final state = snapshot?.state;
               final nextSet = wp.nextPendingSet;
-              final allDone =
-                  wp.activeProposedSets.isNotEmpty &&
-                  wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
-                  activeSetId == null;
-              if (allDone) return 'All done';
-              if (activeSetId != null) return 'Lifting';
-              if (isResting) return 'Resting (${wp.restSecondsRemaining}s)';
-              if (!isResting &&
-                  activeSetId == null &&
-                  lastRestEnd > 0 &&
-                  lastRestEnd <= nowUnix &&
-                  nextSet != null) {
-                return 'Yapping (+${nowUnix - lastRestEnd}s)';
+              if (state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
+                return 'All done';
               }
-              if (nextSet != null) return 'Next up';
+              if (state == WorkoutState.WORKOUT_STATE_LIFTING) return 'Lifting';
+              if (state == WorkoutState.WORKOUT_STATE_RESTING) {
+                final restUntil = snapshot?.restUntil.toInt() ?? 0;
+                if (restUntil > 0 && restUntil < nowUnix && nextSet != null) {
+                  return 'Yapping (+${nowUnix - restUntil}s)';
+                }
+                return 'Resting (${wp.restSecondsRemaining}s)';
+              }
+              if (state == WorkoutState.WORKOUT_STATE_READY ||
+                  nextSet != null) {
+                return 'Next up';
+              }
               return 'Idle';
             }()),
             _row('wasResting', '${wp.debugWasResting}'),

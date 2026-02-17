@@ -43,7 +43,7 @@ class ParticipantCard extends StatelessWidget {
 
   _ParticipantStatusInfo _getStatus(ParticipantStatus p) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final nextSet = p.hasNextUpSet() ? p.nextUpSet : _findNextPending(p);
+    final nextSet = p.hasNextUpSet() ? p.nextUpSet : null;
     final restUntil = p.restUntil.toInt();
 
     // Check if workout is ended
@@ -111,16 +111,6 @@ class ParticipantCard extends StatelessWidget {
     return _ParticipantStatusInfo(
       stateLabel: 'Done',
       stateColor: AppTheme.successFg,
-    );
-  }
-
-  ProposedSet? _findNextPending(ParticipantStatus p) {
-    bool isDone(String setId) => p.completedSets.any(
-      (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
-    );
-    return p.proposedSets.cast<ProposedSet?>().firstWhere(
-      (s) => !isDone(s!.id),
-      orElse: () => null,
     );
   }
 }

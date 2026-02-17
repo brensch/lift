@@ -28,4 +28,4 @@ data/
 
 user_dbs/
 
-.tmp/**/*
+.tmp/

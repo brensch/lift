@@ -127,5 +127,33 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
+class WorkoutState extends $pb.ProtobufEnum {
+  static const WorkoutState WORKOUT_STATE_UNSPECIFIED =
+      WorkoutState._(0, _omitEnumNames ? '' : 'WORKOUT_STATE_UNSPECIFIED');
+  static const WorkoutState WORKOUT_STATE_ALL_DONE =
+      WorkoutState._(1, _omitEnumNames ? '' : 'WORKOUT_STATE_ALL_DONE');
+  static const WorkoutState WORKOUT_STATE_LIFTING =
+      WorkoutState._(2, _omitEnumNames ? '' : 'WORKOUT_STATE_LIFTING');
+  static const WorkoutState WORKOUT_STATE_RESTING =
+      WorkoutState._(3, _omitEnumNames ? '' : 'WORKOUT_STATE_RESTING');
+  static const WorkoutState WORKOUT_STATE_READY =
+      WorkoutState._(5, _omitEnumNames ? '' : 'WORKOUT_STATE_READY');
+
+  static const $core.List<WorkoutState> values = <WorkoutState>[
+    WORKOUT_STATE_UNSPECIFIED,
+    WORKOUT_STATE_ALL_DONE,
+    WORKOUT_STATE_LIFTING,
+    WORKOUT_STATE_RESTING,
+    WORKOUT_STATE_READY,
+  ];
+
+  static final $core.List<WorkoutState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static WorkoutState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const WorkoutState._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

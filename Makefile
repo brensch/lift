@@ -14,7 +14,8 @@ run-dev:
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; make run-backend & make run-frontend & wait'
 
 run-backend:
-	@pkill -x lift || true
+	@pkill -f "[/]target/debug/lift" || true
+	@pkill -f "[/]target/release/lift" || true
 	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
 	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
@@ -22,7 +23,8 @@ run-backend:
 	cargo watch -x "run --bin lift --features test-auth"
 
 run-backend-release:
-	@pkill -x lift || true
+	@pkill -f "[/]target/debug/lift" || true
+	@pkill -f "[/]target/release/lift" || true
 	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
 	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
@@ -43,20 +45,64 @@ setup-flutter:
 	mkdir -p $(HOME)/.config/flutter
 	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
-WINDOW_WIDTH = 450
-WINDOW_HEIGHT = 900
+TMP_RUN_DIR = .tmp/run-app
+LINUX_BUNDLE = app/build/linux/x64/debug/bundle/lift
+LINUX_SOFTWARE_RENDER ?= 1
 
 run-app:
 	@make stop-app || true
-	@$(ADB) reverse tcp:50051 tcp:50051 || true
-	@mkdir -p .tmp/linux-1 .tmp/linux-2
-	cd app && $(FLUTTER) run -d all --dart-define=WINDOW_WIDTH=$(WINDOW_WIDTH) --dart-define=WINDOW_HEIGHT=$(WINDOW_HEIGHT)
+	@bash -ec '\
+		mkdir -p "$(TMP_RUN_DIR)"; \
+		if [ ! -x "$(ADB)" ]; then \
+			echo "adb not found at $(ADB); launching Flutter multi-device without adb prep."; \
+		else \
+			DEVICE_ID=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1; exit }'\''); \
+			if [ -z "$$DEVICE_ID" ]; then \
+				echo "No attached Android device found; launching Linux only."; \
+			else \
+				echo "Android device detected: $$DEVICE_ID"; \
+				$(ADB) -s "$$DEVICE_ID" reverse tcp:50051 tcp:50051 || true; \
+			fi; \
+		fi; \
+		echo "Starting interactive Flutter hot-reload session (linux + attached android)..."; \
+		cd app && $(FLUTTER) run -d all --dart-define=INSTANCE=ubuntu; \
+	'
+
+run-linux:
+	@bash -ec '\
+		mkdir -p "$(TMP_RUN_DIR)" .tmp/linux-1 .tmp/linux-2; \
+		echo "Building Linux bundle once..."; \
+		(cd app && $(FLUTTER) build linux --debug); \
+		if [ ! -x "$(LINUX_BUNDLE)" ]; then \
+			echo "Linux bundle missing: $(LINUX_BUNDLE)"; \
+			exit 1; \
+		fi; \
+		echo "Launching linux-1 and linux-2..."; \
+		nohup env XDG_DATA_HOME="$(PWD)/.tmp/linux-1" LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
+			"$(PWD)/$(LINUX_BUNDLE)" --dart-define=INSTANCE=1 \
+			> "$(TMP_RUN_DIR)/linux-1.log" 2>&1 & \
+		echo $$! > "$(TMP_RUN_DIR)/linux-1.pid"; \
+		nohup env XDG_DATA_HOME="$(PWD)/.tmp/linux-2" LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
+			"$(PWD)/$(LINUX_BUNDLE)" --dart-define=INSTANCE=2 \
+			> "$(TMP_RUN_DIR)/linux-2.log" 2>&1 & \
+		echo $$! > "$(TMP_RUN_DIR)/linux-2.pid"; \
+		echo "Linux logs: $(TMP_RUN_DIR)/linux-1.log, $(TMP_RUN_DIR)/linux-2.log"; \
+	'
 
 stop-app:
-	@echo "Stopping all lift instances..."
-	@pkill -9 -f "bundle/lift" || true
-	@pkill -9 -f "dart.*INSTANCE=" || true
-	@pkill -9 -f "flutter_assets" || true
+	@echo "Stopping app processes..."
+	@bash -ec '\
+		if [ -d "$(TMP_RUN_DIR)" ]; then \
+			for pidfile in "$(TMP_RUN_DIR)"/*.pid; do \
+				[ -f "$$pidfile" ] || continue; \
+				pid=$$(cat "$$pidfile" 2>/dev/null || true); \
+				[ -n "$$pid" ] && kill "$$pid" 2>/dev/null || true; \
+				rm -f "$$pidfile"; \
+			done; \
+		fi; \
+		pkill -f "[/]app/build/linux/x64/debug/bundle/lift" 2>/dev/null || true; \
+		pkill -f "[/]flutter-sdk/bin/flutter.*run -d" 2>/dev/null || true; \
+	'
 
 load-test:
 	cargo run --release --example load_simulation --all-features -- --duration 3000
