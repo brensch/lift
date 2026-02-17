@@ -109,6 +109,12 @@ message StartWorkoutRequest {
 }
 message StartWorkoutResponse {
   string id = 1;
+  Workout workout = 2;
+  repeated ExerciseGroup exercise_groups = 3;
+  repeated ProposedSet proposed_sets = 4;
+  repeated CompletedSet completed_sets = 5;
+  ProposedSet next_up_set = 6;
+  WorkoutStateSnapshot state_snapshot = 7;
 }
 
 message GetWorkoutRequest {

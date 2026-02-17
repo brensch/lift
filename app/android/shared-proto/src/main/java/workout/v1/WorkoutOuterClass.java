@@ -6135,6 +6135,81 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getIdBytes();
+
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     * @return Whether the workout field is set.
+     */
+    boolean hasWorkout();
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     * @return The workout.
+     */
+    workout.v1.WorkoutOuterClass.Workout getWorkout();
+
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> 
+        getExerciseGroupsList();
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index);
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    int getExerciseGroupsCount();
+
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ProposedSet> 
+        getProposedSetsList();
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ProposedSet getProposedSets(int index);
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    int getProposedSetsCount();
+
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.CompletedSet> 
+        getCompletedSetsList();
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    workout.v1.WorkoutOuterClass.CompletedSet getCompletedSets(int index);
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    int getCompletedSetsCount();
+
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     * @return Whether the nextUpSet field is set.
+     */
+    boolean hasNextUpSet();
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     * @return The nextUpSet.
+     */
+    workout.v1.WorkoutOuterClass.ProposedSet getNextUpSet();
+
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     * @return Whether the stateSnapshot field is set.
+     */
+    boolean hasStateSnapshot();
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     * @return The stateSnapshot.
+     */
+    workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot();
   }
   /**
    * Protobuf type {@code workout.v1.StartWorkoutResponse}
@@ -6146,6 +6221,9 @@ public final class WorkoutOuterClass {
       StartWorkoutResponseOrBuilder {
     private StartWorkoutResponse() {
       id_ = "";
+      exerciseGroups_ = emptyProtobufList();
+      proposedSets_ = emptyProtobufList();
+      completedSets_ = emptyProtobufList();
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -6191,6 +6269,426 @@ public final class WorkoutOuterClass {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       id_ = value.toStringUtf8();
+      
+    }
+
+    public static final int WORKOUT_FIELD_NUMBER = 2;
+    private workout.v1.WorkoutOuterClass.Workout workout_;
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     */
+    @java.lang.Override
+    public boolean hasWorkout() {
+      return workout_ != null;
+    }
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.Workout getWorkout() {
+      return workout_ == null ? workout.v1.WorkoutOuterClass.Workout.getDefaultInstance() : workout_;
+    }
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     */
+    private void setWorkout(workout.v1.WorkoutOuterClass.Workout value) {
+      value.getClass();
+  workout_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeWorkout(workout.v1.WorkoutOuterClass.Workout value) {
+      value.getClass();
+  if (workout_ != null &&
+          workout_ != workout.v1.WorkoutOuterClass.Workout.getDefaultInstance()) {
+        workout_ =
+          workout.v1.WorkoutOuterClass.Workout.newBuilder(workout_).mergeFrom(value).buildPartial();
+      } else {
+        workout_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+     */
+    private void clearWorkout() {  workout_ = null;
+      
+    }
+
+    public static final int EXERCISE_GROUPS_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> exerciseGroups_;
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getExerciseGroupsList() {
+      return exerciseGroups_;
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder> 
+        getExerciseGroupsOrBuilderList() {
+      return exerciseGroups_;
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public int getExerciseGroupsCount() {
+      return exerciseGroups_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index) {
+      return exerciseGroups_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder getExerciseGroupsOrBuilder(
+        int index) {
+      return exerciseGroups_.get(index);
+    }
+    private void ensureExerciseGroupsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> tmp = exerciseGroups_;
+      if (!tmp.isModifiable()) {
+        exerciseGroups_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void setExerciseGroups(
+        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureExerciseGroupsIsMutable();
+      exerciseGroups_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void addExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureExerciseGroupsIsMutable();
+      exerciseGroups_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void addExerciseGroups(
+        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureExerciseGroupsIsMutable();
+      exerciseGroups_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void addAllExerciseGroups(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
+      ensureExerciseGroupsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exerciseGroups_);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void clearExerciseGroups() {
+      exerciseGroups_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+     */
+    private void removeExerciseGroups(int index) {
+      ensureExerciseGroupsIsMutable();
+      exerciseGroups_.remove(index);
+    }
+
+    public static final int PROPOSED_SETS_FIELD_NUMBER = 4;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProposedSet> proposedSets_;
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ProposedSet> getProposedSetsList() {
+      return proposedSets_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ProposedSetOrBuilder> 
+        getProposedSetsOrBuilderList() {
+      return proposedSets_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    @java.lang.Override
+    public int getProposedSetsCount() {
+      return proposedSets_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProposedSet getProposedSets(int index) {
+      return proposedSets_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ProposedSetOrBuilder getProposedSetsOrBuilder(
+        int index) {
+      return proposedSets_.get(index);
+    }
+    private void ensureProposedSetsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProposedSet> tmp = proposedSets_;
+      if (!tmp.isModifiable()) {
+        proposedSets_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void setProposedSets(
+        int index, workout.v1.WorkoutOuterClass.ProposedSet value) {
+      value.getClass();
+  ensureProposedSetsIsMutable();
+      proposedSets_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void addProposedSets(workout.v1.WorkoutOuterClass.ProposedSet value) {
+      value.getClass();
+  ensureProposedSetsIsMutable();
+      proposedSets_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void addProposedSets(
+        int index, workout.v1.WorkoutOuterClass.ProposedSet value) {
+      value.getClass();
+  ensureProposedSetsIsMutable();
+      proposedSets_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void addAllProposedSets(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProposedSet> values) {
+      ensureProposedSetsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, proposedSets_);
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void clearProposedSets() {
+      proposedSets_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+     */
+    private void removeProposedSets(int index) {
+      ensureProposedSetsIsMutable();
+      proposedSets_.remove(index);
+    }
+
+    public static final int COMPLETED_SETS_FIELD_NUMBER = 5;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.CompletedSet> completedSets_;
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.CompletedSet> getCompletedSetsList() {
+      return completedSets_;
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.CompletedSetOrBuilder> 
+        getCompletedSetsOrBuilderList() {
+      return completedSets_;
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    @java.lang.Override
+    public int getCompletedSetsCount() {
+      return completedSets_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.CompletedSet getCompletedSets(int index) {
+      return completedSets_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.CompletedSetOrBuilder getCompletedSetsOrBuilder(
+        int index) {
+      return completedSets_.get(index);
+    }
+    private void ensureCompletedSetsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.CompletedSet> tmp = completedSets_;
+      if (!tmp.isModifiable()) {
+        completedSets_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void setCompletedSets(
+        int index, workout.v1.WorkoutOuterClass.CompletedSet value) {
+      value.getClass();
+  ensureCompletedSetsIsMutable();
+      completedSets_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void addCompletedSets(workout.v1.WorkoutOuterClass.CompletedSet value) {
+      value.getClass();
+  ensureCompletedSetsIsMutable();
+      completedSets_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void addCompletedSets(
+        int index, workout.v1.WorkoutOuterClass.CompletedSet value) {
+      value.getClass();
+  ensureCompletedSetsIsMutable();
+      completedSets_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void addAllCompletedSets(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.CompletedSet> values) {
+      ensureCompletedSetsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, completedSets_);
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void clearCompletedSets() {
+      completedSets_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+     */
+    private void removeCompletedSets(int index) {
+      ensureCompletedSetsIsMutable();
+      completedSets_.remove(index);
+    }
+
+    public static final int NEXT_UP_SET_FIELD_NUMBER = 6;
+    private workout.v1.WorkoutOuterClass.ProposedSet nextUpSet_;
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     */
+    @java.lang.Override
+    public boolean hasNextUpSet() {
+      return nextUpSet_ != null;
+    }
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProposedSet getNextUpSet() {
+      return nextUpSet_ == null ? workout.v1.WorkoutOuterClass.ProposedSet.getDefaultInstance() : nextUpSet_;
+    }
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     */
+    private void setNextUpSet(workout.v1.WorkoutOuterClass.ProposedSet value) {
+      value.getClass();
+  nextUpSet_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeNextUpSet(workout.v1.WorkoutOuterClass.ProposedSet value) {
+      value.getClass();
+  if (nextUpSet_ != null &&
+          nextUpSet_ != workout.v1.WorkoutOuterClass.ProposedSet.getDefaultInstance()) {
+        nextUpSet_ =
+          workout.v1.WorkoutOuterClass.ProposedSet.newBuilder(nextUpSet_).mergeFrom(value).buildPartial();
+      } else {
+        nextUpSet_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+     */
+    private void clearNextUpSet() {  nextUpSet_ = null;
+      
+    }
+
+    public static final int STATE_SNAPSHOT_FIELD_NUMBER = 7;
+    private workout.v1.WorkoutOuterClass.WorkoutStateSnapshot stateSnapshot_;
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     */
+    @java.lang.Override
+    public boolean hasStateSnapshot() {
+      return stateSnapshot_ != null;
+    }
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot() {
+      return stateSnapshot_ == null ? workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.getDefaultInstance() : stateSnapshot_;
+    }
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     */
+    private void setStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+      value.getClass();
+  stateSnapshot_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+      value.getClass();
+  if (stateSnapshot_ != null &&
+          stateSnapshot_ != workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.getDefaultInstance()) {
+        stateSnapshot_ =
+          workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.newBuilder(stateSnapshot_).mergeFrom(value).buildPartial();
+      } else {
+        stateSnapshot_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+     */
+    private void clearStateSnapshot() {  stateSnapshot_ = null;
       
     }
 
@@ -6338,6 +6836,453 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      @java.lang.Override
+      public boolean hasWorkout() {
+        return instance.hasWorkout();
+      }
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.Workout getWorkout() {
+        return instance.getWorkout();
+      }
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      public Builder setWorkout(workout.v1.WorkoutOuterClass.Workout value) {
+        copyOnWrite();
+        instance.setWorkout(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      public Builder setWorkout(
+          workout.v1.WorkoutOuterClass.Workout.Builder builderForValue) {
+        copyOnWrite();
+        instance.setWorkout(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      public Builder mergeWorkout(workout.v1.WorkoutOuterClass.Workout value) {
+        copyOnWrite();
+        instance.mergeWorkout(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.Workout workout = 2 [json_name = "workout"];</code>
+       */
+      public Builder clearWorkout() {  copyOnWrite();
+        instance.clearWorkout();
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getExerciseGroupsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExerciseGroupsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public int getExerciseGroupsCount() {
+        return instance.getExerciseGroupsCount();
+      }/**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index) {
+        return instance.getExerciseGroups(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder setExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.setExerciseGroups(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder setExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.setExerciseGroups(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder addExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.addExerciseGroups(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder addExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.addExerciseGroups(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder addExerciseGroups(
+          workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExerciseGroups(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder addExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExerciseGroups(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder addAllExerciseGroups(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
+        copyOnWrite();
+        instance.addAllExerciseGroups(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder clearExerciseGroups() {
+        copyOnWrite();
+        instance.clearExerciseGroups();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 3 [json_name = "exerciseGroups"];</code>
+       */
+      public Builder removeExerciseGroups(int index) {
+        copyOnWrite();
+        instance.removeExerciseGroups(index);
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ProposedSet> getProposedSetsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getProposedSetsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      @java.lang.Override
+      public int getProposedSetsCount() {
+        return instance.getProposedSetsCount();
+      }/**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProposedSet getProposedSets(int index) {
+        return instance.getProposedSets(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder setProposedSets(
+          int index, workout.v1.WorkoutOuterClass.ProposedSet value) {
+        copyOnWrite();
+        instance.setProposedSets(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder setProposedSets(
+          int index, workout.v1.WorkoutOuterClass.ProposedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProposedSets(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder addProposedSets(workout.v1.WorkoutOuterClass.ProposedSet value) {
+        copyOnWrite();
+        instance.addProposedSets(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder addProposedSets(
+          int index, workout.v1.WorkoutOuterClass.ProposedSet value) {
+        copyOnWrite();
+        instance.addProposedSets(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder addProposedSets(
+          workout.v1.WorkoutOuterClass.ProposedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProposedSets(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder addProposedSets(
+          int index, workout.v1.WorkoutOuterClass.ProposedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProposedSets(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder addAllProposedSets(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProposedSet> values) {
+        copyOnWrite();
+        instance.addAllProposedSets(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder clearProposedSets() {
+        copyOnWrite();
+        instance.clearProposedSets();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProposedSet proposed_sets = 4 [json_name = "proposedSets"];</code>
+       */
+      public Builder removeProposedSets(int index) {
+        copyOnWrite();
+        instance.removeProposedSets(index);
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.CompletedSet> getCompletedSetsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getCompletedSetsList());
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      @java.lang.Override
+      public int getCompletedSetsCount() {
+        return instance.getCompletedSetsCount();
+      }/**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.CompletedSet getCompletedSets(int index) {
+        return instance.getCompletedSets(index);
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder setCompletedSets(
+          int index, workout.v1.WorkoutOuterClass.CompletedSet value) {
+        copyOnWrite();
+        instance.setCompletedSets(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder setCompletedSets(
+          int index, workout.v1.WorkoutOuterClass.CompletedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCompletedSets(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder addCompletedSets(workout.v1.WorkoutOuterClass.CompletedSet value) {
+        copyOnWrite();
+        instance.addCompletedSets(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder addCompletedSets(
+          int index, workout.v1.WorkoutOuterClass.CompletedSet value) {
+        copyOnWrite();
+        instance.addCompletedSets(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder addCompletedSets(
+          workout.v1.WorkoutOuterClass.CompletedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.addCompletedSets(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder addCompletedSets(
+          int index, workout.v1.WorkoutOuterClass.CompletedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.addCompletedSets(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder addAllCompletedSets(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.CompletedSet> values) {
+        copyOnWrite();
+        instance.addAllCompletedSets(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder clearCompletedSets() {
+        copyOnWrite();
+        instance.clearCompletedSets();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.CompletedSet completed_sets = 5 [json_name = "completedSets"];</code>
+       */
+      public Builder removeCompletedSets(int index) {
+        copyOnWrite();
+        instance.removeCompletedSets(index);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      @java.lang.Override
+      public boolean hasNextUpSet() {
+        return instance.hasNextUpSet();
+      }
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProposedSet getNextUpSet() {
+        return instance.getNextUpSet();
+      }
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      public Builder setNextUpSet(workout.v1.WorkoutOuterClass.ProposedSet value) {
+        copyOnWrite();
+        instance.setNextUpSet(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      public Builder setNextUpSet(
+          workout.v1.WorkoutOuterClass.ProposedSet.Builder builderForValue) {
+        copyOnWrite();
+        instance.setNextUpSet(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      public Builder mergeNextUpSet(workout.v1.WorkoutOuterClass.ProposedSet value) {
+        copyOnWrite();
+        instance.mergeNextUpSet(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProposedSet next_up_set = 6 [json_name = "nextUpSet"];</code>
+       */
+      public Builder clearNextUpSet() {  copyOnWrite();
+        instance.clearNextUpSet();
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      @java.lang.Override
+      public boolean hasStateSnapshot() {
+        return instance.hasStateSnapshot();
+      }
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot() {
+        return instance.getStateSnapshot();
+      }
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder setStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+        copyOnWrite();
+        instance.setStateSnapshot(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder setStateSnapshot(
+          workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.Builder builderForValue) {
+        copyOnWrite();
+        instance.setStateSnapshot(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder mergeStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+        copyOnWrite();
+        instance.mergeStateSnapshot(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 7 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder clearStateSnapshot() {  copyOnWrite();
+        instance.clearStateSnapshot();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.StartWorkoutResponse)
     }
     @java.lang.Override
@@ -6355,9 +7300,19 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "id_",
+              "workout_",
+              "exerciseGroups_",
+              workout.v1.WorkoutOuterClass.ExerciseGroup.class,
+              "proposedSets_",
+              workout.v1.WorkoutOuterClass.ProposedSet.class,
+              "completedSets_",
+              workout.v1.WorkoutOuterClass.CompletedSet.class,
+              "nextUpSet_",
+              "stateSnapshot_",
             };
             java.lang.String info =
-                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+                "\u0000\u0007\u0000\u0000\u0001\u0007\u0007\u0000\u0003\u0000\u0001\u0208\u0002\t" +
+                "\u0003\u001b\u0004\u001b\u0005\u001b\u0006\t\u0007\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

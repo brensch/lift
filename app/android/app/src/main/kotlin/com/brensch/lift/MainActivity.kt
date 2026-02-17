@@ -1,6 +1,6 @@
-package com.lift.lift
+package com.brensch.lift
 
-import com.lift.lift.wearbridge.WearBridgeManager
+import com.brensch.lift.wearbridge.WearBridgeManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel

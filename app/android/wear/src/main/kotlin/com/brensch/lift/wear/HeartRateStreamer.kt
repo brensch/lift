@@ -1,4 +1,4 @@
-package com.lift.lift.wear
+package com.brensch.lift.wear
 
 import android.content.Context
 import android.hardware.Sensor

@@ -121,7 +121,7 @@ async fn assetlinks_handler() -> Json<serde_json::Value> {
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
-            "package_name": "com.lift.lift",
+            "package_name": "com.brensch.lift",
             "sha256_cert_fingerprints": [sha256]
         }
     }]))

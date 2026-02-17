@@ -1,4 +1,4 @@
-package com.lift.lift.wearbridge
+package com.brensch.lift.wearbridge
 
 import android.util.Log
 import com.google.android.gms.wearable.MessageEvent

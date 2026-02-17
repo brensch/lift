@@ -1,25 +1,60 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
+if (isReleaseTask && !keystorePropertiesFile.exists()) {
+    throw GradleException(
+        "Missing app/android/key.properties for release signing. " +
+            "Create it before running release builds."
+    )
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val baseVersionCode = localProperties.getProperty("flutter.versionCode")?.toIntOrNull() ?: 1
+val wearVersionCode = (baseVersionCode * 1000) + 1
+val wearVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0.0"
+
 android {
-    namespace = "com.lift.lift.wear"
+    namespace = "com.brensch.lift.wear"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.lift.lift"
+        applicationId = "com.brensch.lift"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = wearVersionCode
+        versionName = wearVersionName
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
