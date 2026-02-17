@@ -27,6 +27,15 @@ String _fmtElapsed(int totalSeconds) {
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
+bool _isAllDoneState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
+bool _isLiftingState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
+bool _isRestingState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_RESTING.value;
+bool _isReadyState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_READY.value;
+
 class WorkoutBottomBar extends StatelessWidget {
   const WorkoutBottomBar({super.key});
 
@@ -42,30 +51,22 @@ class WorkoutBottomBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final restSeconds = wp.restSecondsRemaining;
-    final activeSetId = wp.activeSetId;
+    final stateSnapshot = wp.stateSnapshot;
+    final stateValue =
+        stateSnapshot?.state.value ??
+        WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
     final nextSet = wp.nextPendingSet;
-    final isResting = wp.restingSet != null;
+    final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
+    final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
+    final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
+    final restSeconds = restUntil > 0
+        ? (restUntil - nowUnix).clamp(0, 1 << 30)
+        : 0;
     final workout = wp.activeWorkout;
     final elapsedSeconds = workout != null && workout.startTime != Int64.ZERO
         ? (wp.now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
         : 0;
     final elapsedText = _fmtElapsed(elapsedSeconds < 0 ? 0 : elapsedSeconds);
-
-    final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
-    final lastRestEnd = wp.lastRestEndTimestamp ?? 0;
-    final isChatTime =
-        !isResting &&
-        activeSetId == null &&
-        lastRestEnd > 0 &&
-        lastRestEnd <= nowUnix &&
-        nextSet != null;
-    final chatElapsed = isChatTime ? nowUnix - lastRestEnd : 0;
-
-    final allDone =
-        wp.activeProposedSets.isNotEmpty &&
-        wp.activeProposedSets.every((p) => wp.isSetDone(p.id)) &&
-        activeSetId == null;
 
     // Determine if we're on the workout page
     final currentUri = GoRouterState.of(context).uri.toString();
@@ -79,7 +80,7 @@ class WorkoutBottomBar extends StatelessWidget {
     ProposedSet? displaySet; // the set to show weight info for
     Widget actionButton = const SizedBox.shrink();
 
-    if (allDone) {
+    if (_isAllDoneState(stateValue)) {
       stateLabel = 'All sets complete';
       stateColor = AppTheme.successFg;
       displaySet = null;
@@ -87,23 +88,12 @@ class WorkoutBottomBar extends StatelessWidget {
         label: 'End Workout',
         onPressed: () => endWorkout(context),
       );
-    } else if (activeSetId != null) {
-      final proposed = wp.activeProposedSets.cast<ProposedSet?>().firstWhere(
-        (p) => p!.id == activeSetId,
-        orElse: () => null,
-      );
+    } else if (_isLiftingState(stateValue)) {
+      final proposed = stateSnapshot?.hasDisplaySet() == true
+          ? stateSnapshot!.displaySet
+          : null;
       if (proposed == null) return const SizedBox.shrink();
-
-      final activeCompleted = wp.activeCompletedSets
-          .cast<CompletedSet?>()
-          .firstWhere(
-            (c) => c!.proposedSetId == activeSetId && c.endedAt == Int64.ZERO,
-            orElse: () => null,
-          );
-      final elapsedSecs = activeCompleted != null
-          ? (wp.now.millisecondsSinceEpoch ~/ 1000) -
-                activeCompleted.startedAt.toInt()
-          : 0;
+      final elapsedSecs = activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0;
 
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       stateColor = proposed.warmup
@@ -115,46 +105,65 @@ class WorkoutBottomBar extends StatelessWidget {
       actionButton = _RepButtons(
         targetReps: proposed.targetReps,
         onComplete: (reps) =>
-            wp.completeSet(activeSetId, reps, proposed.targetWeight.toDouble()),
-        onSkipWarmup: proposed.warmup ? () => wp.skipWarmup(activeSetId) : null,
+            wp.completeSet(proposed.id, reps, proposed.targetWeight.toDouble()),
+        onSkipWarmup: proposed.warmup ? () => wp.skipWarmup(proposed.id) : null,
       );
-    } else if (isResting) {
-      stateLabel = 'Resting';
-      stateColor = const Color(0xFF3B82F6);
-      timerText = _fmt(restSeconds);
-      timerColor = null; // default
-      displaySet = nextSet;
-      actionButton = _BigButton(
-        label: 'Start Early',
-        onPressed: () {
-          if (nextSet != null) wp.startSet(nextSet.id);
-        },
-        secondaryLabel: nextSet?.warmup == true ? 'Skip Warmup' : null,
-        onSecondary: nextSet?.warmup == true
-            ? () => wp.skipWarmup(nextSet!.id)
-            : null,
-      );
-    } else if (isChatTime) {
-      stateLabel = 'Yapping';
-      stateColor = const Color(0xFFF97316);
-      timerText = '+${_fmt(chatElapsed)}';
-      timerColor = const Color(0xFFF97316);
-      displaySet = nextSet;
-      actionButton = _BigButton(
-        label: 'Start Set',
-        onPressed: () => wp.startSet(nextSet.id),
-        secondaryLabel: nextSet.warmup ? 'Skip Warmup' : null,
-        onSecondary: nextSet.warmup ? () => wp.skipWarmup(nextSet.id) : null,
-      );
-    } else if (nextSet != null) {
+    } else if (_isRestingState(stateValue)) {
+      final hasExpiredRest =
+          restUntil > 0 && restUntil <= nowUnix && nextSet != null;
+      if (hasExpiredRest) {
+        stateLabel = 'Yapping';
+        stateColor = colorScheme.error;
+        timerText = '-${_fmt(nowUnix - restUntil)}';
+        timerColor = colorScheme.error;
+        final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
+            ? stateSnapshot!.displaySet
+            : nextSet;
+        displaySet = actionSet;
+        actionButton = _BigButton(
+          label: 'Start Set',
+          onPressed: () => wp.startSet(actionSet.id),
+          secondaryLabel: actionSet.warmup ? 'Skip Warmup' : null,
+          onSecondary: actionSet.warmup
+              ? () => wp.skipWarmup(actionSet.id)
+              : null,
+        );
+      } else {
+        stateLabel = 'Resting';
+        stateColor = const Color(0xFF3B82F6);
+        timerText = _fmt(restSeconds);
+        timerColor = null; // default
+        displaySet = stateSnapshot?.hasDisplaySet() == true
+            ? stateSnapshot!.displaySet
+            : nextSet;
+        actionButton = _BigButton(
+          label: 'Start Early',
+          onPressed: () {
+            if (displaySet != null) wp.startSet(displaySet.id);
+          },
+          secondaryLabel: displaySet?.warmup == true ? 'Skip Warmup' : null,
+          onSecondary: displaySet?.warmup == true
+              ? () => wp.skipWarmup(displaySet!.id)
+              : null,
+        );
+      }
+    } else if (_isReadyState(stateValue) || nextSet != null) {
       stateLabel = 'Next up';
       stateColor = colorScheme.tertiary;
-      displaySet = nextSet;
+      timerText = null;
+      timerColor = null;
+      displaySet = stateSnapshot?.hasDisplaySet() == true
+          ? stateSnapshot!.displaySet
+          : nextSet;
+      if (displaySet == null) return const SizedBox.shrink();
+      final ProposedSet actionSet = displaySet;
       actionButton = _BigButton(
         label: 'Start Set',
-        onPressed: () => wp.startSet(nextSet.id),
-        secondaryLabel: nextSet.warmup ? 'Skip Warmup' : null,
-        onSecondary: nextSet.warmup ? () => wp.skipWarmup(nextSet.id) : null,
+        onPressed: () => wp.startSet(actionSet.id),
+        secondaryLabel: actionSet.warmup ? 'Skip Warmup' : null,
+        onSecondary: actionSet.warmup
+            ? () => wp.skipWarmup(actionSet.id)
+            : null,
       );
     } else {
       return const SizedBox.shrink();
@@ -194,7 +203,7 @@ class WorkoutBottomBar extends StatelessWidget {
                   timerText: timerText,
                   timerColor: timerColor,
                   set: displaySet,
-                  isComplete: allDone,
+                  isComplete: _isAllDoneState(stateValue),
                 ),
 
                 // Row 3: Group status box

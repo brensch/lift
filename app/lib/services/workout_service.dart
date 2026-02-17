@@ -39,44 +39,48 @@ class WorkoutServiceWrapper {
     return response.workouts;
   }
 
-  Future<CompletedSet> startSet(String workoutId, String proposedSetId) async {
-    final response = await _client.workoutService.startSet(
+  Future<StartSetResponse> startSet(
+    String workoutId,
+    String proposedSetId,
+  ) async {
+    return await _client.workoutService.startSet(
       StartSetRequest()
         ..workoutId = workoutId
         ..proposedSetId = proposedSetId,
     );
-    return response.completedSet;
   }
 
-  Future<CompletedSet> completeSet(
+  Future<CompleteSetResponse> completeSet(
     String workoutId,
     String proposedSetId,
     int actualReps,
     double actualWeight,
   ) async {
-    final response = await _client.workoutService.completeSet(
+    return await _client.workoutService.completeSet(
       CompleteSetRequest()
         ..workoutId = workoutId
         ..proposedSetId = proposedSetId
         ..actualReps = actualReps
         ..actualWeight = actualWeight,
     );
-    return response.completedSet;
   }
 
-  Future<void> deleteCompletedSet(
+  Future<DeleteCompletedSetResponse> deleteCompletedSet(
     String workoutId,
     String completedSetId,
   ) async {
-    await _client.workoutService.deleteCompletedSet(
+    return await _client.workoutService.deleteCompletedSet(
       DeleteCompletedSetRequest()
         ..workoutId = workoutId
         ..completedSetId = completedSetId,
     );
   }
 
-  Future<void> cancelProposedSet(String workoutId, String proposedSetId) async {
-    await _client.workoutService.cancelProposedSet(
+  Future<CancelProposedSetResponse> cancelProposedSet(
+    String workoutId,
+    String proposedSetId,
+  ) async {
+    return await _client.workoutService.cancelProposedSet(
       CancelProposedSetRequest()
         ..workoutId = workoutId
         ..proposedSetId = proposedSetId,
@@ -128,22 +132,22 @@ class WorkoutServiceWrapper {
     return await _client.workoutService.updateExerciseGroup(req);
   }
 
-  Future<void> deleteExerciseGroup(
+  Future<DeleteExerciseGroupResponse> deleteExerciseGroup(
     String workoutId,
     String exerciseGroupId,
   ) async {
-    await _client.workoutService.deleteExerciseGroup(
+    return await _client.workoutService.deleteExerciseGroup(
       DeleteExerciseGroupRequest()
         ..workoutId = workoutId
         ..exerciseGroupId = exerciseGroupId,
     );
   }
 
-  Future<void> reorderExerciseGroups(
+  Future<ReorderExerciseGroupsResponse> reorderExerciseGroups(
     String workoutId,
     List<String> exerciseGroupIds,
   ) async {
-    await _client.workoutService.reorderExerciseGroups(
+    return await _client.workoutService.reorderExerciseGroups(
       ReorderExerciseGroupsRequest()
         ..workoutId = workoutId
         ..exerciseGroupIds.addAll(exerciseGroupIds),

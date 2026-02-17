@@ -12,7 +12,7 @@ use lift::workout::v1::{
     GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, ProposedSet,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, RestConfig, StartSetRequest,
     StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest,
-    UpdateExerciseGroupResponse, Workout, WorkoutPlanChangeStats,
+    UpdateExerciseGroupResponse, Workout, WorkoutPlanChangeStats, WorkoutStateSnapshot,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -51,6 +51,7 @@ pub async fn get_user_id_authenticated<T>(
 const PLATE_STOPS: &[f32] = &[
     45.0, 95.0, 135.0, 185.0, 225.0, 275.0, 315.0, 365.0, 405.0, 455.0, 495.0, 545.0, 585.0, 635.0,
 ];
+const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 10;
 
 fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
     if working_weight <= 45.0 {
@@ -392,6 +393,123 @@ fn workout_plan_change_stats_from_sets(proposed_sets: &[ProposedSet]) -> Workout
     }
 }
 
+fn next_up_from_workout_state(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+) -> Option<ProposedSet> {
+    compute_next_up_set(proposed_sets, completed_sets)
+}
+
+fn is_final_set_in_exercise_group_after_completion(
+    proposed_set_id: &str,
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+) -> bool {
+    let Some(current) = proposed_sets
+        .iter()
+        .find(|set| set.id == proposed_set_id && !set.cancelled)
+    else {
+        return false;
+    };
+
+    let group_id = &current.exercise_group_id;
+
+    !proposed_sets
+        .iter()
+        .filter(|set| set.exercise_group_id == *group_id && !set.cancelled && set.id != proposed_set_id)
+        .any(|set| {
+            !completed_sets
+                .iter()
+                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
+        })
+}
+
+fn now_unix() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+fn workout_state_snapshot_from_state(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+    now: i64,
+) -> WorkoutStateSnapshot {
+    let proposed_active = active_proposed_sets(proposed_sets);
+    let next_up_set = compute_next_up_set(&proposed_active, completed_sets);
+    const STATE_ALL_DONE: i32 = 1;
+    const STATE_LIFTING: i32 = 2;
+    const STATE_RESTING: i32 = 3;
+    const STATE_READY: i32 = 5;
+
+    let active_set = completed_sets
+        .iter()
+        .filter(|set| set.ended_at == 0)
+        .max_by_key(|set| set.started_at);
+
+    if let Some(active) = active_set {
+        let display_set = proposed_active
+            .iter()
+            .find(|set| set.id == active.proposed_set_id)
+            .cloned();
+        return WorkoutStateSnapshot {
+            state: STATE_LIFTING,
+            display_set,
+            active_started_at: active.started_at,
+            rest_until: 0,
+            last_rest_end: 0,
+        };
+    }
+
+    let resting = completed_sets
+        .iter()
+        .filter(|set| set.ended_at != 0 && set.rest_until > now)
+        .max_by_key(|set| set.ended_at);
+
+    if let Some(resting) = resting {
+        return WorkoutStateSnapshot {
+            state: STATE_RESTING,
+            display_set: next_up_set,
+            active_started_at: 0,
+            rest_until: resting.rest_until,
+            last_rest_end: 0,
+        };
+    }
+
+    let last_rest_end = completed_sets
+        .iter()
+        .filter(|set| set.ended_at != 0 && set.rest_until != 0)
+        .max_by_key(|set| set.ended_at)
+        .map(|set| set.rest_until)
+        .unwrap_or(0);
+
+    let all_done = !proposed_active.is_empty()
+        && proposed_active.iter().all(|set| {
+            completed_sets
+                .iter()
+                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
+        });
+
+    if all_done {
+        return WorkoutStateSnapshot {
+            state: STATE_ALL_DONE,
+            display_set: None,
+            active_started_at: 0,
+            rest_until: 0,
+            last_rest_end,
+        };
+    }
+
+    WorkoutStateSnapshot {
+        state: STATE_READY,
+        display_set: next_up_set,
+        active_started_at: 0,
+        rest_until: 0,
+        last_rest_end,
+    }
+}
+
 #[tonic::async_trait]
 impl WorkoutService for MyWorkoutService {
     async fn start_workout(
@@ -496,6 +614,7 @@ impl WorkoutService for MyWorkoutService {
             let proposed_active = active_proposed_sets(&proposed);
             let next_up_set = compute_next_up_set(&proposed_active, &completed);
             let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed));
+            let state_snapshot = Some(workout_state_snapshot_from_state(&proposed, &completed, now_unix()));
             return Ok(Response::new(GetWorkoutResponse {
                 workout: Some(workout),
                 exercise_groups: groups,
@@ -503,6 +622,7 @@ impl WorkoutService for MyWorkoutService {
                 completed_sets: completed,
                 next_up_set,
                 plan_change_stats,
+                state_snapshot,
             }));
         }
 
@@ -542,6 +662,8 @@ impl WorkoutService for MyWorkoutService {
             cancelled_warmups: cancelled_warmups as i32,
             cancelled_working: cancelled_working as i32,
         });
+        let state_snapshot =
+            Some(workout_state_snapshot_from_state(&proposed_sets, &completed_sets, now_unix()));
 
         Ok(Response::new(GetWorkoutResponse {
             workout: Some(workout),
@@ -550,6 +672,7 @@ impl WorkoutService for MyWorkoutService {
             completed_sets,
             next_up_set,
             plan_change_stats,
+            state_snapshot,
         }))
     }
 
@@ -560,7 +683,7 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let (group, generated_sets) = {
+        let (group, generated_sets, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -596,7 +719,14 @@ impl WorkoutService for MyWorkoutService {
             workout_ref.exercise_groups.push(group.clone());
             workout_ref.proposed_sets.extend(generated_sets.clone());
             workout_ref.reindex_sets();
-            (group, generated_sets)
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (group, generated_sets, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Incremental write: save group and sets to DB
@@ -608,6 +738,8 @@ impl WorkoutService for MyWorkoutService {
         Ok(Response::new(CreateExerciseGroupResponse {
             group: Some(group),
             generated_sets,
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
         }))
     }
 
@@ -618,7 +750,7 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let (updated_group, updated_sets, full_workout_state) = {
+        let (updated_group, updated_sets, full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -634,8 +766,21 @@ impl WorkoutService for MyWorkoutService {
                 workout_ref.proposed_sets.clone(),
                 workout_ref.completed_sets.clone(),
             );
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
 
-            (updated_group, updated_sets, full_state)
+            (
+                updated_group,
+                updated_sets,
+                full_state,
+                next_up_set,
+                state_snapshot,
+            )
         }; // Guard dropped here
 
         // Re-sync this workout to DB
@@ -653,6 +798,8 @@ impl WorkoutService for MyWorkoutService {
         Ok(Response::new(UpdateExerciseGroupResponse {
             group: Some(updated_group),
             generated_sets: updated_sets,
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
         }))
     }
 
@@ -663,7 +810,7 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let full_workout_state = {
+        let (full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -686,12 +833,20 @@ impl WorkoutService for MyWorkoutService {
                 .exercise_groups
                 .retain(|g| g.id != req.exercise_group_id);
 
-            (
+            let full_state = (
                 workout_ref.workout.clone(),
                 workout_ref.exercise_groups.clone(),
                 workout_ref.proposed_sets.clone(),
                 workout_ref.completed_sets.clone(),
-            )
+            );
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (full_state, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Re-sync to DB
@@ -706,7 +861,10 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(DeleteExerciseGroupResponse {}))
+        Ok(Response::new(DeleteExerciseGroupResponse {
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
+        }))
     }
 
     async fn reorder_exercise_groups(
@@ -716,7 +874,7 @@ impl WorkoutService for MyWorkoutService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let full_workout_state = {
+        let (full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -735,12 +893,20 @@ impl WorkoutService for MyWorkoutService {
 
             workout_ref.reindex_sets();
 
-            (
+            let full_state = (
                 workout_ref.workout.clone(),
                 workout_ref.exercise_groups.clone(),
                 workout_ref.proposed_sets.clone(),
                 workout_ref.completed_sets.clone(),
-            )
+            );
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (full_state, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Re-sync to DB
@@ -755,7 +921,10 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(ReorderExerciseGroupsResponse {}))
+        Ok(Response::new(ReorderExerciseGroupsResponse {
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
+        }))
     }
 
     async fn list_workouts(
@@ -798,7 +967,7 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
-        let completed_set = {
+        let (completed_set, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -835,7 +1004,14 @@ impl WorkoutService for MyWorkoutService {
             };
 
             workout_ref.completed_sets.push(completed_set.clone());
-            completed_set
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (completed_set, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Incremental write: save to DB
@@ -846,6 +1022,8 @@ impl WorkoutService for MyWorkoutService {
 
         Ok(Response::new(StartSetResponse {
             completed_set: Some(completed_set),
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
         }))
     }
 
@@ -863,7 +1041,7 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
-        let completed_set = {
+        let (completed_set, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -879,20 +1057,30 @@ impl WorkoutService for MyWorkoutService {
             let proposed = workout_ref
                 .proposed_sets
                 .iter()
-                .find(|p| p.id == req.proposed_set_id && !p.cancelled);
-            if proposed.is_none() {
-                return Err(Status::failed_precondition("Proposed set not available"));
-            }
+                .find(|p| p.id == req.proposed_set_id && !p.cancelled)
+                .cloned()
+                .ok_or_else(|| Status::failed_precondition("Proposed set not available"))?;
 
-            let (target_reps, rest_s, rest_f) = proposed
-                .map(|p| (p.target_reps, p.rest_after_success, p.rest_after_failure))
-                .unwrap_or((0, 180, 300));
+            let is_final_set_in_group = is_final_set_in_exercise_group_after_completion(
+                &req.proposed_set_id,
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+            );
 
-            let rest_seconds = if req.actual_reps >= target_reps {
+            let (target_reps, rest_s, rest_f) = (
+                proposed.target_reps,
+                proposed.rest_after_success,
+                proposed.rest_after_failure,
+            );
+
+            let mut rest_seconds = if req.actual_reps >= target_reps {
                 rest_s as i64
             } else {
                 rest_f as i64
             };
+            if is_final_set_in_group {
+                rest_seconds = END_OF_EXERCISE_GROUP_REST_SECONDS;
+            }
             let rest_until = ended_at + rest_seconds;
 
             // Find existing started set or create new
@@ -902,7 +1090,7 @@ impl WorkoutService for MyWorkoutService {
                     && c.ended_at == 0
             });
 
-            if let Some(idx) = existing_idx {
+            let completed_set = if let Some(idx) = existing_idx {
                 let cs = &mut workout_ref.completed_sets[idx];
                 cs.actual_reps = req.actual_reps;
                 cs.actual_weight = req.actual_weight;
@@ -922,7 +1110,15 @@ impl WorkoutService for MyWorkoutService {
                 };
                 workout_ref.completed_sets.push(cs.clone());
                 cs
-            }
+            };
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (completed_set, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Incremental write: save to DB
@@ -933,6 +1129,8 @@ impl WorkoutService for MyWorkoutService {
 
         Ok(Response::new(CompleteSetResponse {
             completed_set: Some(completed_set),
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
         }))
     }
 
@@ -950,7 +1148,7 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("completed_set_id is required"));
         }
 
-        {
+        let (next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -960,7 +1158,15 @@ impl WorkoutService for MyWorkoutService {
             workout_ref
                 .completed_sets
                 .retain(|c| !(c.workout_id == req.workout_id && c.id == req.completed_set_id));
-        } // Guard dropped here
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (next_up_set, state_snapshot)
+        }; // Guard dropped here
 
         // Incremental write: delete from DB
         self.central_db
@@ -968,7 +1174,10 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(format!("Failed to delete set from DB: {}", e)))?;
 
-        Ok(Response::new(DeleteCompletedSetResponse {}))
+        Ok(Response::new(DeleteCompletedSetResponse {
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
+        }))
     }
 
     async fn cancel_proposed_set(
@@ -985,7 +1194,7 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
-        let full_workout_state = {
+        let (full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
@@ -1021,12 +1230,20 @@ impl WorkoutService for MyWorkoutService {
 
             workout_ref.proposed_sets[proposed_idx].cancelled = true;
 
-            (
+            let full_state = (
                 workout_ref.workout.clone(),
                 workout_ref.exercise_groups.clone(),
                 workout_ref.proposed_sets.clone(),
                 workout_ref.completed_sets.clone(),
-            )
+            );
+            let next_up_set =
+                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
+            let state_snapshot = workout_state_snapshot_from_state(
+                &workout_ref.proposed_sets,
+                &workout_ref.completed_sets,
+                now_unix(),
+            );
+            (full_state, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         self.central_db
@@ -1040,7 +1257,10 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(CancelProposedSetResponse {}))
+        Ok(Response::new(CancelProposedSetResponse {
+            next_up_set,
+            state_snapshot: Some(state_snapshot),
+        }))
     }
 
     async fn end_workout(
@@ -1208,6 +1428,35 @@ mod tests {
             set.id = format!("{}-{}", group.id, idx);
         }
         sets
+    }
+
+    fn proposed(id: &str, group_id: &str, cancelled: bool) -> ProposedSet {
+        ProposedSet {
+            id: id.to_string(),
+            workout_id: "w1".to_string(),
+            workout_order: 0,
+            exercise: 1,
+            target_reps: 5,
+            target_weight: 100.0,
+            warmup: false,
+            exercise_group_id: group_id.to_string(),
+            rest_after_success: 90,
+            rest_after_failure: 180,
+            cancelled,
+        }
+    }
+
+    fn completed(proposed_set_id: &str) -> CompletedSet {
+        CompletedSet {
+            id: format!("c-{}", proposed_set_id),
+            workout_id: "w1".to_string(),
+            proposed_set_id: proposed_set_id.to_string(),
+            actual_reps: 5,
+            actual_weight: 100.0,
+            started_at: 10,
+            ended_at: 20,
+            rest_until: 100,
+        }
     }
 
     #[test]
@@ -1542,5 +1791,53 @@ mod tests {
         assert_eq!(active_group_sets.len(), 6);
         assert_eq!(working_active.len(), 3);
         assert_eq!(cancelled_group_sets.len(), 2);
+    }
+
+    #[test]
+    fn final_set_detection_true_when_group_done_after_completion() {
+        let proposed_sets = vec![
+            proposed("g1-1", "g1", false),
+            proposed("g1-2", "g1", false),
+            proposed("g2-1", "g2", false),
+        ];
+        let completed_sets = vec![completed("g1-2")];
+
+        assert!(is_final_set_in_exercise_group_after_completion(
+            "g1-1",
+            &proposed_sets,
+            &completed_sets
+        ));
+    }
+
+    #[test]
+    fn final_set_detection_false_when_same_group_pending_exists() {
+        let proposed_sets = vec![
+            proposed("g1-1", "g1", false),
+            proposed("g1-2", "g1", false),
+            proposed("g2-1", "g2", false),
+        ];
+        let completed_sets = Vec::<CompletedSet>::new();
+
+        assert!(!is_final_set_in_exercise_group_after_completion(
+            "g1-1",
+            &proposed_sets,
+            &completed_sets
+        ));
+    }
+
+    #[test]
+    fn final_set_detection_ignores_cancelled_remaining_sets() {
+        let proposed_sets = vec![
+            proposed("g1-1", "g1", false),
+            proposed("g1-cancelled", "g1", true),
+            proposed("g2-1", "g2", false),
+        ];
+        let completed_sets = Vec::<CompletedSet>::new();
+
+        assert!(is_final_set_in_exercise_group_after_completion(
+            "g1-1",
+            &proposed_sets,
+            &completed_sets
+        ));
     }
 }

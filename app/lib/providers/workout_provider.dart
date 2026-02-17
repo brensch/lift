@@ -26,6 +26,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> _activeProposedSets = [];
   List<CompletedSet> _activeCompletedSets = [];
   ProposedSet? _backendNextUpSet;
+  WorkoutStateSnapshot? _stateSnapshot;
   List<ExerciseStatus> _exerciseStatuses = [];
   List<ProposedExerciseGroup> _proposedGroups = [];
 
@@ -65,20 +66,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Set _wasResting to current state without triggering sound.
   /// Call after loading completed sets to avoid false-triggering on load.
   void _initRestState() {
-    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final resting = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > 0)
-        .toList();
-    if (resting.isEmpty) {
+    final snapshot = _stateSnapshot;
+    if (snapshot == null) {
       _wasResting = false;
       return;
     }
-    resting.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    final restUntil = resting.first.restUntil.toInt();
-    _wasResting = restUntil > nowUnix;
-    // Mark as already sounded if rest already expired, so we don't play on load
-    if (!_wasResting) {
-      _lastSoundedRestUntil = restUntil;
+    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final isRestingNow =
+        snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
+        snapshot.restUntil.toInt() > nowUnix;
+    _wasResting = isRestingNow;
+    // If load occurs while not resting, mark latest completed rest as already
+    // handled so we don't false-trigger a sound immediately.
+    if (!isRestingNow && snapshot.lastRestEnd.toInt() > 0) {
+      _lastSoundedRestUntil = snapshot.lastRestEnd.toInt();
     }
   }
 
@@ -92,33 +93,37 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _checkRestSound() async {
-    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
-    final resting = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > 0)
-        .toList();
-    if (resting.isEmpty) {
+    final snapshot = _stateSnapshot;
+    if (snapshot == null) {
       _wasResting = false;
       return;
     }
-    resting.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    final latest = resting.first;
-    final restUntil = latest.restUntil.toInt();
-    final isCurrentlyResting = restUntil > nowUnix;
+
+    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
+    final restUntil = snapshot.restUntil.toInt();
+    final isCurrentlyResting =
+        snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
+        restUntil > nowUnix;
 
     // If a set is active (lifting), we are by definition not "resting" in a way
     // that should trigger an alert for a previous set.
-    if (activeSetId != null) {
+    if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) {
       _wasResting = false;
-      _lastSoundedRestUntil = restUntil;
       return;
     }
 
+    // Snapshot may still be in RESTING when timer passes rest_until; in that
+    // case lastRestEnd can be zero until next mutation response.
+    final lastRestEnd = snapshot.lastRestEnd.toInt() > 0
+        ? snapshot.lastRestEnd.toInt()
+        : snapshot.restUntil.toInt();
     if (_wasResting &&
         !isCurrentlyResting &&
-        _lastSoundedRestUntil != restUntil) {
+        lastRestEnd > 0 &&
+        _lastSoundedRestUntil != lastRestEnd) {
       // Rest just ended — cancel scheduled notification (prevent double sound),
       // play in-app sound, and show buzz notification for watches
-      _lastSoundedRestUntil = restUntil;
+      _lastSoundedRestUntil = lastRestEnd;
       await NotificationService.cancelRest();
       _soundProvider?.playCurrentSound();
       await NotificationService.showRestNow(body: _nextSetBody());
@@ -152,6 +157,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
   List<CompletedSet> get activeCompletedSets => _activeCompletedSets;
+  WorkoutStateSnapshot? get stateSnapshot => _stateSnapshot;
   bool get hasActiveWorkout =>
       _activeWorkout != null && _activeWorkout!.endTime == Int64.ZERO;
   bool get isWorkoutEnded =>
@@ -222,54 +228,30 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String? get activeSetId {
-    final active = _activeCompletedSets.cast<CompletedSet?>().firstWhere(
-      (c) => c!.endedAt == Int64.ZERO,
-      orElse: () => null,
-    );
-    return active?.proposedSetId;
-  }
-
-  CompletedSet? get restingSet {
-    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
-    final candidates = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO && c.restUntil.toInt() > nowUnix)
-        .toList();
-    if (candidates.isEmpty) return null;
-    candidates.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    return candidates.first;
+    final snapshot = _stateSnapshot;
+    if (snapshot == null) return null;
+    if (snapshot.state != WorkoutState.WORKOUT_STATE_LIFTING) return null;
+    if (!snapshot.hasDisplaySet()) return null;
+    return snapshot.displaySet.id;
   }
 
   ProposedSet? get nextPendingSet {
-    final backendNext = _backendNextUpSet;
-    if (backendNext != null &&
-        !isSetDone(backendNext.id) &&
-        !isSetActive(backendNext.id)) {
-      return backendNext;
-    }
-
-    for (final set in _activeProposedSets) {
-      if (!isSetDone(set.id) && !isSetActive(set.id)) {
-        return set;
-      }
-    }
-    return null;
+    return _backendNextUpSet;
   }
 
   int get restSecondsRemaining {
-    final resting = restingSet;
-    if (resting == null) return 0;
+    final snapshot = _stateSnapshot;
+    if (snapshot == null) return 0;
+    if (snapshot.state != WorkoutState.WORKOUT_STATE_RESTING) return 0;
     final remaining =
-        resting.restUntil.toInt() - (_now.millisecondsSinceEpoch ~/ 1000);
+        snapshot.restUntil.toInt() - (_now.millisecondsSinceEpoch ~/ 1000);
     return remaining > 0 ? remaining : 0;
   }
 
   int? get lastRestEndTimestamp {
-    final candidates = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
-        .toList();
-    if (candidates.isEmpty) return null;
-    candidates.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    return candidates.first.restUntil.toInt();
+    final snapshot = _stateSnapshot;
+    if (snapshot == null || snapshot.lastRestEnd == Int64.ZERO) return null;
+    return snapshot.lastRestEnd.toInt();
   }
 
   void _startTimer() {
@@ -298,6 +280,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeProposedSets = List.from(response.proposedSets);
         _activeCompletedSets = List.from(response.completedSets);
         _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+        _stateSnapshot = response.hasStateSnapshot()
+            ? response.stateSnapshot
+            : null;
         _sortState();
         // Initialize rest tracking state so we don't false-trigger sound on load
         _initRestState();
@@ -308,6 +293,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeProposedSets = [];
         _activeCompletedSets = [];
         _backendNextUpSet = null;
+        _stateSnapshot = null;
         _stopTimer();
       }
 
@@ -332,6 +318,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeProposedSets = List.from(response.proposedSets);
       _activeCompletedSets = List.from(response.completedSets);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       _sortState();
       _initRestState();
       if (hasActiveWorkout) {
@@ -387,7 +376,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     try {
-      await _service.reorderExerciseGroups(_activeWorkout!.id, groupIds);
+      final response = await _service.reorderExerciseGroups(
+        _activeWorkout!.id,
+        groupIds,
+      );
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
     } catch (e) {
       _handleError(e);
       await _loadWorkout(_activeWorkout!.id);
@@ -397,18 +393,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      final resting = restingSet;
-      if (resting != null) {
-        _lastSoundedRestUntil = resting.restUntil.toInt();
+      if (restSecondsRemaining > 0) {
+        _lastSoundedRestUntil = _stateSnapshot?.restUntil.toInt();
       }
       await NotificationService.cancelRest();
       _wasResting = false;
-      final completed = await _service.startSet(
+      final response = await _service.startSet(
         _activeWorkout!.id,
         proposedSetId,
       );
-      _activeCompletedSets.add(completed);
-      _backendNextUpSet = null;
+      _activeCompletedSets.add(response.completedSet);
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -422,17 +420,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ) async {
     if (_activeWorkout == null) return;
     try {
-      final completed = await _service.completeSet(
+      final response = await _service.completeSet(
         _activeWorkout!.id,
         proposedSetId,
         actualReps,
         actualWeight,
       );
+      final completed = response.completedSet;
       _activeCompletedSets.removeWhere(
         (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
       );
       _activeCompletedSets.add(completed);
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       // Mark that rest has started so _checkRestSound can detect the transition
       if (completed.restUntil.toInt() > 0) {
         _wasResting = true;
@@ -453,9 +455,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> deleteCompletedSet(String completedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      await _service.deleteCompletedSet(_activeWorkout!.id, completedSetId);
+      final response = await _service.deleteCompletedSet(
+        _activeWorkout!.id,
+        completedSetId,
+      );
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       await NotificationService.cancelRest();
       _wasResting = false;
       notifyListeners();
@@ -474,14 +482,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!proposed.warmup) return;
 
     try {
-      final resting = restingSet;
-      if (resting != null) {
-        _lastSoundedRestUntil = resting.restUntil.toInt();
+      if (restSecondsRemaining > 0) {
+        _lastSoundedRestUntil = _stateSnapshot?.restUntil.toInt();
       }
       await NotificationService.cancelRest();
-      await _service.cancelProposedSet(_activeWorkout!.id, proposedSetId);
+      final response = await _service.cancelProposedSet(
+        _activeWorkout!.id,
+        proposedSetId,
+      );
       _activeProposedSets.removeWhere((set) => set.id == proposedSetId);
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       _wasResting = false;
       notifyListeners();
     } catch (e) {
@@ -508,7 +521,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _activeExerciseGroups.add(response.group);
       _activeProposedSets.addAll(response.generatedSets);
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       _sortState();
       notifyListeners();
     } catch (e) {
@@ -546,7 +562,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         (s) => s.exerciseGroupId == groupData.group!.id,
       );
       _activeProposedSets.addAll(response.generatedSets);
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
 
       _sortState();
 
@@ -568,7 +587,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      await _service.deleteExerciseGroup(
+      final response = await _service.deleteExerciseGroup(
         _activeWorkout!.id,
         groupData.group!.id,
       );
@@ -576,7 +595,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeProposedSets.removeWhere(
         (s) => s.exerciseGroupId == groupData.group!.id,
       );
-      _backendNextUpSet = null;
+      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+      _stateSnapshot = response.hasStateSnapshot()
+          ? response.stateSnapshot
+          : null;
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -681,6 +703,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeProposedSets = [];
     _activeCompletedSets = [];
     _backendNextUpSet = null;
+    _stateSnapshot = null;
     _stopTimer();
     notifyListeners();
   }

@@ -121,12 +121,29 @@ message GetWorkoutResponse {
   repeated CompletedSet completed_sets = 4;
   ProposedSet next_up_set = 5;
   WorkoutPlanChangeStats plan_change_stats = 6;
+  WorkoutStateSnapshot state_snapshot = 7;
 }
 
 message WorkoutPlanChangeStats {
   int32 cancelled_total = 1;
   int32 cancelled_warmups = 2;
   int32 cancelled_working = 3;
+}
+
+enum WorkoutState {
+  WORKOUT_STATE_UNSPECIFIED = 0;
+  WORKOUT_STATE_ALL_DONE = 1;
+  WORKOUT_STATE_LIFTING = 2;
+  WORKOUT_STATE_RESTING = 3;
+  WORKOUT_STATE_READY = 5;
+}
+
+message WorkoutStateSnapshot {
+  WorkoutState state = 1;
+  ProposedSet display_set = 2;
+  int64 active_started_at = 3;
+  int64 rest_until = 4;
+  int64 last_rest_end = 5;
 }
 
 message ListWorkoutsRequest {}
@@ -159,6 +176,10 @@ message CreateExerciseGroupResponse {
 
   repeated ProposedSet generated_sets = 2;
 
+  ProposedSet next_up_set = 3;
+
+  WorkoutStateSnapshot state_snapshot = 4;
+
 }
 
 
@@ -174,6 +195,10 @@ message StartSetRequest {
 message StartSetResponse {
 
   CompletedSet completed_set = 1;
+
+  ProposedSet next_up_set = 2;
+
+  WorkoutStateSnapshot state_snapshot = 3;
 
 }
 
@@ -195,6 +220,10 @@ message CompleteSetResponse {
 
   CompletedSet completed_set = 1;
 
+  ProposedSet next_up_set = 2;
+
+  WorkoutStateSnapshot state_snapshot = 3;
+
 }
 
 
@@ -207,14 +236,20 @@ message DeleteCompletedSetRequest {
 
 }
 
-message DeleteCompletedSetResponse {}
+message DeleteCompletedSetResponse {
+  ProposedSet next_up_set = 1;
+  WorkoutStateSnapshot state_snapshot = 2;
+}
 
 message CancelProposedSetRequest {
   string workout_id = 1;
   string proposed_set_id = 2;
 }
 
-message CancelProposedSetResponse {}
+message CancelProposedSetResponse {
+  ProposedSet next_up_set = 1;
+  WorkoutStateSnapshot state_snapshot = 2;
+}
 
 
 
@@ -327,6 +362,8 @@ message UpdateExerciseGroupRequest {
 message UpdateExerciseGroupResponse {
   ExerciseGroup group = 1;
   repeated ProposedSet generated_sets = 2;
+  ProposedSet next_up_set = 3;
+  WorkoutStateSnapshot state_snapshot = 4;
 }
 
 message DeleteExerciseGroupRequest {
@@ -334,14 +371,20 @@ message DeleteExerciseGroupRequest {
   string exercise_group_id = 2;
 }
 
-message DeleteExerciseGroupResponse {}
+message DeleteExerciseGroupResponse {
+  ProposedSet next_up_set = 1;
+  WorkoutStateSnapshot state_snapshot = 2;
+}
 
 message ReorderExerciseGroupsRequest {
   string workout_id = 1;
   repeated string exercise_group_ids = 2;
 }
 
-message ReorderExerciseGroupsResponse {}
+message ReorderExerciseGroupsResponse {
+  ProposedSet next_up_set = 1;
+  WorkoutStateSnapshot state_snapshot = 2;
+}
 
 // --- Service Definition ---
 
