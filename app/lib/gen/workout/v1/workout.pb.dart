@@ -910,9 +910,21 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
 class StartWorkoutResponse extends $pb.GeneratedMessage {
   factory StartWorkoutResponse({
     $core.String? id,
+    Workout? workout,
+    $core.Iterable<ExerciseGroup>? exerciseGroups,
+    $core.Iterable<ProposedSet>? proposedSets,
+    $core.Iterable<CompletedSet>? completedSets,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (id != null) result.id = id;
+    if (workout != null) result.workout = workout;
+    if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
+    if (proposedSets != null) result.proposedSets.addAll(proposedSets);
+    if (completedSets != null) result.completedSets.addAll(completedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -930,6 +942,18 @@ class StartWorkoutResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOM<Workout>(2, _omitFieldNames ? '' : 'workout',
+        subBuilder: Workout.create)
+    ..pPM<ExerciseGroup>(3, _omitFieldNames ? '' : 'exerciseGroups',
+        subBuilder: ExerciseGroup.create)
+    ..pPM<ProposedSet>(4, _omitFieldNames ? '' : 'proposedSets',
+        subBuilder: ProposedSet.create)
+    ..pPM<CompletedSet>(5, _omitFieldNames ? '' : 'completedSets',
+        subBuilder: CompletedSet.create)
+    ..aOM<ProposedSet>(6, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(7, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -959,6 +983,48 @@ class StartWorkoutResponse extends $pb.GeneratedMessage {
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
   void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  Workout get workout => $_getN(1);
+  @$pb.TagNumber(2)
+  set workout(Workout value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkout() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkout() => $_clearField(2);
+  @$pb.TagNumber(2)
+  Workout ensureWorkout() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<ExerciseGroup> get exerciseGroups => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<ProposedSet> get proposedSets => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<CompletedSet> get completedSets => $_getList(4);
+
+  @$pb.TagNumber(6)
+  ProposedSet get nextUpSet => $_getN(5);
+  @$pb.TagNumber(6)
+  set nextUpSet(ProposedSet value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasNextUpSet() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNextUpSet() => $_clearField(6);
+  @$pb.TagNumber(6)
+  ProposedSet ensureNextUpSet() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(6);
+  @$pb.TagNumber(7)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasStateSnapshot() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearStateSnapshot() => $_clearField(7);
+  @$pb.TagNumber(7)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(6);
 }
 
 class GetWorkoutRequest extends $pb.GeneratedMessage {

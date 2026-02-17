@@ -101,7 +101,7 @@ run-wear:
 		done); \
 	fi; \
 	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
-	$(ADB) -s "$$SERIAL" shell am start -n com.lift.lift/com.lift.lift.wear.MainActivity
+	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.lift/com.brensch.lift.wear.MainActivity
 
 setup-flutter:
 	$(FLUTTER) config --enable-custom-devices

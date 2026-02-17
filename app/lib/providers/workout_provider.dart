@@ -336,14 +336,34 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _applyStartWorkoutResponse(StartWorkoutResponse response) {
+    _activeWorkout = response.hasWorkout() ? response.workout : null;
+    _activeExerciseGroups = List.from(response.exerciseGroups);
+    _activeProposedSets = List.from(response.proposedSets);
+    _activeCompletedSets = List.from(response.completedSets);
+    _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+    _stateSnapshot = response.hasStateSnapshot()
+        ? response.stateSnapshot
+        : null;
+    _sortState();
+    _initRestState();
+    if (hasActiveWorkout) {
+      _startTimer();
+    } else {
+      _stopTimer();
+    }
+  }
+
   Future<String?> startWorkout(String name, List<ExerciseGroup> groups) async {
     try {
       await NotificationService.cancelAll();
       _lastSoundedRestUntil = null;
       _wasResting = false;
-      final workoutId = await _service.startWorkout(name, groups);
-      await _loadWorkout(workoutId);
-      return workoutId;
+      final response = await _service.startWorkout(name, groups);
+      _applyStartWorkoutResponse(response);
+      notifyListeners();
+      if (response.id.isNotEmpty) return response.id;
+      return response.hasWorkout() ? response.workout.id : null;
     } catch (e) {
       _handleError(e);
       return null;
@@ -418,9 +438,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> completeSet(
     String proposedSetId,
     int actualReps,
-    double actualWeight,
-    {int? completedAt}
-  ) async {
+    double actualWeight, {
+    int? completedAt,
+  }) async {
     if (_activeWorkout == null) return;
     try {
       final response = await _service.completeSet(
@@ -745,13 +765,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final now = DateTime.now();
     if (!force &&
         _lastWearHeartRateUploadAt != null &&
-        now.difference(_lastWearHeartRateUploadAt!) < const Duration(seconds: 5)) {
+        now.difference(_lastWearHeartRateUploadAt!) <
+            const Duration(seconds: 5)) {
       return;
     }
 
     _wearHeartRateUploadInFlight = true;
     _lastWearHeartRateUploadAt = now;
-    final batch = List<WorkoutHeartRatePoint>.from(_pendingWearHeartRateUploads);
+    final batch = List<WorkoutHeartRatePoint>.from(
+      _pendingWearHeartRateUploads,
+    );
     _pendingWearHeartRateUploads.clear();
 
     try {

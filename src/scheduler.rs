@@ -268,13 +268,17 @@ impl Scheduler {
             }
         };
 
-        let build_single_group = |exercise: Exercise, status: &ExerciseStatus| ProposedExerciseGroup {
-            name: format!("compound: {}", exercise_display_name(exercise).to_lowercase()),
-            sets: status.default_sets,
-            interleave_warmups: false,
-            exercise_configs: vec![make_config(status)],
-            rest_config: None,
-        };
+        let build_single_group =
+            |exercise: Exercise, status: &ExerciseStatus| ProposedExerciseGroup {
+                name: format!(
+                    "compound: {}",
+                    exercise_display_name(exercise).to_lowercase()
+                ),
+                sets: status.default_sets,
+                interleave_warmups: false,
+                exercise_configs: vec![make_config(status)],
+                rest_config: None,
+            };
 
         if let Some(squat) = find_status(Exercise::Squat) {
             groups.push(build_single_group(Exercise::Squat, squat));
@@ -323,10 +327,7 @@ impl Scheduler {
             } else {
                 if let Some(a) = find_status(*ex_a) {
                     groups.push(ProposedExerciseGroup {
-                        name: format!(
-                            "auxiliary: {}",
-                            exercise_display_name(*ex_a).to_lowercase()
-                        ),
+                        name: format!("auxiliary: {}", exercise_display_name(*ex_a).to_lowercase()),
                         sets: a.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(a)],
@@ -335,10 +336,7 @@ impl Scheduler {
                 }
                 if let Some(b) = find_status(*ex_b) {
                     groups.push(ProposedExerciseGroup {
-                        name: format!(
-                            "auxiliary: {}",
-                            exercise_display_name(*ex_b).to_lowercase()
-                        ),
+                        name: format!("auxiliary: {}", exercise_display_name(*ex_b).to_lowercase()),
                         sets: b.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(b)],

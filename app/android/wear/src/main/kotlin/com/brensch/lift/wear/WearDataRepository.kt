@@ -1,4 +1,4 @@
-package com.lift.lift.wear
+package com.brensch.lift.wear
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

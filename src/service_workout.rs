@@ -518,6 +518,26 @@ fn workout_state_snapshot_from_state(
     }
 }
 
+fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
+    let proposed_active = active_proposed_sets(&active.proposed_sets);
+    let next_up_set = compute_next_up_set(&proposed_active, &active.completed_sets);
+    let state_snapshot = Some(workout_state_snapshot_from_state(
+        &active.proposed_sets,
+        &active.completed_sets,
+        now_unix(),
+    ));
+
+    StartWorkoutResponse {
+        id: active.workout.id.clone(),
+        workout: Some(active.workout.clone()),
+        exercise_groups: active.exercise_groups.clone(),
+        proposed_sets: proposed_active,
+        completed_sets: active.completed_sets.clone(),
+        next_up_set,
+        state_snapshot,
+    }
+}
+
 #[tonic::async_trait]
 impl WorkoutService for MyWorkoutService {
     async fn start_workout(
@@ -532,10 +552,8 @@ impl WorkoutService for MyWorkoutService {
             .try_recover_user(&self.central_db, &user_id)
             .await;
 
-        if self.state.workouts.contains_key(&user_id) {
-            return Err(Status::failed_precondition(
-                "A workout is already in progress. End it before starting a new one.",
-            ));
+        if let Some(active) = self.state.workouts.get(&user_id) {
+            return Ok(Response::new(start_workout_response_from_active(&active)));
         }
 
         let workout_id = Uuid::new_v4().to_string();
@@ -588,9 +606,10 @@ impl WorkoutService for MyWorkoutService {
         // Store in memory
         let mut active = ActiveWorkout::new(workout, exercise_groups, all_proposed_sets, vec![]);
         active.reindex_sets();
+        let response = start_workout_response_from_active(&active);
         self.state.workouts.insert(user_id.clone(), active);
 
-        Ok(Response::new(StartWorkoutResponse { id: workout_id }))
+        Ok(Response::new(response))
     }
 
     async fn get_workout(

@@ -344,12 +344,67 @@ const StartWorkoutResponse$json = {
   '1': 'StartWorkoutResponse',
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {
+      '1': 'workout',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.Workout',
+      '10': 'workout'
+    },
+    {
+      '1': 'exercise_groups',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseGroup',
+      '10': 'exerciseGroups'
+    },
+    {
+      '1': 'proposed_sets',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'proposedSets'
+    },
+    {
+      '1': 'completed_sets',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.CompletedSet',
+      '10': 'completedSets'
+    },
+    {
+      '1': 'next_up_set',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'nextUpSet'
+    },
+    {
+      '1': 'state_snapshot',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WorkoutStateSnapshot',
+      '10': 'stateSnapshot'
+    },
   ],
 };
 
 /// Descriptor for `StartWorkoutResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List startWorkoutResponseDescriptor = $convert
-    .base64Decode('ChRTdGFydFdvcmtvdXRSZXNwb25zZRIOCgJpZBgBIAEoCVICaWQ=');
+final $typed_data.Uint8List startWorkoutResponseDescriptor = $convert.base64Decode(
+    'ChRTdGFydFdvcmtvdXRSZXNwb25zZRIOCgJpZBgBIAEoCVICaWQSLQoHd29ya291dBgCIAEoCz'
+    'ITLndvcmtvdXQudjEuV29ya291dFIHd29ya291dBJCCg9leGVyY2lzZV9ncm91cHMYAyADKAsy'
+    'GS53b3Jrb3V0LnYxLkV4ZXJjaXNlR3JvdXBSDmV4ZXJjaXNlR3JvdXBzEjwKDXByb3Bvc2VkX3'
+    'NldHMYBCADKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0Ugxwcm9wb3NlZFNldHMSPwoOY29t'
+    'cGxldGVkX3NldHMYBSADKAsyGC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldFINY29tcGxldGVkU2'
+    'V0cxI3CgtuZXh0X3VwX3NldBgGIAEoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXRSCW5leHRV'
+    'cFNldBJHCg5zdGF0ZV9zbmFwc2hvdBgHIAEoCzIgLndvcmtvdXQudjEuV29ya291dFN0YXRlU2'
+    '5hcHNob3RSDXN0YXRlU25hcHNob3Q=');
 
 @$core.Deprecated('Use getWorkoutRequestDescriptor instead')
 const GetWorkoutRequest$json = {

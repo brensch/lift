@@ -1,4 +1,4 @@
-package com.lift.lift.wear
+package com.brensch.lift.wear
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -475,14 +475,13 @@ private fun WorkoutCompleteScreen(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .padding(8.dp),
+            .background(Color.Black),
     ) {
         Column(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(2f)
                 .fillMaxHeight()
-                .padding(end = 6.dp),
+                .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.End,
         ) {
@@ -500,9 +499,10 @@ private fun WorkoutCompleteScreen(
         }
         Column(
             modifier = Modifier
-                .weight(0.5f)
+                .weight(1f)
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(
                 onClick = { onPrimary?.invoke() },
@@ -515,9 +515,7 @@ private fun WorkoutCompleteScreen(
                 ),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 10.dp, end = 4.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
@@ -526,7 +524,7 @@ private fun WorkoutCompleteScreen(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.fillMaxWidth(),
-                        fontSize = 20.sp,
+                        fontSize = 16.sp,
                     )
                 }
             }

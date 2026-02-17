@@ -352,9 +352,8 @@ mod tests {
     use lift::workout::v1::{
         CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
         DeleteCompletedSetRequest, EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig,
-        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest,
-        ReorderExerciseGroupsRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
-        UpdateExerciseGroupRequest,
+        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, ReorderExerciseGroupsRequest,
+        RestConfig, StartSetRequest, StartWorkoutRequest, UpdateExerciseGroupRequest,
     };
     use std::collections::HashSet;
     use std::sync::Arc;
@@ -1076,7 +1075,10 @@ mod tests {
             .iter()
             .map(|g| g.id.clone())
             .collect::<Vec<_>>();
-        assert_eq!(ordered_group_ids, vec![g3_id.clone(), "g1".to_string(), "g2".to_string()]);
+        assert_eq!(
+            ordered_group_ids,
+            vec![g3_id.clone(), "g1".to_string(), "g2".to_string()]
+        );
         let ordered_set_group_ids = workout
             .proposed_sets
             .iter()
@@ -1207,10 +1209,7 @@ mod tests {
             let groups_ok = groups_db.len() == 3
                 && groups_db.iter().map(|g| g.id.as_str()).collect::<Vec<_>>()
                     == vec![g3_id.as_str(), "g1", "g2"];
-            let workout_ok = workout_db
-                .as_ref()
-                .map(|w| w.end_time > 0)
-                .unwrap_or(false);
+            let workout_ok = workout_db.as_ref().map(|w| w.end_time > 0).unwrap_or(false);
             let no_active_ok = active.is_none();
             let proposed_ok = proposed_db.len() == 6
                 && proposed_db
@@ -1232,7 +1231,10 @@ mod tests {
             sleep(Duration::from_millis(20)).await;
         }
 
-        assert!(db_verified, "DB final state did not converge to expected values");
+        assert!(
+            db_verified,
+            "DB final state did not converge to expected values"
+        );
     }
 
     #[tokio::test]
@@ -1508,10 +1510,7 @@ mod tests {
                 .await
                 .expect("completed query");
 
-            let workout_ok = workout_db
-                .as_ref()
-                .map(|w| w.end_time > 0)
-                .unwrap_or(false);
+            let workout_ok = workout_db.as_ref().map(|w| w.end_time > 0).unwrap_or(false);
             let no_active_ok = active.is_none();
             let proposed_ok = proposed_db
                 .iter()

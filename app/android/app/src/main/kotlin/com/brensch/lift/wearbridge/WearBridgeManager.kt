@@ -1,4 +1,4 @@
-package com.lift.lift.wearbridge
+package com.brensch.lift.wearbridge
 
 import android.content.Context
 import android.os.Handler

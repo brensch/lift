@@ -8,16 +8,15 @@ class WorkoutServiceWrapper {
 
   WorkoutServiceWrapper(this._client);
 
-  Future<String> startWorkout(
+  Future<StartWorkoutResponse> startWorkout(
     String name,
     List<ExerciseGroup> exerciseGroups,
   ) async {
-    final response = await _client.workoutService.startWorkout(
+    return await _client.workoutService.startWorkout(
       StartWorkoutRequest()
         ..name = name
         ..exerciseGroups.addAll(exerciseGroups),
     );
-    return response.id;
   }
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) async {
