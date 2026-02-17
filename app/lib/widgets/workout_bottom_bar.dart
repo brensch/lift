@@ -198,7 +198,7 @@ class WorkoutBottomBar extends StatelessWidget {
                   isComplete: allDone,
                 ),
 
-                // Row 2: Group status box
+                // Row 3: Group status box
                 if (mp.participants.length > 1) ...[
                   const SizedBox(height: 8),
                   _buildGroupStatusBox(
@@ -209,52 +209,52 @@ class WorkoutBottomBar extends StatelessWidget {
                   ),
                 ],
 
-                // Row 3: total workout time
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: colorScheme.outline.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'TOTAL ',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.0,
-                              color: colorScheme.tertiary,
-                            ),
-                          ),
-                          TextSpan(
-                            text: elapsedText,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              fontFamily: 'monospace',
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Row 4: full-width action button
+                // Row 3: action + total time on one line
                 const SizedBox(height: 12),
-                actionButton,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: colorScheme.outline.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Center(
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'TOTAL ',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.0,
+                                  color: colorScheme.tertiary,
+                                ),
+                              ),
+                              TextSpan(
+                                text: elapsedText,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: actionButton),
+                  ],
+                ),
               ],
             ),
           ),
