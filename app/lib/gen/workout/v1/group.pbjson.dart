@@ -144,6 +144,22 @@ const SessionStatus$json = {
       '6': '.workout.v1.ParticipantStatus',
       '10': 'participants'
     },
+    {'1': 'next_up_user_id', '3': 3, '4': 1, '5': 9, '10': 'nextUpUserId'},
+    {
+      '1': 'next_up_set',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'nextUpSet'
+    },
+    {
+      '1': 'next_up_rest_until',
+      '3': 5,
+      '4': 1,
+      '5': 3,
+      '10': 'nextUpRestUntil'
+    },
   ],
 };
 
@@ -151,7 +167,9 @@ const SessionStatus$json = {
 final $typed_data.Uint8List sessionStatusDescriptor = $convert.base64Decode(
     'Cg1TZXNzaW9uU3RhdHVzEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZBJBCgxwYXJ0aW'
     'NpcGFudHMYAiADKAsyHS53b3Jrb3V0LnYxLlBhcnRpY2lwYW50U3RhdHVzUgxwYXJ0aWNpcGFu'
-    'dHM=');
+    'dHMSJQoPbmV4dF91cF91c2VyX2lkGAMgASgJUgxuZXh0VXBVc2VySWQSNwoLbmV4dF91cF9zZX'
+    'QYBCABKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSKwoSbmV4dF91cF9y'
+    'ZXN0X3VudGlsGAUgASgDUg9uZXh0VXBSZXN0VW50aWw=');
 
 @$core.Deprecated('Use participantStatusDescriptor instead')
 const ParticipantStatus$json = {
@@ -198,6 +216,16 @@ const ParticipantStatus$json = {
       '6': '.workout.v1.CompletedSet',
       '10': 'completedSets'
     },
+    {
+      '1': 'next_up_set',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'nextUpSet'
+    },
+    {'1': 'rest_until', '3': 8, '4': 1, '5': 3, '10': 'restUntil'},
+    {'1': 'has_active_set', '3': 9, '4': 1, '5': 8, '10': 'hasActiveSet'},
   ],
 };
 
@@ -209,4 +237,6 @@ final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'hlcmNpc2VfZ3JvdXBzGAQgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lz'
     'ZUdyb3VwcxI8Cg1wcm9wb3NlZF9zZXRzGAUgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldF'
     'IMcHJvcG9zZWRTZXRzEj8KDmNvbXBsZXRlZF9zZXRzGAYgAygLMhgud29ya291dC52MS5Db21w'
-    'bGV0ZWRTZXRSDWNvbXBsZXRlZFNldHM=');
+    'bGV0ZWRTZXRSDWNvbXBsZXRlZFNldHMSNwoLbmV4dF91cF9zZXQYByABKAsyFy53b3Jrb3V0Ln'
+    'YxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSHQoKcmVzdF91bnRpbBgIIAEoA1IJcmVzdFVudGls'
+    'EiQKDmhhc19hY3RpdmVfc2V0GAkgASgIUgxoYXNBY3RpdmVTZXQ=');

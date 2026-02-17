@@ -59,8 +59,8 @@ impl AuthState {
         username: &str,
     ) -> Result<(String, CreationChallengeResponse), String> {
         let user_id = uuid::Uuid::new_v4().to_string();
-        let user_unique_id = uuid::Uuid::parse_str(&user_id)
-            .map_err(|e| format!("Invalid UUID: {}", e))?;
+        let user_unique_id =
+            uuid::Uuid::parse_str(&user_id).map_err(|e| format!("Invalid UUID: {}", e))?;
 
         let (ccr, reg_state) = self
             .webauthn
@@ -69,7 +69,10 @@ impl AuthState {
 
         let mut challenges = self.reg_challenges.lock().await;
         self.cleanup_expired_reg(&mut challenges);
-        challenges.insert(user_id.clone(), (reg_state, username.to_string(), Instant::now()));
+        challenges.insert(
+            user_id.clone(),
+            (reg_state, username.to_string(), Instant::now()),
+        );
 
         Ok((user_id, ccr))
     }
@@ -102,13 +105,15 @@ impl AuthState {
 
         // Store the credential
         let cred_id = format!("{:?}", passkey.cred_id());
-        let mut cred_val = serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        let mut cred_val =
+            serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
         if let Some(n) = name {
             if let Some(obj) = cred_val.as_object_mut() {
                 obj.insert("cred_name".to_string(), serde_json::Value::String(n));
             }
         }
-        let cred_json = serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
+        let cred_json =
+            serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
@@ -143,17 +148,17 @@ impl AuthState {
         let exclude_cred_ids: Option<Vec<_>> = if existing_creds.is_empty() {
             None
         } else {
-            Some(existing_creds.iter().map(|pk| pk.cred_id().clone()).collect())
+            Some(
+                existing_creds
+                    .iter()
+                    .map(|pk| pk.cred_id().clone())
+                    .collect(),
+            )
         };
 
         let (ccr, reg_state) = self
             .webauthn
-            .start_passkey_registration(
-                user_unique_id,
-                username,
-                username,
-                exclude_cred_ids,
-            )
+            .start_passkey_registration(user_unique_id, username, username, exclude_cred_ids)
             .map_err(|e| format!("WebAuthn error: {}", e))?;
 
         let mut challenges = self.reg_challenges.lock().await;
@@ -186,13 +191,15 @@ impl AuthState {
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
 
         let cred_id = format!("{:?}", passkey.cred_id());
-        let mut cred_val = serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
+        let mut cred_val =
+            serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
         if let Some(n) = name {
             if let Some(obj) = cred_val.as_object_mut() {
                 obj.insert("cred_name".to_string(), serde_json::Value::String(n));
             }
         }
-        let cred_json = serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
+        let cred_json =
+            serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
 
         self.central_db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
@@ -203,9 +210,7 @@ impl AuthState {
     }
 
     /// Start discoverable authentication (no username needed — works with 1Password, platform authenticators)
-    pub async fn start_authentication(
-        &self,
-    ) -> Result<(String, RequestChallengeResponse), String> {
+    pub async fn start_authentication(&self) -> Result<(String, RequestChallengeResponse), String> {
         let (rcr, auth_state) = self
             .webauthn
             .start_discoverable_authentication()
@@ -333,8 +338,7 @@ impl AuthState {
         };
 
         // Update credential counter
-        self.update_credential_counter(&user_id, &auth_result)
-            .await;
+        self.update_credential_counter(&user_id, &auth_result).await;
 
         // Create session
         let token = self
@@ -380,15 +384,17 @@ impl AuthState {
         }
     }
 
-    fn cleanup_expired_reg(&self, map: &mut HashMap<String, (PasskeyRegistration, String, Instant)>) {
+    fn cleanup_expired_reg(
+        &self,
+        map: &mut HashMap<String, (PasskeyRegistration, String, Instant)>,
+    ) {
         let now = Instant::now();
-        map.retain(|_, (_, _, created)| now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS);
+        map.retain(|_, (_, _, created)| {
+            now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS
+        });
     }
 
-    fn cleanup_expired_auth(
-        &self,
-        map: &mut HashMap<String, (AuthChallengeState, Instant)>,
-    ) {
+    fn cleanup_expired_auth(&self, map: &mut HashMap<String, (AuthChallengeState, Instant)>) {
         let now = Instant::now();
         map.retain(|_, (_, created)| now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS);
     }

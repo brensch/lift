@@ -87,6 +87,7 @@ message ProposedSet {
   string exercise_group_id = 8;
   int32 rest_after_success = 9;
   int32 rest_after_failure = 10;
+  bool cancelled = 11;
 }
 
 message CompletedSet {
@@ -118,6 +119,14 @@ message GetWorkoutResponse {
   repeated ExerciseGroup exercise_groups = 2;
   repeated ProposedSet proposed_sets = 3;
   repeated CompletedSet completed_sets = 4;
+  ProposedSet next_up_set = 5;
+  WorkoutPlanChangeStats plan_change_stats = 6;
+}
+
+message WorkoutPlanChangeStats {
+  int32 cancelled_total = 1;
+  int32 cancelled_warmups = 2;
+  int32 cancelled_working = 3;
 }
 
 message ListWorkoutsRequest {}
@@ -199,6 +208,13 @@ message DeleteCompletedSetRequest {
 }
 
 message DeleteCompletedSetResponse {}
+
+message CancelProposedSetRequest {
+  string workout_id = 1;
+  string proposed_set_id = 2;
+}
+
+message CancelProposedSetResponse {}
 
 
 
@@ -346,6 +362,7 @@ service WorkoutService {
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
   rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
+  rpc CancelProposedSet(CancelProposedSetRequest) returns (CancelProposedSetResponse);
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);

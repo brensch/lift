@@ -543,6 +543,7 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.String? exerciseGroupId,
     $core.int? restAfterSuccess,
     $core.int? restAfterFailure,
+    $core.bool? cancelled,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -555,6 +556,7 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (exerciseGroupId != null) result.exerciseGroupId = exerciseGroupId;
     if (restAfterSuccess != null) result.restAfterSuccess = restAfterSuccess;
     if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
+    if (cancelled != null) result.cancelled = cancelled;
     return result;
   }
 
@@ -583,6 +585,7 @@ class ProposedSet extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'exerciseGroupId')
     ..aI(9, _omitFieldNames ? '' : 'restAfterSuccess')
     ..aI(10, _omitFieldNames ? '' : 'restAfterFailure')
+    ..aOB(11, _omitFieldNames ? '' : 'cancelled')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -693,6 +696,15 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasRestAfterFailure() => $_has(9);
   @$pb.TagNumber(10)
   void clearRestAfterFailure() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.bool get cancelled => $_getBF(10);
+  @$pb.TagNumber(11)
+  set cancelled($core.bool value) => $_setBool(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCancelled() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearCancelled() => $_clearField(11);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -1009,12 +1021,16 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<ExerciseGroup>? exerciseGroups,
     $core.Iterable<ProposedSet>? proposedSets,
     $core.Iterable<CompletedSet>? completedSets,
+    ProposedSet? nextUpSet,
+    WorkoutPlanChangeStats? planChangeStats,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
     if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (planChangeStats != null) result.planChangeStats = planChangeStats;
     return result;
   }
 
@@ -1039,6 +1055,10 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
         subBuilder: ProposedSet.create)
     ..pPM<CompletedSet>(4, _omitFieldNames ? '' : 'completedSets',
         subBuilder: CompletedSet.create)
+    ..aOM<ProposedSet>(5, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutPlanChangeStats>(6, _omitFieldNames ? '' : 'planChangeStats',
+        subBuilder: WorkoutPlanChangeStats.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1079,6 +1099,107 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $pb.PbList<CompletedSet> get completedSets => $_getList(3);
+
+  @$pb.TagNumber(5)
+  ProposedSet get nextUpSet => $_getN(4);
+  @$pb.TagNumber(5)
+  set nextUpSet(ProposedSet value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasNextUpSet() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearNextUpSet() => $_clearField(5);
+  @$pb.TagNumber(5)
+  ProposedSet ensureNextUpSet() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  WorkoutPlanChangeStats get planChangeStats => $_getN(5);
+  @$pb.TagNumber(6)
+  set planChangeStats(WorkoutPlanChangeStats value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasPlanChangeStats() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPlanChangeStats() => $_clearField(6);
+  @$pb.TagNumber(6)
+  WorkoutPlanChangeStats ensurePlanChangeStats() => $_ensure(5);
+}
+
+class WorkoutPlanChangeStats extends $pb.GeneratedMessage {
+  factory WorkoutPlanChangeStats({
+    $core.int? cancelledTotal,
+    $core.int? cancelledWarmups,
+    $core.int? cancelledWorking,
+  }) {
+    final result = create();
+    if (cancelledTotal != null) result.cancelledTotal = cancelledTotal;
+    if (cancelledWarmups != null) result.cancelledWarmups = cancelledWarmups;
+    if (cancelledWorking != null) result.cancelledWorking = cancelledWorking;
+    return result;
+  }
+
+  WorkoutPlanChangeStats._();
+
+  factory WorkoutPlanChangeStats.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutPlanChangeStats.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutPlanChangeStats',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'cancelledTotal')
+    ..aI(2, _omitFieldNames ? '' : 'cancelledWarmups')
+    ..aI(3, _omitFieldNames ? '' : 'cancelledWorking')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutPlanChangeStats clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutPlanChangeStats copyWith(
+          void Function(WorkoutPlanChangeStats) updates) =>
+      super.copyWith((message) => updates(message as WorkoutPlanChangeStats))
+          as WorkoutPlanChangeStats;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutPlanChangeStats create() => WorkoutPlanChangeStats._();
+  @$core.override
+  WorkoutPlanChangeStats createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutPlanChangeStats getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutPlanChangeStats>(create);
+  static WorkoutPlanChangeStats? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get cancelledTotal => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set cancelledTotal($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCancelledTotal() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCancelledTotal() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get cancelledWarmups => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set cancelledWarmups($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCancelledWarmups() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCancelledWarmups() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get cancelledWorking => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set cancelledWorking($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCancelledWorking() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCancelledWorking() => $_clearField(3);
 }
 
 class ListWorkoutsRequest extends $pb.GeneratedMessage {
@@ -1725,6 +1846,112 @@ class DeleteCompletedSetResponse extends $pb.GeneratedMessage {
   static DeleteCompletedSetResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DeleteCompletedSetResponse>(create);
   static DeleteCompletedSetResponse? _defaultInstance;
+}
+
+class CancelProposedSetRequest extends $pb.GeneratedMessage {
+  factory CancelProposedSetRequest({
+    $core.String? workoutId,
+    $core.String? proposedSetId,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (proposedSetId != null) result.proposedSetId = proposedSetId;
+    return result;
+  }
+
+  CancelProposedSetRequest._();
+
+  factory CancelProposedSetRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CancelProposedSetRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CancelProposedSetRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOS(2, _omitFieldNames ? '' : 'proposedSetId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelProposedSetRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelProposedSetRequest copyWith(
+          void Function(CancelProposedSetRequest) updates) =>
+      super.copyWith((message) => updates(message as CancelProposedSetRequest))
+          as CancelProposedSetRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelProposedSetRequest create() => CancelProposedSetRequest._();
+  @$core.override
+  CancelProposedSetRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CancelProposedSetRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CancelProposedSetRequest>(create);
+  static CancelProposedSetRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get proposedSetId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proposedSetId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProposedSetId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProposedSetId() => $_clearField(2);
+}
+
+class CancelProposedSetResponse extends $pb.GeneratedMessage {
+  factory CancelProposedSetResponse() => create();
+
+  CancelProposedSetResponse._();
+
+  factory CancelProposedSetResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CancelProposedSetResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CancelProposedSetResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelProposedSetResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CancelProposedSetResponse copyWith(
+          void Function(CancelProposedSetResponse) updates) =>
+      super.copyWith((message) => updates(message as CancelProposedSetResponse))
+          as CancelProposedSetResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CancelProposedSetResponse create() => CancelProposedSetResponse._();
+  @$core.override
+  CancelProposedSetResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CancelProposedSetResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CancelProposedSetResponse>(create);
+  static CancelProposedSetResponse? _defaultInstance;
 }
 
 class EndWorkoutRequest extends $pb.GeneratedMessage {

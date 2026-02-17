@@ -1,21 +1,19 @@
 use clap::Parser;
 use dashmap::DashMap;
 use lift::workout::v1::{
-    auth_service_client::AuthServiceClient,
-    multiplayer_service_client::MultiplayerServiceClient,
-    workout_service_client::WorkoutServiceClient,
-    CreateExerciseGroupRequest, EndWorkoutRequest, GetActiveWorkoutRequest,
-    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, JoinUserRequest,
+    auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
+    workout_service_client::WorkoutServiceClient, CompleteSetRequest, CreateExerciseGroupRequest,
+    EndWorkoutRequest, Exercise, ExerciseTypeConfig, GetActiveWorkoutRequest,
+    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, JoinUserRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest,
-    CompleteSetRequest, Exercise, ExerciseTypeConfig, StartSetRequest,
 };
+use rand::Rng;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tonic::metadata::MetadataValue;
 use tonic::transport::Channel;
 use tonic::Request;
-use rand::Rng;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -55,7 +53,12 @@ impl MethodStats {
             self.total_latency_ms.fetch_add(ms, Ordering::Relaxed);
             let mut current_max = self.max_latency_ms.load(Ordering::Relaxed);
             while ms > current_max {
-                match self.max_latency_ms.compare_exchange_weak(current_max, ms, Ordering::Relaxed, Ordering::Relaxed) {
+                match self.max_latency_ms.compare_exchange_weak(
+                    current_max,
+                    ms,
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                ) {
                     Ok(_) => break,
                     Err(actual) => current_max = actual,
                 }
@@ -86,7 +89,10 @@ impl GlobalStats {
         if is_error {
             self.total_errors.fetch_add(1, Ordering::Relaxed);
         }
-        let stats = self.method_stats.entry(method.to_string()).or_insert_with(|| Arc::new(MethodStats::new()));
+        let stats = self
+            .method_stats
+            .entry(method.to_string())
+            .or_insert_with(|| Arc::new(MethodStats::new()));
         stats.record(latency, is_error);
     }
 }
@@ -124,7 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let current_requests = stats_reporter.total_requests.load(Ordering::Relaxed);
             let elapsed = last_time.elapsed().as_secs_f64();
             let rps = (current_requests - last_requests) as f64 / elapsed;
-            
+
             println!(
                 "[{:4.0}s] Users: {:4} | RPS: {:7.1} | Errors: {}",
                 start_time.elapsed().as_secs_f64(),
@@ -133,8 +139,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 stats_reporter.total_errors.load(Ordering::Relaxed)
             );
 
-            let mut methods: Vec<_> = stats_reporter.method_stats.iter().map(|r| (r.key().clone(), r.value().clone())).collect();
-            methods.sort_by(|a, b| b.1.requests.load(Ordering::Relaxed).cmp(&a.1.requests.load(Ordering::Relaxed)));
+            let mut methods: Vec<_> = stats_reporter
+                .method_stats
+                .iter()
+                .map(|r| (r.key().clone(), r.value().clone()))
+                .collect();
+            methods.sort_by(|a, b| {
+                b.1.requests
+                    .load(Ordering::Relaxed)
+                    .cmp(&a.1.requests.load(Ordering::Relaxed))
+            });
 
             for (name, ms) in methods {
                 let reqs = ms.requests.load(Ordering::Relaxed);
@@ -143,12 +157,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 method_last_counts.insert(name.clone(), reqs);
 
                 let active_users = stats_reporter.active_users.load(Ordering::Relaxed);
-                let qps_per_user = if active_users > 0 { interval_qps / active_users as f64 } else { 0.0 };
+                let qps_per_user = if active_users > 0 {
+                    interval_qps / active_users as f64
+                } else {
+                    0.0
+                };
 
                 let errs = ms.errors.load(Ordering::Relaxed);
                 let total_ms = ms.total_latency_ms.load(Ordering::Relaxed);
                 let max_ms = ms.max_latency_ms.load(Ordering::Relaxed);
-                let avg = if reqs > 0 { total_ms as f64 / reqs as f64 } else { 0.0 };
+                let avg = if reqs > 0 {
+                    total_ms as f64 / reqs as f64
+                } else {
+                    0.0
+                };
                 println!("  {:25}: qps={:7.1}, qps/u={:7.4}, avg={:6.1}ms, max={:6.1}ms, req={:<5}, err={}", 
                          name, interval_qps, qps_per_user, avg, max_ms as f64, reqs, errs);
             }
@@ -159,10 +181,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let session_id_prefix = rand::thread_rng().gen_range(1000..9999);
     let mut current_group_count = 0;
-    
+
     loop {
         let elapsed = start_time.elapsed().as_secs_f64();
-        if elapsed >= args.duration as f64 { break; }
+        if elapsed >= args.duration as f64 {
+            break;
+        }
 
         let target_groups = (elapsed * 100.0).floor() as usize + 1;
 
@@ -171,7 +195,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let channel = channel.clone();
             let stats = Arc::clone(&stats);
             let registry = Arc::clone(&session_registry);
-            
+
             tokio::spawn(async move {
                 let group_size = {
                     let mut rng = rand::thread_rng();
@@ -179,7 +203,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 };
 
                 for member_index in 0..group_size {
-                    let username = format!("__test__sim_{}_{}_{}", session_id_prefix, group_index, member_index);
+                    let username = format!(
+                        "__test__sim_{}_{}_{}",
+                        session_id_prefix, group_index, member_index
+                    );
                     let stats = Arc::clone(&stats);
                     let registry = Arc::clone(&registry);
                     let channel = channel.clone();
@@ -187,7 +214,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     tokio::spawn(async move {
                         stats.active_users.fetch_add(1, Ordering::Relaxed);
-                        if let Err(e) = run_user_simulation(username.clone(), group_index, is_leader, channel, stats.clone(), registry, start_time, duration).await {
+                        if let Err(e) = run_user_simulation(
+                            username.clone(),
+                            group_index,
+                            is_leader,
+                            channel,
+                            stats.clone(),
+                            registry,
+                            start_time,
+                            duration,
+                        )
+                        .await
+                        {
                             eprintln!("ERROR: Simulation failed for {}: {}", username, e);
                             stats.total_errors.fetch_add(1, Ordering::Relaxed);
                         }
@@ -219,18 +257,24 @@ async fn run_user_simulation(
     total_duration: Duration,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut auth_client = AuthServiceClient::new(channel.clone());
-    
+
     let login_start = Instant::now();
-    let login_res = auth_client.test_login(TestLoginRequest { username: username.clone() }).await;
+    let login_res = auth_client
+        .test_login(TestLoginRequest {
+            username: username.clone(),
+        })
+        .await;
     stats.record("TestLogin", login_start.elapsed(), login_res.is_err());
     let login_resp = login_res?;
     let login_resp = login_resp.into_inner();
-    
+
     let user_id = login_resp.user_id.clone();
     let token: MetadataValue<_> = login_resp.session_token.parse()?;
 
     if is_leader {
-        session_registry.leader_ids.insert(group_index, user_id.clone());
+        session_registry
+            .leader_ids
+            .insert(group_index, user_id.clone());
     }
 
     let mut workout_client = WorkoutServiceClient::new(channel.clone());
@@ -245,11 +289,16 @@ async fn run_user_simulation(
         loop {
             interval.tick().await;
             let req_start = Instant::now();
-            let mut req = Request::new(GetCurrentSessionRequest { session_id: String::new() });
-            req.metadata_mut().insert("x-session-token", token_bg.clone());
+            let mut req = Request::new(GetCurrentSessionRequest {
+                session_id: String::new(),
+            });
+            req.metadata_mut()
+                .insert("x-session-token", token_bg.clone());
             let res = multiplayer_bg.get_current_session(req).await;
             stats_bg.record("GetCurrentSession", req_start.elapsed(), res.is_err());
-            if res.is_err() { break; }
+            if res.is_err() {
+                break;
+            }
         }
     });
 
@@ -273,66 +322,114 @@ async fn run_user_simulation(
     }
 
     while start_time.elapsed() < total_duration {
-        perform_request(&mut workout_client, &token, &stats, GetActiveWorkoutRequest {}, "GetActiveWorkout").await?;
+        perform_request(
+            &mut workout_client,
+            &token,
+            &stats,
+            GetActiveWorkoutRequest {},
+            "GetActiveWorkout",
+        )
+        .await?;
         {
             let ms = rand::thread_rng().gen_range(500..1500);
             tokio::time::sleep(Duration::from_millis(ms)).await;
         }
-        
-        perform_request(&mut workout_client, &token, &stats, GetProposedWorkoutScheduleRequest { user_id: user_id.clone() }, "GetProposedSchedule").await?;
+
+        perform_request(
+            &mut workout_client,
+            &token,
+            &stats,
+            GetProposedWorkoutScheduleRequest {
+                user_id: user_id.clone(),
+            },
+            "GetProposedSchedule",
+        )
+        .await?;
         {
             let ms = rand::thread_rng().gen_range(500..1500);
             tokio::time::sleep(Duration::from_millis(ms)).await;
         }
-        
-        let workout_id = perform_request(&mut workout_client, &token, &stats, StartWorkoutRequest {
-            name: "Simulated Workout".to_string(),
-            exercise_groups: vec![],
-        }, "StartWorkout").await?.id;
+
+        let workout_id = perform_request(
+            &mut workout_client,
+            &token,
+            &stats,
+            StartWorkoutRequest {
+                name: "Simulated Workout".to_string(),
+                exercise_groups: vec![],
+            },
+            "StartWorkout",
+        )
+        .await?
+        .id;
 
         for g_idx in 0..2 {
             {
                 let ms = rand::thread_rng().gen_range(1000..3000);
                 tokio::time::sleep(Duration::from_millis(ms)).await;
             }
-            let group_res = perform_request(&mut workout_client, &token, &stats, CreateExerciseGroupRequest {
-                workout_id: workout_id.clone(),
-                name: format!("Group {}", g_idx),
-                sets: 3,
-                interleave_warmups: false,
-                exercise_configs: vec![ExerciseTypeConfig {
-                    exercise: Exercise::Squat as i32,
-                    start_weight: 100.0,
-                    end_weight: 100.0,
-                    reps: 5,
-                    include_warmup: false,
+            let group_res = perform_request(
+                &mut workout_client,
+                &token,
+                &stats,
+                CreateExerciseGroupRequest {
+                    workout_id: workout_id.clone(),
+                    name: format!("Group {}", g_idx),
+                    sets: 3,
+                    interleave_warmups: false,
+                    exercise_configs: vec![ExerciseTypeConfig {
+                        exercise: Exercise::Squat as i32,
+                        start_weight: 100.0,
+                        end_weight: 100.0,
+                        reps: 5,
+                        include_warmup: false,
+                        rest_config: None,
+                    }],
                     rest_config: None,
-                }],
-                rest_config: None,
-            }, "CreateExerciseGroup").await?;
-            
+                },
+                "CreateExerciseGroup",
+            )
+            .await?;
+
             for p_set in group_res.generated_sets {
                 // Simulate "getting ready"
                 {
                     let ms = rand::thread_rng().gen_range(500..2000);
                     tokio::time::sleep(Duration::from_millis(ms)).await;
                 }
-                
-                perform_request(&mut workout_client, &token, &stats, StartSetRequest { workout_id: workout_id.clone(), proposed_set_id: p_set.id.clone() }, "StartSet").await?;
-                
+
+                perform_request(
+                    &mut workout_client,
+                    &token,
+                    &stats,
+                    StartSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: p_set.id.clone(),
+                    },
+                    "StartSet",
+                )
+                .await?;
+
                 // Simulate doing the set (2-5 seconds)
                 {
                     let ms = rand::thread_rng().gen_range(2000..5000);
                     tokio::time::sleep(Duration::from_millis(ms)).await;
                 }
-                
-                perform_request(&mut workout_client, &token, &stats, CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: p_set.id.clone(),
-                    actual_reps: p_set.target_reps,
-                    actual_weight: p_set.target_weight,
-                }, "CompleteSet").await?;
-                
+
+                perform_request(
+                    &mut workout_client,
+                    &token,
+                    &stats,
+                    CompleteSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: p_set.id.clone(),
+                        actual_reps: p_set.target_reps,
+                        actual_weight: p_set.target_weight,
+                    },
+                    "CompleteSet",
+                )
+                .await?;
+
                 // Simulate rest (2-5 seconds)
                 {
                     let ms = rand::thread_rng().gen_range(2000..5000);
@@ -340,13 +437,22 @@ async fn run_user_simulation(
                 }
             }
         }
-        
+
         {
             let ms = rand::thread_rng().gen_range(1000..3000);
             tokio::time::sleep(Duration::from_millis(ms)).await;
         }
-        perform_request(&mut workout_client, &token, &stats, EndWorkoutRequest { workout_id: workout_id.clone() }, "EndWorkout").await?;
-        
+        perform_request(
+            &mut workout_client,
+            &token,
+            &stats,
+            EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+            },
+            "EndWorkout",
+        )
+        .await?;
+
         // Gap between workouts
         {
             let ms = rand::thread_rng().gen_range(5000..10000);
@@ -363,8 +469,8 @@ async fn perform_request<C, Req, Res>(
     stats: &Arc<GlobalStats>,
     request: Req,
     method_name: &str,
-) -> Result<Res, Status> 
-where 
+) -> Result<Res, Status>
+where
     C: WorkoutServiceTrait<Req, Res>,
 {
     let req_start = Instant::now();
@@ -381,50 +487,89 @@ trait WorkoutServiceTrait<Req, Res> {
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<GetActiveWorkoutRequest, lift::workout::v1::GetActiveWorkoutResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<GetActiveWorkoutRequest>) -> Result<tonic::Response<lift::workout::v1::GetActiveWorkoutResponse>, Status> {
+impl WorkoutServiceTrait<GetActiveWorkoutRequest, lift::workout::v1::GetActiveWorkoutResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<GetActiveWorkoutRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::GetActiveWorkoutResponse>, Status> {
         self.get_active_workout(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<GetProposedWorkoutScheduleRequest, lift::workout::v1::GetProposedWorkoutScheduleResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<GetProposedWorkoutScheduleRequest>) -> Result<tonic::Response<lift::workout::v1::GetProposedWorkoutScheduleResponse>, Status> {
+impl
+    WorkoutServiceTrait<
+        GetProposedWorkoutScheduleRequest,
+        lift::workout::v1::GetProposedWorkoutScheduleResponse,
+    > for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<GetProposedWorkoutScheduleRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::GetProposedWorkoutScheduleResponse>, Status>
+    {
         self.get_proposed_workout_schedule(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<StartWorkoutRequest, lift::workout::v1::StartWorkoutResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<StartWorkoutRequest>) -> Result<tonic::Response<lift::workout::v1::StartWorkoutResponse>, Status> {
+impl WorkoutServiceTrait<StartWorkoutRequest, lift::workout::v1::StartWorkoutResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<StartWorkoutRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::StartWorkoutResponse>, Status> {
         self.start_workout(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<CreateExerciseGroupRequest, lift::workout::v1::CreateExerciseGroupResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<CreateExerciseGroupRequest>) -> Result<tonic::Response<lift::workout::v1::CreateExerciseGroupResponse>, Status> {
+impl WorkoutServiceTrait<CreateExerciseGroupRequest, lift::workout::v1::CreateExerciseGroupResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<CreateExerciseGroupRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::CreateExerciseGroupResponse>, Status> {
         self.create_exercise_group(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<StartSetRequest, lift::workout::v1::StartSetResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<StartSetRequest>) -> Result<tonic::Response<lift::workout::v1::StartSetResponse>, Status> {
+impl WorkoutServiceTrait<StartSetRequest, lift::workout::v1::StartSetResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<StartSetRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::StartSetResponse>, Status> {
         self.start_set(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<CompleteSetRequest, lift::workout::v1::CompleteSetResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<CompleteSetRequest>) -> Result<tonic::Response<lift::workout::v1::CompleteSetResponse>, Status> {
+impl WorkoutServiceTrait<CompleteSetRequest, lift::workout::v1::CompleteSetResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<CompleteSetRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::CompleteSetResponse>, Status> {
         self.complete_set(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<EndWorkoutRequest, lift::workout::v1::EndWorkoutResponse> for WorkoutServiceClient<Channel> {
-    async fn call(&mut self, req: Request<EndWorkoutRequest>) -> Result<tonic::Response<lift::workout::v1::EndWorkoutResponse>, Status> {
+impl WorkoutServiceTrait<EndWorkoutRequest, lift::workout::v1::EndWorkoutResponse>
+    for WorkoutServiceClient<Channel>
+{
+    async fn call(
+        &mut self,
+        req: Request<EndWorkoutRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::EndWorkoutResponse>, Status> {
         self.end_workout(req).await
     }
 }

@@ -1,7 +1,5 @@
 use dashmap::DashMap;
-use lift::workout::v1::{
-    CompletedSet, ExerciseGroup, ProposedSet, User, Workout,
-};
+use lift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, User, Workout};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -39,9 +37,17 @@ impl ActiveWorkout {
             .collect();
 
         self.proposed_sets.sort_by(|a, b| {
-            let a_group = group_order.get(&a.exercise_group_id).copied().unwrap_or(i32::MAX);
-            let b_group = group_order.get(&b.exercise_group_id).copied().unwrap_or(i32::MAX);
-            a_group.cmp(&b_group).then(a.workout_order.cmp(&b.workout_order))
+            let a_group = group_order
+                .get(&a.exercise_group_id)
+                .copied()
+                .unwrap_or(i32::MAX);
+            let b_group = group_order
+                .get(&b.exercise_group_id)
+                .copied()
+                .unwrap_or(i32::MAX);
+            a_group
+                .cmp(&b_group)
+                .then(a.workout_order.cmp(&b.workout_order))
         });
 
         for (idx, set) in self.proposed_sets.iter_mut().enumerate() {
@@ -101,11 +107,20 @@ impl AppState {
             _ => return,
         };
 
-        let groups = central_db.get_exercise_groups(user_id, &active.id).await.unwrap_or_default();
-        let proposed = central_db.get_proposed_sets(user_id, &active.id).await.unwrap_or_default();
-        let completed = central_db.get_completed_sets(user_id, &active.id).await.unwrap_or_default();
+        let groups = central_db
+            .get_exercise_groups(user_id, &active.id)
+            .await
+            .unwrap_or_default();
+        let proposed = central_db
+            .get_proposed_sets(user_id, &active.id)
+            .await
+            .unwrap_or_default();
+        let completed = central_db
+            .get_completed_sets(user_id, &active.id)
+            .await
+            .unwrap_or_default();
 
-        // Re-check workouts to avoid overwriting a workout that might have started 
+        // Re-check workouts to avoid overwriting a workout that might have started
         // during the awaits above.
         use dashmap::mapref::entry::Entry;
         match self.workouts.entry(user_id.to_string()) {
@@ -120,7 +135,8 @@ impl AppState {
 
         // Recover session membership
         if let Ok(Some(session_id)) = central_db.get_active_session(user_id).await {
-            self.user_sessions.insert(user_id.to_string(), session_id.clone());
+            self.user_sessions
+                .insert(user_id.to_string(), session_id.clone());
             self.sessions
                 .entry(session_id)
                 .or_insert_with(HashSet::new)

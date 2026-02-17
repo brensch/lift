@@ -43,6 +43,8 @@ class ParticipantCard extends StatelessWidget {
 
   _ParticipantStatusInfo _getStatus(ParticipantStatus p) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final nextSet = p.hasNextUpSet() ? p.nextUpSet : _findNextPending(p);
+    final restUntil = p.restUntil.toInt();
 
     // Check if workout is ended
     if (p.hasActiveWorkout() && p.activeWorkout.endTime != Int64.ZERO) {
@@ -57,12 +59,12 @@ class ParticipantCard extends StatelessWidget {
       (c) => c!.endedAt == Int64.ZERO,
       orElse: () => null,
     );
-    if (activeSet != null) {
+    if (p.hasActiveSet || activeSet != null) {
       final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
-        (ps) => ps!.id == activeSet.proposedSetId,
+        (ps) => ps!.id == activeSet?.proposedSetId,
         orElse: () => null,
       );
-      final elapsed = now - activeSet.startedAt.toInt();
+      final elapsed = activeSet != null ? now - activeSet.startedAt.toInt() : 0;
       return _ParticipantStatusInfo(
         stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
         stateColor: AppTheme.activeFg,
@@ -73,14 +75,8 @@ class ParticipantCard extends StatelessWidget {
     }
 
     // Check if resting
-    final restingSet = p.completedSets.cast<CompletedSet?>().firstWhere(
-      (c) => c!.endedAt != Int64.ZERO && c.restUntil.toInt() > now,
-      orElse: () => null,
-    );
-    if (restingSet != null) {
-      final remaining = restingSet.restUntil.toInt() - now;
-      // Find next pending set
-      final nextSet = _findNextPending(p);
+    if (restUntil > now && nextSet != null) {
+      final remaining = restUntil - now;
       return _ParticipantStatusInfo(
         stateLabel: 'Resting',
         stateColor: const Color(0xFF3B82F6),
@@ -91,17 +87,8 @@ class ParticipantCard extends StatelessWidget {
     }
 
     // Check for yapping (rest ended, next set pending)
-    final restingSets = p.completedSets
-        .where((c) => c.endedAt != Int64.ZERO && c.restUntil != Int64.ZERO)
-        .toList();
-    restingSets.sort((a, b) => b.endedAt.compareTo(a.endedAt));
-    final lastRestEnd = restingSets.isNotEmpty
-        ? restingSets.first.restUntil.toInt()
-        : 0;
-    final nextSet = _findNextPending(p);
-
-    if (lastRestEnd > 0 && lastRestEnd <= now && nextSet != null) {
-      final elapsed = now - lastRestEnd;
+    if (restUntil > 0 && restUntil <= now && nextSet != null) {
+      final elapsed = now - restUntil;
       return _ParticipantStatusInfo(
         stateLabel: 'Yapping',
         stateColor: const Color(0xFFF97316),

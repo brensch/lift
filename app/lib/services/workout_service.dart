@@ -75,6 +75,14 @@ class WorkoutServiceWrapper {
     );
   }
 
+  Future<void> cancelProposedSet(String workoutId, String proposedSetId) async {
+    await _client.workoutService.cancelProposedSet(
+      CancelProposedSetRequest()
+        ..workoutId = workoutId
+        ..proposedSetId = proposedSetId,
+    );
+  }
+
   Future<Workout> endWorkout(String workoutId) async {
     final response = await _client.workoutService.endWorkout(
       EndWorkoutRequest()..workoutId = workoutId,

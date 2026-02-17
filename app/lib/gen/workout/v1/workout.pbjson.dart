@@ -262,6 +262,7 @@ const ProposedSet$json = {
       '5': 5,
       '10': 'restAfterFailure'
     },
+    {'1': 'cancelled', '3': 11, '4': 1, '5': 8, '10': 'cancelled'},
   ],
 };
 
@@ -273,7 +274,8 @@ final $typed_data.Uint8List proposedSetDescriptor = $convert.base64Decode(
     'gFUgp0YXJnZXRSZXBzEiMKDXRhcmdldF93ZWlnaHQYBiABKAJSDHRhcmdldFdlaWdodBIWCgZ3'
     'YXJtdXAYByABKAhSBndhcm11cBIqChFleGVyY2lzZV9ncm91cF9pZBgIIAEoCVIPZXhlcmNpc2'
     'VHcm91cElkEiwKEnJlc3RfYWZ0ZXJfc3VjY2VzcxgJIAEoBVIQcmVzdEFmdGVyU3VjY2VzcxIs'
-    'ChJyZXN0X2FmdGVyX2ZhaWx1cmUYCiABKAVSEHJlc3RBZnRlckZhaWx1cmU=');
+    'ChJyZXN0X2FmdGVyX2ZhaWx1cmUYCiABKAVSEHJlc3RBZnRlckZhaWx1cmUSHAoJY2FuY2VsbG'
+    'VkGAsgASgIUgljYW5jZWxsZWQ=');
 
 @$core.Deprecated('Use completedSetDescriptor instead')
 const CompletedSet$json = {
@@ -379,6 +381,22 @@ const GetWorkoutResponse$json = {
       '6': '.workout.v1.CompletedSet',
       '10': 'completedSets'
     },
+    {
+      '1': 'next_up_set',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'nextUpSet'
+    },
+    {
+      '1': 'plan_change_stats',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WorkoutPlanChangeStats',
+      '10': 'planChangeStats'
+    },
   ],
 };
 
@@ -388,7 +406,38 @@ final $typed_data.Uint8List getWorkoutResponseDescriptor = $convert.base64Decode
     '91dFIHd29ya291dBJCCg9leGVyY2lzZV9ncm91cHMYAiADKAsyGS53b3Jrb3V0LnYxLkV4ZXJj'
     'aXNlR3JvdXBSDmV4ZXJjaXNlR3JvdXBzEjwKDXByb3Bvc2VkX3NldHMYAyADKAsyFy53b3Jrb3'
     'V0LnYxLlByb3Bvc2VkU2V0Ugxwcm9wb3NlZFNldHMSPwoOY29tcGxldGVkX3NldHMYBCADKAsy'
-    'GC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldFINY29tcGxldGVkU2V0cw==');
+    'GC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldFINY29tcGxldGVkU2V0cxI3CgtuZXh0X3VwX3NldB'
+    'gFIAEoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXRSCW5leHRVcFNldBJOChFwbGFuX2NoYW5n'
+    'ZV9zdGF0cxgGIAEoCzIiLndvcmtvdXQudjEuV29ya291dFBsYW5DaGFuZ2VTdGF0c1IPcGxhbk'
+    'NoYW5nZVN0YXRz');
+
+@$core.Deprecated('Use workoutPlanChangeStatsDescriptor instead')
+const WorkoutPlanChangeStats$json = {
+  '1': 'WorkoutPlanChangeStats',
+  '2': [
+    {'1': 'cancelled_total', '3': 1, '4': 1, '5': 5, '10': 'cancelledTotal'},
+    {
+      '1': 'cancelled_warmups',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'cancelledWarmups'
+    },
+    {
+      '1': 'cancelled_working',
+      '3': 3,
+      '4': 1,
+      '5': 5,
+      '10': 'cancelledWorking'
+    },
+  ],
+};
+
+/// Descriptor for `WorkoutPlanChangeStats`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workoutPlanChangeStatsDescriptor = $convert.base64Decode(
+    'ChZXb3Jrb3V0UGxhbkNoYW5nZVN0YXRzEicKD2NhbmNlbGxlZF90b3RhbBgBIAEoBVIOY2FuY2'
+    'VsbGVkVG90YWwSKwoRY2FuY2VsbGVkX3dhcm11cHMYAiABKAVSEGNhbmNlbGxlZFdhcm11cHMS'
+    'KwoRY2FuY2VsbGVkX3dvcmtpbmcYAyABKAVSEGNhbmNlbGxlZFdvcmtpbmc=');
 
 @$core.Deprecated('Use listWorkoutsRequestDescriptor instead')
 const ListWorkoutsRequest$json = {
@@ -585,6 +634,30 @@ const DeleteCompletedSetResponse$json = {
 /// Descriptor for `DeleteCompletedSetResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List deleteCompletedSetResponseDescriptor =
     $convert.base64Decode('ChpEZWxldGVDb21wbGV0ZWRTZXRSZXNwb25zZQ==');
+
+@$core.Deprecated('Use cancelProposedSetRequestDescriptor instead')
+const CancelProposedSetRequest$json = {
+  '1': 'CancelProposedSetRequest',
+  '2': [
+    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'proposed_set_id', '3': 2, '4': 1, '5': 9, '10': 'proposedSetId'},
+  ],
+};
+
+/// Descriptor for `CancelProposedSetRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelProposedSetRequestDescriptor =
+    $convert.base64Decode(
+        'ChhDYW5jZWxQcm9wb3NlZFNldFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dE'
+        'lkEiYKD3Byb3Bvc2VkX3NldF9pZBgCIAEoCVINcHJvcG9zZWRTZXRJZA==');
+
+@$core.Deprecated('Use cancelProposedSetResponseDescriptor instead')
+const CancelProposedSetResponse$json = {
+  '1': 'CancelProposedSetResponse',
+};
+
+/// Descriptor for `CancelProposedSetResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cancelProposedSetResponseDescriptor =
+    $convert.base64Decode('ChlDYW5jZWxQcm9wb3NlZFNldFJlc3BvbnNl');
 
 @$core.Deprecated('Use endWorkoutRequestDescriptor instead')
 const EndWorkoutRequest$json = {

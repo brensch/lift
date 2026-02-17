@@ -1,10 +1,9 @@
-use tonic::{Request, Response, Status};
-use lift::workout::v1::{
-    user_service_server::UserService,
-    CreateUserRequest, CreateUserResponse,
-    GetUserRequest, GetUserResponse,
-};
 use crate::db::CentralDb;
+use lift::workout::v1::{
+    user_service_server::UserService, CreateUserRequest, CreateUserResponse, GetUserRequest,
+    GetUserResponse,
+};
+use tonic::{Request, Response, Status};
 
 pub struct MyUserService {
     central_db: CentralDb,
@@ -28,7 +27,10 @@ impl UserService for MyUserService {
             return Err(Status::invalid_argument("name is required"));
         }
 
-        let user = self.central_db.create_user(&req.name).await
+        let user = self
+            .central_db
+            .create_user(&req.name)
+            .await
             .map_err(|e| Status::internal(format!("Failed to create user: {}", e)))?;
 
         Ok(Response::new(CreateUserResponse { user: Some(user) }))
@@ -44,7 +46,10 @@ impl UserService for MyUserService {
             return Err(Status::invalid_argument("user_id is required"));
         }
 
-        let user = self.central_db.get_user(&req.user_id).await
+        let user = self
+            .central_db
+            .get_user(&req.user_id)
+            .await
             .map_err(|e| Status::internal(format!("Failed to get user: {}", e)))?
             .ok_or_else(|| Status::not_found("User not found"))?;
 

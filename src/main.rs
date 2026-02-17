@@ -1,35 +1,30 @@
-use std::sync::Arc;
-use std::net::SocketAddr;
-use axum::{
-    routing::get,
-    response::Html,
-    Json,
-};
+use axum::{response::Html, routing::get, Json};
 use http::{header::HeaderName, Method};
-use tower_http::cors::{Any, CorsLayer};
 use lift::workout::v1::{
-    workout_service_server::WorkoutServiceServer,
-    user_service_server::UserServiceServer,
-    multiplayer_service_server::MultiplayerServiceServer,
-    auth_service_server::AuthServiceServer,
+    auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
+    user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
 };
-use log::{info, error};
+use log::{error, info};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
 
 mod auth;
 mod db;
+mod progress;
 mod scheduler;
-mod service_workout;
-mod service_user;
-mod service_group;
 mod service_auth;
+mod service_group;
+mod service_user;
+mod service_workout;
 mod state;
 
 use auth::AuthState;
 use db::CentralDb;
-use service_workout::MyWorkoutService;
-use service_user::MyUserService;
-use service_group::GroupService;
 use service_auth::MyAuthService;
+use service_group::GroupService;
+use service_user::MyUserService;
+use service_workout::MyWorkoutService;
 use state::AppState;
 
 #[tokio::main]
@@ -39,7 +34,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Catch panics and log them
     std::panic::set_hook(Box::new(|panic_info| {
-        let location = panic_info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_else(|| "unknown".to_string());
+        let location = panic_info
+            .location()
+            .map(|l| format!("{}:{}", l.file(), l.line()))
+            .unwrap_or_else(|| "unknown".to_string());
         let payload = panic_info.payload();
         let message = if let Some(s) = payload.downcast_ref::<&str>() {
             *s
@@ -63,7 +61,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let group_service = GroupService::new(central_db.clone(), app_state.clone());
 
     let auth_state = Arc::new(AuthState::new(central_db.clone()));
-    let auth_service = MyAuthService { auth_state: auth_state.clone() };
+    let auth_service = MyAuthService {
+        auth_state: auth_state.clone(),
+    };
 
     // CORS layer for browser access
     let cors = CorsLayer::new()

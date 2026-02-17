@@ -12,6 +12,7 @@
 
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'workout.pb.dart' as $1;
@@ -497,10 +498,16 @@ class SessionStatus extends $pb.GeneratedMessage {
   factory SessionStatus({
     $core.String? sessionId,
     $core.Iterable<ParticipantStatus>? participants,
+    $core.String? nextUpUserId,
+    $1.ProposedSet? nextUpSet,
+    $fixnum.Int64? nextUpRestUntil,
   }) {
     final result = create();
     if (sessionId != null) result.sessionId = sessionId;
     if (participants != null) result.participants.addAll(participants);
+    if (nextUpUserId != null) result.nextUpUserId = nextUpUserId;
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (nextUpRestUntil != null) result.nextUpRestUntil = nextUpRestUntil;
     return result;
   }
 
@@ -520,6 +527,10 @@ class SessionStatus extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'sessionId')
     ..pPM<ParticipantStatus>(2, _omitFieldNames ? '' : 'participants',
         subBuilder: ParticipantStatus.create)
+    ..aOS(3, _omitFieldNames ? '' : 'nextUpUserId')
+    ..aOM<$1.ProposedSet>(4, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: $1.ProposedSet.create)
+    ..aInt64(5, _omitFieldNames ? '' : 'nextUpRestUntil')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -552,6 +563,35 @@ class SessionStatus extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<ParticipantStatus> get participants => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $core.String get nextUpUserId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set nextUpUserId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextUpUserId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextUpUserId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $1.ProposedSet get nextUpSet => $_getN(3);
+  @$pb.TagNumber(4)
+  set nextUpSet($1.ProposedSet value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasNextUpSet() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNextUpSet() => $_clearField(4);
+  @$pb.TagNumber(4)
+  $1.ProposedSet ensureNextUpSet() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get nextUpRestUntil => $_getI64(4);
+  @$pb.TagNumber(5)
+  set nextUpRestUntil($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasNextUpRestUntil() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearNextUpRestUntil() => $_clearField(5);
 }
 
 class ParticipantStatus extends $pb.GeneratedMessage {
@@ -562,6 +602,9 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $core.Iterable<$1.ExerciseGroup>? exerciseGroups,
     $core.Iterable<$1.ProposedSet>? proposedSets,
     $core.Iterable<$1.CompletedSet>? completedSets,
+    $1.ProposedSet? nextUpSet,
+    $fixnum.Int64? restUntil,
+    $core.bool? hasActiveSet,
   }) {
     final result = create();
     if (user != null) result.user = user;
@@ -570,6 +613,9 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (restUntil != null) result.restUntil = restUntil;
+    if (hasActiveSet != null) result.hasActiveSet = hasActiveSet;
     return result;
   }
 
@@ -596,6 +642,10 @@ class ParticipantStatus extends $pb.GeneratedMessage {
         subBuilder: $1.ProposedSet.create)
     ..pPM<$1.CompletedSet>(6, _omitFieldNames ? '' : 'completedSets',
         subBuilder: $1.CompletedSet.create)
+    ..aOM<$1.ProposedSet>(7, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: $1.ProposedSet.create)
+    ..aInt64(8, _omitFieldNames ? '' : 'restUntil')
+    ..aOB(9, _omitFieldNames ? '' : 'hasActiveSet')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -656,6 +706,35 @@ class ParticipantStatus extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<$1.CompletedSet> get completedSets => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $1.ProposedSet get nextUpSet => $_getN(6);
+  @$pb.TagNumber(7)
+  set nextUpSet($1.ProposedSet value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasNextUpSet() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearNextUpSet() => $_clearField(7);
+  @$pb.TagNumber(7)
+  $1.ProposedSet ensureNextUpSet() => $_ensure(6);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get restUntil => $_getI64(7);
+  @$pb.TagNumber(8)
+  set restUntil($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasRestUntil() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearRestUntil() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get hasActiveSet => $_getBF(8);
+  @$pb.TagNumber(9)
+  set hasActiveSet($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasHasActiveSet() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearHasActiveSet() => $_clearField(9);
 }
 
 const $core.bool _omitFieldNames =
