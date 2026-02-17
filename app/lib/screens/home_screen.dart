@@ -67,22 +67,57 @@ class _HomeScreenState extends State<HomeScreen> {
       final schedule = scheduleRes.exerciseStatuses;
       final proposedGroups = scheduleRes.proposedGroups;
 
-      // Auto-select first few groups (compounds)
+      // Auto-select exactly 3 groups when available:
+      // 1) Squat always included.
+      // 2) Two additional groups that were worked out the longest ago.
       final autoSelected = <int>{};
-      for (int i = 0; i < proposedGroups.length && autoSelected.length < 3; i++) {
-        // Select groups that contain recovered exercises
-        final groupExercises = proposedGroups[i].exerciseConfigs
-            .map((c) => c.exercise.value)
-            .toSet();
-        final hasRecovered = schedule.any(
-          (s) => groupExercises.contains(s.exercise.value) && s.recovered,
+      final lastPerformedByExercise = <int, Int64>{
+        for (final s in schedule) s.exercise.value: s.lastPerformedAt,
+      };
+
+      int? squatIndex;
+      for (int i = 0; i < proposedGroups.length; i++) {
+        final hasSquat = proposedGroups[i].exerciseConfigs.any(
+          (c) => c.exercise == Exercise.EXERCISE_SQUAT,
         );
-        final hasAlwaysInclude = schedule.any(
-          (s) => groupExercises.contains(s.exercise.value) && s.alwaysInclude,
-        );
-        if (hasAlwaysInclude || hasRecovered) {
-          autoSelected.add(i);
+        if (hasSquat) {
+          squatIndex = i;
+          break;
         }
+      }
+      if (squatIndex != null) {
+        autoSelected.add(squatIndex);
+      }
+
+      final candidateIndices = <int>[];
+      for (int i = 0; i < proposedGroups.length; i++) {
+        if (i == squatIndex) continue;
+        candidateIndices.add(i);
+      }
+      candidateIndices.sort((a, b) {
+        int groupLastPerformed(ProposedExerciseGroup g) {
+          if (g.exerciseConfigs.isEmpty) return 0;
+          var minTs =
+              lastPerformedByExercise[g.exerciseConfigs.first.exercise.value] ??
+              Int64.ZERO;
+          for (final c in g.exerciseConfigs.skip(1)) {
+            final ts = lastPerformedByExercise[c.exercise.value] ?? Int64.ZERO;
+            if (ts < minTs) {
+              minTs = ts;
+            }
+          }
+          return minTs.toInt();
+        }
+
+        final aTs = groupLastPerformed(proposedGroups[a]);
+        final bTs = groupLastPerformed(proposedGroups[b]);
+        final byTs = aTs.compareTo(bTs);
+        return byTs != 0 ? byTs : a.compareTo(b);
+      });
+
+      for (final idx in candidateIndices) {
+        if (autoSelected.length >= 3) break;
+        autoSelected.add(idx);
       }
 
       setState(() {
@@ -127,23 +162,30 @@ class _HomeScreenState extends State<HomeScreen> {
         final configs = proposed.exerciseConfigs.map((c) {
           final status = statusMap[c.exercise.value];
           final weight = status?.targetWeight ?? c.startWeight;
-          return ExerciseTypeConfig()
+          final cfg = ExerciseTypeConfig()
             ..exercise = c.exercise
             ..startWeight = weight
             ..endWeight = weight
             ..reps = c.reps
             ..includeWarmup = c.includeWarmup;
+          if (c.hasRestConfig()) {
+            cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
+          }
+          return cfg;
         }).toList();
 
-        exerciseGroups.add(
-          ExerciseGroup()
-            ..id = groupId
-            ..name = proposed.name
-            ..sets = proposed.sets
-            ..interleaveWarmups = proposed.interleaveWarmups
-            ..workoutOrder = groupOrder++
-            ..exerciseConfigs.addAll(configs),
-        );
+        final group = ExerciseGroup()
+          ..id = groupId
+          ..name = proposed.name
+          ..sets = proposed.sets
+          ..interleaveWarmups = proposed.interleaveWarmups
+          ..workoutOrder = groupOrder++
+          ..exerciseConfigs.addAll(configs);
+        if (proposed.hasRestConfig()) {
+          group.restConfig = RestConfig()
+            ..mergeFromMessage(proposed.restConfig);
+        }
+        exerciseGroups.add(group);
       }
 
       final now = DateTime.now();
@@ -151,9 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
           "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
 
       // Build exercise summary from selected groups
-      final exerciseSummary = _selectedGroupIndices
-          .toList()
-          ..sort();
+      final exerciseSummary = _selectedGroupIndices.toList()..sort();
       final summaryNames = exerciseSummary
           .map((idx) => _proposedGroups![idx].name)
           .join(' / ');
@@ -162,8 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ? _getDefaultWorkoutName()
           : _nameController.text.trim().toUpperCase();
 
-      final workoutName = "$dateStr - $summaryNames - $baseName"
-          .toUpperCase();
+      final workoutName = "$dateStr - $summaryNames - $baseName".toUpperCase();
 
       final workoutProvider = context.read<WorkoutProvider>();
 
@@ -246,22 +285,19 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final group = _proposedGroups![index];
-                  final isSelected = _selectedGroupIndices.contains(index);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _GroupCard(
-                      group: group,
-                      exerciseStatuses: _schedule ?? [],
-                      isSelected: isSelected,
-                      onTap: () => _toggleGroup(index),
-                    ),
-                  );
-                },
-                childCount: _proposedGroups?.length ?? 0,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final group = _proposedGroups![index];
+                final isSelected = _selectedGroupIndices.contains(index);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _GroupCard(
+                    group: group,
+                    exerciseStatuses: _schedule ?? [],
+                    isSelected: isSelected,
+                    onTap: () => _toggleGroup(index),
+                  ),
+                );
+              }, childCount: _proposedGroups?.length ?? 0),
             ),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
@@ -503,7 +539,10 @@ class _GroupCard extends StatelessWidget {
                 if (group.exerciseConfigs.length > 1) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),

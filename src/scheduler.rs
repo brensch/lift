@@ -1,7 +1,7 @@
 use chrono::Utc;
 use lift::workout::v1::{
     Exercise, ExerciseCategory, ExerciseStatus, ExerciseTypeConfig,
-    GetProposedWorkoutScheduleResponse, MuscleGroup, ProposedExerciseGroup,
+    GetProposedWorkoutScheduleResponse, MuscleGroup, ProposedExerciseGroup, RestConfig,
 };
 
 use crate::db::CentralDb;
@@ -13,6 +13,9 @@ const RECOVERY_HOURS: i64 = 24;
 const UPPER_BODY_INCREMENT: f32 = 5.0;
 const LOWER_BODY_INCREMENT: f32 = 5.0;
 const DEADLIFT_INCREMENT: f32 = 10.0;
+const DEFAULT_REST_AFTER_SUCCESS: i32 = 180;
+const DEFAULT_REST_AFTER_FAILURE: i32 = 300;
+const DEFAULT_REST_AFTER_WARMUP: i32 = 10;
 
 struct ExerciseConfig {
     exercise: Exercise,
@@ -254,7 +257,12 @@ impl Scheduler {
                 end_weight: status.target_weight,
                 reps: config.map(|c| c.default_reps).unwrap_or(5),
                 include_warmup: true,
-                rest_config: None,
+                rest_config: Some(RestConfig {
+                    rest_after_success: DEFAULT_REST_AFTER_SUCCESS,
+                    rest_after_failure: DEFAULT_REST_AFTER_FAILURE,
+                    rest_after_warmup: DEFAULT_REST_AFTER_WARMUP,
+                    rest_after_last_warmup: DEFAULT_REST_AFTER_SUCCESS,
+                }),
             }
         };
 

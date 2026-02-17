@@ -217,6 +217,7 @@ const CompleteSetIntent$json = {
     {'1': 'set_id', '3': 2, '4': 1, '5': 9, '10': 'setId'},
     {'1': 'reps', '3': 3, '4': 1, '5': 5, '10': 'reps'},
     {'1': 'actual_weight', '3': 4, '4': 1, '5': 2, '10': 'actualWeight'},
+    {'1': 'completed_at', '3': 5, '4': 1, '5': 3, '10': 'completedAt'},
   ],
 };
 
@@ -224,7 +225,7 @@ const CompleteSetIntent$json = {
 final $typed_data.Uint8List completeSetIntentDescriptor = $convert.base64Decode(
     'ChFDb21wbGV0ZVNldEludGVudBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSFQoGc2'
     'V0X2lkGAIgASgJUgVzZXRJZBISCgRyZXBzGAMgASgFUgRyZXBzEiMKDWFjdHVhbF93ZWlnaHQY'
-    'BCABKAJSDGFjdHVhbFdlaWdodA==');
+    'BCABKAJSDGFjdHVhbFdlaWdodBIhCgxjb21wbGV0ZWRfYXQYBSABKANSC2NvbXBsZXRlZEF0');
 
 @$core.Deprecated('Use skipWarmupIntentDescriptor instead')
 const SkipWarmupIntent$json = {

@@ -40,6 +40,7 @@ class WearableSyncCoordinator {
           intent.completeSet.setId,
           intent.completeSet.reps,
           intent.completeSet.actualWeight,
+          completedAt: intent.completeSet.completedAt.toInt(),
         );
       } else if (intent.hasSkipWarmup() &&
           intent.skipWarmup.workoutId == workoutId) {

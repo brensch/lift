@@ -459,6 +459,7 @@ mod tests {
                     proposed_set_id: first_g1,
                     actual_reps: 5,
                     actual_weight: 100.0,
+                    completed_at: 0,
                 },
                 &token,
             ),
@@ -611,6 +612,7 @@ mod tests {
                     proposed_set_id: u2_first_set,
                     actual_reps: 5,
                     actual_weight: 150.0,
+                    completed_at: 0,
                 },
                 &token2,
             ),
@@ -672,8 +674,14 @@ mod tests {
         let state = Arc::new(AppState::new());
         let workout_service = MyWorkoutService::new(central_db.clone(), state);
 
-        let user = central_db.create_user_with_id("u1", "u1").await.expect("user");
-        let token = central_db.create_auth_session(&user.id).await.expect("token");
+        let user = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user");
+        let token = central_db
+            .create_auth_session(&user.id)
+            .await
+            .expect("token");
 
         let start = WorkoutService::start_workout(
             &workout_service,
@@ -757,7 +765,10 @@ mod tests {
         .into_inner();
 
         assert!(workout_after.proposed_sets.iter().all(|set| !set.cancelled));
-        assert!(workout_after.proposed_sets.iter().all(|set| set.id != warmup_to_cancel));
+        assert!(workout_after
+            .proposed_sets
+            .iter()
+            .all(|set| set.id != warmup_to_cancel));
         let stats = workout_after
             .plan_change_stats
             .expect("plan change stats expected");

@@ -30,19 +30,14 @@ class WearExerciseSessionManager(private val context: Context) {
         ensureJob = scope.launch {
             while (isActive && !active) {
                 runCatching {
-                    logPermissionStatus()
-                    WearDebugLog.add("Exercise session start requested")
                     val config = ExerciseConfig.builder(ExerciseType.STRENGTH_TRAINING)
                         .setIsGpsEnabled(false)
                         .build()
                     exerciseClient.startExerciseAsync(config).await()
                     active = true
                     Log.i("LiftWear", "Exercise session started")
-                    WearDebugLog.add("Exercise session started")
                 }.onFailure {
                     Log.e("LiftWear", "Failed to start exercise session", it)
-                    WearDebugLog.add("Exercise start failed")
-                    logThrowable("start", it)
                 }
                 if (!active) {
                     delay(5000)
@@ -57,14 +52,10 @@ class WearExerciseSessionManager(private val context: Context) {
         if (!active) return
         scope.launch {
             runCatching {
-                WearDebugLog.add("Exercise session end requested")
                 exerciseClient.endExerciseAsync().await()
                 Log.i("LiftWear", "Exercise session ended")
-                WearDebugLog.add("Exercise session ended")
             }.onFailure {
                 Log.e("LiftWear", "Failed to end exercise session", it)
-                WearDebugLog.add("Exercise end failed")
-                logThrowable("end", it)
             }
             active = false
         }
@@ -83,15 +74,9 @@ class WearExerciseSessionManager(private val context: Context) {
             context,
             "android.permission.health.READ_HEART_RATE",
         ) == PackageManager.PERMISSION_GRANTED
-        WearDebugLog.add(
-            "Perms body=$bodySensors activity=$activityRecognition readHr=$readHeartRate",
+        Log.i(
+            "LiftWear",
+            "Permissions body=$bodySensors activity=$activityRecognition readHr=$readHeartRate",
         )
-    }
-
-    private fun logThrowable(label: String, throwable: Throwable) {
-        WearDebugLog.addLong("$label err=${throwable::class.java.simpleName}: ${throwable.message.orEmpty()}")
-        throwable.cause?.let { cause ->
-            WearDebugLog.addLong("cause=${cause::class.java.simpleName}: ${cause.message.orEmpty()}")
-        }
     }
 }

@@ -6,6 +6,9 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,6 +25,8 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
     private val pendingSamples = mutableListOf<Wearable.HeartRateSample>()
     private val pendingLock = Any()
     private var flushJob: Job? = null
+    private val _latestBpm = MutableStateFlow<Float?>(null)
+    val latestBpm: StateFlow<Float?> = _latestBpm.asStateFlow()
 
     @Volatile
     private var workoutId: String? = null
@@ -32,12 +37,9 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         this.workoutId = workoutId
         val sensor = heartRateSensor
         if (sensor == null) {
-            WearDebugLog.add("HR sensor unavailable")
             return
         }
-        WearDebugLog.add("HR start workout=$workoutId sensor=${sensor.name}")
-        val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        WearDebugLog.add("HR listener registered=$registered")
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
         flushJob = scope.launch {
             while (isActive) {
                 delay(5000)
@@ -48,12 +50,10 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
 
     fun stop() {
         flushPending()
-        if (workoutId != null) {
-            WearDebugLog.add("HR stop")
-        }
         workoutId = null
         flushJob?.cancel()
         flushJob = null
+        _latestBpm.value = null
         sensorManager.unregisterListener(this)
     }
 
@@ -68,6 +68,7 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         synchronized(pendingLock) {
             pendingSamples.add(sample)
         }
+        _latestBpm.value = bpm
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -100,7 +101,6 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
             }
                 .onFailure {
                     Log.e("LiftWear", "Failed to send HR batch", it)
-                    WearDebugLog.add("HR batch send failed: ${it.message ?: it.javaClass.simpleName}")
                 }
         }
     }

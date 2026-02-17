@@ -417,7 +417,9 @@ fn is_final_set_in_exercise_group_after_completion(
 
     !proposed_sets
         .iter()
-        .filter(|set| set.exercise_group_id == *group_id && !set.cancelled && set.id != proposed_set_id)
+        .filter(|set| {
+            set.exercise_group_id == *group_id && !set.cancelled && set.id != proposed_set_id
+        })
         .any(|set| {
             !completed_sets
                 .iter()
@@ -615,7 +617,11 @@ impl WorkoutService for MyWorkoutService {
             let proposed_active = active_proposed_sets(&proposed);
             let next_up_set = compute_next_up_set(&proposed_active, &completed);
             let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed));
-            let state_snapshot = Some(workout_state_snapshot_from_state(&proposed, &completed, now_unix()));
+            let state_snapshot = Some(workout_state_snapshot_from_state(
+                &proposed,
+                &completed,
+                now_unix(),
+            ));
             return Ok(Response::new(GetWorkoutResponse {
                 workout: Some(workout),
                 exercise_groups: groups,
@@ -657,14 +663,19 @@ impl WorkoutService for MyWorkoutService {
             .central_db
             .get_workout_plan_change_stats(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(format!("Failed to get workout plan change stats: {}", e)))?;
+            .map_err(|e| {
+                Status::internal(format!("Failed to get workout plan change stats: {}", e))
+            })?;
         let plan_change_stats = Some(WorkoutPlanChangeStats {
             cancelled_total: cancelled_total as i32,
             cancelled_warmups: cancelled_warmups as i32,
             cancelled_working: cancelled_working as i32,
         });
-        let state_snapshot =
-            Some(workout_state_snapshot_from_state(&proposed_sets, &completed_sets, now_unix()));
+        let state_snapshot = Some(workout_state_snapshot_from_state(
+            &proposed_sets,
+            &completed_sets,
+            now_unix(),
+        ));
 
         Ok(Response::new(GetWorkoutResponse {
             workout: Some(workout),
@@ -1042,17 +1053,24 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("proposed_set_id is required"));
         }
 
+        let now = now_unix();
+        let ended_at = if req.completed_at > 0 {
+            if (now - req.completed_at).abs() > 30 {
+                return Err(Status::invalid_argument(
+                    "completed_at must be within 30 seconds of server time",
+                ));
+            }
+            req.completed_at
+        } else {
+            now
+        };
+
         let (completed_set, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
                 .get_mut(&user_id)
                 .ok_or_else(|| Status::failed_precondition("No active workout"))?;
-
-            let ended_at = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
 
             // Look up proposed set info for rest computation
             let proposed = workout_ref
@@ -1082,7 +1100,10 @@ impl WorkoutService for MyWorkoutService {
             if is_final_set_in_group {
                 rest_seconds = END_OF_EXERCISE_GROUP_REST_SECONDS;
             }
-            let rest_until = ended_at + rest_seconds;
+            // Keep recorded completion time from client event, but start rest from
+            // server "now" so debounce/network delay doesn't consume rest duration.
+            let rest_base = ended_at.max(now_unix());
+            let rest_until = rest_base + rest_seconds;
 
             // Find existing started set or create new
             let existing_idx = workout_ref.completed_sets.iter().position(|c| {
@@ -1292,7 +1313,9 @@ impl WorkoutService for MyWorkoutService {
         self.central_db
             .insert_workout_heart_rate_samples(&user_id, &req.workout_id, &req.samples)
             .await
-            .map_err(|e| Status::internal(format!("Failed to persist heart rate samples: {}", e)))?;
+            .map_err(|e| {
+                Status::internal(format!("Failed to persist heart rate samples: {}", e))
+            })?;
 
         Ok(Response::new(AppendWorkoutHeartRateResponse {
             stored: req.samples.len() as i32,

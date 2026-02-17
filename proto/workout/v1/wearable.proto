@@ -72,6 +72,7 @@ message CompleteSetIntent {
   string set_id = 2;
   int32 reps = 3;
   float actual_weight = 4;
+  int64 completed_at = 5; // Unix seconds, time of first tap
 }
 
 message SkipWarmupIntent {

@@ -1,7 +1,6 @@
 use dashmap::DashMap;
 use lift::workout::v1::{
-    CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout,
-    WorkoutHeartRatePoint,
+    CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
