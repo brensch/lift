@@ -1,8 +1,9 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
+RELEASE_ENV_FILE ?= .env
 
 # Debug keystore config
 DEBUG_KEYSTORE = $(HOME)/.android/debug.keystore
@@ -187,6 +188,46 @@ load-test:
 deploy-android:
 	cd app && $(FLUTTER) build apk --release
 	$(ADB) install -r app/build/app/outputs/flutter-apk/app-release.apk
+
+ci-android-prepare-signing:
+	@bash -ec '\
+		if [ ! -f "$(RELEASE_ENV_FILE)" ]; then \
+			echo "Missing $(RELEASE_ENV_FILE)."; \
+			exit 1; \
+		fi; \
+		set -a; . "$(RELEASE_ENV_FILE)"; set +a; \
+		missing=0; \
+		for name in RELEASE_KEYSTORE_BASE64 RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do \
+			if [ -z "$${!name:-}" ]; then \
+				echo "Missing variable in $(RELEASE_ENV_FILE): $$name"; \
+				missing=1; \
+			fi; \
+		done; \
+		if [ "$$missing" -eq 1 ]; then \
+			exit 1; \
+		fi; \
+		echo "$$RELEASE_KEYSTORE_BASE64" | base64 --decode > app/android/release-keystore.jks; \
+		printf "storeFile=release-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" \
+			"$$RELEASE_KEYSTORE_PASSWORD" "$$RELEASE_KEY_ALIAS" "$$RELEASE_KEY_PASSWORD" \
+			> app/android/key.properties; \
+		echo "Prepared app/android/key.properties and app/android/release-keystore.jks"; \
+	'
+
+ci-android-check-signing: ci-android-prepare-signing
+	cd app/android && ./gradlew :app:validateSigningRelease :wear:validateSigningRelease --no-daemon
+
+ci-android-build-release: ci-android-prepare-signing
+	cd app && $(FLUTTER) pub get
+	cd app && $(FLUTTER) build appbundle --release
+	cd app/android && ./gradlew :wear:bundleRelease --no-daemon
+	@echo "Phone AAB: app/build/app/outputs/bundle/release/app-release.aab"
+	@echo "Wear AAB:  app/android/wear/build/outputs/bundle/release/wear-release.aab"
+
+ci-android-release-local: ci-android-check-signing ci-android-build-release
+
+ci-android-clean-signing:
+	@rm -f app/android/key.properties app/android/release-keystore.jks
+	@echo "Removed local signing files."
 
 run-prod:
 	docker-compose up --build
