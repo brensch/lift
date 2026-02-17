@@ -28,9 +28,9 @@ jobs:
         working-directory: app
         run: flutter pub get
 
-      - name: Build iOS app for simulator (no signing)
+      - name: Build iOS app for simulator (debug, no signing)
         working-directory: app
-        run: flutter build ios --release --simulator
+        run: flutter build ios --debug --simulator
 
       - name: Check signing secrets
         id: signing-check
