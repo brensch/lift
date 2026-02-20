@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wear-app-release-aab
-          path: app/android/wear/build/outputs/bundle/release/wear-release.aab
+          path: app/build/wear/outputs/bundle/release/wear-release.aab
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -93,4 +93,4 @@ jobs:
           generate_release_notes: true
           files: |
             app/build/app/outputs/bundle/release/app-release.aab
-            app/android/wear/build/outputs/bundle/release/wear-release.aab
+            app/build/wear/outputs/bundle/release/wear-release.aab
