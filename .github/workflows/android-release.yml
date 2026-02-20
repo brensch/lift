@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - "android/**"
 
 jobs:
-  build-release:
+  build-android-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -87,7 +87,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: android-main-${{ github.run_id }}
+          tag_name: android-${{ github.ref_name }}-${{ github.run_id }}
           target_commitish: ${{ github.sha }}
           name: Android Release ${{ github.run_number }}
           generate_release_notes: true
