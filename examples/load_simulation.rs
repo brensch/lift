@@ -425,6 +425,7 @@ async fn run_user_simulation(
                         proposed_set_id: p_set.id.clone(),
                         actual_reps: p_set.target_reps,
                         actual_weight: p_set.target_weight,
+                        ..Default::default()
                     },
                     "CompleteSet",
                 )
