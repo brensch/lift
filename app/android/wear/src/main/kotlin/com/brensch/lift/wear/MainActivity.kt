@@ -68,19 +68,37 @@ class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var heartRateStreamer: HeartRateStreamer
     private lateinit var exerciseSessionManager: WearExerciseSessionManager
+    private var heartRatePermissionRequestInFlight = false
+    private var workoutPermissionRequestInFlight = false
+    private var heartRatePermissionRequestedOnce = false
+    private var workoutPermissionRequestedOnce = false
 
     @SuppressLint("InvalidFragmentVersionForActivityResult")
-    private val permissionLauncher =
+    private val heartRatePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
-            ensureCompanionSessionIfNeeded()
+            heartRatePermissionRequestInFlight = false
+            if (hasHeartRatePermissions()) {
+                maybeRequestRuntimePermissions()
+            } else {
+                Log.w("LiftWear", "Required heart-rate permissions still missing after request")
+            }
+        }
+
+    @SuppressLint("InvalidFragmentVersionForActivityResult")
+    private val workoutPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+            workoutPermissionRequestInFlight = false
+            if (hasWorkoutPermissions()) {
+                ensureCompanionSessionIfNeeded()
+            } else {
+                Log.w("LiftWear", "Required workout permissions still missing after request")
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         heartRateStreamer = HeartRateStreamer(applicationContext)
         exerciseSessionManager = WearExerciseSessionManager(applicationContext)
-
-        maybeRequestRuntimePermissions()
 
         setContent {
             WearApp(
@@ -92,31 +110,92 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun maybeRequestRuntimePermissions() {
-        val requiredPermissions = mutableListOf(
+    override fun onResume() {
+        super.onResume()
+        maybeRequestRuntimePermissions()
+    }
+
+    private fun requiredHeartRatePermissions(): List<String> {
+        val required = mutableListOf<String>()
+        if (!hasHeartRatePermissions()) {
+            required += Manifest.permission.BODY_SENSORS
+        }
+        if (Build.VERSION.SDK_INT >= 36 && !hasReadHeartRatePermission()) {
+            required += "android.permission.health.READ_HEART_RATE"
+        }
+        return required.distinct()
+    }
+
+    private fun hasHeartRatePermissions(): Boolean {
+        return hasBodySensorsPermission() || hasReadHeartRatePermission()
+    }
+
+    private fun hasBodySensorsPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
             Manifest.permission.BODY_SENSORS,
-            Manifest.permission.ACTIVITY_RECOGNITION,
-        ).apply {
-            if (Build.VERSION.SDK_INT >= 36) {
-                add("android.permission.health.READ_HEART_RATE")
-            }
-        }
-        val missing = requiredPermissions.filter { permission ->
-            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
-        }
-        if (missing.isNotEmpty()) {
-            permissionLauncher.launch(missing.toTypedArray())
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasReadHeartRatePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            "android.permission.health.READ_HEART_RATE",
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun hasExerciseSessionHeartRatePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= 36) {
+            hasReadHeartRatePermission()
         } else {
-            ensureCompanionSessionIfNeeded()
+            hasBodySensorsPermission()
         }
     }
 
+    private fun requiredWorkoutPermissions(): List<String> {
+        return listOf(Manifest.permission.ACTIVITY_RECOGNITION)
+    }
+
+    private fun hasWorkoutPermissions(): Boolean {
+        return requiredWorkoutPermissions().all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestHeartRatePermissionsIfNeeded(): Boolean {
+        if (hasHeartRatePermissions()) return true
+        if (heartRatePermissionRequestInFlight || heartRatePermissionRequestedOnce) return false
+        heartRatePermissionRequestedOnce = true
+        heartRatePermissionRequestInFlight = true
+        heartRatePermissionLauncher.launch(requiredHeartRatePermissions().toTypedArray())
+        return false
+    }
+
+    private fun requestWorkoutPermissionsIfNeeded(): Boolean {
+        if (hasWorkoutPermissions()) return true
+        if (workoutPermissionRequestInFlight || workoutPermissionRequestedOnce) return false
+        workoutPermissionRequestedOnce = true
+        workoutPermissionRequestInFlight = true
+        workoutPermissionLauncher.launch(requiredWorkoutPermissions().toTypedArray())
+        return false
+    }
+
+    private fun maybeRequestRuntimePermissions(): Boolean {
+        if (!requestHeartRatePermissionsIfNeeded()) return false
+        requestWorkoutPermissionsIfNeeded()
+        ensureCompanionSessionIfNeeded()
+        return true
+    }
+
     private fun ensureCompanionSessionIfNeeded() {
+        if (!hasHeartRatePermissions()) return
         val snapshot = WearDataRepository.snapshot.value ?: return
         if (snapshot.workoutId.isBlank()) return
         if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return
         heartRateStreamer.start(snapshot.workoutId)
-        exerciseSessionManager.ensureSessionActive()
+        if (hasWorkoutPermissions() && hasExerciseSessionHeartRatePermission()) {
+            exerciseSessionManager.ensureSessionActive()
+        }
     }
 
     private fun sendAction(action: Wearable.WearAction) {
@@ -197,7 +276,7 @@ private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
     heartRateStreamer: HeartRateStreamer,
     exerciseSessionManager: WearExerciseSessionManager,
-    ensurePermissions: () -> Unit,
+    ensurePermissions: () -> Boolean,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by heartRateStreamer.latestBpm.collectAsState()
@@ -250,7 +329,7 @@ private fun WearApp(
             (data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE ||
                 hasEndWorkoutAction)
         if (shouldStream && !isStreaming) {
-            ensurePermissions()
+            if (!ensurePermissions()) return@LaunchedEffect
             heartRateStreamer.start(data.workoutId)
             exerciseSessionManager.ensureSessionActive()
             isStreaming = true

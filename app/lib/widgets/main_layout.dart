@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import '../services/wearable_bridge_service.dart';
 import 'multiplayer_modal.dart';
 import 'wobbly_text.dart';
 import 'workout_bottom_bar.dart';
@@ -32,6 +33,7 @@ class MainLayout extends StatelessWidget {
           child: const WobblyText(text: 'LIFT', fontSize: 24, maxOffset: 2),
         ),
         actions: [
+          _buildWatchLaunchButton(context),
           _buildMultiplayerButton(context, mp),
           Builder(
             builder: (context) => IconButton(
@@ -298,6 +300,28 @@ class MainLayout extends StatelessWidget {
     }
 
     return _ShakingWidget(child: button);
+  }
+
+  Widget _buildWatchLaunchButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: 'Open watch app',
+      icon: Icon(Icons.phone_android, color: colorScheme.onSurface),
+      onPressed: () async {
+        final bridge = context.read<WearableBridgeService>();
+        final opened = await bridge.openWatchApp();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              opened
+                  ? 'Sent open request to watch'
+                  : 'No connected watch found',
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showMultiplayerModal(BuildContext context) {

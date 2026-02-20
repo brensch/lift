@@ -218,6 +218,7 @@ class _LiftAppState extends State<LiftApp> {
       providers: [
         Provider<GrpcClient>.value(value: _grpcClient),
         Provider<AuthService>.value(value: _authService),
+        Provider<WearableBridgeService>.value(value: _wearableBridgeService),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         ChangeNotifierProvider<WorkoutProvider>.value(value: _workoutProvider),
         ChangeNotifierProvider<MultiplayerProvider>.value(
