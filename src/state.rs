@@ -143,6 +143,22 @@ impl AppState {
                 .insert(user_id.to_string());
         }
     }
+
+    pub fn remove_user_data(&self, user_id: &str) {
+        self.workouts.remove(user_id);
+        self.users.remove(user_id);
+        self.checked_users.remove(user_id);
+
+        if let Some((_, session_id)) = self.user_sessions.remove(user_id) {
+            if let Some(mut members) = self.sessions.get_mut(&session_id) {
+                members.remove(user_id);
+                if members.is_empty() {
+                    drop(members);
+                    self.sessions.remove(&session_id);
+                }
+            }
+        }
+    }
 }
 
 pub fn spawn_checkpoint_task(_state: Arc<AppState>, _central_db: CentralDb) {
