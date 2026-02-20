@@ -13,7 +13,8 @@ RUN mkdir -p src && \
 
 # Build actual project
 COPY src/ ./src/
-COPY index.html ./
+COPY index.html privacy.html forget.html ./
+COPY web/ ./web/
 RUN touch src/main.rs src/lib.rs && cargo build --release
 
 # Runtime stage
