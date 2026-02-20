@@ -44,6 +44,12 @@ class PlatformWearableBridgeService implements WearableBridgeService {
       'payload': envelope.writeToBuffer(),
     });
   }
+
+  @override
+  Future<bool> openWatchApp() async {
+    final opened = await _methods.invokeMethod<bool>('openWatchApp');
+    return opened ?? false;
+  }
 }
 
 WearableBridgeService createWearableBridgeService() {

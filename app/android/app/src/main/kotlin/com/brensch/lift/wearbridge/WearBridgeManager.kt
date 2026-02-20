@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 object WearBridgeManager {
     const val PHONE_TO_WEAR_PATH = "/lift/phone/envelope"
+    const val PHONE_TO_WEAR_LAUNCH_PATH = "/lift/phone/launch"
     const val WEAR_TO_PHONE_PATH = "/lift/wear/envelope"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -50,6 +51,25 @@ object WearBridgeManager {
                     .onFailure { Log.e("LiftWearBridge", "Failed snapshot send to node=${node.id}", it) }
             }
         }
+    }
+
+    suspend fun requestWatchAppOpen(context: Context): Int {
+        val nodeClient = Wearable.getNodeClient(context)
+        val messageClient = Wearable.getMessageClient(context)
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrDefault(emptyList())
+        var sent = 0
+        for (node in nodes) {
+            runCatching {
+                messageClient.sendMessage(node.id, PHONE_TO_WEAR_LAUNCH_PATH, ByteArray(0)).await()
+            }
+                .onSuccess {
+                    sent += 1
+                }
+                .onFailure {
+                    Log.e("LiftWearBridge", "Failed launch send to node=${node.id}", it)
+                }
+        }
+        return sent
     }
 
     fun onWearEnvelopeReceived(path: String, bytes: ByteArray) {

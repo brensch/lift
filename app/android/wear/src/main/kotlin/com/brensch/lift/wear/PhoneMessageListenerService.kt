@@ -1,11 +1,21 @@
 package com.brensch.lift.wear
 
+import android.content.Intent
+import android.util.Log
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 import workout.v1.Wearable
 
 class PhoneMessageListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
+        if (messageEvent.path == WearTransport.PHONE_TO_WEAR_LAUNCH_PATH) {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            runCatching { startActivity(intent) }
+                .onFailure { Log.e("LiftWear", "Failed to launch watch activity from phone request", it) }
+            return
+        }
         if (messageEvent.path != WearTransport.PHONE_TO_WEAR_PATH) {
             super.onMessageReceived(messageEvent)
             return

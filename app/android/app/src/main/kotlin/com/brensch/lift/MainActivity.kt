@@ -5,6 +5,9 @@ import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -23,6 +26,12 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                     WearBridgeManager.publishSnapshot(this, payload)
                     result.success(null)
+                }
+                "openWatchApp" -> {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        val sent = WearBridgeManager.requestWatchAppOpen(this@MainActivity)
+                        result.success(sent > 0)
+                    }
                 }
 
                 else -> result.notImplemented()

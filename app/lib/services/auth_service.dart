@@ -19,6 +19,7 @@ class AuthService {
   final GrpcClient grpcClient;
   final CredentialManager _credentialManager = CredentialManager();
   bool _credentialManagerInitialized = false;
+  static const Duration _passkeyOpTimeout = Duration(seconds: 30);
 
   AuthService({required this.grpcClient});
 
@@ -71,25 +72,44 @@ class AuthService {
     await _ensureCredentialManager();
 
     // Step 1: Get registration challenge from server
-    final startResponse = await grpcClient.authService.registerStart(
-      RegisterStartRequest(username: username),
-    );
+    final startResponse = await grpcClient.authService
+        .registerStart(RegisterStartRequest(username: username))
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out starting passkey registration. Check your connection and try again.',
+          ),
+        );
 
     // Step 2: Create passkey credential via platform API
     // Server wraps options under "publicKey" key
     final optionsJson = jsonDecode(startResponse.optionsJson);
-    final credential = await _credentialManager.savePasskeyCredentials(
-      request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
-    );
+    final credential = await _credentialManager
+        .savePasskeyCredentials(
+          request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out waiting for device passkey prompt. Try again.',
+          ),
+        );
 
     // Step 3: Send credential back to server
-    final finishResponse = await grpcClient.authService.registerFinish(
-      RegisterFinishRequest(
-        userId: startResponse.userId,
-        credentialJson: jsonEncode(_stripNulls(credential.toJson())),
-        name: 'signup key',
-      ),
-    );
+    final finishResponse = await grpcClient.authService
+        .registerFinish(
+          RegisterFinishRequest(
+            userId: startResponse.userId,
+            credentialJson: jsonEncode(_stripNulls(credential.toJson())),
+            name: 'signup key',
+          ),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out finishing passkey registration. Try again.',
+          ),
+        );
 
     return AuthResponse(
       sessionToken: finishResponse.sessionToken,
@@ -102,27 +122,51 @@ class AuthService {
     await _ensureCredentialManager();
 
     // Step 1: Get authentication challenge from server (discoverable, no username)
-    final startResponse = await grpcClient.authService.loginStart(
-      LoginStartRequest(),
-    );
+    final startResponse = await grpcClient.authService
+        .loginStart(LoginStartRequest())
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out starting passkey login. Check your connection and try again.',
+          ),
+        );
 
     // Step 2: Get passkey credential via platform API
     // Server wraps options under "publicKey" key
     final optionsJson = jsonDecode(startResponse.optionsJson);
-    final credentials = await _credentialManager.getCredentials(
-      passKeyOption: CredentialLoginOptions.fromJson(optionsJson['publicKey']),
-      fetchOptions: FetchOptionsAndroid(passKey: true),
-    );
+    final credentials = await _credentialManager
+        .getCredentials(
+          passKeyOption: CredentialLoginOptions.fromJson(
+            optionsJson['publicKey'],
+          ),
+          fetchOptions: FetchOptionsAndroid(passKey: true),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out waiting for passkey selection. this happens if you have too many passkeys saved for this domain, or took too long picking. Delete some passkeys, or be quicker.',
+          ),
+        );
+    final publicKeyCredential = credentials.publicKeyCredential;
+    if (publicKeyCredential == null) {
+      throw Exception('No passkey credential was returned by the device.');
+    }
 
     // Step 3: Send credential back to server
-    final finishResponse = await grpcClient.authService.loginFinish(
-      LoginFinishRequest(
-        challengeId: startResponse.challengeId,
-        credentialJson: jsonEncode(
-          _stripNulls(credentials.publicKeyCredential!.toJson()),
-        ),
-      ),
-    );
+    final finishResponse = await grpcClient.authService
+        .loginFinish(
+          LoginFinishRequest(
+            challengeId: startResponse.challengeId,
+            credentialJson: jsonEncode(
+              _stripNulls(publicKeyCredential.toJson()),
+            ),
+          ),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () =>
+              throw Exception('Timed out finishing passkey login. Try again.'),
+        );
 
     return AuthResponse(
       sessionToken: finishResponse.sessionToken,
@@ -141,21 +185,40 @@ class AuthService {
   Future<void> addPasskey(String name) async {
     await _ensureCredentialManager();
 
-    final startResponse = await grpcClient.authService.addPasskeyStart(
-      AddPasskeyStartRequest(),
-    );
+    final startResponse = await grpcClient.authService
+        .addPasskeyStart(AddPasskeyStartRequest())
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out starting add-passkey flow. Check your connection and try again.',
+          ),
+        );
 
     final optionsJson = jsonDecode(startResponse.optionsJson);
-    final credential = await _credentialManager.savePasskeyCredentials(
-      request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
-    );
+    final credential = await _credentialManager
+        .savePasskeyCredentials(
+          request: CredentialCreationOptions.fromJson(optionsJson['publicKey']),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out waiting for device passkey prompt. Try again.',
+          ),
+        );
 
-    await grpcClient.authService.addPasskeyFinish(
-      AddPasskeyFinishRequest(
-        credentialJson: jsonEncode(_stripNulls(credential.toJson())),
-        name: name,
-      ),
-    );
+    await grpcClient.authService
+        .addPasskeyFinish(
+          AddPasskeyFinishRequest(
+            credentialJson: jsonEncode(_stripNulls(credential.toJson())),
+            name: name,
+          ),
+        )
+        .timeout(
+          _passkeyOpTimeout,
+          onTimeout: () => throw Exception(
+            'Timed out finishing add-passkey flow. Try again.',
+          ),
+        );
   }
 
   Future<void> deletePasskey(String credentialId) async {

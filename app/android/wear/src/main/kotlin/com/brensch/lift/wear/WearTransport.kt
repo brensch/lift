@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 
 object WearTransport {
     const val PHONE_TO_WEAR_PATH = "/lift/phone/envelope"
+    const val PHONE_TO_WEAR_LAUNCH_PATH = "/lift/phone/launch"
     const val WEAR_TO_PHONE_PATH = "/lift/wear/envelope"
 
     suspend fun sendToPhone(context: Context, path: String, payload: ByteArray): Int {

@@ -5,7 +5,10 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,8 +38,13 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         if (this.workoutId == workoutId && flushJob?.isActive == true) return
         stop()
         this.workoutId = workoutId
+        if (!hasRequiredPermissions()) {
+            Log.w("LiftWear", "Heart rate permissions missing, skipping sensor start")
+            return
+        }
         val sensor = heartRateSensor
         if (sensor == null) {
+            Log.w("LiftWear", "No heart rate sensor available on this watch")
             return
         }
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
@@ -72,6 +80,18 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
+    private fun hasRequiredPermissions(): Boolean {
+        val bodySensorsGranted = ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.BODY_SENSORS,
+        ) == PackageManager.PERMISSION_GRANTED
+        val readHeartRateGranted = ContextCompat.checkSelfPermission(
+            context,
+            "android.permission.health.READ_HEART_RATE",
+        ) == PackageManager.PERMISSION_GRANTED
+        return bodySensorsGranted || readHeartRateGranted
+    }
 
     private fun flushPending() {
         val activeWorkoutId = workoutId ?: return
