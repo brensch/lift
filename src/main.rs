@@ -1,11 +1,14 @@
 use axum::{
     extract::Extension,
     http::StatusCode,
-    response::Html,
+    response::{Html, IntoResponse},
     routing::{get, post},
     Json,
 };
-use http::{header::HeaderName, Method};
+use http::{
+    header::{HeaderName, CONTENT_TYPE},
+    Method,
+};
 use lift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
@@ -106,6 +109,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/", get(root_handler))
         .route("/privacy", get(privacy_handler))
         .route("/forget", get(forget_handler))
+        .route("/assets/lift-theme.css", get(theme_css_handler))
+        .route("/assets/lift-wobble.js", get(wobble_js_handler))
         .route("/api/forget/start", post(forget_start_handler))
         .route("/api/forget/confirm", post(forget_confirm_handler))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
@@ -130,11 +135,25 @@ async fn root_handler() -> Html<&'static str> {
 }
 
 async fn privacy_handler() -> Html<&'static str> {
-    Html(PRIVACY_HTML)
+    Html(include_str!("../privacy.html"))
 }
 
 async fn forget_handler() -> Html<&'static str> {
-    Html(FORGET_HTML)
+    Html(include_str!("../forget.html"))
+}
+
+async fn theme_css_handler() -> impl IntoResponse {
+    (
+        [(CONTENT_TYPE, "text/css; charset=utf-8")],
+        include_str!("../web/lift-theme.css"),
+    )
+}
+
+async fn wobble_js_handler() -> impl IntoResponse {
+    (
+        [(CONTENT_TYPE, "application/javascript; charset=utf-8")],
+        include_str!("../web/lift-wobble.js"),
+    )
 }
 
 #[derive(Serialize)]
@@ -228,145 +247,3 @@ async fn assetlinks_handler() -> Json<serde_json::Value> {
         }
     }]))
 }
-
-const PRIVACY_HTML: &str = r#"<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lift Privacy Policy</title>
-  <style>
-    body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f7f8fb; color: #14213d; }
-    main { max-width: 860px; margin: 0 auto; padding: 32px 20px 56px; }
-    h1 { margin: 0 0 8px; }
-    h2 { margin-top: 28px; }
-    p, li { line-height: 1.55; }
-    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(20,33,61,.08); }
-  </style>
-</head>
-<body>
-<main>
-  <h1>Lift Privacy Policy</h1>
-  <p>Effective date: February 20, 2026</p>
-  <div class="card">
-    <p>This policy explains what data Lift collects, why we collect it, and how you can control or delete it.</p>
-    <h2>Data We Collect</h2>
-    <ul>
-      <li>Account data: username, account creation time, and authentication credentials (for passkey login).</li>
-      <li>Workout data: workouts, exercise groups, planned sets, completed sets, and related timestamps.</li>
-      <li>Optional device telemetry: heart-rate samples from supported wearable integrations.</li>
-      <li>Security data: session tokens and limited metadata needed to protect accounts and detect abuse.</li>
-    </ul>
-    <h2>How We Use Data</h2>
-    <ul>
-      <li>Provide core functionality (saving workouts, syncing sessions, and powering progress/history views).</li>
-      <li>Secure accounts and authenticate users through passkeys and session management.</li>
-      <li>Operate and improve reliability of the service.</li>
-    </ul>
-    <h2>Data Sharing</h2>
-    <p>We do not sell your personal data. We only share data when required to run the service, meet legal obligations, or protect users and the platform.</p>
-    <h2>Data Retention</h2>
-    <p>We retain data while your account is active. You can request immediate deletion of your account and associated data at <a href="/forget">/forget</a>.</p>
-    <h2>Your Choices</h2>
-    <ul>
-      <li>You can stop using the service at any time.</li>
-      <li>You can delete your account and workout data permanently through the account deletion page.</li>
-    </ul>
-    <h2>Contact</h2>
-    <p>For privacy requests, contact the Lift project maintainer.</p>
-  </div>
-</main>
-</body>
-</html>
-"#;
-
-const FORGET_HTML: &str = r#"<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Delete Lift Account</title>
-  <style>
-    body { margin: 0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: linear-gradient(120deg, #fffaf2, #eaf6ff); color: #112; }
-    main { max-width: 720px; margin: 0 auto; padding: 36px 20px 60px; }
-    .card { background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 16px 34px rgba(10,20,40,.1); }
-    button { border: none; border-radius: 10px; padding: 12px 16px; cursor: pointer; font-size: 15px; font-weight: 600; background: #003566; color: #fff; }
-    button:disabled { opacity: .6; cursor: not-allowed; }
-    .warn { color: #9a3412; font-weight: 600; }
-    .ok { color: #166534; font-weight: 600; }
-    .err { color: #b91c1c; font-weight: 600; }
-    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
-  </style>
-</head>
-<body>
-<main>
-  <h1>Delete your Lift account</h1>
-  <div class="card">
-    <p class="warn">This permanently deletes your account, passkeys, workout history, heart-rate data, and active sessions.</p>
-    <p>To continue, confirm with a passkey in this browser.</p>
-    <button id="deleteBtn">Delete my data with passkey</button>
-    <p id="status" aria-live="polite"></p>
-    <p>If your browser does not support passkeys, open this page in a modern browser with WebAuthn support.</p>
-  </div>
-</main>
-<script>
-const deleteBtn = document.getElementById('deleteBtn');
-const statusEl = document.getElementById('status');
-
-function setStatus(text, cls) {
-  statusEl.className = cls || '';
-  statusEl.textContent = text;
-}
-
-deleteBtn.addEventListener('click', async () => {
-  deleteBtn.disabled = true;
-  setStatus('Starting secure passkey verification...', '');
-
-  try {
-    if (!window.PublicKeyCredential || !PublicKeyCredential.parseRequestOptionsFromJSON) {
-      throw new Error('Passkeys are not supported in this browser.');
-    }
-
-    const startRes = await fetch('/api/forget/start', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    });
-    if (!startRes.ok) {
-      throw new Error(await startRes.text());
-    }
-    const startData = await startRes.json();
-    const publicKey = PublicKeyCredential.parseRequestOptionsFromJSON(startData.options_json);
-    const credential = await navigator.credentials.get({ publicKey });
-    if (!credential) {
-      throw new Error('No passkey response was returned.');
-    }
-    const credentialJson = credential.toJSON ? credential.toJSON() : null;
-    if (!credentialJson) {
-      throw new Error('Credential serialization failed.');
-    }
-
-    setStatus('Deleting your account data...', '');
-    const confirmRes = await fetch('/api/forget/confirm', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        challenge_id: startData.challenge_id,
-        credential_json: credentialJson,
-      }),
-    });
-    if (!confirmRes.ok) {
-      throw new Error(await confirmRes.text());
-    }
-
-    const deleted = await confirmRes.json();
-    setStatus(`Account deleted for user id: ${deleted.deleted_user_id}`, 'ok');
-  } catch (err) {
-    setStatus(err instanceof Error ? err.message : 'Delete request failed', 'err');
-    deleteBtn.disabled = false;
-  }
-});
-</script>
-</body>
-</html>
-"#;

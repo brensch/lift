@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Generate and replace app icons with a black-circle / white-dumbbell design."""
+"""Generate and replace app icons plus marketing branding assets."""
 
 from __future__ import annotations
 
 from pathlib import Path
 import glob
+import math
+import random
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 
 BLACK = (10, 10, 10, 255)  # #0A0A0A
 WHITE = (250, 250, 250, 255)  # #FAFAFA
+GRAY_BG = (212, 212, 212, 255)
+DARK_GRAY_BG = (74, 74, 74, 255)
 
 
 def draw_barbell(draw: ImageDraw.ImageDraw, size: int, color: tuple[int, int, int, int]) -> None:
@@ -55,6 +59,118 @@ def draw_marketing_icon(size: int) -> Image.Image:
     draw = ImageDraw.Draw(image)
     draw_barbell(draw, size, WHITE)
 
+    return image
+
+
+def draw_rounded_square_logo(size: int) -> Image.Image:
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    radius = int(size * 0.22)
+    draw.rounded_rectangle((0, 0, size - 1, size - 1), radius=radius, fill=BLACK)
+
+    inner = int(size * 0.88)
+    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
+    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
+    offset = ((size - inner) // 2, (size - inner) // 2)
+    image.alpha_composite(barbell, offset)
+    return image
+
+
+def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+    ]
+    for path in candidates:
+        font_path = Path(path)
+        if font_path.exists():
+            return ImageFont.truetype(str(font_path), size=size)
+    return ImageFont.load_default()
+
+
+def draw_wobbly_text(
+    canvas: Image.Image,
+    text: str,
+    origin_x: int,
+    origin_y: int,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    color: tuple[int, int, int, int],
+    seed: int,
+    max_offset: float,
+    max_rotate_radians: float,
+) -> None:
+    rng = random.Random(seed)
+    cursor_x = float(origin_x)
+
+    for ch in text:
+        # Same RNG usage pattern as mobile: x, y, angle per character.
+        dx = (rng.random() * 2 - 1) * max_offset
+        dy = (rng.random() * 2 - 1) * max_offset
+        angle = (rng.random() * 2 - 1) * max_rotate_radians
+
+        advance = float(font.getlength(ch if ch != "" else " "))
+        if ch == " ":
+            cursor_x += advance
+            continue
+
+        bbox = font.getbbox(ch)
+        if bbox is None:
+            cursor_x += advance
+            continue
+        width = max(1, int(math.ceil(bbox[2] - bbox[0])))
+        height = max(1, int(math.ceil(bbox[3] - bbox[1])))
+        pad = max(10, int(round(height * 0.35)))
+
+        glyph = Image.new("RGBA", (width + pad * 2, height + pad * 2), (0, 0, 0, 0))
+        glyph_draw = ImageDraw.Draw(glyph)
+        glyph_draw.text((pad - bbox[0], pad - bbox[1]), ch, font=font, fill=color)
+
+        rotated = glyph.rotate(
+            math.degrees(angle),
+            resample=Image.Resampling.BICUBIC,
+            expand=True,
+        )
+        canvas.alpha_composite(
+            rotated,
+            (int(round(cursor_x + dx)), int(round(origin_y + dy))),
+        )
+        cursor_x += advance
+
+
+def draw_branding_header() -> Image.Image:
+    width, height = 1024, 500
+    image = Image.new("RGBA", (width, height), DARK_GRAY_BG)
+    logo = draw_rounded_square_logo(248)
+    image.alpha_composite(logo, (72, 126))
+
+    title_font = load_font(172)
+    byline_text = "Track lifts, get strong, together"
+    byline_font_size = 54
+    byline_font = load_font(byline_font_size)
+    max_byline_width = width - 382 - 40
+    while byline_font.getlength(byline_text) > max_byline_width and byline_font_size > 18:
+        byline_font_size -= 2
+        byline_font = load_font(byline_font_size)
+
+    draw_wobbly_text(
+        canvas=image,
+        text="LIFT",
+        origin_x=378,
+        origin_y=128,
+        font=title_font,
+        color=WHITE,
+        seed=42,
+        max_offset=5.0,
+        max_rotate_radians=0.10,
+    )
+
+    draw = ImageDraw.Draw(image)
+    draw.text(
+        (382, 330),
+        byline_text,
+        font=byline_font,
+        fill=WHITE,
+    )
     return image
 
 
@@ -117,15 +233,15 @@ def main() -> None:
     write_ico(icon_master, ico_path)
     updated_files.add(ico_path.relative_to(repo_root))
 
-    # Store/marketing icon set: opaque, full-bleed background.
-    generic_store_dir = repo_root / "app/assets/store-icons"
-    generic_store_specs = {
-        "lift-generic-192.png": 192,
-        "lift-generic-512.png": 512,
-        "lift-generic-1024.png": 1024,
+    # Square output icon set (store/export assets): opaque, full-bleed background.
+    generic_output_dir = repo_root / "app/assets/output"
+    generic_output_specs = {
+        "lift-square-192.png": 192,
+        "lift-square-512.png": 512,
+        "lift-square-1024.png": 1024,
     }
-    for filename, px in generic_store_specs.items():
-        out_path = generic_store_dir / filename
+    for filename, px in generic_output_specs.items():
+        out_path = generic_output_dir / filename
         out_path.parent.mkdir(parents=True, exist_ok=True)
         draw_marketing_icon(px).convert("RGB").save(
             out_path,
@@ -134,17 +250,11 @@ def main() -> None:
         )
         updated_files.add(out_path.relative_to(repo_root))
 
-    # Keep iOS marketing icon synced to the generic full-bleed style.
-    marketing_icon = (
-        repo_root / "app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
-    )
-    if marketing_icon.exists():
-        draw_marketing_icon(1024).convert("RGB").save(
-            marketing_icon,
-            format="PNG",
-            optimize=True,
-        )
-        updated_files.add(marketing_icon.relative_to(repo_root))
+    # Branding header asset (1024x500) with rounded-square logo + wobbly title.
+    branding_header = repo_root / "app/assets/branding/header.png"
+    branding_header.parent.mkdir(parents=True, exist_ok=True)
+    draw_branding_header().convert("RGB").save(branding_header, format="PNG", optimize=True)
+    updated_files.add(branding_header.relative_to(repo_root))
 
     background_xml = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
