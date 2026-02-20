@@ -1,97 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lift Workout Tracker</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #000;
-            color: #fff;
-            text-align: center;
-        }
-        .container {
-            padding: 20px;
-        }
-        h1 {
-            font-weight: 900;
-            letter-spacing: -1px;
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #888;
-            margin-bottom: 30px;
-        }
-        .btn {
-            background-color: #fff;
-            color: #000;
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-block;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lift Workout Tracker</title>
+  <link rel="stylesheet" href="/assets/lift-theme.css" />
+  <style>
+    .hero-card {
+      width: min(640px, 100%);
+      padding: 28px;
+      text-align: center;
+    }
+
+    .hero-brand {
+      font-size: clamp(3rem, 7vw, 4.6rem);
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      line-height: 1;
+      margin: 0;
+    }
+
+    .hero-copy {
+      margin-top: 14px;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 22px;
+      flex-wrap: wrap;
+    }
+
+    .links {
+      margin-top: 18px;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h1>LIFT</h1>
-        <p>Opening session in the app...</p>
-        <a href="https://play.google.com/store/apps/details?id=com.brensch.lift" class="btn" id="download-btn">
-            Download on Play Store
-        </a>
+<body class="center-page">
+  <main class="card hero-card">
+    <h1 class="hero-brand" data-wobbly="true" data-text="LIFT" data-seed="42" data-max-offset="2" data-max-rotate="0.1">LIFT</h1>
+    <p class="hero-copy">Opening your session in Lift. If the app does not open, use the store link below.</p>
+    <div class="actions">
+      <a href="https://play.google.com/store/apps/details?id=com.brensch.lift" class="btn primary" id="download-btn">Download on Play Store</a>
+      <a class="btn" href="/privacy">Privacy Policy</a>
+      <a class="btn" href="/forget">Delete Account</a>
     </div>
+    <p class="links">Need details? Review our <a class="inline-link" href="/privacy">privacy policy</a>.</p>
+  </main>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const joinId = urlParams.get('join');
-        
-        const androidUrl = "https://play.google.com/store/apps/details?id=com.brensch.lift";
-        const iosUrl = "https://apps.apple.com/app/lift-workout-tracker/id6742123456"; // Placeholder ID
-        
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  <script src="/assets/lift-wobble.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinId = urlParams.get('join');
 
-        // Update download button link based on OS
-        const downloadBtn = document.getElementById('download-btn');
-        if (isIOS) {
-            downloadBtn.href = iosUrl;
-            downloadBtn.innerText = "Download on App Store";
-        } else {
-            downloadBtn.href = androidUrl;
-        }
+    const androidUrl = "https://play.google.com/store/apps/details?id=com.brensch.lift";
+    const iosUrl = "https://apps.apple.com/app/lift-workout-tracker/id6742123456";
 
-        // CLIPBOARD HACK:
-        // If there's a join ID, copy it to the clipboard. 
-        // When the app opens for the first time, it can check the clipboard for a Lift ID.
-        if (joinId) {
-            const tempInput = document.createElement("input");
-            tempInput.value = `lift-join:${joinId}`;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            try {
-                document.execCommand("copy");
-                console.log("Session ID copied to clipboard for deferred join.");
-            } catch (e) {}
-            document.body.removeChild(tempInput);
-        }
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-        // Redirect after a delay if the app didn't open
-        setTimeout(() => {
-            if (isIOS) {
-                window.location.href = iosUrl;
-            } else {
-                window.location.href = androidUrl;
-            }
-        }, 2500);
-    </script>
+    const downloadBtn = document.getElementById('download-btn');
+    if (isIOS) {
+      downloadBtn.href = iosUrl;
+      downloadBtn.innerText = "Download on App Store";
+    } else {
+      downloadBtn.href = androidUrl;
+    }
+
+    if (joinId) {
+      const tempInput = document.createElement("input");
+      tempInput.value = `lift-join:${joinId}`;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      try {
+        document.execCommand("copy");
+      } catch (e) {}
+      document.body.removeChild(tempInput);
+    }
+
+    setTimeout(() => {
+      window.location.href = isIOS ? iosUrl : androidUrl;
+    }, 2500);
+  </script>
 </body>
 </html>
