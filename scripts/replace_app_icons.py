@@ -13,17 +13,7 @@ BLACK = (10, 10, 10, 255)  # #0A0A0A
 WHITE = (250, 250, 250, 255)  # #FAFAFA
 
 
-def draw_master_icon(size: int) -> Image.Image:
-    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-
-    cx = cy = size / 2
-    radius = size * 0.44
-    draw.ellipse(
-        (cx - radius, cy - radius, cx + radius, cy + radius),
-        fill=BLACK,
-    )
-
+def draw_barbell(draw: ImageDraw.ImageDraw, size: int, color: tuple[int, int, int, int]) -> None:
     def s(unit: float) -> float:
         return unit * size / 108.0
 
@@ -34,15 +24,36 @@ def draw_master_icon(size: int) -> Image.Image:
     plate_bottom = s(75)
 
     # Left plates
-    draw.rounded_rectangle((s(14), plate_top, s(20), plate_bottom), radius=bar_radius, fill=WHITE)
-    draw.rounded_rectangle((s(21), plate_top, s(27), plate_bottom), radius=bar_radius, fill=WHITE)
-    draw.rounded_rectangle((s(28), plate_top, s(34), plate_bottom), radius=bar_radius, fill=WHITE)
+    draw.rounded_rectangle((s(14), plate_top, s(20), plate_bottom), radius=bar_radius, fill=color)
+    draw.rounded_rectangle((s(21), plate_top, s(27), plate_bottom), radius=bar_radius, fill=color)
+    draw.rounded_rectangle((s(28), plate_top, s(34), plate_bottom), radius=bar_radius, fill=color)
     # Longer center bar (square ends)
-    draw.rectangle((s(34), s(50), s(74), s(58)), fill=WHITE)
+    draw.rectangle((s(34), s(50), s(74), s(58)), fill=color)
     # Right plates
-    draw.rounded_rectangle((s(74), plate_top, s(80), plate_bottom), radius=bar_radius, fill=WHITE)
-    draw.rounded_rectangle((s(81), plate_top, s(87), plate_bottom), radius=bar_radius, fill=WHITE)
-    draw.rounded_rectangle((s(88), plate_top, s(94), plate_bottom), radius=bar_radius, fill=WHITE)
+    draw.rounded_rectangle((s(74), plate_top, s(80), plate_bottom), radius=bar_radius, fill=color)
+    draw.rounded_rectangle((s(81), plate_top, s(87), plate_bottom), radius=bar_radius, fill=color)
+    draw.rounded_rectangle((s(88), plate_top, s(94), plate_bottom), radius=bar_radius, fill=color)
+
+
+def draw_master_icon(size: int) -> Image.Image:
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    cx = cy = size / 2
+    radius = size * 0.44
+    draw.ellipse(
+        (cx - radius, cy - radius, cx + radius, cy + radius),
+        fill=BLACK,
+    )
+    draw_barbell(draw, size, WHITE)
+
+    return image
+
+
+def draw_marketing_icon(size: int) -> Image.Image:
+    image = Image.new("RGBA", (size, size), BLACK)
+    draw = ImageDraw.Draw(image)
+    draw_barbell(draw, size, WHITE)
 
     return image
 
@@ -96,15 +107,44 @@ def main() -> None:
     icon_master = draw_master_icon(1024)
 
     png_targets = collect_png_targets(repo_root)
-    updated_files: list[Path] = []
+    updated_files: set[Path] = set()
 
     for target in png_targets:
         write_png_to_existing_size(icon_master, repo_root / target)
-        updated_files.append(target)
+        updated_files.add(target)
 
     ico_path = repo_root / "app/windows/runner/resources/app_icon.ico"
     write_ico(icon_master, ico_path)
-    updated_files.append(ico_path.relative_to(repo_root))
+    updated_files.add(ico_path.relative_to(repo_root))
+
+    # Store/marketing icon set: opaque, full-bleed background.
+    generic_store_dir = repo_root / "app/assets/store-icons"
+    generic_store_specs = {
+        "lift-generic-192.png": 192,
+        "lift-generic-512.png": 512,
+        "lift-generic-1024.png": 1024,
+    }
+    for filename, px in generic_store_specs.items():
+        out_path = generic_store_dir / filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        draw_marketing_icon(px).convert("RGB").save(
+            out_path,
+            format="PNG",
+            optimize=True,
+        )
+        updated_files.add(out_path.relative_to(repo_root))
+
+    # Keep iOS marketing icon synced to the generic full-bleed style.
+    marketing_icon = (
+        repo_root / "app/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
+    )
+    if marketing_icon.exists():
+        draw_marketing_icon(1024).convert("RGB").save(
+            marketing_icon,
+            format="PNG",
+            optimize=True,
+        )
+        updated_files.add(marketing_icon.relative_to(repo_root))
 
     background_xml = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -135,7 +175,7 @@ def main() -> None:
 
     for rel_path, content in text_updates.items():
         overwrite_text(repo_root / rel_path, content)
-        updated_files.append(rel_path)
+        updated_files.add(rel_path)
 
     print(f"Updated {len(updated_files)} icon files:")
     for rel_path in sorted(updated_files):
