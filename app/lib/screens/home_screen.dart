@@ -307,83 +307,181 @@ class _HomeScreenState extends State<HomeScreen> {
           20 + MediaQuery.of(context).padding.bottom,
         ),
         decoration: BoxDecoration(
-          color: colorScheme.secondary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(
-            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            right: BorderSide(
-                color: colorScheme.outline.withValues(alpha: 0.5)),
+            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.4)),
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'GOOD ${greetingTime().toUpperCase()} ${userName.split(' ').first.toUpperCase()}.',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+            // Greeting + selected count badge
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'GOOD ${greetingTime().toUpperCase()}, ${userName.split(' ').first.toUpperCase()}.',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _selectedGroupIndices.isEmpty
+                      ? const SizedBox.shrink()
+                      : Container(
+                          key: const ValueKey('badge'),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${_selectedGroupIndices.length} GROUPS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              'WORKOUT NAME (OPTIONAL)',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-                color: colorScheme.tertiary,
+
+            // Selected groups — wrapping pills
+            if (_selectedGroupIndices.isNotEmpty &&
+                _proposedGroups != null) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final idx in (_selectedGroupIndices.toList()..sort()))
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Text(
+                        _proposedGroups![idx].name.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
+            ],
+
+            const SizedBox(height: 14),
+
+            // Workout name field
             TextField(
               controller: _nameController,
+              textCapitalization: TextCapitalization.characters,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
               decoration: InputDecoration(
-                hintText: _getDefaultWorkoutName(),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
+                hintText: 'NAME THIS WORKOUT (OPTIONAL)',
+                hintStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface.withValues(alpha: 0.28),
                 ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 13),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.5)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      BorderSide(color: colorScheme.primary, width: 1.5),
                 ),
               ),
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 12),
+
+            // Start button
             SizedBox(
               width: double.infinity,
-              height: 64,
+              height: 62,
               child: FilledButton(
-                onPressed:
-                    _selectedGroupIndices.isEmpty || _isStarting
-                        ? null
-                        : _startWorkout,
+                onPressed: _selectedGroupIndices.isEmpty || _isStarting
+                    ? null
+                    : _startWorkout,
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: _isStarting
                     ? SizedBox(
-                        height: 24,
-                        width: 24,
+                        height: 22,
+                        width: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: colorScheme.onPrimary,
                         ),
                       )
-                    : Text(
-                        'START WORKOUT (${_selectedGroupIndices.length})',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: 0.5,
-                        ),
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'START WORKOUT',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 17,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (_selectedGroupIndices.isNotEmpty) ...[
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 9, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${_selectedGroupIndices.length}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
               ),
             ),
