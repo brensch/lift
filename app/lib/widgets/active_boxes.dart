@@ -573,7 +573,9 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                   ),
                   child: ListWheelScrollView.useDelegate(
                     controller: _scrollController,
-                    itemExtent: 32,
+                    itemExtent: 24,
+                    magnification: 1.5,
+                    useMagnifier: true,
                     physics: const FixedExtentScrollPhysics(),
                     diameterRatio: 1.2,
                     perspective: 0.003,
@@ -586,7 +588,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                           child: Text(
                             '$index',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: colorScheme.onSurface,
                             ),
