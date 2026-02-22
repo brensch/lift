@@ -215,6 +215,20 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                       : colorScheme.tertiary,
                                 ),
                               ),
+                              if ((widget.group.group?.instruction ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    widget.group.group!.instruction,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.tertiary.withValues(alpha: 0.65),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -340,14 +354,14 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       bg = AppTheme.activeBg;
       fg = AppTheme.activeFg;
       borderColor = AppTheme.activeFg.withValues(alpha: 0.5);
-      text = '${set.targetReps}@$weight';
+      text = set.isAmrap ? 'AMRAP@$weight' : '${set.targetReps}@$weight';
       fontWeight = FontWeight.w800;
     } else {
       bg = Colors.transparent;
       fg = colorScheme.onSurface.withValues(alpha: 0.75);
       borderColor = colorScheme.outline.withValues(alpha: 0.25);
-      text = '${set.targetReps}@$weight';
-      fontWeight = FontWeight.w600;
+      text = set.isAmrap ? 'AMRAP@$weight' : '${set.targetReps}@$weight';
+      fontWeight = set.isAmrap ? FontWeight.w700 : FontWeight.w600;
     }
 
     if (isSuperset) {

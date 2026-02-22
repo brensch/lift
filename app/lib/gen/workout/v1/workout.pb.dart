@@ -207,6 +207,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     $core.int? reps,
     $core.bool? includeWarmup,
     RestConfig? restConfig,
+    $core.bool? lastSetAmrap,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -215,6 +216,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     if (reps != null) result.reps = reps;
     if (includeWarmup != null) result.includeWarmup = includeWarmup;
     if (restConfig != null) result.restConfig = restConfig;
+    if (lastSetAmrap != null) result.lastSetAmrap = lastSetAmrap;
     return result;
   }
 
@@ -239,6 +241,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'includeWarmup')
     ..aOM<RestConfig>(6, _omitFieldNames ? '' : 'restConfig',
         subBuilder: RestConfig.create)
+    ..aOB(7, _omitFieldNames ? '' : 'lastSetAmrap')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -315,6 +318,15 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
   void clearRestConfig() => $_clearField(6);
   @$pb.TagNumber(6)
   RestConfig ensureRestConfig() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  $core.bool get lastSetAmrap => $_getBF(6);
+  @$pb.TagNumber(7)
+  set lastSetAmrap($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLastSetAmrap() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLastSetAmrap() => $_clearField(7);
 }
 
 class RestConfig extends $pb.GeneratedMessage {
@@ -417,6 +429,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     $core.int? workoutOrder,
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
     RestConfig? restConfig,
+    $core.String? instruction,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -427,6 +440,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     if (workoutOrder != null) result.workoutOrder = workoutOrder;
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
     if (restConfig != null) result.restConfig = restConfig;
+    if (instruction != null) result.instruction = instruction;
     return result;
   }
 
@@ -453,6 +467,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
         subBuilder: ExerciseTypeConfig.create)
     ..aOM<RestConfig>(8, _omitFieldNames ? '' : 'restConfig',
         subBuilder: RestConfig.create)
+    ..aOS(9, _omitFieldNames ? '' : 'instruction')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -541,6 +556,15 @@ class ExerciseGroup extends $pb.GeneratedMessage {
   void clearRestConfig() => $_clearField(8);
   @$pb.TagNumber(8)
   RestConfig ensureRestConfig() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $core.String get instruction => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set instruction($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasInstruction() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearInstruction() => $_clearField(9);
 }
 
 class ProposedSet extends $pb.GeneratedMessage {
@@ -556,6 +580,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.int? restAfterSuccess,
     $core.int? restAfterFailure,
     $core.bool? cancelled,
+    $core.bool? isAmrap,
+    $core.String? instruction,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -569,6 +595,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (restAfterSuccess != null) result.restAfterSuccess = restAfterSuccess;
     if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
     if (cancelled != null) result.cancelled = cancelled;
+    if (isAmrap != null) result.isAmrap = isAmrap;
+    if (instruction != null) result.instruction = instruction;
     return result;
   }
 
@@ -598,6 +626,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     ..aI(9, _omitFieldNames ? '' : 'restAfterSuccess')
     ..aI(10, _omitFieldNames ? '' : 'restAfterFailure')
     ..aOB(11, _omitFieldNames ? '' : 'cancelled')
+    ..aOB(12, _omitFieldNames ? '' : 'isAmrap')
+    ..aOS(13, _omitFieldNames ? '' : 'instruction')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -717,6 +747,24 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasCancelled() => $_has(10);
   @$pb.TagNumber(11)
   void clearCancelled() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.bool get isAmrap => $_getBF(11);
+  @$pb.TagNumber(12)
+  set isAmrap($core.bool value) => $_setBool(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasIsAmrap() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearIsAmrap() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.String get instruction => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set instruction($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasInstruction() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearInstruction() => $_clearField(13);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -2989,6 +3037,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     $core.Iterable<ProposedExerciseGroup>? proposedGroups,
     RegimeContext? regimeContext,
     SessionReadiness? sessionReadiness,
+    $core.String? suggestedWorkoutName,
   }) {
     final result = create();
     if (exerciseStatuses != null)
@@ -2997,6 +3046,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (proposedGroups != null) result.proposedGroups.addAll(proposedGroups);
     if (regimeContext != null) result.regimeContext = regimeContext;
     if (sessionReadiness != null) result.sessionReadiness = sessionReadiness;
+    if (suggestedWorkoutName != null)
+      result.suggestedWorkoutName = suggestedWorkoutName;
     return result;
   }
 
@@ -3023,6 +3074,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
         subBuilder: RegimeContext.create)
     ..aOM<SessionReadiness>(5, _omitFieldNames ? '' : 'sessionReadiness',
         subBuilder: SessionReadiness.create)
+    ..aOS(6, _omitFieldNames ? '' : 'suggestedWorkoutName')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3084,6 +3136,15 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   void clearSessionReadiness() => $_clearField(5);
   @$pb.TagNumber(5)
   SessionReadiness ensureSessionReadiness() => $_ensure(4);
+
+  @$pb.TagNumber(6)
+  $core.String get suggestedWorkoutName => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set suggestedWorkoutName($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSuggestedWorkoutName() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSuggestedWorkoutName() => $_clearField(6);
 }
 
 class GetActiveWorkoutRequest extends $pb.GeneratedMessage {

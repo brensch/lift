@@ -77,13 +77,17 @@ class WearableSnapshotBuilder {
       final elapsed = activeStartedAt > 0
           ? nowUnix - activeStartedAt
           : 0;
+      final liftLabel = proposed.warmup
+          ? 'Warmup'
+          : (proposed.isAmrap ? 'AMRAP' : 'Lifting');
       youCard = WearStatusCard(
         sideLabel: 'YOU',
-        stateLabel: proposed.warmup ? 'Warmup' : 'Lifting',
+        stateLabel: liftLabel,
         timerText: _fmt(elapsed),
         displaySet: proposed,
       );
-      for (var reps = 0; reps <= proposed.targetReps; reps++) {
+      final maxReps = proposed.isAmrap ? 30 : proposed.targetReps;
+      for (var reps = 0; reps <= maxReps; reps++) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET,

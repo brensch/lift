@@ -79,13 +79,17 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
+      final suggestedName = scheduleRes.suggestedWorkoutName.isNotEmpty
+          ? scheduleRes.suggestedWorkoutName
+          : null;
+
       setState(() {
         _schedule = schedule;
         _proposedGroups = proposedGroups;
         _regimeContext = scheduleRes.hasRegimeContext() ? scheduleRes.regimeContext : null;
         _sessionReadiness = scheduleRes.hasSessionReadiness() ? scheduleRes.sessionReadiness : null;
         _selectedGroupIndices = autoSelected;
-        _nameController.text = _getDefaultWorkoutName();
+        _nameController.text = suggestedName ?? _getDefaultWorkoutName();
         _isLoading = false;
       });
     } catch (e) {
@@ -130,7 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ..startWeight = startWeight
             ..endWeight = endWeight
             ..reps = c.reps
-            ..includeWarmup = c.includeWarmup;
+            ..includeWarmup = c.includeWarmup
+            ..lastSetAmrap = c.lastSetAmrap; // carry AMRAP flag from regime
           if (c.hasRestConfig()) {
             cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
           }
@@ -143,7 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ..sets = proposed.sets
           ..interleaveWarmups = proposed.interleaveWarmups
           ..workoutOrder = groupOrder++
-          ..exerciseConfigs.addAll(configs);
+          ..exerciseConfigs.addAll(configs)
+          ..instruction = proposed.explanation; // carry regime coaching text
         if (proposed.hasRestConfig()) {
           group.restConfig = RestConfig()..mergeFromMessage(proposed.restConfig);
         }

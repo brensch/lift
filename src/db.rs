@@ -2,6 +2,7 @@ use dashmap::DashMap;
 use lift::workout::v1::{
     CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
 };
+use crate::regimes::SessionHistory;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -66,6 +67,7 @@ fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::Exe
             row.get::<Option<i32>, _>("rest_warmup"),
             row.get::<Option<i32>, _>("rest_last_warmup"),
         ),
+        instruction: String::new(), // not persisted; coaching text from regime
     }
 }
 
@@ -82,6 +84,7 @@ fn row_to_exercise_type_config(row: sqlx::sqlite::SqliteRow) -> ExerciseTypeConf
             row.get::<Option<i32>, _>("rest_warmup"),
             row.get::<Option<i32>, _>("rest_last_warmup"),
         ),
+        last_set_amrap: false, // not persisted; set by regime when generating proposed groups
     }
 }
 
@@ -106,6 +109,8 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         rest_after_success,
         rest_after_failure,
         cancelled: row.get::<Option<bool>, _>("cancelled").unwrap_or(false),
+        is_amrap: false,       // not persisted; set during set generation
+        instruction: String::new(),
     }
 }
 
@@ -1460,21 +1465,35 @@ impl CentralDb {
         user_id: &str,
         limit_per_exercise: i32,
     ) -> Result<
-        (HashMap<i32, Vec<(f32, bool, i64)>>, HashMap<i32, f32>),
+        (HashMap<i32, Vec<SessionHistory>>, HashMap<i32, f32>),
         Box<dyn std::error::Error + Send + Sync>,
     > {
+        // last_set_reps: actual reps on the last (highest workout_order) working set for this
+        // exercise in that workout — used for AMRAP-gated progression (e.g. GZCLP T3 ≥25 reps).
         let rows = sqlx::query(
-            "SELECT exercise, target_weight, successful, ended_at FROM (
+            "SELECT exercise, target_weight, successful, ended_at, COALESCE(last_set_reps, 0) as last_set_reps FROM (
                 SELECT
-                    ps.exercise,
-                    ps.target_weight,
-                    (COUNT(ps.id) = COUNT(cs.id) AND MIN(CASE WHEN cs.actual_reps >= ps.target_reps THEN 1 ELSE 0 END) = 1) as successful,
-                    MAX(cs.ended_at) as ended_at,
-                    ROW_NUMBER() OVER (PARTITION BY ps.exercise ORDER BY MAX(cs.ended_at) DESC) as rn
-                FROM proposed_sets ps
-                LEFT JOIN completed_sets cs ON ps.id = cs.proposed_set_id AND cs.ended_at > 0
-                WHERE ps.user_id = ? AND ps.warmup = 0 AND ps.cancelled = 0
-                GROUP BY ps.exercise, ps.workout_id
+                    g_ps.exercise,
+                    g_ps.target_weight,
+                    (COUNT(g_ps.id) = COUNT(g_cs.id) AND MIN(CASE WHEN g_cs.actual_reps >= g_ps.target_reps THEN 1 ELSE 0 END) = 1) as successful,
+                    MAX(g_cs.ended_at) as ended_at,
+                    (
+                        SELECT cs2.actual_reps
+                        FROM proposed_sets ps2
+                        JOIN completed_sets cs2 ON ps2.id = cs2.proposed_set_id
+                        WHERE ps2.workout_id = g_ps.workout_id
+                          AND ps2.exercise = g_ps.exercise
+                          AND ps2.warmup = 0
+                          AND ps2.cancelled = 0
+                          AND cs2.ended_at > 0
+                        ORDER BY ps2.workout_order DESC
+                        LIMIT 1
+                    ) as last_set_reps,
+                    ROW_NUMBER() OVER (PARTITION BY g_ps.exercise ORDER BY MAX(g_cs.ended_at) DESC) as rn
+                FROM proposed_sets g_ps
+                LEFT JOIN completed_sets g_cs ON g_ps.id = g_cs.proposed_set_id AND g_cs.ended_at > 0
+                WHERE g_ps.user_id = ? AND g_ps.warmup = 0 AND g_ps.cancelled = 0
+                GROUP BY g_ps.exercise, g_ps.workout_id
                 HAVING ended_at IS NOT NULL
              ) WHERE rn <= ?",
         )
@@ -1483,16 +1502,17 @@ impl CentralDb {
         .fetch_all(&self.pool)
         .await?;
 
-        let mut history: HashMap<i32, Vec<(f32, bool, i64)>> = HashMap::new();
+        let mut history: HashMap<i32, Vec<SessionHistory>> = HashMap::new();
         for row in rows {
             let exercise = row.get::<i32, _>("exercise");
             let weight = row.get::<f32, _>("target_weight");
             let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
+            let last_set_reps = row.get::<i32, _>("last_set_reps");
             history
                 .entry(exercise)
                 .or_default()
-                .push((weight, successful, ended_at));
+                .push(SessionHistory { weight, success: successful, timestamp: ended_at, last_set_reps });
         }
 
         let max_rows = sqlx::query(
