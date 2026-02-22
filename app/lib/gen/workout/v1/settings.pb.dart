@@ -14,7 +14,11 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'settings.pbenum.dart';
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'settings.pbenum.dart';
 
 class PlateColor extends $pb.GeneratedMessage {
   factory PlateColor({
@@ -142,14 +146,107 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
   void clearBarWeightKg() => $_clearField(2);
 }
 
-enum UserSetting_Setting { plateColors, notSet }
+class UserWorkoutConfig extends $pb.GeneratedMessage {
+  factory UserWorkoutConfig({
+    RegimeType? regimeType,
+    $core.int? daysPerWeek,
+    $core.Iterable<$core.MapEntry<$core.int, $core.double>>? oneRepMaxes,
+    $core.String? regimeStateJson,
+  }) {
+    final result = create();
+    if (regimeType != null) result.regimeType = regimeType;
+    if (daysPerWeek != null) result.daysPerWeek = daysPerWeek;
+    if (oneRepMaxes != null) result.oneRepMaxes.addEntries(oneRepMaxes);
+    if (regimeStateJson != null) result.regimeStateJson = regimeStateJson;
+    return result;
+  }
+
+  UserWorkoutConfig._();
+
+  factory UserWorkoutConfig.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UserWorkoutConfig.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UserWorkoutConfig',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<RegimeType>(1, _omitFieldNames ? '' : 'regimeType',
+        enumValues: RegimeType.values)
+    ..aI(2, _omitFieldNames ? '' : 'daysPerWeek')
+    ..m<$core.int, $core.double>(3, _omitFieldNames ? '' : 'oneRepMaxes',
+        entryClassName: 'UserWorkoutConfig.OneRepMaxesEntry',
+        keyFieldType: $pb.PbFieldType.O3,
+        valueFieldType: $pb.PbFieldType.OF,
+        packageName: const $pb.PackageName('workout.v1'))
+    ..aOS(4, _omitFieldNames ? '' : 'regimeStateJson')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserWorkoutConfig clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserWorkoutConfig copyWith(void Function(UserWorkoutConfig) updates) =>
+      super.copyWith((message) => updates(message as UserWorkoutConfig))
+          as UserWorkoutConfig;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UserWorkoutConfig create() => UserWorkoutConfig._();
+  @$core.override
+  UserWorkoutConfig createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UserWorkoutConfig getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UserWorkoutConfig>(create);
+  static UserWorkoutConfig? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RegimeType get regimeType => $_getN(0);
+  @$pb.TagNumber(1)
+  set regimeType(RegimeType value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRegimeType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRegimeType() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get daysPerWeek => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set daysPerWeek($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDaysPerWeek() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDaysPerWeek() => $_clearField(2);
+
+  /// 1RM per exercise (Exercise enum int32 -> weight in lbs). Used for Wendler TM calculation.
+  @$pb.TagNumber(3)
+  $pb.PbMap<$core.int, $core.double> get oneRepMaxes => $_getMap(2);
+
+  /// JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+  @$pb.TagNumber(4)
+  $core.String get regimeStateJson => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set regimeStateJson($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRegimeStateJson() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRegimeStateJson() => $_clearField(4);
+}
+
+enum UserSetting_Setting { plateColors, workoutConfig, notSet }
 
 class UserSetting extends $pb.GeneratedMessage {
   factory UserSetting({
     PlateColorsConfig? plateColors,
+    UserWorkoutConfig? workoutConfig,
   }) {
     final result = create();
     if (plateColors != null) result.plateColors = plateColors;
+    if (workoutConfig != null) result.workoutConfig = workoutConfig;
     return result;
   }
 
@@ -165,15 +262,18 @@ class UserSetting extends $pb.GeneratedMessage {
   static const $core.Map<$core.int, UserSetting_Setting>
       _UserSetting_SettingByTag = {
     10: UserSetting_Setting.plateColors,
+    11: UserSetting_Setting.workoutConfig,
     0: UserSetting_Setting.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'UserSetting',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10])
+    ..oo(0, [10, 11])
     ..aOM<PlateColorsConfig>(10, _omitFieldNames ? '' : 'plateColors',
         subBuilder: PlateColorsConfig.create)
+    ..aOM<UserWorkoutConfig>(11, _omitFieldNames ? '' : 'workoutConfig',
+        subBuilder: UserWorkoutConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -196,9 +296,11 @@ class UserSetting extends $pb.GeneratedMessage {
   static UserSetting? _defaultInstance;
 
   @$pb.TagNumber(10)
+  @$pb.TagNumber(11)
   UserSetting_Setting whichSetting() =>
       _UserSetting_SettingByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(10)
+  @$pb.TagNumber(11)
   void clearSetting() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(10)
@@ -211,6 +313,17 @@ class UserSetting extends $pb.GeneratedMessage {
   void clearPlateColors() => $_clearField(10);
   @$pb.TagNumber(10)
   PlateColorsConfig ensurePlateColors() => $_ensure(0);
+
+  @$pb.TagNumber(11)
+  UserWorkoutConfig get workoutConfig => $_getN(1);
+  @$pb.TagNumber(11)
+  set workoutConfig(UserWorkoutConfig value) => $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasWorkoutConfig() => $_has(1);
+  @$pb.TagNumber(11)
+  void clearWorkoutConfig() => $_clearField(11);
+  @$pb.TagNumber(11)
+  UserWorkoutConfig ensureWorkoutConfig() => $_ensure(1);
 }
 
 class UpdateSettingRequest extends $pb.GeneratedMessage {

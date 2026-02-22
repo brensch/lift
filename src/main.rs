@@ -24,6 +24,7 @@ use webauthn_rs::prelude::PublicKeyCredential;
 mod auth;
 mod db;
 mod progress;
+mod regimes;
 mod scheduler;
 mod service_auth;
 mod service_group;

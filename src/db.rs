@@ -1753,6 +1753,49 @@ impl CentralDb {
         Ok(())
     }
 
+    /// Fetch the user's workout config (regime selection + state) from user_settings.
+    pub async fn get_user_workout_config(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<lift::workout::v1::UserWorkoutConfig>, Box<dyn std::error::Error + Send + Sync>>
+    {
+        use prost::Message;
+        let row: Option<Vec<u8>> = sqlx::query_scalar(
+            "SELECT setting_blob FROM user_settings
+             WHERE user_id = ? AND setting_type = 'workout_config'
+             ORDER BY created_at DESC LIMIT 1",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(blob) = row {
+            // The blob is encoded as a UserSetting (with workout_config oneof).
+            if let Ok(setting) = lift::workout::v1::UserSetting::decode(blob.as_slice()) {
+                if let Some(lift::workout::v1::user_setting::Setting::WorkoutConfig(config)) =
+                    setting.setting
+                {
+                    return Ok(Some(config));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Return the end_time of the most recent completed workout for a user.
+    pub async fn get_last_workout_end_time(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<i64>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar(
+            "SELECT MAX(end_time) FROM workouts WHERE user_id = ? AND end_time IS NOT NULL",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?
+        .flatten())
+    }
+
     pub async fn get_latest_settings(
         &self,
         user_id: &str,

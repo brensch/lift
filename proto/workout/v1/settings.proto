@@ -11,9 +11,26 @@ message PlateColorsConfig {
   float bar_weight_kg = 2;
 }
 
+enum RegimeType {
+  REGIME_TYPE_UNSPECIFIED = 0;
+  REGIME_TYPE_LINEAR_5X5 = 1;
+  REGIME_TYPE_GZCLP = 2;
+  REGIME_TYPE_WENDLER_531 = 3;
+}
+
+message UserWorkoutConfig {
+  RegimeType regime_type = 1;
+  int32 days_per_week = 2;
+  // 1RM per exercise (Exercise enum int32 -> weight in lbs). Used for Wendler TM calculation.
+  map<int32, float> one_rep_maxes = 3;
+  // JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+  string regime_state_json = 4;
+}
+
 message UserSetting {
   oneof setting {
     PlateColorsConfig plate_colors = 10;
+    UserWorkoutConfig workout_config = 11;
   }
 }
 

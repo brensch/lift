@@ -6,8 +6,6 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -18,6 +16,13 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _SettingsTile(
+            icon: Icons.fitness_center_outlined,
+            label: 'Training Program',
+            subtitle: 'Manage your workout regime and weights',
+            onTap: () => context.push('/settings/regime'),
+          ),
+          const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.palette_outlined,
             label: 'Plate colours',

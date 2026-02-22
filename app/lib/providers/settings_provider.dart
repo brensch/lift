@@ -15,12 +15,15 @@ class SettingsProvider extends ChangeNotifier {
     2.5: const Color(0xFFBDBDBD), // light grey
   };
 
+  UserWorkoutConfig? _workoutConfig;
   bool _loaded = false;
 
   SettingsProvider(this._grpcClient);
 
   Map<double, Color> get plateColors => _plateColors;
   bool get loaded => _loaded;
+  UserWorkoutConfig? get workoutConfig => _workoutConfig;
+  bool get hasWorkoutConfig => _workoutConfig != null;
 
   Color plateColor(double weight) {
     return _plateColors[weight] ?? Colors.purple;
@@ -33,6 +36,8 @@ class SettingsProvider extends ChangeNotifier {
       for (final setting in response.settings) {
         if (setting.whichSetting() == UserSetting_Setting.plateColors) {
           _applyPlateColors(setting.plateColors);
+        } else if (setting.whichSetting() == UserSetting_Setting.workoutConfig) {
+          _workoutConfig = setting.workoutConfig;
         }
       }
       _loaded = true;
@@ -41,6 +46,20 @@ class SettingsProvider extends ChangeNotifier {
       // If settings can't be loaded, use defaults
       _loaded = true;
       notifyListeners();
+    }
+  }
+
+  Future<void> updateWorkoutConfig(UserWorkoutConfig config) async {
+    _workoutConfig = config;
+    notifyListeners();
+    try {
+      await _grpcClient.settingsService.updateSetting(
+        UpdateSettingRequest(
+          setting: UserSetting(workoutConfig: config),
+        ),
+      );
+    } catch (e) {
+      // Optimistic update already applied
     }
   }
 

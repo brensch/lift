@@ -1013,6 +1013,63 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncxIgCgtleHBsYW5hdGlvbh'
     'gHIAEoCVILZXhwbGFuYXRpb24=');
 
+@$core.Deprecated('Use sessionReadinessDescriptor instead')
+const SessionReadiness$json = {
+  '1': 'SessionReadiness',
+  '2': [
+    {'1': 'next_session_at', '3': 1, '4': 1, '5': 3, '10': 'nextSessionAt'},
+    {'1': 'last_session_at', '3': 2, '4': 1, '5': 3, '10': 'lastSessionAt'},
+    {'1': 'readiness_label', '3': 3, '4': 1, '5': 9, '10': 'readinessLabel'},
+    {'1': 'readiness_detail', '3': 4, '4': 1, '5': 9, '10': 'readinessDetail'},
+    {'1': 'is_ready', '3': 5, '4': 1, '5': 8, '10': 'isReady'},
+    {'1': 'is_overdue', '3': 6, '4': 1, '5': 8, '10': 'isOverdue'},
+  ],
+};
+
+/// Descriptor for `SessionReadiness`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sessionReadinessDescriptor = $convert.base64Decode(
+    'ChBTZXNzaW9uUmVhZGluZXNzEiYKD25leHRfc2Vzc2lvbl9hdBgBIAEoA1INbmV4dFNlc3Npb2'
+    '5BdBImCg9sYXN0X3Nlc3Npb25fYXQYAiABKANSDWxhc3RTZXNzaW9uQXQSJwoPcmVhZGluZXNz'
+    'X2xhYmVsGAMgASgJUg5yZWFkaW5lc3NMYWJlbBIpChByZWFkaW5lc3NfZGV0YWlsGAQgASgJUg'
+    '9yZWFkaW5lc3NEZXRhaWwSGQoIaXNfcmVhZHkYBSABKAhSB2lzUmVhZHkSHQoKaXNfb3ZlcmR1'
+    'ZRgGIAEoCFIJaXNPdmVyZHVl');
+
+@$core.Deprecated('Use regimeContextDescriptor instead')
+const RegimeContext$json = {
+  '1': 'RegimeContext',
+  '2': [
+    {
+      '1': 'regime_display_name',
+      '3': 1,
+      '4': 1,
+      '5': 9,
+      '10': 'regimeDisplayName'
+    },
+    {
+      '1': 'session_description',
+      '3': 2,
+      '4': 1,
+      '5': 9,
+      '10': 'sessionDescription'
+    },
+    {
+      '1': 'next_session_preview',
+      '3': 3,
+      '4': 1,
+      '5': 9,
+      '10': 'nextSessionPreview'
+    },
+    {'1': 'coaching_notes', '3': 4, '4': 3, '5': 9, '10': 'coachingNotes'},
+  ],
+};
+
+/// Descriptor for `RegimeContext`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List regimeContextDescriptor = $convert.base64Decode(
+    'Cg1SZWdpbWVDb250ZXh0Ei4KE3JlZ2ltZV9kaXNwbGF5X25hbWUYASABKAlSEXJlZ2ltZURpc3'
+    'BsYXlOYW1lEi8KE3Nlc3Npb25fZGVzY3JpcHRpb24YAiABKAlSEnNlc3Npb25EZXNjcmlwdGlv'
+    'bhIwChRuZXh0X3Nlc3Npb25fcHJldmlldxgDIAEoCVISbmV4dFNlc3Npb25QcmV2aWV3EiUKDm'
+    'NvYWNoaW5nX25vdGVzGAQgAygJUg1jb2FjaGluZ05vdGVz');
+
 @$core.Deprecated('Use getProposedWorkoutScheduleResponseDescriptor instead')
 const GetProposedWorkoutScheduleResponse$json = {
   '1': 'GetProposedWorkoutScheduleResponse',
@@ -1034,17 +1091,34 @@ const GetProposedWorkoutScheduleResponse$json = {
       '6': '.workout.v1.ProposedExerciseGroup',
       '10': 'proposedGroups'
     },
+    {
+      '1': 'regime_context',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.RegimeContext',
+      '10': 'regimeContext'
+    },
+    {
+      '1': 'session_readiness',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.SessionReadiness',
+      '10': 'sessionReadiness'
+    },
   ],
 };
 
 /// Descriptor for `GetProposedWorkoutScheduleResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor =
-    $convert.base64Decode(
-        'CiJHZXRQcm9wb3NlZFdvcmtvdXRTY2hlZHVsZVJlc3BvbnNlEkcKEWV4ZXJjaXNlX3N0YXR1c2'
-        'VzGAEgAygLMhoud29ya291dC52MS5FeGVyY2lzZVN0YXR1c1IQZXhlcmNpc2VTdGF0dXNlcxIq'
-        'ChFhY3RpdmVfd29ya291dF9pZBgCIAEoCVIPYWN0aXZlV29ya291dElkEkoKD3Byb3Bvc2VkX2'
-        'dyb3VwcxgDIAMoCzIhLndvcmtvdXQudjEuUHJvcG9zZWRFeGVyY2lzZUdyb3VwUg5wcm9wb3Nl'
-        'ZEdyb3Vwcw==');
+final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $convert.base64Decode(
+    'CiJHZXRQcm9wb3NlZFdvcmtvdXRTY2hlZHVsZVJlc3BvbnNlEkcKEWV4ZXJjaXNlX3N0YXR1c2'
+    'VzGAEgAygLMhoud29ya291dC52MS5FeGVyY2lzZVN0YXR1c1IQZXhlcmNpc2VTdGF0dXNlcxIq'
+    'ChFhY3RpdmVfd29ya291dF9pZBgCIAEoCVIPYWN0aXZlV29ya291dElkEkoKD3Byb3Bvc2VkX2'
+    'dyb3VwcxgDIAMoCzIhLndvcmtvdXQudjEuUHJvcG9zZWRFeGVyY2lzZUdyb3VwUg5wcm9wb3Nl'
+    'ZEdyb3VwcxJACg5yZWdpbWVfY29udGV4dBgEIAEoCzIZLndvcmtvdXQudjEuUmVnaW1lQ29udG'
+    'V4dFINcmVnaW1lQ29udGV4dBJJChFzZXNzaW9uX3JlYWRpbmVzcxgFIAEoCzIcLndvcmtvdXQu'
+    'djEuU2Vzc2lvblJlYWRpbmVzc1IQc2Vzc2lvblJlYWRpbmVzcw==');
 
 @$core.Deprecated('Use getActiveWorkoutRequestDescriptor instead')
 const GetActiveWorkoutRequest$json = {
