@@ -260,20 +260,24 @@ impl Scheduler {
             }
         };
 
-        let build_single_group =
-            |exercise: Exercise, status: &ExerciseStatus| ProposedExerciseGroup {
-                name: format!(
-                    "compound: {}",
-                    exercise_display_name(exercise).to_lowercase()
-                ),
-                sets: status.default_sets,
-                interleave_warmups: false,
-                exercise_configs: vec![make_config(status)],
-                rest_config: None,
-            };
+        let build_single_group = |exercise: Exercise,
+                                   status: &ExerciseStatus,
+                                   tags: Vec<String>|
+         ProposedExerciseGroup {
+            name: exercise_display_name(exercise),
+            sets: status.default_sets,
+            interleave_warmups: false,
+            exercise_configs: vec![make_config(status)],
+            rest_config: None,
+            tags,
+        };
 
         if let Some(squat) = find_status(Exercise::Squat) {
-            groups.push(build_single_group(Exercise::Squat, squat));
+            groups.push(build_single_group(
+                Exercise::Squat,
+                squat,
+                vec!["recommended".to_string(), "compound".to_string()],
+            ));
         }
 
         let mut rotation_candidates: Vec<(Exercise, &ExerciseStatus)> = vec![
@@ -292,8 +296,14 @@ impl Scheduler {
                 .then((*a_ex as i32).cmp(&(*b_ex as i32)))
         });
 
-        for (exercise, status) in rotation_candidates {
-            groups.push(build_single_group(exercise, status));
+        // Top 2 stalest rotation candidates are recommended; rest are compound-only.
+        for (idx, (exercise, status)) in rotation_candidates.iter().enumerate() {
+            let tags = if idx < 2 {
+                vec!["recommended".to_string(), "compound".to_string()]
+            } else {
+                vec!["compound".to_string()]
+            };
+            groups.push(build_single_group(*exercise, status, tags));
         }
 
         // Auxiliary exercises — group complementary pairs
@@ -307,32 +317,35 @@ impl Scheduler {
             if let (Some(a), Some(b)) = (find_status(*ex_a), find_status(*ex_b)) {
                 groups.push(ProposedExerciseGroup {
                     name: format!(
-                        "auxiliary: {} + {}",
-                        exercise_display_name(*ex_a).to_lowercase(),
-                        exercise_display_name(*ex_b).to_lowercase()
+                        "{} + {}",
+                        exercise_display_name(*ex_a),
+                        exercise_display_name(*ex_b)
                     ),
                     sets: a.default_sets,
                     interleave_warmups: true,
                     exercise_configs: vec![make_config(a), make_config(b)],
                     rest_config: None,
+                    tags: vec!["auxiliary".to_string()],
                 });
             } else {
                 if let Some(a) = find_status(*ex_a) {
                     groups.push(ProposedExerciseGroup {
-                        name: format!("auxiliary: {}", exercise_display_name(*ex_a).to_lowercase()),
+                        name: exercise_display_name(*ex_a),
                         sets: a.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(a)],
                         rest_config: None,
+                        tags: vec!["auxiliary".to_string()],
                     });
                 }
                 if let Some(b) = find_status(*ex_b) {
                     groups.push(ProposedExerciseGroup {
-                        name: format!("auxiliary: {}", exercise_display_name(*ex_b).to_lowercase()),
+                        name: exercise_display_name(*ex_b),
                         sets: b.default_sets,
                         interleave_warmups: false,
                         exercise_configs: vec![make_config(b)],
                         rest_config: None,
+                        tags: vec!["auxiliary".to_string()],
                     });
                 }
             }
@@ -484,12 +497,17 @@ mod tests {
         ];
 
         let groups = Scheduler::build_proposed_groups(&statuses);
-        let names: Vec<String> = groups.iter().map(|g| g.name.clone()).collect();
 
-        assert_eq!(names[0], "compound: squat");
-        assert_eq!(names[1], "compound: barbell row");
-        assert_eq!(names[2], "compound: deadlift");
-        assert!(names.iter().any(|name| name.starts_with("auxiliary: ")));
+        assert_eq!(groups[0].name, "Squat");
+        assert_eq!(groups[1].name, "Barbell Row");
+        assert_eq!(groups[2].name, "Deadlift");
+        assert!(groups
+            .iter()
+            .any(|g| g.tags.contains(&"auxiliary".to_string())));
+        // Top 3 (squat + 2 stalest rotation) should be tagged recommended
+        assert!(groups[0].tags.contains(&"recommended".to_string()));
+        assert!(groups[1].tags.contains(&"recommended".to_string()));
+        assert!(groups[2].tags.contains(&"recommended".to_string()));
     }
 }
 
