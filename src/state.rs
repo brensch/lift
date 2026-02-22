@@ -138,9 +138,20 @@ impl AppState {
             self.user_sessions
                 .insert(user_id.to_string(), session_id.clone());
             self.sessions
-                .entry(session_id)
+                .entry(session_id.clone())
                 .or_insert_with(HashSet::new)
                 .insert(user_id.to_string());
+
+            // Also sync the session_id into the recovered workout so
+            // get_current_session can use the fast in-memory path.
+            if let Some(mut active) = self.workouts.get_mut(user_id) {
+                if active.workout.session_id != session_id {
+                    active.workout.session_id = session_id.clone();
+                    let _ = central_db
+                        .update_workout_session_id(user_id, &active.workout.id, &session_id)
+                        .await;
+                }
+            }
         }
     }
 

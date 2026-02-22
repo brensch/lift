@@ -483,6 +483,33 @@ impl MultiplayerService for GroupService {
                         })
                 };
 
+                // Self-heal: if the workout is active in memory but its
+                // session_id is wrong/empty, fix it so subsequent polls use
+                // the fast in-memory path correctly.
+                {
+                    let needs_heal = self
+                        .state
+                        .workouts
+                        .get(member_id)
+                        .map(|w| w.workout.end_time == 0 && w.workout.session_id != sid)
+                        .unwrap_or(false);
+                    if needs_heal {
+                        if let Some(mut active) = self.state.workouts.get_mut(member_id) {
+                            if active.workout.end_time == 0 {
+                                active.workout.session_id = sid.clone();
+                                let _ = self
+                                    .central_db
+                                    .update_workout_session_id(
+                                        member_id,
+                                        &active.workout.id,
+                                        &sid,
+                                    )
+                                    .await;
+                            }
+                        }
+                    }
+                }
+
                 let use_in_memory_status = self
                     .state
                     .workouts

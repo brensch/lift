@@ -20,207 +20,242 @@ class SetLog extends StatelessWidget {
     this.workoutOwnerLabels,
   });
 
+  // Layout constants — keep these in sync so dot and connector line up.
+  static const double _timeWidth = 36;
+  static const double _gap1 = 6;
+  static const double _dotSize = 6;
+  static const double _dotCenterX = _timeWidth + _gap1 + _dotSize / 2; // 45
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final proposedById = <String, ProposedSet>{
-      for (final proposed in proposedSets) proposed.id: proposed,
+      for (final p in proposedSets) p.id: p,
     };
     final done = completedSets.where((c) => c.endedAt != Int64.ZERO).toList()
       ..sort((a, b) => b.endedAt.compareTo(a.endedAt));
 
     if (done.isEmpty) return const SizedBox.shrink();
 
+    final lineColor = colorScheme.outline.withValues(alpha: 0.25);
+
+    final List<Widget> items = [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(
+          'COMPLETED SETS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: colorScheme.tertiary,
+          ),
+        ),
+      ),
+    ];
+
+    for (int i = 0; i < done.length; i++) {
+      items.add(_buildRow(context, done[i], proposedById, colorScheme));
+
+      // Connecting line segment between rows
+      if (i < done.length - 1) {
+        items.add(Padding(
+          padding: const EdgeInsets.only(left: _dotCenterX - 0.5),
+          child: Container(width: 1, height: 7, color: lineColor),
+        ));
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      children: items,
+    );
+  }
+
+  Widget _buildRow(
+    BuildContext context,
+    CompletedSet completed,
+    Map<String, ProposedSet> proposedById,
+    ColorScheme colorScheme,
+  ) {
+    final proposed = proposedById[completed.proposedSetId];
+    final shortName = proposed != null ? (shortNames[proposed.exercise] ?? '?') : '?';
+    final isWarmup = proposed?.warmup ?? false;
+    final hitTarget =
+        proposed != null ? completed.actualReps >= proposed.targetReps : true;
+
+    final String weightStr = completed.actualWeight % 1 == 0
+        ? '${completed.actualWeight.toInt()}'
+        : '${completed.actualWeight}';
+
+    Color dotColor;
+    Color statusColor;
+    String statusText;
+
+    if (isWarmup) {
+      dotColor = AppTheme.warmupFg.withValues(alpha: 0.5);
+      statusColor = AppTheme.warmupFg;
+      statusText = 'W';
+    } else if (hitTarget) {
+      dotColor = AppTheme.successFg;
+      statusColor = AppTheme.successFg;
+      statusText = '✓';
+    } else {
+      dotColor = AppTheme.warningFg;
+      statusColor = AppTheme.warningFg;
+      statusText = '${completed.actualReps}';
+    }
+
+    final finishTime = DateTime.fromMillisecondsSinceEpoch(
+      completed.endedAt.toInt() * 1000,
+    );
+    final timeStr =
+        '${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}';
+
+    final durationSecs = (completed.endedAt - completed.startedAt).toInt();
+    final durationStr = durationSecs < 60
+        ? '${durationSecs}s'
+        : '${durationSecs ~/ 60}m${(durationSecs % 60).toString().padLeft(2, '0')}s';
+
+    final canDelete =
+        onDelete != null &&
+        (deletableWorkoutId == null ||
+            completed.workoutId == deletableWorkoutId);
+    final ownerLabel = workoutOwnerLabels?[completed.workoutId];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+        // Time
+        SizedBox(
+          width: _timeWidth,
           child: Text(
-            'COMPLETED SETS',
+            timeStr,
+            textAlign: TextAlign.right,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
               color: colorScheme.tertiary,
             ),
           ),
         ),
-        ...done.map((completed) {
-          final proposed = proposedById[completed.proposedSetId];
-          final name = proposed != null
-              ? (shortNames[proposed.exercise] ?? '?')
-              : '?';
-          final isWarmup = proposed?.warmup ?? false;
-          final hitTarget = proposed != null
-              ? completed.actualReps >= proposed.targetReps
-              : true;
+        const SizedBox(width: _gap1),
 
-          Color fg;
-          String label;
+        // Dot
+        Container(
+          width: _dotSize,
+          height: _dotSize,
+          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
 
-          if (isWarmup) {
-            fg = AppTheme.warmupFg;
-            label = 'W';
-          } else if (hitTarget) {
-            fg = AppTheme.successFg;
-            label = 'S';
-          } else {
-            fg = AppTheme.warningFg;
-            label = 'S';
-          }
-
-          final finishTime = DateTime.fromMillisecondsSinceEpoch(
-            completed.endedAt.toInt() * 1000,
-          );
-          final timeStr =
-              "${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}";
-          final durationSecs = (completed.endedAt - completed.startedAt)
-              .toInt();
-          final durationStr = durationSecs < 60
-              ? "${durationSecs}s"
-              : "${durationSecs ~/ 60}m${durationSecs % 60}s";
-
-          final canDelete =
-              onDelete != null &&
-              (deletableWorkoutId == null ||
-                  completed.workoutId == deletableWorkoutId);
-          final ownerLabel = workoutOwnerLabels?[completed.workoutId];
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.35,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: fg.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: fg.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      color: fg,
-                    ),
-                  ),
+        // Content
+        Expanded(
+          child: Row(
+            children: [
+              Text(
+                shortName.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: isWarmup
+                      ? colorScheme.tertiary
+                      : colorScheme.onSurface,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '$name ${completed.actualReps}x${completed.actualWeight.toInt()}lbs',
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if (ownerLabel != null && ownerLabel.isNotEmpty)
-                            Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer.withValues(
-                                  alpha: 0.6,
-                                ),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                ownerLabel.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.6,
-                                  color: colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$durationStr @ $timeStr',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${completed.actualReps}×$weightStr',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
-                if (canDelete) ...[
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: IconButton(
-                      tooltip: 'Delete set',
-                      onPressed: () async {
-                        final weight = completed.actualWeight.toDouble();
-                        final weightText = weight == weight.roundToDouble()
-                            ? weight.toInt().toString()
-                            : weight.toStringAsFixed(1);
-                        final confirmed = await _confirmDelete(
-                          context,
-                          setSummary: '${completed.actualReps}x$weightText',
-                        );
-                        if (confirmed == true) {
-                          onDelete!(completed.id);
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      style: IconButton.styleFrom(
-                        foregroundColor: colorScheme.error,
-                        backgroundColor: colorScheme.error.withValues(
-                          alpha: 0.08,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: colorScheme.error.withValues(alpha: 0.25),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              ),
+              const SizedBox(width: 4),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: statusColor,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                durationStr,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: colorScheme.tertiary.withValues(alpha: 0.7),
+                ),
+              ),
+              if (ownerLabel != null && ownerLabel.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                _ownerBadge(context, ownerLabel, colorScheme),
               ],
-            ),
-          );
-        }),
+              if (canDelete) ...[
+                const SizedBox(width: 4),
+                _deleteButton(context, completed, colorScheme),
+              ],
+            ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _ownerBadge(
+    BuildContext context,
+    String label,
+    ColorScheme colorScheme,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+          color: colorScheme.onPrimaryContainer,
+        ),
+      ),
+    );
+  }
+
+  Widget _deleteButton(
+    BuildContext context,
+    CompletedSet completed,
+    ColorScheme colorScheme,
+  ) {
+    return GestureDetector(
+      onTap: () async {
+        final weight = completed.actualWeight.toDouble();
+        final weightText = weight == weight.roundToDouble()
+            ? weight.toInt().toString()
+            : weight.toStringAsFixed(1);
+        final confirmed = await _confirmDelete(
+          context,
+          setSummary: '${completed.actualReps}×$weightText',
+        );
+        if (confirmed == true) onDelete!(completed.id);
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Icon(
+          Icons.close_rounded,
+          size: 14,
+          color: colorScheme.outline.withValues(alpha: 0.5),
+        ),
+      ),
     );
   }
 

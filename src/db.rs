@@ -1566,7 +1566,7 @@ impl CentralDb {
 
         // Upsert workout
         sqlx::query(
-            "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .bind(&workout.id)
         .bind(user_id)
@@ -1576,6 +1576,11 @@ impl CentralDb {
             None
         } else {
             Some(workout.end_time)
+        })
+        .bind(if workout.session_id.is_empty() {
+            None
+        } else {
+            Some(&workout.session_id)
         })
         .execute(&mut *tx)
         .await?;

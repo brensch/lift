@@ -19,6 +19,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final WorkoutServiceWrapper _service;
   SoundProvider? _soundProvider;
 
+  /// Called after each set mutation so the multiplayer session view can
+  /// refresh immediately instead of waiting for the next background tick.
+  VoidCallback? onSessionRefreshNeeded;
+
   // Loading state
   bool _isLoading = false;
 
@@ -425,6 +429,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         response.hasStateSnapshot() ? response.stateSnapshot : null,
       );
       notifyListeners();
+      onSessionRefreshNeeded?.call();
     } catch (e) {
       _handleError(e);
     }
@@ -455,6 +460,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         response.hasStateSnapshot() ? response.stateSnapshot : null,
       );
       notifyListeners();
+      onSessionRefreshNeeded?.call();
     } catch (e) {
       _handleError(e);
     }
@@ -473,6 +479,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         response.hasStateSnapshot() ? response.stateSnapshot : null,
       );
       notifyListeners();
+      onSessionRefreshNeeded?.call();
     } catch (e) {
       _handleError(e);
     }
@@ -498,6 +505,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         response.hasStateSnapshot() ? response.stateSnapshot : null,
       );
       notifyListeners();
+      onSessionRefreshNeeded?.call();
     } catch (e) {
       _handleError(e);
     }
@@ -574,6 +582,40 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       _handleError(e);
     }
+  }
+
+  Future<void> updateSet(String setId, int reps, double weight) async {
+    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
+      (p) => p!.id == setId,
+      orElse: () => null,
+    );
+    if (proposed == null || proposed.exerciseGroupId.isEmpty) return;
+
+    final groupIndex = exerciseGroups.indexWhere((g) => g.group?.id == proposed.exerciseGroupId);
+    if (groupIndex == -1) return;
+
+    final groupData = exerciseGroups[groupIndex];
+    final group = groupData.group!;
+
+    // Create new configs based on the update. 
+    // For now, we update the config that matches the exercise of the set.
+    final newConfigs = group.exerciseConfigs.map((c) {
+      if (c.exercise == proposed.exercise) {
+        return c.deepCopy()
+          ..reps = reps
+          ..startWeight = weight.toDouble()
+          ..endWeight = weight.toDouble(); // Simplify to flat weight for quick edit
+      }
+      return c;
+    }).toList();
+
+    await updateGroup(
+      groupIndex,
+      sets: group.sets,
+      interleaveWarmups: group.interleaveWarmups,
+      exerciseConfigs: newConfigs,
+      restConfig: group.hasRestConfig() ? group.restConfig : null,
+    );
   }
 
   Future<void> deleteExerciseGroup(int groupIndex) async {

@@ -14,6 +14,11 @@ class MultiplayerProvider extends ChangeNotifier {
   SessionStatus? _sessionStatus;
   Timer? _pollTimer;
   bool _isLoading = false;
+  // How many consecutive polls have returned an empty session.
+  // We only clear the local session after several consecutive empties so a
+  // single transient failure doesn't wipe the "who's up next" bar.
+  int _consecutiveEmptyPolls = 0;
+  static const int _clearSessionAfterEmpties = 3;
 
   MultiplayerProvider(this._service);
 
@@ -66,6 +71,7 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (_) {}
     _sessionId = null;
     _sessionStatus = null;
+    _consecutiveEmptyPolls = 0;
     notifyListeners();
   }
 
@@ -73,6 +79,7 @@ class MultiplayerProvider extends ChangeNotifier {
     if (_sessionId == null) return;
     _sessionId = null;
     _sessionStatus = null;
+    _consecutiveEmptyPolls = 0;
     notifyListeners();
   }
 
@@ -87,6 +94,7 @@ class MultiplayerProvider extends ChangeNotifier {
   void clear() {
     _sessionId = null;
     _sessionStatus = null;
+    _consecutiveEmptyPolls = 0;
     notifyListeners();
   }
 
@@ -100,19 +108,29 @@ class MultiplayerProvider extends ChangeNotifier {
     _pollTimer = null;
   }
 
+  /// Trigger an immediate poll right now (called after set operations so the
+  /// session state updates without waiting for the next 1-second tick).
+  Future<void> refreshNow() => _poll();
+
   Future<void> _poll() async {
     try {
       final response = await _service.getCurrentSession(sessionId: _sessionId);
       if (response.sessionId.isNotEmpty) {
+        _consecutiveEmptyPolls = 0;
         _sessionId = response.sessionId;
         if (response.hasSessionStatus()) {
           _sessionStatus = response.sessionStatus;
         }
         notifyListeners();
       } else {
-        if (_sessionId != null) {
+        _consecutiveEmptyPolls++;
+        // Only clear the local session after several consecutive empty
+        // responses to avoid the bar disappearing on a single blip.
+        if (_sessionId != null &&
+            _consecutiveEmptyPolls >= _clearSessionAfterEmpties) {
           _sessionId = null;
           _sessionStatus = null;
+          _consecutiveEmptyPolls = 0;
           notifyListeners();
         }
       }

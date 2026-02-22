@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
@@ -119,88 +121,76 @@ class WorkoutScreen extends StatelessWidget {
               ),
 
               if (groups.isNotEmpty)
-                ReorderableListView(
+                ReorderableListView.builder(
                   shrinkWrap: true,
-
                   physics: const NeverScrollableScrollPhysics(),
-
+                  itemCount: groups.length,
                   onReorder: (oldIndex, newIndex) {
                     if (isEnded) return;
+                    HapticFeedback.mediumImpact();
 
                     if (oldIndex < newIndex) {
                       newIndex -= 1;
                     }
 
-                    final items = List<ExerciseGroupData>.from(
-                      wp.exerciseGroups,
-                    );
-
+                    final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
                     final item = items.removeAt(oldIndex);
-
                     items.insert(newIndex, item);
 
                     final groupIds = items.map((g) => g.group!.id).toList();
-
                     wp.reorderExerciseGroups(groupIds);
                   },
-
-                  children: groups.asMap().entries.map((entry) {
-                    final idx = entry.key;
-
-                    final group = entry.value;
-
+                  proxyDecorator: (child, index, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (context, child) {
+                        final animValue = Curves.easeInOut.transform(animation.value);
+                        final elevation = lerpDouble(0, 4, animValue)!;
+                        return Material(
+                          elevation: elevation,
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          child: child,
+                        );
+                      },
+                      child: child,
+                    );
+                  },
+                  itemBuilder: (context, idx) {
+                    final group = groups[idx];
                     final stableKey = group.sets.isNotEmpty
                         ? group.sets.first.id
                         : 'empty-$idx';
 
-                    return Padding(
+                    return Dismissible(
                       key: ValueKey(stableKey),
-
-                      padding: const EdgeInsets.only(bottom: 12),
-
-                      child: Dismissible(
-                        key: ValueKey('dismiss-$stableKey'),
-
-                        direction: isEnded
-                            ? DismissDirection.none
-                            : DismissDirection.endToStart,
-
-                        confirmDismiss: (_) => showDeleteGroupDialog(
-                          context,
-
-                          exerciseNames[group.exercise] ?? '?',
+                      direction: isEnded
+                          ? DismissDirection.none
+                          : DismissDirection.endToStart,
+                      confirmDismiss: (_) => showDeleteGroupDialog(
+                        context,
+                        exerciseNames[group.exercise] ?? '?',
+                      ),
+                      onDismissed: (_) => _deleteGroup(context, wp, idx),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.error,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-
-                        onDismissed: (_) => _deleteGroup(context, wp, idx),
-
-                        background: Container(
-                          alignment: Alignment.centerRight,
-
-                          padding: const EdgeInsets.only(right: 16),
-
-                          decoration: BoxDecoration(
-                            color: colorScheme.error,
-
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-
-                          child: Icon(Icons.delete, color: colorScheme.onError),
-                        ),
-
-                        child: ExerciseGroupWidget(
-                          group: group,
-
-                          completedSets: wp.completedSets,
-
-                          activeSetId: activeSetId,
-
-                          isWorkoutEnded: isEnded,
-
-                          onEdit: () => _editGroup(context, wp, idx, group),
-                        ),
+                        child: Icon(Icons.delete_outline, color: colorScheme.onError, size: 20),
+                      ),
+                      child: ExerciseGroupWidget(
+                        group: group,
+                        completedSets: wp.completedSets,
+                        activeSetId: activeSetId,
+                        isWorkoutEnded: isEnded,
+                        onEdit: () => _editGroup(context, wp, idx, group),
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
 
               if (!isEnded) ...[
