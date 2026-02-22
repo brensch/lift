@@ -36,9 +36,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? _lastWearHeartRateUploadAt;
   bool _wearHeartRateUploadInFlight = false;
 
-  // Track whether we already played the sound for the current rest period
   bool _wasResting = false;
-  int? _lastSoundedRestUntil;
 
   Timer? _timer;
   DateTime _now = DateTime.now();
@@ -62,31 +60,34 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // App came back to foreground — check if rest expired while away
       _now = DateTime.now();
-      _checkRestSound();
       notifyListeners();
     }
   }
 
-  /// Set _wasResting to current state without triggering sound.
-  /// Call after loading completed sets to avoid false-triggering on load.
-  void _initRestState() {
+  /// Called every second in all lifecycle states.
+  /// Primary sound path: cancels the OS notification and plays in-app audio.
+  /// The OS notification is the fallback for when the app is killed (no timer).
+  Future<void> _checkRestSound() async {
     final snapshot = _stateSnapshot;
     if (snapshot == null) {
       _wasResting = false;
       return;
     }
-    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final isRestingNow =
+    if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) {
+      _wasResting = false;
+      return;
+    }
+    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
+    final isCurrentlyResting =
         snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
         snapshot.restUntil.toInt() > nowUnix;
-    _wasResting = isRestingNow;
-    // If load occurs while not resting, mark latest completed rest as already
-    // handled so we don't false-trigger a sound immediately.
-    if (!isRestingNow && snapshot.lastRestEnd.toInt() > 0) {
-      _lastSoundedRestUntil = snapshot.lastRestEnd.toInt();
+
+    if (_wasResting && !isCurrentlyResting) {
+      await NotificationService.cancelRest();
+      _soundProvider?.playCurrentSound();
     }
+    _wasResting = isCurrentlyResting;
   }
 
   void _sortState() {
@@ -96,45 +97,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeProposedSets.sort(
       (a, b) => a.workoutOrder.compareTo(b.workoutOrder),
     );
-  }
-
-  Future<void> _checkRestSound() async {
-    final snapshot = _stateSnapshot;
-    if (snapshot == null) {
-      _wasResting = false;
-      return;
-    }
-
-    final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
-    final restUntil = snapshot.restUntil.toInt();
-    final isCurrentlyResting =
-        snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
-        restUntil > nowUnix;
-
-    // If a set is active (lifting), we are by definition not "resting" in a way
-    // that should trigger an alert for a previous set.
-    if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) {
-      _wasResting = false;
-      return;
-    }
-
-    // Snapshot may still be in RESTING when timer passes rest_until; in that
-    // case lastRestEnd can be zero until next mutation response.
-    final lastRestEnd = snapshot.lastRestEnd.toInt() > 0
-        ? snapshot.lastRestEnd.toInt()
-        : snapshot.restUntil.toInt();
-    if (_wasResting &&
-        !isCurrentlyResting &&
-        lastRestEnd > 0 &&
-        _lastSoundedRestUntil != lastRestEnd) {
-      // Rest just ended — cancel scheduled notification (prevent double sound),
-      // play in-app sound, and show buzz notification for watches
-      _lastSoundedRestUntil = lastRestEnd;
-      await NotificationService.cancelRest();
-      _soundProvider?.playCurrentSound();
-      await NotificationService.showRestNow(body: _nextSetBody());
-    }
-    _wasResting = isCurrentlyResting;
   }
 
   void _handleError(Object e) {
@@ -212,10 +174,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return 'Next up: $prefix$name — ${weightStr}kg x ${next.targetReps}';
   }
 
-  // Debug getters
-  bool get debugWasResting => _wasResting;
-  int? get debugLastSoundedRestUntil => _lastSoundedRestUntil;
-
   bool isSetDone(String setId) {
     return _activeCompletedSets.any(
       (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
@@ -259,7 +217,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _now = DateTime.now();
-      _checkRestSound();
+      unawaited(_checkRestSound());
       unawaited(_flushPendingWearHeartRateUploads());
       notifyListeners();
     });
@@ -286,8 +244,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             ? response.stateSnapshot
             : null;
         _sortState();
-        // Initialize rest tracking state so we don't false-trigger sound on load
-        _initRestState();
         _startTimer();
       } else {
         _activeWorkout = null;
@@ -324,7 +280,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ? response.stateSnapshot
           : null;
       _sortState();
-      _initRestState();
       if (hasActiveWorkout) {
         _startTimer();
       } else {
@@ -346,7 +301,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         ? response.stateSnapshot
         : null;
     _sortState();
-    _initRestState();
     if (hasActiveWorkout) {
       _startTimer();
     } else {
@@ -357,7 +311,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<String?> startWorkout(String name, List<ExerciseGroup> groups) async {
     try {
       await NotificationService.cancelAll();
-      _lastSoundedRestUntil = null;
       _wasResting = false;
       final response = await _service.startWorkout(name, groups);
       _applyStartWorkoutResponse(response);
@@ -415,9 +368,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      if (restSecondsRemaining > 0) {
-        _lastSoundedRestUntil = _stateSnapshot?.restUntil.toInt();
-      }
       await NotificationService.cancelRest();
       _wasResting = false;
       final response = await _service.startSet(
@@ -459,10 +409,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _stateSnapshot = response.hasStateSnapshot()
           ? response.stateSnapshot
           : null;
-      // Mark that rest has started so _checkRestSound can detect the transition
       if (completed.restUntil.toInt() > 0) {
         _wasResting = true;
-        // Schedule background notification for when rest ends
         final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
         await NotificationService.scheduleRest(
           restUntilUnix: completed.restUntil.toInt(),
@@ -506,10 +454,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!proposed.warmup) return;
 
     try {
-      if (restSecondsRemaining > 0) {
-        _lastSoundedRestUntil = _stateSnapshot?.restUntil.toInt();
-      }
       await NotificationService.cancelRest();
+      _wasResting = false;
       final response = await _service.cancelProposedSet(
         _activeWorkout!.id,
         proposedSetId,
@@ -519,7 +465,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _stateSnapshot = response.hasStateSnapshot()
           ? response.stateSnapshot
           : null;
-      _wasResting = false;
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -636,6 +581,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _flushPendingWearHeartRateUploads(force: true);
       await NotificationService.cancelAll();
+      _wasResting = false;
       final ended = await _service.endWorkout(_activeWorkout!.id);
       _activeWorkout = ended;
       _stopTimer();
@@ -724,6 +670,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> clear() async {
     await NotificationService.cancelAll();
+    _wasResting = false;
     _activeWorkout = null;
     _activeProposedSets = [];
     _activeCompletedSets = [];

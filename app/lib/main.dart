@@ -18,6 +18,7 @@ import 'services/wearable_sync_coordinator.dart';
 import 'providers/auth_provider.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
+import 'providers/settings_provider.dart';
 import 'providers/sound_provider.dart';
 import 'providers/theme_provider.dart';
 import 'theme/app_theme.dart';
@@ -29,6 +30,8 @@ import 'screens/history_screen.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
 import 'screens/passkeys_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/plate_colors_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
@@ -57,6 +60,7 @@ class _LiftAppState extends State<LiftApp> {
   late final AuthProvider _authProvider;
   late final WorkoutProvider _workoutProvider;
   late final MultiplayerProvider _multiplayerProvider;
+  late final SettingsProvider _settingsProvider;
   late final SoundProvider _soundProvider;
   late final ThemeProvider _themeProvider;
   late final WearableBridgeService _wearableBridgeService;
@@ -76,6 +80,7 @@ class _LiftAppState extends State<LiftApp> {
       grpcClient: _grpcClient,
     );
 
+    _settingsProvider = SettingsProvider(_grpcClient);
     _soundProvider = SoundProvider();
     _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
     _workoutProvider.setSoundProvider(_soundProvider);
@@ -106,6 +111,7 @@ class _LiftAppState extends State<LiftApp> {
         _workoutProvider.loadActiveWorkout(_authProvider.userId!);
         _multiplayerProvider.checkForSession();
         _soundProvider.load();
+        _settingsProvider.load();
       }
     });
 
@@ -153,6 +159,14 @@ class _LiftAppState extends State<LiftApp> {
             GoRoute(
               path: '/debug-notifications',
               builder: (_, __) => const DebugNotificationsScreen(),
+            ),
+            GoRoute(
+              path: '/settings',
+              builder: (_, __) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/plate-colors',
+              builder: (_, __) => const PlateColorsScreen(),
             ),
           ],
         ),
@@ -207,6 +221,7 @@ class _LiftAppState extends State<LiftApp> {
     _authProvider.dispose();
     _workoutProvider.dispose();
     _multiplayerProvider.dispose();
+    _settingsProvider.dispose();
     _soundProvider.dispose();
     _themeProvider.dispose();
     super.dispose();
@@ -224,6 +239,7 @@ class _LiftAppState extends State<LiftApp> {
         ChangeNotifierProvider<MultiplayerProvider>.value(
           value: _multiplayerProvider,
         ),
+        ChangeNotifierProvider<SettingsProvider>.value(value: _settingsProvider),
         ChangeNotifierProvider<SoundProvider>.value(value: _soundProvider),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],

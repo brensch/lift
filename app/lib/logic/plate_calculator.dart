@@ -6,7 +6,7 @@ class PlateResult {
 }
 
 const double barWeight = 45;
-const List<double> availablePlates = [45, 25, 10, 5, 2.5];
+const List<double> availablePlates = [45, 35, 25, 10, 5, 2.5];
 
 PlateResult calcPlatesPerSide(double totalWeight) {
   if (totalWeight <= barWeight) return PlateResult([], 0);

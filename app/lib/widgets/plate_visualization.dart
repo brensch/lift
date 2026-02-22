@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../logic/plate_calculator.dart';
+import '../providers/settings_provider.dart';
 
 class PlateVisualization extends StatelessWidget {
   final double weight;
   final double scale;
   final bool showText;
   final bool isInteractive;
+  final Map<double, Color>? colorOverrides;
 
   const PlateVisualization({
     super.key,
@@ -13,6 +16,7 @@ class PlateVisualization extends StatelessWidget {
     this.scale = 1.0,
     this.showText = false,
     this.isInteractive = true,
+    this.colorOverrides,
   });
 
   void _showDetailModal(BuildContext context) {
@@ -46,8 +50,20 @@ class PlateVisualization extends StatelessWidget {
     );
   }
 
+  Color _plateColor(BuildContext context, double plate) {
+    if (colorOverrides != null) {
+      return colorOverrides![plate] ?? Colors.purple;
+    }
+    return context.read<SettingsProvider>().plateColor(plate);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Watch provider so we rebuild when colors change (unless overrides given)
+    if (colorOverrides == null) {
+      context.watch<SettingsProvider>();
+    }
+
     final result = calcPlatesPerSide(weight);
     final isDumbbellWeight = weight < barWeight;
     final isBarOnly = weight == barWeight;
@@ -61,12 +77,11 @@ class PlateVisualization extends StatelessWidget {
             scale: scale,
             child: isDumbbellWeight
                 ? _buildDumbbell()
-                : _buildBarbell(result.plates),
+                : _buildBarbell(context, result.plates),
           ),
         ),
         if (showText) ...[
           const SizedBox(height: 16),
-          // Group plates for the text description
           Builder(
             builder: (context) {
               if (isDumbbellWeight) {
@@ -157,14 +172,14 @@ class PlateVisualization extends StatelessWidget {
     return content;
   }
 
-  Widget _buildBarbell(List<double> plates) {
+  Widget _buildBarbell(BuildContext context, List<double> plates) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Left side plates.
         ...plates.reversed.map((plate) {
           final width = _plateWidth(plate);
-          final color = _plateColor(plate);
+          final color = _plateColor(context, plate);
           return Padding(
             padding: const EdgeInsets.only(left: 1),
             child: Container(
@@ -191,7 +206,7 @@ class PlateVisualization extends StatelessWidget {
         // Right side plates.
         ...plates.map((plate) {
           final width = _plateWidth(plate);
-          final color = _plateColor(plate);
+          final color = _plateColor(context, plate);
           return Padding(
             padding: const EdgeInsets.only(right: 1),
             child: Container(
@@ -246,6 +261,8 @@ class PlateVisualization extends StatelessWidget {
     switch (plate) {
       case 45:
         return 10;
+      case 35:
+        return 9;
       case 25:
         return 8;
       case 10:
@@ -256,23 +273,6 @@ class PlateVisualization extends StatelessWidget {
         return 2;
       default:
         return 3;
-    }
-  }
-
-  Color _plateColor(double plate) {
-    switch (plate) {
-      case 45:
-        return Colors.blue;
-      case 25:
-        return Colors.green;
-      case 10:
-        return Colors.amber;
-      case 5:
-        return Colors.red;
-      case 2.5:
-        return Colors.grey;
-      default:
-        return Colors.purple;
     }
   }
 }

@@ -139,6 +139,7 @@ pub enum WriteCommand {
     DeleteCompletedSet(String, String, String),
     JoinSession(String, String),
     LeaveSession(String, String),
+    InsertUserSetting(String, String, String, Vec<u8>),
     #[cfg(feature = "test-auth")]
     TestLoginUpsert(User, String, i64),
 }
@@ -304,6 +305,17 @@ CREATE INDEX IF NOT EXISTS idx_hr_samples_user_workout_time ON workout_heart_rat
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users(lower(name));
+
+CREATE TABLE IF NOT EXISTS user_settings (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    setting_type TEXT NOT NULL,
+    setting_blob BLOB NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_latest
+    ON user_settings(user_id, setting_type, created_at DESC);
 "#;
 
 impl CentralDb {
@@ -567,6 +579,19 @@ impl CentralDb {
                         .bind(session_id)
                         .execute(&mut *tx)
                         .await?;
+                }
+                WriteCommand::InsertUserSetting(user_id, setting_type, id, blob) => {
+                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                    sqlx::query(
+                        "INSERT INTO user_settings (id, user_id, setting_type, setting_blob, created_at) VALUES (?, ?, ?, ?, ?)",
+                    )
+                    .bind(id)
+                    .bind(user_id)
+                    .bind(setting_type)
+                    .bind(blob)
+                    .bind(now)
+                    .execute(&mut *tx)
+                    .await?;
                 }
                 #[cfg(feature = "test-auth")]
                 WriteCommand::TestLoginUpsert(user, token, expires_at) => {
@@ -1456,6 +1481,41 @@ impl CentralDb {
         Ok(())
     }
 
+    pub async fn insert_user_setting(
+        &self,
+        user_id: &str,
+        setting_type: &str,
+        blob: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let id = Uuid::new_v4().to_string();
+        self.write_tx.send(WriteCommand::InsertUserSetting(
+            user_id.to_string(),
+            setting_type.to_string(),
+            id,
+            blob.to_vec(),
+        ))?;
+        Ok(())
+    }
+
+    pub async fn get_latest_settings(
+        &self,
+        user_id: &str,
+    ) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows: Vec<(String, Vec<u8>)> = sqlx::query_as(
+            "SELECT setting_type, setting_blob FROM user_settings
+             WHERE (user_id, setting_type, created_at) IN (
+                 SELECT user_id, setting_type, MAX(created_at)
+                 FROM user_settings
+                 WHERE user_id = ?
+                 GROUP BY user_id, setting_type
+             )",
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
     pub async fn delete_user_account_and_data(
         &self,
         user_id: &str,
@@ -1497,6 +1557,10 @@ impl CentralDb {
             .execute(&mut *tx)
             .await?;
         sqlx::query("DELETE FROM workouts WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM user_settings WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;

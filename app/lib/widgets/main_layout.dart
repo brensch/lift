@@ -111,39 +111,15 @@ class MainLayout extends StatelessWidget {
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
-                      icon: Icons.key_outlined,
-                      label: 'PASSKEYS',
+                      icon: Icons.settings_outlined,
+                      label: 'SETTINGS',
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/passkeys');
+                        context.push('/settings');
                       },
                       isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/passkeys',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.notifications_outlined,
-                      label: 'PICK SOUND',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/sound-settings');
-                      },
-                      isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/sound-settings',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.bug_report_outlined,
-                      label: 'DEBUG',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/debug-notifications');
-                      },
-                      isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/debug-notifications',
+                          GoRouterState.of(context).uri.toString().startsWith(
+                          '/settings'),
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     // Dark mode toggle

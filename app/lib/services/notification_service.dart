@@ -119,48 +119,6 @@ class NotificationService {
     );
   }
 
-  /// Shows a rest-complete notification immediately.
-  /// Used for foreground alerts where we handle sound manually but want watch vibration.
-  static Future<void> showRestNow({required String body}) async {
-    const androidDetails = AndroidNotificationDetails(
-      'rest_timer_buzz',
-      'Rest Timer Buzz',
-      channelDescription: 'Vibration-only alert when rest ends',
-      importance: Importance.high,
-      priority: Priority.high,
-      playSound: false,
-      enableVibration: true,
-      category: AndroidNotificationCategory.alarm,
-      actions: [
-        AndroidNotificationAction(
-          _startSetActionId,
-          'Start Set',
-          showsUserInterface: true,
-        ),
-      ],
-    );
-
-    const darwinDetails = DarwinNotificationDetails(
-      presentSound: false,
-      presentAlert: true,
-    );
-
-    const linuxDetails = LinuxNotificationDetails(
-      defaultActionName: 'Start Set',
-    );
-
-    await _plugin.show(
-      _restNotificationId,
-      'Rest Complete',
-      body,
-      const NotificationDetails(
-        android: androidDetails,
-        iOS: darwinDetails,
-        linux: linuxDetails,
-      ),
-    );
-  }
-
   /// Cancels any pending or active rest notifications.
   static Future<void> cancelRest() async {
     await _plugin.cancel(_restNotificationId);
