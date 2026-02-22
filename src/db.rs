@@ -45,6 +45,7 @@ fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
         name: row.get("name"),
         start_time: row.get("start_time"),
         end_time: row.get::<Option<i64>, _>("end_time").unwrap_or(0),
+        session_id: row.get::<Option<String>, _>("session_id").unwrap_or_default(),
     }
 }
 
@@ -136,6 +137,7 @@ pub enum WriteCommand {
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
     UpdateWorkoutEnd(String, String, i64),
+    UpdateWorkoutSession(String, String, String),
     DeleteCompletedSet(String, String, String),
     JoinSession(String, String),
     LeaveSession(String, String),
@@ -196,6 +198,7 @@ CREATE TABLE IF NOT EXISTS workouts (
     name TEXT NOT NULL DEFAULT '',
     start_time INTEGER NOT NULL,
     end_time INTEGER,
+    session_id TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
@@ -363,6 +366,11 @@ impl CentralDb {
         .execute(&pool)
         .await;
 
+        // Manual migration for workout session_id
+        let _ = sqlx::query("ALTER TABLE workouts ADD COLUMN session_id TEXT")
+            .execute(&pool)
+            .await;
+
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
         let db = Self {
             pool,
@@ -420,13 +428,14 @@ impl CentralDb {
             match cmd {
                 WriteCommand::CreateWorkout(user_id, workout) => {
                     sqlx::query(
-                        "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id) VALUES (?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&workout.id)
                     .bind(user_id)
                     .bind(&workout.name)
                     .bind(workout.start_time)
                     .bind(if workout.end_time == 0 { None } else { Some(workout.end_time) })
+                    .bind(if workout.session_id.is_empty() { None } else { Some(&workout.session_id) })
                     .execute(&mut *tx)
                     .await?;
                 }
@@ -547,6 +556,14 @@ impl CentralDb {
                 WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
                     sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
                         .bind(end_time)
+                        .bind(user_id)
+                        .bind(workout_id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+                WriteCommand::UpdateWorkoutSession(user_id, workout_id, session_id) => {
+                    sqlx::query("UPDATE workouts SET session_id = ? WHERE user_id = ? AND id = ?")
+                        .bind(session_id)
                         .bind(user_id)
                         .bind(workout_id)
                         .execute(&mut *tx)
@@ -968,6 +985,20 @@ impl CentralDb {
         Ok(())
     }
 
+    pub async fn update_workout_session_id(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.write_tx.send(WriteCommand::UpdateWorkoutSession(
+            user_id.to_string(),
+            workout_id.to_string(),
+            session_id.to_string(),
+        ))?;
+        Ok(())
+    }
+
     pub async fn insert_workout_heart_rate_samples(
         &self,
         user_id: &str,
@@ -1182,6 +1213,26 @@ impl CentralDb {
     }
 
     #[allow(dead_code)]
+    pub async fn get_workouts_by_session(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<(String, Workout)>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows = sqlx::query(
+            "SELECT id, user_id, name, start_time, end_time, session_id FROM workouts WHERE session_id = ? AND end_time IS NOT NULL",
+        )
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            let user_id: String = row.get("user_id");
+            let workout = row_to_workout(row);
+            results.push((user_id, workout));
+        }
+        Ok(results)
+    }
+
     pub async fn get_workout_plan_change_stats(
         &self,
         user_id: &str,

@@ -32,6 +32,7 @@ message Workout {
   string name = 2;
   int64 start_time = 3;
   int64 end_time = 4;
+  string session_id = 5;
 }
 
 enum Exercise {
