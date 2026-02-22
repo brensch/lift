@@ -84,6 +84,70 @@ impl GroupService {
             .map(|(_, user_id)| user_id)
             .unwrap_or_default()
     }
+
+    async fn active_member_ids_for_session(&self, session_id: &str) -> Vec<String> {
+        if let Some(members) = self.state.sessions.get(session_id) {
+            if !members.is_empty() {
+                return members.iter().cloned().collect();
+            }
+        }
+        self.central_db
+            .get_session_membership_states(session_id)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|(user_id, is_active)| if is_active { Some(user_id) } else { None })
+            .collect()
+    }
+
+    async fn move_active_member_to_session(
+        &self,
+        user_id: &str,
+        from_session_id: &str,
+        to_session_id: &str,
+    ) -> Result<(), Status> {
+        if from_session_id == to_session_id {
+            return Ok(());
+        }
+
+        self.state
+            .user_sessions
+            .insert(user_id.to_string(), to_session_id.to_string());
+
+        if let Some(mut members) = self.state.sessions.get_mut(from_session_id) {
+            members.remove(user_id);
+            if members.is_empty() {
+                drop(members);
+                self.state.sessions.remove(from_session_id);
+            }
+        }
+        self.state
+            .sessions
+            .entry(to_session_id.to_string())
+            .or_insert_with(HashSet::new)
+            .insert(user_id.to_string());
+
+        if let Some(mut active) = self.state.workouts.get_mut(user_id) {
+            if active.workout.session_id != to_session_id {
+                active.workout.session_id = to_session_id.to_string();
+                self.central_db
+                    .update_workout_session_id(user_id, &active.workout.id, to_session_id)
+                    .await
+                    .map_err(|e| Status::internal(e.to_string()))?;
+            }
+        }
+
+        self.central_db
+            .leave_session(user_id, from_session_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        self.central_db
+            .join_session(user_id, to_session_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        Ok(())
+    }
 }
 
 #[tonic::async_trait]
@@ -115,7 +179,25 @@ impl MultiplayerService for GroupService {
                 if c_sid == t_sid {
                     c_sid
                 } else {
-                    return Err(Status::failed_precondition("Both users are already in different active sessions. Leave your current session first."));
+                    let caller_active_members = self.active_member_ids_for_session(&c_sid).await;
+                    let target_active_members = self.active_member_ids_for_session(&t_sid).await;
+
+                    let caller_is_solo =
+                        caller_active_members.len() == 1 && caller_active_members[0] == caller_id;
+                    let target_is_solo =
+                        target_active_members.len() == 1 && target_active_members[0] == target_id;
+
+                    if caller_is_solo {
+                        self.move_active_member_to_session(&caller_id, &c_sid, &t_sid)
+                            .await?;
+                        t_sid
+                    } else if target_is_solo {
+                        self.move_active_member_to_session(&target_id, &t_sid, &c_sid)
+                            .await?;
+                        c_sid
+                    } else {
+                        return Err(Status::failed_precondition("Both users are already in different active sessions. Leave your current session first."));
+                    }
                 }
             }
             (None, Some(t_sid)) => {
@@ -289,10 +371,10 @@ impl MultiplayerService for GroupService {
         };
 
         if let Some(sid) = session_id {
-            // 1. Get all participants (active + finished)
-            let session_members = self
+            // 1. Get session roster (latest membership state per user).
+            let membership_states = self
                 .central_db
-                .get_session_participants(&sid)
+                .get_session_membership_states(&sid)
                 .await
                 .unwrap_or_default();
 
@@ -304,21 +386,83 @@ impl MultiplayerService for GroupService {
                 .unwrap_or_default();
 
             // 3. Index data for efficient assembly
-            let workouts_by_user: HashMap<String, Workout> = workouts_with_user.into_iter().collect();
+            let workouts_by_user: HashMap<String, Workout> =
+                workouts_with_user.into_iter().collect();
+
+            let mut active_members = HashSet::new();
+            let mut session_members = Vec::<String>::new();
+            let mut seen_members = HashSet::new();
+
+            for (user_id, is_active_member) in membership_states {
+                if is_active_member {
+                    active_members.insert(user_id.clone());
+                }
+                if seen_members.insert(user_id.clone()) {
+                    session_members.push(user_id);
+                }
+            }
+
+            if let Some(live_members) = self.state.sessions.get(&sid) {
+                for user_id in live_members.iter() {
+                    active_members.insert(user_id.clone());
+                    if seen_members.insert(user_id.clone()) {
+                        session_members.push(user_id.clone());
+                    }
+                }
+            }
+
+            // Fallback for older rows where workouts.session_id exists but membership rows do not.
+            for user_id in workouts_by_user.keys() {
+                if seen_members.insert(user_id.clone()) {
+                    session_members.push(user_id.clone());
+                }
+            }
+
+            // Keep active members first so "currently in session" users remain prominent.
+            session_members.sort_by_key(|user_id| {
+                if active_members.contains(user_id) {
+                    0
+                } else {
+                    1
+                }
+            });
 
             let mut groups_by_workout: HashMap<String, Vec<ExerciseGroup>> = HashMap::new();
             for g in all_groups {
-                groups_by_workout.entry(g.workout_id.clone()).or_default().push(g);
+                groups_by_workout
+                    .entry(g.workout_id.clone())
+                    .or_default()
+                    .push(g);
             }
 
             let mut proposed_by_workout: HashMap<String, Vec<ProposedSet>> = HashMap::new();
             for p in all_proposed {
-                proposed_by_workout.entry(p.workout_id.clone()).or_default().push(p);
+                proposed_by_workout
+                    .entry(p.workout_id.clone())
+                    .or_default()
+                    .push(p);
             }
 
             let mut completed_by_workout: HashMap<String, Vec<CompletedSet>> = HashMap::new();
             for c in all_completed {
-                completed_by_workout.entry(c.workout_id.clone()).or_default().push(c);
+                completed_by_workout
+                    .entry(c.workout_id.clone())
+                    .or_default()
+                    .push(c);
+            }
+
+            // Bulk-load uncached users to avoid N+1 queries in the 1Hz poll path.
+            let missing_user_ids: Vec<String> = session_members
+                .iter()
+                .filter(|user_id| !self.state.users.contains_key(*user_id))
+                .cloned()
+                .collect();
+            if !missing_user_ids.is_empty() {
+                if let Ok(users) = self.central_db.get_users_by_ids(&missing_user_ids).await {
+                    for (uid, user) in users {
+                        self.state.users.insert(uid, user);
+                    }
+                }
             }
 
             let mut participant_statuses = Vec::new();
@@ -338,6 +482,20 @@ impl MultiplayerService for GroupService {
                             created_at: 0,
                         })
                 };
+
+                let use_in_memory_status = self
+                    .state
+                    .workouts
+                    .get(member_id)
+                    .map(|w| w.workout.session_id == sid && w.workout.end_time == 0)
+                    .unwrap_or(false);
+
+                if use_in_memory_status {
+                    let mut status = self.build_participant_status(member_id);
+                    status.user = Some(user);
+                    participant_statuses.push(status);
+                    continue;
+                }
 
                 if let Some(workout) = workouts_by_user.get(member_id) {
                     let groups = groups_by_workout.remove(&workout.id).unwrap_or_default();
@@ -733,6 +891,151 @@ mod tests {
             .expect("u2 status");
         assert!(!u2_status.has_active_set);
         assert!(u2_status.next_up_set.is_some());
+    }
+
+    #[tokio::test]
+    async fn finished_user_leaves_active_membership_but_remains_visible_in_session() {
+        let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+        let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+        let state = Arc::new(AppState::new());
+        let workout_service = MyWorkoutService::new(central_db.clone(), state.clone());
+        let group_service = GroupService::new(central_db.clone(), state);
+
+        let user1 = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user1");
+        let user2 = central_db
+            .create_user_with_id("u2", "u2")
+            .await
+            .expect("user2");
+        let token1 = central_db
+            .create_auth_session(&user1.id)
+            .await
+            .expect("token1");
+        let token2 = central_db
+            .create_auth_session(&user2.id)
+            .await
+            .expect("token2");
+
+        let start1 = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "w1".to_string(),
+                    exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 1, 0)],
+                },
+                &token1,
+            ),
+        )
+        .await
+        .expect("start1")
+        .into_inner();
+        let _start2 = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "w2".to_string(),
+                    exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 1, 0)],
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("start2")
+        .into_inner();
+
+        let session_id = MultiplayerService::join_user(
+            &group_service,
+            with_token(
+                JoinUserRequest {
+                    user_id: user2.id.clone(),
+                },
+                &token1,
+            ),
+        )
+        .await
+        .expect("join")
+        .into_inner()
+        .session_id;
+
+        let _ = WorkoutService::end_workout(
+            &workout_service,
+            with_token(
+                EndWorkoutRequest {
+                    workout_id: start1.id.clone(),
+                },
+                &token1,
+            ),
+        )
+        .await
+        .expect("u1 end workout");
+
+        let mut seen_finished_from_peer = false;
+        let mut explicit_fetch_after_leave = false;
+
+        for _ in 0..50 {
+            let peer_session = MultiplayerService::get_current_session(
+                &group_service,
+                with_token(
+                    GetCurrentSessionRequest {
+                        session_id: String::new(),
+                    },
+                    &token2,
+                ),
+            )
+            .await
+            .expect("peer session")
+            .into_inner();
+
+            if let Some(status) = peer_session.session_status {
+                if let Some(u1) = status
+                    .participants
+                    .iter()
+                    .find(|p| p.user.as_ref().map(|u| u.id.as_str()) == Some("u1"))
+                {
+                    if u1
+                        .active_workout
+                        .as_ref()
+                        .map(|w| w.end_time > 0)
+                        .unwrap_or(false)
+                    {
+                        seen_finished_from_peer = true;
+                    }
+                }
+            }
+
+            let explicit = MultiplayerService::get_current_session(
+                &group_service,
+                with_token(
+                    GetCurrentSessionRequest {
+                        session_id: session_id.clone(),
+                    },
+                    &token1,
+                ),
+            )
+            .await
+            .expect("explicit session after leave")
+            .into_inner();
+
+            explicit_fetch_after_leave =
+                explicit.session_id == session_id && explicit.session_status.is_some();
+
+            if seen_finished_from_peer && explicit_fetch_after_leave {
+                break;
+            }
+
+            sleep(Duration::from_millis(20)).await;
+        }
+
+        assert!(
+            seen_finished_from_peer,
+            "other participants should still see finished user in session snapshot"
+        );
+        assert!(
+            explicit_fetch_after_leave,
+            "finished user should be able to fetch session snapshot by explicit session_id after auto-leave"
+        );
     }
 
     #[tokio::test]

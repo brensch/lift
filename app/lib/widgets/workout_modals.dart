@@ -20,6 +20,7 @@ Future<void> endWorkout(BuildContext context) async {
     if (workoutId == null) return;
 
     await wp.endWorkout();
+    mp.markLocalWorkoutFinished();
     if (context.mounted) {
       context.go('/workout/$workoutId/completed');
     }

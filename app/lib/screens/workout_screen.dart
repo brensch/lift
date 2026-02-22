@@ -33,6 +33,29 @@ class WorkoutScreen extends StatelessWidget {
     final otherParticipants = mp.participants
         .where((p) => p.user.id != auth.userId)
         .toList();
+    final sessionLedgerProposed = <ProposedSet>[];
+    final sessionLedgerCompleted = <CompletedSet>[];
+    final workoutOwnerLabels = <String, String>{};
+    if (mp.isInSession && mp.sessionStatus != null) {
+      for (final participant in mp.participants) {
+        sessionLedgerProposed.addAll(participant.proposedSets);
+        sessionLedgerCompleted.addAll(participant.completedSets);
+        if (participant.activeWorkoutId.isNotEmpty) {
+          final rawName = participant.user.id == auth.userId
+              ? 'You'
+              : (participant.user.name.isNotEmpty
+                    ? participant.user.name
+                    : participant.user.id);
+          workoutOwnerLabels[participant.activeWorkoutId] = rawName;
+        }
+      }
+    }
+    final logProposedSets = sessionLedgerProposed.isNotEmpty
+        ? sessionLedgerProposed
+        : wp.proposedSets;
+    final logCompletedSets = sessionLedgerCompleted.isNotEmpty
+        ? sessionLedgerCompleted
+        : wp.completedSets;
 
     final workout = wp.workout!;
 
@@ -258,11 +281,11 @@ class WorkoutScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
 
           child: SetLog(
-            proposedSets: wp.proposedSets,
-
-            completedSets: wp.completedSets,
-
+            proposedSets: logProposedSets,
+            completedSets: logCompletedSets,
             onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
+            deletableWorkoutId: wp.workout?.id,
+            workoutOwnerLabels: workoutOwnerLabels,
           ),
         ),
 

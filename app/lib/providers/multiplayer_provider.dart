@@ -69,6 +69,13 @@ class MultiplayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void markLocalWorkoutFinished() {
+    if (_sessionId == null) return;
+    _sessionId = null;
+    _sessionStatus = null;
+    notifyListeners();
+  }
+
   Future<void> updateActiveWorkout(String workoutId) async {
     try {
       await _service.updateActiveWorkout(workoutId);
@@ -85,7 +92,7 @@ class MultiplayerProvider extends ChangeNotifier {
 
   void _startPolling() {
     _stopPolling();
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _poll());
   }
 
   void _stopPolling() {
@@ -95,9 +102,7 @@ class MultiplayerProvider extends ChangeNotifier {
 
   Future<void> _poll() async {
     try {
-      final response = await _service.getCurrentSession(
-        sessionId: _sessionId ?? "",
-      );
+      final response = await _service.getCurrentSession(sessionId: _sessionId);
       if (response.sessionId.isNotEmpty) {
         _sessionId = response.sessionId;
         if (response.hasSessionStatus()) {
