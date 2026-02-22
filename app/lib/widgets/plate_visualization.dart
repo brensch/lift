@@ -9,6 +9,7 @@ class PlateVisualization extends StatelessWidget {
   final bool showText;
   final bool isInteractive;
   final Map<double, Color>? colorOverrides;
+  final List<double>? displayPlatesPerSide;
 
   const PlateVisualization({
     super.key,
@@ -17,6 +18,7 @@ class PlateVisualization extends StatelessWidget {
     this.showText = false,
     this.isInteractive = true,
     this.colorOverrides,
+    this.displayPlatesPerSide,
   });
 
   void _showDetailModal(BuildContext context) {
@@ -65,6 +67,7 @@ class PlateVisualization extends StatelessWidget {
     }
 
     final result = calcPlatesPerSide(weight);
+    final platesForDisplay = displayPlatesPerSide ?? result.plates;
     final isDumbbellWeight = weight < barWeight;
     final isBarOnly = weight == barWeight;
 
@@ -77,7 +80,7 @@ class PlateVisualization extends StatelessWidget {
             scale: scale,
             child: isDumbbellWeight
                 ? _buildDumbbell()
-                : _buildBarbell(context, result.plates),
+                : _buildBarbell(context, platesForDisplay),
           ),
         ),
         if (showText) ...[
@@ -117,7 +120,7 @@ class PlateVisualization extends StatelessWidget {
                 );
               }
               final Map<double, int> plateCounts = {};
-              for (var p in result.plates) {
+              for (var p in platesForDisplay) {
                 plateCounts[p] = (plateCounts[p] ?? 0) + 1;
               }
               final plateDescription = plateCounts.entries

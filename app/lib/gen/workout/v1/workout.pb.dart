@@ -2671,6 +2671,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
     RestConfig? restConfig,
     $core.Iterable<$core.String>? tags,
+    $core.String? explanation,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -2679,6 +2680,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
     if (restConfig != null) result.restConfig = restConfig;
     if (tags != null) result.tags.addAll(tags);
+    if (explanation != null) result.explanation = explanation;
     return result;
   }
 
@@ -2703,6 +2705,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     ..aOM<RestConfig>(5, _omitFieldNames ? '' : 'restConfig',
         subBuilder: RestConfig.create)
     ..pPS(6, _omitFieldNames ? '' : 'tags')
+    ..aOS(7, _omitFieldNames ? '' : 'explanation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2768,6 +2771,15 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(6)
   $pb.PbList<$core.String> get tags => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.String get explanation => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set explanation($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasExplanation() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearExplanation() => $_clearField(7);
 }
 
 class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {

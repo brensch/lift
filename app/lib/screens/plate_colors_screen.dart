@@ -53,10 +53,13 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    const previewPlatesPerSide = [45.0, 35.0, 25.0, 10.0, 5.0, 2.5];
+    const contrivedWeight = 290.0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'PLATE COLOURS',
+          'Plate colours',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         actions: [
@@ -64,7 +67,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
             TextButton(
               onPressed: _save,
               child: Text(
-                'SAVE',
+                'Save',
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   color: colorScheme.primary,
@@ -75,96 +78,76 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
       ),
       body: Column(
         children: [
-          // Preview
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: PlateVisualization(
-              weight: 290, // one of each plate per side: 45+35+25+10+5+2.5
-              scale: 2.0,
-              showText: false,
-              isInteractive: false,
-              colorOverrides: _colors,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Center(
+              child: PlateVisualization(
+                weight: contrivedWeight,
+                scale: 2.0,
+                showText: false,
+                isInteractive: false,
+                colorOverrides: _colors,
+                displayPlatesPerSide: previewPlatesPerSide,
+              ),
             ),
           ),
           Divider(color: colorScheme.outline),
           Expanded(
-            child: ListView.separated(
+            child: GridView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _plateWeights.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 0.85,
+              ),
               itemBuilder: (context, index) {
                 final weight = _plateWeights[index];
                 final currentColor = _colors[weight] ?? Colors.purple;
-                final label = weight % 1 == 0
-                    ? '${weight.toInt()} lb'
-                    : '${weight} lb';
-
                 return Material(
                   color: colorScheme.surfaceContainerHighest
                       .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: currentColor,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: colorScheme.outline,
-                                  width: 1,
-                                ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => _showColorPicker(context, weight),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: currentColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: colorScheme.outline,
+                                width: 1,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              label.toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16,
-                                letterSpacing: -0.5,
-                              ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _plateLabel(weight),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: _colorOptions.map((entry) {
-                            final isSelected =
-                                currentColor == entry.value;
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _colors[weight] = entry.value;
-                                  _dirty = true;
-                                });
-                              },
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: entry.value,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? colorScheme.primary
-                                        : colorScheme.outline,
-                                    width: isSelected ? 3 : 1,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap to change',
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -175,4 +158,55 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
       ),
     );
   }
+
+  Future<void> _showColorPicker(BuildContext context, double weight) {
+    final label = _plateLabel(weight);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Select a color for $label'),
+        content: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _colorOptions.map((option) {
+            final isSelected = _colors[weight] == option.value;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _colors[weight] = option.value;
+                  _dirty = true;
+                });
+                Navigator.pop(context);
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: option.value,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.outline,
+                    width: isSelected ? 3 : 1,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _plateLabel(double weight) =>
+      weight % 1 == 0 ? '${weight.toInt()} lb' : '$weight lb';
 }

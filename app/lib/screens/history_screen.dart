@@ -49,7 +49,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'HISTORY',
+          'History',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),

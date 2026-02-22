@@ -128,7 +128,7 @@ Future<void> showEditExerciseDialog(
                     children: [
                       Expanded(
                         child: Text(
-                          'EDIT ${group.group?.name.toUpperCase() ?? exerciseNames[group.exercise]?.toUpperCase()}',
+                          'Edit ${group.group?.name ?? exerciseNames[group.exercise] ?? 'Unknown'}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -779,22 +779,24 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
     final name = exerciseNames[widget.config.exercise] ?? '?';
     final hasEndWeight = widget.config.differentEndWeight;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: widget.isExpanded
-            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-            : Colors.transparent,
-        border: Border.all(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
           color: widget.isExpanded
-              ? colorScheme.primary.withValues(alpha: 0.5)
-              : colorScheme.outline.withValues(alpha: 0.5),
+              ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+              : Colors.transparent,
+          border: Border.all(
+            color: widget.isExpanded
+                ? colorScheme.primary.withValues(alpha: 0.5)
+                : colorScheme.outline.withValues(alpha: 0.5),
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
+        child: Column(
+          children: [
           // Main Row
           InkWell(
             onTap: widget.onTap,
@@ -809,7 +811,7 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
                   // Exercise Name
                   Expanded(
                     child: Text(
-                      name.toUpperCase(),
+                      name,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -1037,8 +1039,9 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _WeightDisplayBox extends StatelessWidget {

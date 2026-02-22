@@ -215,8 +215,8 @@ class GroupNextUpBox extends StatelessWidget {
                 children: [
                   Text(
                     isMe
-                        ? "YOU'RE NEXT! DON'T HOLD THEM UP"
-                        : 'NEXT FOR GROUP \u00B7 ${name.toUpperCase()}',
+                        ? "You're next! Don't hold them up"
+                        : 'Next for Group \u00B7 $name',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,

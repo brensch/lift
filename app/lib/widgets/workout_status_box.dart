@@ -52,7 +52,7 @@ class StatusBox extends StatelessWidget {
                 child: RotatedBox(
                   quarterTurns: 3,
                   child: Text(
-                    sideLabel.toUpperCase(),
+                    sideLabel,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -77,7 +77,7 @@ class StatusBox extends StatelessWidget {
                   children: [
                     if (header != null && showHeader) ...[
                       Text(
-                        header!.toUpperCase(),
+                        header!,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,

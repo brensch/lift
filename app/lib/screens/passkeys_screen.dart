@@ -202,7 +202,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'PASSKEYS',
+          'Passkeys',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),

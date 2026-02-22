@@ -15,7 +15,7 @@ class SoundSettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'PICK SOUND',
+          'Pick sound',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),

@@ -11,7 +11,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'SETTINGS',
+          'Settings',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),
@@ -20,28 +20,28 @@ class SettingsScreen extends StatelessWidget {
         children: [
           _SettingsTile(
             icon: Icons.palette_outlined,
-            label: 'PLATE COLOURS',
+            label: 'Plate colours',
             subtitle: 'Assign colours to plate weights',
             onTap: () => context.push('/settings/plate-colors'),
           ),
           const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.key_outlined,
-            label: 'PASSKEYS',
+            label: 'Passkeys',
             subtitle: 'Manage your login credentials',
             onTap: () => context.push('/passkeys'),
           ),
           const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.notifications_outlined,
-            label: 'PICK SOUND',
+            label: 'Pick sound',
             subtitle: 'Choose notification sound',
             onTap: () => context.push('/sound-settings'),
           ),
           const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.bug_report_outlined,
-            label: 'DEBUG',
+            label: 'Debug',
             subtitle: 'Notification debugging',
             onTap: () => context.push('/debug-notifications'),
           ),

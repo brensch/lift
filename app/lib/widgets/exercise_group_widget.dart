@@ -66,18 +66,18 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
 
     // ── COLLAPSED (completed) ──────────────────────────────────────────────
     if (allCompleted && !isExpanded) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 5),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.4)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.outline.withValues(alpha: 0.4)),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Status bar
               Container(width: 4, color: barColor),
 
@@ -102,8 +102,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                           child: Text(
                             (widget.group.group?.name ??
                                     exerciseNames[widget.group.exercise] ??
-                                    'Unknown')
-                                .toUpperCase(),
+                                    'Unknown'),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -151,12 +150,14 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    // ── EXPANDED (active / upcoming / manually expanded completed) ──────────
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
+  // ── EXPANDED (active / upcoming / manually expanded completed) ──────────
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
@@ -167,14 +168,12 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
           width: hasActiveSet ? 1.5 : 1,
         ),
       ),
-      clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Status bar
             Container(width: 4, color: barColor),
-
             // Content
             Expanded(
               child: Padding(
@@ -191,9 +190,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                             children: [
                               Text(
                                 (widget.group.group?.name ??
-                                        exerciseNames[widget.group.exercise] ??
-                                        'Unknown')
-                                    .toUpperCase(),
+                                    exerciseNames[widget.group.exercise] ??
+                                    'Unknown'),
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w900,
@@ -206,8 +204,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                               ),
                               Text(
                                 warmupSets.isNotEmpty
-                                    ? '$completedWarmupSets/${warmupSets.length} WARMUPS   $completedWorkingSets/${workingSets.length} SETS'
-                                    : '$completedWorkingSets/${workingSets.length} SETS',
+                                    ? '$completedWarmupSets/${warmupSets.length} Warmups   $completedWorkingSets/${workingSets.length} Sets'
+                                    : '$completedWorkingSets/${workingSets.length} Sets',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
@@ -298,8 +296,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildChip(BuildContext context, ProposedSet set) {
     final colorScheme = Theme.of(context).colorScheme;

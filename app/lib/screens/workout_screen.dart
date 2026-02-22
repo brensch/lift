@@ -72,7 +72,7 @@ class WorkoutScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isEnded ? 'WORKOUT COMPLETED' : 'WORKOUT IN PROGRESS',
+                isEnded ? 'Workout Completed' : 'Workout In Progress',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -82,7 +82,7 @@ class WorkoutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                workout.name.toUpperCase(),
+                workout.name,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -107,7 +107,7 @@ class WorkoutScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
 
                 child: Text(
-                  'EXERCISES IN WORKOUT',
+                  'Exercises In Workout',
 
                   style: TextStyle(
                     fontSize: 11,
@@ -155,7 +155,9 @@ class WorkoutScreen extends StatelessWidget {
 
                     HapticFeedback.mediumImpact();
 
-                    final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
+                    final items = List<ExerciseGroupData>.from(
+                      wp.exerciseGroups,
+                    );
                     final item = items.removeAt(oldIndex);
                     items.insert(newIndex, item);
 
@@ -166,12 +168,14 @@ class WorkoutScreen extends StatelessWidget {
                     return AnimatedBuilder(
                       animation: animation,
                       builder: (context, child) {
-                        final animValue = Curves.easeInOut.transform(animation.value);
+                        final animValue = Curves.easeInOut.transform(
+                          animation.value,
+                        );
                         final elevation = lerpDouble(0, 4, animValue)!;
                         return Material(
                           elevation: elevation,
                           color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           child: child,
                         );
                       },
@@ -180,38 +184,49 @@ class WorkoutScreen extends StatelessWidget {
                   },
                   itemBuilder: (context, idx) {
                     final group = groups[idx];
-                    final isCompleted = _isGroupCompleted(group, wp.completedSets);
+                    final isCompleted = _isGroupCompleted(
+                      group,
+                      wp.completedSets,
+                    );
                     final stableKey = group.sets.isNotEmpty
                         ? group.sets.first.id
                         : 'empty-$idx';
 
-                    return Dismissible(
-                      key: ValueKey(stableKey),
-                      direction: isEnded
-                          ? DismissDirection.none
-                          : DismissDirection.endToStart,
-                      confirmDismiss: (_) => showDeleteGroupDialog(
-                        context,
-                        exerciseNames[group.exercise] ?? '?',
-                      ),
-                      onDismissed: (_) => _deleteGroup(context, wp, idx),
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.only(right: 16),
-                        decoration: BoxDecoration(
-                          color: colorScheme.error,
-                          borderRadius: BorderRadius.circular(12),
+                    return Padding(
+                      key: ValueKey('reorder-$stableKey'),
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Dismissible(
+                        key: ValueKey('dismiss-$stableKey'),
+                        direction: isEnded
+                            ? DismissDirection.none
+                            : DismissDirection.endToStart,
+                        confirmDismiss: (_) => showDeleteGroupDialog(
+                          context,
+                          exerciseNames[group.exercise] ?? '?',
                         ),
-                        child: Icon(Icons.delete_outline, color: colorScheme.onError, size: 20),
-                      ),
-                      child: ExerciseGroupWidget(
-                        group: group,
-                        completedSets: wp.completedSets,
-                        activeSetId: activeSetId,
-                        isWorkoutEnded: isEnded,
-                        onEdit: () => _editGroup(context, wp, idx, group),
-                        groupIndex: isCompleted ? null : idx,
+                        onDismissed: (_) => _deleteGroup(context, wp, idx),
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 16),
+                          color: colorScheme.error,
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: colorScheme.onError,
+                            size: 20,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          clipBehavior: Clip.antiAlias,
+                          child: ExerciseGroupWidget(
+                            group: group,
+                            completedSets: wp.completedSets,
+                            activeSetId: activeSetId,
+                            isWorkoutEnded: isEnded,
+                            onEdit: () => _editGroup(context, wp, idx, group),
+                            groupIndex: isCompleted ? null : idx,
+                          ),
+                        ),
                       ),
                     );
                   },

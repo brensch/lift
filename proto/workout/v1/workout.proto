@@ -326,6 +326,8 @@ message ProposedExerciseGroup {
 
   repeated string tags = 6;
 
+  string explanation = 7;
+
 }
 
 

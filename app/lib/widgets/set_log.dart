@@ -154,7 +154,7 @@ class SetLog extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                shortName.toUpperCase(),
+                shortName,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -220,7 +220,7 @@ class SetLog extends StatelessWidget {
         ),
       ),
       child: Text(
-        label.toUpperCase(),
+        label,
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w900,
