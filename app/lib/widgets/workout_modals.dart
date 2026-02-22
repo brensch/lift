@@ -1,20 +1,22 @@
-import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import '../widgets/exercise_group_widget.dart';
 import 'plate_visualization.dart';
 
 Future<void> endWorkout(BuildContext context) async {
   final confirmed = await showEndWorkoutConfirmDialog(context);
-  if (confirmed && context.mounted) {
-    final wp = context.read<WorkoutProvider>();
-    final mp = context.read<MultiplayerProvider>();
+    if (confirmed && context.mounted) {
+      final wp = context.read<WorkoutProvider>();
+      final mp = context.read<MultiplayerProvider>();
 
     final workoutId = wp.workout?.id;
     if (workoutId == null) return;
@@ -22,9 +24,166 @@ Future<void> endWorkout(BuildContext context) async {
     await wp.endWorkout();
     mp.markLocalWorkoutFinished();
     if (context.mounted) {
-      context.go('/workout/$workoutId/completed');
+      context.push('/workout/$workoutId/completed');
     }
   }
+}
+
+Future<void> showParticipantWorkoutModal(
+  BuildContext context,
+  ParticipantStatus participant,
+) async {
+  final groups = _buildParticipantExerciseGroups(participant);
+  final activeSetId = _participantActiveSetId(participant);
+  final workoutEnded = _isParticipantWorkoutEnded(participant);
+  final displayName = participant.user.name.isNotEmpty
+      ? participant.user.name
+      : participant.user.id;
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    useRootNavigator: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      final colorScheme = Theme.of(ctx).colorScheme;
+
+      return Container(
+        decoration: BoxDecoration(
+          color: colorScheme.secondary,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "$displayName's Workout",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (groups.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    'No workout data available.',
+                    style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    for (var i = 0; i < groups.length; i++) ...[
+                      ExerciseGroupWidget(
+                        group: groups[i],
+                        completedSets: participant.completedSets,
+                        activeSetId: activeSetId,
+                        isWorkoutEnded: workoutEnded,
+                      ),
+                      if (i < groups.length - 1) const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+List<ExerciseGroupData> _buildParticipantExerciseGroups(
+  ParticipantStatus participant,
+) {
+  final proposedSets = participant.proposedSets.toList()
+    ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+  if (proposedSets.isEmpty) return [];
+
+  if (participant.exerciseGroups.isEmpty) {
+    return groupSetsByExercise(proposedSets);
+  }
+
+  final groups = participant.exerciseGroups.toList()
+    ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+  final usedSetIds = <String>{};
+  final result = <ExerciseGroupData>[];
+
+  for (final group in groups) {
+    final groupSets = proposedSets
+        .where((s) => s.exerciseGroupId == group.id)
+        .toList();
+    if (groupSets.isEmpty) continue;
+    groupSets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    usedSetIds.addAll(groupSets.map((set) => set.id));
+    final exercise = group.exerciseConfigs.isNotEmpty
+        ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
+              Exercise.EXERCISE_UNSPECIFIED
+        : groupSets.isNotEmpty
+        ? groupSets.first.exercise
+        : Exercise.EXERCISE_UNSPECIFIED;
+    final exercises = <Exercise>[];
+    for (final config in group.exerciseConfigs) {
+      final ex = Exercise.valueOf(config.exercise.value);
+      if (ex != null && !exercises.contains(ex)) exercises.add(ex);
+    }
+    result.add(
+      ExerciseGroupData(
+        exercise: exercise,
+        sets: groupSets,
+        group: group,
+        exercises: exercises,
+      ),
+    );
+  }
+
+  final leftover = proposedSets
+      .where((set) => !usedSetIds.contains(set.id))
+      .toList();
+  if (leftover.isNotEmpty) {
+    result.addAll(groupSetsByExercise(leftover));
+  }
+
+  return result;
+}
+
+String? _participantActiveSetId(ParticipantStatus participant) {
+  for (final completed in participant.completedSets) {
+    if (completed.endedAt == Int64.ZERO) {
+      return completed.proposedSetId;
+    }
+  }
+  return null;
+}
+
+bool _isParticipantWorkoutEnded(ParticipantStatus participant) {
+  if (!participant.hasActiveWorkout()) return true;
+  return participant.activeWorkout.endTime != Int64.ZERO;
 }
 
 Future<void> showEditExerciseDialog(
@@ -614,65 +773,66 @@ class _ExerciseChipSelectorState extends State<_ExerciseChipSelector> {
           ),
         ),
         const SizedBox(height: 8),
-                MenuAnchor(
-                  controller: _menuController,
-                  style: MenuStyle(
-                    maximumSize: const WidgetStatePropertyAll(Size.fromHeight(300)),
-                    backgroundColor: WidgetStatePropertyAll(colorScheme.surface),
-                    surfaceTintColor: WidgetStatePropertyAll(colorScheme.surface),
-                    elevation: const WidgetStatePropertyAll(8),
-                    padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+        MenuAnchor(
+          controller: _menuController,
+          style: MenuStyle(
+            maximumSize: const WidgetStatePropertyAll(Size.fromHeight(300)),
+            backgroundColor: WidgetStatePropertyAll(colorScheme.surface),
+            surfaceTintColor: WidgetStatePropertyAll(colorScheme.surface),
+            elevation: const WidgetStatePropertyAll(8),
+            padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          menuChildren: filtered.isEmpty
+              ? [
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No exercises found'),
                   ),
-                  menuChildren: filtered.isEmpty
-                      ? [
-                          const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('No exercises found'),
-                          )
-                        ]
-                      : filtered.map((e) {
-                          final isAdded = widget.configs.any((c) => c.exercise == e);
-                          return MenuItemButton(
-                            closeOnActivate: false,
-                            onPressed: () {
-                              widget.onToggle(e, !isAdded);
-                              setState(() {});
-                            },
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width - 64,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      isAdded
-                                          ? Icons.check_box
-                                          : Icons.check_box_outline_blank,
-                                      size: 20,
-                                      color: isAdded
-                                          ? colorScheme.primary
-                                          : colorScheme.outline,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        exerciseNames[e] ?? '?',
-                                        style: TextStyle(
-                                          fontWeight: isAdded
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                ]
+              : filtered.map((e) {
+                  final isAdded = widget.configs.any((c) => c.exercise == e);
+                  return MenuItemButton(
+                    closeOnActivate: false,
+                    onPressed: () {
+                      widget.onToggle(e, !isAdded);
+                      setState(() {});
+                    },
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width - 64,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isAdded
+                                  ? Icons.check_box
+                                  : Icons.check_box_outline_blank,
+                              size: 20,
+                              color: isAdded
+                                  ? colorScheme.primary
+                                  : colorScheme.outline,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                exerciseNames[e] ?? '?',
+                                style: TextStyle(
+                                  fontWeight: isAdded
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),          builder: (context, controller, child) {
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+          builder: (context, controller, child) {
             return TextField(
               controller: _searchController,
               onTap: () => controller.open(),
@@ -684,14 +844,17 @@ class _ExerciseChipSelectorState extends State<_ExerciseChipSelector> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
                 filled: true,
-                fillColor:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                fillColor: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: colorScheme.outline),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             );
           },
@@ -766,10 +929,8 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _WeightPicker(
-        initialWeight: initialWeight,
-        onChanged: onChanged,
-      ),
+      builder: (context) =>
+          _WeightPicker(initialWeight: initialWeight, onChanged: onChanged),
     );
   }
 
@@ -797,251 +958,258 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
         ),
         child: Column(
           children: [
-          // Main Row
-          InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(12),
-              bottom: Radius.circular(widget.isExpanded ? 0 : 12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  // Exercise Name
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
+            // Main Row
+            InkWell(
+              onTap: widget.onTap,
+              borderRadius: BorderRadius.vertical(
+                top: const Radius.circular(12),
+                bottom: Radius.circular(widget.isExpanded ? 0 : 12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    // Exercise Name
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Weight Box (Start)
-                  SizedBox(
-                    height: 48,
-                    child: _WeightDisplayBox(
-                      weight: widget.config.startWeight,
-                      onTap: () => _showWeightPicker(
-                        context,
-                        widget.config.startWeight,
-                        widget.onStartWeightChanged,
+                    // Weight Box (Start)
+                    SizedBox(
+                      height: 48,
+                      child: _WeightDisplayBox(
+                        weight: widget.config.startWeight,
+                        onTap: () => _showWeightPicker(
+                          context,
+                          widget.config.startWeight,
+                          widget.onStartWeightChanged,
+                        ),
                       ),
                     ),
-                  ),
-                  
-                  // 'x' separator
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      'x',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.tertiary,
-                      ),
-                    ),
-                  ),
 
-                  // Reps Scrollwheel
-                  Container(
-                    height: 48,
-                    width: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: colorScheme.outline.withValues(alpha: 0.5),
+                    // 'x' separator
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        'x',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.tertiary,
+                        ),
                       ),
-                      color: colorScheme.surface,
                     ),
-                    child: Stack(
-                      children: [
-                        ListWheelScrollView.useDelegate(
-                          controller: _repsController,
-                          itemExtent: 24, // Smaller extent to show neighbors
-                          magnification: 1.3,
-                          useMagnifier: true,
-                          physics: const FixedExtentScrollPhysics(),
-                          diameterRatio: 1.5,
-                          squeeze: 1.2, // Squeeze items closer
-                          perspective: 0.004,
-                          onSelectedItemChanged: (index) {
-                            widget.config.reps = index + 1;
-                          },
-                          childDelegate: ListWheelChildBuilderDelegate(
-                            childCount: 30, // Limit to 30 items (index 0 is rep 1)
-                            builder: (context, index) {
-                              final rep = index + 1;
-                              return Center(
-                                child: Text(
-                                  '$rep',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w900,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              );
+
+                    // Reps Scrollwheel
+                    Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: colorScheme.outline.withValues(alpha: 0.5),
+                        ),
+                        color: colorScheme.surface,
+                      ),
+                      child: Stack(
+                        children: [
+                          ListWheelScrollView.useDelegate(
+                            controller: _repsController,
+                            itemExtent: 24, // Smaller extent to show neighbors
+                            magnification: 1.3,
+                            useMagnifier: true,
+                            physics: const FixedExtentScrollPhysics(),
+                            diameterRatio: 1.5,
+                            squeeze: 1.2, // Squeeze items closer
+                            perspective: 0.004,
+                            onSelectedItemChanged: (index) {
+                              widget.config.reps = index + 1;
                             },
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount:
+                                  30, // Limit to 30 items (index 0 is rep 1)
+                              builder: (context, index) {
+                                final rep = index + 1;
+                                return Center(
+                                  child: Text(
+                                    '$rep',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        // Scroll indicators (gradients)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: 12,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(8),
-                              ),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  colorScheme.surface,
-                                  colorScheme.surface.withValues(alpha: 0.0),
-                                ],
+                          // Scroll indicators (gradients)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: 12,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(8),
+                                ),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    colorScheme.surface,
+                                    colorScheme.surface.withValues(alpha: 0.0),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: 12,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(
-                                bottom: Radius.circular(8),
-                              ),
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  colorScheme.surface,
-                                  colorScheme.surface.withValues(alpha: 0.0),
-                                ],
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 12,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(8),
+                                ),
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    colorScheme.surface,
+                                    colorScheme.surface.withValues(alpha: 0.0),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
 
-                  // Settings Cog
-                  Icon(
-                    Icons.settings,
-                    size: 20,
-                    color: widget.isExpanded
-                        ? colorScheme.primary
-                        : colorScheme.tertiary,
-                  ),
-                ],
+                    // Settings Cog
+                    Icon(
+                      Icons.settings,
+                      size: 20,
+                      color: widget.isExpanded
+                          ? colorScheme.primary
+                          : colorScheme.tertiary,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Expanded Settings
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: widget.isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Column(
-                      children: [
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        
-                        // Warmup & Delete Row
-                        Row(
-                          children: [
-                            Switch(
-                              value: widget.config.includeWarmup,
-                              onChanged: widget.onWarmupChanged,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'WARMUP SET',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.tertiary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton.filledTonal(
-                              onPressed: widget.onDelete,
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                              style: IconButton.styleFrom(
-                                backgroundColor: colorScheme.errorContainer,
-                                foregroundColor: colorScheme.onErrorContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Different End Weight Row
-                        Row(
-                          children: [
-                            Switch(
-                              value: hasEndWeight,
-                              onChanged: widget.onDifferentEndWeightChanged,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'DIFFERENT END WEIGHT',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.tertiary,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        if (hasEndWeight) ...[
+            // Expanded Settings
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: widget.isExpanded
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        children: [
+                          const Divider(),
                           const SizedBox(height: 8),
+
+                          // Warmup & Delete Row
                           Row(
                             children: [
-                              SizedBox(
-                                height: 48,
-                                child: _WeightDisplayBox(
-                                  weight: widget.config.endWeight,
-                                  onTap: () => _showWeightPicker(
-                                    context,
-                                    widget.config.endWeight,
-                                    widget.onEndWeightChanged,
-                                  ),
+                              Switch(
+                                value: widget.config.includeWarmup,
+                                onChanged: widget.onWarmupChanged,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'WARMUP SET',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.tertiary,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                               const Spacer(),
+                              IconButton.filledTonal(
+                                onPressed: widget.onDelete,
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: colorScheme.errorContainer,
+                                  foregroundColor: colorScheme.onErrorContainer,
+                                ),
+                              ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+
+                          // Different End Weight Row
+                          Row(
+                            children: [
+                              Switch(
+                                value: hasEndWeight,
+                                onChanged: widget.onDifferentEndWeightChanged,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'DIFFERENT END WEIGHT',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.tertiary,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          if (hasEndWeight) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                SizedBox(
+                                  height: 48,
+                                  child: _WeightDisplayBox(
+                                    weight: widget.config.endWeight,
+                                    onTap: () => _showWeightPicker(
+                                      context,
+                                      widget.config.endWeight,
+                                      widget.onEndWeightChanged,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                              ],
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _WeightDisplayBox extends StatelessWidget {
@@ -1072,19 +1240,13 @@ class _WeightDisplayBox extends StatelessWidget {
               width: 56,
               child: FittedBox(
                 alignment: Alignment.centerLeft,
-                child: PlateVisualization(
-                  weight: weight,
-                  isInteractive: false,
-                ),
+                child: PlateVisualization(weight: weight, isInteractive: false),
               ),
             ),
             const SizedBox(width: 8),
             Text(
               '${weight.toInt()}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
             const SizedBox(width: 4),
             Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
@@ -1162,7 +1324,7 @@ class _WeightPickerState extends State<_WeightPicker> {
             ],
           ),
           const SizedBox(height: 24),
-          
+
           // Weight Input & Display
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1202,7 +1364,7 @@ class _WeightPickerState extends State<_WeightPicker> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           PlateVisualization(weight: _weight, scale: 1.2),
           const SizedBox(height: 24),
 
@@ -1260,10 +1422,7 @@ class _WeightAdjustBtn extends StatelessWidget {
         minimumSize: const Size(64, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w900),
-      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
     );
   }
 }

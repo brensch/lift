@@ -682,7 +682,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final names = <String>[];
       for (final set in _activeProposedSets) {
         if (!set.warmup && seen.add(set.exercise.value)) {
-          names.add(exerciseNames[set.exercise] ?? set.exercise.name);
+          names.add(shortNames[set.exercise] ?? set.exercise.name);
         }
       }
       final title = names.join(', ');

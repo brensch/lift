@@ -554,11 +554,27 @@ impl MultiplayerService for GroupService {
                 }
             }
 
+            let next_up_participants: Vec<ParticipantStatus> = if active_members.is_empty() {
+                participant_statuses.clone()
+            } else {
+                participant_statuses
+                    .iter()
+                    .filter(|participant| {
+                        participant
+                            .user
+                            .as_ref()
+                            .map(|u| active_members.contains(&u.id))
+                            .unwrap_or(false)
+                    })
+                    .cloned()
+                    .collect()
+            };
+
             let now_unix = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs() as i64)
                 .unwrap_or(0);
-            let session_next_up = compute_session_next_up(&participant_statuses, now_unix);
+            let session_next_up = compute_session_next_up(&next_up_participants, now_unix);
             let currently_lifting_user_id = Self::current_lifting_user_id(&participant_statuses);
 
             Ok(Response::new(GetCurrentSessionResponse {
@@ -602,8 +618,9 @@ mod tests {
     use lift::workout::v1::{
         CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
         DeleteCompletedSetRequest, EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig,
-        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, ReorderExerciseGroupsRequest,
-        RestConfig, StartSetRequest, StartWorkoutRequest, UpdateExerciseGroupRequest,
+        GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, LeaveSessionRequest,
+        ReorderExerciseGroupsRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
+        UpdateExerciseGroupRequest,
     };
     use std::collections::HashSet;
     use std::sync::Arc;
@@ -1062,6 +1079,143 @@ mod tests {
         assert!(
             explicit_fetch_after_leave,
             "finished user should be able to fetch session snapshot by explicit session_id after auto-leave"
+        );
+    }
+
+    #[tokio::test]
+    async fn next_up_skips_user_after_leaving_session_membership() {
+        let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+        let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+        let state = Arc::new(AppState::new());
+        let workout_service = MyWorkoutService::new(central_db.clone(), state.clone());
+        let group_service = GroupService::new(central_db.clone(), state);
+
+        let user1 = central_db
+            .create_user_with_id("u1", "u1")
+            .await
+            .expect("user1");
+        let user2 = central_db
+            .create_user_with_id("u2", "u2")
+            .await
+            .expect("user2");
+        let token1 = central_db
+            .create_auth_session(&user1.id)
+            .await
+            .expect("token1");
+        let token2 = central_db
+            .create_auth_session(&user2.id)
+            .await
+            .expect("token2");
+
+        let _start1 = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "w1".to_string(),
+                    exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 1, 0)],
+                },
+                &token1,
+            ),
+        )
+        .await
+        .expect("start1")
+        .into_inner();
+        let start2 = WorkoutService::start_workout(
+            &workout_service,
+            with_token(
+                StartWorkoutRequest {
+                    name: "w2".to_string(),
+                    exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 1, 0)],
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("start2")
+        .into_inner();
+
+        let w2 = WorkoutService::get_workout(
+            &workout_service,
+            with_token(
+                GetWorkoutRequest {
+                    workout_id: start2.id.clone(),
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("w2")
+        .into_inner();
+        let u2_first_set = w2.next_up_set.expect("u2 next").id;
+
+        let _ = WorkoutService::start_set(
+            &workout_service,
+            with_token(
+                StartSetRequest {
+                    workout_id: start2.id.clone(),
+                    proposed_set_id: u2_first_set,
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("u2 start set");
+
+        let session_id = MultiplayerService::join_user(
+            &group_service,
+            with_token(
+                JoinUserRequest {
+                    user_id: user2.id.clone(),
+                },
+                &token1,
+            ),
+        )
+        .await
+        .expect("join")
+        .into_inner()
+        .session_id;
+
+        let before_leave = MultiplayerService::get_current_session(
+            &group_service,
+            with_token(
+                GetCurrentSessionRequest {
+                    session_id: String::new(),
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("session before leave")
+        .into_inner()
+        .session_status
+        .expect("session status before leave");
+        assert_eq!(before_leave.next_up_user_id, "u1");
+
+        let _ = MultiplayerService::leave_session(
+            &group_service,
+            with_token(LeaveSessionRequest {}, &token1),
+        )
+        .await
+        .expect("u1 leave session");
+
+        let after_leave = MultiplayerService::get_current_session(
+            &group_service,
+            with_token(
+                GetCurrentSessionRequest {
+                    session_id: session_id.clone(),
+                },
+                &token2,
+            ),
+        )
+        .await
+        .expect("session after leave")
+        .into_inner()
+        .session_status
+        .expect("session status after leave");
+
+        assert_eq!(
+            after_leave.next_up_user_id, "",
+            "left user must be excluded from next-up calculation"
         );
     }
 

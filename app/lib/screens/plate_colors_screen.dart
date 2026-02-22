@@ -44,9 +44,9 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
   void _save() {
     context.read<SettingsProvider>().updatePlateColors(_colors);
     setState(() => _dirty = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Plate colours saved')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Plate colours saved')));
   }
 
   @override
@@ -98,55 +98,56 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
               itemCount: _plateWeights.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 0.85,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.0,
               ),
               itemBuilder: (context, index) {
                 final weight = _plateWeights[index];
                 final currentColor = _colors[weight] ?? Colors.purple;
+                final plateTextColor = currentColor.computeLuminance() > 0.55
+                    ? Colors.black87
+                    : Colors.white;
                 return Material(
-                  color: colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.3),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.3,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: () => _showColorPicker(context, weight),
                     child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: currentColor,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: colorScheme.outline,
-                                width: 1,
+                      padding: const EdgeInsets.all(8),
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 94,
+                              height: 94,
+                              child: CustomPaint(
+                                painter: _PlateRingPainter(
+                                  color: currentColor,
+                                  borderColor: colorScheme.outline,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _plateLabel(weight),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.3,
+                            Positioned(
+                              bottom: 9,
+                              child: Text(
+                                weight % 1 == 0
+                                    ? '${weight.toInt()}'
+                                    : '$weight',
+                                style: TextStyle(
+                                  color: plateTextColor,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: weight >= 10 ? 12 : 11,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap to change',
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -209,4 +210,47 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
 
   String _plateLabel(double weight) =>
       weight % 1 == 0 ? '${weight.toInt()} lb' : '$weight lb';
+}
+
+class _PlateRingPainter extends CustomPainter {
+  const _PlateRingPainter({required this.color, required this.borderColor});
+
+  final Color color;
+  final Color borderColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final outerRadius = size.shortestSide / 2 - 2;
+    final innerRadius = outerRadius * 0.32;
+
+    final ringPath = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addOval(Rect.fromCircle(center: center, radius: outerRadius))
+      ..addOval(Rect.fromCircle(center: center, radius: innerRadius));
+
+    canvas.drawShadow(ringPath, Colors.black.withValues(alpha: 0.2), 4, false);
+    canvas.drawPath(ringPath, Paint()..color = color);
+
+    canvas.drawCircle(
+      center,
+      outerRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = borderColor,
+    );
+    canvas.drawCircle(
+      center,
+      innerRadius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = borderColor.withValues(alpha: 0.55),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlateRingPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.borderColor != borderColor;
 }

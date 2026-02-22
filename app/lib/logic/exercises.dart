@@ -34,7 +34,7 @@ const Map<Exercise, String> shortNames = {
   Exercise.EXERCISE_UNSPECIFIED: '?',
   Exercise.EXERCISE_SQUAT: 'Squat',
   Exercise.EXERCISE_BENCH_PRESS: 'Bench',
-  Exercise.EXERCISE_DEADLIFT: 'Deadlift',
+  Exercise.EXERCISE_DEADLIFT: 'Deads',
   Exercise.EXERCISE_OVERHEAD_PRESS: 'OHP',
   Exercise.EXERCISE_BARBELL_ROW: 'Row',
   Exercise.EXERCISE_HIP_THRUST: 'Hip Thr',
