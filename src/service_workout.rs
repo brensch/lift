@@ -752,12 +752,23 @@ impl WorkoutService for MyWorkoutService {
                     .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?
             };
 
+            // For state snapshot and next-up computation, only use the current user's
+            // own completed sets. Using all session sets would incorrectly detect
+            // another participant's active set (ended_at==0) as our own lifting state,
+            // causing the bottom bar to vanish when display_set can't be resolved.
+            let own_workout_id = workout.id.clone();
+            let own_completed: Vec<CompletedSet> = completed_sets
+                .iter()
+                .filter(|c| c.workout_id == own_workout_id)
+                .cloned()
+                .collect();
+
             let proposed_active = active_proposed_sets(&proposed);
-            let next_up_set = compute_next_up_set(&proposed_active, &completed_sets);
+            let next_up_set = compute_next_up_set(&proposed_active, &own_completed);
             let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed));
             let state_snapshot = Some(workout_state_snapshot_from_state(
                 &proposed,
-                &completed_sets,
+                &own_completed,
                 now_unix(),
             ));
 
@@ -804,12 +815,19 @@ impl WorkoutService for MyWorkoutService {
                 .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?
         };
 
+        // For state snapshot and next-up, only use the current user's own completed sets.
+        let own_completed: Vec<CompletedSet> = completed_sets
+            .iter()
+            .filter(|c| c.workout_id == req.workout_id)
+            .cloned()
+            .collect();
+
         let proposed_active = active_proposed_sets(&proposed_sets);
-        let next_up_set = compute_next_up_set(&proposed_active, &completed_sets);
+        let next_up_set = compute_next_up_set(&proposed_active, &own_completed);
         let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed_sets));
         let state_snapshot = Some(workout_state_snapshot_from_state(
             &proposed_sets,
-            &completed_sets,
+            &own_completed,
             now_unix(),
         ));
 
