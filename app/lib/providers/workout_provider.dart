@@ -199,25 +199,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Returns true if warmup can be skipped for the given proposed set.
-  /// Skip is only allowed before any warmup in the same exercise group has been completed.
   bool canSkipWarmup(String proposedSetId) {
     final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
       (p) => p!.id == proposedSetId,
       orElse: () => null,
     );
     if (proposed == null || !proposed.warmup) return false;
-
-    // Find all warmup proposed set IDs in the same exercise group
-    final warmupSetIds = _activeProposedSets
-        .where((s) =>
-            s.exerciseGroupId == proposed.exerciseGroupId && s.warmup)
-        .map((s) => s.id)
-        .toSet();
-
-    // If any warmup in this group has been completed, can't skip
-    return !_activeCompletedSets.any(
-      (c) => warmupSetIds.contains(c.proposedSetId) && c.endedAt != Int64.ZERO,
-    );
+    return true;
   }
 
   int get restSecondsRemaining {

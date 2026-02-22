@@ -95,16 +95,6 @@ class WearableSnapshotBuilder {
           ),
         );
       }
-      if (workoutProvider.canSkipWarmup(proposed.id)) {
-        actions.add(
-          WearAction(
-            type: WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP,
-            style: WearActionStyle.WEAR_ACTION_STYLE_SECONDARY,
-            label: 'Skip Warmup',
-            setId: proposed.id,
-          ),
-        );
-      }
     } else if (_isRestingState(stateValue)) {
       final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
       final hasExpiredRest = restUntil > 0 && restUntil <= nowUnix && nextSet != null;
