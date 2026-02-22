@@ -137,6 +137,23 @@ class _ActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        if (onSkipWarmup != null) ...[
+          SizedBox(
+            height: 40,
+            child: TextButton(
+              onPressed: onSkipWarmup,
+              child: Text(
+                'Skip',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.tertiary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         Expanded(
           child: SizedBox(
             height: 40,
@@ -152,23 +169,6 @@ class _ActionRow extends StatelessWidget {
             ),
           ),
         ),
-        if (onSkipWarmup != null) ...[
-          const SizedBox(width: 8),
-          SizedBox(
-            height: 40,
-            child: TextButton(
-              onPressed: onSkipWarmup,
-              child: Text(
-                'Skip',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.tertiary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

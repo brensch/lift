@@ -402,6 +402,23 @@ class _BigButton extends StatelessWidget {
 
     return Row(
       children: [
+        if (secondaryLabel != null && onSecondary != null) ...[
+          SizedBox(
+            height: 64,
+            child: OutlinedButton(
+              onPressed: onSecondary,
+              child: Text(
+                secondaryLabel!,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: colorScheme.tertiary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         Expanded(
           child: SizedBox(
             height: 64,
@@ -417,23 +434,6 @@ class _BigButton extends StatelessWidget {
             ),
           ),
         ),
-        if (secondaryLabel != null && onSecondary != null) ...[
-          const SizedBox(width: 8),
-          SizedBox(
-            height: 64,
-            child: OutlinedButton(
-              onPressed: onSecondary,
-              child: Text(
-                secondaryLabel!,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
