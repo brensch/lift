@@ -196,6 +196,7 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
                     _selectedDays = d;
                   }),
                   selectedColor: cs.primary,
+                  checkmarkColor: cs.onPrimary,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: sel ? cs.onPrimary : cs.onSurface,
@@ -294,7 +295,7 @@ class _RegimeTile extends StatelessWidget {
                 color: isSelected ? cs.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 10, color: Colors.white)
+                  ? Icon(Icons.check, size: 10, color: cs.onPrimary)
                   : null,
             ),
             const SizedBox(width: 14),

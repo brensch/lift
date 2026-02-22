@@ -1037,8 +1037,7 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
                               widget.config.reps = index + 1;
                             },
                             childDelegate: ListWheelChildBuilderDelegate(
-                              childCount:
-                                  30, // Limit to 30 items (index 0 is rep 1)
+                              childCount: 30, // Limit to 30 items (index 0 is rep 1)
                               builder: (context, index) {
                                 final rep = index + 1;
                                 return Center(

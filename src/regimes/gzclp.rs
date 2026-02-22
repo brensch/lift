@@ -5,7 +5,7 @@ use lift::workout::v1::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{exercise_display_name, ExerciseConfig, ExerciseProposal, WorkoutRegime};
+use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, WorkoutRegime};
 
 // ─── GZCLP tier assignments ───────────────────────────────────────────────────
 
@@ -358,7 +358,7 @@ fn build_gzclp_proposed_groups(
                 sets,
                 interleave_warmups: false,
                 exercise_configs: vec![config],
-                rest_config: None,
+                rest_config: rest_cfg(180, 300),
                 tags: vec!["recommended".to_string(), "T1".to_string()],
                 explanation: s.explanation.clone(),
             });
@@ -401,7 +401,7 @@ fn build_gzclp_proposed_groups(
             sets,
             interleave_warmups: false,
             exercise_configs: vec![config],
-            rest_config: None,
+            rest_config: rest_cfg(90, 120),
             tags,
             explanation: s.explanation.clone(),
         });
@@ -441,7 +441,7 @@ fn build_gzclp_proposed_groups(
                     sets: 3,
                     interleave_warmups: true,
                     exercise_configs: vec![ca, cb],
-                    rest_config: None,
+                    rest_config: rest_cfg(60, 60),
                     tags: vec!["auxiliary".to_string(), "T3".to_string()],
                     explanation: format!("{} {}", a.explanation, b.explanation),
                 });

@@ -52,9 +52,18 @@ Long break: More than 2 weeks off? Automatically deloads 10–20% to ease back i
 The magic: Beginners can progress every single session because the CNS adapts faster than the muscles. This linear window closes eventually — that's when you graduate to GZCLP or Wendler.
 ''',
     links: [
-      ('StrongLifts 5x5', 'https://stronglifts.com/5x5/'),
-      ('Starting Strength', 'https://startingstrength.com'),
-      ('Reddit: r/Fitness 5x5 FAQ', 'https://reddit.com/r/Fitness/wiki/faq/stronglifts5x5'),
+      (
+        'StrongLifts 5×5 (Workout Program)',
+        'https://stronglifts.com/stronglifts-5x5/workout-program/',
+      ),
+      (
+        'StrongLifts 5×5 (Progression & Plate Jumps)',
+        'https://stronglifts.com/stronglifts-5x5/progress/',
+      ),
+      (
+        'Starting Strength (Novice Program Overview)',
+        'https://startingstrength.com/get-started/programs',
+      ),
     ],
   ),
   _RegimeInfo(
@@ -90,9 +99,12 @@ T3 — Accessories (Hip Thrust, RDL, etc.): 3×15 simple linear progression.
 The rule: For every 1 rep in T1, do 2+ reps in T2 and 3+ reps in T3.
 ''',
     links: [
-      ('GZCLP Reddit Wiki', 'https://www.reddit.com/r/gzcl/wiki/gzclp'),
-      ('Cody\'s Original Post', 'https://swoleateveryheight.blogspot.com/2016/02/gzcl-applications-adaptations.html'),
-      ('Subreddit: r/gzcl', 'https://reddit.com/r/gzcl'),
+      ('The Fitness Wiki: GZCLP', 'https://thefitness.wiki/routines/gzclp/'),
+      (
+        'Cody\'s Original Post (Applications & Adaptations)',
+        'https://swoleateveryheight.blogspot.com/2016/02/gzcl-applications-adaptations.html',
+      ),
+      ('r/gzcl: GZCLP Wiki', 'https://www.reddit.com/r/gzcl/wiki/gzclp/'),
     ],
   ),
   _RegimeInfo(
@@ -128,9 +140,18 @@ The AMRAP set: The "plus" sets are where progress is measured. Blast them — mo
 BBB (Boring But Big): Wendler's favourite accessory protocol adds 5×10 at 50–60% TM of the main lift after the main work for pure hypertrophy volume.
 ''',
     links: [
-      ('Jim Wendler\'s Site', 'https://jimwendler.com'),
-      ('5/3/1 Forever Book', 'https://jimwendler.com/collections/books-programs'),
-      ('Reddit: r/531Discussion', 'https://reddit.com/r/531Discussion'),
+      (
+        'Jim Wendler: 5/3/1 Philosophy for Beginners',
+        'https://www.jimwendler.com/blogs/jimwendler-com/101065094-5-3-1-for-a-beginner',
+      ),
+      (
+        'T-Nation: 5/3/1 — How to Build Pure Strength (Original)',
+        'https://t-nation.com/t/5-3-1-how-to-build-pure-strength/281694',
+      ),
+      (
+        'The Fitness Wiki: 5/3/1 Primer',
+        'https://thefitness.wiki/5-3-1-primer/',
+      ),
     ],
   ),
 ];
@@ -159,10 +180,7 @@ class RegimeInfoScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(info.name),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: Text(info.name), centerTitle: false),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
@@ -209,7 +227,8 @@ class RegimeInfoScreen extends StatelessWidget {
               color: colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.3)),
+                color: colorScheme.outline.withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               info.howItWorks.trim(),
@@ -226,9 +245,7 @@ class RegimeInfoScreen extends StatelessWidget {
           // Learn more links
           _SectionLabel('LEARN MORE'),
           const SizedBox(height: 10),
-          ...info.links.map(
-            (link) => _LinkTile(label: link.$1, url: link.$2),
-          ),
+          ...info.links.map((link) => _LinkTile(label: link.$1, url: link.$2)),
         ],
       ),
     );
@@ -269,16 +286,20 @@ class _StatChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: cs.primary.withValues(alpha: 0.7))),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: cs.primary.withValues(alpha: 0.7),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
@@ -297,8 +318,24 @@ class _LinkTile extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           final uri = Uri.parse(url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          try {
+            // We try to launch even if canLaunchUrl returns false because
+            // query declarations can be finicky, but standard browsers usually work.
+            final launched = await launchUrl(
+              uri,
+              mode: LaunchMode.externalApplication,
+            );
+            if (!launched && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not open link: $url')),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Error opening link: $e')));
+            }
           }
         },
         borderRadius: BorderRadius.circular(10),
@@ -310,21 +347,25 @@ class _LinkTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.open_in_new_rounded,
-                  size: 16, color: cs.primary),
+              Icon(Icons.open_in_new_rounded, size: 16, color: cs.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
                     Text(
                       url,
                       style: TextStyle(
-                          fontSize: 11,
-                          color: cs.onSurface.withValues(alpha: 0.5)),
+                        fontSize: 11,
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
