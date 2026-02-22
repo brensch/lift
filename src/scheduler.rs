@@ -1,148 +1,13 @@
 use chrono::Utc;
 use lift::workout::v1::{
-    Exercise, ExerciseCategory, ExerciseStatus, ExerciseTypeConfig,
-    GetProposedWorkoutScheduleResponse, MuscleGroup, ProposedExerciseGroup,
+    ExerciseStatus, GetProposedWorkoutScheduleResponse, RegimeType, UserWorkoutConfig,
 };
 
 use crate::db::CentralDb;
+use crate::regimes::{build_session_readiness, get_regime, EXERCISE_CONFIGS};
 
-/// Recovery time in hours for each muscle group
-const RECOVERY_HOURS: i64 = 24;
-
-// Weight increments per successful workout
-const UPPER_BODY_INCREMENT: f32 = 5.0;
-const LOWER_BODY_INCREMENT: f32 = 5.0;
-const DEADLIFT_INCREMENT: f32 = 10.0;
-
-struct ExerciseConfig {
-    exercise: Exercise,
-    default_weight: f32,
-    muscle_groups: &'static [MuscleGroup],
-    default_sets: i32,
-    default_reps: i32,
-    category: ExerciseCategory,
-    always_include: bool,
-}
-
-const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
-    // Compound exercises
-    ExerciseConfig {
-        exercise: Exercise::Squat,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Compound,
-        always_include: true,
-    },
-    ExerciseConfig {
-        exercise: Exercise::BenchPress,
-        default_weight: 45.0,
-        muscle_groups: &[
-            MuscleGroup::Chest,
-            MuscleGroup::Triceps,
-            MuscleGroup::Shoulders,
-        ],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Compound,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::Deadlift,
-        default_weight: 135.0,
-        muscle_groups: &[
-            MuscleGroup::Back,
-            MuscleGroup::Hamstrings,
-            MuscleGroup::Glutes,
-        ],
-        default_sets: 1,
-        default_reps: 5,
-        category: ExerciseCategory::Compound,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::OverheadPress,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Shoulders, MuscleGroup::Triceps],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Compound,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::BarbellRow,
-        default_weight: 65.0,
-        muscle_groups: &[MuscleGroup::Back, MuscleGroup::Biceps],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Compound,
-        always_include: false,
-    },
-    // Auxiliary exercises
-    ExerciseConfig {
-        exercise: Exercise::HipThrust,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Glutes, MuscleGroup::Hamstrings],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::BulgarianSplitSquat,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::RomanianDeadlift,
-        default_weight: 45.0,
-        muscle_groups: &[
-            MuscleGroup::Hamstrings,
-            MuscleGroup::Glutes,
-            MuscleGroup::Back,
-        ],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::GluteBridge,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Glutes],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::Lunge,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-    ExerciseConfig {
-        exercise: Exercise::LegCurl,
-        default_weight: 45.0,
-        muscle_groups: &[MuscleGroup::Hamstrings],
-        default_sets: 5,
-        default_reps: 5,
-        category: ExerciseCategory::Auxiliary,
-        always_include: false,
-    },
-];
-
-fn get_exercise_config(exercise: Exercise) -> Option<&'static ExerciseConfig> {
-    EXERCISE_CONFIGS.iter().find(|c| c.exercise == exercise)
-}
+/// Recovery time for muscle group readiness display (24h)
+const MUSCLE_RECOVERY_HOURS: i64 = 24;
 
 pub struct Scheduler {
     central_db: CentralDb,
@@ -153,25 +18,58 @@ impl Scheduler {
         Self { central_db }
     }
 
-    /// Generate exercise statuses with weight progression and recovery info.
-    /// Uses 2 total DB queries (bulk fetch all exercises at once).
     pub async fn get_proposed_schedule(
         &self,
         user_id: &str,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
-        // 2 queries total: bulk history + bulk max weights for ALL exercises
+        // ── 1. Load user config (regime selection + state) ────────────────────
+        let mut workout_config = self
+            .central_db
+            .get_user_workout_config(user_id)
+            .await?
+            .unwrap_or_else(|| UserWorkoutConfig {
+                regime_type: RegimeType::Linear5x5 as i32,
+                days_per_week: 3,
+                one_rep_maxes: std::collections::HashMap::new(),
+                regime_state_json: "{}".to_string(),
+            });
+
+        // ── 2. Load exercise history ─────────────────────────────────────────
         let (all_history, all_max_weights) = self
             .central_db
             .get_all_exercise_history(user_id, 10)
             .await?;
 
-        // Build muscle group recovery map from the fetched data
+        // ── 3. Get the active regime implementation ──────────────────────────
+        let regime_type = RegimeType::try_from(workout_config.regime_type)
+            .unwrap_or(RegimeType::Linear5x5);
+        let regime = get_regime(regime_type);
+
+        // ── 4. Compute updated state and persist if changed ──────────────────
+        let new_state_json = regime.compute_updated_state(&workout_config, &all_history);
+        if new_state_json != workout_config.regime_state_json {
+            workout_config.regime_state_json = new_state_json;
+            // Persist the updated state via the settings write path
+            use lift::workout::v1::{user_setting::Setting, UserSetting};
+            use prost::Message;
+            let setting = UserSetting {
+                setting: Some(Setting::WorkoutConfig(workout_config.clone())),
+            };
+            let blob = setting.encode_to_vec();
+            self.central_db
+                .insert_user_setting(user_id, "workout_config", &blob)
+                .await?;
+        }
+
+        // ── 5. Build muscle group recovery map ───────────────────────────────
+        let now = Utc::now().timestamp();
+        let recovery_seconds = MUSCLE_RECOVERY_HOURS * 3600;
         let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =
             std::collections::HashMap::new();
         for config in EXERCISE_CONFIGS {
-            let exercise = config.exercise as i32;
+            let ex_int = config.exercise as i32;
             let last_performed = all_history
-                .get(&exercise)
+                .get(&ex_int)
                 .and_then(|h| h.first())
                 .map(|(_, _, date)| *date)
                 .unwrap_or(0);
@@ -185,20 +83,23 @@ impl Scheduler {
             }
         }
 
-        let now = Utc::now().timestamp();
-        let recovery_seconds = RECOVERY_HOURS * 3600;
-
+        // ── 6. Build ExerciseStatus list ─────────────────────────────────────
         let mut exercise_statuses = Vec::new();
         for config in EXERCISE_CONFIGS {
-            let exercise = config.exercise as i32;
-            let empty_history = Vec::new();
-            let history = all_history.get(&exercise).unwrap_or(&empty_history);
-            let max_weight = all_max_weights.get(&exercise).copied().unwrap_or(0.0);
-            let (weight, explanation, last_perf, weight_history) = Self::calculate_weight_from_data(
-                exercise,
-                config.default_weight,
+            let ex_int = config.exercise as i32;
+            let empty = Vec::new();
+            let history = all_history.get(&ex_int).unwrap_or(&empty);
+            let max_weight = all_max_weights.get(&ex_int).copied().unwrap_or(0.0);
+
+            let last_perf = history.first().map(|(_, _, t)| *t).unwrap_or(0);
+            let weight_history: Vec<f32> = history.iter().rev().map(|(w, _, _)| *w).collect();
+
+            let proposal = regime.calculate_exercise_progression(
+                config.exercise,
+                config,
                 history,
                 max_weight,
+                &workout_config,
             );
 
             let recovered = config.muscle_groups.iter().all(|mg| {
@@ -210,268 +111,58 @@ impl Scheduler {
 
             exercise_statuses.push(ExerciseStatus {
                 exercise: config.exercise as i32,
-                target_weight: weight,
-                explanation,
+                target_weight: proposal.weight,
+                explanation: proposal.explanation,
                 last_performed_at: last_perf,
                 weight_history,
                 muscle_groups: config.muscle_groups.iter().map(|mg| *mg as i32).collect(),
-                default_sets: config.default_sets,
-                default_reps: config.default_reps,
+                default_sets: proposal.sets,
+                default_reps: proposal.reps,
                 recovered,
                 always_include: config.always_include,
                 category: config.category as i32,
             });
         }
 
-        // Build proposed groups from exercise statuses
-        let proposed_groups = Self::build_proposed_groups(&exercise_statuses);
+        // ── 7. Build proposed groups ─────────────────────────────────────────
+        let proposed_groups = regime.build_proposed_groups(&exercise_statuses, &workout_config);
 
-        // active_workout_id is set by the service handler from in-memory state
+        // ── 8. Regime context (session description, coaching notes) ──────────
+        let regime_context = regime.build_regime_context(&workout_config, &exercise_statuses);
+
+        // ── 9. Session readiness ─────────────────────────────────────────────
+        let last_session_at = self
+            .central_db
+            .get_last_workout_end_time(user_id)
+            .await?
+            .unwrap_or(0);
+        let recovery_secs = regime.recovery_seconds(&workout_config);
+        let days_per_week = if workout_config.days_per_week > 0 {
+            workout_config.days_per_week
+        } else {
+            regime.default_days_per_week()
+        };
+        let session_readiness = build_session_readiness(
+            last_session_at,
+            recovery_secs,
+            regime.display_name(),
+            days_per_week,
+        );
+
         Ok(GetProposedWorkoutScheduleResponse {
             exercise_statuses,
-            active_workout_id: String::new(),
+            active_workout_id: String::new(), // filled in by service handler
             proposed_groups,
+            regime_context: Some(regime_context),
+            session_readiness: Some(session_readiness),
         })
-    }
-
-    /// Build proposed exercise groups with smart grouping.
-    /// First 3 groups are backend defaults:
-    /// - always compound squat
-    /// - plus two stalest of bench/deadlift/overhead press/barbell row.
-    /// Remaining groups are optional (other compounds, then auxiliaries).
-    fn build_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<ProposedExerciseGroup> {
-        let mut groups = Vec::new();
-
-        let find_status = |ex: Exercise| -> Option<&ExerciseStatus> {
-            statuses.iter().find(|s| s.exercise == ex as i32)
-        };
-
-        let make_config = |status: &ExerciseStatus| -> ExerciseTypeConfig {
-            let config = get_exercise_config(
-                Exercise::try_from(status.exercise).unwrap_or(Exercise::Unspecified),
-            );
-            ExerciseTypeConfig {
-                exercise: status.exercise,
-                start_weight: status.target_weight,
-                end_weight: status.target_weight,
-                reps: config.map(|c| c.default_reps).unwrap_or(5),
-                include_warmup: true,
-                rest_config: None,
-            }
-        };
-
-        let build_single_group = |exercise: Exercise,
-                                   status: &ExerciseStatus,
-                                   tags: Vec<String>|
-         ProposedExerciseGroup {
-            name: exercise_display_name(exercise),
-            sets: status.default_sets,
-            interleave_warmups: false,
-            exercise_configs: vec![make_config(status)],
-            rest_config: None,
-            tags,
-            explanation: status.explanation.clone(),
-        };
-
-        if let Some(squat) = find_status(Exercise::Squat) {
-            groups.push(build_single_group(
-                Exercise::Squat,
-                squat,
-                vec!["recommended".to_string(), "compound".to_string()],
-            ));
-        }
-
-        let mut rotation_candidates: Vec<(Exercise, &ExerciseStatus)> = vec![
-            Exercise::BenchPress,
-            Exercise::Deadlift,
-            Exercise::OverheadPress,
-            Exercise::BarbellRow,
-        ]
-        .into_iter()
-        .filter_map(|exercise| find_status(exercise).map(|status| (exercise, status)))
-        .collect();
-
-        rotation_candidates.sort_by(|(a_ex, a), (b_ex, b)| {
-            a.last_performed_at
-                .cmp(&b.last_performed_at)
-                .then((*a_ex as i32).cmp(&(*b_ex as i32)))
-        });
-
-        // Top 2 stalest rotation candidates are recommended; rest are compound-only.
-        for (idx, (exercise, status)) in rotation_candidates.iter().enumerate() {
-            let tags = if idx < 2 {
-                vec!["recommended".to_string(), "compound".to_string()]
-            } else {
-                vec!["compound".to_string()]
-            };
-            groups.push(build_single_group(*exercise, status, tags));
-        }
-
-        // Auxiliary exercises — group complementary pairs
-        let aux_pairs: Vec<(Exercise, Exercise)> = vec![
-            (Exercise::HipThrust, Exercise::BulgarianSplitSquat),
-            (Exercise::RomanianDeadlift, Exercise::LegCurl),
-            (Exercise::GluteBridge, Exercise::Lunge),
-        ];
-
-        for (ex_a, ex_b) in &aux_pairs {
-            if let (Some(a), Some(b)) = (find_status(*ex_a), find_status(*ex_b)) {
-                groups.push(ProposedExerciseGroup {
-                    name: format!(
-                        "{} + {}",
-                        exercise_display_name(*ex_a),
-                        exercise_display_name(*ex_b)
-                    ),
-                    sets: a.default_sets,
-                    interleave_warmups: true,
-                    exercise_configs: vec![make_config(a), make_config(b)],
-                    rest_config: None,
-                    tags: vec!["auxiliary".to_string()],
-                    explanation: format!("{} {}", a.explanation, b.explanation),
-                });
-            } else {
-                if let Some(a) = find_status(*ex_a) {
-                    groups.push(ProposedExerciseGroup {
-                        name: exercise_display_name(*ex_a),
-                        sets: a.default_sets,
-                        interleave_warmups: false,
-                        exercise_configs: vec![make_config(a)],
-                        rest_config: None,
-                        tags: vec!["auxiliary".to_string()],
-                        explanation: a.explanation.clone(),
-                    });
-                }
-                if let Some(b) = find_status(*ex_b) {
-                    groups.push(ProposedExerciseGroup {
-                        name: exercise_display_name(*ex_b),
-                        sets: b.default_sets,
-                        interleave_warmups: false,
-                        exercise_configs: vec![make_config(b)],
-                        rest_config: None,
-                        tags: vec!["auxiliary".to_string()],
-                        explanation: b.explanation.clone(),
-                    });
-                }
-            }
-        }
-
-        groups
-    }
-
-    /// Pure function: calculate weight from pre-fetched data (no DB calls).
-    fn calculate_weight_from_data(
-        exercise: i32,
-        default: f32,
-        history: &[(f32, bool, i64)],
-        max_weight: f32,
-    ) -> (f32, String, i64, Vec<f32>) {
-        let weight_history: Vec<f32> = history.iter().rev().map(|(w, _, _)| *w).collect();
-
-        if history.is_empty() {
-            return (
-                default,
-                format!("Starting at {} lbs.", default),
-                0,
-                weight_history,
-            );
-        }
-
-        let (last_weight, last_success, last_date) = history[0];
-        let now = Utc::now().timestamp();
-        let days_since = (now - last_date) / (24 * 3600);
-
-        let increment = if exercise == Exercise::Deadlift as i32 {
-            DEADLIFT_INCREMENT
-        } else if exercise == Exercise::Squat as i32 {
-            LOWER_BODY_INCREMENT
-        } else {
-            UPPER_BODY_INCREMENT
-        };
-
-        // 1. Long Break Deload
-        if days_since > 14 {
-            let deload_pct = if days_since > 30 { 0.8 } else { 0.9 };
-            let new_weight = (last_weight * deload_pct / 5.0).round() * 5.0;
-            return (
-                new_weight.max(default),
-                format!(
-                    "Decreasing from {} to {} lbs because of {} day break.",
-                    last_weight, new_weight, days_since
-                ),
-                last_date,
-                weight_history,
-            );
-        }
-
-        // 2. Plateau Detection (3 consecutive failures at same weight)
-        if history.len() >= 3 {
-            let same_weight = history[0].0 == history[1].0 && history[1].0 == history[2].0;
-            let all_failed = !history[0].1 && !history[1].1 && !history[2].1;
-            if same_weight && all_failed {
-                let new_weight = (last_weight * 0.9 / 5.0).round() * 5.0;
-                return (
-                    new_weight.max(default),
-                    format!(
-                        "Decreasing from {} to {} lbs to reset progression after plateau.",
-                        last_weight, new_weight
-                    ),
-                    last_date,
-                    weight_history,
-                );
-            }
-        }
-
-        // 3. Recent Failure (1 or 2 times)
-        if !last_success {
-            return (
-                last_weight,
-                format!(
-                    "Maintaining at {} lbs to master form after last failure.",
-                    last_weight
-                ),
-                last_date,
-                weight_history,
-            );
-        }
-
-        // 4. Return to Weight Mode
-        if max_weight > last_weight + increment {
-            let successes_since_deload = history
-                .iter()
-                .take_while(|(_, success, _)| *success)
-                .count();
-            if successes_since_deload >= 2 {
-                let fast_increment = increment * 2.0;
-                let new_weight = last_weight + fast_increment;
-                return (
-                    new_weight,
-                    format!(
-                        "Increasing from {} to {} lbs to reclaim previous max of {} lbs.",
-                        last_weight, new_weight, max_weight
-                    ),
-                    last_date,
-                    weight_history,
-                );
-            }
-        }
-
-        // 5. Standard Progression
-        let new_weight = last_weight + increment;
-        (
-            new_weight,
-            format!(
-                "Increasing from {} to {} lbs after successful last session.",
-                last_weight, new_weight
-            ),
-            last_date,
-            weight_history,
-        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::regimes::linear_5x5::{build_linear_proposed_groups, calculate_linear_progression};
+    use lift::workout::v1::{Exercise, ExerciseCategory, ExerciseStatus};
 
     fn status(exercise: Exercise, last_performed_at: i64) -> ExerciseStatus {
         ExerciseStatus {
@@ -493,13 +184,13 @@ mod tests {
     fn proposed_groups_include_explanations() {
         let mut squat_status = status(Exercise::Squat, 1_000);
         squat_status.explanation = "Squat explanation".to_string();
-        
+
         let mut bench_status = status(Exercise::BenchPress, 3_000);
         bench_status.explanation = "Bench explanation".to_string();
 
         let statuses = vec![squat_status, bench_status];
 
-        let groups = Scheduler::build_proposed_groups(&statuses);
+        let groups = build_linear_proposed_groups(&statuses);
 
         let squat_group = groups.iter().find(|g| g.name == "Squat").unwrap();
         assert_eq!(squat_group.explanation, "Squat explanation");
@@ -519,7 +210,7 @@ mod tests {
             status(Exercise::HipThrust, 0),
         ];
 
-        let groups = Scheduler::build_proposed_groups(&statuses);
+        let groups = build_linear_proposed_groups(&statuses);
 
         assert_eq!(groups[0].name, "Squat");
         assert_eq!(groups[1].name, "Barbell Row");
@@ -532,21 +223,37 @@ mod tests {
         assert!(groups[1].tags.contains(&"recommended".to_string()));
         assert!(groups[2].tags.contains(&"recommended".to_string()));
     }
-}
 
-fn exercise_display_name(exercise: Exercise) -> String {
-    match exercise {
-        Exercise::Squat => "Squat".to_string(),
-        Exercise::BenchPress => "Bench Press".to_string(),
-        Exercise::Deadlift => "Deadlift".to_string(),
-        Exercise::OverheadPress => "Overhead Press".to_string(),
-        Exercise::BarbellRow => "Barbell Row".to_string(),
-        Exercise::HipThrust => "Hip Thrust".to_string(),
-        Exercise::BulgarianSplitSquat => "Bulgarian Split Squat".to_string(),
-        Exercise::RomanianDeadlift => "Romanian Deadlift".to_string(),
-        Exercise::GluteBridge => "Glute Bridge".to_string(),
-        Exercise::Lunge => "Lunge".to_string(),
-        Exercise::LegCurl => "Leg Curl".to_string(),
-        _ => "Unknown".to_string(),
+    #[test]
+    fn linear_progression_standard() {
+        // Use a recent timestamp (yesterday) to avoid deload triggers
+        let yesterday = chrono::Utc::now().timestamp() - 86400;
+        let history = vec![(100.0f32, true, yesterday)];
+        let (weight, explanation) =
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+        assert_eq!(weight, 105.0);
+        assert!(explanation.contains("105"));
+    }
+
+    #[test]
+    fn linear_progression_failure_holds() {
+        let yesterday = chrono::Utc::now().timestamp() - 86400;
+        let history = vec![(100.0f32, false, yesterday)];
+        let (weight, _) =
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+        assert_eq!(weight, 100.0);
+    }
+
+    #[test]
+    fn linear_progression_plateau_deloads() {
+        let now = chrono::Utc::now().timestamp();
+        let history = vec![
+            (100.0f32, false, now - 3 * 86400),
+            (100.0f32, false, now - 6 * 86400),
+            (100.0f32, false, now - 9 * 86400),
+        ];
+        let (weight, _) =
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+        assert!(weight < 100.0);
     }
 }

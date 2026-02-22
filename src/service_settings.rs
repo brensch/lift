@@ -20,6 +20,7 @@ impl MySettingsService {
 fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
     match &setting.setting {
         Some(lift::workout::v1::user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
+        Some(lift::workout::v1::user_setting::Setting::WorkoutConfig(_)) => Some("workout_config"),
         None => None,
     }
 }

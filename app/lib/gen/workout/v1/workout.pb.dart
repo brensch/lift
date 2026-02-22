@@ -2782,17 +2782,221 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
   void clearExplanation() => $_clearField(7);
 }
 
+class SessionReadiness extends $pb.GeneratedMessage {
+  factory SessionReadiness({
+    $fixnum.Int64? nextSessionAt,
+    $fixnum.Int64? lastSessionAt,
+    $core.String? readinessLabel,
+    $core.String? readinessDetail,
+    $core.bool? isReady,
+    $core.bool? isOverdue,
+  }) {
+    final result = create();
+    if (nextSessionAt != null) result.nextSessionAt = nextSessionAt;
+    if (lastSessionAt != null) result.lastSessionAt = lastSessionAt;
+    if (readinessLabel != null) result.readinessLabel = readinessLabel;
+    if (readinessDetail != null) result.readinessDetail = readinessDetail;
+    if (isReady != null) result.isReady = isReady;
+    if (isOverdue != null) result.isOverdue = isOverdue;
+    return result;
+  }
+
+  SessionReadiness._();
+
+  factory SessionReadiness.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SessionReadiness.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SessionReadiness',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'nextSessionAt')
+    ..aInt64(2, _omitFieldNames ? '' : 'lastSessionAt')
+    ..aOS(3, _omitFieldNames ? '' : 'readinessLabel')
+    ..aOS(4, _omitFieldNames ? '' : 'readinessDetail')
+    ..aOB(5, _omitFieldNames ? '' : 'isReady')
+    ..aOB(6, _omitFieldNames ? '' : 'isOverdue')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionReadiness clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionReadiness copyWith(void Function(SessionReadiness) updates) =>
+      super.copyWith((message) => updates(message as SessionReadiness))
+          as SessionReadiness;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SessionReadiness create() => SessionReadiness._();
+  @$core.override
+  SessionReadiness createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SessionReadiness getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SessionReadiness>(create);
+  static SessionReadiness? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get nextSessionAt => $_getI64(0);
+  @$pb.TagNumber(1)
+  set nextSessionAt($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasNextSessionAt() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearNextSessionAt() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get lastSessionAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set lastSessionAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLastSessionAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLastSessionAt() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get readinessLabel => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set readinessLabel($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasReadinessLabel() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReadinessLabel() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get readinessDetail => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set readinessDetail($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasReadinessDetail() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearReadinessDetail() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get isReady => $_getBF(4);
+  @$pb.TagNumber(5)
+  set isReady($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasIsReady() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIsReady() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get isOverdue => $_getBF(5);
+  @$pb.TagNumber(6)
+  set isOverdue($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasIsOverdue() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIsOverdue() => $_clearField(6);
+}
+
+class RegimeContext extends $pb.GeneratedMessage {
+  factory RegimeContext({
+    $core.String? regimeDisplayName,
+    $core.String? sessionDescription,
+    $core.String? nextSessionPreview,
+    $core.Iterable<$core.String>? coachingNotes,
+  }) {
+    final result = create();
+    if (regimeDisplayName != null) result.regimeDisplayName = regimeDisplayName;
+    if (sessionDescription != null)
+      result.sessionDescription = sessionDescription;
+    if (nextSessionPreview != null)
+      result.nextSessionPreview = nextSessionPreview;
+    if (coachingNotes != null) result.coachingNotes.addAll(coachingNotes);
+    return result;
+  }
+
+  RegimeContext._();
+
+  factory RegimeContext.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RegimeContext.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RegimeContext',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'regimeDisplayName')
+    ..aOS(2, _omitFieldNames ? '' : 'sessionDescription')
+    ..aOS(3, _omitFieldNames ? '' : 'nextSessionPreview')
+    ..pPS(4, _omitFieldNames ? '' : 'coachingNotes')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RegimeContext clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RegimeContext copyWith(void Function(RegimeContext) updates) =>
+      super.copyWith((message) => updates(message as RegimeContext))
+          as RegimeContext;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RegimeContext create() => RegimeContext._();
+  @$core.override
+  RegimeContext createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RegimeContext getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RegimeContext>(create);
+  static RegimeContext? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get regimeDisplayName => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set regimeDisplayName($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRegimeDisplayName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRegimeDisplayName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get sessionDescription => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set sessionDescription($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSessionDescription() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSessionDescription() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get nextSessionPreview => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set nextSessionPreview($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextSessionPreview() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextSessionPreview() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$core.String> get coachingNotes => $_getList(3);
+}
+
 class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   factory GetProposedWorkoutScheduleResponse({
     $core.Iterable<ExerciseStatus>? exerciseStatuses,
     $core.String? activeWorkoutId,
     $core.Iterable<ProposedExerciseGroup>? proposedGroups,
+    RegimeContext? regimeContext,
+    SessionReadiness? sessionReadiness,
   }) {
     final result = create();
     if (exerciseStatuses != null)
       result.exerciseStatuses.addAll(exerciseStatuses);
     if (activeWorkoutId != null) result.activeWorkoutId = activeWorkoutId;
     if (proposedGroups != null) result.proposedGroups.addAll(proposedGroups);
+    if (regimeContext != null) result.regimeContext = regimeContext;
+    if (sessionReadiness != null) result.sessionReadiness = sessionReadiness;
     return result;
   }
 
@@ -2815,6 +3019,10 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'activeWorkoutId')
     ..pPM<ProposedExerciseGroup>(3, _omitFieldNames ? '' : 'proposedGroups',
         subBuilder: ProposedExerciseGroup.create)
+    ..aOM<RegimeContext>(4, _omitFieldNames ? '' : 'regimeContext',
+        subBuilder: RegimeContext.create)
+    ..aOM<SessionReadiness>(5, _omitFieldNames ? '' : 'sessionReadiness',
+        subBuilder: SessionReadiness.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2854,6 +3062,28 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(3)
   $pb.PbList<ProposedExerciseGroup> get proposedGroups => $_getList(2);
+
+  @$pb.TagNumber(4)
+  RegimeContext get regimeContext => $_getN(3);
+  @$pb.TagNumber(4)
+  set regimeContext(RegimeContext value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRegimeContext() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRegimeContext() => $_clearField(4);
+  @$pb.TagNumber(4)
+  RegimeContext ensureRegimeContext() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  SessionReadiness get sessionReadiness => $_getN(4);
+  @$pb.TagNumber(5)
+  set sessionReadiness(SessionReadiness value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSessionReadiness() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSessionReadiness() => $_clearField(5);
+  @$pb.TagNumber(5)
+  SessionReadiness ensureSessionReadiness() => $_ensure(4);
 }
 
 class GetActiveWorkoutRequest extends $pb.GeneratedMessage {

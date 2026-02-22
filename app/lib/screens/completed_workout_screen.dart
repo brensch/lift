@@ -12,6 +12,7 @@ import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/set_log.dart';
+import '../services/notification_service.dart';
 
 class CompletedWorkoutScreen extends StatefulWidget {
   final String workoutId;
@@ -65,10 +66,35 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       if (sessionId.isNotEmpty) {
         await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
+
+      if (!widget.isHistory) {
+        _scheduleNextWorkoutNotification(auth.userId!, service);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _scheduleNextWorkoutNotification(
+    String userId,
+    WorkoutServiceWrapper service,
+  ) async {
+    try {
+      final scheduleRes = await service.getProposedWorkoutSchedule(userId);
+      if (!scheduleRes.hasSessionReadiness()) return;
+      final sr = scheduleRes.sessionReadiness;
+      if (sr.nextSessionAt.toInt() <= 0) return;
+      final regimeName = scheduleRes.hasRegimeContext()
+          ? scheduleRes.regimeContext.regimeDisplayName
+          : 'your';
+      await NotificationService.scheduleNextWorkout(
+        nextSessionAtUnix: sr.nextSessionAt.toInt(),
+        regimeName: regimeName.isNotEmpty ? regimeName : 'your',
+      );
+    } catch (_) {
+      // Fail silently — notification is best-effort
     }
   }
 
@@ -86,8 +112,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       final seen = <String>{};
       for (final participant in participants) {
         final user = participant.user;
-        if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId))
+        if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId)) {
           continue;
+        }
         final display = user.name.isNotEmpty ? user.name : user.id;
         if (display.isEmpty) continue;
         if (seen.add(display)) {

@@ -32,6 +32,8 @@ import 'screens/debug_notifications_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
+import 'screens/onboarding_screen.dart';
+import 'screens/regime_settings_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
@@ -102,15 +104,18 @@ class _LiftAppState extends State<LiftApp> {
     );
     unawaited(_wearableSyncCoordinator.init());
 
-    // Listen to auth changes to clear state on logout
+    // Listen to auth changes: clear state on logout, load settings on login.
+    // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
-      if (!_authProvider.isLoggedIn) {
+      if (_authProvider.isLoggedIn) {
+        _settingsProvider.load();
+      } else {
         _workoutProvider.clear();
         _multiplayerProvider.clear();
       }
     });
 
-    // Load persisted state
+    // Load persisted state at app startup (already-logged-in session).
     _authProvider.loadSession().then((_) {
       if (_authProvider.isLoggedIn) {
         _workoutProvider.loadActiveWorkout(_authProvider.userId!);
@@ -122,18 +127,28 @@ class _LiftAppState extends State<LiftApp> {
 
     _router = GoRouter(
       navigatorKey: ErrorModalService.rootNavigatorKey,
-      refreshListenable: _authProvider,
+      refreshListenable: Listenable.merge([_authProvider, _settingsProvider]),
       redirect: (context, state) {
         final loggedIn = _authProvider.isLoggedIn;
         final isLogin = state.matchedLocation == '/login';
+        final isOnboarding = state.matchedLocation == '/onboarding';
 
         if (!loggedIn && !isLogin) return '/login';
         if (loggedIn && isLogin) return '/';
+
+        // Redirect new users to onboarding if they haven't configured a regime.
+        if (loggedIn &&
+            !isOnboarding &&
+            _settingsProvider.loaded &&
+            !_settingsProvider.hasWorkoutConfig) {
+          return '/onboarding';
+        }
 
         return null;
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
         ShellRoute(
           builder: (context, state, child) => MainLayout(child: child),
           routes: [
@@ -172,6 +187,10 @@ class _LiftAppState extends State<LiftApp> {
             GoRoute(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/regime',
+              builder: (_, __) => const RegimeSettingsScreen(),
             ),
           ],
         ),

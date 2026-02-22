@@ -1,0 +1,454 @@
+use std::collections::HashMap;
+
+use lift::workout::v1::{
+    Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
+};
+use serde::{Deserialize, Serialize};
+
+use super::{exercise_display_name, ExerciseConfig, ExerciseProposal, WorkoutRegime};
+
+// ─── GZCLP tier assignments ───────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GzclTier {
+    T1, // Heavy compounds: 5×3 → 6×2 → 10×1 state machine
+    T2, // Supplemental:    3×10 → 3×8 → 3×6 state machine
+    T3, // Accessories:     3×15 (simple linear)
+}
+
+fn exercise_tier(exercise: Exercise) -> GzclTier {
+    match exercise {
+        Exercise::Squat | Exercise::Deadlift => GzclTier::T1,
+        Exercise::BenchPress | Exercise::OverheadPress | Exercise::BarbellRow => GzclTier::T2,
+        _ => GzclTier::T3,
+    }
+}
+
+fn t1_stage_prescription(stage: u8) -> (i32, i32) {
+    // (sets, reps)
+    match stage {
+        1 => (5, 3),
+        2 => (6, 2),
+        _ => (10, 1),
+    }
+}
+
+fn t2_stage_prescription(stage: u8) -> (i32, i32) {
+    match stage {
+        1 => (3, 10),
+        2 => (3, 8),
+        _ => (3, 6),
+    }
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GzclpState {
+    /// exercise (as int32) → current stage (1/2/3)
+    pub stages: HashMap<i32, u8>,
+}
+
+impl GzclpState {
+    pub fn stage_for(&self, exercise: Exercise) -> u8 {
+        *self.stages.get(&(exercise as i32)).unwrap_or(&1)
+    }
+
+    pub fn set_stage(&mut self, exercise: Exercise, stage: u8) {
+        self.stages.insert(exercise as i32, stage.clamp(1, 3));
+    }
+
+    pub fn from_json(json: &str) -> Self {
+        serde_json::from_str(json).unwrap_or_default()
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_else(|_| "{}".to_string())
+    }
+}
+
+// ─── GZCLP increment ─────────────────────────────────────────────────────────
+
+fn gzclp_increment(exercise: Exercise) -> f32 {
+    match exercise {
+        Exercise::Squat | Exercise::Deadlift => 10.0,
+        _ => 5.0,
+    }
+}
+
+// ─── Regime impl ─────────────────────────────────────────────────────────────
+
+pub struct GzclpRegime;
+
+impl WorkoutRegime for GzclpRegime {
+    fn display_name(&self) -> &'static str {
+        "GZCLP"
+    }
+
+    fn default_days_per_week(&self) -> i32 {
+        4
+    }
+
+    fn recovery_seconds(&self, _workout_config: &UserWorkoutConfig) -> i64 {
+        48 * 3600
+    }
+
+    fn calculate_exercise_progression(
+        &self,
+        exercise: Exercise,
+        config: &ExerciseConfig,
+        history: &[(f32, bool, i64)],
+        max_weight: f32,
+        workout_config: &UserWorkoutConfig,
+    ) -> ExerciseProposal {
+        let state = GzclpState::from_json(&workout_config.regime_state_json);
+        let current_stage = state.stage_for(exercise);
+        let tier = exercise_tier(exercise);
+        let inc = gzclp_increment(exercise);
+
+        match tier {
+            GzclTier::T1 => {
+                let (sets, reps) = t1_stage_prescription(current_stage);
+                let (weight, explanation) =
+                    t1_weight(exercise, config.default_weight, history, max_weight, current_stage, inc);
+                ExerciseProposal { weight, sets, reps, explanation }
+            }
+            GzclTier::T2 => {
+                let (sets, reps) = t2_stage_prescription(current_stage);
+                let (weight, explanation) =
+                    t2_weight(exercise, config.default_weight, history, max_weight, current_stage, inc);
+                ExerciseProposal { weight, sets, reps, explanation }
+            }
+            GzclTier::T3 => {
+                // T3: simple linear progression, 3×15
+                let (weight, explanation) = t3_weight(config.default_weight, history);
+                ExerciseProposal { weight, sets: 3, reps: 15, explanation }
+            }
+        }
+    }
+
+    fn build_proposed_groups(
+        &self,
+        statuses: &[ExerciseStatus],
+        workout_config: &UserWorkoutConfig,
+    ) -> Vec<ProposedExerciseGroup> {
+        let state = GzclpState::from_json(&workout_config.regime_state_json);
+        build_gzclp_proposed_groups(statuses, &state)
+    }
+
+    fn compute_updated_state(
+        &self,
+        workout_config: &UserWorkoutConfig,
+        history: &HashMap<i32, Vec<(f32, bool, i64)>>,
+    ) -> String {
+        let mut state = GzclpState::from_json(&workout_config.regime_state_json);
+
+        for ex_int in [
+            Exercise::Squat,
+            Exercise::Deadlift,
+            Exercise::BenchPress,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ] {
+            let ex_history = history.get(&(ex_int as i32));
+            let Some(hist) = ex_history else { continue };
+            if hist.is_empty() { continue }
+
+            let current_stage = state.stage_for(ex_int);
+            let (_, last_success, _) = hist[0];
+            let tier = exercise_tier(ex_int);
+
+            let new_stage = match tier {
+                GzclTier::T1 => {
+                    if last_success {
+                        // Success: stay at stage 1 (or return from 2/3 to 1)
+                        1
+                    } else {
+                        // Failure: advance or reset
+                        if current_stage >= 3 { 1 } else { current_stage + 1 }
+                    }
+                }
+                GzclTier::T2 => {
+                    if last_success {
+                        1
+                    } else {
+                        if current_stage >= 3 { 1 } else { current_stage + 1 }
+                    }
+                }
+                GzclTier::T3 => 1, // T3 has no stage machine
+            };
+            state.set_stage(ex_int, new_stage);
+        }
+
+        state.to_json()
+    }
+
+    fn build_regime_context(
+        &self,
+        workout_config: &UserWorkoutConfig,
+        statuses: &[ExerciseStatus],
+    ) -> RegimeContext {
+        let state = GzclpState::from_json(&workout_config.regime_state_json);
+
+        let t1_desc: Vec<String> = [Exercise::Squat, Exercise::Deadlift]
+            .iter()
+            .filter_map(|&ex| {
+                statuses.iter().find(|s| s.exercise == ex as i32).map(|_| {
+                    let stage = state.stage_for(ex);
+                    let (sets, reps) = t1_stage_prescription(stage);
+                    format!("T1 {}: Stage {} ({}×{})", exercise_display_name(ex), stage, sets, reps)
+                })
+            })
+            .collect();
+
+        let t2_desc: Vec<String> = [Exercise::BenchPress, Exercise::OverheadPress, Exercise::BarbellRow]
+            .iter()
+            .filter_map(|&ex| {
+                statuses.iter().find(|s| s.exercise == ex as i32).map(|_| {
+                    let stage = state.stage_for(ex);
+                    let (sets, reps) = t2_stage_prescription(stage);
+                    format!("T2 {}: Stage {} ({}×{})", exercise_display_name(ex), stage, sets, reps)
+                })
+            })
+            .collect();
+
+        let all_desc = [t1_desc, t2_desc].concat().join(" · ");
+
+        RegimeContext {
+            regime_display_name: "GZCLP".to_string(),
+            session_description: if all_desc.is_empty() {
+                "GZCLP — T1/T2/T3 tier system".to_string()
+            } else {
+                all_desc
+            },
+            next_session_preview: "State machine updates after each session based on success/failure.".to_string(),
+            coaching_notes: vec![
+                "T1: heavy, low reps — treat every rep as a max-effort lift.".to_string(),
+                "T2: moderate weight, controlled tempo — build volume.".to_string(),
+                "T3: light accessories — metabolic stress and recovery work.".to_string(),
+            ],
+        }
+    }
+}
+
+// ─── Weight calculation helpers ───────────────────────────────────────────────
+
+fn t1_weight(
+    _exercise: Exercise,
+    default_weight: f32,
+    history: &[(f32, bool, i64)],
+    _max_weight: f32,
+    stage: u8,
+    inc: f32,
+) -> (f32, String) {
+    if history.is_empty() {
+        return (
+            default_weight,
+            format!("T1 Stage {}: Starting at {} lbs.", stage, default_weight),
+        );
+    }
+    let (last_weight, last_success, _) = history[0];
+    if last_success {
+        let new_w = last_weight + inc;
+        (
+            new_w,
+            format!(
+                "T1 Stage {}: Progressing {} → {} lbs after successful session.",
+                stage, last_weight, new_w
+            ),
+        )
+    } else {
+        // Failure — hold weight (stage change handled in compute_updated_state)
+        let stage_label = match stage {
+            1 => "5×3".to_string(),
+            2 => "6×2".to_string(),
+            _ => "10×1".to_string(),
+        };
+        (
+            last_weight,
+            format!(
+                "T1 Stage {} ({}): Holding {} lbs after failure — rep scheme shifted.",
+                stage, stage_label, last_weight
+            ),
+        )
+    }
+}
+
+fn t2_weight(
+    _exercise: Exercise,
+    default_weight: f32,
+    history: &[(f32, bool, i64)],
+    _max_weight: f32,
+    stage: u8,
+    inc: f32,
+) -> (f32, String) {
+    if history.is_empty() {
+        return (
+            default_weight,
+            format!("T2 Stage {}: Starting at {} lbs.", stage, default_weight),
+        );
+    }
+    let (last_weight, last_success, _) = history[0];
+    if last_success {
+        let new_w = last_weight + inc;
+        (
+            new_w,
+            format!(
+                "T2 Stage {}: Progressing {} → {} lbs.",
+                stage, last_weight, new_w
+            ),
+        )
+    } else {
+        let stage_label = match stage {
+            1 => "3×10".to_string(),
+            2 => "3×8".to_string(),
+            _ => "3×6".to_string(),
+        };
+        (
+            last_weight,
+            format!(
+                "T2 Stage {} ({}): Holding {} lbs — rep scheme shifted.",
+                stage, stage_label, last_weight
+            ),
+        )
+    }
+}
+
+fn t3_weight(default_weight: f32, history: &[(f32, bool, i64)]) -> (f32, String) {
+    if history.is_empty() {
+        return (
+            default_weight,
+            format!("T3: Starting at {} lbs — 3×15 hypertrophy work.", default_weight),
+        );
+    }
+    let (last_weight, last_success, _) = history[0];
+    if last_success {
+        let new_w = last_weight + 5.0;
+        (new_w, format!("T3: {} → {} lbs (+5 lbs).", last_weight, new_w))
+    } else {
+        (last_weight, format!("T3: Holding at {} lbs.", last_weight))
+    }
+}
+
+// ─── Proposed groups ─────────────────────────────────────────────────────────
+
+fn build_gzclp_proposed_groups(
+    statuses: &[ExerciseStatus],
+    state: &GzclpState,
+) -> Vec<ProposedExerciseGroup> {
+    let mut groups = Vec::new();
+
+    let find = |ex: Exercise| statuses.iter().find(|s| s.exercise == ex as i32);
+
+    // T1 exercises — always recommended
+    for ex in [Exercise::Squat, Exercise::Deadlift] {
+        if let Some(s) = find(ex) {
+            let stage = state.stage_for(ex);
+            let (sets, reps) = t1_stage_prescription(stage);
+            let config = lift::workout::v1::ExerciseTypeConfig {
+                exercise: ex as i32,
+                start_weight: s.target_weight,
+                end_weight: s.target_weight,
+                reps,
+                include_warmup: true,
+                rest_config: None,
+            };
+            groups.push(ProposedExerciseGroup {
+                name: exercise_display_name(ex),
+                sets,
+                interleave_warmups: false,
+                exercise_configs: vec![config],
+                rest_config: None,
+                tags: vec!["recommended".to_string(), "T1".to_string()],
+                explanation: s.explanation.clone(),
+            });
+        }
+    }
+
+    // T2 exercises — rotate: 2 stalest are recommended
+    let mut t2: Vec<(Exercise, &ExerciseStatus)> = [
+        Exercise::BenchPress,
+        Exercise::OverheadPress,
+        Exercise::BarbellRow,
+    ]
+    .iter()
+    .filter_map(|&ex| find(ex).map(|s| (ex, s)))
+    .collect();
+    t2.sort_by(|(ax, a), (bx, b)| {
+        a.last_performed_at
+            .cmp(&b.last_performed_at)
+            .then((*ax as i32).cmp(&(*bx as i32)))
+    });
+
+    for (idx, (ex, s)) in t2.iter().enumerate() {
+        let stage = state.stage_for(*ex);
+        let (sets, reps) = t2_stage_prescription(stage);
+        let config = lift::workout::v1::ExerciseTypeConfig {
+            exercise: *ex as i32,
+            start_weight: s.target_weight,
+            end_weight: s.target_weight,
+            reps,
+            include_warmup: true,
+            rest_config: None,
+        };
+        let tags = if idx < 2 {
+            vec!["recommended".to_string(), "T2".to_string()]
+        } else {
+            vec!["T2".to_string()]
+        };
+        groups.push(ProposedExerciseGroup {
+            name: exercise_display_name(*ex),
+            sets,
+            interleave_warmups: false,
+            exercise_configs: vec![config],
+            rest_config: None,
+            tags,
+            explanation: s.explanation.clone(),
+        });
+    }
+
+    // T3 accessories — paired
+    let aux_pairs: &[(Exercise, Exercise)] = &[
+        (Exercise::HipThrust, Exercise::BulgarianSplitSquat),
+        (Exercise::RomanianDeadlift, Exercise::LegCurl),
+        (Exercise::GluteBridge, Exercise::Lunge),
+    ];
+    for &(ex_a, ex_b) in aux_pairs {
+        match (find(ex_a), find(ex_b)) {
+            (Some(a), Some(b)) => {
+                let ca = lift::workout::v1::ExerciseTypeConfig {
+                    exercise: ex_a as i32,
+                    start_weight: a.target_weight,
+                    end_weight: a.target_weight,
+                    reps: 15,
+                    include_warmup: true,
+                    rest_config: None,
+                };
+                let cb = lift::workout::v1::ExerciseTypeConfig {
+                    exercise: ex_b as i32,
+                    start_weight: b.target_weight,
+                    end_weight: b.target_weight,
+                    reps: 15,
+                    include_warmup: false,
+                    rest_config: None,
+                };
+                groups.push(ProposedExerciseGroup {
+                    name: format!(
+                        "{} + {}",
+                        exercise_display_name(ex_a),
+                        exercise_display_name(ex_b)
+                    ),
+                    sets: 3,
+                    interleave_warmups: true,
+                    exercise_configs: vec![ca, cb],
+                    rest_config: None,
+                    tags: vec!["auxiliary".to_string(), "T3".to_string()],
+                    explanation: format!("{} {}", a.explanation, b.explanation),
+                });
+            }
+            _ => {}
+        }
+    }
+
+    groups
+}

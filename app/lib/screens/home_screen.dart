@@ -23,6 +23,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<ExerciseStatus>? _schedule;
   List<ProposedExerciseGroup>? _proposedGroups;
+  RegimeContext? _regimeContext;
+  SessionReadiness? _sessionReadiness;
   Set<int> _selectedGroupIndices = {};
   // Non-recommended sections start collapsed.
   final Set<String> _expandedSections = {};
@@ -80,6 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _schedule = schedule;
         _proposedGroups = proposedGroups;
+        _regimeContext = scheduleRes.hasRegimeContext() ? scheduleRes.regimeContext : null;
+        _sessionReadiness = scheduleRes.hasSessionReadiness() ? scheduleRes.sessionReadiness : null;
         _selectedGroupIndices = autoSelected;
         _nameController.text = _getDefaultWorkoutName();
         _isLoading = false;
@@ -253,8 +257,23 @@ class _HomeScreenState extends State<HomeScreen> {
       body: CustomScrollView(
         physics: const ClampingScrollPhysics(),
         slivers: [
+          if (_sessionReadiness != null || _regimeContext != null)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: _ReadinessBanner(
+                  sessionReadiness: _sessionReadiness,
+                  regimeContext: _regimeContext,
+                ),
+              ),
+            ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              (_sessionReadiness != null || _regimeContext != null) ? 12 : 20,
+              20,
+              0,
+            ),
             sliver: SliverToBoxAdapter(
               child: Text(
                 'SELECT YOUR EXERCISE GROUPS',
@@ -497,6 +516,117 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+}
+
+// ─── Readiness banner ─────────────────────────────────────────────────────────
+
+class _ReadinessBanner extends StatelessWidget {
+  final SessionReadiness? sessionReadiness;
+  final RegimeContext? regimeContext;
+
+  const _ReadinessBanner({this.sessionReadiness, this.regimeContext});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final sr = sessionReadiness;
+
+    Color bannerColor;
+    Color textColor;
+    IconData icon;
+    String label;
+
+    if (sr != null && sr.readinessLabel.isNotEmpty) {
+      if (sr.isOverdue) {
+        bannerColor = cs.errorContainer;
+        textColor = cs.onErrorContainer;
+        icon = Icons.warning_amber_rounded;
+      } else if (sr.isReady) {
+        bannerColor = const Color(0xFF1B5E20).withValues(alpha: 0.15);
+        textColor = const Color(0xFF2E7D32);
+        icon = Icons.fitness_center_rounded;
+      } else {
+        bannerColor = cs.tertiaryContainer.withValues(alpha: 0.5);
+        textColor = cs.onTertiaryContainer;
+        icon = Icons.schedule_rounded;
+      }
+      label = sr.readinessLabel;
+    } else {
+      bannerColor = cs.primaryContainer.withValues(alpha: 0.4);
+      textColor = cs.onPrimaryContainer;
+      icon = Icons.fitness_center_rounded;
+      label = '';
+    }
+
+    final rc = regimeContext;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: bannerColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (rc != null && rc.regimeDisplayName.isNotEmpty)
+            Row(
+              children: [
+                Icon(Icons.auto_graph_rounded, size: 13, color: textColor.withValues(alpha: 0.7)),
+                const SizedBox(width: 6),
+                Text(
+                  rc.regimeDisplayName,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                    color: textColor.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          if (rc != null && rc.sessionDescription.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              rc.sessionDescription,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
+            ),
+          ],
+          if (label.isNotEmpty) ...[
+            if (rc != null && rc.sessionDescription.isNotEmpty) const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(icon, size: 14, color: textColor),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (sr != null && sr.readinessDetail.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              sr.readinessDetail,
+              style: TextStyle(
+                fontSize: 11,
+                color: textColor.withValues(alpha: 0.65),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

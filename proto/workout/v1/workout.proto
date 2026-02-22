@@ -332,6 +332,22 @@ message ProposedExerciseGroup {
 
 
 
+message SessionReadiness {
+  int64 next_session_at = 1;    // Unix timestamp for recommended next workout
+  int64 last_session_at = 2;    // When the last workout ended (0 if never)
+  string readiness_label = 3;   // e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+  string readiness_detail = 4;  // e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+  bool is_ready = 5;            // true if now >= next_session_at
+  bool is_overdue = 6;          // true if overdue by more than 24h
+}
+
+message RegimeContext {
+  string regime_display_name = 1;   // e.g. "Wendler 5/3/1"
+  string session_description = 2;   // e.g. "Cycle 1, Week 2 — Intensity Week"
+  string next_session_preview = 3;  // e.g. "Next: Week 3 — Peak Week (1-rep sets)"
+  repeated string coaching_notes = 4; // Tips for today's session
+}
+
 message GetProposedWorkoutScheduleResponse {
 
   repeated ExerciseStatus exercise_statuses = 1;
@@ -339,6 +355,10 @@ message GetProposedWorkoutScheduleResponse {
   string active_workout_id = 2;
 
   repeated ProposedExerciseGroup proposed_groups = 3;
+
+  RegimeContext regime_context = 4;
+
+  SessionReadiness session_readiness = 5;
 
 }
 

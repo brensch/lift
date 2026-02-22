@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _restNotificationId = 1;
+  static const _nextWorkoutNotificationId = 2;
   static const _startSetActionId = 'start_next_set';
 
   /// Callback for when the "Start Set" notification action is tapped.
@@ -122,6 +123,49 @@ class NotificationService {
   /// Cancels any pending or active rest notifications.
   static Future<void> cancelRest() async {
     await _plugin.cancel(_restNotificationId);
+  }
+
+  /// Schedules a next-workout reminder notification.
+  static Future<void> scheduleNextWorkout({
+    required int nextSessionAtUnix,
+    required String regimeName,
+  }) async {
+    await cancelNextWorkout();
+
+    final scheduledTime = tz.TZDateTime.fromMillisecondsSinceEpoch(
+      tz.local,
+      nextSessionAtUnix * 1000,
+    );
+
+    if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    const androidDetails = AndroidNotificationDetails(
+      'next_workout',
+      'Next Workout',
+      channelDescription: 'Reminder when your next workout session is ready',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const darwinDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
+    );
+
+    await _plugin.zonedSchedule(
+      _nextWorkoutNotificationId,
+      'Time to lift!',
+      'Your $regimeName session is ready.',
+      scheduledTime,
+      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: null,
+    );
+  }
+
+  /// Cancels any pending next-workout notification.
+  static Future<void> cancelNextWorkout() async {
+    await _plugin.cancel(_nextWorkoutNotificationId);
   }
 
   /// Comprehensive cleanup of all notifications.
