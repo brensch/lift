@@ -5,7 +5,10 @@ use lift::workout::v1::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory, WorkoutRegime};
+use super::{
+    exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory,
+    WorkoutRegime,
+};
 
 // ─── Wendler state ─────────────────────────────────────────────────────────────
 
@@ -47,10 +50,38 @@ struct WeekDef {
 }
 
 const WEEKS: [WeekDef; 4] = [
-    WeekDef { start_pct: 0.65, end_pct: 0.85, reps: 5, is_deload: false, name: "Week 1 — Volume (5-rep sets)", preview: "Next: Week 2 — Intensity (3-rep sets)" },
-    WeekDef { start_pct: 0.70, end_pct: 0.90, reps: 3, is_deload: false, name: "Week 2 — Intensity (3-rep sets)", preview: "Next: Week 3 — Peak (1-rep AMRAP)" },
-    WeekDef { start_pct: 0.75, end_pct: 0.95, reps: 1, is_deload: false, name: "Week 3 — Peak (1-rep AMRAP)", preview: "Next: Week 4 — Deload (light sets)" },
-    WeekDef { start_pct: 0.40, end_pct: 0.60, reps: 5, is_deload: true,  name: "Week 4 — Deload (easy week)", preview: "Next: New cycle begins with higher Training Max" },
+    WeekDef {
+        start_pct: 0.65,
+        end_pct: 0.85,
+        reps: 5,
+        is_deload: false,
+        name: "Week 1 — Volume (5-rep sets)",
+        preview: "Next: Week 2 — Intensity (3-rep sets)",
+    },
+    WeekDef {
+        start_pct: 0.70,
+        end_pct: 0.90,
+        reps: 3,
+        is_deload: false,
+        name: "Week 2 — Intensity (3-rep sets)",
+        preview: "Next: Week 3 — Peak (1-rep AMRAP)",
+    },
+    WeekDef {
+        start_pct: 0.75,
+        end_pct: 0.95,
+        reps: 1,
+        is_deload: false,
+        name: "Week 3 — Peak (1-rep AMRAP)",
+        preview: "Next: Week 4 — Deload (light sets)",
+    },
+    WeekDef {
+        start_pct: 0.40,
+        end_pct: 0.60,
+        reps: 5,
+        is_deload: true,
+        name: "Week 4 — Deload (easy week)",
+        preview: "Next: New cycle begins with higher Training Max",
+    },
 ];
 
 // Main lifts for Wendler
@@ -297,12 +328,7 @@ impl WorkoutRegime for Wendler531Regime {
         // for the main lifts (using history length as proxy — each entry = 1 session).
         let total_sessions: usize = WENDLER_LIFTS
             .iter()
-            .map(|&ex| {
-                history
-                    .get(&(ex as i32))
-                    .map(|h| h.len())
-                    .unwrap_or(0)
-            })
+            .map(|&ex| history.get(&(ex as i32)).map(|h| h.len()).unwrap_or(0))
             .max()
             .unwrap_or(0);
 

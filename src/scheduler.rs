@@ -41,8 +41,8 @@ impl Scheduler {
             .await?;
 
         // ── 3. Get the active regime implementation ──────────────────────────
-        let regime_type = RegimeType::try_from(workout_config.regime_type)
-            .unwrap_or(RegimeType::Linear5x5);
+        let regime_type =
+            RegimeType::try_from(workout_config.regime_type).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
 
         // ── 4. Compute updated state and persist if changed ──────────────────

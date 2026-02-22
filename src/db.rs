@@ -1,8 +1,8 @@
+use crate::regimes::SessionHistory;
 use dashmap::DashMap;
 use lift::workout::v1::{
     CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
 };
-use crate::regimes::SessionHistory;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -109,7 +109,7 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         rest_after_success,
         rest_after_failure,
         cancelled: row.get::<Option<bool>, _>("cancelled").unwrap_or(false),
-        is_amrap: false,       // not persisted; set during set generation
+        is_amrap: false, // not persisted; set during set generation
         instruction: String::new(),
     }
 }
@@ -1509,10 +1509,12 @@ impl CentralDb {
             let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
             let last_set_reps = row.get::<i32, _>("last_set_reps");
-            history
-                .entry(exercise)
-                .or_default()
-                .push(SessionHistory { weight, success: successful, timestamp: ended_at, last_set_reps });
+            history.entry(exercise).or_default().push(SessionHistory {
+                weight,
+                success: successful,
+                timestamp: ended_at,
+                last_set_reps,
+            });
         }
 
         let max_rows = sqlx::query(
@@ -1777,8 +1779,10 @@ impl CentralDb {
     pub async fn get_user_workout_config(
         &self,
         user_id: &str,
-    ) -> Result<Option<lift::workout::v1::UserWorkoutConfig>, Box<dyn std::error::Error + Send + Sync>>
-    {
+    ) -> Result<
+        Option<lift::workout::v1::UserWorkoutConfig>,
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         use prost::Message;
         let row: Option<Vec<u8>> = sqlx::query_scalar(
             "SELECT setting_blob FROM user_settings
