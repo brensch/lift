@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ExerciseTypeConfig, MuscleGroup, ProposedExerciseGroup,
-    RegimeContext, RegimeType, SessionReadiness, UserWorkoutConfig,
+    RegimeContext, RegimeType, RestConfig, SessionReadiness, UserWorkoutConfig,
 };
 
 pub use gzclp::GzclpRegime;
@@ -237,19 +237,31 @@ pub fn make_exercise_type_config(
     }
 }
 
+/// Build a regime-appropriate RestConfig (0 = use system default for warmup fields).
+pub fn rest_cfg(success_secs: i32, failure_secs: i32) -> Option<RestConfig> {
+    Some(RestConfig {
+        rest_after_success: success_secs,
+        rest_after_failure: failure_secs,
+        rest_after_warmup: 0,
+        rest_after_last_warmup: 0,
+        ..Default::default()
+    })
+}
+
 /// Build a single-exercise ProposedExerciseGroup.
 pub fn build_single_group(
     exercise: Exercise,
     proposal: &ExerciseProposal,
     tags: Vec<String>,
     explanation: String,
+    rest_config: Option<RestConfig>,
 ) -> ProposedExerciseGroup {
     ProposedExerciseGroup {
         name: exercise_display_name(exercise),
         sets: proposal.sets,
         interleave_warmups: false,
         exercise_configs: vec![make_exercise_type_config(exercise, proposal, true)],
-        rest_config: None,
+        rest_config,
         tags,
         explanation,
     }

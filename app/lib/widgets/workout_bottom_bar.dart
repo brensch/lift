@@ -501,14 +501,14 @@ class _RepButtonsState extends State<_RepButtons> {
   void initState() {
     super.initState();
     _scrollController =
-        FixedExtentScrollController(initialItem: widget.targetReps);
+        FixedExtentScrollController(initialItem: widget.targetReps.clamp(0, 50));
   }
 
   @override
   void didUpdateWidget(_RepButtons oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.targetReps != widget.targetReps) {
-      _scrollController.jumpToItem(widget.targetReps);
+      _scrollController.jumpToItem(widget.targetReps.clamp(0, 50));
     }
   }
 
@@ -546,7 +546,7 @@ class _RepButtonsState extends State<_RepButtons> {
                 perspective: 0.003,
                 childDelegate: ListWheelChildBuilderDelegate(
                   builder: (context, index) {
-                    if (index < 0 || index > widget.targetReps) return null;
+                    if (index < 0 || index > 50) return null;
                     return Center(
                       child: Text(
                         '$index',
@@ -558,7 +558,7 @@ class _RepButtonsState extends State<_RepButtons> {
                       ),
                     );
                   },
-                  childCount: widget.targetReps + 1,
+                  childCount: 51,
                 ),
               ),
             ),

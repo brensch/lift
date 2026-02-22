@@ -371,8 +371,8 @@ class _RegimeCard extends StatelessWidget {
                       isSelected ? cs.primary : Colors.transparent,
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check,
-                        size: 10, color: Colors.white)
+                    ? Icon(Icons.check,
+                        size: 10, color: cs.onPrimary)
                     : null,
               ),
             ),
@@ -541,6 +541,7 @@ class _DaysAndWeightsPage extends StatelessWidget {
                   selected: selected,
                   onSelected: (_) => onDaysChanged(d),
                   selectedColor: cs.primary,
+                  checkmarkColor: cs.onPrimary,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: selected ? cs.onPrimary : cs.onSurface,

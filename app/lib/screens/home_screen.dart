@@ -120,11 +120,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final configs = proposed.exerciseConfigs.map((c) {
           final status = statusMap[c.exercise.value];
-          final weight = status?.targetWeight ?? c.startWeight;
+          final startWeight = status?.targetWeight ?? c.startWeight;
+          // Keep regime's weight ramp (e.g. Wendler 65%→85% TM).
+          // For Linear/GZCLP start==end so endWeight = startWeight.
+          final endWeight =
+              c.endWeight != c.startWeight ? c.endWeight : startWeight;
           final cfg = ExerciseTypeConfig()
             ..exercise = c.exercise
-            ..startWeight = weight
-            ..endWeight = weight
+            ..startWeight = startWeight
+            ..endWeight = endWeight
             ..reps = c.reps
             ..includeWarmup = c.includeWarmup;
           if (c.hasRestConfig()) {

@@ -6,7 +6,7 @@ use lift::workout::v1::{
 };
 
 use super::{
-    build_single_group, exercise_display_name, make_exercise_type_config,
+    build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg,
     ExerciseConfig, ExerciseProposal, WorkoutRegime,
 };
 
@@ -203,6 +203,7 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
             &p,
             vec!["recommended".to_string(), "compound".to_string()],
             squat.explanation.clone(),
+            rest_cfg(180, 300),
         ));
     }
 
@@ -230,7 +231,13 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
             vec!["compound".to_string()]
         };
         let p = make_proposal(status);
-        groups.push(build_single_group(*exercise, &p, tags, status.explanation.clone()));
+        groups.push(build_single_group(
+            *exercise,
+            &p,
+            tags,
+            status.explanation.clone(),
+            rest_cfg(180, 300),
+        ));
     }
 
     // Auxiliary pairs
@@ -257,7 +264,7 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
                         make_exercise_type_config(ex_a, &pa, true),
                         make_exercise_type_config(ex_b, &pb, false),
                     ],
-                    rest_config: None,
+                    rest_config: rest_cfg(90, 90),
                     tags: vec!["auxiliary".to_string()],
                     explanation: format!("{} {}", a.explanation, b.explanation),
                 });
@@ -269,6 +276,7 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
                     &p,
                     vec!["auxiliary".to_string()],
                     a.explanation.clone(),
+                    rest_cfg(90, 90),
                 ));
             }
             (None, Some(b)) => {
@@ -278,6 +286,7 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
                     &p,
                     vec!["auxiliary".to_string()],
                     b.explanation.clone(),
+                    rest_cfg(90, 90),
                 ));
             }
             (None, None) => {}

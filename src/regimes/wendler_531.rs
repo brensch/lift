@@ -5,7 +5,7 @@ use lift::workout::v1::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{exercise_display_name, ExerciseConfig, ExerciseProposal, WorkoutRegime};
+use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, WorkoutRegime};
 
 // ─── Wendler state ─────────────────────────────────────────────────────────────
 
@@ -214,12 +214,19 @@ impl WorkoutRegime for Wendler531Regime {
                 rest_config: None,
             };
 
+            // Deload week: lighter rest; peak/volume: full rest
+            let group_rest = if week_def.is_deload {
+                rest_cfg(90, 90)
+            } else {
+                rest_cfg(180, 300)
+            };
+
             groups.push(ProposedExerciseGroup {
                 name: exercise_display_name(exercise),
                 sets: 3,
                 interleave_warmups: false,
                 exercise_configs: vec![config],
-                rest_config: None,
+                rest_config: group_rest,
                 tags: vec!["recommended".to_string()],
                 explanation: status.explanation.clone(),
             });
@@ -260,7 +267,7 @@ impl WorkoutRegime for Wendler531Regime {
                     sets: 5,
                     interleave_warmups: true,
                     exercise_configs: vec![ca, cb],
-                    rest_config: None,
+                    rest_config: rest_cfg(90, 90),
                     tags: vec!["auxiliary".to_string()],
                     explanation: format!("BBB accessory work. {}", b.explanation),
                 });
