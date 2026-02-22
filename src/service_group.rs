@@ -4,7 +4,7 @@ use crate::service_workout::get_user_id_authenticated;
 use crate::state::AppState;
 use lift::workout::v1::multiplayer_service_server::MultiplayerService;
 use lift::workout::v1::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -289,88 +289,63 @@ impl MultiplayerService for GroupService {
         };
 
         if let Some(sid) = session_id {
-            let members = self
-                .state
-                .sessions
-                .get(&sid)
-                .map(|r| r.clone())
-                .unwrap_or_default();
-
-            // Try to recover all members to ensure they are in memory
-            for member_id in &members {
-                self.state
-                    .try_recover_user(&self.central_db, member_id)
-                    .await;
-            }
-
-            // Re-read members after recovery in case more were found
-            // Use the database as the source of truth for session membership (Active + Finished)
+            // 1. Get all participants (active + finished)
             let session_members = self
                 .central_db
                 .get_session_participants(&sid)
                 .await
                 .unwrap_or_default();
 
-            // Optimization: Fetch all finished workouts for this session once
-            let finished_workouts_list = self
+            // 2. Get all workout data for the session in bulk
+            let (workouts_with_user, all_groups, all_proposed, all_completed) = self
                 .central_db
-                .get_workouts_by_session(&sid)
+                .get_session_workout_data(&sid)
                 .await
                 .unwrap_or_default();
 
-            // Convert to a map for O(1) lookup: user_id -> Workout
-            let finished_workouts_map: std::collections::HashMap<String, Workout> =
-                finished_workouts_list.into_iter().collect();
+            // 3. Index data for efficient assembly
+            let workouts_by_user: HashMap<String, Workout> = workouts_with_user.into_iter().collect();
+
+            let mut groups_by_workout: HashMap<String, Vec<ExerciseGroup>> = HashMap::new();
+            for g in all_groups {
+                groups_by_workout.entry(g.workout_id.clone()).or_default().push(g);
+            }
+
+            let mut proposed_by_workout: HashMap<String, Vec<ProposedSet>> = HashMap::new();
+            for p in all_proposed {
+                proposed_by_workout.entry(p.workout_id.clone()).or_default().push(p);
+            }
+
+            let mut completed_by_workout: HashMap<String, Vec<CompletedSet>> = HashMap::new();
+            for c in all_completed {
+                completed_by_workout.entry(c.workout_id.clone()).or_default().push(c);
+            }
 
             let mut participant_statuses = Vec::new();
             for member_id in &session_members {
-                // 1. Check if user is currently lifting (in-memory state)
-                if self.state.workouts.contains_key(member_id) {
-                    participant_statuses.push(self.build_participant_status(member_id));
-                    continue;
-                }
-
-                // 2. Fallback: Check if user has a finished workout for this session (DB)
-                if let Some(workout) = finished_workouts_map.get(member_id) {
-                    // User is finished, load their data from DB
-                    let groups = self
-                        .central_db
-                        .get_exercise_groups(member_id, &workout.id)
+                // Get user info (check cache first)
+                let user = if let Some(u) = self.state.users.get(member_id) {
+                    u.clone()
+                } else {
+                    self.central_db
+                        .get_user(member_id)
                         .await
-                        .unwrap_or_default();
-                    let proposed = self
-                        .central_db
-                        .get_proposed_sets(member_id, &workout.id)
-                        .await
-                        .unwrap_or_default();
-                    let completed = self
-                        .central_db
-                        .get_completed_sets(member_id, &workout.id)
-                        .await
-                        .unwrap_or_default();
+                        .ok()
+                        .flatten()
+                        .unwrap_or_else(|| User {
+                            id: member_id.clone(),
+                            name: String::new(),
+                            created_at: 0,
+                        })
+                };
 
-                    // Get user info
-                    let user = if let Some(u) = self.state.users.get(member_id) {
-                        u.clone()
-                    } else {
-                        self.central_db
-                            .get_user(member_id)
-                            .await
-                            .ok()
-                            .flatten()
-                            .unwrap_or_else(|| User {
-                                id: member_id.clone(),
-                                name: String::new(),
-                                created_at: 0,
-                            })
-                    };
+                if let Some(workout) = workouts_by_user.get(member_id) {
+                    let groups = groups_by_workout.remove(&workout.id).unwrap_or_default();
+                    let proposed = proposed_by_workout.remove(&workout.id).unwrap_or_default();
+                    let completed = completed_by_workout.remove(&workout.id).unwrap_or_default();
 
-                    // Compute progress
-                    let proposed_active: Vec<ProposedSet> = proposed
-                        .iter()
-                        .filter(|set| !set.cancelled)
-                        .cloned()
-                        .collect();
+                    let proposed_active: Vec<ProposedSet> =
+                        proposed.iter().filter(|s| !s.cancelled).cloned().collect();
                     let progress = compute_participant_progress(&proposed_active, &completed);
 
                     participant_statuses.push(ParticipantStatus {
@@ -385,21 +360,7 @@ impl MultiplayerService for GroupService {
                         has_active_set: progress.has_active_set,
                     });
                 } else {
-                    // 3. User is just hanging out (in session but no workout started/finished)
-                    let user = if let Some(u) = self.state.users.get(member_id) {
-                        u.clone()
-                    } else {
-                        self.central_db
-                            .get_user(member_id)
-                            .await
-                            .ok()
-                            .flatten()
-                            .unwrap_or_else(|| User {
-                                id: member_id.clone(),
-                                name: String::new(),
-                                created_at: 0,
-                            })
-                    };
+                    // Just a lurker
                     participant_statuses.push(ParticipantStatus {
                         user: Some(user),
                         active_workout_id: String::new(),
