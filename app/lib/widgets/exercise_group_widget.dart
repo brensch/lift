@@ -11,6 +11,7 @@ class ExerciseGroupWidget extends StatefulWidget {
   final String? activeSetId;
   final bool isWorkoutEnded;
   final VoidCallback? onEdit;
+  final int? groupIndex; // null = not draggable (completed group)
 
   const ExerciseGroupWidget({
     super.key,
@@ -19,6 +20,7 @@ class ExerciseGroupWidget extends StatefulWidget {
     this.activeSetId,
     required this.isWorkoutEnded,
     this.onEdit,
+    this.groupIndex,
   });
 
   @override
@@ -32,6 +34,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final workingSets = widget.group.sets.where((s) => !s.warmup).toList();
+    final warmupSets = widget.group.sets.where((s) => s.warmup).toList();
+
     final completedWorkingSets = workingSets
         .where(
           (s) => widget.completedSets.any(
@@ -39,6 +43,14 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
           ),
         )
         .length;
+    final completedWarmupSets = warmupSets
+        .where(
+          (s) => widget.completedSets.any(
+            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+          ),
+        )
+        .length;
+
     final allCompleted =
         workingSets.isNotEmpty && completedWorkingSets == workingSets.length;
     final hasActiveSet =
@@ -74,7 +86,10 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                 child: InkWell(
                   onTap: () => setState(() => _isManualExpanded = true),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
                         Icon(
@@ -90,7 +105,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                     'Unknown')
                                 .toUpperCase(),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 15,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.3,
                               color: colorScheme.tertiary,
@@ -101,12 +116,34 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                         Text(
                           '${workingSets.length}×',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.successFg,
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Expand button (same width as drag handle)
+              GestureDetector(
+                onTap: () => setState(() => _isManualExpanded = true),
+                child: Container(
+                  width: 32,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: colorScheme.outline.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: colorScheme.onSurface.withValues(alpha: 0.25),
                     ),
                   ),
                 ),
@@ -117,7 +154,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       );
     }
 
-    // ── EXPANDED (active / upcoming) ───────────────────────────────────────
+    // ── EXPANDED (active / upcoming / manually expanded completed) ──────────
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -158,7 +195,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                         'Unknown')
                                     .toUpperCase(),
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 17,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.4,
                                   color: allCompleted
@@ -168,9 +205,11 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
-                                '$completedWorkingSets / ${workingSets.length} SETS',
+                                warmupSets.isNotEmpty
+                                    ? '$completedWarmupSets/${warmupSets.length} WARMUPS   $completedWorkingSets/${workingSets.length} SETS'
+                                    : '$completedWorkingSets/${workingSets.length} SETS',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.4,
                                   color: allCompleted
@@ -189,7 +228,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                               child: Icon(
                                 Icons.edit_outlined,
                                 size: 14,
-                                color: colorScheme.tertiary.withValues(alpha: 0.5),
+                                color: colorScheme.tertiary.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -211,22 +252,46 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
               ),
             ),
 
-            // Drag handle
-            if (!widget.isWorkoutEnded)
-              Container(
-                width: 32,
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.1),
+            // Right panel: collapse for completed, drag handle for others
+            if (allCompleted)
+              GestureDetector(
+                onTap: () => setState(() => _isManualExpanded = false),
+                child: Container(
+                  width: 32,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: colorScheme.outline.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      size: 18,
+                      color: colorScheme.onSurface.withValues(alpha: 0.25),
                     ),
                   ),
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.drag_indicator,
-                    size: 16,
-                    color: colorScheme.onSurface.withValues(alpha: 0.18),
+              )
+            else if (!widget.isWorkoutEnded && widget.groupIndex != null)
+              ReorderableDragStartListener(
+                index: widget.groupIndex!,
+                child: Container(
+                  width: 32,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: colorScheme.outline.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.drag_indicator,
+                      size: 16,
+                      color: colorScheme.onSurface.withValues(alpha: 0.18),
+                    ),
                   ),
                 ),
               ),
@@ -301,7 +366,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 13,
           color: fg,
           fontWeight: fontWeight,
           letterSpacing: -0.2,

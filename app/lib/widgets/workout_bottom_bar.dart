@@ -198,7 +198,18 @@ class WorkoutBottomBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Row 1: Current user status box
+                // Row 1: Group status box
+                if (mp.participants.length > 1) ...[
+                  _buildGroupStatusBox(
+                    context,
+                    mp.sessionStatus,
+                    auth.userId,
+                    wp.now,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Row 2: Current user status box
                 StatusBox(
                   sideLabel: 'YOU',
                   stateLabel: stateLabel,
@@ -208,17 +219,6 @@ class WorkoutBottomBar extends StatelessWidget {
                   set: displaySet,
                   isComplete: _isAllDoneState(stateValue),
                 ),
-
-                // Row 3: Group status box
-                if (mp.participants.length > 1) ...[
-                  const SizedBox(height: 8),
-                  _buildGroupStatusBox(
-                    context,
-                    mp.sessionStatus,
-                    auth.userId,
-                    wp.now,
-                  ),
-                ],
 
                 // Row 3: action + total time on one line
                 const SizedBox(height: 12),
@@ -270,75 +270,10 @@ class WorkoutBottomBar extends StatelessWidget {
     final error = Theme.of(context).colorScheme.error;
     final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
 
-    // Find someone in the group who is active or next
-    ParticipantStatus? groupActive;
-    String groupState = '';
-    String? groupTimer;
-    Color? groupTimerColor;
-    ProposedSet? groupSet;
-    Color boxColor = purple;
-    bool isMeNext = false;
-
-    final currentLifterId = status.currentlyLiftingUserId;
-    if (currentLifterId.isNotEmpty && currentLifterId != myUserId) {
-      final liftingParticipant = status.participants
-          .cast<ParticipantStatus?>()
-          .firstWhere((p) => p!.user.id == currentLifterId, orElse: () => null);
-      if (liftingParticipant != null) {
-        final active = liftingParticipant.completedSets
-            .cast<CompletedSet?>()
-            .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
-        final proposed = active == null
-            ? null
-            : liftingParticipant.proposedSets.cast<ProposedSet?>().firstWhere(
-                (s) => s!.id == active.proposedSetId,
-                orElse: () => null,
-              );
-        groupActive = liftingParticipant;
-        groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-        groupTimer = active != null
-            ? _fmt(nowUnix - active.startedAt.toInt())
-            : null;
-        groupSet = proposed;
-      }
-    }
-
-    if (groupActive == null) {
-      final nextUpUserId = status.nextUpUserId;
-      if (nextUpUserId.isNotEmpty && nextUpUserId == myUserId) {
-        isMeNext = true;
-      } else if (nextUpUserId.isNotEmpty) {
-        final nextParticipant = status.participants
-            .cast<ParticipantStatus?>()
-            .firstWhere((p) => p!.user.id == nextUpUserId, orElse: () => null);
-        if (nextParticipant != null) {
-          groupActive = nextParticipant;
-          final nextRestUntil = status.nextUpRestUntil.toInt() > 0
-              ? status.nextUpRestUntil.toInt()
-              : nextParticipant.restUntil.toInt();
-          final remaining = nextRestUntil - nowUnix;
-          if (remaining > 0) {
-            groupState = 'Resting';
-            groupTimer = _fmt(remaining);
-          } else if (nextRestUntil > 0) {
-            groupState = 'Yapping';
-            groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
-            groupTimerColor = error;
-            boxColor = error;
-          } else {
-            groupState = 'Ready';
-            groupTimer = 'Ready';
-          }
-          if (nextParticipant.hasNextUpSet()) {
-            groupSet = nextParticipant.nextUpSet;
-          } else if (status.hasNextUpSet()) {
-            groupSet = status.nextUpSet;
-          }
-        }
-      }
-    }
-
-    if (isMeNext) {
+    // "You're up next" takes priority over everything else — check it first so
+    // it shows regardless of whether someone else is currently lifting.
+    final nextUpUserId = status.nextUpUserId;
+    if (nextUpUserId.isNotEmpty && nextUpUserId == myUserId) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -352,6 +287,109 @@ class WorkoutBottomBar extends StatelessWidget {
             SizedBox(width: 8),
             Text(
               "You're up next in the group",
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+                color: purple,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Find someone in the group who is active or next
+    ParticipantStatus? groupActive;
+    String groupState = '';
+    String? groupTimer;
+    Color? groupTimerColor;
+    ProposedSet? groupSet;
+    Color boxColor = purple;
+
+    // Find another participant who is actively lifting. Prefer the server's
+    // designated currentLifterId, but fall back to scanning all participants
+    // for an active set — this handles simultaneous lifts where
+    // currentLifterId == myUserId but someone else is also mid-set.
+    final currentLifterId = status.currentlyLiftingUserId;
+    final otherLifter = currentLifterId.isNotEmpty && currentLifterId != myUserId
+        ? status.participants
+            .cast<ParticipantStatus?>()
+            .firstWhere((p) => p!.user.id == currentLifterId, orElse: () => null)
+        : status.participants
+            .cast<ParticipantStatus?>()
+            .firstWhere(
+              (p) =>
+                  p!.user.id != myUserId &&
+                  p.completedSets.any((c) => c.endedAt == Int64.ZERO),
+              orElse: () => null,
+            );
+
+    if (otherLifter != null) {
+      final active = otherLifter.completedSets
+          .cast<CompletedSet?>()
+          .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
+      final proposed = active == null
+          ? null
+          : otherLifter.proposedSets.cast<ProposedSet?>().firstWhere(
+              (s) => s!.id == active.proposedSetId,
+              orElse: () => null,
+            );
+      groupActive = otherLifter;
+      groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
+      groupTimer = active != null
+          ? _fmt(nowUnix - active.startedAt.toInt())
+          : null;
+      groupSet = proposed;
+    }
+
+    if (groupActive == null && nextUpUserId.isNotEmpty) {
+      final nextParticipant = status.participants
+          .cast<ParticipantStatus?>()
+          .firstWhere((p) => p!.user.id == nextUpUserId, orElse: () => null);
+      if (nextParticipant != null) {
+        groupActive = nextParticipant;
+        final nextRestUntil = status.nextUpRestUntil.toInt() > 0
+            ? status.nextUpRestUntil.toInt()
+            : nextParticipant.restUntil.toInt();
+        final remaining = nextRestUntil - nowUnix;
+        if (remaining > 0) {
+          groupState = 'Resting';
+          groupTimer = _fmt(remaining);
+        } else if (nextRestUntil > 0) {
+          groupState = 'Yapping';
+          groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
+          groupTimerColor = error;
+          boxColor = error;
+        } else {
+          groupState = 'Ready';
+          groupTimer = 'Ready';
+        }
+        if (nextParticipant.hasNextUpSet()) {
+          groupSet = nextParticipant.nextUpSet;
+        } else if (status.hasNextUpSet()) {
+          groupSet = status.nextUpSet;
+        }
+      }
+    }
+
+    // If the current user is lifting and no other participant state can be
+    // determined yet, show a placeholder so the group section doesn't disappear
+    // transiently the moment the user starts a set.
+    if (groupActive == null && currentLifterId == myUserId) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: purple.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: purple.withValues(alpha: 0.2)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.group, color: purple, size: 18),
+            SizedBox(width: 8),
+            Text(
+              "Everyone's watching",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w900,

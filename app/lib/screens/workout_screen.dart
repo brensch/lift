@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -124,14 +125,35 @@ class WorkoutScreen extends StatelessWidget {
                 ReorderableListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
                   itemCount: groups.length,
                   onReorder: (oldIndex, newIndex) {
                     if (isEnded) return;
-                    HapticFeedback.mediumImpact();
 
-                    if (oldIndex < newIndex) {
-                      newIndex -= 1;
+                    final completedFlags = groups
+                        .map((g) => _isGroupCompleted(g, wp.completedSets))
+                        .toList();
+
+                    // Don't allow dragging completed groups
+                    if (completedFlags[oldIndex]) return;
+
+                    // Can't jump over any completed group in either direction.
+                    // newIndex here is the pre-adjustment Flutter value.
+                    if (oldIndex > newIndex) {
+                      // Moving up: check range [newIndex, oldIndex-1]
+                      for (int i = newIndex; i < oldIndex; i++) {
+                        if (completedFlags[i]) return;
+                      }
+                    } else {
+                      // Moving down: check range [oldIndex+1, newIndex-1]
+                      for (int i = oldIndex + 1; i < newIndex; i++) {
+                        if (completedFlags[i]) return;
+                      }
                     }
+
+                    if (oldIndex < newIndex) newIndex -= 1;
+
+                    HapticFeedback.mediumImpact();
 
                     final items = List<ExerciseGroupData>.from(wp.exerciseGroups);
                     final item = items.removeAt(oldIndex);
@@ -158,6 +180,7 @@ class WorkoutScreen extends StatelessWidget {
                   },
                   itemBuilder: (context, idx) {
                     final group = groups[idx];
+                    final isCompleted = _isGroupCompleted(group, wp.completedSets);
                     final stableKey = group.sets.isNotEmpty
                         ? group.sets.first.id
                         : 'empty-$idx';
@@ -188,6 +211,7 @@ class WorkoutScreen extends StatelessWidget {
                         activeSetId: activeSetId,
                         isWorkoutEnded: isEnded,
                         onEdit: () => _editGroup(context, wp, idx, group),
+                        groupIndex: isCompleted ? null : idx,
                       ),
                     );
                   },
@@ -314,6 +338,22 @@ class WorkoutScreen extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  static bool _isGroupCompleted(
+    ExerciseGroupData group,
+    List<CompletedSet> completedSets,
+  ) {
+    final workingSets = group.sets.where((s) => !s.warmup).toList();
+    if (workingSets.isEmpty) return false;
+    final completedCount = workingSets
+        .where(
+          (s) => completedSets.any(
+            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+          ),
+        )
+        .length;
+    return completedCount == workingSets.length;
   }
 
   void _deleteGroup(BuildContext context, WorkoutProvider wp, int index) {
