@@ -1213,6 +1213,24 @@ impl CentralDb {
     }
 
     #[allow(dead_code)]
+    pub async fn get_session_participants(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows = sqlx::query_scalar(
+            "SELECT DISTINCT user_id FROM (
+                SELECT user_id FROM sessions WHERE session_id = ? AND left_at IS NULL
+                UNION
+                SELECT user_id FROM workouts WHERE session_id = ?
+            )",
+        )
+        .bind(session_id)
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
     pub async fn get_workouts_by_session(
         &self,
         session_id: &str,
