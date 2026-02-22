@@ -58,6 +58,7 @@ Future<void> showEditExerciseDialog(
               Exercise.EXERCISE_UNSPECIFIED,
           startWeight: config.startWeight,
           endWeight: config.endWeight,
+          differentEndWeight: config.startWeight != config.endWeight,
           reps: config.reps,
           includeWarmup: config.includeWarmup,
           restConfig: config.hasRestConfig()
@@ -82,6 +83,7 @@ Future<void> showEditExerciseDialog(
           exercise: ex,
           startWeight: weight,
           endWeight: weight,
+          differentEndWeight: false,
           reps: workingSets.firstOrNull?.targetReps ?? 5,
           includeWarmup: group.sets.any((s) => s.warmup && s.exercise == ex),
         ),
@@ -162,6 +164,7 @@ Future<void> showEditExerciseDialog(
                               exercise: exercise,
                               startWeight: status?.targetWeight ?? 45,
                               endWeight: status?.targetWeight ?? 45,
+                              differentEndWeight: false,
                               reps: status?.defaultReps ?? 5,
                               includeWarmup: true,
                             ),
@@ -185,36 +188,43 @@ Future<void> showEditExerciseDialog(
                     final idx = entry.key;
                     final config = entry.value;
                     final isExpanded = expandedIndex == idx;
-                    return _CompactExerciseConfig(
-                      config: config,
-                      isExpanded: isExpanded,
-                      onTap: () => setState(() {
-                        expandedIndex = isExpanded ? null : idx;
-                      }),
-                      onDelete: () => setState(() {
-                        editableConfigs.removeAt(idx);
-                        if (expandedIndex == idx) {
-                          expandedIndex = null;
-                        } else if (expandedIndex != null &&
-                            expandedIndex! > idx) {
-                          expandedIndex = expandedIndex! - 1;
-                        }
-                      }),
-                      onStartWeightChanged: (v) => setState(() {
-                        final wasSynced =
-                            config.startWeight == config.endWeight;
-                        config.startWeight = v;
-                        if (wasSynced) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _CompactExerciseConfig(
+                        config: config,
+                        isExpanded: isExpanded,
+                        onTap: () => setState(() {
+                          expandedIndex = isExpanded ? null : idx;
+                        }),
+                        onDelete: () => setState(() {
+                          editableConfigs.removeAt(idx);
+                          if (expandedIndex == idx) {
+                            expandedIndex = null;
+                          } else if (expandedIndex != null &&
+                              expandedIndex! > idx) {
+                            expandedIndex = expandedIndex! - 1;
+                          }
+                        }),
+                        onStartWeightChanged: (v) => setState(() {
+                          config.startWeight = v;
+                          if (!config.differentEndWeight) {
+                            config.endWeight = v;
+                          }
+                        }),
+                        onEndWeightChanged: (v) => setState(() {
                           config.endWeight = v;
-                        }
-                      }),
-                      onEndWeightChanged: (v) => setState(() {
-                        config.endWeight = v;
-                      }),
-                      onWarmupChanged: (v) =>
-                          setState(() => config.includeWarmup = v),
-                      onRestChanged: (v) =>
-                          setState(() => config.restConfig = v),
+                        }),
+                        onDifferentEndWeightChanged: (v) => setState(() {
+                          config.differentEndWeight = v;
+                          if (!v) {
+                            config.endWeight = config.startWeight;
+                          }
+                        }),
+                        onWarmupChanged: (v) =>
+                            setState(() => config.includeWarmup = v),
+                        onRestChanged: (v) =>
+                            setState(() => config.restConfig = v),
+                      ),
                     );
                   }),
 
@@ -388,6 +398,7 @@ Future<void> showAddExerciseDialog(
                               exercise: exercise,
                               startWeight: status?.targetWeight ?? 45,
                               endWeight: status?.targetWeight ?? 45,
+                              differentEndWeight: false,
                               reps: status?.defaultReps ?? 5,
                               includeWarmup: true,
                             ),
@@ -417,36 +428,43 @@ Future<void> showAddExerciseDialog(
                       final idx = entry.key;
                       final config = entry.value;
                       final isExpanded = expandedIndex == idx;
-                      return _CompactExerciseConfig(
-                        config: config,
-                        isExpanded: isExpanded,
-                        onTap: () => setState(() {
-                          expandedIndex = isExpanded ? null : idx;
-                        }),
-                        onDelete: () => setState(() {
-                          configs.removeAt(idx);
-                          if (expandedIndex == idx) {
-                            expandedIndex = null;
-                          } else if (expandedIndex != null &&
-                              expandedIndex! > idx) {
-                            expandedIndex = expandedIndex! - 1;
-                          }
-                        }),
-                        onStartWeightChanged: (v) => setState(() {
-                          final wasSynced =
-                              config.startWeight == config.endWeight;
-                          config.startWeight = v;
-                          if (wasSynced) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CompactExerciseConfig(
+                          config: config,
+                          isExpanded: isExpanded,
+                          onTap: () => setState(() {
+                            expandedIndex = isExpanded ? null : idx;
+                          }),
+                          onDelete: () => setState(() {
+                            configs.removeAt(idx);
+                            if (expandedIndex == idx) {
+                              expandedIndex = null;
+                            } else if (expandedIndex != null &&
+                                expandedIndex! > idx) {
+                              expandedIndex = expandedIndex! - 1;
+                            }
+                          }),
+                          onStartWeightChanged: (v) => setState(() {
+                            config.startWeight = v;
+                            if (!config.differentEndWeight) {
+                              config.endWeight = v;
+                            }
+                          }),
+                          onEndWeightChanged: (v) => setState(() {
                             config.endWeight = v;
-                          }
-                        }),
-                        onEndWeightChanged: (v) => setState(() {
-                          config.endWeight = v;
-                        }),
-                        onWarmupChanged: (v) =>
-                            setState(() => config.includeWarmup = v),
-                        onRestChanged: (v) =>
-                            setState(() => config.restConfig = v),
+                          }),
+                          onDifferentEndWeightChanged: (v) => setState(() {
+                            config.differentEndWeight = v;
+                            if (!v) {
+                              config.endWeight = config.startWeight;
+                            }
+                          }),
+                          onWarmupChanged: (v) =>
+                              setState(() => config.includeWarmup = v),
+                          onRestChanged: (v) =>
+                              setState(() => config.restConfig = v),
+                        ),
                       );
                     }),
 
@@ -519,6 +537,7 @@ class _EditableConfig {
   Exercise exercise;
   double startWeight;
   double endWeight;
+  bool differentEndWeight;
   int reps;
   bool includeWarmup;
   RestConfig? restConfig;
@@ -527,6 +546,7 @@ class _EditableConfig {
     required this.exercise,
     required this.startWeight,
     required this.endWeight,
+    this.differentEndWeight = false,
     required this.reps,
     required this.includeWarmup,
     this.restConfig,
@@ -683,14 +703,15 @@ class _ExerciseChipSelectorState extends State<_ExerciseChipSelector> {
   }
 }
 
-/// Compact exercise config row. Tap to expand weight editor.
-class _CompactExerciseConfig extends StatelessWidget {
+/// Compact exercise config row. Tap to expand settings.
+class _CompactExerciseConfig extends StatefulWidget {
   final _EditableConfig config;
   final bool isExpanded;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final ValueChanged<double> onStartWeightChanged;
   final ValueChanged<double> onEndWeightChanged;
+  final ValueChanged<bool> onDifferentEndWeightChanged;
   final ValueChanged<bool> onWarmupChanged;
   final ValueChanged<RestConfig> onRestChanged;
 
@@ -701,240 +722,320 @@ class _CompactExerciseConfig extends StatelessWidget {
     required this.onDelete,
     required this.onStartWeightChanged,
     required this.onEndWeightChanged,
+    required this.onDifferentEndWeightChanged,
     required this.onWarmupChanged,
     required this.onRestChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final name = exerciseNames[config.exercise] ?? '?';
-    final hasEndWeight = config.startWeight != config.endWeight;
-
-    String formatWeight(double w) =>
-        w == w.roundToDouble() ? w.toInt().toString() : w.toStringAsFixed(1);
-
-    final weightLabel = hasEndWeight
-        ? '${formatWeight(config.startWeight)}→${formatWeight(config.endWeight)}lb'
-        : '${formatWeight(config.startWeight)}lb';
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: isExpanded
-                  ? colorScheme.primary.withValues(alpha: 0.05)
-                  : Colors.transparent,
-              border: Border.all(
-                color: isExpanded
-                    ? colorScheme.primary.withValues(alpha: 0.3)
-                    : colorScheme.outline,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    name.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-                Text(
-                  weightLabel,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'x${config.reps}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: colorScheme.tertiary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Icon(
-                  config.includeWarmup
-                      ? Icons.whatshot
-                      : Icons.whatshot_outlined,
-                  size: 16,
-                  color: config.includeWarmup
-                      ? colorScheme.primary
-                      : colorScheme.outline,
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.remove_circle_outline, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  visualDensity: VisualDensity.compact,
-                  color: colorScheme.error.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  isExpanded ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                  color: colorScheme.tertiary,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (isExpanded) ...[
-          const SizedBox(height: 8),
-          _WeightEditor(
-            startWeight: config.startWeight,
-            endWeight: config.endWeight,
-            includeWarmup: config.includeWarmup,
-            onStartWeightChanged: onStartWeightChanged,
-            onEndWeightChanged: onEndWeightChanged,
-            onWarmupChanged: onWarmupChanged,
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (!isExpanded) const SizedBox(height: 6),
-      ],
-    );
-  }
+  State<_CompactExerciseConfig> createState() => _CompactExerciseConfigState();
 }
 
-/// Inline weight editor with plate viz, buttons, and optional end weight.
-class _WeightEditor extends StatelessWidget {
-  final double startWeight;
-  final double endWeight;
-  final bool includeWarmup;
-  final ValueChanged<double> onStartWeightChanged;
-  final ValueChanged<double> onEndWeightChanged;
-  final ValueChanged<bool> onWarmupChanged;
+class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
+  late FixedExtentScrollController _repsController;
 
-  const _WeightEditor({
-    required this.startWeight,
-    required this.endWeight,
-    required this.includeWarmup,
-    required this.onStartWeightChanged,
-    required this.onEndWeightChanged,
-    required this.onWarmupChanged,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _repsController = FixedExtentScrollController(
+      initialItem: (widget.config.reps - 1).clamp(0, 29),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_CompactExerciseConfig oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.config.reps != oldWidget.config.reps) {
+      final targetIndex = (widget.config.reps - 1).clamp(0, 29);
+      if (_repsController.selectedItem != targetIndex) {
+        _repsController.jumpToItem(targetIndex);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _repsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showWeightPicker(
+    BuildContext context,
+    double initialWeight,
+    ValueChanged<double> onChanged,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _WeightPicker(
+        initialWeight: initialWeight,
+        onChanged: onChanged,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasEndWeight = startWeight != endWeight;
+    final name = exerciseNames[widget.config.exercise] ?? '?';
+    final hasEndWeight = widget.config.differentEndWeight;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+        color: widget.isExpanded
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+            : Colors.transparent,
+        border: Border.all(
+          color: widget.isExpanded
+              ? colorScheme.primary.withValues(alpha: 0.5)
+              : colorScheme.outline.withValues(alpha: 0.5),
+        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          // Start weight section
-          if (hasEndWeight)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                'START WEIGHT',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-            ),
-          _WeightControl(weight: startWeight, onChanged: onStartWeightChanged),
-
-          // End weight toggle + section
-          const SizedBox(height: 8),
+          // Main Row
           InkWell(
-            onTap: () {
-              if (hasEndWeight) {
-                onEndWeightChanged(startWeight);
-              } else {
-                onEndWeightChanged(startWeight);
-                // Set a default drop: 80% of start weight rounded to 5
-                final drop = ((startWeight * 0.8) / 5).round() * 5.0;
-                onEndWeightChanged(drop.clamp(0, 1000));
-              }
-            },
-            borderRadius: BorderRadius.circular(6),
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.vertical(
+              top: const Radius.circular(12),
+              bottom: Radius.circular(widget.isExpanded ? 0 : 12),
+            ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Exercise Name
+                  Expanded(
+                    child: Text(
+                      name.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Weight Box (Start)
+                  SizedBox(
+                    height: 48,
+                    child: _WeightDisplayBox(
+                      weight: widget.config.startWeight,
+                      onTap: () => _showWeightPicker(
+                        context,
+                        widget.config.startWeight,
+                        widget.onStartWeightChanged,
+                      ),
+                    ),
+                  ),
+                  
+                  // 'x' separator
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'x',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.tertiary,
+                      ),
+                    ),
+                  ),
+
+                  // Reps Scrollwheel
+                  Container(
+                    height: 48,
+                    width: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.5),
+                      ),
+                      color: colorScheme.surface,
+                    ),
+                    child: Stack(
+                      children: [
+                        ListWheelScrollView.useDelegate(
+                          controller: _repsController,
+                          itemExtent: 24, // Smaller extent to show neighbors
+                          magnification: 1.3,
+                          useMagnifier: true,
+                          physics: const FixedExtentScrollPhysics(),
+                          diameterRatio: 1.5,
+                          squeeze: 1.2, // Squeeze items closer
+                          perspective: 0.004,
+                          onSelectedItemChanged: (index) {
+                            widget.config.reps = index + 1;
+                          },
+                          childDelegate: ListWheelChildBuilderDelegate(
+                            childCount: 30, // Limit to 30 items (index 0 is rep 1)
+                            builder: (context, index) {
+                              final rep = index + 1;
+                              return Center(
+                                child: Text(
+                                  '$rep',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        // Scroll indicators (gradients)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 12,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(8),
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  colorScheme.surface,
+                                  colorScheme.surface.withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 12,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                bottom: Radius.circular(8),
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  colorScheme.surface,
+                                  colorScheme.surface.withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Settings Cog
                   Icon(
-                    hasEndWeight
-                        ? Icons.check_box
-                        : Icons.check_box_outline_blank,
-                    size: 18,
-                    color: hasEndWeight
+                    Icons.settings,
+                    size: 20,
+                    color: widget.isExpanded
                         ? colorScheme.primary
                         : colorScheme.tertiary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'DIFFERENT END WEIGHT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      color: hasEndWeight
-                          ? colorScheme.primary
-                          : colorScheme.tertiary,
-                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          if (hasEndWeight) ...[
-            const SizedBox(height: 8),
-            Text(
-              'END WEIGHT',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-                color: colorScheme.tertiary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            _WeightControl(weight: endWeight, onChanged: onEndWeightChanged),
-          ],
+          // Expanded Settings
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: widget.isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      children: [
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        
+                        // Warmup & Delete Row
+                        Row(
+                          children: [
+                            Switch(
+                              value: widget.config.includeWarmup,
+                              onChanged: widget.onWarmupChanged,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'WARMUP SET',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.tertiary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton.filledTonal(
+                              onPressed: widget.onDelete,
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              style: IconButton.styleFrom(
+                                backgroundColor: colorScheme.errorContainer,
+                                foregroundColor: colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'WARMUP',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-              Switch(value: includeWarmup, onChanged: onWarmupChanged),
-            ],
+                        // Different End Weight Row
+                        Row(
+                          children: [
+                            Switch(
+                              value: hasEndWeight,
+                              onChanged: widget.onDifferentEndWeightChanged,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'DIFFERENT END WEIGHT',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.tertiary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if (hasEndWeight) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              SizedBox(
+                                height: 48,
+                                child: _WeightDisplayBox(
+                                  weight: widget.config.endWeight,
+                                  onTap: () => _showWeightPicker(
+                                    context,
+                                    widget.config.endWeight,
+                                    widget.onEndWeightChanged,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -942,69 +1043,226 @@ class _WeightEditor extends StatelessWidget {
   }
 }
 
-/// Reusable weight display + buttons + slider.
-class _WeightControl extends StatelessWidget {
+class _WeightDisplayBox extends StatelessWidget {
   final double weight;
-  final ValueChanged<double> onChanged;
+  final VoidCallback onTap;
 
-  const _WeightControl({required this.weight, required this.onChanged});
+  const _WeightDisplayBox({required this.weight, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '${weight.toInt()}',
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'LB',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                color: colorScheme.tertiary,
+            SizedBox(
+              height: 32,
+              width: 56,
+              child: FittedBox(
+                alignment: Alignment.centerLeft,
+                child: PlateVisualization(
+                  weight: weight,
+                  isInteractive: false,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
+            Text(
+              '${weight.toInt()}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
           ],
         ),
-        const SizedBox(height: 4),
-        PlateVisualization(weight: weight),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _WeightButton(
-              label: '-45',
-              onPressed: () => onChanged((weight - 45).clamp(0, 1000)),
-            ),
-            _WeightButton(
-              label: '-5',
-              onPressed: () => onChanged((weight - 5).clamp(0, 1000)),
-            ),
-            _WeightButton(
-              label: '+5',
-              onPressed: () => onChanged((weight + 5).clamp(0, 1000)),
-            ),
-            _WeightButton(
-              label: '+45',
-              onPressed: () => onChanged((weight + 45).clamp(0, 1000)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Slider(
-          value: weight.clamp(0, 500),
-          min: 0,
-          max: 500,
-          divisions: 100,
-          onChanged: onChanged,
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+class _WeightPicker extends StatefulWidget {
+  final double initialWeight;
+  final ValueChanged<double> onChanged;
+
+  const _WeightPicker({required this.initialWeight, required this.onChanged});
+
+  @override
+  State<_WeightPicker> createState() => _WeightPickerState();
+}
+
+class _WeightPickerState extends State<_WeightPicker> {
+  late double _weight;
+  late TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _weight = widget.initialWeight;
+    _textController = TextEditingController(text: '${_weight.toInt()}');
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _updateWeight(double newWeight) {
+    setState(() {
+      _weight = newWeight.clamp(0, 1000);
+      _textController.text = '${_weight.toInt()}';
+    });
+    widget.onChanged(_weight);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 24,
+        left: 24,
+        right: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'SET WEIGHT',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Weight Input & Display
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: _textController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (val) {
+                    final w = double.tryParse(val);
+                    if (w != null) {
+                      setState(() => _weight = w);
+                      widget.onChanged(w);
+                    }
+                  },
+                ),
+              ),
+              Text(
+                'LB',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: colorScheme.tertiary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          PlateVisualization(weight: _weight, scale: 1.2),
+          const SizedBox(height: 24),
+
+          // Quick Adjust Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _WeightAdjustBtn(
+                label: '-45',
+                onPressed: () => _updateWeight(_weight - 45),
+              ),
+              _WeightAdjustBtn(
+                label: '-5',
+                onPressed: () => _updateWeight(_weight - 5),
+              ),
+              _WeightAdjustBtn(
+                label: '+5',
+                onPressed: () => _updateWeight(_weight + 5),
+              ),
+              _WeightAdjustBtn(
+                label: '+45',
+                onPressed: () => _updateWeight(_weight + 45),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Slider
+          Slider(
+            value: _weight.clamp(0, 600),
+            min: 0,
+            max: 600,
+            divisions: 120,
+            label: _weight.toInt().toString(),
+            onChanged: _updateWeight,
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeightAdjustBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _WeightAdjustBtn({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.tonal(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(64, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     );
   }
 }
@@ -1154,29 +1412,6 @@ Future<bool> showDeleteGroupDialog(
         ),
       ) ??
       false;
-}
-
-class _WeightButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-
-  const _WeightButton({required this.label, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(56, 36),
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-      ),
-    );
-  }
 }
 
 class _CountButton extends StatelessWidget {
