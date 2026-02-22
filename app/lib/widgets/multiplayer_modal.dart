@@ -250,7 +250,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'SESSION MEMBERS',
+                  'Session Members',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -285,7 +285,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           ),
                         ),
                         title: Text(
-                          p.user.name.toUpperCase(),
+                          p.user.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,

@@ -58,7 +58,7 @@ class MainLayout extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'MENU',
+                      'Menu',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
@@ -78,7 +78,7 @@ class MainLayout extends StatelessWidget {
                   children: [
                     _MenuButton(
                       icon: Icons.fitness_center_outlined,
-                      label: 'WORKOUT',
+                      label: 'Workout',
                       onTap: () {
                         Navigator.pop(context);
                         context.go('/');
@@ -88,7 +88,7 @@ class MainLayout extends StatelessWidget {
                     const SizedBox(height: 4),
                     _MenuButton(
                       icon: Icons.bar_chart_outlined,
-                      label: 'PROGRESS',
+                      label: 'Progress',
                       onTap: () {
                         Navigator.pop(context);
                         context.push('/progress');
@@ -100,7 +100,7 @@ class MainLayout extends StatelessWidget {
                     const SizedBox(height: 4),
                     _MenuButton(
                       icon: Icons.history_outlined,
-                      label: 'HISTORY',
+                      label: 'History',
                       onTap: () {
                         Navigator.pop(context);
                         context.push('/history');
@@ -112,7 +112,7 @@ class MainLayout extends StatelessWidget {
                     Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
                       icon: Icons.settings_outlined,
-                      label: 'SETTINGS',
+                      label: 'Settings',
                       onTap: () {
                         Navigator.pop(context);
                         context.push('/settings');
@@ -122,49 +122,6 @@ class MainLayout extends StatelessWidget {
                           '/settings'),
                     ),
                     Divider(height: 32, color: colorScheme.outline),
-                    // Dark mode toggle
-                    InkWell(
-                      onTap: () => themeProvider.toggle(),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              themeProvider.isDarkMode(context)
-                                  ? Icons.light_mode_outlined
-                                  : Icons.dark_mode_outlined,
-                              size: 20,
-                              color: colorScheme.onSurface,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                themeProvider.isDarkMode(context)
-                                    ? 'LIGHT MODE'
-                                    : 'DARK MODE',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  letterSpacing: -0.5,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              height: 24,
-                              child: Switch(
-                                value: themeProvider.isDarkMode(context),
-                                onChanged: (_) => themeProvider.toggle(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -172,6 +129,7 @@ class MainLayout extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (userName.isNotEmpty)
                       Padding(
@@ -189,7 +147,7 @@ class MainLayout extends StatelessWidget {
                             ),
                             const SizedBox(width: 16),
                             Text(
-                              userName.toUpperCase(),
+                              userName,
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 14,
@@ -200,16 +158,36 @@ class MainLayout extends StatelessWidget {
                           ],
                         ),
                       ),
-                    _MenuButton(
-                      icon: Icons.logout,
-                      label: 'LOGOUT',
-                      color: colorScheme.error,
-                      onTap: () {
-                        Navigator.pop(context);
-                        authProvider.logout();
-                        context.go('/login');
-                      },
-                      isActive: false,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          _MenuButton(
+                            icon: Icons.logout,
+                            label: 'Logout',
+                            color: colorScheme.error,
+                            onTap: () {
+                              Navigator.pop(context);
+                              authProvider.logout();
+                              context.go('/login');
+                            },
+                            isActive: false,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: Icon(
+                              themeProvider.isDarkMode(context)
+                                  ? Icons.wb_sunny
+                                  : Icons.dark_mode_outlined,
+                              color: colorScheme.onSurface,
+                            ),
+                            tooltip: themeProvider.isDarkMode(context)
+                                ? 'Switch to light mode'
+                                : 'Switch to dark mode',
+                            onPressed: () => themeProvider.toggle(),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -245,8 +223,8 @@ class MainLayout extends StatelessWidget {
 
     final participantCount = mp.participants.length;
     final buttonLabel = participantCount > 1
-        ? 'MULTIPLAYER ($participantCount)'
-        : 'MULTIPLAYER';
+        ? 'Multiplayer ($participantCount)'
+        : 'Multiplayer';
 
     Widget button = Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),

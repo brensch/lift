@@ -80,7 +80,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text(
-            'PROGRESS',
+            'Progress',
             style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
           ),
         ),
@@ -96,7 +96,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'PROGRESS',
+          'Progress',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
       ),
@@ -140,7 +140,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name.toUpperCase(),
+                  name,
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,

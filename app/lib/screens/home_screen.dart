@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getDefaultWorkoutName() {
-    return greetingTime().toUpperCase();
+    return greetingTime();
   }
 
   Future<void> _loadData() async {
@@ -152,9 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final baseName = _nameController.text.trim().isEmpty
           ? _getDefaultWorkoutName()
-          : _nameController.text.trim().toUpperCase();
+          : _nameController.text.trim();
 
-      final workoutName = "$dateStr - $summaryNames - $baseName".toUpperCase();
+      final workoutName = "$dateStr - $summaryNames - $baseName";
 
       final workoutProvider = context.read<WorkoutProvider>();
       final workoutId = await workoutProvider.startWorkout(
@@ -290,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         proposedGroups: _proposedGroups!,
                         selectedIndices: _selectedGroupIndices,
                         onToggle: _toggleGroup,
+                        columns: entry.key == 'recommended' ? 1 : 3,
                       ),
                     ),
                 ],
@@ -323,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'GOOD ${greetingTime().toUpperCase()}, ${userName.split(' ').first.toUpperCase()}.',
+                    'Good ${greetingTime()}, ${userName.split(' ').first}.',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -344,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${_selectedGroupIndices.length} GROUPS',
+                            '${_selectedGroupIndices.length} Groups',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
@@ -377,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       child: Text(
-                        _proposedGroups![idx].name.toUpperCase(),
+                        _proposedGroups![idx].name,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
@@ -395,14 +396,14 @@ class _HomeScreenState extends State<HomeScreen> {
             // Workout name field
             TextField(
               controller: _nameController,
-              textCapitalization: TextCapitalization.characters,
+              textCapitalization: TextCapitalization.words,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onSurface,
               ),
               decoration: InputDecoration(
-                hintText: 'NAME THIS WORKOUT (OPTIONAL)',
+                hintText: 'Name This Workout (Optional)',
                 hintStyle: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -523,7 +524,7 @@ class _SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            tag.toUpperCase(),
+            tag,
             style: TextStyle(
               fontSize: isRecommended ? 13 : 11,
               fontWeight: FontWeight.w900,
@@ -563,24 +564,25 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ─── 3-column grid of group chips ────────────────────────────────────────────
+// ─── Variable-column grid of group chips ───────────────────────────────────────────
 
 class _GroupGrid extends StatelessWidget {
   final List<int> indices;
   final List<ProposedExerciseGroup> proposedGroups;
   final Set<int> selectedIndices;
   final void Function(int) onToggle;
+  final int columns;
 
   const _GroupGrid({
     required this.indices,
     required this.proposedGroups,
     required this.selectedIndices,
     required this.onToggle,
+    this.columns = 3,
   });
 
   @override
   Widget build(BuildContext context) {
-    const columns = 3;
     const gap = 8.0;
     final rows = <Widget>[];
 
@@ -632,6 +634,7 @@ class _GroupChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final hasExplanation = group.explanation.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -655,31 +658,49 @@ class _GroupChip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    group.name.toUpperCase(),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                      letterSpacing: -0.3,
-                      height: 1.25,
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        group.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12,
+                                          letterSpacing: -0.3,
+                                          height: 1.25,
+                                          color: isSelected
+                                              ? colorScheme.primary
+                                              : colorScheme.onSurface,
+                                        ),                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    if (isSelected) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 14,
+                        color: colorScheme.primary,
+                      ),
+                    ],
+                  ],
                 ),
-                if (isSelected) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.check_circle_rounded,
-                    size: 14,
-                    color: colorScheme.primary,
+                if (hasExplanation) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    group.explanation,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      height: 1.3,
+                      color: isSelected
+                          ? colorScheme.primary.withValues(alpha: 0.8)
+                          : colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
                   ),
                 ],
               ],

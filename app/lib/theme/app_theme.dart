@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Monochrome, minimalist theme inspired by shadcn/ui.
 /// No blue accents — neutral grays, whites, and near-black.
@@ -6,12 +7,92 @@ class AppTheme {
   AppTheme._();
 
   // ─── Shared constants ───────────────────────────────────────────────
-  static const _fontFamily = 'Inter'; // Falls back to system sans-serif
   static const _radius = 8.0;
+  static const _fontScale = 1.06;
   static final _borderRadius = BorderRadius.circular(_radius);
   static final _buttonShape = RoundedRectangleBorder(
     borderRadius: _borderRadius,
   );
+
+  static TextTheme _themedTextTheme(TextTheme base) {
+    final bodyText = GoogleFonts.manropeTextTheme(base);
+
+    TextStyle? scaled(TextStyle? style) {
+      if (style == null || style.fontSize == null) return style;
+      return style.copyWith(fontSize: style.fontSize! * _fontScale);
+    }
+
+    TextStyle? heading(
+      TextStyle? style, {
+      FontWeight weight = FontWeight.w700,
+      double? letterSpacing,
+    }) {
+      if (style == null) return null;
+      return GoogleFonts.spaceGrotesk(
+        textStyle: style,
+        fontWeight: weight,
+        letterSpacing: letterSpacing ?? style.letterSpacing,
+      );
+    }
+
+    return bodyText.copyWith(
+      displayLarge: heading(
+        scaled(bodyText.displayLarge),
+        weight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
+      displayMedium: heading(
+        scaled(bodyText.displayMedium),
+        weight: FontWeight.w700,
+        letterSpacing: -0.6,
+      ),
+      displaySmall: heading(
+        scaled(bodyText.displaySmall),
+        weight: FontWeight.w700,
+        letterSpacing: -0.4,
+      ),
+      headlineLarge: heading(
+        scaled(bodyText.headlineLarge),
+        weight: FontWeight.w700,
+        letterSpacing: -0.4,
+      ),
+      headlineMedium: heading(
+        scaled(bodyText.headlineMedium),
+        weight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
+      headlineSmall: heading(
+        scaled(bodyText.headlineSmall),
+        weight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+      titleLarge: heading(
+        scaled(bodyText.titleLarge),
+        weight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+      titleMedium: heading(
+        scaled(bodyText.titleMedium),
+        weight: FontWeight.w600,
+        letterSpacing: -0.1,
+      ),
+      titleSmall: heading(
+        scaled(bodyText.titleSmall),
+        weight: FontWeight.w600,
+        letterSpacing: -0.05,
+      ),
+      bodyLarge: scaled(bodyText.bodyLarge),
+      bodyMedium: scaled(bodyText.bodyMedium),
+      bodySmall: scaled(bodyText.bodySmall),
+      labelLarge: scaled(
+        bodyText.labelLarge,
+      )?.copyWith(fontWeight: FontWeight.w600),
+      labelMedium: scaled(
+        bodyText.labelMedium,
+      )?.copyWith(fontWeight: FontWeight.w600),
+      labelSmall: scaled(bodyText.labelSmall),
+    );
+  }
 
   // ─── Semantic colors (same in both modes, used via extension) ──────
   static const warmupLight = Color(0x1A6B7280); // gray-500 @ 10%
@@ -28,8 +109,8 @@ class AppTheme {
   static final light = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    fontFamily: _fontFamily,
     scaffoldBackgroundColor: Colors.white,
+    textTheme: _themedTextTheme(Typography.material2021().black),
     colorScheme: const ColorScheme.light(
       surface: Colors.white,
       onSurface: Color(0xFF0A0A0A),
@@ -155,8 +236,8 @@ class AppTheme {
   static final dark = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    fontFamily: _fontFamily,
     scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+    textTheme: _themedTextTheme(Typography.material2021().white),
     colorScheme: const ColorScheme.dark(
       surface: Color(0xFF0A0A0A),
       onSurface: Color(0xFFFAFAFA),

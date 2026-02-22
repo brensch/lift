@@ -1000,6 +1000,7 @@ const ProposedExerciseGroup$json = {
       '10': 'restConfig'
     },
     {'1': 'tags', '3': 6, '4': 3, '5': 9, '10': 'tags'},
+    {'1': 'explanation', '3': 7, '4': 1, '5': 9, '10': 'explanation'},
   ],
 };
 
@@ -1009,7 +1010,8 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'gFUgRzZXRzEi0KEmludGVybGVhdmVfd2FybXVwcxgDIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMS'
     'SQoQZXhlcmNpc2VfY29uZmlncxgEIAMoCzIeLndvcmtvdXQudjEuRXhlcmNpc2VUeXBlQ29uZm'
     'lnUg9leGVyY2lzZUNvbmZpZ3MSNwoLcmVzdF9jb25maWcYBSABKAsyFi53b3Jrb3V0LnYxLlJl'
-    'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncw==');
+    'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncxIgCgtleHBsYW5hdGlvbh'
+    'gHIAEoCVILZXhwbGFuYXRpb24=');
 
 @$core.Deprecated('Use getProposedWorkoutScheduleResponseDescriptor instead')
 const GetProposedWorkoutScheduleResponse$json = {

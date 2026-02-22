@@ -715,7 +715,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             ? 'Health Connect'
             : 'Apple Health';
         Fluttertoast.showToast(
-          msg: 'SUCCESSFULLY UPLOADED TO ${storeName.toUpperCase()}',
+          msg: 'Successfully uploaded to $storeName',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.green,
@@ -723,7 +723,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         );
       } else if (result == HealthWriteResult.permissionDenied) {
         Fluttertoast.showToast(
-          msg: 'HEALTH CONNECT PERMISSION DENIED — ENABLE IN SETTINGS',
+          msg: 'Health Connect permission denied — enable in settings',
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.orange,
@@ -733,7 +733,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e, st) {
       debugPrint('Health: write failed: $e\n$st');
       Fluttertoast.showToast(
-        msg: 'FAILED TO SYNC WORKOUT TO HEALTH CONNECT',
+        msg: 'Failed to sync workout to Health Connect',
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.red,

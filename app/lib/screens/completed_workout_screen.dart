@@ -99,8 +99,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         ),
         title: Text(
           workout.name.isNotEmpty
-              ? workout.name.toUpperCase()
-              : (_currentPage == 0 ? 'CELEBRATION' : 'SUMMARY'),
+              ? workout.name
+              : (_currentPage == 0 ? 'Celebration' : 'Summary'),
           style: const TextStyle(
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,

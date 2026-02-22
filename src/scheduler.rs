@@ -270,6 +270,7 @@ impl Scheduler {
             exercise_configs: vec![make_config(status)],
             rest_config: None,
             tags,
+            explanation: status.explanation.clone(),
         };
 
         if let Some(squat) = find_status(Exercise::Squat) {
@@ -326,6 +327,7 @@ impl Scheduler {
                     exercise_configs: vec![make_config(a), make_config(b)],
                     rest_config: None,
                     tags: vec!["auxiliary".to_string()],
+                    explanation: format!("{} {}", a.explanation, b.explanation),
                 });
             } else {
                 if let Some(a) = find_status(*ex_a) {
@@ -336,6 +338,7 @@ impl Scheduler {
                         exercise_configs: vec![make_config(a)],
                         rest_config: None,
                         tags: vec!["auxiliary".to_string()],
+                        explanation: a.explanation.clone(),
                     });
                 }
                 if let Some(b) = find_status(*ex_b) {
@@ -346,6 +349,7 @@ impl Scheduler {
                         exercise_configs: vec![make_config(b)],
                         rest_config: None,
                         tags: vec!["auxiliary".to_string()],
+                        explanation: b.explanation.clone(),
                     });
                 }
             }
@@ -483,6 +487,25 @@ mod tests {
             always_include: exercise == Exercise::Squat,
             category: ExerciseCategory::Compound as i32,
         }
+    }
+
+    #[test]
+    fn proposed_groups_include_explanations() {
+        let mut squat_status = status(Exercise::Squat, 1_000);
+        squat_status.explanation = "Squat explanation".to_string();
+        
+        let mut bench_status = status(Exercise::BenchPress, 3_000);
+        bench_status.explanation = "Bench explanation".to_string();
+
+        let statuses = vec![squat_status, bench_status];
+
+        let groups = Scheduler::build_proposed_groups(&statuses);
+
+        let squat_group = groups.iter().find(|g| g.name == "Squat").unwrap();
+        assert_eq!(squat_group.explanation, "Squat explanation");
+
+        let bench_group = groups.iter().find(|g| g.name == "Bench Press").unwrap();
+        assert_eq!(bench_group.explanation, "Bench explanation");
     }
 
     #[test]
