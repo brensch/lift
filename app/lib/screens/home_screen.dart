@@ -1,8 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercises.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ExerciseStatus>? _schedule;
   List<ProposedExerciseGroup>? _proposedGroups;
   Set<int> _selectedGroupIndices = {};
+  // Non-recommended sections start collapsed.
+  final Set<String> _expandedSections = {};
   bool _isLoading = true;
   bool _isStarting = false;
   String? _error;
@@ -67,14 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final schedule = scheduleRes.exerciseStatuses;
       final proposedGroups = scheduleRes.proposedGroups;
 
-      // Backend provides default ordering; select top 3 by default.
+      // Auto-select all groups tagged "recommended".
       final autoSelected = <int>{};
-      for (
-        int i = 0;
-        i < proposedGroups.length && autoSelected.length < 3;
-        i++
-      ) {
-        autoSelected.add(i);
+      for (int i = 0; i < proposedGroups.length; i++) {
+        if (proposedGroups[i].tags.contains('recommended')) {
+          autoSelected.add(i);
+        }
       }
 
       setState(() {
@@ -103,7 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final exerciseGroups = <ExerciseGroup>[];
       int groupOrder = 0;
 
-      // Build status lookup for weight population
       final statusMap = <int, ExerciseStatus>{};
       if (_schedule != null) {
         for (final s in _schedule!) {
@@ -115,7 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final proposed = _proposedGroups![idx];
         final groupId = _uuid.v4();
 
-        // Build ExerciseTypeConfigs with weights from exercise_statuses
         final configs = proposed.exerciseConfigs.map((c) {
           final status = statusMap[c.exercise.value];
           final weight = status?.targetWeight ?? c.startWeight;
@@ -139,8 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ..workoutOrder = groupOrder++
           ..exerciseConfigs.addAll(configs);
         if (proposed.hasRestConfig()) {
-          group.restConfig = RestConfig()
-            ..mergeFromMessage(proposed.restConfig);
+          group.restConfig = RestConfig()..mergeFromMessage(proposed.restConfig);
         }
         exerciseGroups.add(group);
       }
@@ -149,9 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final dateStr =
           "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
 
-      // Build exercise summary from selected groups
-      final exerciseSummary = _selectedGroupIndices.toList()..sort();
-      final summaryNames = exerciseSummary
+      final summaryNames = (_selectedGroupIndices.toList()..sort())
           .map((idx) => _proposedGroups![idx].name)
           .join(' / ');
 
@@ -162,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final workoutName = "$dateStr - $summaryNames - $baseName".toUpperCase();
 
       final workoutProvider = context.read<WorkoutProvider>();
-
       final workoutId = await workoutProvider.startWorkout(
         workoutName,
         exerciseGroups,
@@ -177,14 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('Error starting workout: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start workout: $e')),
+        );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isStarting = false);
-      }
+      if (mounted) setState(() => _isStarting = false);
     }
   }
 
@@ -196,6 +188,40 @@ class _HomeScreenState extends State<HomeScreen> {
         _selectedGroupIndices.add(index);
       }
     });
+  }
+
+  void _toggleSection(String tag) {
+    setState(() {
+      if (_expandedSections.contains(tag)) {
+        _expandedSections.remove(tag);
+      } else {
+        _expandedSections.add(tag);
+      }
+    });
+  }
+
+  /// Ordered map of tag → group indices. "recommended" always first.
+  Map<String, List<int>> _buildTagSections() {
+    final groups = _proposedGroups;
+    if (groups == null) return {};
+
+    final Map<String, List<int>> sections = {};
+    const recommendedTag = 'recommended';
+
+    for (int i = 0; i < groups.length; i++) {
+      if (groups[i].tags.contains(recommendedTag)) {
+        sections.putIfAbsent(recommendedTag, () => []).add(i);
+      }
+    }
+    for (int i = 0; i < groups.length; i++) {
+      for (final tag in groups[i].tags) {
+        if (tag != recommendedTag) {
+          sections.putIfAbsent(tag, () => []).add(i);
+        }
+      }
+    }
+
+    return sections;
   }
 
   @override
@@ -220,13 +246,15 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final tagSections = _buildTagSections();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: CustomScrollView(
         physics: const ClampingScrollPhysics(),
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             sliver: SliverToBoxAdapter(
               child: Text(
                 'SELECT YOUR EXERCISE GROUPS',
@@ -242,19 +270,30 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final group = _proposedGroups![index];
-                final isSelected = _selectedGroupIndices.contains(index);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _GroupCard(
-                    group: group,
-                    exerciseStatuses: _schedule ?? [],
-                    isSelected: isSelected,
-                    onTap: () => _toggleGroup(index),
+              delegate: SliverChildListDelegate([
+                for (final entry in tagSections.entries) ...[
+                  _SectionHeader(
+                    tag: entry.key,
+                    isRecommended: entry.key == 'recommended',
+                    isExpanded: entry.key == 'recommended' ||
+                        _expandedSections.contains(entry.key),
+                    onTap: entry.key == 'recommended'
+                        ? null
+                        : () => _toggleSection(entry.key),
                   ),
-                );
-              }, childCount: _proposedGroups?.length ?? 0),
+                  if (entry.key == 'recommended' ||
+                      _expandedSections.contains(entry.key))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: _GroupGrid(
+                        indices: entry.value,
+                        proposedGroups: _proposedGroups!,
+                        selectedIndices: _selectedGroupIndices,
+                        onToggle: _toggleGroup,
+                      ),
+                    ),
+                ],
+              ]),
             ),
           ),
           const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
@@ -274,8 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
             top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
             left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
             right: BorderSide(
-              color: colorScheme.outline.withValues(alpha: 0.5),
-            ),
+                color: colorScheme.outline.withValues(alpha: 0.5)),
           ),
         ),
         child: Column(
@@ -313,16 +351,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               height: 64,
               child: FilledButton(
-                onPressed: _selectedGroupIndices.isEmpty || _isStarting
-                    ? null
-                    : _startWorkout,
+                onPressed:
+                    _selectedGroupIndices.isEmpty || _isStarting
+                        ? null
+                        : _startWorkout,
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -361,15 +401,132 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _GroupCard extends StatelessWidget {
+// ─── Section header ──────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String tag;
+  final bool isRecommended;
+  final bool isExpanded;
+  final VoidCallback? onTap;
+
+  const _SectionHeader({
+    required this.tag,
+    required this.isRecommended,
+    required this.isExpanded,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Widget header = Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Row(
+        children: [
+          Text(
+            tag.toUpperCase(),
+            style: TextStyle(
+              fontSize: isRecommended ? 13 : 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.0,
+              color: isRecommended
+                  ? colorScheme.primary
+                  : colorScheme.onSurface.withValues(alpha: 0.45),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Divider(
+              color: colorScheme.outline.withValues(alpha: 0.3),
+              height: 1,
+            ),
+          ),
+          if (onTap != null) ...[
+            const SizedBox(width: 10),
+            AnimatedRotation(
+              turns: isExpanded ? 0 : -0.25,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: header);
+    }
+    return header;
+  }
+}
+
+// ─── 3-column grid of group chips ────────────────────────────────────────────
+
+class _GroupGrid extends StatelessWidget {
+  final List<int> indices;
+  final List<ProposedExerciseGroup> proposedGroups;
+  final Set<int> selectedIndices;
+  final void Function(int) onToggle;
+
+  const _GroupGrid({
+    required this.indices,
+    required this.proposedGroups,
+    required this.selectedIndices,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const columns = 3;
+    const gap = 8.0;
+    final rows = <Widget>[];
+
+    for (int i = 0; i < indices.length; i += columns) {
+      final rowIndices = indices.sublist(i, min(i + columns, indices.length));
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int j = 0; j < columns; j++) ...[
+                if (j > 0) const SizedBox(width: gap),
+                Expanded(
+                  child: j < rowIndices.length
+                      ? _GroupChip(
+                          group: proposedGroups[rowIndices[j]],
+                          isSelected: selectedIndices.contains(rowIndices[j]),
+                          onTap: () => onToggle(rowIndices[j]),
+                        )
+                      : const SizedBox(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+      if (i + columns < indices.length) {
+        rows.add(const SizedBox(height: gap));
+      }
+    }
+
+    return Column(children: rows);
+  }
+}
+
+// ─── Group chip ───────────────────────────────────────────────────────────────
+
+class _GroupChip extends StatelessWidget {
   final ProposedExerciseGroup group;
-  final List<ExerciseStatus> exerciseStatuses;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _GroupCard({
+  const _GroupChip({
     required this.group,
-    required this.exerciseStatuses,
     required this.isSelected,
     required this.onTap,
   });
@@ -378,49 +535,27 @@ class _GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    final borderColor = isSelected ? colorScheme.primary : colorScheme.outline;
-    final bgColor = isSelected
-        ? colorScheme.primary.withValues(alpha: 0.05)
-        : colorScheme.surface;
-
-    // Get recovery status for exercises in this group
-    final groupExercises = group.exerciseConfigs
-        .map((c) => c.exercise.value)
-        .toSet();
-    final allRecovered = groupExercises.every((exVal) {
-      final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-        (s) => s!.exercise.value == exVal,
-        orElse: () => null,
-      );
-      return status?.recovered ?? true;
-    });
-
-    // Get latest last performed
-    int? latestPerformed;
-    for (final exVal in groupExercises) {
-      final status = exerciseStatuses.cast<ExerciseStatus?>().firstWhere(
-        (s) => s!.exercise.value == exVal,
-        orElse: () => null,
-      );
-      if (status != null && status.lastPerformedAt != Int64.ZERO) {
-        final ts = status.lastPerformedAt.toInt();
-        if (latestPerformed == null || ts > latestPerformed) {
-          latestPerformed = ts;
-        }
-      }
-    }
-
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+          color: isSelected
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outline.withValues(alpha: 0.5),
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
-        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,128 +563,44 @@ class _GroupCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     group.name.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      height: 1.1,
-                      letterSpacing: -0.2,
+                      fontSize: 12,
+                      letterSpacing: -0.3,
+                      height: 1.25,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
                     ),
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isSelected)
+                if (isSelected) ...[
+                  const SizedBox(width: 4),
                   Icon(
-                    Icons.check_circle,
-                    size: 20,
+                    Icons.check_circle_rounded,
+                    size: 14,
                     color: colorScheme.primary,
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
-            // Exercise list with weights
-            ...group.exerciseConfigs.map((config) {
-              final ex = Exercise.valueOf(config.exercise.value);
-              final name = exerciseNames[ex] ?? '?';
-              final weight = config.startWeight;
-              final weightStr = weight == weight.roundToDouble()
-                  ? weight.toInt().toString()
-                  : weight.toStringAsFixed(1);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        name.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '${weightStr}lb',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text(
-                  '${group.sets}x${group.exerciseConfigs.first.reps}',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                if (group.exerciseConfigs.length > 1) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      group.interleaveWarmups ? 'SUPERSET' : 'PAIRED',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: allRecovered
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFEA580C),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _formatTimeSince(latestPerformed),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.tertiary,
-                  ),
-                ),
-              ],
+            Text(
+              '${group.sets}×${group.exerciseConfigs.first.reps}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: isSelected
+                    ? colorScheme.primary.withValues(alpha: 0.7)
+                    : colorScheme.onSurface.withValues(alpha: 0.35),
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  String _formatTimeSince(int? timestamp) {
-    if (timestamp == null || timestamp == 0) return 'NEW';
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final diff = now - timestamp;
-
-    if (diff < 60) return 'NOW';
-    if (diff < 3600) return '${(diff / 60).floor()}m';
-    if (diff < 86400) return '${(diff / 3600).floor()}h';
-    return '${(diff / 86400).floor()}d';
   }
 }

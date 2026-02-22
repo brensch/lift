@@ -124,13 +124,15 @@ const Workout$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'start_time', '3': 3, '4': 1, '5': 3, '10': 'startTime'},
     {'1': 'end_time', '3': 4, '4': 1, '5': 3, '10': 'endTime'},
+    {'1': 'session_id', '3': 5, '4': 1, '5': 9, '10': 'sessionId'},
   ],
 };
 
 /// Descriptor for `Workout`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List workoutDescriptor = $convert.base64Decode(
     'CgdXb3Jrb3V0Eg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEh0KCnN0YXJ0X3'
-    'RpbWUYAyABKANSCXN0YXJ0VGltZRIZCghlbmRfdGltZRgEIAEoA1IHZW5kVGltZQ==');
+    'RpbWUYAyABKANSCXN0YXJ0VGltZRIZCghlbmRfdGltZRgEIAEoA1IHZW5kVGltZRIdCgpzZXNz'
+    'aW9uX2lkGAUgASgJUglzZXNzaW9uSWQ=');
 
 @$core.Deprecated('Use exerciseTypeConfigDescriptor instead')
 const ExerciseTypeConfig$json = {
@@ -997,6 +999,7 @@ const ProposedExerciseGroup$json = {
       '6': '.workout.v1.RestConfig',
       '10': 'restConfig'
     },
+    {'1': 'tags', '3': 6, '4': 3, '5': 9, '10': 'tags'},
   ],
 };
 
@@ -1006,7 +1009,7 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'gFUgRzZXRzEi0KEmludGVybGVhdmVfd2FybXVwcxgDIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMS'
     'SQoQZXhlcmNpc2VfY29uZmlncxgEIAMoCzIeLndvcmtvdXQudjEuRXhlcmNpc2VUeXBlQ29uZm'
     'lnUg9leGVyY2lzZUNvbmZpZ3MSNwoLcmVzdF9jb25maWcYBSABKAsyFi53b3Jrb3V0LnYxLlJl'
-    'c3RDb25maWdSCnJlc3RDb25maWc=');
+    'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncw==');
 
 @$core.Deprecated('Use getProposedWorkoutScheduleResponseDescriptor instead')
 const GetProposedWorkoutScheduleResponse$json = {
