@@ -1,8 +1,8 @@
 pub mod gzclp;
 pub mod linear_5x5;
-pub mod wendler_531;
 #[cfg(test)]
 mod tests;
+pub mod wendler_531;
 
 use std::collections::HashMap;
 
@@ -222,10 +222,7 @@ pub trait WorkoutRegime: Send + Sync {
 
     /// Short name for the suggested workout, e.g. "5/3/1 — Cycle 2, Week 3 Peak".
     /// Default returns the regime display name.
-    fn suggested_workout_name(
-        &self,
-        _workout_config: &UserWorkoutConfig,
-    ) -> String {
+    fn suggested_workout_name(&self, _workout_config: &UserWorkoutConfig) -> String {
         self.display_name().to_string()
     }
 }

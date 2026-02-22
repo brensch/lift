@@ -5,7 +5,10 @@ use lift::workout::v1::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory, WorkoutRegime};
+use super::{
+    exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory,
+    WorkoutRegime,
+};
 
 // ─── GZCLP tier assignments ───────────────────────────────────────────────────
 
@@ -109,20 +112,47 @@ impl WorkoutRegime for GzclpRegime {
         match tier {
             GzclTier::T1 => {
                 let (sets, reps) = t1_stage_prescription(current_stage);
-                let (weight, explanation) =
-                    t1_weight(exercise, config.default_weight, history, max_weight, current_stage, inc);
-                ExerciseProposal { weight, sets, reps, explanation }
+                let (weight, explanation) = t1_weight(
+                    exercise,
+                    config.default_weight,
+                    history,
+                    max_weight,
+                    current_stage,
+                    inc,
+                );
+                ExerciseProposal {
+                    weight,
+                    sets,
+                    reps,
+                    explanation,
+                }
             }
             GzclTier::T2 => {
                 let (sets, reps) = t2_stage_prescription(current_stage);
-                let (weight, explanation) =
-                    t2_weight(exercise, config.default_weight, history, max_weight, current_stage, inc);
-                ExerciseProposal { weight, sets, reps, explanation }
+                let (weight, explanation) = t2_weight(
+                    exercise,
+                    config.default_weight,
+                    history,
+                    max_weight,
+                    current_stage,
+                    inc,
+                );
+                ExerciseProposal {
+                    weight,
+                    sets,
+                    reps,
+                    explanation,
+                }
             }
             GzclTier::T3 => {
                 // T3: simple linear progression, 3×15
                 let (weight, explanation) = t3_weight(config.default_weight, history);
-                ExerciseProposal { weight, sets: 3, reps: 15, explanation }
+                ExerciseProposal {
+                    weight,
+                    sets: 3,
+                    reps: 15,
+                    explanation,
+                }
             }
         }
     }
@@ -152,7 +182,9 @@ impl WorkoutRegime for GzclpRegime {
         ] {
             let ex_history = history.get(&(ex_int as i32));
             let Some(hist) = ex_history else { continue };
-            if hist.is_empty() { continue }
+            if hist.is_empty() {
+                continue;
+            }
 
             let current_stage = state.stage_for(ex_int);
             let last_success = hist[0].success;
@@ -165,14 +197,22 @@ impl WorkoutRegime for GzclpRegime {
                         1
                     } else {
                         // Failure: advance or reset
-                        if current_stage >= 3 { 1 } else { current_stage + 1 }
+                        if current_stage >= 3 {
+                            1
+                        } else {
+                            current_stage + 1
+                        }
                     }
                 }
                 GzclTier::T2 => {
                     if last_success {
                         1
                     } else {
-                        if current_stage >= 3 { 1 } else { current_stage + 1 }
+                        if current_stage >= 3 {
+                            1
+                        } else {
+                            current_stage + 1
+                        }
                     }
                 }
                 GzclTier::T3 => 1, // T3 has no stage machine
@@ -196,21 +236,37 @@ impl WorkoutRegime for GzclpRegime {
                 statuses.iter().find(|s| s.exercise == ex as i32).map(|_| {
                     let stage = state.stage_for(ex);
                     let (sets, reps) = t1_stage_prescription(stage);
-                    format!("T1 {}: Stage {} ({}×{})", exercise_display_name(ex), stage, sets, reps)
+                    format!(
+                        "T1 {}: Stage {} ({}×{})",
+                        exercise_display_name(ex),
+                        stage,
+                        sets,
+                        reps
+                    )
                 })
             })
             .collect();
 
-        let t2_desc: Vec<String> = [Exercise::BenchPress, Exercise::OverheadPress, Exercise::BarbellRow]
-            .iter()
-            .filter_map(|&ex| {
-                statuses.iter().find(|s| s.exercise == ex as i32).map(|_| {
-                    let stage = state.stage_for(ex);
-                    let (sets, reps) = t2_stage_prescription(stage);
-                    format!("T2 {}: Stage {} ({}×{})", exercise_display_name(ex), stage, sets, reps)
-                })
+        let t2_desc: Vec<String> = [
+            Exercise::BenchPress,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ]
+        .iter()
+        .filter_map(|&ex| {
+            statuses.iter().find(|s| s.exercise == ex as i32).map(|_| {
+                let stage = state.stage_for(ex);
+                let (sets, reps) = t2_stage_prescription(stage);
+                format!(
+                    "T2 {}: Stage {} ({}×{})",
+                    exercise_display_name(ex),
+                    stage,
+                    sets,
+                    reps
+                )
             })
-            .collect();
+        })
+        .collect();
 
         let all_desc = [t1_desc, t2_desc].concat().join(" · ");
 
@@ -221,10 +277,12 @@ impl WorkoutRegime for GzclpRegime {
             } else {
                 all_desc
             },
-            next_session_preview: "State machine updates after each session based on success/failure.".to_string(),
+            next_session_preview:
+                "State machine updates after each session based on success/failure.".to_string(),
             coaching_notes: vec![
                 "T1: heavy, low reps — treat every rep as a max-effort lift.".to_string(),
-                "T1/T3 last set: AMRAP — push for max reps to drive faster progression.".to_string(),
+                "T1/T3 last set: AMRAP — push for max reps to drive faster progression."
+                    .to_string(),
                 "T2: moderate weight, controlled tempo — build volume.".to_string(),
                 "T3: light accessories — metabolic stress and recovery work.".to_string(),
             ],
@@ -338,7 +396,10 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
     if history.is_empty() {
         return (
             default_weight,
-            format!("T3: Starting at {} lbs — 3×15, push AMRAP last set to 25+ reps to advance.", default_weight),
+            format!(
+                "T3: Starting at {} lbs — 3×15, push AMRAP last set to 25+ reps to advance.",
+                default_weight
+            ),
         );
     }
     let h = &history[0];

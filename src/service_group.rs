@@ -499,11 +499,7 @@ impl MultiplayerService for GroupService {
                                 active.workout.session_id = sid.clone();
                                 let _ = self
                                     .central_db
-                                    .update_workout_session_id(
-                                        member_id,
-                                        &active.workout.id,
-                                        &sid,
-                                    )
+                                    .update_workout_session_id(member_id, &active.workout.id, &sid)
                                     .await;
                             }
                         }

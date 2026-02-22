@@ -40,7 +40,9 @@ struct FixtureConfig {
     one_rep_maxes: HashMap<String, f32>,
 }
 
-fn default_days() -> i32 { 3 }
+fn default_days() -> i32 {
+    3
+}
 
 #[derive(serde::Deserialize)]
 struct FixtureStep {
@@ -88,23 +90,25 @@ struct SessionDone {
     last_set_reps: i32,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 fn parse_exercise(name: &str) -> Exercise {
     match name {
-        "Squat"               => Exercise::Squat,
-        "BenchPress"          => Exercise::BenchPress,
-        "Deadlift"            => Exercise::Deadlift,
-        "OverheadPress"       => Exercise::OverheadPress,
-        "BarbellRow"          => Exercise::BarbellRow,
-        "HipThrust"           => Exercise::HipThrust,
+        "Squat" => Exercise::Squat,
+        "BenchPress" => Exercise::BenchPress,
+        "Deadlift" => Exercise::Deadlift,
+        "OverheadPress" => Exercise::OverheadPress,
+        "BarbellRow" => Exercise::BarbellRow,
+        "HipThrust" => Exercise::HipThrust,
         "BulgarianSplitSquat" => Exercise::BulgarianSplitSquat,
-        "RomanianDeadlift"    => Exercise::RomanianDeadlift,
-        "GluteBridge"         => Exercise::GluteBridge,
-        "Lunge"               => Exercise::Lunge,
-        "LegCurl"             => Exercise::LegCurl,
+        "RomanianDeadlift" => Exercise::RomanianDeadlift,
+        "GluteBridge" => Exercise::GluteBridge,
+        "Lunge" => Exercise::Lunge,
+        "LegCurl" => Exercise::LegCurl,
         _ => panic!("Unknown exercise: {name}"),
     }
 }
@@ -112,7 +116,7 @@ fn parse_exercise(name: &str) -> Exercise {
 fn parse_regime_type(name: &str) -> RegimeType {
     match name {
         "linear5x5" | "linear_5x5" => RegimeType::Linear5x5,
-        "gzclp"                    => RegimeType::Gzclp,
+        "gzclp" => RegimeType::Gzclp,
         "wendler531" | "wendler_531" => RegimeType::Wendler531,
         _ => panic!("Unknown regime: {name}"),
     }
@@ -125,16 +129,19 @@ fn run_fixture(filename: &str) {
         .join("src/regimes/fixtures")
         .join(filename);
 
-    let content = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("Cannot read {filename}: {e}"));
-    let fixture: Fixture = serde_json::from_str(&content)
-        .unwrap_or_else(|e| panic!("Cannot parse {filename}: {e}"));
+    let content =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("Cannot read {filename}: {e}"));
+    let fixture: Fixture =
+        serde_json::from_str(&content).unwrap_or_else(|e| panic!("Cannot parse {filename}: {e}"));
 
     let regime_type = parse_regime_type(&fixture.regime);
     let regime = get_regime(regime_type);
 
     // Parse the fixture's exercise list once — used to build group proposals.
-    let fixture_exercises: Vec<Exercise> = fixture.config.exercises.iter()
+    let fixture_exercises: Vec<Exercise> = fixture
+        .config
+        .exercises
+        .iter()
         .map(|n| parse_exercise(n))
         .collect();
 
@@ -142,7 +149,10 @@ fn run_fixture(filename: &str) {
     let mut config = UserWorkoutConfig {
         regime_type: regime_type as i32,
         days_per_week: fixture.config.days_per_week,
-        one_rep_maxes: fixture.config.one_rep_maxes.iter()
+        one_rep_maxes: fixture
+            .config
+            .one_rep_maxes
+            .iter()
             .map(|(k, v)| (parse_exercise(k) as i32, *v))
             .collect(),
         regime_state_json: "{}".to_string(),
@@ -159,16 +169,19 @@ fn run_fixture(filename: &str) {
         // ── Per-exercise proposal checks ──────────────────────────────────────
         for expected in &step.expect {
             let exercise = parse_exercise(&expected.exercise);
-            let ex_cfg = EXERCISE_CONFIGS.iter()
+            let ex_cfg = EXERCISE_CONFIGS
+                .iter()
                 .find(|c| c.exercise == exercise)
                 .unwrap_or_else(|| panic!("{filename}: no config for {}", expected.exercise));
 
-            let ex_history = history.get(&(exercise as i32)).map(|v| v.as_slice()).unwrap_or(&[]);
+            let ex_history = history
+                .get(&(exercise as i32))
+                .map(|v| v.as_slice())
+                .unwrap_or(&[]);
             let max_weight = ex_history.iter().map(|h| h.weight).fold(0.0_f32, f32::max);
 
-            let proposal = regime.calculate_exercise_progression(
-                exercise, ex_cfg, ex_history, max_weight, &config,
-            );
+            let proposal = regime
+                .calculate_exercise_progression(exercise, ex_cfg, ex_history, max_weight, &config);
 
             assert_eq!(
                 proposal.weight, expected.weight,
@@ -202,10 +215,14 @@ fn run_fixture(filename: &str) {
                     category: ex_cfg.category as i32,
                 };
                 let groups = regime.build_proposed_groups(&[status], &config);
-                if let Some(group) = groups.iter()
-                    .find(|g| g.exercise_configs.iter().any(|c| c.exercise == exercise as i32))
-                {
-                    let ec = group.exercise_configs.iter()
+                if let Some(group) = groups.iter().find(|g| {
+                    g.exercise_configs
+                        .iter()
+                        .any(|c| c.exercise == exercise as i32)
+                }) {
+                    let ec = group
+                        .exercise_configs
+                        .iter()
                         .find(|c| c.exercise == exercise as i32)
                         .unwrap();
                     assert_eq!(
@@ -226,29 +243,36 @@ fn run_fixture(filename: &str) {
             );
 
             // Build a realistic ExerciseStatus for every exercise in the fixture.
-            let statuses: Vec<ExerciseStatus> = fixture_exercises.iter().map(|&exercise| {
-                let ex_cfg = EXERCISE_CONFIGS.iter()
-                    .find(|c| c.exercise == exercise)
-                    .unwrap();
-                let ex_history = history.get(&(exercise as i32)).map(|v| v.as_slice()).unwrap_or(&[]);
-                let max_weight = ex_history.iter().map(|h| h.weight).fold(0.0_f32, f32::max);
-                let proposal = regime.calculate_exercise_progression(
-                    exercise, ex_cfg, ex_history, max_weight, &config,
-                );
-                ExerciseStatus {
-                    exercise: exercise as i32,
-                    target_weight: proposal.weight,
-                    explanation: proposal.explanation,
-                    last_performed_at: ex_history.first().map(|h| h.timestamp).unwrap_or(0),
-                    weight_history: ex_history.iter().rev().map(|h| h.weight).collect(),
-                    muscle_groups: ex_cfg.muscle_groups.iter().map(|mg| *mg as i32).collect(),
-                    default_sets: proposal.sets,
-                    default_reps: proposal.reps,
-                    recovered: true,
-                    always_include: ex_cfg.always_include,
-                    category: ex_cfg.category as i32,
-                }
-            }).collect();
+            let statuses: Vec<ExerciseStatus> = fixture_exercises
+                .iter()
+                .map(|&exercise| {
+                    let ex_cfg = EXERCISE_CONFIGS
+                        .iter()
+                        .find(|c| c.exercise == exercise)
+                        .unwrap();
+                    let ex_history = history
+                        .get(&(exercise as i32))
+                        .map(|v| v.as_slice())
+                        .unwrap_or(&[]);
+                    let max_weight = ex_history.iter().map(|h| h.weight).fold(0.0_f32, f32::max);
+                    let proposal = regime.calculate_exercise_progression(
+                        exercise, ex_cfg, ex_history, max_weight, &config,
+                    );
+                    ExerciseStatus {
+                        exercise: exercise as i32,
+                        target_weight: proposal.weight,
+                        explanation: proposal.explanation,
+                        last_performed_at: ex_history.first().map(|h| h.timestamp).unwrap_or(0),
+                        weight_history: ex_history.iter().rev().map(|h| h.weight).collect(),
+                        muscle_groups: ex_cfg.muscle_groups.iter().map(|mg| *mg as i32).collect(),
+                        default_sets: proposal.sets,
+                        default_reps: proposal.reps,
+                        recovered: true,
+                        always_include: ex_cfg.always_include,
+                        category: ex_cfg.category as i32,
+                    }
+                })
+                .collect();
 
             let groups = regime.build_proposed_groups(&statuses, &config);
 
@@ -283,14 +307,15 @@ fn run_fixture(filename: &str) {
         let timestamp = now - (total_steps - step_idx) as i64 * 86400;
         for done in &step.done {
             let exercise = parse_exercise(&done.exercise);
-            history.entry(exercise as i32)
-                .or_default()
-                .insert(0, SessionHistory {
+            history.entry(exercise as i32).or_default().insert(
+                0,
+                SessionHistory {
                     weight: done.weight,
                     success: done.success,
                     timestamp,
                     last_set_reps: done.last_set_reps,
-                });
+                },
+            );
         }
     }
 }
@@ -299,23 +324,39 @@ fn run_fixture(filename: &str) {
 
 // Single-exercise progression fixtures
 #[test]
-fn fixture_linear_5x5_bench()          { run_fixture("linear_5x5_bench.json"); }
+fn fixture_linear_5x5_bench() {
+    run_fixture("linear_5x5_bench.json");
+}
 #[test]
-fn fixture_linear_5x5_deadlift()       { run_fixture("linear_5x5_deadlift.json"); }
+fn fixture_linear_5x5_deadlift() {
+    run_fixture("linear_5x5_deadlift.json");
+}
 #[test]
-fn fixture_gzclp_t1_squat_stages()     { run_fixture("gzclp_t1_squat_stages.json"); }
+fn fixture_gzclp_t1_squat_stages() {
+    run_fixture("gzclp_t1_squat_stages.json");
+}
 #[test]
-fn fixture_gzclp_t2_bench_stages()     { run_fixture("gzclp_t2_bench_stages.json"); }
+fn fixture_gzclp_t2_bench_stages() {
+    run_fixture("gzclp_t2_bench_stages.json");
+}
 #[test]
-fn fixture_gzclp_t3_hip_thrust()       { run_fixture("gzclp_t3_hip_thrust.json"); }
+fn fixture_gzclp_t3_hip_thrust() {
+    run_fixture("gzclp_t3_hip_thrust.json");
+}
 #[test]
-fn fixture_wendler_531_full_cycle()    { run_fixture("wendler_531_full_cycle.json"); }
+fn fixture_wendler_531_full_cycle() {
+    run_fixture("wendler_531_full_cycle.json");
+}
 
 // Full-workout fixtures (multiple exercises + group rotation/pairing)
 #[test]
-fn fixture_gzclp_full_workout()        { run_fixture("gzclp_full_workout.json"); }
+fn fixture_gzclp_full_workout() {
+    run_fixture("gzclp_full_workout.json");
+}
 #[test]
-fn fixture_wendler_all_lifts()         { run_fixture("wendler_all_lifts.json"); }
+fn fixture_wendler_all_lifts() {
+    run_fixture("wendler_all_lifts.json");
+}
 
 // ─── Edge-case unit tests (timestamp-sensitive or hard to express in JSON) ───
 
@@ -338,11 +379,26 @@ fn linear_long_break_triggers_deload() {
 fn linear_longer_break_deloads_more() {
     use super::linear_5x5::calculate_linear_progression;
     let now = chrono::Utc::now().timestamp();
-    let h_short = vec![SessionHistory { weight: 100.0, success: true, timestamp: now - 20 * 86400, last_set_reps: 5 }];
-    let h_long  = vec![SessionHistory { weight: 100.0, success: true, timestamp: now - 35 * 86400, last_set_reps: 5 }];
-    let (w_short, _) = calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &h_short, 100.0);
-    let (w_long, _)  = calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &h_long,  100.0);
-    assert!(w_long <= w_short, "longer break should deload more or equal: {w_long} vs {w_short}");
+    let h_short = vec![SessionHistory {
+        weight: 100.0,
+        success: true,
+        timestamp: now - 20 * 86400,
+        last_set_reps: 5,
+    }];
+    let h_long = vec![SessionHistory {
+        weight: 100.0,
+        success: true,
+        timestamp: now - 35 * 86400,
+        last_set_reps: 5,
+    }];
+    let (w_short, _) =
+        calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &h_short, 100.0);
+    let (w_long, _) =
+        calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &h_long, 100.0);
+    assert!(
+        w_long <= w_short,
+        "longer break should deload more or equal: {w_long} vs {w_short}"
+    );
 }
 
 /// Wendler advances weeks and cycles correctly over 2 full cycles (24 sessions).
@@ -355,17 +411,20 @@ fn wendler_state_advances_over_two_cycles() {
 
     for total_sessions in 0usize..=24 {
         let expected_cycle = (total_sessions / 12) as u32 + 1;
-        let expected_week  = ((total_sessions % 12) / 3) as u8 + 1;
+        let expected_week = ((total_sessions % 12) / 3) as u8 + 1;
 
         let mut hmap: HashMap<i32, Vec<SessionHistory>> = HashMap::new();
-        hmap.insert(squat_ex, (0..total_sessions)
-            .map(|i| SessionHistory {
-                weight: 135.0,
-                success: true,
-                timestamp: now - (total_sessions - i) as i64 * 3 * 86400,
-                last_set_reps: 5,
-            })
-            .collect());
+        hmap.insert(
+            squat_ex,
+            (0..total_sessions)
+                .map(|i| SessionHistory {
+                    weight: 135.0,
+                    success: true,
+                    timestamp: now - (total_sessions - i) as i64 * 3 * 86400,
+                    last_set_reps: 5,
+                })
+                .collect(),
+        );
 
         let config = UserWorkoutConfig {
             regime_type: RegimeType::Wendler531 as i32,
@@ -376,8 +435,15 @@ fn wendler_state_advances_over_two_cycles() {
         let state_json = Wendler531Regime.compute_updated_state(&config, &hmap);
         let state = WendlerState::from_json(&state_json);
 
-        assert_eq!(state.week,  expected_week.clamp(1, 4), "at {total_sessions} sessions: week");
-        assert_eq!(state.cycle, expected_cycle,             "at {total_sessions} sessions: cycle");
+        assert_eq!(
+            state.week,
+            expected_week.clamp(1, 4),
+            "at {total_sessions} sessions: week"
+        );
+        assert_eq!(
+            state.cycle, expected_cycle,
+            "at {total_sessions} sessions: cycle"
+        );
     }
 }
 
@@ -391,10 +457,22 @@ fn wendler_no_1rm_shows_setup_prompt() {
         one_rep_maxes: HashMap::new(),
         regime_state_json: r#"{"week":1,"cycle":1}"#.to_string(),
     };
-    let squat_cfg = EXERCISE_CONFIGS.iter().find(|c| c.exercise == Exercise::Squat).unwrap();
-    let p = Wendler531Regime.calculate_exercise_progression(Exercise::Squat, squat_cfg, &[], 0.0, &config);
+    let squat_cfg = EXERCISE_CONFIGS
+        .iter()
+        .find(|c| c.exercise == Exercise::Squat)
+        .unwrap();
+    let p = Wendler531Regime.calculate_exercise_progression(
+        Exercise::Squat,
+        squat_cfg,
+        &[],
+        0.0,
+        &config,
+    );
     assert!(
-        p.explanation.contains("1RM") || p.explanation.contains("Settings") || p.explanation.contains("max"),
-        "should explain 1RM needs configuring, got: {}", p.explanation
+        p.explanation.contains("1RM")
+            || p.explanation.contains("Settings")
+            || p.explanation.contains("max"),
+        "should explain 1RM needs configuring, got: {}",
+        p.explanation
     );
 }

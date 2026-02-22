@@ -6,8 +6,8 @@ use lift::workout::v1::{
 };
 
 use super::{
-    build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg,
-    ExerciseConfig, ExerciseProposal, SessionHistory, WorkoutRegime,
+    build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg, ExerciseConfig,
+    ExerciseProposal, SessionHistory, WorkoutRegime,
 };
 
 const UPPER_INCREMENT: f32 = 5.0;
@@ -38,8 +38,12 @@ impl WorkoutRegime for Linear5x5Regime {
         max_weight: f32,
         _workout_config: &UserWorkoutConfig,
     ) -> ExerciseProposal {
-        let (weight, explanation) =
-            calculate_linear_progression(exercise as i32, config.default_weight, history, max_weight);
+        let (weight, explanation) = calculate_linear_progression(
+            exercise as i32,
+            config.default_weight,
+            history,
+            max_weight,
+        );
         ExerciseProposal {
             weight,
             sets: config.default_sets,
@@ -72,7 +76,8 @@ impl WorkoutRegime for Linear5x5Regime {
         RegimeContext {
             regime_display_name: self.display_name().to_string(),
             session_description: "Linear progression — add weight every session".to_string(),
-            next_session_preview: "Same exercises, 5 lbs heavier on upper body, 10 lbs on deadlift".to_string(),
+            next_session_preview: "Same exercises, 5 lbs heavier on upper body, 10 lbs on deadlift"
+                .to_string(),
             coaching_notes: vec![
                 "Focus on form before chasing weight.".to_string(),
                 "If a set feels like a 9/10 effort, consider deloading proactively.".to_string(),
@@ -124,7 +129,8 @@ pub fn calculate_linear_progression(
 
     // 2. Plateau (3 consecutive failures at same weight)
     if history.len() >= 3 {
-        let same_weight = history[0].weight == history[1].weight && history[1].weight == history[2].weight;
+        let same_weight =
+            history[0].weight == history[1].weight && history[1].weight == history[2].weight;
         let all_failed = !history[0].success && !history[1].success && !history[2].success;
         if same_weight && all_failed {
             let new_weight = (h.weight * 0.9 / 5.0).round() * 5.0;
