@@ -5,7 +5,7 @@ use lift::workout::v1::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, WorkoutRegime};
+use super::{exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory, WorkoutRegime};
 
 // ─── Wendler state ─────────────────────────────────────────────────────────────
 
@@ -92,7 +92,7 @@ impl WorkoutRegime for Wendler531Regime {
         &self,
         exercise: Exercise,
         config: &ExerciseConfig,
-        _history: &[(f32, bool, i64)],
+        _history: &[SessionHistory],
         _max_weight: f32,
         workout_config: &UserWorkoutConfig,
     ) -> ExerciseProposal {
@@ -179,6 +179,7 @@ impl WorkoutRegime for Wendler531Regime {
                     reps: week_def.reps,
                     include_warmup: true,
                     rest_config: None,
+                    last_set_amrap: false,
                 };
                 groups.push(ProposedExerciseGroup {
                     name: exercise_display_name(exercise),
@@ -205,6 +206,9 @@ impl WorkoutRegime for Wendler531Regime {
             let start_w = (tm * week_def.start_pct / 5.0).round() * 5.0;
             let end_w = (tm * week_def.end_pct / 5.0).round() * 5.0;
 
+            // Week 3 (peak): last set is AMRAP — user pushes for max reps
+            let last_set_amrap = state.week == 3;
+
             let config = lift::workout::v1::ExerciseTypeConfig {
                 exercise: exercise as i32,
                 start_weight: start_w,
@@ -212,6 +216,7 @@ impl WorkoutRegime for Wendler531Regime {
                 reps: week_def.reps,
                 include_warmup: true,
                 rest_config: None,
+                last_set_amrap,
             };
 
             // Deload week: lighter rest; peak/volume: full rest
@@ -249,6 +254,7 @@ impl WorkoutRegime for Wendler531Regime {
                     reps: 10,
                     include_warmup: true,
                     rest_config: None,
+                    last_set_amrap: false,
                 };
                 let cb = lift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_b as i32,
@@ -257,6 +263,7 @@ impl WorkoutRegime for Wendler531Regime {
                     reps: 10,
                     include_warmup: false,
                     rest_config: None,
+                    last_set_amrap: false,
                 };
                 groups.push(ProposedExerciseGroup {
                     name: format!(
@@ -280,7 +287,7 @@ impl WorkoutRegime for Wendler531Regime {
     fn compute_updated_state(
         &self,
         _workout_config: &UserWorkoutConfig,
-        history: &HashMap<i32, Vec<(f32, bool, i64)>>,
+        history: &HashMap<i32, Vec<SessionHistory>>,
     ) -> String {
         // Check if any main lift has a new completed workout since our last state update.
         // Count total completed sessions per main lift to determine current week.
@@ -346,5 +353,12 @@ impl WorkoutRegime for Wendler531Regime {
             next_session_preview: week_def.preview.to_string(),
             coaching_notes,
         }
+    }
+
+    fn suggested_workout_name(&self, workout_config: &UserWorkoutConfig) -> String {
+        let state = WendlerState::from_json(&workout_config.regime_state_json);
+        let week = state.week.saturating_sub(1) as usize;
+        let week_def = &WEEKS[week.min(3)];
+        format!("5/3/1 — Cycle {}, {}", state.cycle, week_def.name)
     }
 }

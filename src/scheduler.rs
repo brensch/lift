@@ -71,7 +71,7 @@ impl Scheduler {
             let last_performed = all_history
                 .get(&ex_int)
                 .and_then(|h| h.first())
-                .map(|(_, _, date)| *date)
+                .map(|h| h.timestamp)
                 .unwrap_or(0);
             if last_performed > 0 {
                 for mg in config.muscle_groups {
@@ -91,8 +91,8 @@ impl Scheduler {
             let history = all_history.get(&ex_int).unwrap_or(&empty);
             let max_weight = all_max_weights.get(&ex_int).copied().unwrap_or(0.0);
 
-            let last_perf = history.first().map(|(_, _, t)| *t).unwrap_or(0);
-            let weight_history: Vec<f32> = history.iter().rev().map(|(w, _, _)| *w).collect();
+            let last_perf = history.first().map(|h| h.timestamp).unwrap_or(0);
+            let weight_history: Vec<f32> = history.iter().rev().map(|h| h.weight).collect();
 
             let proposal = regime.calculate_exercise_progression(
                 config.exercise,
@@ -149,12 +149,15 @@ impl Scheduler {
             days_per_week,
         );
 
+        let suggested_workout_name = regime.suggested_workout_name(&workout_config);
+
         Ok(GetProposedWorkoutScheduleResponse {
             exercise_statuses,
             active_workout_id: String::new(), // filled in by service handler
             proposed_groups,
             regime_context: Some(regime_context),
             session_readiness: Some(session_readiness),
+            suggested_workout_name,
         })
     }
 }
@@ -162,7 +165,17 @@ impl Scheduler {
 #[cfg(test)]
 mod tests {
     use crate::regimes::linear_5x5::{build_linear_proposed_groups, calculate_linear_progression};
+    use crate::regimes::SessionHistory;
     use lift::workout::v1::{Exercise, ExerciseCategory, ExerciseStatus};
+
+    fn session(weight: f32, success: bool, days_ago: i64) -> SessionHistory {
+        SessionHistory {
+            weight,
+            success,
+            timestamp: chrono::Utc::now().timestamp() - days_ago * 86400,
+            last_set_reps: if success { 5 } else { 3 },
+        }
+    }
 
     fn status(exercise: Exercise, last_performed_at: i64) -> ExerciseStatus {
         ExerciseStatus {
@@ -226,9 +239,7 @@ mod tests {
 
     #[test]
     fn linear_progression_standard() {
-        // Use a recent timestamp (yesterday) to avoid deload triggers
-        let yesterday = chrono::Utc::now().timestamp() - 86400;
-        let history = vec![(100.0f32, true, yesterday)];
+        let history = vec![session(100.0, true, 1)];
         let (weight, explanation) =
             calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
         assert_eq!(weight, 105.0);
@@ -237,8 +248,7 @@ mod tests {
 
     #[test]
     fn linear_progression_failure_holds() {
-        let yesterday = chrono::Utc::now().timestamp() - 86400;
-        let history = vec![(100.0f32, false, yesterday)];
+        let history = vec![session(100.0, false, 1)];
         let (weight, _) =
             calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
         assert_eq!(weight, 100.0);
@@ -246,11 +256,10 @@ mod tests {
 
     #[test]
     fn linear_progression_plateau_deloads() {
-        let now = chrono::Utc::now().timestamp();
         let history = vec![
-            (100.0f32, false, now - 3 * 86400),
-            (100.0f32, false, now - 6 * 86400),
-            (100.0f32, false, now - 9 * 86400),
+            session(100.0, false, 3),
+            session(100.0, false, 6),
+            session(100.0, false, 9),
         ];
         let (weight, _) =
             calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);

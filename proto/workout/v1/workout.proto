@@ -57,6 +57,7 @@ message ExerciseTypeConfig {
   int32 reps = 4;
   bool include_warmup = 5;
   RestConfig rest_config = 6;
+  bool last_set_amrap = 7;  // regime sets this; the last working set becomes AMRAP
 }
 
 message RestConfig {
@@ -75,6 +76,7 @@ message ExerciseGroup {
   int32 workout_order = 6;
   repeated ExerciseTypeConfig exercise_configs = 7;
   RestConfig rest_config = 8;
+  string instruction = 9;        // regime coaching note, e.g. "T1 — max effort" (not persisted to DB)
 }
 
 message ProposedSet {
@@ -89,6 +91,8 @@ message ProposedSet {
   int32 rest_after_success = 9;
   int32 rest_after_failure = 10;
   bool cancelled = 11;
+  bool is_amrap = 12;           // do as many reps as possible (target_reps is the minimum)
+  string instruction = 13;      // optional per-set note shown in the UI
 }
 
 message CompletedSet {
@@ -359,6 +363,8 @@ message GetProposedWorkoutScheduleResponse {
   RegimeContext regime_context = 4;
 
   SessionReadiness session_readiness = 5;
+
+  string suggested_workout_name = 6; // regime-generated name, e.g. "5/3/1 — Cycle 2, Week 3 Peak"
 
 }
 

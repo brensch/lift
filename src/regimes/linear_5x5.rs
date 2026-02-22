@@ -7,7 +7,7 @@ use lift::workout::v1::{
 
 use super::{
     build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg,
-    ExerciseConfig, ExerciseProposal, WorkoutRegime,
+    ExerciseConfig, ExerciseProposal, SessionHistory, WorkoutRegime,
 };
 
 const UPPER_INCREMENT: f32 = 5.0;
@@ -34,7 +34,7 @@ impl WorkoutRegime for Linear5x5Regime {
         &self,
         exercise: Exercise,
         config: &ExerciseConfig,
-        history: &[(f32, bool, i64)],
+        history: &[SessionHistory],
         max_weight: f32,
         _workout_config: &UserWorkoutConfig,
     ) -> ExerciseProposal {
@@ -59,7 +59,7 @@ impl WorkoutRegime for Linear5x5Regime {
     fn compute_updated_state(
         &self,
         _workout_config: &UserWorkoutConfig,
-        _history: &HashMap<i32, Vec<(f32, bool, i64)>>,
+        _history: &HashMap<i32, Vec<SessionHistory>>,
     ) -> String {
         "{}".to_string()
     }
@@ -86,7 +86,7 @@ impl WorkoutRegime for Linear5x5Regime {
 pub fn calculate_linear_progression(
     exercise: i32,
     default_weight: f32,
-    history: &[(f32, bool, i64)], // newest-first
+    history: &[SessionHistory], // newest-first
     max_weight: f32,
 ) -> (f32, String) {
     if history.is_empty() {
@@ -96,9 +96,9 @@ pub fn calculate_linear_progression(
         );
     }
 
-    let (last_weight, last_success, last_date) = history[0];
+    let h = &history[0];
     let now = Utc::now().timestamp();
-    let days_since = (now - last_date) / (24 * 3600);
+    let days_since = (now - h.timestamp) / (24 * 3600);
 
     let increment = if exercise == Exercise::Deadlift as i32 {
         DEADLIFT_INCREMENT
@@ -111,51 +111,51 @@ pub fn calculate_linear_progression(
     // 1. Long break deload
     if days_since > 14 {
         let deload_pct = if days_since > 30 { 0.8 } else { 0.9 };
-        let new_weight = (last_weight * deload_pct / 5.0).round() * 5.0;
+        let new_weight = (h.weight * deload_pct / 5.0).round() * 5.0;
         let new_weight = new_weight.max(default_weight);
         return (
             new_weight,
             format!(
                 "Deloading from {} to {} lbs after {} day break.",
-                last_weight, new_weight, days_since
+                h.weight, new_weight, days_since
             ),
         );
     }
 
     // 2. Plateau (3 consecutive failures at same weight)
     if history.len() >= 3 {
-        let same_weight = history[0].0 == history[1].0 && history[1].0 == history[2].0;
-        let all_failed = !history[0].1 && !history[1].1 && !history[2].1;
+        let same_weight = history[0].weight == history[1].weight && history[1].weight == history[2].weight;
+        let all_failed = !history[0].success && !history[1].success && !history[2].success;
         if same_weight && all_failed {
-            let new_weight = (last_weight * 0.9 / 5.0).round() * 5.0;
+            let new_weight = (h.weight * 0.9 / 5.0).round() * 5.0;
             let new_weight = new_weight.max(default_weight);
             return (
                 new_weight,
                 format!(
                     "3 failures at {} lbs — deloading to {} lbs to reset.",
-                    last_weight, new_weight
+                    h.weight, new_weight
                 ),
             );
         }
     }
 
     // 3. Recent failure — hold weight
-    if !last_success {
+    if !h.success {
         return (
-            last_weight,
+            h.weight,
             format!(
                 "Holding at {} lbs to master the weight after last failure.",
-                last_weight
+                h.weight
             ),
         );
     }
 
     // 4. Return to weight mode (recovering from a deload)
-    if max_weight > last_weight + increment {
-        let successes = history.iter().take_while(|(_, ok, _)| *ok).count();
+    if max_weight > h.weight + increment {
+        let successes = history.iter().take_while(|s| s.success).count();
         if successes >= 2 {
             let fast_inc = increment * 2.0;
-            let new_weight = last_weight + fast_inc;
+            let new_weight = h.weight + fast_inc;
             return (
                 new_weight,
                 format!(
@@ -167,12 +167,12 @@ pub fn calculate_linear_progression(
     }
 
     // 5. Standard progression
-    let new_weight = last_weight + increment;
+    let new_weight = h.weight + increment;
     (
         new_weight,
         format!(
             "Progressing from {} to {} lbs after successful session.",
-            last_weight, new_weight
+            h.weight, new_weight
         ),
     )
 }

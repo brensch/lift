@@ -158,6 +158,7 @@ const ExerciseTypeConfig$json = {
       '6': '.workout.v1.RestConfig',
       '10': 'restConfig'
     },
+    {'1': 'last_set_amrap', '3': 7, '4': 1, '5': 8, '10': 'lastSetAmrap'},
   ],
 };
 
@@ -167,7 +168,8 @@ final $typed_data.Uint8List exerciseTypeConfigDescriptor = $convert.base64Decode
     'JjaXNlUghleGVyY2lzZRIhCgxzdGFydF93ZWlnaHQYAiABKAJSC3N0YXJ0V2VpZ2h0Eh0KCmVu'
     'ZF93ZWlnaHQYAyABKAJSCWVuZFdlaWdodBISCgRyZXBzGAQgASgFUgRyZXBzEiUKDmluY2x1ZG'
     'Vfd2FybXVwGAUgASgIUg1pbmNsdWRlV2FybXVwEjcKC3Jlc3RfY29uZmlnGAYgASgLMhYud29y'
-    'a291dC52MS5SZXN0Q29uZmlnUgpyZXN0Q29uZmln');
+    'a291dC52MS5SZXN0Q29uZmlnUgpyZXN0Q29uZmlnEiQKDmxhc3Rfc2V0X2FtcmFwGAcgASgIUg'
+    'xsYXN0U2V0QW1yYXA=');
 
 @$core.Deprecated('Use restConfigDescriptor instead')
 const RestConfig$json = {
@@ -237,6 +239,7 @@ const ExerciseGroup$json = {
       '6': '.workout.v1.RestConfig',
       '10': 'restConfig'
     },
+    {'1': 'instruction', '3': 9, '4': 1, '5': 9, '10': 'instruction'},
   ],
 };
 
@@ -247,7 +250,8 @@ final $typed_data.Uint8List exerciseGroupDescriptor = $convert.base64Decode(
     'bGVhdmVfd2FybXVwcxgFIAEoCFIRaW50ZXJsZWF2ZVdhcm11cHMSIwoNd29ya291dF9vcmRlch'
     'gGIAEoBVIMd29ya291dE9yZGVyEkkKEGV4ZXJjaXNlX2NvbmZpZ3MYByADKAsyHi53b3Jrb3V0'
     'LnYxLkV4ZXJjaXNlVHlwZUNvbmZpZ1IPZXhlcmNpc2VDb25maWdzEjcKC3Jlc3RfY29uZmlnGA'
-    'ggASgLMhYud29ya291dC52MS5SZXN0Q29uZmlnUgpyZXN0Q29uZmln');
+    'ggASgLMhYud29ya291dC52MS5SZXN0Q29uZmlnUgpyZXN0Q29uZmlnEiAKC2luc3RydWN0aW9u'
+    'GAkgASgJUgtpbnN0cnVjdGlvbg==');
 
 @$core.Deprecated('Use proposedSetDescriptor instead')
 const ProposedSet$json = {
@@ -283,6 +287,8 @@ const ProposedSet$json = {
       '10': 'restAfterFailure'
     },
     {'1': 'cancelled', '3': 11, '4': 1, '5': 8, '10': 'cancelled'},
+    {'1': 'is_amrap', '3': 12, '4': 1, '5': 8, '10': 'isAmrap'},
+    {'1': 'instruction', '3': 13, '4': 1, '5': 9, '10': 'instruction'},
   ],
 };
 
@@ -295,7 +301,8 @@ final $typed_data.Uint8List proposedSetDescriptor = $convert.base64Decode(
     'YXJtdXAYByABKAhSBndhcm11cBIqChFleGVyY2lzZV9ncm91cF9pZBgIIAEoCVIPZXhlcmNpc2'
     'VHcm91cElkEiwKEnJlc3RfYWZ0ZXJfc3VjY2VzcxgJIAEoBVIQcmVzdEFmdGVyU3VjY2VzcxIs'
     'ChJyZXN0X2FmdGVyX2ZhaWx1cmUYCiABKAVSEHJlc3RBZnRlckZhaWx1cmUSHAoJY2FuY2VsbG'
-    'VkGAsgASgIUgljYW5jZWxsZWQ=');
+    'VkGAsgASgIUgljYW5jZWxsZWQSGQoIaXNfYW1yYXAYDCABKAhSB2lzQW1yYXASIAoLaW5zdHJ1'
+    'Y3Rpb24YDSABKAlSC2luc3RydWN0aW9u');
 
 @$core.Deprecated('Use completedSetDescriptor instead')
 const CompletedSet$json = {
@@ -1107,6 +1114,13 @@ const GetProposedWorkoutScheduleResponse$json = {
       '6': '.workout.v1.SessionReadiness',
       '10': 'sessionReadiness'
     },
+    {
+      '1': 'suggested_workout_name',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '10': 'suggestedWorkoutName'
+    },
   ],
 };
 
@@ -1118,7 +1132,8 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $conv
     'dyb3VwcxgDIAMoCzIhLndvcmtvdXQudjEuUHJvcG9zZWRFeGVyY2lzZUdyb3VwUg5wcm9wb3Nl'
     'ZEdyb3VwcxJACg5yZWdpbWVfY29udGV4dBgEIAEoCzIZLndvcmtvdXQudjEuUmVnaW1lQ29udG'
     'V4dFINcmVnaW1lQ29udGV4dBJJChFzZXNzaW9uX3JlYWRpbmVzcxgFIAEoCzIcLndvcmtvdXQu'
-    'djEuU2Vzc2lvblJlYWRpbmVzc1IQc2Vzc2lvblJlYWRpbmVzcw==');
+    'djEuU2Vzc2lvblJlYWRpbmVzc1IQc2Vzc2lvblJlYWRpbmVzcxI0ChZzdWdnZXN0ZWRfd29ya2'
+    '91dF9uYW1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZQ==');
 
 @$core.Deprecated('Use getActiveWorkoutRequestDescriptor instead')
 const GetActiveWorkoutRequest$json = {

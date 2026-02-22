@@ -31,6 +31,7 @@ class WorkoutScreen extends StatelessWidget {
     final groups = wp.exerciseGroups;
     final activeSetId = wp.activeSetId;
     final isEnded = wp.isWorkoutEnded;
+    final regimeContext = wp.regimeContext;
 
     final nextUpUserId = mp.sessionStatus?.nextUpUserId ?? '';
     final otherParticipants = mp.participants
@@ -90,6 +91,49 @@ class WorkoutScreen extends StatelessWidget {
                   height: 1.0,
                 ),
               ),
+              if (regimeContext != null &&
+                  regimeContext.sessionDescription.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  regimeContext.sessionDescription,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: colorScheme.tertiary,
+                  ),
+                ),
+              ],
+              if (regimeContext != null &&
+                  regimeContext.coachingNotes.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                ...regimeContext.coachingNotes.map(
+                  (note) => Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '· ',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.tertiary.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            note,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.tertiary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

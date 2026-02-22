@@ -105,6 +105,7 @@ class WorkoutBottomBar extends StatelessWidget {
       displaySet = proposed;
       actionButton = _RepButtons(
         targetReps: proposed.targetReps,
+        isAmrap: proposed.isAmrap,
         onComplete: (reps) =>
             wp.completeSet(proposed.id, reps, proposed.targetWeight.toDouble()),
         onSkipWarmup: null,
@@ -481,11 +482,13 @@ class _BigButton extends StatelessWidget {
 
 class _RepButtons extends StatefulWidget {
   final int targetReps;
+  final bool isAmrap;
   final void Function(int reps) onComplete;
   final VoidCallback? onSkipWarmup;
 
   const _RepButtons({
     required this.targetReps,
+    this.isAmrap = false,
     required this.onComplete,
     this.onSkipWarmup,
   });
@@ -564,7 +567,7 @@ class _RepButtonsState extends State<_RepButtons> {
             ),
             const SizedBox(width: 8),
             Text(
-              'good/${widget.targetReps}',
+              widget.isAmrap ? 'AMRAP' : 'good/${widget.targetReps}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

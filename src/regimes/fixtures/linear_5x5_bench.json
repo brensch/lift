@@ -1,0 +1,41 @@
+{
+  "regime": "linear5x5",
+  "description": "Linear 5x5 bench press — progression, failure hold, and 3-failure deload",
+  "steps": [
+    {
+      "note": "Fresh start — default weight, 5 sets of 5",
+      "expect": [{ "exercise": "BenchPress", "weight": 45, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 45, "success": true,  "last_set_reps": 5 }]
+    },
+    {
+      "note": "Success: +5 lbs (upper body increment)",
+      "expect": [{ "exercise": "BenchPress", "weight": 50, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 50, "success": true,  "last_set_reps": 5 }]
+    },
+    {
+      "note": "Success: +5 lbs again",
+      "expect": [{ "exercise": "BenchPress", "weight": 55, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 55, "success": true,  "last_set_reps": 5 }]
+    },
+    {
+      "note": "Success: now at 60 lbs",
+      "expect": [{ "exercise": "BenchPress", "weight": 60, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 60, "success": false, "last_set_reps": 3 }]
+    },
+    {
+      "note": "Failure: hold at 60 lbs (1st failure)",
+      "expect": [{ "exercise": "BenchPress", "weight": 60, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 60, "success": false, "last_set_reps": 3 }]
+    },
+    {
+      "note": "Hold again: 60 lbs (2nd consecutive failure — not yet 3)",
+      "expect": [{ "exercise": "BenchPress", "weight": 60, "sets": 5, "reps": 5 }],
+      "done":   [{ "exercise": "BenchPress", "weight": 60, "success": false, "last_set_reps": 3 }]
+    },
+    {
+      "note": "3 consecutive failures at same weight → deload to 90%: 60 × 0.9 = 54 → rounds to 55 lbs",
+      "expect": [{ "exercise": "BenchPress", "weight": 55, "sets": 5, "reps": 5 }],
+      "done":   []
+    }
+  ]
+}

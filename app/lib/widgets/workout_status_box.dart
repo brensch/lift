@@ -220,7 +220,9 @@ class StatusSetWeightInfo extends StatelessWidget {
             ),
           ],
           Text(
-            '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
+            set.isAmrap
+                ? 'AMRAP\u00D7${set.targetWeight.toInt()}'
+                : '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,

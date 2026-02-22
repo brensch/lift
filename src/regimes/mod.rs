@@ -1,6 +1,8 @@
 pub mod gzclp;
 pub mod linear_5x5;
 pub mod wendler_531;
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashMap;
 
@@ -157,6 +159,17 @@ pub fn exercise_display_name(exercise: Exercise) -> String {
     }
 }
 
+// ─── Per-session history entry ────────────────────────────────────────────────
+
+/// One workout session's result for a single exercise, newest-first.
+#[derive(Debug, Clone)]
+pub struct SessionHistory {
+    pub weight: f32,
+    pub success: bool,      // all prescribed reps completed
+    pub timestamp: i64,     // unix seconds
+    pub last_set_reps: i32, // actual reps logged on last working set; 0 if unknown
+}
+
 // ─── Proposal output from a regime ───────────────────────────────────────────
 
 pub struct ExerciseProposal {
@@ -177,7 +190,7 @@ pub trait WorkoutRegime: Send + Sync {
         &self,
         exercise: Exercise,
         config: &ExerciseConfig,
-        history: &[(f32, bool, i64)], // (weight, success, timestamp) newest-first
+        history: &[SessionHistory], // newest-first
         max_weight: f32,
         workout_config: &UserWorkoutConfig,
     ) -> ExerciseProposal;
@@ -194,7 +207,7 @@ pub trait WorkoutRegime: Send + Sync {
     fn compute_updated_state(
         &self,
         workout_config: &UserWorkoutConfig,
-        history: &HashMap<i32, Vec<(f32, bool, i64)>>,
+        history: &HashMap<i32, Vec<SessionHistory>>,
     ) -> String;
 
     /// Recovery window in seconds between sessions.
@@ -206,6 +219,15 @@ pub trait WorkoutRegime: Send + Sync {
         workout_config: &UserWorkoutConfig,
         statuses: &[ExerciseStatus],
     ) -> RegimeContext;
+
+    /// Short name for the suggested workout, e.g. "5/3/1 — Cycle 2, Week 3 Peak".
+    /// Default returns the regime display name.
+    fn suggested_workout_name(
+        &self,
+        _workout_config: &UserWorkoutConfig,
+    ) -> String {
+        self.display_name().to_string()
+    }
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -227,6 +249,16 @@ pub fn make_exercise_type_config(
     proposal: &ExerciseProposal,
     include_warmup: bool,
 ) -> ExerciseTypeConfig {
+    make_exercise_type_config_amrap(exercise, proposal, include_warmup, false)
+}
+
+/// Like make_exercise_type_config but with explicit AMRAP control.
+pub fn make_exercise_type_config_amrap(
+    exercise: Exercise,
+    proposal: &ExerciseProposal,
+    include_warmup: bool,
+    last_set_amrap: bool,
+) -> ExerciseTypeConfig {
     ExerciseTypeConfig {
         exercise: exercise as i32,
         start_weight: proposal.weight,
@@ -234,6 +266,7 @@ pub fn make_exercise_type_config(
         reps: proposal.reps,
         include_warmup,
         rest_config: None,
+        last_set_amrap,
     }
 }
 
@@ -256,11 +289,28 @@ pub fn build_single_group(
     explanation: String,
     rest_config: Option<RestConfig>,
 ) -> ProposedExerciseGroup {
+    build_single_group_amrap(exercise, proposal, tags, explanation, rest_config, false)
+}
+
+/// Like build_single_group but with explicit AMRAP control on the last working set.
+pub fn build_single_group_amrap(
+    exercise: Exercise,
+    proposal: &ExerciseProposal,
+    tags: Vec<String>,
+    explanation: String,
+    rest_config: Option<RestConfig>,
+    last_set_amrap: bool,
+) -> ProposedExerciseGroup {
     ProposedExerciseGroup {
         name: exercise_display_name(exercise),
         sets: proposal.sets,
         interleave_warmups: false,
-        exercise_configs: vec![make_exercise_type_config(exercise, proposal, true)],
+        exercise_configs: vec![make_exercise_type_config_amrap(
+            exercise,
+            proposal,
+            true,
+            last_set_amrap,
+        )],
         rest_config,
         tags,
         explanation,

@@ -342,7 +342,10 @@ private fun WearApp(
 
     val hrColor = heartRateColor(latestBpm)
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
-    val repsWeightText = if (currentSet != null) "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}" else ""
+    val isAmrap = currentSet?.isAmrap ?: false
+    val repsWeightText = if (currentSet != null) {
+        if (isAmrap) "AMRAPx${currentSet.targetWeight.toInt()}" else "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
+    } else ""
     val weightOnlyText = if (currentSet != null) "x${currentSet.targetWeight.toInt()}" else ""
     val startButtonTitle = if (currentSet != null) {
         "Start\n$exerciseName"
@@ -352,16 +355,17 @@ private fun WearApp(
     val completeButtonText = "Complete\n$exerciseName"
     val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
     val timerColor = if (isResting) Color(0xFF86EFAC) else Color.White
-    val maxReps = currentSet?.targetReps ?: 0
-    val repOptionMax = (maxReps * 2).coerceAtLeast(0)
+    val maxReps = if (isAmrap) 30 else (currentSet?.targetReps ?: 0)
+    val repOptionMax = if (isAmrap) 30 else (maxReps * 2).coerceAtLeast(0)
     val repOptionCount = (repOptionMax + 1).coerceAtLeast(1)
+    val initialReps = if (isAmrap) (currentSet?.targetReps ?: 0).coerceAtMost(30) else maxReps.coerceAtLeast(0)
     val pickerState = rememberPickerState(
         initialNumberOfOptions = repOptionCount,
-        initiallySelectedOption = maxReps.coerceAtLeast(0),
+        initiallySelectedOption = initialReps,
         repeatItems = false,
     )
-    LaunchedEffect(repOptionCount, maxReps) {
-        pickerState.scrollToOption(maxReps.coerceAtLeast(0))
+    LaunchedEffect(repOptionCount, initialReps) {
+        pickerState.scrollToOption(initialReps)
     }
     val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
 

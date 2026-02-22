@@ -154,6 +154,8 @@ mod tests {
             rest_after_success: 90,
             rest_after_failure: 180,
             cancelled: false,
+            is_amrap: false,
+            instruction: String::new(),
         }
     }
 

@@ -140,6 +140,8 @@ fn generate_sets_for_group(
                         rest_after_success: rest_s,
                         rest_after_failure: rest_f,
                         cancelled: false,
+                        is_amrap: false,
+                        instruction: String::new(),
                     });
                     order += 1;
                 }
@@ -164,6 +166,8 @@ fn generate_sets_for_group(
                     rest_after_success: rest_s,
                     rest_after_failure: rest_f,
                     cancelled: false,
+                    is_amrap: false,
+                    instruction: String::new(),
                 });
                 order += 1;
             }
@@ -173,6 +177,7 @@ fn generate_sets_for_group(
     // Working sets always interleave: A1, B1, A2, B2, ... for group.sets rounds
     let num_sets = group.sets.max(1);
     for set_idx in 0..num_sets {
+        let is_last_working_set = set_idx == num_sets - 1;
         for config in configs {
             let weight = if num_sets <= 1 {
                 config.start_weight
@@ -183,6 +188,13 @@ fn generate_sets_for_group(
             };
             // Round to nearest 5.0 (standard plate increment)
             let weight = (weight / 5.0).round() * 5.0;
+
+            let is_amrap = config.last_set_amrap && is_last_working_set;
+            let instruction = if is_amrap {
+                "AMRAP — push for max reps".to_string()
+            } else {
+                String::new()
+            };
 
             let (rest_s, rest_f) = get_rest_for_config(group, config, false, false);
             sets.push(ProposedSet {
@@ -197,6 +209,8 @@ fn generate_sets_for_group(
                 rest_after_success: rest_s,
                 rest_after_failure: rest_f,
                 cancelled: false,
+                is_amrap,
+                instruction,
             });
             order += 1;
         }
@@ -872,6 +886,7 @@ impl WorkoutService for MyWorkoutService {
                 workout_order,
                 exercise_configs: normalize_exercise_configs(&req.exercise_configs),
                 rest_config: normalize_rest_config(req.rest_config.clone()),
+                instruction: String::new(),
             };
 
             let set_order = workout_ref
@@ -1604,6 +1619,7 @@ mod tests {
             reps,
             include_warmup,
             rest_config,
+            last_set_amrap: false,
         }
     }
 
@@ -1624,6 +1640,7 @@ mod tests {
             workout_order,
             exercise_configs: configs,
             rest_config,
+            instruction: String::new(),
         }
     }
 
@@ -1656,6 +1673,8 @@ mod tests {
             rest_after_success: 90,
             rest_after_failure: 180,
             cancelled,
+            is_amrap: false,
+            instruction: String::new(),
         }
     }
 

@@ -384,6 +384,7 @@ async fn run_user_simulation(
                         reps: 5,
                         include_warmup: false,
                         rest_config: None,
+                        last_set_amrap: false,
                     }],
                     rest_config: None,
                 },

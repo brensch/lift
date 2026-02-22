@@ -35,6 +35,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutStateSnapshot? _stateSnapshot;
   List<ExerciseStatus> _exerciseStatuses = [];
   List<ProposedExerciseGroup> _proposedGroups = [];
+  RegimeContext? _regimeContext;
   final List<HeartRateSample> _wearHeartRateSamples = [];
   final List<WorkoutHeartRatePoint> _pendingWearHeartRateUploads = [];
   DateTime? _lastWearHeartRateUploadAt;
@@ -118,6 +119,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<CompletedSet> get completedSets => _activeCompletedSets;
   List<ExerciseStatus> get exerciseStatuses => _exerciseStatuses;
   List<ProposedExerciseGroup> get proposedGroups => _proposedGroups;
+  RegimeContext? get regimeContext => _regimeContext;
 
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
@@ -311,6 +313,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _exerciseStatuses = proposedSchedule.exerciseStatuses;
       _proposedGroups = proposedSchedule.proposedGroups;
+      _regimeContext = proposedSchedule.hasRegimeContext()
+          ? proposedSchedule.regimeContext
+          : null;
     } catch (e) {
       _handleError(e);
     } finally {
