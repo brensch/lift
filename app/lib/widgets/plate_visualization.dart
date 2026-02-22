@@ -196,10 +196,14 @@ class PlateVisualization extends StatelessWidget {
         // Bar.
         Container(
           width: 24,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(1),
+          height: 32,
+          alignment: Alignment.center,
+          child: Container(
+            width: 24,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+            ),
           ),
         ),
         const SizedBox(width: 1),

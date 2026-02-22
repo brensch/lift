@@ -565,7 +565,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
             Row(
               children: [
                 Container(
-                  height: 44,
+                  height: 56,
                   width: 56,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
@@ -599,7 +599,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'reps',
+                  'good/${widget.proposedSet.targetReps}',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -609,7 +609,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: SizedBox(
-                    height: 44,
+                    height: 56,
                     child: FilledButton(
                       onPressed: () => widget.onComplete(
                         _scrollController.selectedItem,

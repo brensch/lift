@@ -226,7 +226,7 @@ class WorkoutBottomBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
-                      height: 48,
+                      height: 64,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
                         color: colorScheme.surface.withValues(alpha: 0.45),
@@ -404,7 +404,7 @@ class _BigButton extends StatelessWidget {
       children: [
         Expanded(
           child: SizedBox(
-            height: 48,
+            height: 64,
             child: FilledButton(
               onPressed: onPressed,
               child: Text(
@@ -420,7 +420,7 @@ class _BigButton extends StatelessWidget {
         if (secondaryLabel != null && onSecondary != null) ...[
           const SizedBox(width: 8),
           SizedBox(
-            height: 48,
+            height: 64,
             child: OutlinedButton(
               onPressed: onSecondary,
               child: Text(
@@ -492,7 +492,7 @@ class _RepButtonsState extends State<_RepButtons> {
           children: [
             // Number scroll wheel
             Container(
-              height: 48,
+              height: 64,
               width: 64,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
@@ -500,7 +500,7 @@ class _RepButtonsState extends State<_RepButtons> {
               ),
               child: ListWheelScrollView.useDelegate(
                 controller: _scrollController,
-                itemExtent: 36,
+                itemExtent: 32,
                 physics: const FixedExtentScrollPhysics(),
                 diameterRatio: 1.2,
                 perspective: 0.003,
@@ -524,7 +524,7 @@ class _RepButtonsState extends State<_RepButtons> {
             ),
             const SizedBox(width: 8),
             Text(
-              'reps',
+              'good/${widget.targetReps}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -535,7 +535,7 @@ class _RepButtonsState extends State<_RepButtons> {
             // Complete set button
             Expanded(
               child: SizedBox(
-                height: 48,
+                height: 64,
                 child: FilledButton(
                   onPressed: () =>
                       widget.onComplete(_scrollController.selectedItem),
