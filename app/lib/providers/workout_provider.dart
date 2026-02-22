@@ -198,6 +198,28 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _backendNextUpSet;
   }
 
+  /// Returns true if warmup can be skipped for the given proposed set.
+  /// Skip is only allowed before any warmup in the same exercise group has been completed.
+  bool canSkipWarmup(String proposedSetId) {
+    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
+      (p) => p!.id == proposedSetId,
+      orElse: () => null,
+    );
+    if (proposed == null || !proposed.warmup) return false;
+
+    // Find all warmup proposed set IDs in the same exercise group
+    final warmupSetIds = _activeProposedSets
+        .where((s) =>
+            s.exerciseGroupId == proposed.exerciseGroupId && s.warmup)
+        .map((s) => s.id)
+        .toSet();
+
+    // If any warmup in this group has been completed, can't skip
+    return !_activeCompletedSets.any(
+      (c) => warmupSetIds.contains(c.proposedSetId) && c.endedAt != Int64.ZERO,
+    );
+  }
+
   int get restSecondsRemaining {
     final snapshot = _stateSnapshot;
     if (snapshot == null) return 0;
@@ -211,6 +233,43 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final snapshot = _stateSnapshot;
     if (snapshot == null || snapshot.lastRestEnd == Int64.ZERO) return null;
     return snapshot.lastRestEnd.toInt();
+  }
+
+  void _applyStateSnapshot(WorkoutStateSnapshot? snapshot) {
+    final oldRestUntil = _stateSnapshot?.restUntil.toInt();
+    final oldState = _stateSnapshot?.state;
+
+    _stateSnapshot = snapshot;
+
+    if (snapshot == null) {
+      if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
+        unawaited(NotificationService.cancelRest());
+      }
+      return;
+    }
+
+    final isResting = snapshot.state == WorkoutState.WORKOUT_STATE_RESTING;
+    final restUntil = snapshot.restUntil.toInt();
+
+    if (isResting) {
+      if (restUntil > 0) {
+        _wasResting = true;
+        if (restUntil != oldRestUntil ||
+            oldState != WorkoutState.WORKOUT_STATE_RESTING) {
+          final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
+          unawaited(NotificationService.scheduleRest(
+            restUntilUnix: restUntil,
+            soundPresetId: presetId,
+            body: _nextSetBody(),
+          ));
+        }
+      }
+    } else {
+      if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
+        unawaited(NotificationService.cancelRest());
+        _wasResting = false;
+      }
+    }
   }
 
   void _startTimer() {
@@ -240,9 +299,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeProposedSets = List.from(response.proposedSets);
         _activeCompletedSets = List.from(response.completedSets);
         _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-        _stateSnapshot = response.hasStateSnapshot()
-            ? response.stateSnapshot
-            : null;
+        _applyStateSnapshot(
+          response.hasStateSnapshot() ? response.stateSnapshot : null,
+        );
         _sortState();
         _startTimer();
       } else {
@@ -251,7 +310,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeProposedSets = [];
         _activeCompletedSets = [];
         _backendNextUpSet = null;
-        _stateSnapshot = null;
+        _applyStateSnapshot(null);
         _stopTimer();
       }
 
@@ -276,9 +335,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeProposedSets = List.from(response.proposedSets);
       _activeCompletedSets = List.from(response.completedSets);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       _sortState();
       if (hasActiveWorkout) {
         _startTimer();
@@ -297,9 +356,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
     _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-    _stateSnapshot = response.hasStateSnapshot()
-        ? response.stateSnapshot
-        : null;
+    _applyStateSnapshot(
+      response.hasStateSnapshot() ? response.stateSnapshot : null,
+    );
     _sortState();
     if (hasActiveWorkout) {
       _startTimer();
@@ -356,9 +415,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         groupIds,
       );
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
     } catch (e) {
       _handleError(e);
       await _loadWorkout(_activeWorkout!.id);
@@ -368,17 +427,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> startSet(String proposedSetId) async {
     if (_activeWorkout == null) return;
     try {
-      await NotificationService.cancelRest();
-      _wasResting = false;
       final response = await _service.startSet(
         _activeWorkout!.id,
         proposedSetId,
       );
       _activeCompletedSets.add(response.completedSet);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -406,18 +463,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _activeCompletedSets.add(completed);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
-      if (completed.restUntil.toInt() > 0) {
-        _wasResting = true;
-        final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
-        await NotificationService.scheduleRest(
-          restUntilUnix: completed.restUntil.toInt(),
-          soundPresetId: presetId,
-          body: _nextSetBody(),
-        );
-      }
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -433,11 +481,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
-      await NotificationService.cancelRest();
-      _wasResting = false;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -454,17 +500,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!proposed.warmup) return;
 
     try {
-      await NotificationService.cancelRest();
-      _wasResting = false;
       final response = await _service.cancelProposedSet(
         _activeWorkout!.id,
         proposedSetId,
       );
       _activeProposedSets.removeWhere((set) => set.id == proposedSetId);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -491,9 +535,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _activeExerciseGroups.add(response.group);
       _activeProposedSets.addAll(response.generatedSets);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       _sortState();
       notifyListeners();
     } catch (e) {
@@ -532,9 +576,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _activeProposedSets.addAll(response.generatedSets);
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
 
       _sortState();
 
@@ -565,9 +609,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         (s) => s.exerciseGroupId == groupData.group!.id,
       );
       _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _stateSnapshot = response.hasStateSnapshot()
-          ? response.stateSnapshot
-          : null;
+      _applyStateSnapshot(
+        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      );
       notifyListeners();
     } catch (e) {
       _handleError(e);
@@ -675,7 +719,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeProposedSets = [];
     _activeCompletedSets = [];
     _backendNextUpSet = null;
-    _stateSnapshot = null;
+    _applyStateSnapshot(null);
     _wearHeartRateSamples.clear();
     _pendingWearHeartRateUploads.clear();
     _lastWearHeartRateUploadAt = null;

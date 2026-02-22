@@ -191,6 +191,15 @@ Future<void> showEditExerciseDialog(
                       onTap: () => setState(() {
                         expandedIndex = isExpanded ? null : idx;
                       }),
+                      onDelete: () => setState(() {
+                        editableConfigs.removeAt(idx);
+                        if (expandedIndex == idx) {
+                          expandedIndex = null;
+                        } else if (expandedIndex != null &&
+                            expandedIndex! > idx) {
+                          expandedIndex = expandedIndex! - 1;
+                        }
+                      }),
                       onStartWeightChanged: (v) => setState(() {
                         final wasSynced =
                             config.startWeight == config.endWeight;
@@ -414,6 +423,15 @@ Future<void> showAddExerciseDialog(
                         onTap: () => setState(() {
                           expandedIndex = isExpanded ? null : idx;
                         }),
+                        onDelete: () => setState(() {
+                          configs.removeAt(idx);
+                          if (expandedIndex == idx) {
+                            expandedIndex = null;
+                          } else if (expandedIndex != null &&
+                              expandedIndex! > idx) {
+                            expandedIndex = expandedIndex! - 1;
+                          }
+                        }),
                         onStartWeightChanged: (v) => setState(() {
                           final wasSynced =
                               config.startWeight == config.endWeight;
@@ -515,7 +533,7 @@ class _EditableConfig {
   });
 }
 
-class _ExerciseChipSelector extends StatelessWidget {
+class _ExerciseChipSelector extends StatefulWidget {
   final List<_EditableConfig> configs;
   final List<ExerciseStatus> exerciseStatuses;
   final void Function(Exercise exercise, bool selected) onToggle;
@@ -527,8 +545,44 @@ class _ExerciseChipSelector extends StatelessWidget {
   });
 
   @override
+  State<_ExerciseChipSelector> createState() => _ExerciseChipSelectorState();
+}
+
+class _ExerciseChipSelectorState extends State<_ExerciseChipSelector> {
+  final TextEditingController _searchController = TextEditingController();
+  final MenuController _menuController = MenuController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      if (_query != _searchController.text) {
+        setState(() {
+          _query = _searchController.text;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final exercises = Exercise.values
+        .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
+        .toList();
+
+    final filtered = exercises.where((e) {
+      final name = exerciseNames[e]?.toLowerCase() ?? '';
+      return name.contains(_query.toLowerCase());
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -542,25 +596,87 @@ class _ExerciseChipSelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: Exercise.values
-              .where((e) => e != Exercise.EXERCISE_UNSPECIFIED)
-              .map((e) {
-                final isAdded = configs.any((c) => c.exercise == e);
-                return FilterChip(
-                  label: Text(
-                    exerciseNames[e] ?? '?',
-                    style: const TextStyle(fontSize: 11),
+                MenuAnchor(
+                  controller: _menuController,
+                  style: MenuStyle(
+                    maximumSize: const WidgetStatePropertyAll(Size.fromHeight(300)),
+                    backgroundColor: WidgetStatePropertyAll(colorScheme.surface),
+                    surfaceTintColor: WidgetStatePropertyAll(colorScheme.surface),
+                    elevation: const WidgetStatePropertyAll(8),
+                    padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-                  selected: isAdded,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  onSelected: (selected) => onToggle(e, selected),
-                );
-              })
-              .toList(),
+                  menuChildren: filtered.isEmpty
+                      ? [
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text('No exercises found'),
+                          )
+                        ]
+                      : filtered.map((e) {
+                          final isAdded = widget.configs.any((c) => c.exercise == e);
+                          return MenuItemButton(
+                            closeOnActivate: false,
+                            onPressed: () {
+                              widget.onToggle(e, !isAdded);
+                              setState(() {});
+                            },
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width - 64,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isAdded
+                                          ? Icons.check_box
+                                          : Icons.check_box_outline_blank,
+                                      size: 20,
+                                      color: isAdded
+                                          ? colorScheme.primary
+                                          : colorScheme.outline,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        exerciseNames[e] ?? '?',
+                                        style: TextStyle(
+                                          fontWeight: isAdded
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),          builder: (context, controller, child) {
+            return TextField(
+              controller: _searchController,
+              onTap: () => controller.open(),
+              onChanged: (v) {
+                if (!controller.isOpen) controller.open();
+              },
+              decoration: InputDecoration(
+                hintText: 'Search to add exercises...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                isDense: true,
+                filled: true,
+                fillColor:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colorScheme.outline),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -572,6 +688,7 @@ class _CompactExerciseConfig extends StatelessWidget {
   final _EditableConfig config;
   final bool isExpanded;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
   final ValueChanged<double> onStartWeightChanged;
   final ValueChanged<double> onEndWeightChanged;
   final ValueChanged<bool> onWarmupChanged;
@@ -581,6 +698,7 @@ class _CompactExerciseConfig extends StatelessWidget {
     required this.config,
     required this.isExpanded,
     required this.onTap,
+    required this.onDelete,
     required this.onStartWeightChanged,
     required this.onEndWeightChanged,
     required this.onWarmupChanged,
@@ -656,6 +774,15 @@ class _CompactExerciseConfig extends StatelessWidget {
                   color: config.includeWarmup
                       ? colorScheme.primary
                       : colorScheme.outline,
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.remove_circle_outline, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                  color: colorScheme.error.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: 4),
                 Icon(

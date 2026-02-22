@@ -405,7 +405,7 @@ class ChatTimeBox extends StatelessWidget {
 
 // ─── ActiveSetBox ───────────────────────────────────────────────────
 
-class ActiveSetBox extends StatelessWidget {
+class ActiveSetBox extends StatefulWidget {
   final ProposedSet proposedSet;
   final CompletedSet? activeCompletedSet;
   final DateTime now;
@@ -422,14 +422,42 @@ class ActiveSetBox extends StatelessWidget {
   });
 
   @override
+  State<ActiveSetBox> createState() => _ActiveSetBoxState();
+}
+
+class _ActiveSetBoxState extends State<ActiveSetBox> {
+  late FixedExtentScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController =
+        FixedExtentScrollController(initialItem: widget.proposedSet.targetReps);
+  }
+
+  @override
+  void didUpdateWidget(ActiveSetBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.proposedSet.targetReps != widget.proposedSet.targetReps) {
+      _scrollController.jumpToItem(widget.proposedSet.targetReps);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final elapsedSecs = activeCompletedSet != null
-        ? (now.millisecondsSinceEpoch ~/ 1000) -
-              activeCompletedSet!.startedAt.toInt()
+    final elapsedSecs = widget.activeCompletedSet != null
+        ? (widget.now.millisecondsSinceEpoch ~/ 1000) -
+              widget.activeCompletedSet!.startedAt.toInt()
         : 0;
-    final name = exerciseNames[proposedSet.exercise] ?? '?';
-    final isWarmup = proposedSet.warmup;
+    final name = exerciseNames[widget.proposedSet.exercise] ?? '?';
+    final isWarmup = widget.proposedSet.warmup;
     final accentColor = isWarmup
         ? const Color(0xFF3B82F6)
         : colorScheme.primary;
@@ -495,7 +523,7 @@ class ActiveSetBox extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${proposedSet.targetWeight.toInt()}',
+                  '${widget.proposedSet.targetWeight.toInt()}',
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
@@ -516,7 +544,7 @@ class ActiveSetBox extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${proposedSet.targetReps}',
+                  '${widget.proposedSet.targetReps}',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
@@ -530,74 +558,83 @@ class ActiveSetBox extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            PlateVisualization(weight: proposedSet.targetWeight.toDouble()),
+            PlateVisualization(weight: widget.proposedSet.targetWeight.toDouble()),
             const SizedBox(height: 12),
 
-            // Rep question
-            Text(
-              'HOW MANY REPS DID YOU COMPLETE?',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.0,
-                color: colorScheme.tertiary,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Rep buttons: 0 to targetReps
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: List.generate(proposedSet.targetReps + 1, (n) {
-                final isTarget = n == proposedSet.targetReps;
-                return SizedBox(
-                  width: 48,
+            // Rep picker + complete button
+            Row(
+              children: [
+                Container(
                   height: 44,
-                  child: isTarget
-                      ? FilledButton(
-                          onPressed: () => onComplete(
-                            n,
-                            proposedSet.targetWeight.toDouble(),
-                          ),
-                          style: FilledButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                          ),
+                  width: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorScheme.outline),
+                  ),
+                  child: ListWheelScrollView.useDelegate(
+                    controller: _scrollController,
+                    itemExtent: 32,
+                    physics: const FixedExtentScrollPhysics(),
+                    diameterRatio: 1.2,
+                    perspective: 0.003,
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      builder: (context, index) {
+                        if (index < 0 || index > widget.proposedSet.targetReps) {
+                          return null;
+                        }
+                        return Center(
                           child: Text(
-                            '$n',
-                            style: const TextStyle(
-                              fontSize: 16,
+                            '$index',
+                            style: TextStyle(
+                              fontSize: 18,
                               fontWeight: FontWeight.w900,
+                              color: colorScheme.onSurface,
                             ),
                           ),
-                        )
-                      : OutlinedButton(
-                          onPressed: () => onComplete(
-                            n,
-                            proposedSet.targetWeight.toDouble(),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Text(
-                            '$n',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                        );
+                      },
+                      childCount: widget.proposedSet.targetReps + 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'reps',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.tertiary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton(
+                      onPressed: () => widget.onComplete(
+                        _scrollController.selectedItem,
+                        widget.proposedSet.targetWeight.toDouble(),
+                      ),
+                      child: const Text(
+                        'Complete Set',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
                         ),
-                );
-              }),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             // Skip warmup
-            if (isWarmup && onSkipWarmup != null) ...[
+            if (isWarmup && widget.onSkipWarmup != null) ...[
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
-                  onPressed: onSkipWarmup,
+                  onPressed: widget.onSkipWarmup,
                   child: Text(
                     'Skip Warmup',
                     style: TextStyle(fontSize: 12, color: colorScheme.tertiary),
