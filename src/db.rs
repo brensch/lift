@@ -1231,25 +1231,89 @@ impl CentralDb {
         Ok(rows)
     }
 
-    pub async fn get_workouts_by_session(
+    pub async fn get_session_workout_data(
         &self,
         session_id: &str,
-    ) -> Result<Vec<(String, Workout)>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<
+        (
+            Vec<(String, Workout)>,
+            Vec<lift::workout::v1::ExerciseGroup>,
+            Vec<ProposedSet>,
+            Vec<CompletedSet>,
+        ),
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         let rows = sqlx::query(
-            "SELECT id, user_id, name, start_time, end_time, session_id FROM workouts WHERE session_id = ? AND end_time IS NOT NULL",
+            "SELECT id, user_id, name, start_time, end_time, session_id FROM workouts WHERE session_id = ?",
         )
         .bind(session_id)
         .fetch_all(&self.pool)
         .await?;
 
-        let mut results = Vec::new();
+        let mut workouts = Vec::new();
         for row in rows {
             let user_id: String = row.get("user_id");
             let workout = row_to_workout(row);
-            results.push((user_id, workout));
+            workouts.push((user_id, workout));
         }
-        Ok(results)
+
+        if workouts.is_empty() {
+            return Ok((vec![], vec![], vec![], vec![]));
+        }
+
+        let mut groups = sqlx::query(
+            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+             FROM exercise_groups WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) ORDER BY workout_order"
+        )
+        .bind(session_id)
+        .map(row_to_exercise_group)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let configs_rows = sqlx::query(
+             "SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+              FROM exercise_type_configs \
+              WHERE exercise_group_id IN (SELECT id FROM exercise_groups WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?)) \
+              ORDER BY config_order"
+        )
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut configs_by_group: HashMap<String, Vec<ExerciseTypeConfig>> = HashMap::new();
+        for row in configs_rows {
+            let gid: String = row.get("exercise_group_id");
+            let config = row_to_exercise_type_config(row);
+            configs_by_group.entry(gid).or_default().push(config);
+        }
+
+        for group in &mut groups {
+            if let Some(configs) = configs_by_group.remove(&group.id) {
+                group.exercise_configs = configs;
+            }
+        }
+
+        let proposed = sqlx::query(
+            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure, cancelled \
+             FROM proposed_sets WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) AND cancelled = 0 ORDER BY workout_order"
+        )
+        .bind(session_id)
+        .map(row_to_proposed_set)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let completed = sqlx::query(
+            "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until \
+             FROM completed_sets WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) ORDER BY started_at"
+        )
+        .bind(session_id)
+        .map(row_to_completed_set)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok((workouts, groups, proposed, completed))
     }
+
 
     pub async fn get_workout_plan_change_stats(
         &self,

@@ -203,3 +203,15 @@ button.primary-action:disabled {
   color: var(--danger);
   font-weight: 600;
 }
+
+@keyframes wobbly-move {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(-0.8px, 0.5px) rotate(-0.005rad); }
+  66% { transform: translate(0.5px, -0.8px) rotate(0.008rad); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.wobbly-letter {
+  display: inline-block;
+  animation: wobbly-move 12s ease-in-out infinite;
+}
