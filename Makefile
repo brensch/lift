@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -403,3 +403,9 @@ proto-android:
 	@echo "Done. Generated files in app/android/shared-proto/src/main/java/"
 
 proto-all: proto-dart proto-android
+
+icons:
+	@echo "=== Regenerating app icons and marketing assets ==="
+	python3 scripts/replace_app_icons.py
+	python3 scripts/replace_app_icons2.py
+	@echo "Done."
