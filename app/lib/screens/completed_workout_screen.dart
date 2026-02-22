@@ -1,14 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercise_groups.dart';
+import '../logic/exercises.dart';
+import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
+import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
-import '../theme/app_theme.dart';
-import '../widgets/exercise_group_widget.dart';
 import '../widgets/set_log.dart';
 
 class CompletedWorkoutScreen extends StatefulWidget {
@@ -26,35 +28,42 @@ class CompletedWorkoutScreen extends StatefulWidget {
 }
 
 class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
-  late int _currentPage;
-  late final PageController _pageController;
-
   // Self-contained data — no dependency on WorkoutProvider
   Workout? _workout;
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
   bool _isLoading = true;
+  List<String> _sessionFriends = [];
+  bool _sessionFriendsLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.isHistory ? 1 : 0;
-    _pageController = PageController(initialPage: _currentPage);
     _loadWorkout();
   }
 
   Future<void> _loadWorkout() async {
     final grpc = context.read<GrpcClient>();
+    final auth = context.read<AuthProvider>();
     final service = WorkoutServiceWrapper(grpc);
+    final multiplayer = MultiplayerServiceWrapper(grpc);
+    final sessionSelfId = auth.userId ?? '';
     try {
       final response = await service.getWorkout(widget.workoutId);
+      final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
           _workout = response.workout;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
           _isLoading = false;
+          _sessionFriends = [];
+          _sessionFriendsLoaded = sessionId.isEmpty;
         });
+      }
+
+      if (sessionId.isNotEmpty) {
+        await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
     } catch (e) {
       if (mounted) {
@@ -63,10 +72,37 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  Future<void> _loadSessionFriends(
+    String sessionId,
+    MultiplayerServiceWrapper service,
+    String selfId,
+  ) async {
+    List<String> names = [];
+    try {
+      final sessionResponse = await service.getCurrentSession(
+        sessionId: sessionId,
+      );
+      final participants = sessionResponse.sessionStatus.participants;
+      final seen = <String>{};
+      for (final participant in participants) {
+        final user = participant.user;
+        if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId))
+          continue;
+        final display = user.name.isNotEmpty ? user.name : user.id;
+        if (display.isEmpty) continue;
+        if (seen.add(display)) {
+          names.add(display);
+        }
+      }
+    } catch (_) {
+      names = [];
+    }
+    if (mounted) {
+      setState(() {
+        _sessionFriends = names;
+        _sessionFriendsLoaded = true;
+      });
+    }
   }
 
   @override
@@ -76,192 +112,178 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
 
     final workout = _workout!;
-    final groups = groupSetsByExercise(_proposedSets);
-
+    final ownProposedSets = _proposedSets
+        .where((p) => p.workoutId == workout.id)
+        .toList();
+    final ownCompletedSets = _completedSets
+        .where((c) => c.workoutId == workout.id)
+        .toList();
+    final summary = WorkoutSummaryData.fromWorkout(
+      workout: workout,
+      proposedSets: ownProposedSets,
+      completedSets: ownCompletedSets,
+    );
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (!widget.isHistory) {
-              // Just finished a workout — clear active state so home screen loads fresh
-              final wp = context.read<WorkoutProvider>();
-              if (wp.workout?.id == widget.workoutId && !wp.hasActiveWorkout) {
-                wp.clear();
-              }
-            }
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/');
-            }
-          },
+          onPressed: _handleBackNavigation,
         ),
         title: Text(
-          workout.name.isNotEmpty
-              ? workout.name
-              : (_currentPage == 0 ? 'Celebration' : 'Summary'),
+          workout.name.isNotEmpty ? workout.name : 'Workout summary',
           style: const TextStyle(
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
-        actions: [
-          if (!widget.isHistory)
-            IconButton(
-              icon: Icon(
-                _currentPage == 0 ? Icons.bar_chart : Icons.celebration,
-              ),
-              onPressed: () {
-                _pageController.animateToPage(
-                  _currentPage == 0 ? 1 : 0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
-            ),
-        ],
       ),
-      body: PageView(
-        controller: _pageController,
-        physics: widget.isHistory ? const NeverScrollableScrollPhysics() : null,
-        onPageChanged: (page) => setState(() => _currentPage = page),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          _CelebrationView(
-            workout: workout,
-            proposedSets: _proposedSets,
-            completedSets: _completedSets,
-            onViewSummary: () => _pageController.animateToPage(
-              1,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
+          Text(
+            'Session snapshot',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.start,
+            children: [
+              _SummaryMetric(
+                label: 'Duration',
+                value: summary.durationLabel,
+                icon: Icons.timer_outlined,
+              ),
+              _SummaryMetric(
+                label: 'Lifting',
+                value: summary.liftingTimeLabel,
+                icon: Icons.fitness_center,
+              ),
+              _SummaryMetric(
+                label: 'Yapping',
+                value: summary.yappingTimeLabel,
+                icon: Icons.chat_bubble_outline,
+              ),
+              _SummaryMetric(
+                label: 'Resting',
+                value: summary.restingTimeLabel,
+                icon: Icons.self_improvement,
+              ),
+              _SummaryMetric(
+                label: 'Volume',
+                value: summary.volumeLabel,
+                icon: Icons.line_weight,
+              ),
+              _SummaryMetric(
+                label: 'Work density',
+                value: summary.volumePerMinuteLabel,
+                icon: Icons.bar_chart,
+              ),
+              _SummaryMetric(
+                label: 'Rest ratio',
+                value: summary.workRestRatioLabel,
+                icon: Icons.self_improvement,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Friends worked out with',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
             ),
           ),
-          _StatsView(
-            groups: groups,
-            proposedSets: _proposedSets,
-            completedSets: _completedSets,
+          const SizedBox(height: 6),
+          _buildFriendChips(context),
+          const SizedBox(height: 28),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Exercise totals',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const Text('Records TBD', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...summary.exerciseSummaries.map(
+            (exercise) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ExerciseSummaryCard(exercise: exercise),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Set log',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          SetLog(
+            proposedSets: ownProposedSets,
+            completedSets: ownCompletedSets,
           ),
         ],
       ),
     );
   }
-}
 
-class _CelebrationView extends StatelessWidget {
-  final Workout workout;
-  final List<ProposedSet> proposedSets;
-  final List<CompletedSet> completedSets;
-  final VoidCallback onViewSummary;
-
-  const _CelebrationView({
-    required this.workout,
-    required this.proposedSets,
-    required this.completedSets,
-    required this.onViewSummary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final duration = workout.endTime != Int64.ZERO
-        ? Duration(seconds: (workout.endTime - workout.startTime).toInt())
-        : Duration.zero;
-
-    final completedWorking = completedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .where((c) {
-          final proposed = proposedSets.cast<ProposedSet?>().firstWhere(
-            (p) => p!.id == c.proposedSetId,
-            orElse: () => null,
-          );
-          return proposed != null && !proposed.warmup;
-        })
-        .length;
-
-    final totalVolume = completedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .fold(0.0, (sum, c) => sum + (c.actualReps * c.actualWeight));
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.stars, color: AppTheme.successFg, size: 80),
-        const SizedBox(height: 16),
-        const Text(
-          'WORKOUT COMPLETE',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1.0,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'You crushed it!',
-          style: TextStyle(color: colorScheme.tertiary, fontSize: 18),
-        ),
-        const SizedBox(height: 40),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _StatMetric(
-              label: 'DURATION',
-              value: _formatDuration(duration),
-              icon: Icons.timer_outlined,
+  Widget _buildFriendChips(BuildContext context) {
+    if (!_sessionFriendsLoaded) {
+      return Text(
+        'Loading friends...',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
+    }
+    if (_sessionFriends.isEmpty) {
+      return Text(
+        'None (solo session)',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
+    }
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: _sessionFriends
+          .map(
+            (name) => Chip(
+              label: Text(name),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
             ),
-            _StatMetric(
-              label: 'SETS',
-              value: '$completedWorking',
-              icon: Icons.fitness_center,
-            ),
-            _StatMetric(
-              label: 'VOLUME',
-              value: '${totalVolume.toInt()} lb',
-              icon: Icons.line_weight,
-            ),
-          ],
-        ),
-        const SizedBox(height: 48),
-        FilledButton.icon(
-          onPressed: onViewSummary,
-          icon: const Icon(Icons.bar_chart),
-          label: const Text('VIEW SUMMARY'),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Sharing coming soon!')),
-            );
-          },
-          icon: const Icon(Icons.share),
-          label: const Text('SHARE WORKOUT'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-        ),
-      ],
+          )
+          .toList(),
     );
   }
 
-  String _formatDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes.remainder(60);
-    if (hours > 0) return '${hours}h ${minutes}m';
-    return '${minutes}m';
+  void _handleBackNavigation() {
+    if (!widget.isHistory) {
+      final wp = context.read<WorkoutProvider>();
+      if (wp.workout?.id == widget.workoutId && !wp.hasActiveWorkout) {
+        wp.clear();
+      }
+    }
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
   }
 }
 
-class _StatMetric extends StatelessWidget {
+class _SummaryMetric extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
 
-  const _StatMetric({
+  const _SummaryMetric({
     required this.label,
     required this.value,
     required this.icon,
@@ -270,21 +292,135 @@ class _StatMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: colorScheme.primary, size: 20),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExerciseSummaryCard extends StatelessWidget {
+  final ExerciseSummary exercise;
+
+  const _ExerciseSummaryCard({required this.exercise});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(exercise.emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    exercise.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                exercise.recordNote,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ExerciseStatColumn(
+                label: 'Sets',
+                value: '${exercise.totalSets}',
+              ),
+              _ExerciseStatColumn(
+                label: 'Reps',
+                value: '${exercise.totalReps}',
+              ),
+              _ExerciseStatColumn(label: 'Volume', value: exercise.volumeLabel),
+              _ExerciseStatColumn(
+                label: 'Best 1RM',
+                value: exercise.formattedOneRm,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Heaviest set: ${exercise.heaviestSetWeightLabel}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExerciseStatColumn extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ExerciseStatColumn({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Icon(icon, color: colorScheme.primary, size: 24),
-        const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: colorScheme.tertiary,
-            letterSpacing: 1.0,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -292,35 +428,223 @@ class _StatMetric extends StatelessWidget {
   }
 }
 
-class _StatsView extends StatelessWidget {
-  final List<ExerciseGroupData> groups;
-  final List<ProposedSet> proposedSets;
-  final List<CompletedSet> completedSets;
+class WorkoutSummaryData {
+  final Duration duration;
+  final double totalVolume;
+  final Duration liftingTime;
+  final Duration restingTime;
+  final Duration yappingTime;
+  final double volumePerMinute;
+  final double workRestRatio;
+  final List<ExerciseSummary> exerciseSummaries;
 
-  const _StatsView({
-    required this.groups,
-    required this.proposedSets,
-    required this.completedSets,
+  WorkoutSummaryData({
+    required this.duration,
+    required this.totalVolume,
+    required this.liftingTime,
+    required this.restingTime,
+    required this.yappingTime,
+    required this.volumePerMinute,
+    required this.workRestRatio,
+    required this.exerciseSummaries,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        ...groups.map(
-          (group) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: ExerciseGroupWidget(
-              group: group,
-              completedSets: completedSets,
-              isWorkoutEnded: true,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SetLog(proposedSets: proposedSets, completedSets: completedSets),
-      ],
+  String get durationLabel => _formatDuration(duration);
+  String get volumeLabel => '${totalVolume.round()} lb';
+  String get liftingTimeLabel => _formatDuration(liftingTime);
+  String get restingTimeLabel => _formatDuration(restingTime);
+  String get yappingTimeLabel => _formatDuration(yappingTime);
+  String get volumePerMinuteLabel =>
+      '${_formatDecimal(volumePerMinute)} lb/min';
+  String get workRestRatioLabel => restingTime.inSeconds > 0
+      ? '${_formatDecimal(liftingTime.inSeconds.toDouble() / restingTime.inSeconds.toDouble(), fractionDigits: 2)}x'
+      : '—';
+
+  static String _formatDuration(Duration duration) {
+    if (duration == Duration.zero) return '0m';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    }
+    return '${minutes}m';
+  }
+
+  static String _formatDecimal(double value, {int fractionDigits = 1}) {
+    final formatted = value.toStringAsFixed(fractionDigits);
+    if (formatted.endsWith('.0')) {
+      return formatted.substring(0, formatted.length - 2);
+    }
+    return formatted;
+  }
+
+  factory WorkoutSummaryData.fromWorkout({
+    required Workout workout,
+    required List<ProposedSet> proposedSets,
+    required List<CompletedSet> completedSets,
+  }) {
+    final completed = completedSets
+        .where((set) => set.endedAt != Int64.ZERO)
+        .toList();
+
+    final Map<String, ProposedSet> proposedById = {
+      for (final set in proposedSets) set.id: set,
+    };
+
+    final Map<Exercise, ExerciseSummaryBuilder> exerciseBuilders = {};
+    double totalVolume = 0;
+    Duration liftingTime = Duration.zero;
+    Duration restingTime = Duration.zero;
+
+    for (final completedSet in completed) {
+      final proposed = proposedById[completedSet.proposedSetId];
+      if (proposed == null) continue;
+
+      final setDurationSeconds = completedSet.endedAt > completedSet.startedAt
+          ? (completedSet.endedAt - completedSet.startedAt).toInt()
+          : 0;
+      liftingTime += Duration(seconds: setDurationSeconds);
+
+      if (completedSet.restUntil > completedSet.endedAt) {
+        final restSeconds = (completedSet.restUntil - completedSet.endedAt)
+            .toInt();
+        restingTime += Duration(seconds: restSeconds);
+      }
+
+      final setVolume = completedSet.actualReps * completedSet.actualWeight;
+      if (setVolume.isFinite) {
+        totalVolume += setVolume;
+      }
+
+      final builder = exerciseBuilders.putIfAbsent(
+        proposed.exercise,
+        () => ExerciseSummaryBuilder(proposed.exercise),
+      );
+      builder.addSet(completedSet, proposed);
+    }
+
+    final sortedExercises = exerciseBuilders.values
+        .map((b) => b.build())
+        .toList()
+        .cast<ExerciseSummary>();
+    sortedExercises.sort((a, b) => b.totalVolume.compareTo(a.totalVolume));
+
+    final workRestRatio = restingTime.inSeconds > 0
+        ? liftingTime.inSeconds.toDouble() / restingTime.inSeconds.toDouble()
+        : liftingTime.inSeconds.toDouble();
+
+    final workoutDuration =
+        workout.endTime != Int64.ZERO && workout.startTime != Int64.ZERO
+        ? Duration(seconds: (workout.endTime - workout.startTime).toInt())
+        : Duration.zero;
+
+    final liftingMinutes = math.max<int>(1, liftingTime.inMinutes).toDouble();
+    final volumePerMinute = liftingMinutes > 0.0
+        ? totalVolume / liftingMinutes
+        : 0.0;
+
+    final yappingTime = _calculateYappingTime(completed);
+
+    return WorkoutSummaryData(
+      duration: workoutDuration,
+      totalVolume: totalVolume,
+      liftingTime: liftingTime,
+      restingTime: restingTime,
+      yappingTime: yappingTime,
+      volumePerMinute: volumePerMinute,
+      workRestRatio: workRestRatio,
+      exerciseSummaries: sortedExercises,
     );
+  }
+
+  static Duration _calculateYappingTime(List<CompletedSet> completedSets) {
+    final ordered =
+        completedSets.where((set) => set.startedAt != Int64.ZERO).toList()
+          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+
+    int yappingSeconds = 0;
+    for (var i = 0; i < ordered.length - 1; i++) {
+      final current = ordered[i];
+      final next = ordered[i + 1];
+      if (current.restUntil != Int64.ZERO &&
+          next.startedAt > current.restUntil) {
+        yappingSeconds += (next.startedAt - current.restUntil).toInt();
+      }
+    }
+    return Duration(seconds: yappingSeconds);
+  }
+}
+
+class ExerciseSummary {
+  final Exercise exercise;
+  final String name;
+  final String emoji;
+  final int totalSets;
+  final int totalReps;
+  final double totalVolume;
+  final double bestOneRm;
+  final double heaviestSetWeight;
+  final String recordNote;
+
+  ExerciseSummary({
+    required this.exercise,
+    required this.name,
+    required this.emoji,
+    required this.totalSets,
+    required this.totalReps,
+    required this.totalVolume,
+    required this.bestOneRm,
+    required this.heaviestSetWeight,
+    required this.recordNote,
+  });
+
+  String get volumeLabel => '${totalVolume.round()} lb';
+  String get formattedOneRm => bestOneRm > 0 ? '${bestOneRm.round()} lb' : '—';
+  String get heaviestSetWeightLabel =>
+      heaviestSetWeight > 0 ? '${heaviestSetWeight.round()} lb' : '—';
+}
+
+class ExerciseSummaryBuilder {
+  final Exercise exercise;
+  int totalSets = 0;
+  int totalReps = 0;
+  double totalVolume = 0;
+  double bestOneRm = 0;
+  double heaviestSetWeight = 0;
+
+  ExerciseSummaryBuilder(this.exercise);
+
+  void addSet(CompletedSet completedSet, ProposedSet proposed) {
+    totalSets += 1;
+    totalReps += completedSet.actualReps;
+    final setVolume = completedSet.actualReps * completedSet.actualWeight;
+    if (setVolume.isFinite) {
+      totalVolume += setVolume;
+    }
+    heaviestSetWeight = math.max(heaviestSetWeight, completedSet.actualWeight);
+    final oneRm = _estimateOneRm(
+      completedSet.actualWeight,
+      completedSet.actualReps,
+    );
+    bestOneRm = math.max(bestOneRm, oneRm);
+  }
+
+  ExerciseSummary build() {
+    return ExerciseSummary(
+      exercise: exercise,
+      name: exerciseNames[exercise] ?? 'Unknown',
+      emoji: exerciseEmojis[exercise] ?? '?',
+      totalSets: totalSets,
+      totalReps: totalReps,
+      totalVolume: totalVolume,
+      bestOneRm: bestOneRm,
+      heaviestSetWeight: heaviestSetWeight,
+      recordNote: 'Record tracking soon',
+    );
+  }
+
+  double _estimateOneRm(double weight, int reps) {
+    if (!weight.isFinite || weight <= 0 || reps <= 0) return 0;
+    return weight * (1 + reps / 30.0);
   }
 }

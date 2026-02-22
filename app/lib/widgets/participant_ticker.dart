@@ -16,18 +16,19 @@ String _fmt(int seconds) {
 class ParticipantCard extends StatelessWidget {
   final ParticipantStatus participant;
   final bool isNextUp;
+  final VoidCallback? onTap;
 
   const ParticipantCard({
     super.key,
     required this.participant,
     this.isNextUp = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final status = _getStatus(participant);
-
-    return StatusBox(
+    final box = StatusBox(
       sideLabel: participant.user.name,
       header: participant.user.name,
       stateLabel: status.stateLabel,
@@ -38,6 +39,17 @@ class ParticipantCard extends StatelessWidget {
       isComplete:
           status.stateLabel == 'Done' || status.stateLabel == 'Finished',
       showHeader: false,
+    );
+
+    if (onTap == null) return box;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: box,
+      ),
     );
   }
 

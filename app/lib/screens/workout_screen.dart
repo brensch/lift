@@ -296,7 +296,11 @@ class WorkoutScreen extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
 
-                    child: ParticipantCard(participant: p, isNextUp: isNextUp),
+                    child: ParticipantCard(
+                      participant: p,
+                      isNextUp: isNextUp,
+                      onTap: () => showParticipantWorkoutModal(context, p),
+                    ),
                   );
                 }),
               ],
