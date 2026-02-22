@@ -43,21 +43,35 @@ def draw_master_icon(size: int) -> Image.Image:
     image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
+    # Background circle - larger to fill the space
     cx = cy = size / 2
-    radius = size * 0.44
+    radius = size * 0.48
     draw.ellipse(
         (cx - radius, cy - radius, cx + radius, cy + radius),
         fill=BLACK,
     )
-    draw_barbell(draw, size, WHITE)
+
+    # Barbell - scaled down to fit in safe zone
+    scale = 0.75
+    inner = int(size * scale)
+    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
+    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
+    offset = ((size - inner) // 2, (size - inner) // 2)
+    image.alpha_composite(barbell, offset)
 
     return image
 
 
 def draw_marketing_icon(size: int) -> Image.Image:
     image = Image.new("RGBA", (size, size), BLACK)
-    draw = ImageDraw.Draw(image)
-    draw_barbell(draw, size, WHITE)
+    
+    # Scale the barbell down even for marketing icons to account for Play Store masking
+    scale = 0.75
+    inner = int(size * scale)
+    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
+    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
+    offset = ((size - inner) // 2, (size - inner) // 2)
+    image.alpha_composite(barbell, offset)
 
     return image
 
@@ -137,43 +151,6 @@ def draw_wobbly_text(
         cursor_x += advance
 
 
-def draw_branding_header() -> Image.Image:
-    width, height = 1024, 500
-    image = Image.new("RGBA", (width, height), DARK_GRAY_BG)
-    logo = draw_rounded_square_logo(248)
-    image.alpha_composite(logo, (72, 126))
-
-    title_font = load_font(172)
-    byline_text = "Track lifts, get strong, together"
-    byline_font_size = 54
-    byline_font = load_font(byline_font_size)
-    max_byline_width = width - 382 - 40
-    while byline_font.getlength(byline_text) > max_byline_width and byline_font_size > 18:
-        byline_font_size -= 2
-        byline_font = load_font(byline_font_size)
-
-    draw_wobbly_text(
-        canvas=image,
-        text="LIFT",
-        origin_x=378,
-        origin_y=128,
-        font=title_font,
-        color=WHITE,
-        seed=42,
-        max_offset=5.0,
-        max_rotate_radians=0.10,
-    )
-
-    draw = ImageDraw.Draw(image)
-    draw.text(
-        (382, 330),
-        byline_text,
-        font=byline_font,
-        fill=WHITE,
-    )
-    return image
-
-
 def write_png_to_existing_size(master: Image.Image, path: Path) -> None:
     with Image.open(path) as existing:
         width, height = existing.size
@@ -234,27 +211,22 @@ def main() -> None:
     updated_files.add(ico_path.relative_to(repo_root))
 
     # Square output icon set (store/export assets): opaque, full-bleed background.
-    generic_output_dir = repo_root / "app/assets/output"
+    marketing_dir = repo_root / "marketing"
+    marketing_dir.mkdir(parents=True, exist_ok=True)
+    
     generic_output_specs = {
         "lift-square-192.png": 192,
         "lift-square-512.png": 512,
         "lift-square-1024.png": 1024,
     }
     for filename, px in generic_output_specs.items():
-        out_path = generic_output_dir / filename
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path = marketing_dir / filename
         draw_marketing_icon(px).convert("RGB").save(
             out_path,
             format="PNG",
             optimize=True,
         )
         updated_files.add(out_path.relative_to(repo_root))
-
-    # Branding header asset (1024x500) with rounded-square logo + wobbly title.
-    branding_header = repo_root / "app/assets/branding/header.png"
-    branding_header.parent.mkdir(parents=True, exist_ok=True)
-    draw_branding_header().convert("RGB").save(branding_header, format="PNG", optimize=True)
-    updated_files.add(branding_header.relative_to(repo_root))
 
     background_xml = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -269,10 +241,10 @@ def main() -> None:
     android:viewportHeight="108">
     <path
         android:fillColor="#0A0A0A"
-        android:pathData="M54,10A44,44 0 1,1 54,98A44,44 0 1,1 54,10Z" />
+        android:pathData="M54,4A50,50 0 1,1 54,104A50,50 0 1,1 54,4Z" />
     <path
         android:fillColor="#FAFAFA"
-        android:pathData="M14,33h6v42h-6zM21,33h6v42h-6zM28,33h6v42h-6zM34,50h40v8h-40zM74,33h6v42h-6zM81,33h6v42h-6zM88,33h6v42h-6z" />
+        android:pathData="M24,38.25h4.5v31.5h-4.5zM29.25,38.25h4.5v31.5h-4.5zM34.5,38.25h4.5v31.5h-4.5zM39,51h30v6h-30zM69,38.25h4.5v31.5h-4.5zM74.25,38.25h4.5v31.5h-4.5zM79.5,38.25h4.5v31.5h-4.5z" />
 </vector>
 """
 

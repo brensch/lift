@@ -182,7 +182,11 @@ def draw_feature_graphic() -> Image.Image:
 
 
 def main() -> None:
-    out_path = Path("feature_graphic.png")
+    repo_root = Path(__file__).resolve().parent.parent
+    marketing_dir = repo_root / "marketing"
+    marketing_dir.mkdir(parents=True, exist_ok=True)
+    
+    out_path = marketing_dir / "feature_graphic.png"
     image = draw_feature_graphic()
     
     # Convert RGBA to RGB to save cleanly as PNG
