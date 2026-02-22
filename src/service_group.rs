@@ -206,6 +206,17 @@ impl MultiplayerService for GroupService {
                     self.state.users.insert(uid.to_string(), user);
                 }
             }
+
+            // Update active workout with session_id if exists
+            if let Some(mut active) = self.state.workouts.get_mut(*uid) {
+                if active.workout.session_id != session_id {
+                    active.workout.session_id = session_id.clone();
+                    let _ = self
+                        .central_db
+                        .update_workout_session_id(uid, &active.workout.id, &session_id)
+                        .await;
+                }
+            }
         }
 
         Ok(Response::new(JoinUserResponse { session_id }))
@@ -304,6 +315,68 @@ impl MultiplayerService for GroupService {
             for member_id in &members {
                 participant_statuses.push(self.build_participant_status(member_id));
             }
+
+            // Fetch finished workouts for this session
+            if let Ok(finished) = self.central_db.get_workouts_by_session(&sid).await {
+                for (user_id, workout) in finished {
+                    if !members.contains(&user_id) {
+                        // User is finished and left the session, load their data from DB
+                        let groups = self
+                            .central_db
+                            .get_exercise_groups(&user_id, &workout.id)
+                            .await
+                            .unwrap_or_default();
+                        let proposed = self
+                            .central_db
+                            .get_proposed_sets(&user_id, &workout.id)
+                            .await
+                            .unwrap_or_default();
+                        let completed = self
+                            .central_db
+                            .get_completed_sets(&user_id, &workout.id)
+                            .await
+                            .unwrap_or_default();
+
+                        // Get user info (check cache first)
+                        let user = if let Some(u) = self.state.users.get(&user_id) {
+                            u.clone()
+                        } else {
+                            self.central_db
+                                .get_user(&user_id)
+                                .await
+                                .ok()
+                                .flatten()
+                                .unwrap_or_else(|| User {
+                                    id: user_id.clone(),
+                                    name: String::new(),
+                                    created_at: 0,
+                                })
+                        };
+
+                        // Compute progress (next up set, etc.)
+                        let proposed_active: Vec<ProposedSet> = proposed
+                            .iter()
+                            .filter(|set| !set.cancelled)
+                            .cloned()
+                            .collect();
+                        let progress =
+                            compute_participant_progress(&proposed_active, &completed);
+
+                        participant_statuses.push(ParticipantStatus {
+                            user: Some(user),
+                            active_workout_id: workout.id.clone(),
+                            active_workout: Some(workout),
+                            exercise_groups: groups,
+                            proposed_sets: proposed_active,
+                            completed_sets: completed,
+                            next_up_set: progress.next_up_set,
+                            rest_until: progress.rest_until,
+                            has_active_set: progress.has_active_set,
+                        });
+                    }
+                }
+            }
+
             let now_unix = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_secs() as i64)
