@@ -500,7 +500,9 @@ class _RepButtonsState extends State<_RepButtons> {
               ),
               child: ListWheelScrollView.useDelegate(
                 controller: _scrollController,
-                itemExtent: 32,
+                itemExtent: 24,
+                magnification: 1.5,
+                useMagnifier: true,
                 physics: const FixedExtentScrollPhysics(),
                 diameterRatio: 1.2,
                 perspective: 0.003,
@@ -511,7 +513,7 @@ class _RepButtonsState extends State<_RepButtons> {
                       child: Text(
                         '$index',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: colorScheme.onSurface,
                         ),
