@@ -95,7 +95,7 @@ class WearableSnapshotBuilder {
           ),
         );
       }
-      if (proposed.warmup) {
+      if (workoutProvider.canSkipWarmup(proposed.id)) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP,
@@ -145,7 +145,7 @@ class WearableSnapshotBuilder {
           ),
         );
       }
-      if (actionSet.warmup) {
+      if (workoutProvider.canSkipWarmup(actionSet.id)) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP,
@@ -176,7 +176,7 @@ class WearableSnapshotBuilder {
           setId: displaySet.id,
         ),
       );
-      if (displaySet.warmup) {
+      if (workoutProvider.canSkipWarmup(displaySet.id)) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP,

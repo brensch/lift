@@ -370,6 +370,62 @@ fn apply_update_exercise_group(
         .cloned()
         .ok_or_else(|| Status::not_found("Exercise group not found after update"))?;
 
+    // Pre-calculate last warmup workout_order for the group to avoid borrow issues
+    let last_warmup_order = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|p| p.exercise_group_id == updated_group.id && p.warmup && !p.cancelled)
+        .map(|p| p.workout_order)
+        .max();
+
+    // Update rest config for all proposed sets in this group (including already completed ones)
+    for set in workout_ref
+        .proposed_sets
+        .iter_mut()
+        .filter(|p| p.exercise_group_id == updated_group.id && !p.cancelled)
+    {
+        if let Some(config) = updated_group
+            .exercise_configs
+            .iter()
+            .find(|c| c.exercise == set.exercise)
+        {
+            let is_last_warmup = set.warmup && Some(set.workout_order) == last_warmup_order;
+
+            let (rest_s, rest_f) =
+                get_rest_for_config(&updated_group, config, set.warmup, is_last_warmup);
+            set.rest_after_success = rest_s;
+            set.rest_after_failure = rest_f;
+        }
+    }
+
+    // Recalculate rest_until for all completed sets in this group.
+    // Clone necessary data first to avoid borrow issues while iterating mutably.
+    let current_proposed = workout_ref.proposed_sets.clone();
+    let current_completed = workout_ref.completed_sets.clone();
+
+    for cs in workout_ref.completed_sets.iter_mut() {
+        if let Some(ps) = current_proposed
+            .iter()
+            .find(|p| p.id == cs.proposed_set_id && p.exercise_group_id == updated_group.id)
+        {
+            let is_final = is_final_set_in_exercise_group_after_completion(
+                &ps.id,
+                &current_proposed,
+                &current_completed,
+            );
+
+            let mut rest_seconds = if cs.actual_reps >= ps.target_reps {
+                ps.rest_after_success as i64
+            } else {
+                ps.rest_after_failure as i64
+            };
+            if is_final {
+                rest_seconds = END_OF_EXERCISE_GROUP_REST_SECONDS;
+            }
+            cs.rest_until = cs.ended_at + rest_seconds;
+        }
+    }
+
     let updated_sets: Vec<ProposedSet> = workout_ref
         .proposed_sets
         .iter()
@@ -1591,8 +1647,8 @@ mod tests {
                 expected_target_group_total_sets: 4,
                 expected_target_group_working_set_count: 4,
                 expected_target_group_working_weights: vec![100.0, 145.0, 155.0, 165.0],
-                expected_target_group_rest_success: vec![180, 90, 90, 90],
-                expected_target_group_rest_failure: vec![300, 210, 210, 210],
+                expected_target_group_rest_success: vec![90, 90, 90, 90],
+                expected_target_group_rest_failure: vec![210, 210, 210, 210],
             },
             Case {
                 name: "two completed sets and fewer target sets keeps completed only",
@@ -1610,8 +1666,8 @@ mod tests {
                 expected_target_group_total_sets: 2,
                 expected_target_group_working_set_count: 2,
                 expected_target_group_working_weights: vec![100.0, 100.0],
-                expected_target_group_rest_success: vec![180, 180],
-                expected_target_group_rest_failure: vec![300, 300],
+                expected_target_group_rest_success: vec![110, 110],
+                expected_target_group_rest_failure: vec![220, 220],
             },
             Case {
                 name: "group rest config applies when config rest config absent",

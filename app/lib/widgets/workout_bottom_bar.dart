@@ -107,7 +107,7 @@ class WorkoutBottomBar extends StatelessWidget {
         targetReps: proposed.targetReps,
         onComplete: (reps) =>
             wp.completeSet(proposed.id, reps, proposed.targetWeight.toDouble()),
-        onSkipWarmup: proposed.warmup ? () => wp.skipWarmup(proposed.id) : null,
+        onSkipWarmup: wp.canSkipWarmup(proposed.id) ? () => wp.skipWarmup(proposed.id) : null,
       );
     } else if (_isRestingState(stateValue)) {
       final hasExpiredRest =
@@ -124,8 +124,8 @@ class WorkoutBottomBar extends StatelessWidget {
         actionButton = _BigButton(
           label: 'Start Set',
           onPressed: () => wp.startSet(actionSet.id),
-          secondaryLabel: actionSet.warmup ? 'Skip Warmup' : null,
-          onSecondary: actionSet.warmup
+          secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip Warmup' : null,
+          onSecondary: wp.canSkipWarmup(actionSet.id)
               ? () => wp.skipWarmup(actionSet.id)
               : null,
         );
@@ -142,8 +142,8 @@ class WorkoutBottomBar extends StatelessWidget {
           onPressed: () {
             if (displaySet != null) wp.startSet(displaySet.id);
           },
-          secondaryLabel: displaySet?.warmup == true ? 'Skip Warmup' : null,
-          onSecondary: displaySet?.warmup == true
+          secondaryLabel: displaySet != null && wp.canSkipWarmup(displaySet.id) ? 'Skip Warmup' : null,
+          onSecondary: displaySet != null && wp.canSkipWarmup(displaySet.id)
               ? () => wp.skipWarmup(displaySet!.id)
               : null,
         );
@@ -163,8 +163,8 @@ class WorkoutBottomBar extends StatelessWidget {
       actionButton = _BigButton(
         label: 'Start Set',
         onPressed: () => wp.startSet(actionSet.id),
-        secondaryLabel: actionSet.warmup ? 'Skip Warmup' : null,
-        onSecondary: actionSet.warmup
+        secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip Warmup' : null,
+        onSecondary: wp.canSkipWarmup(actionSet.id)
             ? () => wp.skipWarmup(actionSet.id)
             : null,
       );
@@ -439,9 +439,9 @@ class _BigButton extends StatelessWidget {
   }
 }
 
-// ─── Rep buttons (for active set) ────────────────────────────────────
+// ─── Rep picker + complete button (for active set) ───────────────────
 
-class _RepButtons extends StatelessWidget {
+class _RepButtons extends StatefulWidget {
   final int targetReps;
   final void Function(int reps) onComplete;
   final VoidCallback? onSkipWarmup;
@@ -453,6 +453,34 @@ class _RepButtons extends StatelessWidget {
   });
 
   @override
+  State<_RepButtons> createState() => _RepButtonsState();
+}
+
+class _RepButtonsState extends State<_RepButtons> {
+  late final FixedExtentScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController =
+        FixedExtentScrollController(initialItem: widget.targetReps);
+  }
+
+  @override
+  void didUpdateWidget(_RepButtons oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.targetReps != widget.targetReps) {
+      _scrollController.jumpToItem(widget.targetReps);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -460,47 +488,75 @@ class _RepButtons extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Rep buttons in a wrap
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: List.generate(targetReps + 1, (n) {
-            final isTarget = n == targetReps;
-            return SizedBox(
-              width: 52,
+        Row(
+          children: [
+            // Number scroll wheel
+            Container(
               height: 48,
-              child: isTarget
-                  ? FilledButton(
-                      onPressed: () => onComplete(n),
-                      style: FilledButton.styleFrom(padding: EdgeInsets.zero),
+              width: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outline),
+              ),
+              child: ListWheelScrollView.useDelegate(
+                controller: _scrollController,
+                itemExtent: 36,
+                physics: const FixedExtentScrollPhysics(),
+                diameterRatio: 1.2,
+                perspective: 0.003,
+                childDelegate: ListWheelChildBuilderDelegate(
+                  builder: (context, index) {
+                    if (index < 0 || index > widget.targetReps) return null;
+                    return Center(
                       child: Text(
-                        '$n',
-                        style: const TextStyle(
-                          fontSize: 18,
+                        '$index',
+                        style: TextStyle(
+                          fontSize: 20,
                           fontWeight: FontWeight.w900,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                    )
-                  : OutlinedButton(
-                      onPressed: () => onComplete(n),
-                      style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-                      child: Text(
-                        '$n',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                    );
+                  },
+                  childCount: widget.targetReps + 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'reps',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.tertiary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Complete set button
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: () =>
+                      widget.onComplete(_scrollController.selectedItem),
+                  child: const Text(
+                    'Complete Set',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
                     ),
-            );
-          }),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        if (onSkipWarmup != null) ...[
+        if (widget.onSkipWarmup != null) ...[
           const SizedBox(height: 6),
           SizedBox(
             height: 40,
             child: TextButton(
-              onPressed: onSkipWarmup,
+              onPressed: widget.onSkipWarmup,
               child: Text(
                 'Skip Warmup',
                 style: TextStyle(fontSize: 13, color: colorScheme.tertiary),
