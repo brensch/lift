@@ -637,12 +637,29 @@ impl WorkoutService for MyWorkoutService {
             .unwrap()
             .as_secs() as i64;
 
-        let session_id = self
-            .state
-            .user_sessions
-            .get(&user_id)
-            .map(|s| s.clone())
-            .unwrap_or_default();
+        let session_id = {
+            let mut session_id = self
+                .state
+                .user_sessions
+                .get(&user_id)
+                .map(|s| s.clone())
+                .unwrap_or_default();
+
+            if session_id.is_empty() {
+                // Every workout must belong to a session. Generate one if needed.
+                session_id = Uuid::new_v4().to_string();
+                self.state
+                    .user_sessions
+                    .insert(user_id.clone(), session_id.clone());
+                let mut members = std::collections::HashSet::new();
+                members.insert(user_id.clone());
+                self.state.sessions.insert(session_id.clone(), members);
+
+                // Persist join to DB
+                let _ = self.central_db.join_session(&user_id, &session_id).await;
+            }
+            session_id
+        };
 
         let workout = Workout {
             id: workout_id.clone(),
@@ -720,20 +737,35 @@ impl WorkoutService for MyWorkoutService {
             }
         });
 
-        if let Some((workout, groups, proposed, completed)) = cached {
+        if let Some((workout, groups, proposed, _)) = cached {
+            // Even if cached, we need to re-fetch completed sets if it's a shared session
+            // to see other people's updates.
+            let completed_sets = if !workout.session_id.is_empty() {
+                self.central_db
+                    .get_completed_sets_by_session(&workout.session_id)
+                    .await
+                    .map_err(|e| Status::internal(format!("Failed to get session sets: {}", e)))?
+            } else {
+                self.central_db
+                    .get_completed_sets(&user_id, &workout.id)
+                    .await
+                    .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?
+            };
+
             let proposed_active = active_proposed_sets(&proposed);
-            let next_up_set = compute_next_up_set(&proposed_active, &completed);
+            let next_up_set = compute_next_up_set(&proposed_active, &completed_sets);
             let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed));
             let state_snapshot = Some(workout_state_snapshot_from_state(
                 &proposed,
-                &completed,
+                &completed_sets,
                 now_unix(),
             ));
+
             return Ok(Response::new(GetWorkoutResponse {
                 workout: Some(workout),
                 exercise_groups: groups,
-                proposed_sets: proposed_active,
-                completed_sets: completed,
+                proposed_sets: proposed,
+                completed_sets,
                 next_up_set,
                 plan_change_stats,
                 state_snapshot,
@@ -760,24 +792,21 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(format!("Failed to get proposed sets: {}", e)))?;
 
-        let completed_sets = self
-            .central_db
-            .get_completed_sets(&user_id, &req.workout_id)
-            .await
-            .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?;
-        let next_up_set = compute_next_up_set(&proposed_sets, &completed_sets);
-        let (cancelled_total, cancelled_warmups, cancelled_working) = self
-            .central_db
-            .get_workout_plan_change_stats(&user_id, &req.workout_id)
-            .await
-            .map_err(|e| {
-                Status::internal(format!("Failed to get workout plan change stats: {}", e))
-            })?;
-        let plan_change_stats = Some(WorkoutPlanChangeStats {
-            cancelled_total: cancelled_total as i32,
-            cancelled_warmups: cancelled_warmups as i32,
-            cancelled_working: cancelled_working as i32,
-        });
+        let completed_sets = if !workout.session_id.is_empty() {
+            self.central_db
+                .get_completed_sets_by_session(&workout.session_id)
+                .await
+                .map_err(|e| Status::internal(format!("Failed to get session sets: {}", e)))?
+        } else {
+            self.central_db
+                .get_completed_sets(&user_id, &req.workout_id)
+                .await
+                .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?
+        };
+
+        let proposed_active = active_proposed_sets(&proposed_sets);
+        let next_up_set = compute_next_up_set(&proposed_active, &completed_sets);
+        let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed_sets));
         let state_snapshot = Some(workout_state_snapshot_from_state(
             &proposed_sets,
             &completed_sets,
@@ -1782,6 +1811,7 @@ mod tests {
                     name: "Test".to_string(),
                     start_time: 0,
                     end_time: 0,
+                    session_id: String::new(),
                 },
                 vec![target_group, other_group],
                 target_sets.into_iter().chain(other_sets).collect(),
@@ -1898,6 +1928,7 @@ mod tests {
                 name: "Test".to_string(),
                 start_time: 0,
                 end_time: 0,
+                session_id: String::new(),
             },
             vec![initial_group],
             with_stable_ids(
@@ -2038,6 +2069,7 @@ mod tests {
                 name: "Test".to_string(),
                 start_time: 0,
                 end_time: 0,
+                session_id: String::new(),
             },
             vec![initial_group],
             initial_sets,
@@ -2052,7 +2084,14 @@ mod tests {
             name: "Squat".to_string(),
             sets: 2,
             interleave_warmups: false,
-            exercise_configs: vec![config(1, 100.0, 100.0, 5, false, Some(rest(180, 300, 10, 180)))],
+            exercise_configs: vec![config(
+                1,
+                100.0,
+                100.0,
+                5,
+                false,
+                Some(rest(180, 300, 10, 180)),
+            )],
             rest_config: Some(new_group_rest),
         };
 

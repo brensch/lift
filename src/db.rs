@@ -45,7 +45,9 @@ fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
         name: row.get("name"),
         start_time: row.get("start_time"),
         end_time: row.get::<Option<i64>, _>("end_time").unwrap_or(0),
-        session_id: row.get::<Option<String>, _>("session_id").unwrap_or_default(),
+        session_id: row
+            .get::<Option<String>, _>("session_id")
+            .unwrap_or_default(),
     }
 }
 
@@ -291,6 +293,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_joined_at ON sessions(joined_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(session_id) WHERE left_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_sessions_session_user_joined ON sessions(session_id, user_id, joined_at DESC);
 
 -- Speed up deletion during flush
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_user_workout ON exercise_groups(user_id, workout_id);
@@ -307,6 +310,7 @@ CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(prop
 CREATE INDEX IF NOT EXISTS idx_hr_samples_user_workout_time ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_workouts_session_user_start ON workouts(session_id, user_id, start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_users_name_lower ON users(lower(name));
 
 CREATE TABLE IF NOT EXISTS user_settings (
@@ -709,6 +713,36 @@ impl CentralDb {
         }
 
         Ok(res)
+    }
+
+    pub async fn get_users_by_ids(
+        &self,
+        user_ids: &[String],
+    ) -> Result<HashMap<String, User>, Box<dyn std::error::Error + Send + Sync>> {
+        let mut out = HashMap::new();
+        if user_ids.is_empty() {
+            return Ok(out);
+        }
+
+        let mut query_builder: sqlx::QueryBuilder<Sqlite> =
+            sqlx::QueryBuilder::new("SELECT id, name, created_at FROM users WHERE id IN (");
+        {
+            let mut separated = query_builder.separated(", ");
+            for user_id in user_ids {
+                separated.push_bind(user_id);
+            }
+        }
+        query_builder.push(")");
+
+        let rows = query_builder.build().fetch_all(&self.pool).await?;
+        for row in rows {
+            let user = row_to_user(row);
+            self.user_by_name_cache
+                .insert(user.name.clone(), user.clone());
+            out.insert(user.id.clone(), user);
+        }
+
+        Ok(out)
     }
 
     pub async fn get_user_by_name(
@@ -1147,7 +1181,7 @@ impl CentralDb {
         workout_id: &str,
     ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, name, start_time, end_time FROM workouts WHERE user_id = ? AND id = ?",
+            "SELECT id, name, start_time, end_time, session_id FROM workouts WHERE user_id = ? AND id = ?",
         )
         .bind(user_id)
         .bind(workout_id)
@@ -1160,7 +1194,7 @@ impl CentralDb {
         &self,
         user_id: &str,
     ) -> Result<Option<Workout>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(sqlx::query("SELECT id, name, start_time, end_time FROM workouts WHERE user_id = ? AND end_time IS NULL ORDER BY start_time DESC LIMIT 1")
+        Ok(sqlx::query("SELECT id, name, start_time, end_time, session_id FROM workouts WHERE user_id = ? AND end_time IS NULL ORDER BY start_time DESC LIMIT 1")
             .bind(user_id)
             .map(row_to_workout)
             .fetch_optional(&self.pool)
@@ -1204,7 +1238,7 @@ impl CentralDb {
         user_id: &str,
     ) -> Result<Vec<Workout>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(sqlx::query(
-            "SELECT id, name, start_time, end_time FROM workouts WHERE user_id = ? ORDER BY start_time DESC",
+            "SELECT id, name, start_time, end_time, session_id FROM workouts WHERE user_id = ? ORDER BY start_time DESC",
         )
         .bind(user_id)
         .map(row_to_workout)
@@ -1231,6 +1265,40 @@ impl CentralDb {
         Ok(rows)
     }
 
+    pub async fn get_session_membership_states(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<(String, bool)>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows = sqlx::query(
+            "SELECT s.user_id, s.left_at IS NULL AS is_active_member
+             FROM sessions s
+             WHERE s.session_id = ?
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM sessions s2
+                   WHERE s2.session_id = s.session_id
+                     AND s2.user_id = s.user_id
+                     AND (
+                         s2.joined_at > s.joined_at
+                         OR (s2.joined_at = s.joined_at AND s2.rowid > s.rowid)
+                     )
+               )",
+        )
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get::<String, _>("user_id"),
+                    row.get::<bool, _>("is_active_member"),
+                )
+            })
+            .collect())
+    }
+
     pub async fn get_session_workout_data(
         &self,
         session_id: &str,
@@ -1244,7 +1312,21 @@ impl CentralDb {
         Box<dyn std::error::Error + Send + Sync>,
     > {
         let rows = sqlx::query(
-            "SELECT id, user_id, name, start_time, end_time, session_id FROM workouts WHERE session_id = ?",
+            "SELECT id, user_id, name, start_time, end_time, session_id
+             FROM (
+                 SELECT
+                     w.*,
+                     ROW_NUMBER() OVER (
+                         PARTITION BY w.user_id
+                         ORDER BY
+                             CASE WHEN w.end_time IS NULL THEN 0 ELSE 1 END,
+                             w.start_time DESC,
+                             w.id DESC
+                     ) AS rn
+                 FROM workouts w
+                 WHERE w.session_id = ?
+             ) ranked
+             WHERE rn = 1",
         )
         .bind(session_id)
         .fetch_all(&self.pool)
@@ -1261,9 +1343,34 @@ impl CentralDb {
             return Ok((vec![], vec![], vec![], vec![]));
         }
 
+        let latest_workouts_cte = "WITH latest_workouts AS (
+            SELECT id
+            FROM (
+                SELECT
+                    w.id,
+                    w.user_id,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY w.user_id
+                        ORDER BY
+                            CASE WHEN w.end_time IS NULL THEN 0 ELSE 1 END,
+                            w.start_time DESC,
+                            w.id DESC
+                    ) AS rn
+                FROM workouts w
+                WHERE w.session_id = ?
+            ) ranked
+            WHERE rn = 1
+        )";
+
         let mut groups = sqlx::query(
-            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
-             FROM exercise_groups WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) ORDER BY workout_order"
+            &format!(
+                "{} \
+                 SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+                 FROM exercise_groups \
+                 WHERE workout_id IN (SELECT id FROM latest_workouts) \
+                 ORDER BY workout_order",
+                latest_workouts_cte
+            ),
         )
         .bind(session_id)
         .map(row_to_exercise_group)
@@ -1271,10 +1378,18 @@ impl CentralDb {
         .await?;
 
         let configs_rows = sqlx::query(
-             "SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, rest_success, rest_failure, rest_warmup, rest_last_warmup \
-              FROM exercise_type_configs \
-              WHERE exercise_group_id IN (SELECT id FROM exercise_groups WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?)) \
-              ORDER BY config_order"
+            &format!(
+                "{} \
+                 SELECT exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+                 FROM exercise_type_configs \
+                 WHERE exercise_group_id IN (
+                     SELECT id
+                     FROM exercise_groups
+                     WHERE workout_id IN (SELECT id FROM latest_workouts)
+                 ) \
+                 ORDER BY config_order",
+                latest_workouts_cte
+            ),
         )
         .bind(session_id)
         .fetch_all(&self.pool)
@@ -1294,8 +1409,14 @@ impl CentralDb {
         }
 
         let proposed = sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure, cancelled \
-             FROM proposed_sets WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) AND cancelled = 0 ORDER BY workout_order"
+            &format!(
+                "{} \
+                 SELECT id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, exercise_group_id, rest_after_success, rest_after_failure, cancelled \
+                 FROM proposed_sets \
+                 WHERE workout_id IN (SELECT id FROM latest_workouts) AND cancelled = 0 \
+                 ORDER BY workout_order",
+                latest_workouts_cte
+            ),
         )
         .bind(session_id)
         .map(row_to_proposed_set)
@@ -1303,8 +1424,14 @@ impl CentralDb {
         .await?;
 
         let completed = sqlx::query(
-            "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until \
-             FROM completed_sets WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) ORDER BY started_at"
+            &format!(
+                "{} \
+                 SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until \
+                 FROM completed_sets \
+                 WHERE workout_id IN (SELECT id FROM latest_workouts) \
+                 ORDER BY started_at",
+                latest_workouts_cte
+            ),
         )
         .bind(session_id)
         .map(row_to_completed_set)
@@ -1314,27 +1441,18 @@ impl CentralDb {
         Ok((workouts, groups, proposed, completed))
     }
 
-
-    pub async fn get_workout_plan_change_stats(
+    pub async fn get_completed_sets_by_session(
         &self,
-        user_id: &str,
-        workout_id: &str,
-    ) -> Result<(i64, i64, i64), Box<dyn std::error::Error + Send + Sync>> {
-        let (cancelled_total, cancelled_warmups, cancelled_working): (i64, i64, i64) =
-            sqlx::query_as(
-                "SELECT
-                COUNT(*) as cancelled_total,
-                COALESCE(SUM(CASE WHEN warmup = 1 THEN 1 ELSE 0 END), 0) as cancelled_warmups,
-                COALESCE(SUM(CASE WHEN warmup = 0 THEN 1 ELSE 0 END), 0) as cancelled_working
-             FROM proposed_sets
-             WHERE user_id = ? AND workout_id = ? AND cancelled = 1",
-            )
-            .bind(user_id)
-            .bind(workout_id)
-            .fetch_one(&self.pool)
-            .await?;
-
-        Ok((cancelled_total, cancelled_warmups, cancelled_working))
+        session_id: &str,
+    ) -> Result<Vec<CompletedSet>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query(
+            "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until \
+             FROM completed_sets WHERE workout_id IN (SELECT id FROM workouts WHERE session_id = ?) ORDER BY started_at"
+        )
+        .bind(session_id)
+        .map(row_to_completed_set)
+        .fetch_all(&self.pool)
+        .await?)
     }
 
     pub async fn get_all_exercise_history(

@@ -45,8 +45,10 @@ class WearableSyncCoordinator {
       } else if (intent.hasSkipWarmup() &&
           intent.skipWarmup.workoutId == workoutId) {
         await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
-      } else if (intent.hasEndWorkout() && intent.endWorkout.workoutId == workoutId) {
+      } else if (intent.hasEndWorkout() &&
+          intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();
+        _multiplayerProvider.markLocalWorkoutFinished();
       }
     });
 
@@ -71,7 +73,8 @@ class WearableSyncCoordinator {
   }
 
   void _publishSnapshot() {
-    if (!_workoutProvider.hasActiveWorkout && !_workoutProvider.isWorkoutEnded) {
+    if (!_workoutProvider.hasActiveWorkout &&
+        !_workoutProvider.isWorkoutEnded) {
       return;
     }
 
