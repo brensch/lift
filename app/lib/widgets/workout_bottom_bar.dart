@@ -107,7 +107,7 @@ class WorkoutBottomBar extends StatelessWidget {
         targetReps: proposed.targetReps,
         onComplete: (reps) =>
             wp.completeSet(proposed.id, reps, proposed.targetWeight.toDouble()),
-        onSkipWarmup: wp.canSkipWarmup(proposed.id) ? () => wp.skipWarmup(proposed.id) : null,
+        onSkipWarmup: null,
       );
     } else if (_isRestingState(stateValue)) {
       final hasExpiredRest =
