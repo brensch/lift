@@ -272,12 +272,23 @@ fn normalize_rest_config(rest_config: Option<RestConfig>) -> Option<RestConfig> 
     rest_config.filter(rest_config_has_values)
 }
 
+fn is_default_rest_config(rc: &RestConfig) -> bool {
+    rc.rest_after_success == 180
+        && rc.rest_after_failure == 300
+        && (rc.rest_after_warmup == 10 || rc.rest_after_warmup == 0)
+}
+
 fn normalize_exercise_configs(configs: &[ExerciseTypeConfig]) -> Vec<ExerciseTypeConfig> {
     configs
         .iter()
         .map(|config| {
             let mut normalized = config.clone();
             normalized.rest_config = normalize_rest_config(normalized.rest_config);
+            if let Some(rc) = &normalized.rest_config {
+                if is_default_rest_config(rc) {
+                    normalized.rest_config = None;
+                }
+            }
             normalized
         })
         .collect()
@@ -1932,5 +1943,51 @@ mod tests {
         let snapshot = workout_state_snapshot_from_state(&proposed_sets, &completed_sets, 0);
         assert_eq!(snapshot.state, 1);
         assert!(snapshot.display_set.is_none());
+    }
+
+    #[test]
+    fn update_group_rest_config_is_ignored_if_exercise_configs_have_rest_config() {
+        let exercise_rest = rest(180, 300, 10, 180);
+        let initial_group = group(
+            "g1",
+            "Squat",
+            2,
+            0,
+            vec![config(1, 100.0, 100.0, 5, false, Some(exercise_rest))],
+            None,
+        );
+
+        let initial_sets = generate_sets_for_group("w1", &initial_group, 0);
+        assert_eq!(initial_sets[0].rest_after_success, 180);
+
+        let mut workout = ActiveWorkout::new(
+            Workout {
+                id: "w1".to_string(),
+                name: "Test".to_string(),
+                start_time: 0,
+                end_time: 0,
+            },
+            vec![initial_group],
+            initial_sets,
+            vec![],
+        );
+
+        // Update group rest config to 150, and keep same exercise config (with its default 180,300,10 rest config)
+        let new_group_rest = rest(150, 300, 20, 150);
+        let req = UpdateExerciseGroupRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: "g1".to_string(),
+            name: "Squat".to_string(),
+            sets: 2,
+            interleave_warmups: false,
+            exercise_configs: vec![config(1, 100.0, 100.0, 5, false, Some(rest(180, 300, 10, 180)))],
+            rest_config: Some(new_group_rest),
+        };
+
+        let result = apply_update_exercise_group(&mut workout, &req).expect("update");
+        let updated_sets = result.1;
+
+        // Now it should be 150 because the default 180,300,10 should be cleared
+        assert_eq!(updated_sets[0].rest_after_success, 150, "Group rest config should have taken precedence because the exercise config had defaults");
     }
 }

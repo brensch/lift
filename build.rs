@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "proto/workout/v1/workout.proto",
                 "proto/workout/v1/group.proto",
                 "proto/workout/v1/auth.proto",
+                "proto/workout/v1/settings.proto",
             ],
             &["proto"],
         )?;

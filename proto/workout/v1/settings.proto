@@ -1,0 +1,35 @@
+syntax = "proto3";
+package workout.v1;
+
+message PlateColor {
+  float weight_kg = 1;
+  string hex_color = 2;
+}
+
+message PlateColorsConfig {
+  repeated PlateColor plates = 1;
+  float bar_weight_kg = 2;
+}
+
+message UserSetting {
+  oneof setting {
+    PlateColorsConfig plate_colors = 10;
+  }
+}
+
+message UpdateSettingRequest {
+  UserSetting setting = 1;
+}
+
+message UpdateSettingResponse {}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  repeated UserSetting settings = 1;
+}
+
+service SettingsService {
+  rpc UpdateSetting(UpdateSettingRequest) returns (UpdateSettingResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+}

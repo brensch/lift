@@ -106,11 +106,6 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
               }
               return 'Idle';
             }()),
-            _row('wasResting', '${wp.debugWasResting}'),
-            _row(
-              'lastSoundedRestUntil',
-              '${wp.debugLastSoundedRestUntil ?? "null"}',
-            ),
             _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
             _row('now (unix)', '$nowUnix'),
           ], colorScheme),

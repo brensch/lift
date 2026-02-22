@@ -1,9 +1,10 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-all print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
 RELEASE_ENV_FILE ?= .env
+AAB_OUT_DIR ?= aab
 
 # Debug keystore config
 DEBUG_KEYSTORE = $(HOME)/.android/debug.keystore
@@ -314,7 +315,36 @@ ci-android-build-release: ci-android-prepare-signing
 	cd app && $(FLUTTER) build appbundle --release
 	cd app/android && ./gradlew :wear:bundleRelease --no-daemon
 	@echo "Phone AAB: app/build/app/outputs/bundle/release/app-release.aab"
-	@echo "Wear AAB:  app/android/wear/build/outputs/bundle/release/wear-release.aab"
+	@echo "Wear AAB:  app/build/wear/outputs/bundle/release/wear-release.aab"
+
+# Local alias that mirrors the GitHub Android release workflow build steps.
+build-aabs-release: ci-android-build-release
+	@mkdir -p "$(AAB_OUT_DIR)"
+	@set -e; \
+		DATE_TAG=$$(date +%Y%m%d); \
+		PHONE_SRC="app/build/app/outputs/bundle/release/app-release.aab"; \
+		WEAR_SRC="app/build/wear/outputs/bundle/release/wear-release.aab"; \
+		ALT_WEAR_SRC="app/android/wear/build/outputs/bundle/release/wear-release.aab"; \
+		if [ ! -f "$$PHONE_SRC" ]; then \
+			echo "Phone AAB not found: $$PHONE_SRC"; \
+			exit 1; \
+		fi; \
+		if [ ! -f "$$WEAR_SRC" ] && [ -f "$$ALT_WEAR_SRC" ]; then \
+			WEAR_SRC="$$ALT_WEAR_SRC"; \
+		fi; \
+		if [ ! -f "$$WEAR_SRC" ]; then \
+			echo "Wear AAB not found at $$WEAR_SRC (or $$ALT_WEAR_SRC)"; \
+			exit 1; \
+		fi; \
+		PHONE_HASH=$$(sha256sum "$$PHONE_SRC" | awk '{print substr($$1,1,8)}'); \
+		WEAR_HASH=$$(sha256sum "$$WEAR_SRC" | awk '{print substr($$1,1,8)}'); \
+		PHONE_OUT="$(AAB_OUT_DIR)/app-release-$$DATE_TAG-$$PHONE_HASH.aab"; \
+		WEAR_OUT="$(AAB_OUT_DIR)/wear-release-$$DATE_TAG-$$WEAR_HASH.aab"; \
+		mv "$$PHONE_SRC" "$$PHONE_OUT"; \
+		mv "$$WEAR_SRC" "$$WEAR_OUT"; \
+		echo "Moved AABs to $(AAB_OUT_DIR)/"; \
+		echo "Phone: $$PHONE_OUT"; \
+		echo "Wear:  $$WEAR_OUT"
 
 ci-android-release-local: ci-android-check-signing ci-android-build-release
 

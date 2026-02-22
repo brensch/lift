@@ -11,7 +11,8 @@ use http::{
 };
 use lift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
-    user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
+    settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
+    workout_service_server::WorkoutServiceServer,
 };
 use log::{error, info};
 use serde::{Deserialize, Serialize};
@@ -26,6 +27,7 @@ mod progress;
 mod scheduler;
 mod service_auth;
 mod service_group;
+mod service_settings;
 mod service_user;
 mod service_workout;
 mod state;
@@ -34,6 +36,7 @@ use auth::AuthState;
 use db::CentralDb;
 use service_auth::MyAuthService;
 use service_group::GroupService;
+use service_settings::MySettingsService;
 use service_user::MyUserService;
 use service_workout::MyWorkoutService;
 use state::AppState;
@@ -71,6 +74,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let user_service = MyUserService::new(central_db.clone());
     let group_service = GroupService::new(central_db.clone(), app_state.clone());
 
+    let settings_service = MySettingsService::new(central_db.clone());
+
     let auth_state = Arc::new(AuthState::new(central_db.clone()));
     let auth_service = MyAuthService {
         auth_state: auth_state.clone(),
@@ -93,6 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let user_service_web = tonic_web::enable(UserServiceServer::new(user_service));
     let multiplayer_service_web = tonic_web::enable(MultiplayerServiceServer::new(group_service));
     let auth_service_web = tonic_web::enable(AuthServiceServer::new(auth_service));
+    let settings_service_web = tonic_web::enable(SettingsServiceServer::new(settings_service));
 
     // Build gRPC router
     #[allow(deprecated)]
@@ -102,6 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .add_service(user_service_web)
         .add_service(multiplayer_service_web)
         .add_service(auth_service_web)
+        .add_service(settings_service_web)
         .into_router();
 
     // Assetlinks handler for Android passkey verification

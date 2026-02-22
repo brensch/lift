@@ -57,6 +57,10 @@ android {
 
     buildTypes {
         release {
+            // Keep release interop stable for Wear protobuf envelopes.
+            // R8 shrinking/obfuscation can break GeneratedMessageLite field lookups.
+            isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
         }
     }
