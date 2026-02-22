@@ -619,8 +619,16 @@ impl WorkoutService for MyWorkoutService {
             .try_recover_user(&self.central_db, &user_id)
             .await;
 
+        // Check for existing active workout
         if let Some(active) = self.state.workouts.get(&user_id) {
-            return Ok(Response::new(start_workout_response_from_active(&active)));
+            if active.workout.end_time == 0 {
+                // Workout is still running, return it
+                return Ok(Response::new(start_workout_response_from_active(&active)));
+            } else {
+                // Workout is finished, remove it from memory so we can start a new one
+                drop(active); // Release lock
+                self.state.workouts.remove(&user_id);
+            }
         }
 
         let workout_id = Uuid::new_v4().to_string();
@@ -1424,43 +1432,31 @@ impl WorkoutService for MyWorkoutService {
             return Err(Status::invalid_argument("workout_id is required"));
         }
 
-        // Remove from memory
-        let active = {
-            let (_, mut active) = self
-                .state
-                .workouts
-                .remove(&user_id)
-                .ok_or_else(|| Status::not_found("No active workout found"))?;
-
+        // Update in memory
+        // We do NOT remove it from memory or the session anymore, so that other
+        // participants can see the user as "Finished".
+        let workout_copy = if let Some(mut active) = self.state.workouts.get_mut(&user_id) {
             let end_time = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_secs() as i64;
             active.workout.end_time = end_time;
-            active
-        }; // Guard dropped here
+            active.workout.clone()
+        } else {
+            return Err(Status::not_found("No active workout found"));
+        };
 
         // Incremental write: Just update end time!
         self.central_db
-            .update_workout_end_time(&user_id, &active.workout.id, active.workout.end_time)
+            .update_workout_end_time(&user_id, &workout_copy.id, workout_copy.end_time)
             .await
             .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?;
 
-        // Leave session
-        if let Some((_, session_id)) = self.state.user_sessions.remove(&user_id) {
-            if let Some(mut members) = self.state.sessions.get_mut(&session_id) {
-                members.remove(&user_id);
-                if members.is_empty() {
-                    drop(members);
-                    self.state.sessions.remove(&session_id);
-                }
-            }
-            // Record session in user's DB
-            let _ = self.central_db.leave_session(&user_id, &session_id).await;
-        }
+        // We explicitly DO NOT remove the user from the session here.
+        // They remain in the session with a finished workout.
 
         Ok(Response::new(EndWorkoutResponse {
-            workout: Some(active.workout),
+            workout: Some(workout_copy),
         }))
     }
 

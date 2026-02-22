@@ -22,9 +22,6 @@ Future<void> endWorkout(BuildContext context) async {
     await wp.endWorkout();
     if (context.mounted) {
       context.go('/workout/$workoutId/completed');
-      if (mp.isInSession) {
-        unawaited(mp.leaveSession());
-      }
     }
   }
 }
