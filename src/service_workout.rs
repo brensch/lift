@@ -134,7 +134,7 @@ fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
 
 /// Unified set generation from ExerciseGroup with ExerciseTypeConfigs.
 /// Generates warmup sets and working sets based on group configuration.
-fn generate_sets_for_group(
+pub(crate) fn generate_sets_for_group(
     workout_id: &str,
     group: &ExerciseGroup,
     start_order: i32,
@@ -386,7 +386,7 @@ fn materialized_working_sets_for_config(
     sets
 }
 
-fn materialize_group_working_sets(group: &mut ExerciseGroup) {
+pub(crate) fn materialize_group_working_sets(group: &mut ExerciseGroup) {
     let current = group.clone();
     let mut max_sets = 0usize;
     for config in &mut group.exercise_configs {
@@ -973,10 +973,7 @@ impl WorkoutService for MyWorkoutService {
         }
 
         let workout_id = Uuid::new_v4().to_string();
-        let start_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let start_time = if req.started_at > 0 { req.started_at } else { now_unix() };
 
         let session_id = {
             let mut session_id = self
@@ -1357,10 +1354,7 @@ impl WorkoutService for MyWorkoutService {
                 .unwrap_or((0, 0.0));
 
             let id = Uuid::new_v4().to_string();
-            let started_at = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let started_at = if req.started_at > 0 { req.started_at } else { now_unix() };
 
             let completed_set = CompletedSet {
                 id,
@@ -1699,10 +1693,7 @@ impl WorkoutService for MyWorkoutService {
                 .remove(&user_id)
                 .ok_or_else(|| Status::not_found("No active workout found"))?;
 
-            let end_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let end_time = if req.ended_at > 0 { req.ended_at } else { now_unix() };
             active.workout.end_time = end_time;
             active
         }; // Guard dropped here
@@ -1762,8 +1753,9 @@ impl WorkoutService for MyWorkoutService {
 
         // 2. Perform DB IO outside the lock
         let scheduler = Scheduler::new(self.central_db.clone());
+        let at_time = request.into_inner().at_time;
         let mut response = scheduler
-            .get_proposed_schedule(&user_id)
+            .get_proposed_schedule(&user_id, at_time)
             .await
             .map_err(|e| Status::internal(format!("Failed to generate schedule: {}", e)))?;
 

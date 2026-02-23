@@ -743,6 +743,7 @@ mod tests {
                         single_exercise_group("g1", "Squat", 100.0, 3, 0),
                         single_exercise_group("g2", "Bench", 185.0, 1, 1),
                     ],
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -864,6 +865,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w1".to_string(),
                     exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 2, 0)],
+                    started_at: 0,
                 },
                 &token1,
             ),
@@ -878,6 +880,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w2".to_string(),
                     exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 2, 0)],
+                    started_at: 0,
                 },
                 &token2,
             ),
@@ -920,6 +923,7 @@ mod tests {
                 StartSetRequest {
                     workout_id: start1.id.clone(),
                     proposed_set_id: u1_first_set,
+                    started_at: 0,
                 },
                 &token1,
             ),
@@ -1021,6 +1025,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w1".to_string(),
                     exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 1, 0)],
+                    started_at: 0,
                 },
                 &token1,
             ),
@@ -1034,6 +1039,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w2".to_string(),
                     exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 1, 0)],
+                    started_at: 0,
                 },
                 &token2,
             ),
@@ -1061,6 +1067,7 @@ mod tests {
             with_token(
                 EndWorkoutRequest {
                     workout_id: start1.id.clone(),
+                    ended_at: 0,
                 },
                 &token1,
             ),
@@ -1166,6 +1173,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w1".to_string(),
                     exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 1, 0)],
+                    started_at: 0,
                 },
                 &token1,
             ),
@@ -1179,6 +1187,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w2".to_string(),
                     exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 1, 0)],
+                    started_at: 0,
                 },
                 &token2,
             ),
@@ -1207,6 +1216,7 @@ mod tests {
                 StartSetRequest {
                     workout_id: start2.id.clone(),
                     proposed_set_id: u2_first_set,
+                    started_at: 0,
                 },
                 &token2,
             ),
@@ -1319,6 +1329,7 @@ mod tests {
                         instruction: String::new(),
                         prescribed_by_regime: false,
                     }],
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -1408,6 +1419,7 @@ mod tests {
                 StartWorkoutRequest {
                     name: "w".to_string(),
                     exercise_groups: vec![single_exercise_group("g1", "Squat", 155.0, 3, 0)],
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -1452,6 +1464,7 @@ mod tests {
             with_token(
                 EndWorkoutRequest {
                     workout_id: started.id.clone(),
+                    ended_at: 0,
                 },
                 &token,
             ),
@@ -1517,6 +1530,7 @@ mod tests {
                         single_exercise_group("g1", "Squat", 100.0, 2, 0),
                         single_exercise_group("g2", "Bench", 150.0, 2, 1),
                     ],
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -1734,6 +1748,7 @@ mod tests {
                     StartSetRequest {
                         workout_id: started.id.clone(),
                         proposed_set_id: next.id.clone(),
+                        started_at: 0,
                     },
                     &token,
                 ),
@@ -1787,6 +1802,7 @@ mod tests {
             with_token(
                 EndWorkoutRequest {
                     workout_id: started.id.clone(),
+                    ended_at: 0,
                 },
                 &token,
             ),
@@ -1897,6 +1913,7 @@ mod tests {
                         instruction: String::new(),
                         prescribed_by_regime: false,
                     }],
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -1962,6 +1979,7 @@ mod tests {
                 StartSetRequest {
                     workout_id: started.id.clone(),
                     proposed_set_id: first_next.id.clone(),
+                    started_at: 0,
                 },
                 &token,
             ),
@@ -2049,6 +2067,7 @@ mod tests {
                     StartSetRequest {
                         workout_id: started.id.clone(),
                         proposed_set_id: next.id.clone(),
+                        started_at: 0,
                     },
                     &token,
                 ),
@@ -2099,6 +2118,7 @@ mod tests {
             with_token(
                 EndWorkoutRequest {
                     workout_id: started.id.clone(),
+                    ended_at: 0,
                 },
                 &token,
             ),

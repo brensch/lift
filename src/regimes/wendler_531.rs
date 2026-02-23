@@ -183,6 +183,7 @@ impl WorkoutRegime for Wendler531Regime {
         _history: &[SessionHistory],
         _max_weight: f32,
         workout_config: &UserWorkoutConfig,
+        _now_ts: i64,
     ) -> ExerciseProposal {
         let state = WendlerState::from_json(&workout_config.regime_state_json);
         let week = state.week.saturating_sub(1) as usize;

@@ -1,0 +1,92 @@
+{
+  "description": "GZCLP T1 stage transitions (5x3 -> 6x2 -> 5x3) and T2 stage transitions (3x10 -> 3x8 -> 3x10)",
+  "regime_config": {
+    "regime_type": "gzclp",
+    "days_per_week": 4,
+    "one_rep_maxes": {}
+  },
+  "workouts": [
+    {
+      "note": "Session 1: T1 squat 5x3 AMRAP @ 45 (start), bench T2 3x10 @ 45 (start). Both succeed.",
+      "get_proposed": {
+        "at": "2024-01-01T09:00:00Z",
+        "expect": {
+          "is_ready": true
+        }
+      },
+      "start": { "at": "2024-01-01T09:05:00Z" },
+      "sets": [
+        { "note": "Squat T1 set 1/5 at 45", "exercise": "squat", "target_reps": 3, "target_weight": 45.0, "start_at": "2024-01-01T09:10:00Z", "end_at": "2024-01-01T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 set 2/5 at 45", "exercise": "squat", "target_reps": 3, "target_weight": 45.0, "start_at": "2024-01-01T09:15:00Z", "end_at": "2024-01-01T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 set 3/5 at 45", "exercise": "squat", "target_reps": 3, "target_weight": 45.0, "start_at": "2024-01-01T09:20:00Z", "end_at": "2024-01-01T09:21:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 set 4/5 at 45", "exercise": "squat", "target_reps": 3, "target_weight": 45.0, "start_at": "2024-01-01T09:25:00Z", "end_at": "2024-01-01T09:26:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 AMRAP set 5/5 at 45", "exercise": "squat", "target_reps": 3, "target_weight": 45.0, "start_at": "2024-01-01T09:30:00Z", "end_at": "2024-01-01T09:31:00Z", "actual_reps": 7 },
+        { "note": "Bench T2 set 1/3 at 45", "exercise": "bench_press", "target_reps": 10, "target_weight": 45.0, "start_at": "2024-01-01T09:35:00Z", "end_at": "2024-01-01T09:36:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 set 2/3 at 45", "exercise": "bench_press", "target_reps": 10, "target_weight": 45.0, "start_at": "2024-01-01T09:40:00Z", "end_at": "2024-01-01T09:41:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 set 3/3 at 45", "exercise": "bench_press", "target_reps": 10, "target_weight": 45.0, "start_at": "2024-01-01T09:45:00Z", "end_at": "2024-01-01T09:46:00Z", "actual_reps": 10 }
+      ],
+      "end": { "at": "2024-01-01T10:30:00Z" }
+    },
+    {
+      "note": "Session 2: T1 squat FAIL at 55 => advances to Stage 2 next session. Bench success at 50 => +5 to 55 next.",
+      "start": { "at": "2024-01-03T09:05:00Z" },
+      "sets": [
+        { "note": "Squat T1 Stage 1 at 55 - FAIL", "exercise": "squat", "target_reps": 3, "target_weight": 55.0, "start_at": "2024-01-03T09:10:00Z", "end_at": "2024-01-03T09:11:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 1 at 55 - FAIL", "exercise": "squat", "target_reps": 3, "target_weight": 55.0, "start_at": "2024-01-03T09:15:00Z", "end_at": "2024-01-03T09:16:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 1 at 55 - FAIL", "exercise": "squat", "target_reps": 3, "target_weight": 55.0, "start_at": "2024-01-03T09:20:00Z", "end_at": "2024-01-03T09:21:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 1 at 55 - FAIL", "exercise": "squat", "target_reps": 3, "target_weight": 55.0, "start_at": "2024-01-03T09:25:00Z", "end_at": "2024-01-03T09:26:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 AMRAP at 55 - FAIL", "exercise": "squat", "target_reps": 3, "target_weight": 55.0, "start_at": "2024-01-03T09:30:00Z", "end_at": "2024-01-03T09:31:00Z", "actual_reps": 2 },
+        { "note": "Bench T2 Stage 1 at 50", "exercise": "bench_press", "target_reps": 10, "target_weight": 50.0, "start_at": "2024-01-03T09:35:00Z", "end_at": "2024-01-03T09:36:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 Stage 1 at 50", "exercise": "bench_press", "target_reps": 10, "target_weight": 50.0, "start_at": "2024-01-03T09:40:00Z", "end_at": "2024-01-03T09:41:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 Stage 1 at 50", "exercise": "bench_press", "target_reps": 10, "target_weight": 50.0, "start_at": "2024-01-03T09:45:00Z", "end_at": "2024-01-03T09:46:00Z", "actual_reps": 10 }
+      ],
+      "end": { "at": "2024-01-03T10:30:00Z" }
+    },
+    {
+      "note": "Session 3: T1 squat now Stage 2 (6x2 AMRAP) at 55 (held weight). Bench FAIL at 55 => Stage 2 (3x8) next.",
+      "start": { "at": "2024-01-05T09:05:00Z" },
+      "sets": [
+        { "note": "Squat T1 Stage 2 at 55 (6x2 AMRAP)", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:10:00Z", "end_at": "2024-01-05T09:11:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 2 at 55", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:15:00Z", "end_at": "2024-01-05T09:16:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 2 at 55", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:20:00Z", "end_at": "2024-01-05T09:21:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 2 at 55", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:25:00Z", "end_at": "2024-01-05T09:26:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 2 at 55", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:30:00Z", "end_at": "2024-01-05T09:31:00Z", "actual_reps": 2 },
+        { "note": "Squat T1 Stage 2 AMRAP at 55", "exercise": "squat", "target_reps": 2, "target_weight": 55.0, "start_at": "2024-01-05T09:35:00Z", "end_at": "2024-01-05T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench T2 Stage 1 at 55 - FAIL", "exercise": "bench_press", "target_reps": 10, "target_weight": 55.0, "start_at": "2024-01-05T09:40:00Z", "end_at": "2024-01-05T09:41:00Z", "actual_reps": 8 },
+        { "note": "Bench T2 Stage 1 at 55 - FAIL", "exercise": "bench_press", "target_reps": 10, "target_weight": 55.0, "start_at": "2024-01-05T09:45:00Z", "end_at": "2024-01-05T09:46:00Z", "actual_reps": 8 },
+        { "note": "Bench T2 Stage 1 at 55 - FAIL", "exercise": "bench_press", "target_reps": 10, "target_weight": 55.0, "start_at": "2024-01-05T09:50:00Z", "end_at": "2024-01-05T09:51:00Z", "actual_reps": 8 }
+      ],
+      "end": { "at": "2024-01-05T10:30:00Z" }
+    },
+    {
+      "note": "Session 4: T1 squat Stage 2 succeeded => resets to Stage 1 at 55+10=65. Bench now Stage 2 (3x8) at 55 (held). Both succeed.",
+      "start": { "at": "2024-01-08T09:05:00Z" },
+      "sets": [
+        { "note": "Squat T1 Stage 1 at 65 (success from S3 resets to stage 1)", "exercise": "squat", "target_reps": 3, "target_weight": 65.0, "start_at": "2024-01-08T09:10:00Z", "end_at": "2024-01-08T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 65", "exercise": "squat", "target_reps": 3, "target_weight": 65.0, "start_at": "2024-01-08T09:15:00Z", "end_at": "2024-01-08T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 65", "exercise": "squat", "target_reps": 3, "target_weight": 65.0, "start_at": "2024-01-08T09:20:00Z", "end_at": "2024-01-08T09:21:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 65", "exercise": "squat", "target_reps": 3, "target_weight": 65.0, "start_at": "2024-01-08T09:25:00Z", "end_at": "2024-01-08T09:26:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 AMRAP at 65", "exercise": "squat", "target_reps": 3, "target_weight": 65.0, "start_at": "2024-01-08T09:30:00Z", "end_at": "2024-01-08T09:31:00Z", "actual_reps": 6 },
+        { "note": "Bench T2 Stage 2 at 55 (3x8 held)", "exercise": "bench_press", "target_reps": 8, "target_weight": 55.0, "start_at": "2024-01-08T09:35:00Z", "end_at": "2024-01-08T09:36:00Z", "actual_reps": 8 },
+        { "note": "Bench T2 Stage 2 at 55", "exercise": "bench_press", "target_reps": 8, "target_weight": 55.0, "start_at": "2024-01-08T09:40:00Z", "end_at": "2024-01-08T09:41:00Z", "actual_reps": 8 },
+        { "note": "Bench T2 Stage 2 at 55", "exercise": "bench_press", "target_reps": 8, "target_weight": 55.0, "start_at": "2024-01-08T09:45:00Z", "end_at": "2024-01-08T09:46:00Z", "actual_reps": 8 }
+      ],
+      "end": { "at": "2024-01-08T10:30:00Z" }
+    },
+    {
+      "note": "Session 5: Squat T1 Stage 1 at 75 (+10 from success). Bench Stage 2 succeeded => resets Stage 1 at 55+5=60.",
+      "start": { "at": "2024-01-10T09:05:00Z" },
+      "sets": [
+        { "note": "Squat T1 Stage 1 at 75", "exercise": "squat", "target_reps": 3, "target_weight": 75.0, "start_at": "2024-01-10T09:10:00Z", "end_at": "2024-01-10T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 75", "exercise": "squat", "target_reps": 3, "target_weight": 75.0, "start_at": "2024-01-10T09:15:00Z", "end_at": "2024-01-10T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 75", "exercise": "squat", "target_reps": 3, "target_weight": 75.0, "start_at": "2024-01-10T09:20:00Z", "end_at": "2024-01-10T09:21:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 Stage 1 at 75", "exercise": "squat", "target_reps": 3, "target_weight": 75.0, "start_at": "2024-01-10T09:25:00Z", "end_at": "2024-01-10T09:26:00Z", "actual_reps": 3 },
+        { "note": "Squat T1 AMRAP at 75", "exercise": "squat", "target_reps": 3, "target_weight": 75.0, "start_at": "2024-01-10T09:30:00Z", "end_at": "2024-01-10T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench T2 Stage 1 at 60 (stage 2 success resets to stage 1 +5)", "exercise": "bench_press", "target_reps": 10, "target_weight": 60.0, "start_at": "2024-01-10T09:35:00Z", "end_at": "2024-01-10T09:36:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 Stage 1 at 60", "exercise": "bench_press", "target_reps": 10, "target_weight": 60.0, "start_at": "2024-01-10T09:40:00Z", "end_at": "2024-01-10T09:41:00Z", "actual_reps": 10 },
+        { "note": "Bench T2 Stage 1 at 60", "exercise": "bench_press", "target_reps": 10, "target_weight": 60.0, "start_at": "2024-01-10T09:45:00Z", "end_at": "2024-01-10T09:46:00Z", "actual_reps": 10 }
+      ],
+      "end": { "at": "2024-01-10T10:30:00Z" }
+    }
+  ]
+}

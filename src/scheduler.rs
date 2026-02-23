@@ -21,6 +21,7 @@ impl Scheduler {
     pub async fn get_proposed_schedule(
         &self,
         user_id: &str,
+        now: i64,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
         // ── 1. Load user config (regime selection + state) ────────────────────
         let mut workout_config = self
@@ -62,7 +63,7 @@ impl Scheduler {
         }
 
         // ── 5. Build muscle group recovery map ───────────────────────────────
-        let now = Utc::now().timestamp();
+        let now = if now == 0 { Utc::now().timestamp() } else { now };
         let recovery_seconds = MUSCLE_RECOVERY_HOURS * 3600;
         let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =
             std::collections::HashMap::new();
@@ -100,6 +101,7 @@ impl Scheduler {
                 history,
                 max_weight,
                 &workout_config,
+                now,
             );
 
             let recovered = config.muscle_groups.iter().all(|mg| {
@@ -150,6 +152,7 @@ impl Scheduler {
             recovery_secs,
             regime.display_name(),
             days_per_week,
+            now,
         );
 
         let suggested_workout_name = regime.suggested_workout_name(&workout_config);
@@ -242,30 +245,33 @@ mod tests {
 
     #[test]
     fn linear_progression_standard() {
+        let now = chrono::Utc::now().timestamp();
         let history = vec![session(100.0, true, 1)];
         let (weight, explanation) =
-            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0, now);
         assert_eq!(weight, 105.0);
         assert!(explanation.contains("105"));
     }
 
     #[test]
     fn linear_progression_failure_holds() {
+        let now = chrono::Utc::now().timestamp();
         let history = vec![session(100.0, false, 1)];
         let (weight, _) =
-            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0, now);
         assert_eq!(weight, 100.0);
     }
 
     #[test]
     fn linear_progression_plateau_deloads() {
+        let now = chrono::Utc::now().timestamp();
         let history = vec![
             session(100.0, false, 3),
             session(100.0, false, 6),
             session(100.0, false, 9),
         ];
         let (weight, _) =
-            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0);
+            calculate_linear_progression(Exercise::BenchPress as i32, 45.0, &history, 100.0, now);
         assert!(weight < 100.0);
     }
 }

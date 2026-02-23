@@ -1,7 +1,7 @@
 pub mod gzclp;
 pub mod linear_5x5;
 #[cfg(test)]
-mod tests;
+pub mod test_harness;
 pub mod wendler_531;
 
 use std::collections::HashMap;
@@ -186,6 +186,7 @@ pub trait WorkoutRegime: Send + Sync {
     fn default_days_per_week(&self) -> i32;
 
     /// Compute next weight/sets/reps for a single exercise from its history.
+    /// `now_ts` is the unix timestamp to use as "current time" for deload/break detection.
     fn calculate_exercise_progression(
         &self,
         exercise: Exercise,
@@ -193,6 +194,7 @@ pub trait WorkoutRegime: Send + Sync {
         history: &[SessionHistory], // newest-first
         max_weight: f32,
         workout_config: &UserWorkoutConfig,
+        now_ts: i64,
     ) -> ExerciseProposal;
 
     /// Build the full list of proposed groups for the home screen.
@@ -363,9 +365,8 @@ pub fn build_session_readiness(
     recovery_seconds: i64,
     regime_display_name: &str,
     days_per_week: i32,
+    now: i64,
 ) -> SessionReadiness {
-    use chrono::Utc;
-    let now = Utc::now().timestamp();
     let next_session_at = last_session_at + recovery_seconds;
     let seconds_until = next_session_at - now;
     let is_ready = now >= next_session_at;

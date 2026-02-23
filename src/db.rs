@@ -147,7 +147,6 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
     }
 }
 
-#[derive(Clone)]
 pub enum WriteCommand {
     CreateWorkout(String, Workout),
     InsertGroupWithSets(String, lift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
@@ -159,6 +158,8 @@ pub enum WriteCommand {
     JoinSession(String, String),
     LeaveSession(String, String),
     InsertUserSetting(String, String, String, Vec<u8>),
+    #[cfg_attr(not(test), allow(dead_code))]
+    Flush(tokio::sync::oneshot::Sender<()>),
     #[cfg(feature = "test-auth")]
     TestLoginUpsert(User, String, i64),
 }
@@ -180,7 +181,8 @@ const CENTRAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    password_hash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
@@ -370,34 +372,6 @@ impl CentralDb {
             .await?;
         sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
 
-        // Manual migration for created_at_ip column
-        let _ = sqlx::query("ALTER TABLE passkey_credentials ADD COLUMN created_at_ip TEXT")
-            .execute(&pool)
-            .await;
-
-        // Manual migration for password_hash column
-        let _ = sqlx::query("ALTER TABLE users ADD COLUMN password_hash TEXT")
-            .execute(&pool)
-            .await;
-
-        // Manual migration for proposed set cancellation tracking
-        let _ = sqlx::query(
-            "ALTER TABLE proposed_sets ADD COLUMN cancelled BOOLEAN NOT NULL DEFAULT 0",
-        )
-        .execute(&pool)
-        .await;
-
-        // Manual migration for workout session_id
-        let _ = sqlx::query("ALTER TABLE workouts ADD COLUMN session_id TEXT")
-            .execute(&pool)
-            .await;
-
-        // Manual migration for prescribed regime groups
-        let _ = sqlx::query(
-            "ALTER TABLE exercise_groups ADD COLUMN prescribed_by_regime BOOLEAN NOT NULL DEFAULT 0",
-        )
-        .execute(&pool)
-        .await;
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
         let db = Self {
             pool,
@@ -411,6 +385,38 @@ impl CentralDb {
         db.clone().spawn_persistence_worker(write_rx);
 
         Ok(db)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub async fn new_in_memory() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let options = SqliteConnectOptions::from_str("sqlite::memory:")?
+            .create_if_missing(true)
+            .synchronous(SqliteSynchronous::Normal)
+            .journal_mode(SqliteJournalMode::Wal);
+
+        let pool = SqlitePoolOptions::new()
+            .max_connections(4)
+            .connect_with(options)
+            .await?;
+        sqlx::query(CENTRAL_SCHEMA).execute(&pool).await?;
+
+        let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
+        let db = Self {
+            pool,
+            auth_cache: Arc::new(DashMap::new()),
+            user_by_name_cache: Arc::new(DashMap::new()),
+            write_lock: Arc::new(tokio::sync::Mutex::new(())),
+            write_tx,
+        };
+        db.clone().spawn_persistence_worker(write_rx);
+        Ok(db)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub async fn flush_writes(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.write_tx.send(WriteCommand::Flush(tx))?;
+        rx.await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
     }
 
     fn spawn_persistence_worker(self, mut rx: tokio::sync::mpsc::UnboundedReceiver<WriteCommand>) {
@@ -432,11 +438,11 @@ impl CentralDb {
                     }
                 }
 
-                // Batch process the buffer
-                if let Err(e) = self.process_batch(&buffer).await {
+                // Batch process the buffer (consuming it)
+                let batch = std::mem::replace(&mut buffer, Vec::with_capacity(1000));
+                if let Err(e) = self.process_batch(batch).await {
                     eprintln!("Persistence worker error: {}", e);
                 }
-                buffer.clear();
 
                 // Pacing: don't spin 100% CPU if the channel is constantly full
                 tokio::task::yield_now().await;
@@ -446,13 +452,25 @@ impl CentralDb {
 
     async fn process_batch(
         &self,
-        commands: &[WriteCommand],
+        commands: Vec<WriteCommand>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let mut tx = self.pool.begin().await?;
-
+        // Separate flush sentinels from DB commands so we can respond even if
+        // the transaction fails.
+        let mut flush_senders: Vec<tokio::sync::oneshot::Sender<()>> = Vec::new();
+        let mut db_commands: Vec<WriteCommand> = Vec::new();
         for cmd in commands {
             match cmd {
+                WriteCommand::Flush(tx) => flush_senders.push(tx),
+                other => db_commands.push(other),
+            }
+        }
+
+        if !db_commands.is_empty() {
+            let _lock = self.write_lock.lock().await;
+            let mut tx = self.pool.begin().await?;
+
+            for cmd in db_commands {
+                match cmd {
                 WriteCommand::CreateWorkout(user_id, workout) => {
                     sqlx::query(
                         "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id) VALUES (?, ?, ?, ?, ?, ?)",
@@ -472,7 +490,7 @@ impl CentralDb {
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&group.id)
-                    .bind(user_id)
+                    .bind(&user_id)
                     .bind(&group.workout_id)
                     .bind(&group.name)
                     .bind(&group.instruction)
@@ -500,7 +518,7 @@ impl CentralDb {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
                         .bind(&config_id)
-                        .bind(user_id)
+                        .bind(&user_id)
                         .bind(&group.id)
                         .bind(config.exercise)
                         .bind(config.start_weight)
@@ -527,7 +545,7 @@ impl CentralDb {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
                         .bind(&set.id)
-                        .bind(user_id)
+                        .bind(&user_id)
                         .bind(&set.workout_id)
                         .bind(set.workout_order)
                         .bind(set.exercise)
@@ -573,8 +591,8 @@ impl CentralDb {
                              VALUES (?, ?, ?, ?, ?, ?, 'wear')",
                         )
                         .bind(Uuid::new_v4().to_string())
-                        .bind(user_id)
-                        .bind(workout_id)
+                        .bind(&user_id)
+                        .bind(&workout_id)
                         .bind(sample.sampled_at)
                         .bind(sample.bpm)
                         .bind(sample.availability)
@@ -672,10 +690,18 @@ impl CentralDb {
                         .execute(&mut *tx)
                         .await?;
                 }
+                WriteCommand::Flush(_) => unreachable!("Flush commands are separated before this match"),
             }
+            }
+
+            tx.commit().await?;
         }
 
-        tx.commit().await?;
+        // Signal all flush waiters after the transaction is committed.
+        for sender in flush_senders {
+            let _ = sender.send(());
+        }
+
         Ok(())
     }
 
