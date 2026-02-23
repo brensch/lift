@@ -12,9 +12,11 @@ use lift::workout::v1::{
     GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, PlannedGroupSet, ProposedSet,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, ReplaceExerciseGroupPlanRequest,
     ReplaceExerciseGroupPlanResponse, RestConfig, StartSetRequest, StartSetResponse,
-    StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest, WorkingSetSpec, Workout,
+    StartWorkoutRequest, StartWorkoutResponse, WorkingSetSpec, Workout,
     WorkoutPlanChangeStats, WorkoutStateSnapshot,
 };
+#[cfg(test)]
+use lift::workout::v1::UpdateExerciseGroupRequest;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Response, Status};
@@ -324,12 +326,14 @@ fn normalize_rest_config(rest_config: Option<RestConfig>) -> Option<RestConfig> 
     rest_config.filter(rest_config_has_values)
 }
 
+#[cfg(test)]
 fn is_default_rest_config(rc: &RestConfig) -> bool {
     rc.rest_after_success == 180
         && rc.rest_after_failure == 300
         && (rc.rest_after_warmup == 10 || rc.rest_after_warmup == 0)
 }
 
+#[cfg(test)]
 fn normalize_exercise_configs(configs: &[ExerciseTypeConfig]) -> Vec<ExerciseTypeConfig> {
     configs
         .iter()
@@ -623,6 +627,7 @@ fn apply_replace_exercise_group_plan(
     Ok((Some(group), visible_sets))
 }
 
+#[cfg(test)]
 fn apply_update_exercise_group(
     workout_ref: &mut ActiveWorkout,
     req: &UpdateExerciseGroupRequest,

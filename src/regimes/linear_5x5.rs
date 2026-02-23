@@ -263,6 +263,7 @@ pub fn calculate_linear_progression(
 
 // ─── Proposed group builder ───────────────────────────────────────────────────
 
+#[cfg(test)]
 pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<ProposedExerciseGroup> {
     let mut groups = Vec::new();
 
