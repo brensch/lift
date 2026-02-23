@@ -14,7 +14,7 @@
     {
       "note": "Week 1 Workout 1: All 4 lifts at 65/75/85% TM (5-rep sets)",
       "get_proposed": {
-        "at": "2024-01-01T09:00:00Z",
+        "at": "2024-01-01T09:05:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -519,7 +519,277 @@
       "end": {
         "at": "2024-01-03T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-03T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 170.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 130.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 130.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 170.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 130.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 140.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 110.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 110.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 140.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 110.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 210.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 160.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 160.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 185.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 210.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 160.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 105.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 90.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 105.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets)"
+        }
+      }
     },
     {
       "note": "Week 1 Workout 3: third session (still week 1, transitions to week 2 after this)",
@@ -639,12 +909,282 @@
       "end": {
         "at": "2024-01-05T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-05T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 170.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 130.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 130.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 170.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 130.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 140.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 110.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 110.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 140.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 110.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 210.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 160.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 160.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 185.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 210.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 160.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 105.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 90.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 105.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets)"
+        }
+      }
     },
     {
       "note": "Week 2 Workout 1: 3-rep sets at 70/80/90% TM",
       "get_proposed": {
-        "at": "2024-01-08T09:00:00Z",
+        "at": "2024-01-08T09:05:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -1149,7 +1689,277 @@
       "end": {
         "at": "2024-01-10T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-10T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 180.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 140.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 140.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 160.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 180.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 140.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 115.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 115.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 135.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 115.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 225.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 175.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 175.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 200.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 225.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 175.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 110.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 85.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 95.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 110.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 85.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets)"
+        }
+      }
     },
     {
       "note": "Week 2 Workout 3: transitions to week 3 after this",
@@ -1269,12 +2079,282 @@
       "end": {
         "at": "2024-01-12T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-12T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 180.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 140.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 140.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 160.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 180.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 140.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 115.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 115.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 135.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 115.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 225.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 175.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 175.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 200.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 225.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 175.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 110.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 85.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 95.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 110.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 85.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets)"
+        }
+      }
     },
     {
       "note": "Week 3 Workout 1: 5/3/1 reps at 75/85/95% TM (last set AMRAP)",
       "get_proposed": {
-        "at": "2024-01-15T11:00:00Z",
+        "at": "2024-01-15T11:05:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -1779,7 +2859,277 @@
       "end": {
         "at": "2024-01-17T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-17T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 190.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 150.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 170.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 190.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 150.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 160.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 125.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 140.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 160.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 125.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 235.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 185.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 185.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 210.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 235.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 185.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 115.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 90.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 90.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 105.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 115.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 90.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP)"
+        }
+      }
     },
     {
       "note": "Week 3 Workout 3: transitions to week 4 after this",
@@ -1899,12 +3249,282 @@
       "end": {
         "at": "2024-01-19T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-19T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 190.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 150.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 170.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 190.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 150.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 160.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 125.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 140.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 160.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 125.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 235.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 185.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 185.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 210.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 235.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 185.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 115.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 90.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 90.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 105.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 115.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 90.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP)"
+        }
+      }
     },
     {
       "note": "Week 4 Deload Workout 1: 5-rep sets at 40/50/60% TM (no AMRAP)",
       "get_proposed": {
-        "at": "2024-01-22T11:00:00Z",
+        "at": "2024-01-22T11:05:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -2409,7 +4029,277 @@
       "end": {
         "at": "2024-01-24T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-24T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 120.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 120.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 100.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 65.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 65.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 65.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 100.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 100.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 75.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 50.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 50.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 60.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 75.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 50.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": true,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week)"
+        }
+      }
     },
     {
       "note": "Week 4 Deload Workout 3: completes cycle 1, transitions to cycle 2 week 1",
@@ -2529,7 +4419,277 @@
       "end": {
         "at": "2024-01-26T11:00:00Z"
       },
-      "assert_recommended_plan_matches_sets": true
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-01-26T09:05:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 120.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 120.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 100.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 65.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 65.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 65.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 100.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 125.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Deadlift",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 100.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 75.0,
+                  "exercise": "overhead_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 50.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 50.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 60.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 75.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "OHP",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 50.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": true,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week)"
+        }
+      }
     }
   ]
 }
