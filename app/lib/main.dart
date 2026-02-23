@@ -110,6 +110,9 @@ class _LiftAppState extends State<LiftApp> {
       if (_authProvider.isLoggedIn) {
         _settingsProvider.load();
       } else {
+        _settingsProvider.clear();
+        unawaited(_soundProvider.reset());
+        unawaited(_themeProvider.reset());
         _workoutProvider.clear();
         _multiplayerProvider.clear();
       }

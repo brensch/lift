@@ -615,8 +615,8 @@ mod tests {
         CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
         DeleteCompletedSetRequest, EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig,
         GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, LeaveSessionRequest,
-        ReorderExerciseGroupsRequest, RestConfig, StartSetRequest, StartWorkoutRequest,
-        UpdateExerciseGroupRequest,
+        PlannedGroupSet, ReorderExerciseGroupsRequest, ReplaceExerciseGroupPlanRequest, RestConfig,
+        StartSetRequest, StartWorkoutRequest, UpdateExerciseGroupRequest,
     };
     use std::collections::HashSet;
     use std::sync::Arc;
@@ -664,6 +664,57 @@ mod tests {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: false,
+        }
+    }
+
+    fn planned_sets_from_legacy(sets: i32, configs: &[ExerciseTypeConfig]) -> Vec<PlannedGroupSet> {
+        let mut out = Vec::new();
+        for config in configs {
+            for w in 0..sets.max(1) {
+                let weight = if sets <= 1 {
+                    config.start_weight
+                } else {
+                    config.start_weight
+                        + (w as f32 / (sets - 1) as f32) * (config.end_weight - config.start_weight)
+                };
+                out.push(PlannedGroupSet {
+                    exercise: config.exercise,
+                    target_reps: config.reps,
+                    target_weight: (weight / 5.0).round() * 5.0,
+                    warmup: false,
+                    rest_after_success: 180,
+                    rest_after_failure: 300,
+                    is_amrap: false,
+                    instruction: String::new(),
+                });
+            }
+        }
+        out
+    }
+
+    fn replace_req_from_update(req: UpdateExerciseGroupRequest) -> ReplaceExerciseGroupPlanRequest {
+        ReplaceExerciseGroupPlanRequest {
+            workout_id: req.workout_id,
+            exercise_group_id: req.exercise_group_id,
+            name: req.name,
+            interleave_warmups: req.interleave_warmups,
+            sets: planned_sets_from_legacy(req.sets, &req.exercise_configs),
+            rest_config: req.rest_config,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+        }
+    }
+
+    fn replace_req_from_create(req: CreateExerciseGroupRequest) -> ReplaceExerciseGroupPlanRequest {
+        ReplaceExerciseGroupPlanRequest {
+            workout_id: req.workout_id,
+            exercise_group_id: String::new(),
+            name: req.name,
+            interleave_warmups: req.interleave_warmups,
+            sets: planned_sets_from_legacy(req.sets, &req.exercise_configs),
+            rest_config: req.rest_config,
+            delete_group_if_empty: false,
+            instruction: String::new(),
         }
     }
 
@@ -737,10 +788,10 @@ mod tests {
         .await
         .expect("complete first");
 
-        let _ = WorkoutService::update_exercise_group(
+        let _ = WorkoutService::replace_exercise_group_plan(
             &workout_service,
             with_token(
-                UpdateExerciseGroupRequest {
+                replace_req_from_update(UpdateExerciseGroupRequest {
                     workout_id: start.id.clone(),
                     exercise_group_id: "g1".to_string(),
                     name: "Squat".to_string(),
@@ -757,7 +808,7 @@ mod tests {
                         working_sets: vec![],
                     }],
                     rest_config: None,
-                },
+                }),
                 &token,
             ),
         )
@@ -1365,10 +1416,10 @@ mod tests {
         .expect("start")
         .into_inner();
 
-        let _ = WorkoutService::create_exercise_group(
+        let _ = WorkoutService::replace_exercise_group_plan(
             &workout_service,
             with_token(
-                CreateExerciseGroupRequest {
+                replace_req_from_create(CreateExerciseGroupRequest {
                     workout_id: started.id.clone(),
                     name: "Bench".to_string(),
                     sets: 2,
@@ -1389,7 +1440,7 @@ mod tests {
                         working_sets: vec![],
                     }],
                     rest_config: None,
-                },
+                }),
                 &token,
             ),
         )
@@ -1497,10 +1548,10 @@ mod tests {
         assert_eq!(workout.proposed_sets[3].exercise_group_id, "g2");
 
         // 2) Create a third group.
-        let created = WorkoutService::create_exercise_group(
+        let created = WorkoutService::replace_exercise_group_plan(
             &workout_service,
             with_token(
-                CreateExerciseGroupRequest {
+                replace_req_from_create(CreateExerciseGroupRequest {
                     workout_id: started.id.clone(),
                     name: "Deadlift".to_string(),
                     sets: 1,
@@ -1521,7 +1572,7 @@ mod tests {
                         working_sets: vec![],
                     }],
                     rest_config: None,
-                },
+                }),
                 &token,
             ),
         )
@@ -1546,10 +1597,10 @@ mod tests {
         assert_eq!(workout.proposed_sets.len(), 5);
 
         // 3) Edit Bench group: 2 -> 3 sets, heavier weight.
-        let _ = WorkoutService::update_exercise_group(
+        let _ = WorkoutService::replace_exercise_group_plan(
             &workout_service,
             with_token(
-                UpdateExerciseGroupRequest {
+                replace_req_from_update(UpdateExerciseGroupRequest {
                     workout_id: started.id.clone(),
                     exercise_group_id: "g2".to_string(),
                     name: "Bench Updated".to_string(),
@@ -1571,7 +1622,7 @@ mod tests {
                         working_sets: vec![],
                     }],
                     rest_config: None,
-                },
+                }),
                 &token,
             ),
         )

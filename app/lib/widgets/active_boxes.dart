@@ -294,7 +294,7 @@ class RestingBox extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'YOUR NEXT SET',
+                        'Your next set',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -367,7 +367,7 @@ class ChatTimeBox extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'YOUR NEXT SET',
+                        'Your next set',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,

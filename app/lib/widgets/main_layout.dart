@@ -111,15 +111,27 @@ class MainLayout extends StatelessWidget {
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                     _MenuButton(
+                      icon: Icons.fitness_center_outlined,
+                      label: 'Training Program',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/settings/regime');
+                      },
+                      isActive:
+                          GoRouterState.of(context).uri.toString() ==
+                          '/settings/regime',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
                       icon: Icons.settings_outlined,
                       label: 'Settings',
                       onTap: () {
                         Navigator.pop(context);
                         context.push('/settings');
                       },
-                      isActive:
-                          GoRouterState.of(context).uri.toString().startsWith(
-                          '/settings'),
+                      isActive: GoRouterState.of(
+                        context,
+                      ).uri.toString().startsWith('/settings'),
                     ),
                     Divider(height: 32, color: colorScheme.outline),
                   ],

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
+    WorkingSetSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -44,6 +45,9 @@ struct WeekDef {
     start_pct: f32,
     end_pct: f32,
     reps: i32,
+    set_pcts: [f32; 3],
+    set_reps: [i32; 3],
+    top_set_amrap: bool,
     is_deload: bool,
     name: &'static str,
     preview: &'static str,
@@ -54,6 +58,9 @@ const WEEKS: [WeekDef; 4] = [
         start_pct: 0.65,
         end_pct: 0.85,
         reps: 5,
+        set_pcts: [0.65, 0.75, 0.85],
+        set_reps: [5, 5, 5],
+        top_set_amrap: true,
         is_deload: false,
         name: "Week 1 — Volume (5-rep sets)",
         preview: "Next: Week 2 — Intensity (3-rep sets)",
@@ -62,6 +69,9 @@ const WEEKS: [WeekDef; 4] = [
         start_pct: 0.70,
         end_pct: 0.90,
         reps: 3,
+        set_pcts: [0.70, 0.80, 0.90],
+        set_reps: [3, 3, 3],
+        top_set_amrap: true,
         is_deload: false,
         name: "Week 2 — Intensity (3-rep sets)",
         preview: "Next: Week 3 — Peak (1-rep AMRAP)",
@@ -70,6 +80,9 @@ const WEEKS: [WeekDef; 4] = [
         start_pct: 0.75,
         end_pct: 0.95,
         reps: 1,
+        set_pcts: [0.75, 0.85, 0.95],
+        set_reps: [5, 3, 1],
+        top_set_amrap: true,
         is_deload: false,
         name: "Week 3 — Peak (1-rep AMRAP)",
         preview: "Next: Week 4 — Deload (light sets)",
@@ -78,6 +91,9 @@ const WEEKS: [WeekDef; 4] = [
         start_pct: 0.40,
         end_pct: 0.60,
         reps: 5,
+        set_pcts: [0.40, 0.50, 0.60],
+        set_reps: [5, 5, 5],
+        top_set_amrap: false,
         is_deload: true,
         name: "Week 4 — Deload (easy week)",
         preview: "Next: New cycle begins with higher Training Max",
@@ -94,6 +110,47 @@ const WENDLER_LIFTS: &[Exercise] = &[
 
 fn is_lower_body(exercise: Exercise) -> bool {
     matches!(exercise, Exercise::Squat | Exercise::Deadlift)
+}
+
+fn build_wendler_working_sets(tm: f32, week_def: &WeekDef) -> Vec<WorkingSetSpec> {
+    week_def
+        .set_pcts
+        .iter()
+        .zip(week_def.set_reps.iter())
+        .enumerate()
+        .map(|(idx, (&pct, &reps))| {
+            let w = (tm * pct / 5.0).round() * 5.0;
+            let is_top = idx == 2;
+            let is_amrap = week_def.top_set_amrap && is_top;
+            WorkingSetSpec {
+                target_weight: w,
+                target_reps: reps,
+                is_amrap,
+                instruction: if is_amrap {
+                    format!("{}+ top set — AMRAP", reps)
+                } else {
+                    String::new()
+                },
+            }
+        })
+        .collect()
+}
+
+fn wendler_set_pattern_text(week_def: &WeekDef) -> String {
+    week_def
+        .set_reps
+        .iter()
+        .enumerate()
+        .map(|(idx, reps)| {
+            let plus = if idx == 2 && week_def.top_set_amrap {
+                "+"
+            } else {
+                ""
+            };
+            format!("{}{}", reps, plus)
+        })
+        .collect::<Vec<_>>()
+        .join(" / ")
 }
 
 // ─── Regime impl ─────────────────────────────────────────────────────────────
@@ -161,20 +218,35 @@ impl WorkoutRegime for Wendler531Regime {
         };
 
         let start_w = (tm * week_def.start_pct / 5.0).round() * 5.0 + cycle_bonus;
+        let weeks_remaining_after_this = 4_i32.saturating_sub(state.week as i32);
+        let pattern = wendler_set_pattern_text(week_def);
+        let phase_timing = if state.week < 4 {
+            format!(
+                "{} week{} until next phase ({}).",
+                1,
+                "",
+                WEEKS[state.week as usize].name
+            )
+        } else {
+            "1 week until next cycle (Week 1 restarts with a higher Training Max)."
+                .to_string()
+        };
 
         ExerciseProposal {
             weight: start_w, // start_weight; end_weight is set separately in the group builder
             sets: 3,
             reps: week_def.reps,
             explanation: format!(
-                "Cycle {}, {} — TM: {} lbs ({}% of {} lbs 1RM). Sets: {}%→{}% TM.",
+                "5/3/1 Cycle {}, Week {}/4 ({} week{} left in cycle after this). {} Pattern: {}. TM: {} lbs (from {} lbs 1RM). First set: {} lbs.",
                 state.cycle,
-                week_def.name,
+                state.week,
+                weeks_remaining_after_this,
+                if weeks_remaining_after_this == 1 { "" } else { "s" },
+                phase_timing,
+                pattern,
                 (tm + cycle_bonus).round() as i32,
-                (week_def.start_pct * 100.0) as i32,
                 orm as i32,
-                (week_def.start_pct * 100.0) as i32,
-                (week_def.end_pct * 100.0) as i32,
+                start_w as i32,
             ),
         }
     }
@@ -236,21 +308,30 @@ impl WorkoutRegime for Wendler531Regime {
             };
             let tm = tm + cycle_bonus;
 
-            let start_w = (tm * week_def.start_pct / 5.0).round() * 5.0;
-            let end_w = (tm * week_def.end_pct / 5.0).round() * 5.0;
-
-            // Week 3 (peak): last set is AMRAP — user pushes for max reps
-            let last_set_amrap = state.week == 3;
+            let working_sets = build_wendler_working_sets(tm, week_def);
+            let start_w = working_sets
+                .first()
+                .map(|s| s.target_weight)
+                .unwrap_or((tm * week_def.start_pct / 5.0).round() * 5.0);
+            let end_w = working_sets
+                .last()
+                .map(|s| s.target_weight)
+                .unwrap_or((tm * week_def.end_pct / 5.0).round() * 5.0);
+            let first_reps = working_sets
+                .first()
+                .map(|s| s.target_reps)
+                .unwrap_or(week_def.reps);
+            let last_set_amrap = week_def.top_set_amrap;
 
             let config = lift::workout::v1::ExerciseTypeConfig {
                 exercise: exercise as i32,
                 start_weight: start_w,
                 end_weight: end_w,
-                reps: week_def.reps,
+                reps: first_reps,
                 include_warmup: true,
                 rest_config: None,
                 last_set_amrap,
-                working_sets: vec![],
+                working_sets,
             };
 
             // Deload week: lighter rest; peak/volume: full rest

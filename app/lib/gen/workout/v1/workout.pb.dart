@@ -208,6 +208,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     $core.bool? includeWarmup,
     RestConfig? restConfig,
     $core.bool? lastSetAmrap,
+    $core.Iterable<WorkingSetSpec>? workingSets,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -217,6 +218,7 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     if (includeWarmup != null) result.includeWarmup = includeWarmup;
     if (restConfig != null) result.restConfig = restConfig;
     if (lastSetAmrap != null) result.lastSetAmrap = lastSetAmrap;
+    if (workingSets != null) result.workingSets.addAll(workingSets);
     return result;
   }
 
@@ -242,6 +244,8 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
     ..aOM<RestConfig>(6, _omitFieldNames ? '' : 'restConfig',
         subBuilder: RestConfig.create)
     ..aOB(7, _omitFieldNames ? '' : 'lastSetAmrap')
+    ..pPM<WorkingSetSpec>(8, _omitFieldNames ? '' : 'workingSets',
+        subBuilder: WorkingSetSpec.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -327,6 +331,100 @@ class ExerciseTypeConfig extends $pb.GeneratedMessage {
   $core.bool hasLastSetAmrap() => $_has(6);
   @$pb.TagNumber(7)
   void clearLastSetAmrap() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<WorkingSetSpec> get workingSets => $_getList(7);
+}
+
+class WorkingSetSpec extends $pb.GeneratedMessage {
+  factory WorkingSetSpec({
+    $core.double? targetWeight,
+    $core.int? targetReps,
+    $core.bool? isAmrap,
+    $core.String? instruction,
+  }) {
+    final result = create();
+    if (targetWeight != null) result.targetWeight = targetWeight;
+    if (targetReps != null) result.targetReps = targetReps;
+    if (isAmrap != null) result.isAmrap = isAmrap;
+    if (instruction != null) result.instruction = instruction;
+    return result;
+  }
+
+  WorkingSetSpec._();
+
+  factory WorkingSetSpec.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkingSetSpec.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkingSetSpec',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aD(1, _omitFieldNames ? '' : 'targetWeight',
+        fieldType: $pb.PbFieldType.OF)
+    ..aI(2, _omitFieldNames ? '' : 'targetReps')
+    ..aOB(3, _omitFieldNames ? '' : 'isAmrap')
+    ..aOS(4, _omitFieldNames ? '' : 'instruction')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkingSetSpec clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkingSetSpec copyWith(void Function(WorkingSetSpec) updates) =>
+      super.copyWith((message) => updates(message as WorkingSetSpec))
+          as WorkingSetSpec;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkingSetSpec create() => WorkingSetSpec._();
+  @$core.override
+  WorkingSetSpec createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkingSetSpec getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkingSetSpec>(create);
+  static WorkingSetSpec? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get targetWeight => $_getN(0);
+  @$pb.TagNumber(1)
+  set targetWeight($core.double value) => $_setFloat(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTargetWeight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTargetWeight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get targetReps => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set targetReps($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTargetReps() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTargetReps() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get isAmrap => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isAmrap($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasIsAmrap() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsAmrap() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get instruction => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set instruction($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasInstruction() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearInstruction() => $_clearField(4);
 }
 
 class RestConfig extends $pb.GeneratedMessage {
@@ -430,6 +528,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     $core.Iterable<ExerciseTypeConfig>? exerciseConfigs,
     RestConfig? restConfig,
     $core.String? instruction,
+    $core.bool? prescribedByRegime,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -441,6 +540,8 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     if (exerciseConfigs != null) result.exerciseConfigs.addAll(exerciseConfigs);
     if (restConfig != null) result.restConfig = restConfig;
     if (instruction != null) result.instruction = instruction;
+    if (prescribedByRegime != null)
+      result.prescribedByRegime = prescribedByRegime;
     return result;
   }
 
@@ -468,6 +569,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     ..aOM<RestConfig>(8, _omitFieldNames ? '' : 'restConfig',
         subBuilder: RestConfig.create)
     ..aOS(9, _omitFieldNames ? '' : 'instruction')
+    ..aOB(10, _omitFieldNames ? '' : 'prescribedByRegime')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -565,6 +667,15 @@ class ExerciseGroup extends $pb.GeneratedMessage {
   $core.bool hasInstruction() => $_has(8);
   @$pb.TagNumber(9)
   void clearInstruction() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.bool get prescribedByRegime => $_getBF(9);
+  @$pb.TagNumber(10)
+  set prescribedByRegime($core.bool value) => $_setBool(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasPrescribedByRegime() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearPrescribedByRegime() => $_clearField(10);
 }
 
 class ProposedSet extends $pb.GeneratedMessage {
@@ -1534,6 +1645,386 @@ class ListWorkoutsResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<Workout> get workouts => $_getList(0);
+}
+
+class PlannedGroupSet extends $pb.GeneratedMessage {
+  factory PlannedGroupSet({
+    Exercise? exercise,
+    $core.int? targetReps,
+    $core.double? targetWeight,
+    $core.bool? warmup,
+    $core.int? restAfterSuccess,
+    $core.int? restAfterFailure,
+    $core.bool? isAmrap,
+    $core.String? instruction,
+  }) {
+    final result = create();
+    if (exercise != null) result.exercise = exercise;
+    if (targetReps != null) result.targetReps = targetReps;
+    if (targetWeight != null) result.targetWeight = targetWeight;
+    if (warmup != null) result.warmup = warmup;
+    if (restAfterSuccess != null) result.restAfterSuccess = restAfterSuccess;
+    if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
+    if (isAmrap != null) result.isAmrap = isAmrap;
+    if (instruction != null) result.instruction = instruction;
+    return result;
+  }
+
+  PlannedGroupSet._();
+
+  factory PlannedGroupSet.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PlannedGroupSet.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PlannedGroupSet',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<Exercise>(1, _omitFieldNames ? '' : 'exercise',
+        enumValues: Exercise.values)
+    ..aI(2, _omitFieldNames ? '' : 'targetReps')
+    ..aD(3, _omitFieldNames ? '' : 'targetWeight',
+        fieldType: $pb.PbFieldType.OF)
+    ..aOB(4, _omitFieldNames ? '' : 'warmup')
+    ..aI(5, _omitFieldNames ? '' : 'restAfterSuccess')
+    ..aI(6, _omitFieldNames ? '' : 'restAfterFailure')
+    ..aOB(7, _omitFieldNames ? '' : 'isAmrap')
+    ..aOS(8, _omitFieldNames ? '' : 'instruction')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlannedGroupSet clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlannedGroupSet copyWith(void Function(PlannedGroupSet) updates) =>
+      super.copyWith((message) => updates(message as PlannedGroupSet))
+          as PlannedGroupSet;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlannedGroupSet create() => PlannedGroupSet._();
+  @$core.override
+  PlannedGroupSet createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PlannedGroupSet getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PlannedGroupSet>(create);
+  static PlannedGroupSet? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Exercise get exercise => $_getN(0);
+  @$pb.TagNumber(1)
+  set exercise(Exercise value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExercise() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExercise() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get targetReps => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set targetReps($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTargetReps() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTargetReps() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get targetWeight => $_getN(2);
+  @$pb.TagNumber(3)
+  set targetWeight($core.double value) => $_setFloat(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTargetWeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTargetWeight() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get warmup => $_getBF(3);
+  @$pb.TagNumber(4)
+  set warmup($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasWarmup() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWarmup() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get restAfterSuccess => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set restAfterSuccess($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRestAfterSuccess() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRestAfterSuccess() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get restAfterFailure => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set restAfterFailure($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRestAfterFailure() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRestAfterFailure() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get isAmrap => $_getBF(6);
+  @$pb.TagNumber(7)
+  set isAmrap($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasIsAmrap() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearIsAmrap() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get instruction => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set instruction($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasInstruction() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearInstruction() => $_clearField(8);
+}
+
+class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
+  factory ReplaceExerciseGroupPlanRequest({
+    $core.String? workoutId,
+    $core.String? exerciseGroupId,
+    $core.String? name,
+    $core.bool? interleaveWarmups,
+    $core.Iterable<PlannedGroupSet>? sets,
+    RestConfig? restConfig,
+    $core.bool? deleteGroupIfEmpty,
+    $core.String? instruction,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (exerciseGroupId != null) result.exerciseGroupId = exerciseGroupId;
+    if (name != null) result.name = name;
+    if (interleaveWarmups != null) result.interleaveWarmups = interleaveWarmups;
+    if (sets != null) result.sets.addAll(sets);
+    if (restConfig != null) result.restConfig = restConfig;
+    if (deleteGroupIfEmpty != null)
+      result.deleteGroupIfEmpty = deleteGroupIfEmpty;
+    if (instruction != null) result.instruction = instruction;
+    return result;
+  }
+
+  ReplaceExerciseGroupPlanRequest._();
+
+  factory ReplaceExerciseGroupPlanRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReplaceExerciseGroupPlanRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReplaceExerciseGroupPlanRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOS(2, _omitFieldNames ? '' : 'exerciseGroupId')
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aOB(4, _omitFieldNames ? '' : 'interleaveWarmups')
+    ..pPM<PlannedGroupSet>(5, _omitFieldNames ? '' : 'sets',
+        subBuilder: PlannedGroupSet.create)
+    ..aOM<RestConfig>(6, _omitFieldNames ? '' : 'restConfig',
+        subBuilder: RestConfig.create)
+    ..aOB(7, _omitFieldNames ? '' : 'deleteGroupIfEmpty')
+    ..aOS(8, _omitFieldNames ? '' : 'instruction')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReplaceExerciseGroupPlanRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReplaceExerciseGroupPlanRequest copyWith(
+          void Function(ReplaceExerciseGroupPlanRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ReplaceExerciseGroupPlanRequest))
+          as ReplaceExerciseGroupPlanRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReplaceExerciseGroupPlanRequest create() =>
+      ReplaceExerciseGroupPlanRequest._();
+  @$core.override
+  ReplaceExerciseGroupPlanRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReplaceExerciseGroupPlanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReplaceExerciseGroupPlanRequest>(
+          create);
+  static ReplaceExerciseGroupPlanRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get exerciseGroupId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set exerciseGroupId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExerciseGroupId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExerciseGroupId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get interleaveWarmups => $_getBF(3);
+  @$pb.TagNumber(4)
+  set interleaveWarmups($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasInterleaveWarmups() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearInterleaveWarmups() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<PlannedGroupSet> get sets => $_getList(4);
+
+  @$pb.TagNumber(6)
+  RestConfig get restConfig => $_getN(5);
+  @$pb.TagNumber(6)
+  set restConfig(RestConfig value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRestConfig() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRestConfig() => $_clearField(6);
+  @$pb.TagNumber(6)
+  RestConfig ensureRestConfig() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  $core.bool get deleteGroupIfEmpty => $_getBF(6);
+  @$pb.TagNumber(7)
+  set deleteGroupIfEmpty($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDeleteGroupIfEmpty() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDeleteGroupIfEmpty() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get instruction => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set instruction($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasInstruction() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearInstruction() => $_clearField(8);
+}
+
+class ReplaceExerciseGroupPlanResponse extends $pb.GeneratedMessage {
+  factory ReplaceExerciseGroupPlanResponse({
+    ExerciseGroup? group,
+    $core.Iterable<ProposedSet>? generatedSets,
+    ProposedSet? nextUpSet,
+    WorkoutStateSnapshot? stateSnapshot,
+  }) {
+    final result = create();
+    if (group != null) result.group = group;
+    if (generatedSets != null) result.generatedSets.addAll(generatedSets);
+    if (nextUpSet != null) result.nextUpSet = nextUpSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
+    return result;
+  }
+
+  ReplaceExerciseGroupPlanResponse._();
+
+  factory ReplaceExerciseGroupPlanResponse.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReplaceExerciseGroupPlanResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReplaceExerciseGroupPlanResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<ExerciseGroup>(1, _omitFieldNames ? '' : 'group',
+        subBuilder: ExerciseGroup.create)
+    ..pPM<ProposedSet>(2, _omitFieldNames ? '' : 'generatedSets',
+        subBuilder: ProposedSet.create)
+    ..aOM<ProposedSet>(3, _omitFieldNames ? '' : 'nextUpSet',
+        subBuilder: ProposedSet.create)
+    ..aOM<WorkoutStateSnapshot>(4, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: WorkoutStateSnapshot.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReplaceExerciseGroupPlanResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReplaceExerciseGroupPlanResponse copyWith(
+          void Function(ReplaceExerciseGroupPlanResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as ReplaceExerciseGroupPlanResponse))
+          as ReplaceExerciseGroupPlanResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReplaceExerciseGroupPlanResponse create() =>
+      ReplaceExerciseGroupPlanResponse._();
+  @$core.override
+  ReplaceExerciseGroupPlanResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReplaceExerciseGroupPlanResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReplaceExerciseGroupPlanResponse>(
+          create);
+  static ReplaceExerciseGroupPlanResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ExerciseGroup get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(ExerciseGroup value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ExerciseGroup ensureGroup() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<ProposedSet> get generatedSets => $_getList(1);
+
+  @$pb.TagNumber(3)
+  ProposedSet get nextUpSet => $_getN(2);
+  @$pb.TagNumber(3)
+  set nextUpSet(ProposedSet value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextUpSet() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextUpSet() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ProposedSet ensureNextUpSet() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot get stateSnapshot => $_getN(3);
+  @$pb.TagNumber(4)
+  set stateSnapshot(WorkoutStateSnapshot value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasStateSnapshot() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearStateSnapshot() => $_clearField(4);
+  @$pb.TagNumber(4)
+  WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(3);
 }
 
 class CreateExerciseGroupRequest extends $pb.GeneratedMessage {
@@ -2720,6 +3211,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     RestConfig? restConfig,
     $core.Iterable<$core.String>? tags,
     $core.String? explanation,
+    $core.bool? prescribedByRegime,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -2729,6 +3221,8 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     if (restConfig != null) result.restConfig = restConfig;
     if (tags != null) result.tags.addAll(tags);
     if (explanation != null) result.explanation = explanation;
+    if (prescribedByRegime != null)
+      result.prescribedByRegime = prescribedByRegime;
     return result;
   }
 
@@ -2754,6 +3248,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
         subBuilder: RestConfig.create)
     ..pPS(6, _omitFieldNames ? '' : 'tags')
     ..aOS(7, _omitFieldNames ? '' : 'explanation')
+    ..aOB(8, _omitFieldNames ? '' : 'prescribedByRegime')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2828,6 +3323,15 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
   $core.bool hasExplanation() => $_has(6);
   @$pb.TagNumber(7)
   void clearExplanation() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get prescribedByRegime => $_getBF(7);
+  @$pb.TagNumber(8)
+  set prescribedByRegime($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasPrescribedByRegime() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearPrescribedByRegime() => $_clearField(8);
 }
 
 class SessionReadiness extends $pb.GeneratedMessage {

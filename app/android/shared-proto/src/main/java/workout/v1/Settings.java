@@ -8,6 +8,113 @@ public final class Settings {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistryLite registry) {
   }
+  /**
+   * Protobuf enum {@code workout.v1.RegimeType}
+   */
+  public enum RegimeType
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>REGIME_TYPE_UNSPECIFIED = 0;</code>
+     */
+    REGIME_TYPE_UNSPECIFIED(0),
+    /**
+     * <code>REGIME_TYPE_LINEAR_5X5 = 1;</code>
+     */
+    REGIME_TYPE_LINEAR_5X5(1),
+    /**
+     * <code>REGIME_TYPE_GZCLP = 2;</code>
+     */
+    REGIME_TYPE_GZCLP(2),
+    /**
+     * <code>REGIME_TYPE_WENDLER_531 = 3;</code>
+     */
+    REGIME_TYPE_WENDLER_531(3),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>REGIME_TYPE_UNSPECIFIED = 0;</code>
+     */
+    public static final int REGIME_TYPE_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>REGIME_TYPE_LINEAR_5X5 = 1;</code>
+     */
+    public static final int REGIME_TYPE_LINEAR_5X5_VALUE = 1;
+    /**
+     * <code>REGIME_TYPE_GZCLP = 2;</code>
+     */
+    public static final int REGIME_TYPE_GZCLP_VALUE = 2;
+    /**
+     * <code>REGIME_TYPE_WENDLER_531 = 3;</code>
+     */
+    public static final int REGIME_TYPE_WENDLER_531_VALUE = 3;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static RegimeType valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static RegimeType forNumber(int value) {
+      switch (value) {
+        case 0: return REGIME_TYPE_UNSPECIFIED;
+        case 1: return REGIME_TYPE_LINEAR_5X5;
+        case 2: return REGIME_TYPE_GZCLP;
+        case 3: return REGIME_TYPE_WENDLER_531;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<RegimeType>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        RegimeType> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<RegimeType>() {
+            @java.lang.Override
+            public RegimeType findValueByNumber(int number) {
+              return RegimeType.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return RegimeTypeVerifier.INSTANCE;
+    }
+
+    private static final class RegimeTypeVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new RegimeTypeVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return RegimeType.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private RegimeType(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.RegimeType)
+  }
+
   public interface PlateColorOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.PlateColor)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -819,6 +926,803 @@ public final class Settings {
     }
   }
 
+  public interface UserWorkoutConfigOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.UserWorkoutConfig)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @return The enum numeric value on the wire for regimeType.
+     */
+    int getRegimeTypeValue();
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @return The regimeType.
+     */
+    workout.v1.Settings.RegimeType getRegimeType();
+
+    /**
+     * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+     * @return The daysPerWeek.
+     */
+    int getDaysPerWeek();
+
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    int getOneRepMaxesCount();
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    boolean containsOneRepMaxes(
+        int key);
+    /**
+     * Use {@link #getOneRepMaxesMap()} instead.
+     */
+    @java.lang.Deprecated
+    java.util.Map<java.lang.Integer, java.lang.Float>
+    getOneRepMaxes();
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    java.util.Map<java.lang.Integer, java.lang.Float>
+    getOneRepMaxesMap();
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+
+    float getOneRepMaxesOrDefault(
+        int key,
+        float defaultValue);
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+
+    float getOneRepMaxesOrThrow(
+        int key);
+
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @return The regimeStateJson.
+     */
+    java.lang.String getRegimeStateJson();
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @return The bytes for regimeStateJson.
+     */
+    com.google.protobuf.ByteString
+        getRegimeStateJsonBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.UserWorkoutConfig}
+   */
+  public  static final class UserWorkoutConfig extends
+      com.google.protobuf.GeneratedMessageLite<
+          UserWorkoutConfig, UserWorkoutConfig.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.UserWorkoutConfig)
+      UserWorkoutConfigOrBuilder {
+    private UserWorkoutConfig() {
+      regimeStateJson_ = "";
+    }
+    public static final int REGIME_TYPE_FIELD_NUMBER = 1;
+    private int regimeType_;
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @return The enum numeric value on the wire for regimeType.
+     */
+    @java.lang.Override
+    public int getRegimeTypeValue() {
+      return regimeType_;
+    }
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @return The regimeType.
+     */
+    @java.lang.Override
+    public workout.v1.Settings.RegimeType getRegimeType() {
+      workout.v1.Settings.RegimeType result = workout.v1.Settings.RegimeType.forNumber(regimeType_);
+      return result == null ? workout.v1.Settings.RegimeType.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @param value The enum numeric value on the wire for regimeType to set.
+     */
+    private void setRegimeTypeValue(int value) {
+        regimeType_ = value;
+    }
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     * @param value The regimeType to set.
+     */
+    private void setRegimeType(workout.v1.Settings.RegimeType value) {
+      regimeType_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+     */
+    private void clearRegimeType() {
+      
+      regimeType_ = 0;
+    }
+
+    public static final int DAYS_PER_WEEK_FIELD_NUMBER = 2;
+    private int daysPerWeek_;
+    /**
+     * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+     * @return The daysPerWeek.
+     */
+    @java.lang.Override
+    public int getDaysPerWeek() {
+      return daysPerWeek_;
+    }
+    /**
+     * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+     * @param value The daysPerWeek to set.
+     */
+    private void setDaysPerWeek(int value) {
+      
+      daysPerWeek_ = value;
+    }
+    /**
+     * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+     */
+    private void clearDaysPerWeek() {
+      
+      daysPerWeek_ = 0;
+    }
+
+    public static final int ONE_REP_MAXES_FIELD_NUMBER = 3;
+    private static final class OneRepMaxesDefaultEntryHolder {
+      static final com.google.protobuf.MapEntryLite<
+          java.lang.Integer, java.lang.Float> defaultEntry =
+              com.google.protobuf.MapEntryLite
+              .<java.lang.Integer, java.lang.Float>newDefaultInstance(
+                  com.google.protobuf.WireFormat.FieldType.INT32,
+                  0,
+                  com.google.protobuf.WireFormat.FieldType.FLOAT,
+                  0F);
+    }
+    private com.google.protobuf.MapFieldLite<
+        java.lang.Integer, java.lang.Float> oneRepMaxes_ =
+            com.google.protobuf.MapFieldLite.emptyMapField();
+    private com.google.protobuf.MapFieldLite<java.lang.Integer, java.lang.Float>
+    internalGetOneRepMaxes() {
+      return oneRepMaxes_;
+    }
+    private com.google.protobuf.MapFieldLite<java.lang.Integer, java.lang.Float>
+    internalGetMutableOneRepMaxes() {
+      if (!oneRepMaxes_.isMutable()) {
+        oneRepMaxes_ = oneRepMaxes_.mutableCopy();
+      }
+      return oneRepMaxes_;
+    }
+    @java.lang.Override
+
+    public int getOneRepMaxesCount() {
+      return internalGetOneRepMaxes().size();
+    }
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    @java.lang.Override
+
+    public boolean containsOneRepMaxes(
+        int key) {
+      
+      return internalGetOneRepMaxes().containsKey(key);
+    }
+    /**
+     * Use {@link #getOneRepMaxesMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.Integer, java.lang.Float> getOneRepMaxes() {
+      return getOneRepMaxesMap();
+    }
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    @java.lang.Override
+
+    public java.util.Map<java.lang.Integer, java.lang.Float> getOneRepMaxesMap() {
+      return java.util.Collections.unmodifiableMap(
+          internalGetOneRepMaxes());
+    }
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    @java.lang.Override
+
+    public float getOneRepMaxesOrDefault(
+        int key,
+        float defaultValue) {
+      
+      java.util.Map<java.lang.Integer, java.lang.Float> map =
+          internalGetOneRepMaxes();
+      return map.containsKey(key) ? map.get(key) : defaultValue;
+    }
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    @java.lang.Override
+
+    public float getOneRepMaxesOrThrow(
+        int key) {
+      
+      java.util.Map<java.lang.Integer, java.lang.Float> map =
+          internalGetOneRepMaxes();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return map.get(key);
+    }
+    /**
+     * <pre>
+     * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+     * </pre>
+     *
+     * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+     */
+    private java.util.Map<java.lang.Integer, java.lang.Float>
+    getMutableOneRepMaxesMap() {
+      return internalGetMutableOneRepMaxes();
+    }
+
+    public static final int REGIME_STATE_JSON_FIELD_NUMBER = 4;
+    private java.lang.String regimeStateJson_;
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @return The regimeStateJson.
+     */
+    @java.lang.Override
+    public java.lang.String getRegimeStateJson() {
+      return regimeStateJson_;
+    }
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @return The bytes for regimeStateJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRegimeStateJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(regimeStateJson_);
+    }
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @param value The regimeStateJson to set.
+     */
+    private void setRegimeStateJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      regimeStateJson_ = value;
+    }
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     */
+    private void clearRegimeStateJson() {
+      
+      regimeStateJson_ = getDefaultInstance().getRegimeStateJson();
+    }
+    /**
+     * <pre>
+     * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+     * </pre>
+     *
+     * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+     * @param value The bytes for regimeStateJson to set.
+     */
+    private void setRegimeStateJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      regimeStateJson_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.UserWorkoutConfig parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Settings.UserWorkoutConfig prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.UserWorkoutConfig}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Settings.UserWorkoutConfig, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.UserWorkoutConfig)
+        workout.v1.Settings.UserWorkoutConfigOrBuilder {
+      // Construct using workout.v1.Settings.UserWorkoutConfig.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+       * @return The enum numeric value on the wire for regimeType.
+       */
+      @java.lang.Override
+      public int getRegimeTypeValue() {
+        return instance.getRegimeTypeValue();
+      }
+      /**
+       * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+       * @param value The regimeType to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRegimeTypeValue(int value) {
+        copyOnWrite();
+        instance.setRegimeTypeValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+       * @return The regimeType.
+       */
+      @java.lang.Override
+      public workout.v1.Settings.RegimeType getRegimeType() {
+        return instance.getRegimeType();
+      }
+      /**
+       * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+       * @param value The enum numeric value on the wire for regimeType to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRegimeType(workout.v1.Settings.RegimeType value) {
+        copyOnWrite();
+        instance.setRegimeType(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RegimeType regime_type = 1 [json_name = "regimeType"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRegimeType() {
+        copyOnWrite();
+        instance.clearRegimeType();
+        return this;
+      }
+
+      /**
+       * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+       * @return The daysPerWeek.
+       */
+      @java.lang.Override
+      public int getDaysPerWeek() {
+        return instance.getDaysPerWeek();
+      }
+      /**
+       * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+       * @param value The daysPerWeek to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDaysPerWeek(int value) {
+        copyOnWrite();
+        instance.setDaysPerWeek(value);
+        return this;
+      }
+      /**
+       * <code>int32 days_per_week = 2 [json_name = "daysPerWeek"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDaysPerWeek() {
+        copyOnWrite();
+        instance.clearDaysPerWeek();
+        return this;
+      }
+
+      @java.lang.Override
+
+      public int getOneRepMaxesCount() {
+        return instance.getOneRepMaxesMap().size();
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      @java.lang.Override
+
+      public boolean containsOneRepMaxes(
+          int key) {
+        
+        return instance.getOneRepMaxesMap().containsKey(key);
+      }
+
+      public Builder clearOneRepMaxes() {
+        copyOnWrite();
+        instance.getMutableOneRepMaxesMap().clear();
+        return this;
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+
+      public Builder removeOneRepMaxes(
+          int key) {
+        
+        copyOnWrite();
+        instance.getMutableOneRepMaxesMap().remove(key);
+        return this;
+      }
+      /**
+       * Use {@link #getOneRepMaxesMap()} instead.
+       */
+      @java.lang.Override
+      @java.lang.Deprecated
+      public java.util.Map<java.lang.Integer, java.lang.Float> getOneRepMaxes() {
+        return getOneRepMaxesMap();
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      @java.lang.Override
+      public java.util.Map<java.lang.Integer, java.lang.Float> getOneRepMaxesMap() {
+        return java.util.Collections.unmodifiableMap(
+            instance.getOneRepMaxesMap());
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      @java.lang.Override
+
+      public float getOneRepMaxesOrDefault(
+          int key,
+          float defaultValue) {
+        
+        java.util.Map<java.lang.Integer, java.lang.Float> map =
+            instance.getOneRepMaxesMap();
+        return map.containsKey(key) ? map.get(key) : defaultValue;
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      @java.lang.Override
+
+      public float getOneRepMaxesOrThrow(
+          int key) {
+        
+        java.util.Map<java.lang.Integer, java.lang.Float> map =
+            instance.getOneRepMaxesMap();
+        if (!map.containsKey(key)) {
+          throw new java.lang.IllegalArgumentException();
+        }
+        return map.get(key);
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      public Builder putOneRepMaxes(
+          int key,
+          float value) {
+        
+        
+        copyOnWrite();
+        instance.getMutableOneRepMaxesMap().put(key, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * 1RM per exercise (Exercise enum int32 -&gt; weight in lbs). Used for Wendler TM calculation.
+       * </pre>
+       *
+       * <code>map&lt;int32, float&gt; one_rep_maxes = 3 [json_name = "oneRepMaxes"];</code>
+       */
+      public Builder putAllOneRepMaxes(
+          java.util.Map<java.lang.Integer, java.lang.Float> values) {
+        copyOnWrite();
+        instance.getMutableOneRepMaxesMap().putAll(values);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+       * </pre>
+       *
+       * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+       * @return The regimeStateJson.
+       */
+      @java.lang.Override
+      public java.lang.String getRegimeStateJson() {
+        return instance.getRegimeStateJson();
+      }
+      /**
+       * <pre>
+       * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+       * </pre>
+       *
+       * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+       * @return The bytes for regimeStateJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRegimeStateJsonBytes() {
+        return instance.getRegimeStateJsonBytes();
+      }
+      /**
+       * <pre>
+       * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+       * </pre>
+       *
+       * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+       * @param value The regimeStateJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRegimeStateJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRegimeStateJson(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+       * </pre>
+       *
+       * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRegimeStateJson() {
+        copyOnWrite();
+        instance.clearRegimeStateJson();
+        return this;
+      }
+      /**
+       * <pre>
+       * JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
+       * </pre>
+       *
+       * <code>string regime_state_json = 4 [json_name = "regimeStateJson"];</code>
+       * @param value The bytes for regimeStateJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRegimeStateJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRegimeStateJsonBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.UserWorkoutConfig)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Settings.UserWorkoutConfig();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "regimeType_",
+              "daysPerWeek_",
+              "oneRepMaxes_",
+              OneRepMaxesDefaultEntryHolder.defaultEntry,
+              "regimeStateJson_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0001\u0000\u0000\u0001\f\u0002\u0004" +
+                "\u00032\u0004\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Settings.UserWorkoutConfig> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Settings.UserWorkoutConfig.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Settings.UserWorkoutConfig>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.UserWorkoutConfig)
+    private static final workout.v1.Settings.UserWorkoutConfig DEFAULT_INSTANCE;
+    static {
+      UserWorkoutConfig defaultInstance = new UserWorkoutConfig();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        UserWorkoutConfig.class, defaultInstance);
+    }
+
+    public static workout.v1.Settings.UserWorkoutConfig getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<UserWorkoutConfig> PARSER;
+
+    public static com.google.protobuf.Parser<UserWorkoutConfig> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface UserSettingOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.UserSetting)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -833,6 +1737,17 @@ public final class Settings {
      * @return The plateColors.
      */
     workout.v1.Settings.PlateColorsConfig getPlateColors();
+
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     * @return Whether the workoutConfig field is set.
+     */
+    boolean hasWorkoutConfig();
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     * @return The workoutConfig.
+     */
+    workout.v1.Settings.UserWorkoutConfig getWorkoutConfig();
 
     public workout.v1.Settings.UserSetting.SettingCase getSettingCase();
   }
@@ -850,6 +1765,7 @@ public final class Settings {
     private java.lang.Object setting_;
     public enum SettingCase {
       PLATE_COLORS(10),
+      WORKOUT_CONFIG(11),
       SETTING_NOT_SET(0);
       private final int value;
       private SettingCase(int value) {
@@ -866,6 +1782,7 @@ public final class Settings {
       public static SettingCase forNumber(int value) {
         switch (value) {
           case 10: return PLATE_COLORS;
+          case 11: return WORKOUT_CONFIG;
           case 0: return SETTING_NOT_SET;
           default: return null;
         }
@@ -932,6 +1849,56 @@ public final class Settings {
      */
     private void clearPlateColors() {
       if (settingCase_ == 10) {
+        settingCase_ = 0;
+        setting_ = null;
+      }
+    }
+
+    public static final int WORKOUT_CONFIG_FIELD_NUMBER = 11;
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     */
+    @java.lang.Override
+    public boolean hasWorkoutConfig() {
+      return settingCase_ == 11;
+    }
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Settings.UserWorkoutConfig getWorkoutConfig() {
+      if (settingCase_ == 11) {
+         return (workout.v1.Settings.UserWorkoutConfig) setting_;
+      }
+      return workout.v1.Settings.UserWorkoutConfig.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     */
+    private void setWorkoutConfig(workout.v1.Settings.UserWorkoutConfig value) {
+      value.getClass();
+  setting_ = value;
+      settingCase_ = 11;
+    }
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     */
+    private void mergeWorkoutConfig(workout.v1.Settings.UserWorkoutConfig value) {
+      value.getClass();
+  if (settingCase_ == 11 &&
+          setting_ != workout.v1.Settings.UserWorkoutConfig.getDefaultInstance()) {
+        setting_ = workout.v1.Settings.UserWorkoutConfig.newBuilder((workout.v1.Settings.UserWorkoutConfig) setting_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        setting_ = value;
+      }
+      settingCase_ = 11;
+    }
+    /**
+     * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+     */
+    private void clearWorkoutConfig() {
+      if (settingCase_ == 11) {
         settingCase_ = 0;
         setting_ = null;
       }
@@ -1092,6 +2059,54 @@ public final class Settings {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      @java.lang.Override
+      public boolean hasWorkoutConfig() {
+        return instance.hasWorkoutConfig();
+      }
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Settings.UserWorkoutConfig getWorkoutConfig() {
+        return instance.getWorkoutConfig();
+      }
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      public Builder setWorkoutConfig(workout.v1.Settings.UserWorkoutConfig value) {
+        copyOnWrite();
+        instance.setWorkoutConfig(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      public Builder setWorkoutConfig(
+          workout.v1.Settings.UserWorkoutConfig.Builder builderForValue) {
+        copyOnWrite();
+        instance.setWorkoutConfig(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      public Builder mergeWorkoutConfig(workout.v1.Settings.UserWorkoutConfig value) {
+        copyOnWrite();
+        instance.mergeWorkoutConfig(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.UserWorkoutConfig workout_config = 11 [json_name = "workoutConfig"];</code>
+       */
+      public Builder clearWorkoutConfig() {
+        copyOnWrite();
+        instance.clearWorkoutConfig();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.UserSetting)
     }
     @java.lang.Override
@@ -1111,9 +2126,10 @@ public final class Settings {
               "setting_",
               "settingCase_",
               workout.v1.Settings.PlateColorsConfig.class,
+              workout.v1.Settings.UserWorkoutConfig.class,
             };
             java.lang.String info =
-                "\u0000\u0001\u0001\u0000\n\n\u0001\u0000\u0000\u0000\n<\u0000";
+                "\u0000\u0002\u0001\u0000\n\u000b\u0002\u0000\u0000\u0000\n<\u0000\u000b<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

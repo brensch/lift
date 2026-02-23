@@ -10,7 +10,7 @@
   "steps": [
     {
       "note": "Week 1 — Volume (5-rep sets). TM=180. Sets at 65-85% TM. Start weight: 180×0.65=117→115 lbs.",
-      "expect": [{ "exercise": "Squat", "weight": 115, "sets": 3, "reps": 5, "amrap": false }],
+      "expect": [{ "exercise": "Squat", "weight": 115, "sets": 3, "reps": 5, "amrap": true }],
       "done": [
         { "exercise": "Squat", "weight": 115 },
         { "exercise": "Squat", "weight": 120 },
@@ -19,7 +19,7 @@
     },
     {
       "note": "Week 2 — Intensity (3-rep sets). Sets at 70-90% TM. Start weight: 180×0.70=126→125 lbs.",
-      "expect": [{ "exercise": "Squat", "weight": 125, "sets": 3, "reps": 3, "amrap": false }],
+      "expect": [{ "exercise": "Squat", "weight": 125, "sets": 3, "reps": 3, "amrap": true }],
       "done": [
         { "exercise": "Squat", "weight": 125 },
         { "exercise": "Squat", "weight": 130 },
@@ -46,7 +46,7 @@
     },
     {
       "note": "New cycle begins (Cycle 2). Lower body TM increases by 10 lbs per cycle. Week 1 start: 115 + 10 = 125 lbs.",
-      "expect": [{ "exercise": "Squat", "weight": 125, "sets": 3, "reps": 5, "amrap": false }],
+      "expect": [{ "exercise": "Squat", "weight": 125, "sets": 3, "reps": 5, "amrap": true }],
       "done": []
     }
   ]

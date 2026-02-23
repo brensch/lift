@@ -3,29 +3,7 @@ import '../gen/workout/v1/workout.pb.dart';
 
 const _uuid = Uuid();
 
-const List<double> plateStops = [
-  45,
-  95,
-  135,
-  185,
-  225,
-  275,
-  315,
-  365,
-  405,
-  455,
-  495,
-  545,
-  585,
-  635,
-];
-
-const Map<int, List<int>> _repSchemes = {
-  1: [5],
-  2: [5, 5],
-  3: [5, 5, 3],
-  4: [5, 5, 3, 2],
-};
+double _roundTo2_5(double weight) => (weight / 2.5).round() * 2.5;
 
 class WarmupDef {
   final double weight;
@@ -33,28 +11,31 @@ class WarmupDef {
   WarmupDef(this.weight, this.reps);
 }
 
+bool groupRestHasValues(RestConfig rc) =>
+    rc.restAfterSuccess > 0 ||
+    rc.restAfterFailure > 0 ||
+    rc.restAfterWarmup > 0 ||
+    rc.restAfterLastWarmup > 0;
+
 List<WarmupDef> generateWarmupDefs(double workingWeight) {
-  if (workingWeight <= 45) return [];
+  // Always produce 4 warmups (5/5/3/2), even below 45 lbs, rounded to 2.5.
+  const reps = [5, 5, 3, 2];
+  const pcts = [0.40, 0.55, 0.70, 0.85];
+  final out = <WarmupDef>[];
+  double prev = 0;
+  final maxWarmupWeight = (workingWeight - 2.5).clamp(2.5, double.infinity);
 
-  final candidates = plateStops.where((w) => w < workingWeight).toList();
-  if (candidates.isEmpty) return [];
-
-  List<double> selected;
-  if (candidates.length <= 4) {
-    selected = candidates;
-  } else {
-    final n = candidates.length;
-    final step = (n - 1) / 3;
-    selected = [
-      candidates[0],
-      candidates[step.round()],
-      candidates[(step * 2).round()],
-      candidates[n - 1],
-    ];
+  for (int i = 0; i < pcts.length; i++) {
+    final desired = _roundTo2_5(workingWeight * pcts[i]);
+    var chosen = (i == 0 && maxWarmupWeight >= 45)
+        ? 45.0
+        : desired.clamp(2.5, maxWarmupWeight).toDouble();
+    if (chosen < prev) chosen = prev;
+    prev = chosen;
+    out.add(WarmupDef(chosen, reps[i]));
   }
 
-  final reps = _repSchemes[selected.length]!;
-  return List.generate(selected.length, (i) => WarmupDef(selected[i], reps[i]));
+  return out;
 }
 
 /// Rebuild an exercise group's sets. Handles weight changes, warmup toggle, and set count.

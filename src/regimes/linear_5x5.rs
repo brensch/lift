@@ -4,6 +4,7 @@ use chrono::Utc;
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
 };
+use serde::{Deserialize, Serialize};
 
 use super::{
     build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg, ExerciseConfig,
@@ -16,6 +17,55 @@ const DEADLIFT_INCREMENT: f32 = 10.0;
 const RECOVERY_HOURS: i64 = 48;
 
 pub struct Linear5x5Regime;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Linear5x5State {
+    /// Next suggested workout label variant (`A` or `B`).
+    #[serde(default = "default_next_variant")]
+    next_variant: String,
+    /// Latest squat session timestamp already consumed for A/B alternation.
+    #[serde(default)]
+    last_applied_squat_ts: i64,
+}
+
+fn default_next_variant() -> String {
+    "A".to_string()
+}
+
+impl Default for Linear5x5State {
+    fn default() -> Self {
+        Self {
+            next_variant: default_next_variant(),
+            last_applied_squat_ts: 0,
+        }
+    }
+}
+
+impl Linear5x5State {
+    fn from_json(json: &str) -> Self {
+        serde_json::from_str(json).unwrap_or_default()
+    }
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_else(|_| r#"{"next_variant":"A","last_applied_squat_ts":0}"#.to_string())
+    }
+
+    fn normalize_variant(&self) -> &'static str {
+        if self.next_variant.eq_ignore_ascii_case("b") {
+            "B"
+        } else {
+            "A"
+        }
+    }
+
+    fn toggle_variant(&mut self) {
+        self.next_variant = if self.normalize_variant() == "A" {
+            "B".to_string()
+        } else {
+            "A".to_string()
+        };
+    }
+}
 
 impl WorkoutRegime for Linear5x5Regime {
     fn display_name(&self) -> &'static str {
@@ -55,34 +105,59 @@ impl WorkoutRegime for Linear5x5Regime {
     fn build_proposed_groups(
         &self,
         statuses: &[ExerciseStatus],
-        _workout_config: &UserWorkoutConfig,
+        workout_config: &UserWorkoutConfig,
     ) -> Vec<ProposedExerciseGroup> {
-        build_linear_proposed_groups(statuses)
+        let state = Linear5x5State::from_json(&workout_config.regime_state_json);
+        build_linear_proposed_groups_ab(statuses, state.normalize_variant())
     }
 
     fn compute_updated_state(
         &self,
-        _workout_config: &UserWorkoutConfig,
-        _history: &HashMap<i32, Vec<SessionHistory>>,
+        workout_config: &UserWorkoutConfig,
+        history: &HashMap<i32, Vec<SessionHistory>>,
     ) -> String {
-        "{}".to_string()
+        let mut state = Linear5x5State::from_json(&workout_config.regime_state_json);
+
+        if let Some(squat_history) = history.get(&(Exercise::Squat as i32)) {
+            if let Some(latest) = squat_history.first() {
+                if latest.timestamp > state.last_applied_squat_ts {
+                    state.last_applied_squat_ts = latest.timestamp;
+                    state.toggle_variant();
+                }
+            }
+        }
+
+        state.to_json()
     }
 
     fn build_regime_context(
         &self,
-        _workout_config: &UserWorkoutConfig,
+        workout_config: &UserWorkoutConfig,
         _statuses: &[ExerciseStatus],
     ) -> RegimeContext {
+        let state = Linear5x5State::from_json(&workout_config.regime_state_json);
+        let current = state.normalize_variant();
+        let next = if current == "A" { "B" } else { "A" };
         RegimeContext {
-            regime_display_name: self.display_name().to_string(),
-            session_description: "Linear progression — add weight every session".to_string(),
-            next_session_preview: "Same exercises, 5 lbs heavier on upper body, 10 lbs on deadlift"
-                .to_string(),
+            regime_display_name: format!("{} — Workout {}", self.display_name(), state.normalize_variant()),
+            session_description: format!(
+                "Workout {} — Linear progression (StrongLifts-style A/B split)",
+                current
+            ),
+            next_session_preview: format!(
+                "Next: Workout {}. Alternate A/B each session; add weight after successful lifts.",
+                next
+            ),
             coaching_notes: vec![
                 "Focus on form before chasing weight.".to_string(),
                 "If a set feels like a 9/10 effort, consider deloading proactively.".to_string(),
             ],
         }
+    }
+
+    fn suggested_workout_name(&self, workout_config: &UserWorkoutConfig) -> String {
+        let state = Linear5x5State::from_json(&workout_config.regime_state_json);
+        format!("5x5 {}", state.normalize_variant())
     }
 }
 
@@ -97,7 +172,10 @@ pub fn calculate_linear_progression(
     if history.is_empty() {
         return (
             default_weight,
-            format!("Starting at {} lbs — welcome!", default_weight),
+            format!(
+                "Starting at {} lbs. Linear 5×5 has no phases: add weight session-to-session when you complete the work.",
+                default_weight
+            ),
         );
     }
 
@@ -118,14 +196,14 @@ pub fn calculate_linear_progression(
         let deload_pct = if days_since > 30 { 0.8 } else { 0.9 };
         let new_weight = (h.weight * deload_pct / 5.0).round() * 5.0;
         let new_weight = new_weight.max(default_weight);
-        return (
-            new_weight,
-            format!(
-                "Deloading from {} to {} lbs after {} day break.",
-                h.weight, new_weight, days_since
-            ),
-        );
-    }
+            return (
+                new_weight,
+                format!(
+                    "Deloading from {} to {} lbs after {} day break. Linear 5×5 has no phase countdown; resume session-to-session progression from this lighter weight.",
+                    h.weight, new_weight, days_since
+                ),
+            );
+        }
 
     // 2. Plateau (3 consecutive failures at same weight)
     if history.len() >= 3 {
@@ -138,7 +216,7 @@ pub fn calculate_linear_progression(
             return (
                 new_weight,
                 format!(
-                    "3 failures at {} lbs — deloading to {} lbs to reset.",
+                    "3 failures at {} lbs — deloading to {} lbs to reset. Linear 5×5 has no phase change; this is a weight reset before rebuilding.",
                     h.weight, new_weight
                 ),
             );
@@ -150,7 +228,7 @@ pub fn calculate_linear_progression(
         return (
             h.weight,
             format!(
-                "Holding at {} lbs to master the weight after last failure.",
+                "Holding at {} lbs after the last failed session. Linear 5×5 has no phases; if you keep missing at the same weight, a reset triggers after 3 failures.",
                 h.weight
             ),
         );
@@ -165,7 +243,7 @@ pub fn calculate_linear_progression(
             return (
                 new_weight,
                 format!(
-                    "Climbing back to previous max of {} lbs (+{} lbs fast).",
+                    "Climbing back to previous max of {} lbs (+{} lbs fast). Linear 5×5 has no phase countdown; this is accelerated catch-up after a reset/deload.",
                     max_weight, fast_inc
                 ),
             );
@@ -177,7 +255,7 @@ pub fn calculate_linear_progression(
     (
         new_weight,
         format!(
-            "Progressing from {} to {} lbs after successful session.",
+            "Progressing from {} to {} lbs after a successful session. Linear 5×5 has no phase countdown; next change is another weight increase after your next successful session.",
             h.weight, new_weight
         ),
     )
@@ -247,6 +325,120 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
     }
 
     // Auxiliary pairs
+    let aux_pairs: &[(Exercise, Exercise)] = &[
+        (Exercise::HipThrust, Exercise::BulgarianSplitSquat),
+        (Exercise::RomanianDeadlift, Exercise::LegCurl),
+        (Exercise::GluteBridge, Exercise::Lunge),
+    ];
+
+    for &(ex_a, ex_b) in aux_pairs {
+        match (find_status(ex_a), find_status(ex_b)) {
+            (Some(a), Some(b)) => {
+                let pa = make_proposal(a);
+                let pb = make_proposal(b);
+                groups.push(ProposedExerciseGroup {
+                    name: format!(
+                        "{} + {}",
+                        exercise_display_name(ex_a),
+                        exercise_display_name(ex_b)
+                    ),
+                    sets: a.default_sets,
+                    interleave_warmups: true,
+                    exercise_configs: vec![
+                        make_exercise_type_config(ex_a, &pa, true),
+                        make_exercise_type_config(ex_b, &pb, false),
+                    ],
+                    rest_config: rest_cfg(90, 90),
+                    tags: vec!["auxiliary".to_string()],
+                    explanation: format!("{} {}", a.explanation, b.explanation),
+                    prescribed_by_regime: false,
+                });
+            }
+            (Some(a), None) => {
+                let p = make_proposal(a);
+                groups.push(build_single_group(
+                    ex_a,
+                    &p,
+                    vec!["auxiliary".to_string()],
+                    a.explanation.clone(),
+                    rest_cfg(90, 90),
+                ));
+            }
+            (None, Some(b)) => {
+                let p = make_proposal(b);
+                groups.push(build_single_group(
+                    ex_b,
+                    &p,
+                    vec!["auxiliary".to_string()],
+                    b.explanation.clone(),
+                    rest_cfg(90, 90),
+                ));
+            }
+            (None, None) => {}
+        }
+    }
+
+    groups
+}
+
+pub fn build_linear_proposed_groups_ab(
+    statuses: &[ExerciseStatus],
+    variant: &str,
+) -> Vec<ProposedExerciseGroup> {
+    let mut groups = Vec::new();
+
+    let find_status = |ex: Exercise| -> Option<&ExerciseStatus> {
+        statuses.iter().find(|s| s.exercise == ex as i32)
+    };
+
+    let make_proposal = |status: &ExerciseStatus| -> ExerciseProposal {
+        ExerciseProposal {
+            weight: status.target_weight,
+            sets: status.default_sets,
+            reps: status.default_reps,
+            explanation: status.explanation.clone(),
+        }
+    };
+
+    let main_lifts: &[Exercise] = if variant.eq_ignore_ascii_case("b") {
+        &[Exercise::Squat, Exercise::OverheadPress, Exercise::Deadlift]
+    } else {
+        &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow]
+    };
+
+    for &ex in main_lifts {
+        if let Some(status) = find_status(ex) {
+            let p = make_proposal(status);
+            groups.push(build_single_group(
+                ex,
+                &p,
+                vec!["recommended".to_string(), "compound".to_string()],
+                status.explanation.clone(),
+                rest_cfg(180, 300),
+            ));
+        }
+    }
+
+    // Show the "other day" compounds as optional compound choices.
+    let optional_compounds: &[Exercise] = if variant.eq_ignore_ascii_case("b") {
+        &[Exercise::BenchPress, Exercise::BarbellRow]
+    } else {
+        &[Exercise::OverheadPress, Exercise::Deadlift]
+    };
+    for &ex in optional_compounds {
+        if let Some(status) = find_status(ex) {
+            let p = make_proposal(status);
+            groups.push(build_single_group(
+                ex,
+                &p,
+                vec!["compound".to_string()],
+                status.explanation.clone(),
+                rest_cfg(180, 300),
+            ));
+        }
+    }
+
+    // Auxiliary pairs (unchanged, optional)
     let aux_pairs: &[(Exercise, Exercise)] = &[
         (Exercise::HipThrust, Exercise::BulgarianSplitSquat),
         (Exercise::RomanianDeadlift, Exercise::LegCurl),

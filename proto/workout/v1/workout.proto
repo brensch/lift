@@ -172,6 +172,35 @@ message ListWorkoutsResponse {
   repeated Workout workouts = 1;
 }
 
+message PlannedGroupSet {
+  Exercise exercise = 1;
+  int32 target_reps = 2;
+  float target_weight = 3;
+  bool warmup = 4;
+  int32 rest_after_success = 5;
+  int32 rest_after_failure = 6;
+  bool is_amrap = 7;
+  string instruction = 8;
+}
+
+message ReplaceExerciseGroupPlanRequest {
+  string workout_id = 1;
+  string exercise_group_id = 2; // empty = create new group
+  string name = 3;
+  bool interleave_warmups = 4;
+  repeated PlannedGroupSet sets = 5; // explicit set order from frontend
+  RestConfig rest_config = 6;        // optional group-level metadata
+  bool delete_group_if_empty = 7;    // if true and sets empty, remove the group
+  string instruction = 8;
+}
+
+message ReplaceExerciseGroupPlanResponse {
+  ExerciseGroup group = 1;
+  repeated ProposedSet generated_sets = 2;
+  ProposedSet next_up_set = 3;
+  WorkoutStateSnapshot state_snapshot = 4;
+}
+
 message CreateExerciseGroupRequest {
 
   string workout_id = 1;
@@ -462,9 +491,7 @@ service WorkoutService {
   // List all workouts for the user (user from auth context)
   rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
 
-  rpc CreateExerciseGroup(CreateExerciseGroupRequest) returns (CreateExerciseGroupResponse);
-  rpc UpdateExerciseGroup(UpdateExerciseGroupRequest) returns (UpdateExerciseGroupResponse);
-  rpc DeleteExerciseGroup(DeleteExerciseGroupRequest) returns (DeleteExerciseGroupResponse);
+  rpc ReplaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest) returns (ReplaceExerciseGroupPlanResponse);
   rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
 
   rpc StartSet(StartSetRequest) returns (StartSetResponse);

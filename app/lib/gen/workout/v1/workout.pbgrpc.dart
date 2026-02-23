@@ -68,25 +68,13 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$listWorkouts, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.CreateExerciseGroupResponse> createExerciseGroup(
-    $0.CreateExerciseGroupRequest request, {
+  $grpc.ResponseFuture<$0.ReplaceExerciseGroupPlanResponse>
+      replaceExerciseGroupPlan(
+    $0.ReplaceExerciseGroupPlanRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$createExerciseGroup, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.UpdateExerciseGroupResponse> updateExerciseGroup(
-    $0.UpdateExerciseGroupRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$updateExerciseGroup, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.DeleteExerciseGroupResponse> deleteExerciseGroup(
-    $0.DeleteExerciseGroupRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$deleteExerciseGroup, request, options: options);
+    return $createUnaryCall(_$replaceExerciseGroupPlan, request,
+        options: options);
   }
 
   $grpc.ResponseFuture<$0.ReorderExerciseGroupsResponse> reorderExerciseGroups(
@@ -170,21 +158,12 @@ class WorkoutServiceClient extends $grpc.Client {
           '/workout.v1.WorkoutService/ListWorkouts',
           ($0.ListWorkoutsRequest value) => value.writeToBuffer(),
           $0.ListWorkoutsResponse.fromBuffer);
-  static final _$createExerciseGroup = $grpc.ClientMethod<
-          $0.CreateExerciseGroupRequest, $0.CreateExerciseGroupResponse>(
-      '/workout.v1.WorkoutService/CreateExerciseGroup',
-      ($0.CreateExerciseGroupRequest value) => value.writeToBuffer(),
-      $0.CreateExerciseGroupResponse.fromBuffer);
-  static final _$updateExerciseGroup = $grpc.ClientMethod<
-          $0.UpdateExerciseGroupRequest, $0.UpdateExerciseGroupResponse>(
-      '/workout.v1.WorkoutService/UpdateExerciseGroup',
-      ($0.UpdateExerciseGroupRequest value) => value.writeToBuffer(),
-      $0.UpdateExerciseGroupResponse.fromBuffer);
-  static final _$deleteExerciseGroup = $grpc.ClientMethod<
-          $0.DeleteExerciseGroupRequest, $0.DeleteExerciseGroupResponse>(
-      '/workout.v1.WorkoutService/DeleteExerciseGroup',
-      ($0.DeleteExerciseGroupRequest value) => value.writeToBuffer(),
-      $0.DeleteExerciseGroupResponse.fromBuffer);
+  static final _$replaceExerciseGroupPlan = $grpc.ClientMethod<
+          $0.ReplaceExerciseGroupPlanRequest,
+          $0.ReplaceExerciseGroupPlanResponse>(
+      '/workout.v1.WorkoutService/ReplaceExerciseGroupPlan',
+      ($0.ReplaceExerciseGroupPlanRequest value) => value.writeToBuffer(),
+      $0.ReplaceExerciseGroupPlanResponse.fromBuffer);
   static final _$reorderExerciseGroups = $grpc.ClientMethod<
           $0.ReorderExerciseGroupsRequest, $0.ReorderExerciseGroupsResponse>(
       '/workout.v1.WorkoutService/ReorderExerciseGroups',
@@ -269,33 +248,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.ListWorkoutsRequest.fromBuffer(value),
             ($0.ListWorkoutsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.CreateExerciseGroupRequest,
-            $0.CreateExerciseGroupResponse>(
-        'CreateExerciseGroup',
-        createExerciseGroup_Pre,
+    $addMethod($grpc.ServiceMethod<$0.ReplaceExerciseGroupPlanRequest,
+            $0.ReplaceExerciseGroupPlanResponse>(
+        'ReplaceExerciseGroupPlan',
+        replaceExerciseGroupPlan_Pre,
         false,
         false,
         ($core.List<$core.int> value) =>
-            $0.CreateExerciseGroupRequest.fromBuffer(value),
-        ($0.CreateExerciseGroupResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.UpdateExerciseGroupRequest,
-            $0.UpdateExerciseGroupResponse>(
-        'UpdateExerciseGroup',
-        updateExerciseGroup_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.UpdateExerciseGroupRequest.fromBuffer(value),
-        ($0.UpdateExerciseGroupResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.DeleteExerciseGroupRequest,
-            $0.DeleteExerciseGroupResponse>(
-        'DeleteExerciseGroup',
-        deleteExerciseGroup_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.DeleteExerciseGroupRequest.fromBuffer(value),
-        ($0.DeleteExerciseGroupResponse value) => value.writeToBuffer()));
+            $0.ReplaceExerciseGroupPlanRequest.fromBuffer(value),
+        ($0.ReplaceExerciseGroupPlanResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ReorderExerciseGroupsRequest,
             $0.ReorderExerciseGroupsResponse>(
         'ReorderExerciseGroups',
@@ -403,32 +364,14 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.ListWorkoutsResponse> listWorkouts(
       $grpc.ServiceCall call, $0.ListWorkoutsRequest request);
 
-  $async.Future<$0.CreateExerciseGroupResponse> createExerciseGroup_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.CreateExerciseGroupRequest> $request) async {
-    return createExerciseGroup($call, await $request);
+  $async.Future<$0.ReplaceExerciseGroupPlanResponse>
+      replaceExerciseGroupPlan_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.ReplaceExerciseGroupPlanRequest> $request) async {
+    return replaceExerciseGroupPlan($call, await $request);
   }
 
-  $async.Future<$0.CreateExerciseGroupResponse> createExerciseGroup(
-      $grpc.ServiceCall call, $0.CreateExerciseGroupRequest request);
-
-  $async.Future<$0.UpdateExerciseGroupResponse> updateExerciseGroup_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.UpdateExerciseGroupRequest> $request) async {
-    return updateExerciseGroup($call, await $request);
-  }
-
-  $async.Future<$0.UpdateExerciseGroupResponse> updateExerciseGroup(
-      $grpc.ServiceCall call, $0.UpdateExerciseGroupRequest request);
-
-  $async.Future<$0.DeleteExerciseGroupResponse> deleteExerciseGroup_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.DeleteExerciseGroupRequest> $request) async {
-    return deleteExerciseGroup($call, await $request);
-  }
-
-  $async.Future<$0.DeleteExerciseGroupResponse> deleteExerciseGroup(
-      $grpc.ServiceCall call, $0.DeleteExerciseGroupRequest request);
+  $async.Future<$0.ReplaceExerciseGroupPlanResponse> replaceExerciseGroupPlan(
+      $grpc.ServiceCall call, $0.ReplaceExerciseGroupPlanRequest request);
 
   $async.Future<$0.ReorderExerciseGroupsResponse> reorderExerciseGroups_Pre(
       $grpc.ServiceCall $call,

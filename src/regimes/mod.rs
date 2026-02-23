@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ExerciseTypeConfig, MuscleGroup, ProposedExerciseGroup,
-    RegimeContext, RegimeType, RestConfig, SessionReadiness, UserWorkoutConfig,
+    RegimeContext, RegimeType, RestConfig, SessionReadiness, UserWorkoutConfig, WorkingSetSpec,
 };
 
 pub use gzclp::GzclpRegime;
@@ -299,16 +299,29 @@ pub fn build_single_group_amrap(
     rest_config: Option<RestConfig>,
     last_set_amrap: bool,
 ) -> ProposedExerciseGroup {
+    let mut cfg = make_exercise_type_config_amrap(exercise, proposal, true, last_set_amrap);
+    let count = proposal.sets.max(1);
+    cfg.working_sets = (0..count)
+        .map(|idx| {
+            let is_last = idx == count - 1;
+            let is_amrap = last_set_amrap && is_last;
+            WorkingSetSpec {
+                target_weight: proposal.weight,
+                target_reps: proposal.reps,
+                is_amrap,
+                instruction: if is_amrap {
+                    "AMRAP — push for max reps".to_string()
+                } else {
+                    String::new()
+                },
+            }
+        })
+        .collect();
     ProposedExerciseGroup {
         name: exercise_display_name(exercise),
         sets: proposal.sets,
         interleave_warmups: false,
-        exercise_configs: vec![make_exercise_type_config_amrap(
-            exercise,
-            proposal,
-            true,
-            last_set_amrap,
-        )],
+        exercise_configs: vec![cfg],
         rest_config,
         tags,
         explanation,
