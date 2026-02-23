@@ -4,6 +4,39 @@ import '../gen/workout/v1/workout.pb.dart';
 const _uuid = Uuid();
 
 double _roundTo2_5(double weight) => (weight / 2.5).round() * 2.5;
+double _roundTo5(double weight) => (weight / 5).round() * 5;
+
+bool _is25_45PlateCombo(double totalWeight) {
+  if (totalWeight < 45) return false;
+  final rem = (totalWeight - 45).round();
+  if (rem < 0 || rem % 10 != 0) return false;
+  for (int b = 0; b <= rem ~/ 90; b++) {
+    final rest = rem - (90 * b);
+    if (rest >= 0 && rest % 50 == 0) return true;
+  }
+  return false;
+}
+
+double _snapWarmupWeight(double weight, double maxWarmupWeight) {
+  if (maxWarmupWeight < 45) {
+    return _roundTo2_5(weight).clamp(2.5, maxWarmupWeight).toDouble();
+  }
+
+  final candidate = _roundTo5(weight).clamp(45, maxWarmupWeight).toDouble();
+  if (_is25_45PlateCombo(candidate)) return candidate;
+
+  double best = candidate;
+  double bestDiff = double.infinity;
+  for (double probe = 45; probe <= maxWarmupWeight; probe += 5) {
+    if (!_is25_45PlateCombo(probe)) continue;
+    final diff = (probe - candidate).abs();
+    if (diff <= 5 && (diff < bestDiff || (diff == bestDiff && probe < best))) {
+      best = probe;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
 
 class WarmupDef {
   final double weight;
@@ -26,7 +59,7 @@ List<WarmupDef> generateWarmupDefs(double workingWeight) {
   final maxWarmupWeight = (workingWeight - 2.5).clamp(2.5, double.infinity);
 
   for (int i = 0; i < pcts.length; i++) {
-    final desired = _roundTo2_5(workingWeight * pcts[i]);
+    final desired = _snapWarmupWeight(workingWeight * pcts[i], maxWarmupWeight);
     var chosen = (i == 0 && maxWarmupWeight >= 45)
         ? 45.0
         : desired.clamp(2.5, maxWarmupWeight).toDouble();
