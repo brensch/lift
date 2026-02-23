@@ -17,13 +17,6 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _SettingsTile(
-            icon: Icons.fitness_center_outlined,
-            label: 'Training Program',
-            subtitle: 'Manage your workout regime and weights',
-            onTap: () => context.push('/settings/regime'),
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
             icon: Icons.palette_outlined,
             label: 'Plate colours',
             subtitle: 'Assign colours to plate weights',
@@ -109,7 +102,10 @@ class _SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: colorScheme.onSurface.withValues(alpha: 0.4)),
+              Icon(
+                Icons.chevron_right,
+                color: colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
             ],
           ),
         ),

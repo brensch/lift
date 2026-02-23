@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/audio.dart';
 
 class SoundProvider extends ChangeNotifier {
+  static const defaultPreset = 'chord_strum';
   String _currentPreset = 'chord_strum';
   final SoundPlayer _player = SoundPlayer();
 
@@ -10,7 +11,7 @@ class SoundProvider extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentPreset = prefs.getString('lift-rest-sound') ?? 'chord_strum';
+    _currentPreset = prefs.getString('lift-rest-sound') ?? defaultPreset;
     notifyListeners();
   }
 
@@ -18,6 +19,13 @@ class SoundProvider extends ChangeNotifier {
     _currentPreset = preset;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lift-rest-sound', preset);
+    notifyListeners();
+  }
+
+  Future<void> reset() async {
+    _currentPreset = defaultPreset;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('lift-rest-sound');
     notifyListeners();
   }
 

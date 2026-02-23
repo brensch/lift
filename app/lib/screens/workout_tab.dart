@@ -16,6 +16,7 @@ class WorkoutTab extends StatefulWidget {
 class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
   DateTime? _lastServerSyncAt;
   bool _syncInFlight = false;
+  bool _initialSyncComplete = false;
 
   @override
   void initState() {
@@ -54,7 +55,12 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
 
     final auth = context.read<AuthProvider>();
     final userId = auth.userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (!_initialSyncComplete && mounted) {
+        setState(() => _initialSyncComplete = true);
+      }
+      return;
+    }
 
     _syncInFlight = true;
     try {
@@ -62,6 +68,9 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
       _lastServerSyncAt = DateTime.now();
     } finally {
       _syncInFlight = false;
+      if (!_initialSyncComplete && mounted) {
+        setState(() => _initialSyncComplete = true);
+      }
     }
   }
 
@@ -93,7 +102,7 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
 
-    if (wp.isLoading) {
+    if (!_initialSyncComplete) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 

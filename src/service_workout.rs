@@ -5,16 +5,15 @@ use crate::state::{ActiveWorkout, AppState};
 use lift::workout::v1::{
     workout_service_server::WorkoutService, AppendWorkoutHeartRateRequest,
     AppendWorkoutHeartRateResponse, CancelProposedSetRequest, CancelProposedSetResponse,
-    CompleteSetRequest, CompleteSetResponse, CompletedSet, CreateExerciseGroupRequest,
-    CreateExerciseGroupResponse, DeleteCompletedSetRequest, DeleteCompletedSetResponse,
-    DeleteExerciseGroupRequest, DeleteExerciseGroupResponse, EndWorkoutRequest, EndWorkoutResponse,
-    ExerciseGroup, ExerciseTypeConfig, GetActiveWorkoutRequest, GetActiveWorkoutResponse,
+    CompleteSetRequest, CompleteSetResponse, CompletedSet, DeleteCompletedSetRequest,
+    DeleteCompletedSetResponse, EndWorkoutRequest, EndWorkoutResponse, ExerciseGroup,
+    ExerciseTypeConfig, GetActiveWorkoutRequest, GetActiveWorkoutResponse,
     GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse, GetWorkoutRequest,
-    GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, ProposedSet,
-    ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, RestConfig, StartSetRequest,
-    StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest,
-    UpdateExerciseGroupResponse, WorkingSetSpec, Workout, WorkoutPlanChangeStats,
-    WorkoutStateSnapshot,
+    GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, PlannedGroupSet, ProposedSet,
+    ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, ReplaceExerciseGroupPlanRequest,
+    ReplaceExerciseGroupPlanResponse, RestConfig, StartSetRequest, StartSetResponse,
+    StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest, WorkingSetSpec, Workout,
+    WorkoutPlanChangeStats, WorkoutStateSnapshot,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -50,47 +49,36 @@ pub async fn get_user_id_authenticated<T>(
     Err(Status::unauthenticated("Authentication required"))
 }
 
-const PLATE_STOPS: &[f32] = &[
-    45.0, 95.0, 135.0, 185.0, 225.0, 275.0, 315.0, 365.0, 405.0, 455.0, 495.0, 545.0, 585.0, 635.0,
-];
 const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 10;
 
+fn round_to_2_5(weight: f32) -> f32 {
+    (weight / 2.5).round() * 2.5
+}
+
 fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
-    if working_weight <= 45.0 {
-        return Vec::new();
+    // Always produce 4 warmup sets (5/5/3/2) and allow sub-45 weights.
+    // Use percentages of the working weight, rounded to 2.5-lb increments.
+    let reps = [5, 5, 3, 2];
+    let pcts = [0.40_f32, 0.55_f32, 0.70_f32, 0.85_f32];
+    let max_warmup_weight = (working_weight - 2.5).max(2.5);
+
+    let mut out = Vec::with_capacity(4);
+    let mut prev = 0.0_f32;
+    for (idx, pct) in pcts.iter().enumerate() {
+        let desired = round_to_2_5(working_weight * pct);
+        let mut chosen = if idx == 0 && max_warmup_weight >= 45.0 {
+            45.0
+        } else {
+            desired.clamp(2.5, max_warmup_weight)
+        };
+        if chosen < prev {
+            chosen = prev;
+        }
+        prev = chosen;
+        out.push((chosen, reps[idx]));
     }
 
-    let candidates: Vec<f32> = PLATE_STOPS
-        .iter()
-        .cloned()
-        .filter(|&w| w < working_weight)
-        .collect();
-    if candidates.is_empty() {
-        return Vec::new();
-    }
-
-    let selected = if candidates.len() <= 4 {
-        candidates
-    } else {
-        let n = candidates.len();
-        let step = (n - 1) as f32 / 3.0;
-        vec![
-            candidates[0],
-            candidates[step.round() as usize],
-            candidates[(step * 2.0).round() as usize],
-            candidates[n - 1],
-        ]
-    };
-
-    let reps = match selected.len() {
-        1 => vec![5],
-        2 => vec![5, 5],
-        3 => vec![5, 5, 3],
-        4 => vec![5, 5, 3, 2],
-        _ => vec![5; selected.len()],
-    };
-
-    selected.into_iter().zip(reps.into_iter()).collect()
+    out
 }
 
 /// Unified set generation from ExerciseGroup with ExerciseTypeConfigs.
@@ -357,6 +345,233 @@ fn materialize_group_working_sets(group: &mut ExerciseGroup) {
     if max_sets > 0 {
         group.sets = max_sets as i32;
     }
+}
+
+fn compute_group_working_rounds_from_sets(sets: &[PlannedGroupSet]) -> i32 {
+    let mut counts: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+    for set in sets.iter().filter(|s| !s.warmup) {
+        *counts.entry(set.exercise).or_insert(0) += 1;
+    }
+    counts.values().copied().max().unwrap_or(0).max(1)
+}
+
+fn normalize_group_plan_sets(req_sets: &[PlannedGroupSet]) -> Vec<PlannedGroupSet> {
+    req_sets
+        .iter()
+        .map(|s| {
+            let mut set = s.clone();
+            if set.rest_after_success <= 0 {
+                set.rest_after_success = if set.warmup { 10 } else { 180 };
+            }
+            if set.rest_after_failure <= 0 {
+                set.rest_after_failure = if set.warmup {
+                    set.rest_after_success
+                } else {
+                    300
+                };
+            }
+            set
+        })
+        .collect()
+}
+
+fn proposed_sets_from_planned_group_sets(
+    workout_id: &str,
+    group_id: &str,
+    planned_sets: &[PlannedGroupSet],
+    start_order: i32,
+) -> Vec<ProposedSet> {
+    let mut order = start_order;
+    let mut out = Vec::with_capacity(planned_sets.len());
+    for s in planned_sets {
+        out.push(ProposedSet {
+            id: Uuid::new_v4().to_string(),
+            workout_id: workout_id.to_string(),
+            workout_order: order,
+            exercise: s.exercise,
+            target_reps: s.target_reps,
+            target_weight: s.target_weight,
+            warmup: s.warmup,
+            exercise_group_id: group_id.to_string(),
+            rest_after_success: if s.rest_after_success > 0 {
+                s.rest_after_success
+            } else if s.warmup {
+                10
+            } else {
+                180
+            },
+            rest_after_failure: if s.rest_after_failure > 0 {
+                s.rest_after_failure
+            } else if s.warmup {
+                if s.rest_after_success > 0 {
+                    s.rest_after_success
+                } else {
+                    10
+                }
+            } else {
+                300
+            },
+            cancelled: false,
+            is_amrap: s.is_amrap,
+            instruction: s.instruction.clone(),
+        });
+        order += 1;
+    }
+    out
+}
+
+fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<ProposedSet> {
+    let mut sets: Vec<ProposedSet> = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|p| p.exercise_group_id == group_id && !p.cancelled)
+        .cloned()
+        .collect();
+    sets.sort_by_key(|s| s.workout_order);
+    sets
+}
+
+fn apply_replace_exercise_group_plan(
+    workout_ref: &mut ActiveWorkout,
+    req: &ReplaceExerciseGroupPlanRequest,
+) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), Status> {
+    if workout_ref.workout.id != req.workout_id {
+        return Err(Status::failed_precondition("Workout ID mismatch"));
+    }
+
+    let normalized_sets = normalize_group_plan_sets(&req.sets);
+    let completed_ids: std::collections::HashSet<String> = workout_ref
+        .completed_sets
+        .iter()
+        .filter(|c| !c.proposed_set_id.is_empty())
+        .map(|c| c.proposed_set_id.clone())
+        .collect();
+
+    // Create
+    if req.exercise_group_id.is_empty() {
+        if req.delete_group_if_empty && normalized_sets.is_empty() {
+            return Ok((None, vec![]));
+        }
+
+        let group_id = Uuid::new_v4().to_string();
+        let workout_order = workout_ref.exercise_groups.len() as i32;
+        let group = ExerciseGroup {
+            id: group_id.clone(),
+            workout_id: req.workout_id.clone(),
+            name: req.name.clone(),
+            sets: compute_group_working_rounds_from_sets(&normalized_sets),
+            interleave_warmups: req.interleave_warmups,
+            workout_order,
+            exercise_configs: vec![],
+            rest_config: normalize_rest_config(req.rest_config.clone()),
+            instruction: req.instruction.clone(),
+            prescribed_by_regime: false,
+        };
+        let set_order = workout_ref
+            .proposed_sets
+            .last()
+            .map(|s| s.workout_order + 1)
+            .unwrap_or(0);
+        let generated_sets = proposed_sets_from_planned_group_sets(
+            &req.workout_id,
+            &group_id,
+            &normalized_sets,
+            set_order,
+        );
+        workout_ref.exercise_groups.push(group.clone());
+        workout_ref.proposed_sets.extend(generated_sets.clone());
+        workout_ref.reindex_sets();
+        return Ok((Some(group), active_group_sets(workout_ref, &group_id)));
+    }
+
+    // Update/Delete existing
+    let existing_idx = workout_ref
+        .exercise_groups
+        .iter()
+        .position(|g| g.id == req.exercise_group_id)
+        .ok_or_else(|| Status::not_found("Exercise group not found"))?;
+
+    if workout_ref.exercise_groups[existing_idx].prescribed_by_regime {
+        return Err(Status::failed_precondition(
+            "Regime-prescribed exercise groups cannot be modified",
+        ));
+    }
+
+    if req.delete_group_if_empty && normalized_sets.is_empty() {
+        let group_id = req.exercise_group_id.clone();
+        workout_ref
+            .proposed_sets
+            .retain(|p| p.exercise_group_id != group_id || completed_ids.contains(&p.id));
+        workout_ref.exercise_groups.retain(|g| g.id != group_id);
+        workout_ref.reindex_sets();
+        return Ok((None, vec![]));
+    }
+
+    {
+        let group = &mut workout_ref.exercise_groups[existing_idx];
+        if !req.name.is_empty() {
+            group.name = req.name.clone();
+        }
+        group.interleave_warmups = req.interleave_warmups;
+        group.sets = compute_group_working_rounds_from_sets(&normalized_sets);
+        group.exercise_configs.clear();
+        group.rest_config = normalize_rest_config(req.rest_config.clone());
+        group.instruction = req.instruction.clone();
+    }
+
+    // Preserve completed-associated proposed sets, cancel remaining pending
+    let mut completed_group_sets: Vec<ProposedSet> = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|p| p.exercise_group_id == req.exercise_group_id && completed_ids.contains(&p.id))
+        .cloned()
+        .collect();
+    completed_group_sets.sort_by_key(|s| s.workout_order);
+
+    for set in workout_ref
+        .proposed_sets
+        .iter_mut()
+        .filter(|p| p.exercise_group_id == req.exercise_group_id)
+    {
+        if !completed_ids.contains(&set.id) {
+            set.cancelled = true;
+        }
+    }
+
+    // Consume completed slots by (exercise, warmup) count, then append remaining pending in request order.
+    let mut completed_slots_by_key: std::collections::HashMap<(i32, bool), usize> =
+        std::collections::HashMap::new();
+    for set in &completed_group_sets {
+        *completed_slots_by_key
+            .entry((set.exercise, set.warmup))
+            .or_insert(0) += 1;
+    }
+
+    let pending_planned: Vec<PlannedGroupSet> = normalized_sets
+        .into_iter()
+        .filter(|set| {
+            if let Some(remaining) = completed_slots_by_key.get_mut(&(set.exercise, set.warmup)) {
+                if *remaining > 0 {
+                    *remaining -= 1;
+                    return false;
+                }
+            }
+            true
+        })
+        .collect();
+
+    let appended = proposed_sets_from_planned_group_sets(
+        &req.workout_id,
+        &req.exercise_group_id,
+        &pending_planned,
+        0,
+    );
+    workout_ref.proposed_sets.extend(appended);
+    workout_ref.reindex_sets();
+
+    let group = workout_ref.exercise_groups[existing_idx].clone();
+    let visible_sets = active_group_sets(workout_ref, &group.id);
+    Ok((Some(group), visible_sets))
 }
 
 fn apply_update_exercise_group(
@@ -915,93 +1130,21 @@ impl WorkoutService for MyWorkoutService {
         }))
     }
 
-    async fn create_exercise_group(
+    async fn replace_exercise_group_plan(
         &self,
-        request: Request<CreateExerciseGroupRequest>,
-    ) -> Result<Response<CreateExerciseGroupResponse>, Status> {
+        request: Request<ReplaceExerciseGroupPlanRequest>,
+    ) -> Result<Response<ReplaceExerciseGroupPlanResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let (group, generated_sets, next_up_set, state_snapshot) = {
+        let (group, group_sets, full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
                 .state
                 .workouts
                 .get_mut(&user_id)
                 .ok_or_else(|| Status::failed_precondition("No active workout"))?;
 
-            if workout_ref.workout.id != req.workout_id {
-                return Err(Status::failed_precondition("Workout ID mismatch"));
-            }
-
-            let group_id = Uuid::new_v4().to_string();
-            let workout_order = workout_ref.exercise_groups.len() as i32;
-
-            let group = ExerciseGroup {
-                id: group_id.clone(),
-                workout_id: req.workout_id.clone(),
-                name: req.name.clone(),
-                sets: req.sets,
-                interleave_warmups: req.interleave_warmups,
-                workout_order,
-                exercise_configs: normalize_exercise_configs(&req.exercise_configs),
-                rest_config: normalize_rest_config(req.rest_config.clone()),
-                instruction: String::new(),
-                prescribed_by_regime: false,
-            };
-            let mut group = group;
-            materialize_group_working_sets(&mut group);
-
-            let set_order = workout_ref
-                .proposed_sets
-                .last()
-                .map(|s| s.workout_order + 1)
-                .unwrap_or(0);
-
-            let generated_sets = generate_sets_for_group(&req.workout_id, &group, set_order);
-
-            workout_ref.exercise_groups.push(group.clone());
-            workout_ref.proposed_sets.extend(generated_sets.clone());
-            workout_ref.reindex_sets();
-            let next_up_set =
-                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
-            let state_snapshot = workout_state_snapshot_from_state(
-                &workout_ref.proposed_sets,
-                &workout_ref.completed_sets,
-                now_unix(),
-            );
-            (group, generated_sets, next_up_set, state_snapshot)
-        }; // Guard dropped here
-
-        // Incremental write: save group and sets to DB
-        self.central_db
-            .insert_exercise_group_with_sets(&user_id, &group, &generated_sets)
-            .await
-            .map_err(|e| Status::internal(format!("Failed to save group to DB: {}", e)))?;
-
-        Ok(Response::new(CreateExerciseGroupResponse {
-            group: Some(group),
-            generated_sets,
-            next_up_set,
-            state_snapshot: Some(state_snapshot),
-        }))
-    }
-
-    async fn update_exercise_group(
-        &self,
-        request: Request<UpdateExerciseGroupRequest>,
-    ) -> Result<Response<UpdateExerciseGroupResponse>, Status> {
-        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
-        let req = request.into_inner();
-
-        let (updated_group, updated_sets, full_workout_state, next_up_set, state_snapshot) = {
-            let mut workout_ref = self
-                .state
-                .workouts
-                .get_mut(&user_id)
-                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
-
-            let (updated_group, updated_sets) =
-                apply_update_exercise_group(&mut workout_ref, &req)?;
+            let (group, group_sets) = apply_replace_exercise_group_plan(&mut workout_ref, &req)?;
 
             let full_state = (
                 workout_ref.workout.clone(),
@@ -1017,13 +1160,7 @@ impl WorkoutService for MyWorkoutService {
                 now_unix(),
             );
 
-            (
-                updated_group,
-                updated_sets,
-                full_state,
-                next_up_set,
-                state_snapshot,
-            )
+            (group, group_sets, full_state, next_up_set, state_snapshot)
         }; // Guard dropped here
 
         // Re-sync this workout to DB
@@ -1038,85 +1175,9 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        Ok(Response::new(UpdateExerciseGroupResponse {
-            group: Some(updated_group),
-            generated_sets: updated_sets,
-            next_up_set,
-            state_snapshot: Some(state_snapshot),
-        }))
-    }
-
-    async fn delete_exercise_group(
-        &self,
-        request: Request<DeleteExerciseGroupRequest>,
-    ) -> Result<Response<DeleteExerciseGroupResponse>, Status> {
-        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
-        let req = request.into_inner();
-
-        let (full_workout_state, next_up_set, state_snapshot) = {
-            let mut workout_ref = self
-                .state
-                .workouts
-                .get_mut(&user_id)
-                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
-
-            let completed_ids: std::collections::HashSet<String> = workout_ref
-                .completed_sets
-                .iter()
-                .map(|c| c.proposed_set_id.clone())
-                .collect();
-
-            if workout_ref
-                .exercise_groups
-                .iter()
-                .find(|g| g.id == req.exercise_group_id)
-                .map(|g| g.prescribed_by_regime)
-                .unwrap_or(false)
-            {
-                return Err(Status::failed_precondition(
-                    "Regime-prescribed exercise groups cannot be deleted",
-                ));
-            }
-
-            // Remove pending (non-completed) proposed sets for this group
-            workout_ref.proposed_sets.retain(|p| {
-                p.exercise_group_id != req.exercise_group_id || completed_ids.contains(&p.id)
-            });
-
-            // Remove the group
-            workout_ref
-                .exercise_groups
-                .retain(|g| g.id != req.exercise_group_id);
-
-            let full_state = (
-                workout_ref.workout.clone(),
-                workout_ref.exercise_groups.clone(),
-                workout_ref.proposed_sets.clone(),
-                workout_ref.completed_sets.clone(),
-            );
-            let next_up_set =
-                next_up_from_workout_state(&workout_ref.proposed_sets, &workout_ref.completed_sets);
-            let state_snapshot = workout_state_snapshot_from_state(
-                &workout_ref.proposed_sets,
-                &workout_ref.completed_sets,
-                now_unix(),
-            );
-            (full_state, next_up_set, state_snapshot)
-        }; // Guard dropped here
-
-        // Re-sync to DB
-        self.central_db
-            .flush_workout(
-                &user_id,
-                &full_workout_state.0,
-                &full_workout_state.1,
-                &full_workout_state.2,
-                &full_workout_state.3,
-            )
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(Response::new(DeleteExerciseGroupResponse {
+        Ok(Response::new(ReplaceExerciseGroupPlanResponse {
+            group,
+            generated_sets: group_sets,
             next_up_set,
             state_snapshot: Some(state_snapshot),
         }))

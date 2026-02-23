@@ -15,10 +15,10 @@
     {
       "note": "Week 1 — Volume (5-rep sets). TMs: Squat/DL=180, Bench=126, OHP=90. Start at 65% TM each. Squat/DL: 180×0.65=117→115. Bench: 126×0.65=81.9→80. OHP: 90×0.65=58.5→60.",
       "expect": [
-        { "exercise": "Squat",         "weight": 115, "sets": 3, "reps": 5, "amrap": false },
-        { "exercise": "Deadlift",      "weight": 115, "sets": 3, "reps": 5, "amrap": false },
-        { "exercise": "BenchPress",    "weight":  80, "sets": 3, "reps": 5, "amrap": false },
-        { "exercise": "OverheadPress", "weight":  60, "sets": 3, "reps": 5, "amrap": false }
+        { "exercise": "Squat",         "weight": 115, "sets": 3, "reps": 5, "amrap": true },
+        { "exercise": "Deadlift",      "weight": 115, "sets": 3, "reps": 5, "amrap": true },
+        { "exercise": "BenchPress",    "weight":  80, "sets": 3, "reps": 5, "amrap": true },
+        { "exercise": "OverheadPress", "weight":  60, "sets": 3, "reps": 5, "amrap": true }
       ],
       "expect_groups": [
         { "name": "Squat",          "tags": ["recommended"] },
@@ -35,10 +35,10 @@
     {
       "note": "Week 2 — Intensity (3-rep sets). Start at 70% TM. Squat/DL: 180×0.70=126→125. Bench: 126×0.70=88.2→90. OHP: 90×0.70=63→65.",
       "expect": [
-        { "exercise": "Squat",         "weight": 125, "sets": 3, "reps": 3, "amrap": false },
-        { "exercise": "Deadlift",      "weight": 125, "sets": 3, "reps": 3, "amrap": false },
-        { "exercise": "BenchPress",    "weight":  90, "sets": 3, "reps": 3, "amrap": false },
-        { "exercise": "OverheadPress", "weight":  65, "sets": 3, "reps": 3, "amrap": false }
+        { "exercise": "Squat",         "weight": 125, "sets": 3, "reps": 3, "amrap": true },
+        { "exercise": "Deadlift",      "weight": 125, "sets": 3, "reps": 3, "amrap": true },
+        { "exercise": "BenchPress",    "weight":  90, "sets": 3, "reps": 3, "amrap": true },
+        { "exercise": "OverheadPress", "weight":  65, "sets": 3, "reps": 3, "amrap": true }
       ],
       "expect_groups": [
         { "name": "Squat",          "tags": ["recommended"] },

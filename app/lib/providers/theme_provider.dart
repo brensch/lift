@@ -44,6 +44,13 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> reset() async {
+    _themeMode = ThemeMode.system;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
+    notifyListeners();
+  }
+
   /// Resolve to actual brightness given platform context
   bool isDarkMode(BuildContext context) {
     if (_themeMode == ThemeMode.system) {

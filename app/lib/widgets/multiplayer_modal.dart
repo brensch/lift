@@ -116,7 +116,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'MULTIPLAYER',
+                'Multiplayer',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
@@ -173,7 +173,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'YOUR JOIN CODE',
+                'Your join code',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.w900,

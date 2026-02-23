@@ -107,53 +107,26 @@ class WorkoutServiceWrapper {
     return response.workout;
   }
 
-  Future<CreateExerciseGroupResponse> createExerciseGroup({
+  Future<ReplaceExerciseGroupPlanResponse> replaceExerciseGroupPlan({
     required String workoutId,
+    String? exerciseGroupId,
     required String name,
-    required int sets,
     required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
+    required List<PlannedGroupSet> sets,
     RestConfig? restConfig,
+    bool deleteGroupIfEmpty = false,
+    String instruction = '',
   }) async {
-    final req = CreateExerciseGroupRequest()
+    final req = ReplaceExerciseGroupPlanRequest()
       ..workoutId = workoutId
+      ..exerciseGroupId = exerciseGroupId ?? ''
       ..name = name
-      ..sets = sets
       ..interleaveWarmups = interleaveWarmups
-      ..exerciseConfigs.addAll(exerciseConfigs);
+      ..sets.addAll(sets)
+      ..deleteGroupIfEmpty = deleteGroupIfEmpty
+      ..instruction = instruction;
     if (restConfig != null) req.restConfig = restConfig;
-    return await _client.workoutService.createExerciseGroup(req);
-  }
-
-  Future<UpdateExerciseGroupResponse> updateExerciseGroup({
-    required String workoutId,
-    required String exerciseGroupId,
-    required String name,
-    required int sets,
-    required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
-    RestConfig? restConfig,
-  }) async {
-    final req = UpdateExerciseGroupRequest()
-      ..workoutId = workoutId
-      ..exerciseGroupId = exerciseGroupId
-      ..name = name
-      ..sets = sets
-      ..interleaveWarmups = interleaveWarmups
-      ..exerciseConfigs.addAll(exerciseConfigs);
-    if (restConfig != null) req.restConfig = restConfig;
-    return await _client.workoutService.updateExerciseGroup(req);
-  }
-
-  Future<DeleteExerciseGroupResponse> deleteExerciseGroup(
-    String workoutId,
-    String exerciseGroupId,
-  ) async {
-    return await _client.workoutService.deleteExerciseGroup(
-      DeleteExerciseGroupRequest()
-        ..workoutId = workoutId
-        ..exerciseGroupId = exerciseGroupId,
-    );
+    return await _client.workoutService.replaceExerciseGroupPlan(req);
   }
 
   Future<ReorderExerciseGroupsResponse> reorderExerciseGroups(

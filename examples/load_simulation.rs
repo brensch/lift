@@ -2,9 +2,9 @@ use clap::Parser;
 use dashmap::DashMap;
 use lift::workout::v1::{
     auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
-    workout_service_client::WorkoutServiceClient, CompleteSetRequest, CreateExerciseGroupRequest,
-    EndWorkoutRequest, Exercise, ExerciseTypeConfig, GetActiveWorkoutRequest,
-    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, JoinUserRequest, StartSetRequest,
+    workout_service_client::WorkoutServiceClient, CompleteSetRequest, EndWorkoutRequest, Exercise,
+    GetActiveWorkoutRequest, GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest,
+    JoinUserRequest, PlannedGroupSet, ReplaceExerciseGroupPlanRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest,
 };
 use rand::Rng;
@@ -372,24 +372,29 @@ async fn run_user_simulation(
                 &mut workout_client,
                 &token,
                 &stats,
-                CreateExerciseGroupRequest {
+                ReplaceExerciseGroupPlanRequest {
                     workout_id: workout_id.clone(),
+                    exercise_group_id: String::new(),
                     name: format!("Group {}", g_idx),
-                    sets: 3,
                     interleave_warmups: false,
-                    exercise_configs: vec![ExerciseTypeConfig {
-                        exercise: Exercise::Squat as i32,
-                        start_weight: 100.0,
-                        end_weight: 100.0,
-                        reps: 5,
-                        include_warmup: false,
-                        rest_config: None,
-                        last_set_amrap: false,
-                        working_sets: vec![],
-                    }],
+                    sets: vec![
+                        PlannedGroupSet {
+                            exercise: Exercise::Squat as i32,
+                            target_reps: 5,
+                            target_weight: 100.0,
+                            warmup: false,
+                            rest_after_success: 180,
+                            rest_after_failure: 300,
+                            is_amrap: false,
+                            instruction: String::new(),
+                        };
+                        3
+                    ],
                     rest_config: None,
+                    delete_group_if_empty: false,
+                    instruction: String::new(),
                 },
-                "CreateExerciseGroup",
+                "ReplaceExerciseGroupPlan",
             )
             .await?;
 
@@ -530,14 +535,17 @@ impl WorkoutServiceTrait<StartWorkoutRequest, lift::workout::v1::StartWorkoutRes
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<CreateExerciseGroupRequest, lift::workout::v1::CreateExerciseGroupResponse>
-    for WorkoutServiceClient<Channel>
+impl
+    WorkoutServiceTrait<
+        ReplaceExerciseGroupPlanRequest,
+        lift::workout::v1::ReplaceExerciseGroupPlanResponse,
+    > for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
-        req: Request<CreateExerciseGroupRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::CreateExerciseGroupResponse>, Status> {
-        self.create_exercise_group(req).await
+        req: Request<ReplaceExerciseGroupPlanRequest>,
+    ) -> Result<tonic::Response<lift::workout::v1::ReplaceExerciseGroupPlanResponse>, Status> {
+        self.replace_exercise_group_plan(req).await
     }
 }
 

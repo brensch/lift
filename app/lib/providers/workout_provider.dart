@@ -7,6 +7,7 @@ import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
+import '../logic/warmup.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
@@ -56,6 +57,249 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (next != null) {
       startSet(next.id);
     }
+  }
+
+  int _effectiveRestSuccess({
+    required ExerciseTypeConfig config,
+    RestConfig? groupRest,
+    required bool warmup,
+    required bool lastWarmup,
+  }) {
+    final rc = config.hasRestConfig()
+        ? config.restConfig
+        : (groupRest != null && groupRestHasValues(groupRest)
+              ? groupRest
+              : null);
+    final success = (rc != null && rc.restAfterSuccess > 0)
+        ? rc.restAfterSuccess
+        : 180;
+    if (!warmup) return success;
+    if (lastWarmup) return success;
+    return (rc != null && rc.restAfterWarmup > 0) ? rc.restAfterWarmup : 10;
+  }
+
+  int _effectiveRestFailure({
+    required ExerciseTypeConfig config,
+    RestConfig? groupRest,
+    required bool warmup,
+    required bool lastWarmup,
+  }) {
+    final rc = config.hasRestConfig()
+        ? config.restConfig
+        : (groupRest != null && groupRestHasValues(groupRest)
+              ? groupRest
+              : null);
+    final failure = (rc != null && rc.restAfterFailure > 0)
+        ? rc.restAfterFailure
+        : 300;
+    if (!warmup) return failure;
+    if (lastWarmup) {
+      final success = (rc != null && rc.restAfterSuccess > 0)
+          ? rc.restAfterSuccess
+          : 180;
+      return success;
+    }
+    final warm = (rc != null && rc.restAfterWarmup > 0)
+        ? rc.restAfterWarmup
+        : 10;
+    return warm;
+  }
+
+  List<WorkingSetSpec> _materializeWorkingSetsForConfig(
+    ExerciseTypeConfig config,
+    int groupSets,
+  ) {
+    if (config.workingSets.isNotEmpty) return config.workingSets.toList();
+    final count = groupSets <= 0 ? 1 : groupSets;
+    final out = <WorkingSetSpec>[];
+    for (var i = 0; i < count; i++) {
+      final isLast = i == count - 1;
+      final weight = count <= 1
+          ? config.startWeight
+          : config.startWeight +
+                (i / (count - 1)) * (config.endWeight - config.startWeight);
+      final rounded = (weight / 5.0).round() * 5.0;
+      out.add(
+        WorkingSetSpec()
+          ..targetWeight = rounded.toDouble()
+          ..targetReps = config.reps
+          ..isAmrap = config.lastSetAmrap && isLast
+          ..instruction = config.lastSetAmrap && isLast
+              ? 'AMRAP - push for max reps'
+              : '',
+      );
+    }
+    return out;
+  }
+
+  List<PlannedGroupSet> _buildPlannedGroupSetsFromConfigs({
+    required int sets,
+    required bool interleaveWarmups,
+    required List<ExerciseTypeConfig> exerciseConfigs,
+    RestConfig? restConfig,
+  }) {
+    if (exerciseConfigs.isEmpty) return const [];
+
+    final workingByConfig = exerciseConfigs
+        .map((c) => _materializeWorkingSetsForConfig(c, sets))
+        .toList();
+    final warmupByConfig = <List<WarmupDef>>[];
+    for (var i = 0; i < exerciseConfigs.length; i++) {
+      final c = exerciseConfigs[i];
+      if (!c.includeWarmup) {
+        warmupByConfig.add(const []);
+        continue;
+      }
+      final warmupWeight = workingByConfig[i].isNotEmpty
+          ? workingByConfig[i].first.targetWeight
+          : c.startWeight;
+      warmupByConfig.add(generateWarmupDefs(warmupWeight));
+    }
+
+    final out = <PlannedGroupSet>[];
+
+    void addWarmupSet(int cfgIdx, int warmIdx) {
+      final c = exerciseConfigs[cfgIdx];
+      final warm = warmupByConfig[cfgIdx][warmIdx];
+      final isLastWarmup = warmIdx == warmupByConfig[cfgIdx].length - 1;
+      out.add(
+        PlannedGroupSet()
+          ..exercise = c.exercise
+          ..targetReps = warm.reps
+          ..targetWeight = warm.weight
+          ..warmup = true
+          ..restAfterSuccess = _effectiveRestSuccess(
+            config: c,
+            groupRest: restConfig,
+            warmup: true,
+            lastWarmup: isLastWarmup,
+          )
+          ..restAfterFailure = _effectiveRestFailure(
+            config: c,
+            groupRest: restConfig,
+            warmup: true,
+            lastWarmup: isLastWarmup,
+          ),
+      );
+    }
+
+    if (interleaveWarmups && exerciseConfigs.length > 1) {
+      final maxWarmups = warmupByConfig.fold<int>(
+        0,
+        (m, w) => w.length > m ? w.length : m,
+      );
+      for (var round = 0; round < maxWarmups; round++) {
+        for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
+          if (round < warmupByConfig[cfgIdx].length) {
+            addWarmupSet(cfgIdx, round);
+          }
+        }
+      }
+    } else {
+      for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
+        for (
+          var warmIdx = 0;
+          warmIdx < warmupByConfig[cfgIdx].length;
+          warmIdx++
+        ) {
+          addWarmupSet(cfgIdx, warmIdx);
+        }
+      }
+    }
+
+    final maxWorking = workingByConfig.fold<int>(
+      0,
+      (m, w) => w.length > m ? w.length : m,
+    );
+    for (var round = 0; round < maxWorking; round++) {
+      for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
+        if (round >= workingByConfig[cfgIdx].length) continue;
+        final c = exerciseConfigs[cfgIdx];
+        final ws = workingByConfig[cfgIdx][round];
+        out.add(
+          PlannedGroupSet()
+            ..exercise = c.exercise
+            ..targetReps = ws.targetReps
+            ..targetWeight = ws.targetWeight
+            ..warmup = false
+            ..restAfterSuccess = _effectiveRestSuccess(
+              config: c,
+              groupRest: restConfig,
+              warmup: false,
+              lastWarmup: false,
+            )
+            ..restAfterFailure = _effectiveRestFailure(
+              config: c,
+              groupRest: restConfig,
+              warmup: false,
+              lastWarmup: false,
+            )
+            ..isAmrap = ws.isAmrap
+            ..instruction = ws.instruction,
+        );
+      }
+    }
+
+    return out;
+  }
+
+  List<PlannedGroupSet> _buildPlannedGroupSetsFromExistingGroup(
+    ExerciseGroupData groupData,
+  ) {
+    final sets = List<ProposedSet>.from(groupData.sets)
+      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    return sets
+        .map(
+          (s) => PlannedGroupSet()
+            ..exercise = s.exercise
+            ..targetReps = s.targetReps
+            ..targetWeight = s.targetWeight
+            ..warmup = s.warmup
+            ..restAfterSuccess = s.restAfterSuccess
+            ..restAfterFailure = s.restAfterFailure
+            ..isAmrap = s.isAmrap
+            ..instruction = s.instruction,
+        )
+        .toList();
+  }
+
+  Future<void> _replaceExerciseGroupPlan({
+    required String name,
+    required String? exerciseGroupId,
+    required bool interleaveWarmups,
+    required List<PlannedGroupSet> sets,
+    RestConfig? restConfig,
+    bool deleteGroupIfEmpty = false,
+    String instruction = '',
+  }) async {
+    if (_activeWorkout == null) return;
+    final response = await _service.replaceExerciseGroupPlan(
+      workoutId: _activeWorkout!.id,
+      exerciseGroupId: exerciseGroupId,
+      name: name,
+      interleaveWarmups: interleaveWarmups,
+      sets: sets,
+      restConfig: restConfig,
+      deleteGroupIfEmpty: deleteGroupIfEmpty,
+      instruction: instruction,
+    );
+
+    if (exerciseGroupId != null && exerciseGroupId.isNotEmpty) {
+      _activeExerciseGroups.removeWhere((g) => g.id == exerciseGroupId);
+      _activeProposedSets.removeWhere(
+        (s) => s.exerciseGroupId == exerciseGroupId,
+      );
+    }
+    if (response.hasGroup()) {
+      _activeExerciseGroups.add(response.group);
+      _activeProposedSets.addAll(response.generatedSets);
+    }
+    _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+    _applyStateSnapshot(
+      response.hasStateSnapshot() ? response.stateSnapshot : null,
+    );
+    _sortState();
+    notifyListeners();
   }
 
   void setSoundProvider(SoundProvider provider) {
@@ -251,11 +495,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (restUntil != oldRestUntil ||
             oldState != WorkoutState.WORKOUT_STATE_RESTING) {
           final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
-          unawaited(NotificationService.scheduleRest(
-            restUntilUnix: restUntil,
-            soundPresetId: presetId,
-            body: _nextSetBody(),
-          ));
+          unawaited(
+            NotificationService.scheduleRest(
+              restUntilUnix: restUntil,
+              soundPresetId: presetId,
+              body: _nextSetBody(),
+            ),
+          );
         }
       }
     } else {
@@ -525,22 +771,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_activeWorkout == null) return;
     try {
-      final response = await _service.createExerciseGroup(
-        workoutId: _activeWorkout!.id,
-        name: name,
+      final plannedSets = _buildPlannedGroupSetsFromConfigs(
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
         restConfig: restConfig,
       );
-      _activeExerciseGroups.add(response.group);
-      _activeProposedSets.addAll(response.generatedSets);
-      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _applyStateSnapshot(
-        response.hasStateSnapshot() ? response.stateSnapshot : null,
+      await _replaceExerciseGroupPlan(
+        name: name,
+        exerciseGroupId: null,
+        interleaveWarmups: interleaveWarmups,
+        sets: plannedSets,
+        restConfig: restConfig,
       );
-      _sortState();
-      notifyListeners();
     } catch (e) {
       _handleError(e);
     }
@@ -559,31 +802,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (groupData.group == null) return;
 
     try {
-      final response = await _service.updateExerciseGroup(
-        workoutId: _activeWorkout!.id,
-        exerciseGroupId: groupData.group!.id,
-        name: groupData.group!.name,
+      final plannedSets = _buildPlannedGroupSetsFromConfigs(
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
         restConfig: restConfig,
       );
-
-      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
-      _activeExerciseGroups.add(response.group);
-
-      _activeProposedSets.removeWhere(
-        (s) => s.exerciseGroupId == groupData.group!.id,
+      await _replaceExerciseGroupPlan(
+        name: groupData.group!.name,
+        exerciseGroupId: groupData.group!.id,
+        interleaveWarmups: interleaveWarmups,
+        sets: plannedSets,
+        restConfig: restConfig,
+        instruction: groupData.group!.instruction,
       );
-      _activeProposedSets.addAll(response.generatedSets);
-      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _applyStateSnapshot(
-        response.hasStateSnapshot() ? response.stateSnapshot : null,
-      );
-
-      _sortState();
-
-      notifyListeners();
     } catch (e) {
       _handleError(e);
     }
@@ -596,30 +828,45 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
     if (proposed == null || proposed.exerciseGroupId.isEmpty) return;
 
-    final groupIndex = exerciseGroups.indexWhere((g) => g.group?.id == proposed.exerciseGroupId);
+    final groupIndex = exerciseGroups.indexWhere(
+      (g) => g.group?.id == proposed.exerciseGroupId,
+    );
     if (groupIndex == -1) return;
 
     final groupData = exerciseGroups[groupIndex];
     final group = groupData.group!;
 
-    // Create new configs based on the update. 
-    // For now, we update the config that matches the exercise of the set.
-    final newConfigs = group.exerciseConfigs.map((c) {
-      if (c.exercise == proposed.exercise) {
-        return c.deepCopy()
-          ..reps = reps
-          ..startWeight = weight.toDouble()
-          ..endWeight = weight.toDouble(); // Simplify to flat weight for quick edit
+    final plannedSets = _buildPlannedGroupSetsFromExistingGroup(groupData);
+    final idx = plannedSets.indexWhere(
+      (s) =>
+          s.exercise == proposed.exercise &&
+          s.warmup == proposed.warmup &&
+          s.targetWeight == proposed.targetWeight &&
+          s.targetReps == proposed.targetReps,
+    );
+    if (idx >= 0) {
+      plannedSets[idx]
+        ..targetReps = reps
+        ..targetWeight = weight;
+    } else {
+      // Fallback: update first matching proposed set slot by id order.
+      final existingOrdered = List<ProposedSet>.from(groupData.sets)
+        ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      final slot = existingOrdered.indexWhere((s) => s.id == setId);
+      if (slot >= 0 && slot < plannedSets.length) {
+        plannedSets[slot]
+          ..targetReps = reps
+          ..targetWeight = weight;
       }
-      return c;
-    }).toList();
+    }
 
-    await updateGroup(
-      groupIndex,
-      sets: group.sets,
+    await _replaceExerciseGroupPlan(
+      name: group.name,
+      exerciseGroupId: group.id,
       interleaveWarmups: group.interleaveWarmups,
-      exerciseConfigs: newConfigs,
+      sets: plannedSets,
       restConfig: group.hasRestConfig() ? group.restConfig : null,
+      instruction: group.instruction,
     );
   }
 
@@ -635,19 +882,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      final response = await _service.deleteExerciseGroup(
-        _activeWorkout!.id,
-        groupData.group!.id,
+      await _replaceExerciseGroupPlan(
+        name: groupData.group!.name,
+        exerciseGroupId: groupData.group!.id,
+        interleaveWarmups: groupData.group!.interleaveWarmups,
+        sets: const [],
+        deleteGroupIfEmpty: true,
       );
-      _activeExerciseGroups.removeWhere((g) => g.id == groupData.group!.id);
-      _activeProposedSets.removeWhere(
-        (s) => s.exerciseGroupId == groupData.group!.id,
-      );
-      _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
-      _applyStateSnapshot(
-        response.hasStateSnapshot() ? response.stateSnapshot : null,
-      );
-      notifyListeners();
     } catch (e) {
       _handleError(e);
     }

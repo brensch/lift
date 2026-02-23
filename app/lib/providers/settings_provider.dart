@@ -6,7 +6,7 @@ import '../services/grpc_client.dart';
 class SettingsProvider extends ChangeNotifier {
   final GrpcClient _grpcClient;
 
-  Map<double, Color> _plateColors = {
+  static Map<double, Color> defaultPlateColors() => {
     45: Colors.red,
     35: Colors.blue,
     25: const Color(0xFFFFEB3B), // yellow
@@ -14,6 +14,8 @@ class SettingsProvider extends ChangeNotifier {
     5: const Color(0xFF616161), // dark grey
     2.5: const Color(0xFFBDBDBD), // light grey
   };
+
+  Map<double, Color> _plateColors = defaultPlateColors();
 
   UserWorkoutConfig? _workoutConfig;
   bool _loaded = false;
@@ -30,6 +32,11 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    // Reset workout config before reload so missing settings don't leave stale
+    // in-memory values around (important for fresh signup/login flows).
+    _workoutConfig = null;
+    _loaded = false;
+    notifyListeners();
     try {
       final response = await _grpcClient.settingsService
           .getSettings(GetSettingsRequest());
@@ -47,6 +54,13 @@ class SettingsProvider extends ChangeNotifier {
       _loaded = true;
       notifyListeners();
     }
+  }
+
+  void clear() {
+    _plateColors = defaultPlateColors();
+    _workoutConfig = null;
+    _loaded = false;
+    notifyListeners();
   }
 
   Future<void> updateWorkoutConfig(UserWorkoutConfig config) async {

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../providers/auth_provider.dart';
@@ -29,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Non-recommended sections start collapsed.
   final Set<String> _expandedSections = {};
   bool _isLoading = true;
+  bool _isRefreshing = false;
   bool _isStarting = false;
   String? _error;
   late final TextEditingController _nameController = TextEditingController(
@@ -51,14 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return greetingTime();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool refreshOnly = false}) async {
     final auth = context.read<AuthProvider>();
     final grpc = context.read<GrpcClient>();
     final workoutService = WorkoutServiceWrapper(grpc);
 
     setState(() {
-      _isLoading = true;
-      _error = null;
+      if (refreshOnly && !_isLoading) {
+        _isRefreshing = true;
+      } else {
+        _isLoading = true;
+        _error = null;
+      }
     });
 
     try {
@@ -71,33 +77,61 @@ class _HomeScreenState extends State<HomeScreen> {
       final schedule = scheduleRes.exerciseStatuses;
       final proposedGroups = scheduleRes.proposedGroups;
 
-      // Auto-select all groups tagged "recommended".
+      // Auto-select all groups tagged "recommended" (initial load),
+      // but try to preserve current user selections on pull-to-refresh.
       final autoSelected = <int>{};
+      final previousSelectedNames = refreshOnly && _proposedGroups != null
+          ? (_selectedGroupIndices
+                .where((i) => i >= 0 && i < _proposedGroups!.length)
+                .map((i) => _proposedGroups![i].name)
+                .toSet())
+          : <String>{};
       for (int i = 0; i < proposedGroups.length; i++) {
-        if (proposedGroups[i].tags.contains('recommended')) {
-          autoSelected.add(i);
-        }
+        final shouldSelect = refreshOnly
+            ? previousSelectedNames.contains(proposedGroups[i].name)
+            : proposedGroups[i].tags.contains('recommended');
+        if (shouldSelect) autoSelected.add(i);
       }
 
       final suggestedName = scheduleRes.suggestedWorkoutName.isNotEmpty
           ? scheduleRes.suggestedWorkoutName
           : null;
+      final currentName = _nameController.text;
+      final shouldReplaceName =
+          !refreshOnly ||
+          currentName.trim().isEmpty ||
+          currentName == _getDefaultWorkoutName();
 
       setState(() {
         _schedule = schedule;
         _proposedGroups = proposedGroups;
-        _regimeContext = scheduleRes.hasRegimeContext() ? scheduleRes.regimeContext : null;
-        _sessionReadiness = scheduleRes.hasSessionReadiness() ? scheduleRes.sessionReadiness : null;
+        _regimeContext = scheduleRes.hasRegimeContext()
+            ? scheduleRes.regimeContext
+            : null;
+        _sessionReadiness = scheduleRes.hasSessionReadiness()
+            ? scheduleRes.sessionReadiness
+            : null;
         _selectedGroupIndices = autoSelected;
-        _nameController.text = suggestedName ?? _getDefaultWorkoutName();
+        if (shouldReplaceName) {
+          _nameController.text = suggestedName ?? _getDefaultWorkoutName();
+        }
         _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = cleanErrorMessage(e);
+          if (_isLoading) {
+            _error = cleanErrorMessage(e);
+          }
           _isLoading = false;
+          _isRefreshing = false;
         });
+        if (refreshOnly && (_schedule != null || _proposedGroups != null)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Refresh failed: ${cleanErrorMessage(e)}')),
+          );
+        }
       }
     }
   }
@@ -127,8 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
           final startWeight = status?.targetWeight ?? c.startWeight;
           // Keep regime's weight ramp (e.g. Wendler 65%→85% TM).
           // For Linear/GZCLP start==end so endWeight = startWeight.
-          final endWeight =
-              c.endWeight != c.startWeight ? c.endWeight : startWeight;
+          final endWeight = c.endWeight != c.startWeight
+              ? c.endWeight
+              : startWeight;
           final cfg = ExerciseTypeConfig()
             ..exercise = c.exercise
             ..startWeight = startWeight
@@ -136,6 +171,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ..reps = c.reps
             ..includeWarmup = c.includeWarmup
             ..lastSetAmrap = c.lastSetAmrap; // carry AMRAP flag from regime
+          cfg.workingSets.addAll(
+            c.workingSets.map(
+              (ws) => WorkingSetSpec()
+                ..targetWeight = ws.targetWeight
+                ..targetReps = ws.targetReps
+                ..isAmrap = ws.isAmrap
+                ..instruction = ws.instruction,
+            ),
+          );
           if (c.hasRestConfig()) {
             cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
           }
@@ -148,10 +192,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ..sets = proposed.sets
           ..interleaveWarmups = proposed.interleaveWarmups
           ..workoutOrder = groupOrder++
+          ..prescribedByRegime = proposed.prescribedByRegime
           ..exerciseConfigs.addAll(configs)
           ..instruction = proposed.explanation; // carry regime coaching text
         if (proposed.hasRestConfig()) {
-          group.restConfig = RestConfig()..mergeFromMessage(proposed.restConfig);
+          group.restConfig = RestConfig()
+            ..mergeFromMessage(proposed.restConfig);
         }
         exerciseGroups.add(group);
       }
@@ -160,15 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final dateStr =
           "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
 
-      final summaryNames = (_selectedGroupIndices.toList()..sort())
-          .map((idx) => _proposedGroups![idx].name)
-          .join(' / ');
-
       final baseName = _nameController.text.trim().isEmpty
           ? _getDefaultWorkoutName()
           : _nameController.text.trim();
 
-      final workoutName = "$dateStr - $summaryNames - $baseName";
+      final workoutName = "$dateStr - $baseName";
 
       final workoutProvider = context.read<WorkoutProvider>();
       final workoutId = await workoutProvider.startWorkout(
@@ -185,9 +227,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('Error starting workout: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start workout: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
       }
     } finally {
       if (mounted) setState(() => _isStarting = false);
@@ -264,70 +306,91 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: CustomScrollView(
-        physics: const ClampingScrollPhysics(),
-        slivers: [
-          if (_sessionReadiness != null || _regimeContext != null)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              sliver: SliverToBoxAdapter(
-                child: _ReadinessBanner(
-                  sessionReadiness: _sessionReadiness,
-                  regimeContext: _regimeContext,
-                ),
-              ),
-            ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              (_sessionReadiness != null || _regimeContext != null) ? 12 : 20,
-              20,
-              0,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Text(
-                'SELECT YOUR EXERCISE GROUPS',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-            ),
+      body: RefreshIndicator(
+        onRefresh: () => _loadData(refreshOnly: true),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: ClampingScrollPhysics(),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                for (final entry in tagSections.entries) ...[
-                  _SectionHeader(
-                    tag: entry.key,
-                    isRecommended: entry.key == 'recommended',
-                    isExpanded: entry.key == 'recommended' ||
-                        _expandedSections.contains(entry.key),
-                    onTap: entry.key == 'recommended'
-                        ? null
-                        : () => _toggleSection(entry.key),
+          slivers: [
+            if (_sessionReadiness != null || _regimeContext != null)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                sliver: SliverToBoxAdapter(
+                  child: _ReadinessBanner(
+                    sessionReadiness: _sessionReadiness,
+                    regimeContext: _regimeContext,
                   ),
-                  if (entry.key == 'recommended' ||
-                      _expandedSections.contains(entry.key))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: _GroupGrid(
-                        indices: entry.value,
-                        proposedGroups: _proposedGroups!,
-                        selectedIndices: _selectedGroupIndices,
-                        onToggle: _toggleGroup,
-                        columns: entry.key == 'recommended' ? 1 : 3,
+                ),
+              ),
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                (_sessionReadiness != null || _regimeContext != null) ? 12 : 20,
+                20,
+                0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Text(
+                      'Select exercise groups',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: colorScheme.tertiary,
                       ),
                     ),
-                ],
-              ]),
+                    if (_isRefreshing) ...[
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.tertiary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ),
-          const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
-        ],
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  for (final entry in tagSections.entries) ...[
+                    _SectionHeader(
+                      tag: entry.key,
+                      isRecommended: entry.key == 'recommended',
+                      isExpanded:
+                          entry.key == 'recommended' ||
+                          _expandedSections.contains(entry.key),
+                      onTap: entry.key == 'recommended'
+                          ? null
+                          : () => _toggleSection(entry.key),
+                    ),
+                    if (entry.key == 'recommended' ||
+                        _expandedSections.contains(entry.key))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: _GroupGrid(
+                          indices: entry.value,
+                          proposedGroups: _proposedGroups!,
+                          selectedIndices: _selectedGroupIndices,
+                          onToggle: _toggleGroup,
+                          columns: entry.key == 'recommended' ? 1 : 3,
+                        ),
+                      ),
+                  ],
+                ]),
+              ),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(
@@ -368,7 +431,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       : Container(
                           key: const ValueKey('badge'),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -398,7 +463,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   for (final idx in (_selectedGroupIndices.toList()..sort()))
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: colorScheme.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
@@ -439,21 +506,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: colorScheme.onSurface.withValues(alpha: 0.28),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 13),
+                  horizontal: 14,
+                  vertical: 13,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.5)),
+                    color: colorScheme.outline.withValues(alpha: 0.5),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.5)),
+                    color: colorScheme.outline.withValues(alpha: 0.5),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                      BorderSide(color: colorScheme.primary, width: 1.5),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -497,7 +570,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 10),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 9, vertical: 3),
+                                horizontal: 9,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.22),
                                 borderRadius: BorderRadius.circular(6),
@@ -581,20 +656,37 @@ class _ReadinessBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (rc != null && rc.regimeDisplayName.isNotEmpty)
-            Row(
-              children: [
-                Icon(Icons.auto_graph_rounded, size: 13, color: textColor.withValues(alpha: 0.7)),
-                const SizedBox(width: 6),
-                Text(
-                  rc.regimeDisplayName,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
-                    color: textColor.withValues(alpha: 0.7),
-                  ),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => context.push('/settings/regime'),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_graph_rounded,
+                      size: 13,
+                      color: textColor.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      rc.regimeDisplayName,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                        color: textColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 14,
+                      color: textColor.withValues(alpha: 0.6),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           if (rc != null && rc.sessionDescription.isNotEmpty) ...[
             const SizedBox(height: 2),
@@ -608,7 +700,8 @@ class _ReadinessBanner extends StatelessWidget {
             ),
           ],
           if (label.isNotEmpty) ...[
-            if (rc != null && rc.sessionDescription.isNotEmpty) const SizedBox(height: 6),
+            if (rc != null && rc.sessionDescription.isNotEmpty)
+              const SizedBox(height: 6),
             Row(
               children: [
                 Icon(icon, size: 14, color: textColor),
@@ -698,7 +791,11 @@ class _SectionHeader extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: header);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: header,
+      );
     }
     return header;
   }
@@ -771,6 +868,50 @@ class _GroupChip extends StatelessWidget {
     required this.onTap,
   });
 
+  List<WorkingSetSpec> _workingSetsForConfig(ExerciseTypeConfig cfg) {
+    if (cfg.workingSets.isNotEmpty) return cfg.workingSets;
+    final count = group.sets <= 0 ? 1 : group.sets;
+    return List.generate(
+      count,
+      (i) => WorkingSetSpec()
+        ..targetWeight = count <= 1
+            ? cfg.startWeight
+            : (cfg.startWeight +
+                  (i / (count - 1)) * (cfg.endWeight - cfg.startWeight))
+        ..targetReps = cfg.reps
+        ..isAmrap = cfg.lastSetAmrap && i == count - 1,
+    );
+  }
+
+  String _setPlanSummary() {
+    if (group.exerciseConfigs.isEmpty) return 'Set plan';
+    final allWorking = group.exerciseConfigs
+        .expand(_workingSetsForConfig)
+        .toList(growable: false);
+    if (allWorking.isEmpty) return 'Set plan';
+
+    final amrapCount = allWorking.where((s) => s.isAmrap).length;
+    final warmupsIncluded = group.exerciseConfigs.where((c) => c.includeWarmup).length;
+
+    if (group.exerciseConfigs.length == 1) {
+      final pattern = allWorking
+          .map((s) => s.isAmrap ? '${s.targetReps}+' : '${s.targetReps}')
+          .join(' / ');
+      final uniqueWeights = allWorking.map((s) => s.targetWeight).toSet().length;
+      final weightText = uniqueWeights > 1 ? 'ramped weights' : 'fixed weight';
+      final warmupText = warmupsIncluded > 0 ? ' • warmups' : '';
+      return '$pattern • ${allWorking.length} working sets • $weightText$warmupText';
+    }
+
+    final repSet = allWorking.map((s) => s.targetReps).toSet().toList()..sort();
+    final repText = repSet.length <= 3
+        ? repSet.join('/')
+        : '${repSet.first}-${repSet.last} reps';
+    final amrapText = amrapCount > 0 ? ' • $amrapCount AMRAP' : '';
+    final warmupText = warmupsIncluded > 0 ? ' • $warmupsIncluded warmups' : '';
+    return '${group.exerciseConfigs.length} exercises • ${allWorking.length} working sets • $repText reps$amrapText$warmupText';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -804,18 +945,19 @@ class _GroupChip extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        group.name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 12,
-                                          letterSpacing: -0.3,
-                                          height: 1.25,
-                                          color: isSelected
-                                              ? colorScheme.primary
-                                              : colorScheme.onSurface,
-                                        ),                        maxLines: 3,
+                    Expanded(
+                      child: Text(
+                        group.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: -0.3,
+                          height: 1.25,
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
+                        ),
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -847,15 +989,17 @@ class _GroupChip extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${group.sets}×${group.exerciseConfigs.first.reps}',
+              _setPlanSummary(),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
+                letterSpacing: -0.2,
                 color: isSelected
                     ? colorScheme.primary.withValues(alpha: 0.7)
                     : colorScheme.onSurface.withValues(alpha: 0.35),
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

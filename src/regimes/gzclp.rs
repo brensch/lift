@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
+    WorkingSetSpec,
 };
 use serde::{Deserialize, Serialize};
 
@@ -44,12 +45,58 @@ fn t2_stage_prescription(stage: u8) -> (i32, i32) {
     }
 }
 
+fn t1_phase_text(stage: u8) -> &'static str {
+    match stage {
+        1 => "Phase 1/3: 5×3 (last set AMRAP)",
+        2 => "Phase 2/3: 6×2 (last set AMRAP)",
+        _ => "Phase 3/3: 10×1 (no AMRAP)",
+    }
+}
+
+fn t2_phase_text(stage: u8) -> &'static str {
+    match stage {
+        1 => "Phase 1/3: 3×10",
+        2 => "Phase 2/3: 3×8",
+        _ => "Phase 3/3: 3×6",
+    }
+}
+
+fn repeated_working_sets(
+    sets: i32,
+    reps: i32,
+    weight: f32,
+    last_set_amrap: bool,
+) -> Vec<WorkingSetSpec> {
+    (0..sets.max(1))
+        .map(|idx| {
+            let is_last = idx == sets.max(1) - 1;
+            let is_amrap = last_set_amrap && is_last;
+            WorkingSetSpec {
+                target_weight: weight,
+                target_reps: reps,
+                is_amrap,
+                instruction: if is_amrap {
+                    "AMRAP — push for max reps".to_string()
+                } else {
+                    String::new()
+                },
+            }
+        })
+        .collect()
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GzclpState {
     /// exercise (as int32) → current stage (1/2/3)
+    #[serde(default)]
     pub stages: HashMap<i32, u8>,
+    /// exercise (as int32) → latest completed session timestamp already applied
+    /// to the stage machine. Prevents plan refresh from re-applying the same
+    /// success/failure result over and over.
+    #[serde(default)]
+    pub last_applied_session_ts: HashMap<i32, i64>,
 }
 
 impl GzclpState {
@@ -59,6 +106,17 @@ impl GzclpState {
 
     pub fn set_stage(&mut self, exercise: Exercise, stage: u8) {
         self.stages.insert(exercise as i32, stage.clamp(1, 3));
+    }
+
+    pub fn last_applied_ts_for(&self, exercise: Exercise) -> i64 {
+        *self
+            .last_applied_session_ts
+            .get(&(exercise as i32))
+            .unwrap_or(&0)
+    }
+
+    pub fn set_last_applied_ts(&mut self, exercise: Exercise, ts: i64) {
+        self.last_applied_session_ts.insert(exercise as i32, ts);
     }
 
     pub fn from_json(json: &str) -> Self {
@@ -187,7 +245,12 @@ impl WorkoutRegime for GzclpRegime {
             }
 
             let current_stage = state.stage_for(ex_int);
-            let last_success = hist[0].success;
+            let latest = &hist[0];
+            let latest_ts = latest.timestamp;
+            if latest_ts <= state.last_applied_ts_for(ex_int) {
+                continue;
+            }
+            let last_success = latest.success;
             let tier = exercise_tier(ex_int);
 
             let new_stage = match tier {
@@ -218,6 +281,7 @@ impl WorkoutRegime for GzclpRegime {
                 GzclTier::T3 => 1, // T3 has no stage machine
             };
             state.set_stage(ex_int, new_stage);
+            state.set_last_applied_ts(ex_int, latest_ts);
         }
 
         state.to_json()
@@ -320,7 +384,11 @@ fn t1_weight(
     if history.is_empty() {
         return (
             default_weight,
-            format!("T1 Stage {}: Starting at {} lbs.", stage, default_weight),
+            format!(
+                "GZCLP T1 {}. Start at {} lbs. No fixed week countdown: you stay in this phase until a failed session, then the next workout moves to the next phase.",
+                t1_phase_text(stage),
+                default_weight
+            ),
         );
     }
     let h = &history[0];
@@ -329,13 +397,18 @@ fn t1_weight(
         (
             new_w,
             format!(
-                "T1 Stage {}: Progressing {} → {} lbs after successful session.",
-                stage, h.weight, new_w
+                "GZCLP T1 {}. Successful session, so increase {} → {} lbs. Phase timing: stay here until you fail a session.",
+                t1_phase_text(stage),
+                h.weight,
+                new_w
             ),
         )
     } else {
-        // Failure — hold weight (stage change handled in compute_updated_state)
-        let stage_label = match stage {
+        // Failure — hold weight (stage change handled in compute_updated_state).
+        // `stage` here is the *next* stage after applying the failure, so derive the
+        // failed phase for the explanation from the transition.
+        let failed_stage = if stage <= 1 { 3 } else { stage - 1 };
+        let stage_label = match failed_stage {
             1 => "5×3",
             2 => "6×2",
             _ => "10×1",
@@ -343,8 +416,12 @@ fn t1_weight(
         (
             h.weight,
             format!(
-                "T1 Stage {} ({}): Holding {} lbs after failure — rep scheme shifted.",
-                stage, stage_label, h.weight
+                "GZCLP T1: Last session failed in Phase {} ({}) at {} lbs. Hold {} lbs. Next workout is {}.",
+                failed_stage,
+                stage_label,
+                h.weight,
+                h.weight,
+                t1_phase_text(stage)
             ),
         )
     }
@@ -361,7 +438,11 @@ fn t2_weight(
     if history.is_empty() {
         return (
             default_weight,
-            format!("T2 Stage {}: Starting at {} lbs.", stage, default_weight),
+            format!(
+                "GZCLP T2 {}. Start at {} lbs. No fixed week countdown: you stay in this phase until a failed session, then the next workout moves to the next phase.",
+                t2_phase_text(stage),
+                default_weight
+            ),
         );
     }
     let h = &history[0];
@@ -370,12 +451,15 @@ fn t2_weight(
         (
             new_w,
             format!(
-                "T2 Stage {}: Progressing {} → {} lbs.",
-                stage, h.weight, new_w
+                "GZCLP T2 {}. Successful session, so increase {} → {} lbs. Phase timing: stay here until you fail a session.",
+                t2_phase_text(stage),
+                h.weight,
+                new_w
             ),
         )
     } else {
-        let stage_label = match stage {
+        let failed_stage = if stage <= 1 { 3 } else { stage - 1 };
+        let stage_label = match failed_stage {
             1 => "3×10",
             2 => "3×8",
             _ => "3×6",
@@ -383,8 +467,12 @@ fn t2_weight(
         (
             h.weight,
             format!(
-                "T2 Stage {} ({}): Holding {} lbs — rep scheme shifted.",
-                stage, stage_label, h.weight
+                "GZCLP T2: Last session failed in Phase {} ({}) at {} lbs. Hold {} lbs. Next workout is {}.",
+                failed_stage,
+                stage_label,
+                h.weight,
+                h.weight,
+                t2_phase_text(stage)
             ),
         )
     }
@@ -397,7 +485,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         return (
             default_weight,
             format!(
-                "T3: Starting at {} lbs — 3×15, push AMRAP last set to 25+ reps to advance.",
+                "GZCLP T3 (accessory): Start at {} lbs. Do 3×15, then push the last set AMRAP. You only add weight when that last set reaches 25+ reps. No phase changes here.",
                 default_weight
             ),
         );
@@ -408,7 +496,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         (
             new_w,
             format!(
-                "T3: AMRAP hit {} reps (≥25) → +5 lbs. {} → {} lbs.",
+                "GZCLP T3: last set AMRAP hit {} reps (25+ target), so add weight: {} → {} lbs. No phase change; keep building reps at the new weight.",
                 h.last_set_reps, h.weight, new_w
             ),
         )
@@ -416,12 +504,18 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         (
             h.weight,
             format!(
-                "T3: AMRAP hit {} reps (need ≥25 to advance). Holding at {} lbs.",
+                "GZCLP T3: last set AMRAP hit {} reps (need 25+). Hold {} lbs and try to build reps next session. No phase change; target 25+ on the last set.",
                 h.last_set_reps, h.weight
             ),
         )
     } else {
-        (h.weight, format!("T3: Holding at {} lbs.", h.weight))
+        (
+            h.weight,
+            format!(
+                "GZCLP T3: Hold {} lbs. Progress is based on the last-set AMRAP hitting 25+ reps. No phase change; repeat the same T3 prescription.",
+                h.weight
+            ),
+        )
     }
 }
 
@@ -451,7 +545,7 @@ fn build_gzclp_proposed_groups(
                 include_warmup: true,
                 rest_config: None,
                 last_set_amrap,
-                working_sets: vec![],
+                working_sets: repeated_working_sets(sets, reps, s.target_weight, last_set_amrap),
             };
             groups.push(ProposedExerciseGroup {
                 name: exercise_display_name(ex),
@@ -492,7 +586,7 @@ fn build_gzclp_proposed_groups(
             include_warmup: true,
             rest_config: None,
             last_set_amrap: false,
-            working_sets: vec![],
+            working_sets: repeated_working_sets(sets, reps, s.target_weight, false),
         };
         let tags = if idx < 2 {
             vec!["recommended".to_string(), "T2".to_string()]
@@ -529,7 +623,7 @@ fn build_gzclp_proposed_groups(
                     include_warmup: true,
                     rest_config: None,
                     last_set_amrap: true,
-                    working_sets: vec![],
+                    working_sets: repeated_working_sets(3, 15, a.target_weight, true),
                 };
                 let cb = lift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_b as i32,
@@ -539,7 +633,7 @@ fn build_gzclp_proposed_groups(
                     include_warmup: false,
                     rest_config: None,
                     last_set_amrap: true,
-                    working_sets: vec![],
+                    working_sets: repeated_working_sets(3, 15, b.target_weight, true),
                 };
                 groups.push(ProposedExerciseGroup {
                     name: format!(
@@ -561,4 +655,44 @@ fn build_gzclp_proposed_groups(
     }
 
     groups
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compute_updated_state_is_idempotent_for_same_latest_session() {
+        let regime = GzclpRegime;
+        let mut history: HashMap<i32, Vec<SessionHistory>> = HashMap::new();
+        history.insert(
+            Exercise::Squat as i32,
+            vec![SessionHistory {
+                weight: 225.0,
+                success: false,
+                timestamp: 1_700_000_000,
+                last_set_reps: 2,
+            }],
+        );
+
+        let config = UserWorkoutConfig {
+            regime_type: 0,
+            days_per_week: 4,
+            one_rep_maxes: HashMap::new(),
+            regime_state_json: "{}".to_string(),
+        };
+
+        let state_once = regime.compute_updated_state(&config, &history);
+        let config2 = UserWorkoutConfig {
+            regime_state_json: state_once.clone(),
+            ..config
+        };
+        let state_twice = regime.compute_updated_state(&config2, &history);
+
+        let parsed_once = GzclpState::from_json(&state_once);
+        let parsed_twice = GzclpState::from_json(&state_twice);
+        assert_eq!(parsed_once.stage_for(Exercise::Squat), 2);
+        assert_eq!(parsed_twice.stage_for(Exercise::Squat), 2);
+        assert_eq!(state_once, state_twice);
+    }
 }

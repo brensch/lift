@@ -67,7 +67,11 @@ fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::Exe
             row.get::<Option<i32>, _>("rest_warmup"),
             row.get::<Option<i32>, _>("rest_last_warmup"),
         ),
-        instruction: String::new(), // not persisted; coaching text from regime
+        instruction: row
+            .try_get::<Option<String>, _>("instruction")
+            .ok()
+            .flatten()
+            .unwrap_or_default(),
         prescribed_by_regime: row
             .try_get::<Option<bool>, _>("prescribed_by_regime")
             .ok()
@@ -220,6 +224,7 @@ CREATE TABLE IF NOT EXISTS exercise_groups (
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    instruction TEXT NOT NULL DEFAULT '',
     sets INTEGER NOT NULL,
     interleave_warmups BOOLEAN NOT NULL,
     prescribed_by_regime BOOLEAN NOT NULL DEFAULT 0,
@@ -393,7 +398,6 @@ impl CentralDb {
         )
         .execute(&pool)
         .await;
-
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
         let db = Self {
             pool,
@@ -464,13 +468,14 @@ impl CentralDb {
                 }
                 WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
                     sqlx::query(
-                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, instruction, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&group.id)
                     .bind(user_id)
                     .bind(&group.workout_id)
                     .bind(&group.name)
+                    .bind(&group.instruction)
                     .bind(group.sets)
                     .bind(group.interleave_warmups)
                     .bind(group.prescribed_by_regime)
@@ -1154,7 +1159,7 @@ impl CentralDb {
     ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>>
     {
         let mut groups: Vec<lift::workout::v1::ExerciseGroup> = sqlx::query(
-            "SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+            "SELECT id, workout_id, name, instruction, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
              FROM exercise_groups WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
         )
         .bind(user_id)
@@ -1385,7 +1390,7 @@ impl CentralDb {
         let mut groups = sqlx::query(
             &format!(
                 "{} \
-                 SELECT id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
+                 SELECT id, workout_id, name, instruction, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
                  FROM exercise_groups \
                  WHERE workout_id IN (SELECT id FROM latest_workouts) \
                  ORDER BY workout_order",
@@ -1506,8 +1511,10 @@ impl CentralDb {
                     ) as last_set_reps,
                     ROW_NUMBER() OVER (PARTITION BY g_ps.exercise ORDER BY MAX(g_cs.ended_at) DESC) as rn
                 FROM proposed_sets g_ps
+                JOIN workouts w ON w.id = g_ps.workout_id AND w.user_id = g_ps.user_id
                 LEFT JOIN completed_sets g_cs ON g_ps.id = g_cs.proposed_set_id AND g_cs.ended_at > 0
                 WHERE g_ps.user_id = ? AND g_ps.warmup = 0 AND g_ps.cancelled = 0
+                  AND w.end_time IS NOT NULL AND w.end_time > 0
                 GROUP BY g_ps.exercise, g_ps.workout_id
                 HAVING ended_at IS NOT NULL
              ) WHERE rn <= ?",
@@ -1536,7 +1543,9 @@ impl CentralDb {
             "SELECT ps.exercise, MAX(cs.actual_weight) as max_weight
              FROM completed_sets cs
              JOIN proposed_sets ps ON cs.proposed_set_id = ps.id
+             JOIN workouts w ON w.id = ps.workout_id AND w.user_id = cs.user_id
              WHERE cs.user_id = ? AND cs.ended_at > 0 AND ps.warmup = 0 AND ps.cancelled = 0
+             AND w.end_time IS NOT NULL AND w.end_time > 0
              AND cs.actual_reps >= ps.target_reps
              GROUP BY ps.exercise",
         )
@@ -1650,13 +1659,14 @@ impl CentralDb {
         // Batch inserts for groups
         if !exercise_groups.is_empty() {
             let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, instruction, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
             );
             query_builder.push_values(exercise_groups, |mut b, group| {
                 b.push_bind(&group.id)
                     .push_bind(user_id)
                     .push_bind(&group.workout_id)
                     .push_bind(&group.name)
+                    .push_bind(&group.instruction)
                     .push_bind(group.sets)
                     .push_bind(group.interleave_warmups)
                     .push_bind(group.prescribed_by_regime)
