@@ -161,6 +161,7 @@ impl WorkoutRegime for GzclpRegime {
         history: &[SessionHistory],
         max_weight: f32,
         workout_config: &UserWorkoutConfig,
+        _now_ts: i64,
     ) -> ExerciseProposal {
         let state = GzclpState::from_json(&workout_config.regime_state_json);
         let current_stage = state.stage_for(exercise);

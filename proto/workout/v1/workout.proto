@@ -120,6 +120,7 @@ message CompletedSet {
 message StartWorkoutRequest {
   string name = 1;
   repeated ExerciseGroup exercise_groups = 2;
+  int64 started_at = 3; // Unix seconds; if 0, server uses current time
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -239,6 +240,8 @@ message StartSetRequest {
 
   string proposed_set_id = 2;
 
+  int64 started_at = 3; // Unix seconds; if 0, server uses current time
+
 }
 
 message StartSetResponse {
@@ -308,6 +311,8 @@ message EndWorkoutRequest {
 
   string workout_id = 1;
 
+  int64 ended_at = 2; // Unix seconds; if 0, server uses current time
+
 }
 
 message EndWorkoutResponse {
@@ -319,9 +324,8 @@ message EndWorkoutResponse {
 
 
 message GetProposedWorkoutScheduleRequest {
-
   string user_id = 1;
-
+  int64 at_time = 2; // Unix seconds; if 0, server uses current time (for testing)
 }
 
 

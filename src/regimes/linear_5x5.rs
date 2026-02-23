@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
 };
@@ -87,12 +86,14 @@ impl WorkoutRegime for Linear5x5Regime {
         history: &[SessionHistory],
         max_weight: f32,
         _workout_config: &UserWorkoutConfig,
+        now_ts: i64,
     ) -> ExerciseProposal {
         let (weight, explanation) = calculate_linear_progression(
             exercise as i32,
             config.default_weight,
             history,
             max_weight,
+            now_ts,
         );
         ExerciseProposal {
             weight,
@@ -168,6 +169,7 @@ pub fn calculate_linear_progression(
     default_weight: f32,
     history: &[SessionHistory], // newest-first
     max_weight: f32,
+    now_ts: i64,
 ) -> (f32, String) {
     if history.is_empty() {
         return (
@@ -180,8 +182,7 @@ pub fn calculate_linear_progression(
     }
 
     let h = &history[0];
-    let now = Utc::now().timestamp();
-    let days_since = (now - h.timestamp) / (24 * 3600);
+    let days_since = (now_ts - h.timestamp) / (24 * 3600);
 
     let increment = if exercise == Exercise::Deadlift as i32 {
         DEADLIFT_INCREMENT

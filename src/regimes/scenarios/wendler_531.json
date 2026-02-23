@@ -1,0 +1,267 @@
+{
+  "description": "Wendler 5/3/1 full 4-week cycle with all 4 main lifts",
+  "regime_config": {
+    "regime_type": "wendler_531",
+    "days_per_week": 4,
+    "one_rep_maxes": {
+      "squat": 225.0,
+      "bench_press": 185.0,
+      "deadlift": 275.0,
+      "overhead_press": 135.0
+    }
+  },
+  "workouts": [
+    {
+      "note": "Week 1 Workout 1: All 4 lifts at 65/75/85% TM (5-rep sets)",
+      "get_proposed": {
+        "at": "2024-01-01T09:00:00Z",
+        "expect": {
+          "is_ready": true
+        }
+      },
+      "start": { "at": "2024-01-01T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W1 set1 at 130", "exercise": "squat", "target_reps": 5, "target_weight": 130.0, "start_at": "2024-01-01T09:10:00Z", "end_at": "2024-01-01T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 set2 at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-01T09:15:00Z", "end_at": "2024-01-01T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 AMRAP at 170", "exercise": "squat", "target_reps": 5, "target_weight": 170.0, "start_at": "2024-01-01T09:20:00Z", "end_at": "2024-01-01T09:21:00Z", "actual_reps": 8 },
+        { "note": "Bench W1 set1 at 110", "exercise": "bench_press", "target_reps": 5, "target_weight": 110.0, "start_at": "2024-01-01T09:30:00Z", "end_at": "2024-01-01T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 set2 at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-01T09:35:00Z", "end_at": "2024-01-01T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 AMRAP at 140", "exercise": "bench_press", "target_reps": 5, "target_weight": 140.0, "start_at": "2024-01-01T09:40:00Z", "end_at": "2024-01-01T09:41:00Z", "actual_reps": 9 },
+        { "note": "Deadlift W1 set1 at 160", "exercise": "deadlift", "target_reps": 5, "target_weight": 160.0, "start_at": "2024-01-01T09:50:00Z", "end_at": "2024-01-01T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 set2 at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-01T09:55:00Z", "end_at": "2024-01-01T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 AMRAP at 210", "exercise": "deadlift", "target_reps": 5, "target_weight": 210.0, "start_at": "2024-01-01T10:00:00Z", "end_at": "2024-01-01T10:01:00Z", "actual_reps": 7 },
+        { "note": "OHP W1 set1 at 80", "exercise": "overhead_press", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-01T10:10:00Z", "end_at": "2024-01-01T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 set2 at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-01T10:15:00Z", "end_at": "2024-01-01T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 AMRAP at 105", "exercise": "overhead_press", "target_reps": 5, "target_weight": 105.0, "start_at": "2024-01-01T10:20:00Z", "end_at": "2024-01-01T10:21:00Z", "actual_reps": 7 }
+      ],
+      "end": { "at": "2024-01-01T11:00:00Z" }
+    },
+    {
+      "note": "Week 1 Workout 2: second session (still week 1)",
+      "start": { "at": "2024-01-03T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W1 set1 at 130", "exercise": "squat", "target_reps": 5, "target_weight": 130.0, "start_at": "2024-01-03T09:10:00Z", "end_at": "2024-01-03T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 set2 at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-03T09:15:00Z", "end_at": "2024-01-03T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 AMRAP at 170", "exercise": "squat", "target_reps": 5, "target_weight": 170.0, "start_at": "2024-01-03T09:20:00Z", "end_at": "2024-01-03T09:21:00Z", "actual_reps": 6 },
+        { "note": "Bench W1 set1 at 110", "exercise": "bench_press", "target_reps": 5, "target_weight": 110.0, "start_at": "2024-01-03T09:30:00Z", "end_at": "2024-01-03T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 set2 at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-03T09:35:00Z", "end_at": "2024-01-03T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 AMRAP at 140", "exercise": "bench_press", "target_reps": 5, "target_weight": 140.0, "start_at": "2024-01-03T09:40:00Z", "end_at": "2024-01-03T09:41:00Z", "actual_reps": 8 },
+        { "note": "Deadlift W1 set1 at 160", "exercise": "deadlift", "target_reps": 5, "target_weight": 160.0, "start_at": "2024-01-03T09:50:00Z", "end_at": "2024-01-03T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 set2 at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-03T09:55:00Z", "end_at": "2024-01-03T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 AMRAP at 210", "exercise": "deadlift", "target_reps": 5, "target_weight": 210.0, "start_at": "2024-01-03T10:00:00Z", "end_at": "2024-01-03T10:01:00Z", "actual_reps": 6 },
+        { "note": "OHP W1 set1 at 80", "exercise": "overhead_press", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-03T10:10:00Z", "end_at": "2024-01-03T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 set2 at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-03T10:15:00Z", "end_at": "2024-01-03T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 AMRAP at 105", "exercise": "overhead_press", "target_reps": 5, "target_weight": 105.0, "start_at": "2024-01-03T10:20:00Z", "end_at": "2024-01-03T10:21:00Z", "actual_reps": 6 }
+      ],
+      "end": { "at": "2024-01-03T11:00:00Z" }
+    },
+    {
+      "note": "Week 1 Workout 3: third session (still week 1, transitions to week 2 after this)",
+      "start": { "at": "2024-01-05T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W1 set1 at 130", "exercise": "squat", "target_reps": 5, "target_weight": 130.0, "start_at": "2024-01-05T09:10:00Z", "end_at": "2024-01-05T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 set2 at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-05T09:15:00Z", "end_at": "2024-01-05T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat W1 AMRAP at 170", "exercise": "squat", "target_reps": 5, "target_weight": 170.0, "start_at": "2024-01-05T09:20:00Z", "end_at": "2024-01-05T09:21:00Z", "actual_reps": 7 },
+        { "note": "Bench W1 set1 at 110", "exercise": "bench_press", "target_reps": 5, "target_weight": 110.0, "start_at": "2024-01-05T09:30:00Z", "end_at": "2024-01-05T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 set2 at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-05T09:35:00Z", "end_at": "2024-01-05T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench W1 AMRAP at 140", "exercise": "bench_press", "target_reps": 5, "target_weight": 140.0, "start_at": "2024-01-05T09:40:00Z", "end_at": "2024-01-05T09:41:00Z", "actual_reps": 7 },
+        { "note": "Deadlift W1 set1 at 160", "exercise": "deadlift", "target_reps": 5, "target_weight": 160.0, "start_at": "2024-01-05T09:50:00Z", "end_at": "2024-01-05T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 set2 at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-05T09:55:00Z", "end_at": "2024-01-05T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W1 AMRAP at 210", "exercise": "deadlift", "target_reps": 5, "target_weight": 210.0, "start_at": "2024-01-05T10:00:00Z", "end_at": "2024-01-05T10:01:00Z", "actual_reps": 8 },
+        { "note": "OHP W1 set1 at 80", "exercise": "overhead_press", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-05T10:10:00Z", "end_at": "2024-01-05T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 set2 at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-05T10:15:00Z", "end_at": "2024-01-05T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP W1 AMRAP at 105", "exercise": "overhead_press", "target_reps": 5, "target_weight": 105.0, "start_at": "2024-01-05T10:20:00Z", "end_at": "2024-01-05T10:21:00Z", "actual_reps": 8 }
+      ],
+      "end": { "at": "2024-01-05T11:00:00Z" }
+    },
+    {
+      "note": "Week 2 Workout 1: 3-rep sets at 70/80/90% TM",
+      "get_proposed": {
+        "at": "2024-01-08T09:00:00Z",
+        "expect": {
+          "is_ready": true
+        }
+      },
+      "start": { "at": "2024-01-08T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W2 set1 at 140", "exercise": "squat", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-08T09:10:00Z", "end_at": "2024-01-08T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 set2 at 160", "exercise": "squat", "target_reps": 3, "target_weight": 160.0, "start_at": "2024-01-08T09:15:00Z", "end_at": "2024-01-08T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 AMRAP at 180", "exercise": "squat", "target_reps": 3, "target_weight": 180.0, "start_at": "2024-01-08T09:20:00Z", "end_at": "2024-01-08T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench W2 set1 at 115", "exercise": "bench_press", "target_reps": 3, "target_weight": 115.0, "start_at": "2024-01-08T09:30:00Z", "end_at": "2024-01-08T09:31:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 set2 at 135", "exercise": "bench_press", "target_reps": 3, "target_weight": 135.0, "start_at": "2024-01-08T09:35:00Z", "end_at": "2024-01-08T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 AMRAP at 150", "exercise": "bench_press", "target_reps": 3, "target_weight": 150.0, "start_at": "2024-01-08T09:40:00Z", "end_at": "2024-01-08T09:41:00Z", "actual_reps": 6 },
+        { "note": "Deadlift W2 set1 at 175", "exercise": "deadlift", "target_reps": 3, "target_weight": 175.0, "start_at": "2024-01-08T09:50:00Z", "end_at": "2024-01-08T09:51:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 set2 at 200", "exercise": "deadlift", "target_reps": 3, "target_weight": 200.0, "start_at": "2024-01-08T09:55:00Z", "end_at": "2024-01-08T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 AMRAP at 225", "exercise": "deadlift", "target_reps": 3, "target_weight": 225.0, "start_at": "2024-01-08T10:00:00Z", "end_at": "2024-01-08T10:01:00Z", "actual_reps": 5 },
+        { "note": "OHP W2 set1 at 85", "exercise": "overhead_press", "target_reps": 3, "target_weight": 85.0, "start_at": "2024-01-08T10:10:00Z", "end_at": "2024-01-08T10:11:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 set2 at 95", "exercise": "overhead_press", "target_reps": 3, "target_weight": 95.0, "start_at": "2024-01-08T10:15:00Z", "end_at": "2024-01-08T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 AMRAP at 110", "exercise": "overhead_press", "target_reps": 3, "target_weight": 110.0, "start_at": "2024-01-08T10:20:00Z", "end_at": "2024-01-08T10:21:00Z", "actual_reps": 5 }
+      ],
+      "end": { "at": "2024-01-08T11:00:00Z" }
+    },
+    {
+      "note": "Week 2 Workout 2",
+      "start": { "at": "2024-01-10T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W2 set1 at 140", "exercise": "squat", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-10T09:10:00Z", "end_at": "2024-01-10T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 set2 at 160", "exercise": "squat", "target_reps": 3, "target_weight": 160.0, "start_at": "2024-01-10T09:15:00Z", "end_at": "2024-01-10T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 AMRAP at 180", "exercise": "squat", "target_reps": 3, "target_weight": 180.0, "start_at": "2024-01-10T09:20:00Z", "end_at": "2024-01-10T09:21:00Z", "actual_reps": 4 },
+        { "note": "Bench W2 set1 at 115", "exercise": "bench_press", "target_reps": 3, "target_weight": 115.0, "start_at": "2024-01-10T09:30:00Z", "end_at": "2024-01-10T09:31:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 set2 at 135", "exercise": "bench_press", "target_reps": 3, "target_weight": 135.0, "start_at": "2024-01-10T09:35:00Z", "end_at": "2024-01-10T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 AMRAP at 150", "exercise": "bench_press", "target_reps": 3, "target_weight": 150.0, "start_at": "2024-01-10T09:40:00Z", "end_at": "2024-01-10T09:41:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W2 set1 at 175", "exercise": "deadlift", "target_reps": 3, "target_weight": 175.0, "start_at": "2024-01-10T09:50:00Z", "end_at": "2024-01-10T09:51:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 set2 at 200", "exercise": "deadlift", "target_reps": 3, "target_weight": 200.0, "start_at": "2024-01-10T09:55:00Z", "end_at": "2024-01-10T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 AMRAP at 225", "exercise": "deadlift", "target_reps": 3, "target_weight": 225.0, "start_at": "2024-01-10T10:00:00Z", "end_at": "2024-01-10T10:01:00Z", "actual_reps": 4 },
+        { "note": "OHP W2 set1 at 85", "exercise": "overhead_press", "target_reps": 3, "target_weight": 85.0, "start_at": "2024-01-10T10:10:00Z", "end_at": "2024-01-10T10:11:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 set2 at 95", "exercise": "overhead_press", "target_reps": 3, "target_weight": 95.0, "start_at": "2024-01-10T10:15:00Z", "end_at": "2024-01-10T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 AMRAP at 110", "exercise": "overhead_press", "target_reps": 3, "target_weight": 110.0, "start_at": "2024-01-10T10:20:00Z", "end_at": "2024-01-10T10:21:00Z", "actual_reps": 4 }
+      ],
+      "end": { "at": "2024-01-10T11:00:00Z" }
+    },
+    {
+      "note": "Week 2 Workout 3: transitions to week 3 after this",
+      "start": { "at": "2024-01-12T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W2 set1 at 140", "exercise": "squat", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-12T09:10:00Z", "end_at": "2024-01-12T09:11:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 set2 at 160", "exercise": "squat", "target_reps": 3, "target_weight": 160.0, "start_at": "2024-01-12T09:15:00Z", "end_at": "2024-01-12T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W2 AMRAP at 180", "exercise": "squat", "target_reps": 3, "target_weight": 180.0, "start_at": "2024-01-12T09:20:00Z", "end_at": "2024-01-12T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench W2 set1 at 115", "exercise": "bench_press", "target_reps": 3, "target_weight": 115.0, "start_at": "2024-01-12T09:30:00Z", "end_at": "2024-01-12T09:31:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 set2 at 135", "exercise": "bench_press", "target_reps": 3, "target_weight": 135.0, "start_at": "2024-01-12T09:35:00Z", "end_at": "2024-01-12T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W2 AMRAP at 150", "exercise": "bench_press", "target_reps": 3, "target_weight": 150.0, "start_at": "2024-01-12T09:40:00Z", "end_at": "2024-01-12T09:41:00Z", "actual_reps": 4 },
+        { "note": "Deadlift W2 set1 at 175", "exercise": "deadlift", "target_reps": 3, "target_weight": 175.0, "start_at": "2024-01-12T09:50:00Z", "end_at": "2024-01-12T09:51:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 set2 at 200", "exercise": "deadlift", "target_reps": 3, "target_weight": 200.0, "start_at": "2024-01-12T09:55:00Z", "end_at": "2024-01-12T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W2 AMRAP at 225", "exercise": "deadlift", "target_reps": 3, "target_weight": 225.0, "start_at": "2024-01-12T10:00:00Z", "end_at": "2024-01-12T10:01:00Z", "actual_reps": 5 },
+        { "note": "OHP W2 set1 at 85", "exercise": "overhead_press", "target_reps": 3, "target_weight": 85.0, "start_at": "2024-01-12T10:10:00Z", "end_at": "2024-01-12T10:11:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 set2 at 95", "exercise": "overhead_press", "target_reps": 3, "target_weight": 95.0, "start_at": "2024-01-12T10:15:00Z", "end_at": "2024-01-12T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W2 AMRAP at 110", "exercise": "overhead_press", "target_reps": 3, "target_weight": 110.0, "start_at": "2024-01-12T10:20:00Z", "end_at": "2024-01-12T10:21:00Z", "actual_reps": 5 }
+      ],
+      "end": { "at": "2024-01-12T11:00:00Z" }
+    },
+    {
+      "note": "Week 3 Workout 1: 5/3/1 reps at 75/85/95% TM (last set AMRAP)",
+      "get_proposed": {
+        "at": "2024-01-15T11:00:00Z",
+        "expect": {
+          "is_ready": true
+        }
+      },
+      "start": { "at": "2024-01-15T11:05:00Z" },
+      "sets": [
+        { "note": "Squat W3 5-rep at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-15T09:10:00Z", "end_at": "2024-01-15T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W3 3-rep at 170", "exercise": "squat", "target_reps": 3, "target_weight": 170.0, "start_at": "2024-01-15T09:15:00Z", "end_at": "2024-01-15T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W3 AMRAP at 190", "exercise": "squat", "target_reps": 1, "target_weight": 190.0, "start_at": "2024-01-15T09:20:00Z", "end_at": "2024-01-15T09:21:00Z", "actual_reps": 4 },
+        { "note": "Bench W3 5-rep at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-15T09:30:00Z", "end_at": "2024-01-15T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W3 3-rep at 140", "exercise": "bench_press", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-15T09:35:00Z", "end_at": "2024-01-15T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W3 AMRAP at 160", "exercise": "bench_press", "target_reps": 1, "target_weight": 160.0, "start_at": "2024-01-15T09:40:00Z", "end_at": "2024-01-15T09:41:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W3 5-rep at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-15T09:50:00Z", "end_at": "2024-01-15T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W3 3-rep at 210", "exercise": "deadlift", "target_reps": 3, "target_weight": 210.0, "start_at": "2024-01-15T09:55:00Z", "end_at": "2024-01-15T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W3 AMRAP at 235", "exercise": "deadlift", "target_reps": 1, "target_weight": 235.0, "start_at": "2024-01-15T10:00:00Z", "end_at": "2024-01-15T10:01:00Z", "actual_reps": 3 },
+        { "note": "OHP W3 5-rep at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-15T10:10:00Z", "end_at": "2024-01-15T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W3 3-rep at 105", "exercise": "overhead_press", "target_reps": 3, "target_weight": 105.0, "start_at": "2024-01-15T10:15:00Z", "end_at": "2024-01-15T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W3 AMRAP at 115", "exercise": "overhead_press", "target_reps": 1, "target_weight": 115.0, "start_at": "2024-01-15T10:20:00Z", "end_at": "2024-01-15T10:21:00Z", "actual_reps": 3 }
+      ],
+      "end": { "at": "2024-01-15T11:00:00Z" }
+    },
+    {
+      "note": "Week 3 Workout 2",
+      "start": { "at": "2024-01-17T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W3 5-rep at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-17T09:10:00Z", "end_at": "2024-01-17T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W3 3-rep at 170", "exercise": "squat", "target_reps": 3, "target_weight": 170.0, "start_at": "2024-01-17T09:15:00Z", "end_at": "2024-01-17T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W3 AMRAP at 190", "exercise": "squat", "target_reps": 1, "target_weight": 190.0, "start_at": "2024-01-17T09:20:00Z", "end_at": "2024-01-17T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench W3 5-rep at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-17T09:30:00Z", "end_at": "2024-01-17T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W3 3-rep at 140", "exercise": "bench_press", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-17T09:35:00Z", "end_at": "2024-01-17T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W3 AMRAP at 160", "exercise": "bench_press", "target_reps": 1, "target_weight": 160.0, "start_at": "2024-01-17T09:40:00Z", "end_at": "2024-01-17T09:41:00Z", "actual_reps": 4 },
+        { "note": "Deadlift W3 5-rep at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-17T09:50:00Z", "end_at": "2024-01-17T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W3 3-rep at 210", "exercise": "deadlift", "target_reps": 3, "target_weight": 210.0, "start_at": "2024-01-17T09:55:00Z", "end_at": "2024-01-17T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W3 AMRAP at 235", "exercise": "deadlift", "target_reps": 1, "target_weight": 235.0, "start_at": "2024-01-17T10:00:00Z", "end_at": "2024-01-17T10:01:00Z", "actual_reps": 4 },
+        { "note": "OHP W3 5-rep at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-17T10:10:00Z", "end_at": "2024-01-17T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W3 3-rep at 105", "exercise": "overhead_press", "target_reps": 3, "target_weight": 105.0, "start_at": "2024-01-17T10:15:00Z", "end_at": "2024-01-17T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W3 AMRAP at 115", "exercise": "overhead_press", "target_reps": 1, "target_weight": 115.0, "start_at": "2024-01-17T10:20:00Z", "end_at": "2024-01-17T10:21:00Z", "actual_reps": 4 }
+      ],
+      "end": { "at": "2024-01-17T11:00:00Z" }
+    },
+    {
+      "note": "Week 3 Workout 3: transitions to week 4 after this",
+      "start": { "at": "2024-01-19T09:05:00Z" },
+      "sets": [
+        { "note": "Squat W3 5-rep at 150", "exercise": "squat", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-19T09:10:00Z", "end_at": "2024-01-19T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat W3 3-rep at 170", "exercise": "squat", "target_reps": 3, "target_weight": 170.0, "start_at": "2024-01-19T09:15:00Z", "end_at": "2024-01-19T09:16:00Z", "actual_reps": 3 },
+        { "note": "Squat W3 AMRAP at 190", "exercise": "squat", "target_reps": 1, "target_weight": 190.0, "start_at": "2024-01-19T09:20:00Z", "end_at": "2024-01-19T09:21:00Z", "actual_reps": 3 },
+        { "note": "Bench W3 5-rep at 125", "exercise": "bench_press", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-19T09:30:00Z", "end_at": "2024-01-19T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench W3 3-rep at 140", "exercise": "bench_press", "target_reps": 3, "target_weight": 140.0, "start_at": "2024-01-19T09:35:00Z", "end_at": "2024-01-19T09:36:00Z", "actual_reps": 3 },
+        { "note": "Bench W3 AMRAP at 160", "exercise": "bench_press", "target_reps": 1, "target_weight": 160.0, "start_at": "2024-01-19T09:40:00Z", "end_at": "2024-01-19T09:41:00Z", "actual_reps": 2 },
+        { "note": "Deadlift W3 5-rep at 185", "exercise": "deadlift", "target_reps": 5, "target_weight": 185.0, "start_at": "2024-01-19T09:50:00Z", "end_at": "2024-01-19T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift W3 3-rep at 210", "exercise": "deadlift", "target_reps": 3, "target_weight": 210.0, "start_at": "2024-01-19T09:55:00Z", "end_at": "2024-01-19T09:56:00Z", "actual_reps": 3 },
+        { "note": "Deadlift W3 AMRAP at 235", "exercise": "deadlift", "target_reps": 1, "target_weight": 235.0, "start_at": "2024-01-19T10:00:00Z", "end_at": "2024-01-19T10:01:00Z", "actual_reps": 2 },
+        { "note": "OHP W3 5-rep at 90", "exercise": "overhead_press", "target_reps": 5, "target_weight": 90.0, "start_at": "2024-01-19T10:10:00Z", "end_at": "2024-01-19T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP W3 3-rep at 105", "exercise": "overhead_press", "target_reps": 3, "target_weight": 105.0, "start_at": "2024-01-19T10:15:00Z", "end_at": "2024-01-19T10:16:00Z", "actual_reps": 3 },
+        { "note": "OHP W3 AMRAP at 115", "exercise": "overhead_press", "target_reps": 1, "target_weight": 115.0, "start_at": "2024-01-19T10:20:00Z", "end_at": "2024-01-19T10:21:00Z", "actual_reps": 2 }
+      ],
+      "end": { "at": "2024-01-19T11:00:00Z" }
+    },
+    {
+      "note": "Week 4 Deload Workout 1: 5-rep sets at 40/50/60% TM (no AMRAP)",
+      "get_proposed": {
+        "at": "2024-01-22T11:00:00Z",
+        "expect": {
+          "is_ready": true
+        }
+      },
+      "start": { "at": "2024-01-22T11:05:00Z" },
+      "sets": [
+        { "note": "Squat Deload set1 at 80", "exercise": "squat", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-22T09:10:00Z", "end_at": "2024-01-22T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set2 at 100", "exercise": "squat", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-22T09:15:00Z", "end_at": "2024-01-22T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set3 at 120", "exercise": "squat", "target_reps": 5, "target_weight": 120.0, "start_at": "2024-01-22T09:20:00Z", "end_at": "2024-01-22T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set1 at 65", "exercise": "bench_press", "target_reps": 5, "target_weight": 65.0, "start_at": "2024-01-22T09:30:00Z", "end_at": "2024-01-22T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set2 at 85", "exercise": "bench_press", "target_reps": 5, "target_weight": 85.0, "start_at": "2024-01-22T09:35:00Z", "end_at": "2024-01-22T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set3 at 100", "exercise": "bench_press", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-22T09:40:00Z", "end_at": "2024-01-22T09:41:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set1 at 100", "exercise": "deadlift", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-22T09:50:00Z", "end_at": "2024-01-22T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set2 at 125", "exercise": "deadlift", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-22T09:55:00Z", "end_at": "2024-01-22T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set3 at 150", "exercise": "deadlift", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-22T10:00:00Z", "end_at": "2024-01-22T10:01:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set1 at 50", "exercise": "overhead_press", "target_reps": 5, "target_weight": 50.0, "start_at": "2024-01-22T10:10:00Z", "end_at": "2024-01-22T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set2 at 60", "exercise": "overhead_press", "target_reps": 5, "target_weight": 60.0, "start_at": "2024-01-22T10:15:00Z", "end_at": "2024-01-22T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set3 at 75", "exercise": "overhead_press", "target_reps": 5, "target_weight": 75.0, "start_at": "2024-01-22T10:20:00Z", "end_at": "2024-01-22T10:21:00Z", "actual_reps": 5 }
+      ],
+      "end": { "at": "2024-01-22T11:00:00Z" }
+    },
+    {
+      "note": "Week 4 Deload Workout 2",
+      "start": { "at": "2024-01-24T09:05:00Z" },
+      "sets": [
+        { "note": "Squat Deload set1 at 80", "exercise": "squat", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-24T09:10:00Z", "end_at": "2024-01-24T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set2 at 100", "exercise": "squat", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-24T09:15:00Z", "end_at": "2024-01-24T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set3 at 120", "exercise": "squat", "target_reps": 5, "target_weight": 120.0, "start_at": "2024-01-24T09:20:00Z", "end_at": "2024-01-24T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set1 at 65", "exercise": "bench_press", "target_reps": 5, "target_weight": 65.0, "start_at": "2024-01-24T09:30:00Z", "end_at": "2024-01-24T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set2 at 85", "exercise": "bench_press", "target_reps": 5, "target_weight": 85.0, "start_at": "2024-01-24T09:35:00Z", "end_at": "2024-01-24T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set3 at 100", "exercise": "bench_press", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-24T09:40:00Z", "end_at": "2024-01-24T09:41:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set1 at 100", "exercise": "deadlift", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-24T09:50:00Z", "end_at": "2024-01-24T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set2 at 125", "exercise": "deadlift", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-24T09:55:00Z", "end_at": "2024-01-24T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set3 at 150", "exercise": "deadlift", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-24T10:00:00Z", "end_at": "2024-01-24T10:01:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set1 at 50", "exercise": "overhead_press", "target_reps": 5, "target_weight": 50.0, "start_at": "2024-01-24T10:10:00Z", "end_at": "2024-01-24T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set2 at 60", "exercise": "overhead_press", "target_reps": 5, "target_weight": 60.0, "start_at": "2024-01-24T10:15:00Z", "end_at": "2024-01-24T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set3 at 75", "exercise": "overhead_press", "target_reps": 5, "target_weight": 75.0, "start_at": "2024-01-24T10:20:00Z", "end_at": "2024-01-24T10:21:00Z", "actual_reps": 5 }
+      ],
+      "end": { "at": "2024-01-24T11:00:00Z" }
+    },
+    {
+      "note": "Week 4 Deload Workout 3: completes cycle 1, transitions to cycle 2 week 1",
+      "start": { "at": "2024-01-26T09:05:00Z" },
+      "sets": [
+        { "note": "Squat Deload set1 at 80", "exercise": "squat", "target_reps": 5, "target_weight": 80.0, "start_at": "2024-01-26T09:10:00Z", "end_at": "2024-01-26T09:11:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set2 at 100", "exercise": "squat", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-26T09:15:00Z", "end_at": "2024-01-26T09:16:00Z", "actual_reps": 5 },
+        { "note": "Squat Deload set3 at 120", "exercise": "squat", "target_reps": 5, "target_weight": 120.0, "start_at": "2024-01-26T09:20:00Z", "end_at": "2024-01-26T09:21:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set1 at 65", "exercise": "bench_press", "target_reps": 5, "target_weight": 65.0, "start_at": "2024-01-26T09:30:00Z", "end_at": "2024-01-26T09:31:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set2 at 85", "exercise": "bench_press", "target_reps": 5, "target_weight": 85.0, "start_at": "2024-01-26T09:35:00Z", "end_at": "2024-01-26T09:36:00Z", "actual_reps": 5 },
+        { "note": "Bench Deload set3 at 100", "exercise": "bench_press", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-26T09:40:00Z", "end_at": "2024-01-26T09:41:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set1 at 100", "exercise": "deadlift", "target_reps": 5, "target_weight": 100.0, "start_at": "2024-01-26T09:50:00Z", "end_at": "2024-01-26T09:51:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set2 at 125", "exercise": "deadlift", "target_reps": 5, "target_weight": 125.0, "start_at": "2024-01-26T09:55:00Z", "end_at": "2024-01-26T09:56:00Z", "actual_reps": 5 },
+        { "note": "Deadlift Deload set3 at 150", "exercise": "deadlift", "target_reps": 5, "target_weight": 150.0, "start_at": "2024-01-26T10:00:00Z", "end_at": "2024-01-26T10:01:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set1 at 50", "exercise": "overhead_press", "target_reps": 5, "target_weight": 50.0, "start_at": "2024-01-26T10:10:00Z", "end_at": "2024-01-26T10:11:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set2 at 60", "exercise": "overhead_press", "target_reps": 5, "target_weight": 60.0, "start_at": "2024-01-26T10:15:00Z", "end_at": "2024-01-26T10:16:00Z", "actual_reps": 5 },
+        { "note": "OHP Deload set3 at 75", "exercise": "overhead_press", "target_reps": 5, "target_weight": 75.0, "start_at": "2024-01-26T10:20:00Z", "end_at": "2024-01-26T10:21:00Z", "actual_reps": 5 }
+      ],
+      "end": { "at": "2024-01-26T11:00:00Z" }
+    }
+  ]
+}

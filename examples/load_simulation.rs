@@ -341,6 +341,7 @@ async fn run_user_simulation(
             &stats,
             GetProposedWorkoutScheduleRequest {
                 user_id: user_id.clone(),
+                at_time: 0,
             },
             "GetProposedSchedule",
         )
@@ -357,6 +358,7 @@ async fn run_user_simulation(
             StartWorkoutRequest {
                 name: "Simulated Workout".to_string(),
                 exercise_groups: vec![],
+                started_at: 0,
             },
             "StartWorkout",
         )
@@ -412,6 +414,7 @@ async fn run_user_simulation(
                     StartSetRequest {
                         workout_id: workout_id.clone(),
                         proposed_set_id: p_set.id.clone(),
+                        started_at: 0,
                     },
                     "StartSet",
                 )
@@ -456,6 +459,7 @@ async fn run_user_simulation(
             &stats,
             EndWorkoutRequest {
                 workout_id: workout_id.clone(),
+                ended_at: 0,
             },
             "EndWorkout",
         )
