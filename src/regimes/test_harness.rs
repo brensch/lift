@@ -3,6 +3,7 @@
 /// Runs JSON scenario files end-to-end against the real scheduler + DB logic.
 /// Each scenario describes a series of workouts with expected weights/reps/sets.
 use std::collections::HashMap;
+use std::env;
 
 use chrono::DateTime;
 use lift::workout::v1::{
@@ -10,7 +11,8 @@ use lift::workout::v1::{
     user_setting, Workout,
 };
 use prost::Message;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::db::CentralDb;
@@ -58,15 +60,48 @@ struct ProposedExpect {
     #[serde(default = "default_true")]
     exact_groups: bool,
     #[serde(default)]
+    exact_group_order: bool,
+    #[serde(default)]
     groups: Vec<GroupExpect>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct GroupExpect {
     name: String,
     sets: i32,
     reps: i32,
     weight: f32,
+    #[serde(default)]
+    interleave_warmups: Option<bool>,
+    #[serde(default)]
+    prescribed_by_regime: Option<bool>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    rest_after_success: Option<i32>,
+    #[serde(default)]
+    rest_after_failure: Option<i32>,
+    #[serde(default)]
+    exercise_configs: Vec<ExerciseConfigExpect>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct ExerciseConfigExpect {
+    exercise: String,
+    start_weight: f32,
+    end_weight: f32,
+    reps: i32,
+    include_warmup: bool,
+    last_set_amrap: bool,
+    #[serde(default)]
+    working_sets: Vec<WorkingSetExpect>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct WorkingSetExpect {
+    weight: f32,
+    reps: i32,
+    is_amrap: bool,
 }
 
 fn default_true() -> bool {
@@ -153,6 +188,85 @@ fn parse_ts(s: &str) -> i64 {
     DateTime::parse_from_rfc3339(s)
         .unwrap_or_else(|e| panic!("Failed to parse timestamp '{}': {}", s, e))
         .timestamp()
+}
+
+fn exercise_int_to_name_owned(ex: i32) -> String {
+    exercise_int_to_name(ex).to_string()
+}
+
+fn assert_f32_close(actual: f32, expected: f32, msg: &str) {
+    assert!(
+        (actual - expected).abs() < 1.0,
+        "{}: expected {}, got {}",
+        msg,
+        expected,
+        actual
+    );
+}
+
+fn maybe_dump_proposed_snapshot(workout_idx: usize, step_desc: &str, resp: &lift::workout::v1::GetProposedWorkoutScheduleResponse) {
+    if env::var("LIFT_SNAPSHOT_PROPOSED").ok().as_deref() != Some("1") {
+        return;
+    }
+
+    let groups: Vec<serde_json::Value> = resp
+        .proposed_groups
+        .iter()
+        .map(|g| {
+            let first_cfg = g.exercise_configs.first();
+            let first_weight = first_cfg
+                .and_then(|cfg| cfg.working_sets.first().map(|ws| ws.target_weight))
+                .or_else(|| first_cfg.map(|cfg| cfg.start_weight))
+                .unwrap_or(0.0);
+            let first_reps = first_cfg
+                .and_then(|cfg| cfg.working_sets.first().map(|ws| ws.target_reps))
+                .or_else(|| first_cfg.map(|cfg| cfg.reps))
+                .unwrap_or(0);
+            let rc = g.rest_config.as_ref();
+            json!({
+                "name": g.name,
+                "sets": g.sets,
+                "reps": first_reps,
+                "weight": first_weight,
+                "interleave_warmups": g.interleave_warmups,
+                "prescribed_by_regime": g.prescribed_by_regime,
+                "tags": g.tags,
+                "rest_after_success": rc.map(|r| r.rest_after_success),
+                "rest_after_failure": rc.map(|r| r.rest_after_failure),
+                "exercise_configs": g.exercise_configs.iter().map(|cfg| {
+                    json!({
+                        "exercise": exercise_int_to_name_owned(cfg.exercise),
+                        "start_weight": cfg.start_weight,
+                        "end_weight": cfg.end_weight,
+                        "reps": cfg.reps,
+                        "include_warmup": cfg.include_warmup,
+                        "last_set_amrap": cfg.last_set_amrap,
+                        "working_sets": cfg.working_sets.iter().map(|ws| {
+                            json!({
+                                "weight": ws.target_weight,
+                                "reps": ws.target_reps,
+                                "is_amrap": ws.is_amrap
+                            })
+                        }).collect::<Vec<_>>()
+                    })
+                }).collect::<Vec<_>>()
+            })
+        })
+        .collect();
+
+    let payload = json!({
+        "workout_index": workout_idx + 1,
+        "step_desc": step_desc,
+        "expect": {
+            "suggested_name": resp.suggested_workout_name,
+            "is_ready": resp.session_readiness.as_ref().map(|sr| sr.is_ready).unwrap_or(false),
+            "exact_groups": true,
+            "exact_group_order": true,
+            "groups": groups
+        }
+    });
+
+    eprintln!("__PROPOSED_EXPECT__ {}", payload);
 }
 
 fn assert_proposed_working_sets_match_scenario(
@@ -313,6 +427,20 @@ pub async fn run_scenario(json: &str) {
                         "{}: proposed group count mismatch (exact_groups=true)",
                         step_desc
                     );
+                    if expect.exact_group_order {
+                        let actual_names: Vec<&str> = resp
+                            .proposed_groups
+                            .iter()
+                            .map(|g| g.name.as_str())
+                            .collect();
+                        let expected_names: Vec<&str> =
+                            expect.groups.iter().map(|g| g.name.as_str()).collect();
+                        assert_eq!(
+                            actual_names, expected_names,
+                            "{}: proposed group order mismatch",
+                            step_desc
+                        );
+                    }
                 }
 
                 for group_expect in &expect.groups {
@@ -334,6 +462,140 @@ pub async fn run_scenario(json: &str) {
                         "{}: Group '{}' sets mismatch",
                         step_desc, group_expect.name
                     );
+
+                    if let Some(expected) = group_expect.interleave_warmups {
+                        assert_eq!(
+                            group.interleave_warmups, expected,
+                            "{}: Group '{}' interleave_warmups mismatch",
+                            step_desc, group_expect.name
+                        );
+                    }
+                    if let Some(expected) = group_expect.prescribed_by_regime {
+                        assert_eq!(
+                            group.prescribed_by_regime, expected,
+                            "{}: Group '{}' prescribed_by_regime mismatch",
+                            step_desc, group_expect.name
+                        );
+                    }
+                    if !group_expect.tags.is_empty() {
+                        assert_eq!(
+                            group.tags, group_expect.tags,
+                            "{}: Group '{}' tags mismatch",
+                            step_desc, group_expect.name
+                        );
+                    }
+                    if group_expect.rest_after_success.is_some() || group_expect.rest_after_failure.is_some() {
+                        let actual_rc = group.rest_config.as_ref().unwrap_or_else(|| {
+                            panic!(
+                                "{}: Group '{}' expected rest_config but none present",
+                                step_desc, group_expect.name
+                            )
+                        });
+                        if let Some(expected) = group_expect.rest_after_success {
+                            assert_eq!(
+                                actual_rc.rest_after_success, expected,
+                                "{}: Group '{}' rest_after_success mismatch",
+                                step_desc, group_expect.name
+                            );
+                        }
+                        if let Some(expected) = group_expect.rest_after_failure {
+                            assert_eq!(
+                                actual_rc.rest_after_failure, expected,
+                                "{}: Group '{}' rest_after_failure mismatch",
+                                step_desc, group_expect.name
+                            );
+                        }
+                    }
+
+                    if !group_expect.exercise_configs.is_empty() {
+                        assert_eq!(
+                            group.exercise_configs.len(),
+                            group_expect.exercise_configs.len(),
+                            "{}: Group '{}' exercise_configs count mismatch",
+                            step_desc, group_expect.name
+                        );
+
+                        for (cfg_idx, (cfg, cfg_expect)) in group
+                            .exercise_configs
+                            .iter()
+                            .zip(group_expect.exercise_configs.iter())
+                            .enumerate()
+                        {
+                            let actual_ex = exercise_int_to_name(cfg.exercise);
+                            let expected_ex =
+                                cfg_expect.exercise.to_lowercase().replace(' ', "_");
+                            assert_eq!(
+                                actual_ex, expected_ex,
+                                "{}: Group '{}' cfg #{} exercise mismatch",
+                                step_desc, group_expect.name, cfg_idx + 1
+                            );
+                            assert_f32_close(
+                                cfg.start_weight,
+                                cfg_expect.start_weight,
+                                &format!(
+                                    "{}: Group '{}' cfg #{} start_weight mismatch",
+                                    step_desc, group_expect.name, cfg_idx + 1
+                                ),
+                            );
+                            assert_f32_close(
+                                cfg.end_weight,
+                                cfg_expect.end_weight,
+                                &format!(
+                                    "{}: Group '{}' cfg #{} end_weight mismatch",
+                                    step_desc, group_expect.name, cfg_idx + 1
+                                ),
+                            );
+                            assert_eq!(
+                                cfg.reps, cfg_expect.reps,
+                                "{}: Group '{}' cfg #{} reps mismatch",
+                                step_desc, group_expect.name, cfg_idx + 1
+                            );
+                            assert_eq!(
+                                cfg.include_warmup, cfg_expect.include_warmup,
+                                "{}: Group '{}' cfg #{} include_warmup mismatch",
+                                step_desc, group_expect.name, cfg_idx + 1
+                            );
+                            assert_eq!(
+                                cfg.last_set_amrap, cfg_expect.last_set_amrap,
+                                "{}: Group '{}' cfg #{} last_set_amrap mismatch",
+                                step_desc, group_expect.name, cfg_idx + 1
+                            );
+
+                            if !cfg_expect.working_sets.is_empty() {
+                                assert_eq!(
+                                    cfg.working_sets.len(),
+                                    cfg_expect.working_sets.len(),
+                                    "{}: Group '{}' cfg #{} working_sets count mismatch",
+                                    step_desc, group_expect.name, cfg_idx + 1
+                                );
+                                for (ws_idx, (ws, ws_expect)) in cfg
+                                    .working_sets
+                                    .iter()
+                                    .zip(cfg_expect.working_sets.iter())
+                                    .enumerate()
+                                {
+                                    assert_f32_close(
+                                        ws.target_weight,
+                                        ws_expect.weight,
+                                        &format!(
+                                            "{}: Group '{}' cfg #{} ws #{} weight mismatch",
+                                            step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                        ),
+                                    );
+                                    assert_eq!(
+                                        ws.target_reps, ws_expect.reps,
+                                        "{}: Group '{}' cfg #{} ws #{} reps mismatch",
+                                        step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                    );
+                                    assert_eq!(
+                                        ws.is_amrap, ws_expect.is_amrap,
+                                        "{}: Group '{}' cfg #{} ws #{} is_amrap mismatch",
+                                        step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                    );
+                                }
+                            }
+                        }
+                    }
 
                     if let Some(cfg) = group.exercise_configs.first() {
                         // For single-weight groups, start_weight == end_weight.
@@ -363,6 +625,7 @@ pub async fn run_scenario(json: &str) {
                 }
             }
 
+            maybe_dump_proposed_snapshot(workout_idx, &step_desc, &resp);
             Some(resp)
         } else {
             let start_at = parse_ts(&workout_step.start.at);
