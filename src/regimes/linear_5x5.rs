@@ -79,7 +79,7 @@ const WORKOUT_B: &[Exercise] = &[Exercise::Squat, Exercise::OverheadPress, Exerc
 
 impl WorkoutRegime for Linear5x5Regime {
     fn display_name(&self) -> &'static str {
-        "Linear 5×5"
+        "Stronglifts 5x5"
     }
 
     fn default_days_per_week(&self) -> i32 {
@@ -221,7 +221,7 @@ impl WorkoutRegime for Linear5x5Regime {
         }
 
         let regime_context = RegimeContext {
-            regime_display_name: format!("Linear 5×5 — Workout {}", next_variant_label),
+            regime_display_name: format!("Stronglifts 5x5 — Workout {}", next_variant_label),
             session_description: format!(
                 "Workout {} — Linear progression (StrongLifts-style A/B split)",
                 next_variant_label

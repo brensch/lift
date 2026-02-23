@@ -49,23 +49,12 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     TrainingProgramDefinition program,
     TrainingProgramState? existingState,
   ) {
-    final sameRegime = existingState?.regimeType == program.regimeType;
     for (final field in program.stateSchema.fields) {
-      String next;
-      if (sameRegime && (existingState?.fields[field.key]) != null) {
-        next = SettingsProvider.fieldValueToText(existingState!.fields[field.key]);
-      } else {
-        // Use schema defaults
-        if (field.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
-          next = field.minValue > 0 ? field.minValue.toStringAsFixed(0) : '';
-        } else if (field.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
-          next = field.minValue.toInt().toString();
-        } else if (field.kind == StateFieldKind.STATE_FIELD_KIND_ENUM) {
-          next = field.enumOptions.isNotEmpty ? field.enumOptions.first.value : '';
-        } else {
-          next = '';
-        }
-      }
+      final next = _initialFieldText(
+        field: field,
+        program: program,
+        existingState: existingState,
+      );
       final current = _controllers[field.key];
       if (current == null) {
         _controllers[field.key] = TextEditingController(text: next);
@@ -75,7 +64,94 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     }
   }
 
+  String _defaultFieldText(TrainingProgramStateFieldSchema field) {
+    if (field.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
+      return field.minValue > 0 ? field.minValue.toStringAsFixed(0) : '';
+    }
+    if (field.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
+      return field.minValue.toInt().toString();
+    }
+    if (field.kind == StateFieldKind.STATE_FIELD_KIND_ENUM) {
+      return field.enumOptions.isNotEmpty ? field.enumOptions.first.value : '';
+    }
+    return '';
+  }
+
+  String _initialFieldText({
+    required TrainingProgramStateFieldSchema field,
+    required TrainingProgramDefinition program,
+    required TrainingProgramState? existingState,
+  }) {
+    final sameRegime = existingState?.regimeType == program.regimeType;
+    if (sameRegime && (existingState?.fields[field.key]) != null) {
+      return SettingsProvider.fieldValueToText(existingState!.fields[field.key]);
+    }
+    return _defaultFieldText(field);
+  }
+
+  String _normalizedFieldText(
+    TrainingProgramStateFieldSchema field,
+    TextEditingController? controller,
+  ) {
+    final raw = controller?.text.trim() ?? '';
+    if (raw.isEmpty) return '';
+    final parsed = SettingsProvider.fieldValueFromText(field, raw);
+    if (parsed == null) return raw;
+    return SettingsProvider.fieldValueToText(parsed);
+  }
+
+  bool _hasUnsavedChanges(
+    SettingsProvider provider,
+    TrainingProgramDefinition selectedProgram,
+  ) {
+    final savedState = provider.programState;
+    if (savedState == null) return true;
+
+    if (savedState.regimeType != selectedProgram.regimeType) return true;
+
+    for (final field in selectedProgram.stateSchema.fields) {
+      final current = _normalizedFieldText(field, _controllers[field.key]);
+      final saved = SettingsProvider.fieldValueToText(savedState.fields[field.key]);
+      if (current != saved) return true;
+    }
+    return false;
+  }
+
+  bool _isSwitchingProgram(SettingsProvider provider, TrainingProgramDefinition selectedProgram) {
+    final savedState = provider.programState;
+    if (savedState == null) return false;
+    return savedState.regimeType != selectedProgram.regimeType;
+  }
+
+  Future<bool> _confirmProgramSwitch() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Switch training program?'),
+        content: const Text(
+          'Are you sure you want to switch training program? Your progress on this one will still be here if you want to switch back.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _save(SettingsProvider provider, TrainingProgramDefinition program) async {
+    if (_isSwitchingProgram(provider, program)) {
+      final confirmed = await _confirmProgramSwitch();
+      if (!confirmed || !mounted) return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final fields = <String, StateFieldValue>{};
@@ -119,24 +195,37 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
 
     final programs = provider.trainingPrograms;
     final selected = provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
+    final hasUnsavedChanges = _hasUnsavedChanges(provider, selected);
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Training Program'),
         centerTitle: false,
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : () => _save(provider, selected),
-            child: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
+        actions: hasUnsavedChanges
+            ? [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+                  child: FilledButton(
+                    onPressed: _isSaving ? null : () => _save(provider, selected),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save'),
+                  ),
+                ),
+              ]
+            : const [],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
@@ -170,6 +259,7 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
             program: selected,
             controllers: _controllers,
             colorScheme: cs,
+            onFieldChanged: () => setState(() {}),
           ),
         ],
       ),
@@ -182,11 +272,13 @@ class _StateFieldsEditor extends StatefulWidget {
   final TrainingProgramDefinition program;
   final Map<String, TextEditingController> controllers;
   final ColorScheme colorScheme;
+  final VoidCallback onFieldChanged;
 
   const _StateFieldsEditor({
     required this.program,
     required this.controllers,
     required this.colorScheme,
+    required this.onFieldChanged,
   });
 
   @override
@@ -216,7 +308,10 @@ class _StateFieldsEditorState extends State<_StateFieldsEditor> {
             child: _StateFieldInput(
               field: f,
               controller: widget.controllers[f.key]!,
-              onChanged: () => setState(() {}),
+              onChanged: () {
+                setState(() {});
+                widget.onFieldChanged();
+              },
             ),
           ));
         }
@@ -299,6 +394,7 @@ class _StateFieldInput extends StatelessWidget {
           controller: controller,
           keyboardType: isNumeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
           textAlign: TextAlign.right,
+          onChanged: (_) => onChanged(),
           decoration: InputDecoration(
             suffixText: suffix,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),

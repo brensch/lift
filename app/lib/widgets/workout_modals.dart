@@ -7,6 +7,7 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
+import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../widgets/exercise_group_widget.dart';
@@ -14,14 +15,15 @@ import 'plate_visualization.dart';
 
 Future<void> endWorkout(BuildContext context) async {
   final confirmed = await showEndWorkoutConfirmDialog(context);
-    if (confirmed && context.mounted) {
-      final wp = context.read<WorkoutProvider>();
-      final mp = context.read<MultiplayerProvider>();
+  if (confirmed && context.mounted) {
+    final wp = context.read<WorkoutProvider>();
+    final mp = context.read<MultiplayerProvider>();
 
     final workoutId = wp.workout?.id;
     if (workoutId == null) return;
 
     await wp.endWorkout();
+    await context.read<SettingsProvider>().refreshActiveTrainingProgramState();
     mp.markLocalWorkoutFinished();
     if (context.mounted) {
       context.push('/workout/$workoutId/completed');
@@ -1037,7 +1039,8 @@ class _CompactExerciseConfigState extends State<_CompactExerciseConfig> {
                               widget.config.reps = index + 1;
                             },
                             childDelegate: ListWheelChildBuilderDelegate(
-                              childCount: 30, // Limit to 30 items (index 0 is rep 1)
+                              childCount:
+                                  30, // Limit to 30 items (index 0 is rep 1)
                               builder: (context, index) {
                                 final rep = index + 1;
                                 return Center(
