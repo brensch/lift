@@ -451,6 +451,7 @@ fn build_gzclp_proposed_groups(
                 include_warmup: true,
                 rest_config: None,
                 last_set_amrap,
+                working_sets: vec![],
             };
             groups.push(ProposedExerciseGroup {
                 name: exercise_display_name(ex),
@@ -460,6 +461,7 @@ fn build_gzclp_proposed_groups(
                 rest_config: rest_cfg(180, 300),
                 tags: vec!["recommended".to_string(), "T1".to_string()],
                 explanation: s.explanation.clone(),
+                prescribed_by_regime: false,
             });
         }
     }
@@ -490,6 +492,7 @@ fn build_gzclp_proposed_groups(
             include_warmup: true,
             rest_config: None,
             last_set_amrap: false,
+            working_sets: vec![],
         };
         let tags = if idx < 2 {
             vec!["recommended".to_string(), "T2".to_string()]
@@ -504,6 +507,7 @@ fn build_gzclp_proposed_groups(
             rest_config: rest_cfg(90, 120),
             tags,
             explanation: s.explanation.clone(),
+            prescribed_by_regime: false,
         });
     }
 
@@ -525,6 +529,7 @@ fn build_gzclp_proposed_groups(
                     include_warmup: true,
                     rest_config: None,
                     last_set_amrap: true,
+                    working_sets: vec![],
                 };
                 let cb = lift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_b as i32,
@@ -534,6 +539,7 @@ fn build_gzclp_proposed_groups(
                     include_warmup: false,
                     rest_config: None,
                     last_set_amrap: true,
+                    working_sets: vec![],
                 };
                 groups.push(ProposedExerciseGroup {
                     name: format!(
@@ -547,6 +553,7 @@ fn build_gzclp_proposed_groups(
                     rest_config: rest_cfg(60, 60),
                     tags: vec!["auxiliary".to_string(), "T3".to_string()],
                     explanation: format!("{} {}", a.explanation, b.explanation),
+                    prescribed_by_regime: false,
                 });
             }
             _ => {}

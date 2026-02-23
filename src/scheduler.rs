@@ -125,7 +125,10 @@ impl Scheduler {
         }
 
         // ── 7. Build proposed groups ─────────────────────────────────────────
-        let proposed_groups = regime.build_proposed_groups(&exercise_statuses, &workout_config);
+        let mut proposed_groups = regime.build_proposed_groups(&exercise_statuses, &workout_config);
+        for group in &mut proposed_groups {
+            group.prescribed_by_regime = true;
+        }
 
         // ── 8. Regime context (session description, coaching notes) ──────────
         let regime_context = regime.build_regime_context(&workout_config, &exercise_statuses);

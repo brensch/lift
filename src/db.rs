@@ -68,6 +68,11 @@ fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::Exe
             row.get::<Option<i32>, _>("rest_last_warmup"),
         ),
         instruction: String::new(), // not persisted; coaching text from regime
+        prescribed_by_regime: row
+            .try_get::<Option<bool>, _>("prescribed_by_regime")
+            .ok()
+            .flatten()
+            .unwrap_or(false),
     }
 }
 
@@ -85,6 +90,7 @@ fn row_to_exercise_type_config(row: sqlx::sqlite::SqliteRow) -> ExerciseTypeConf
             row.get::<Option<i32>, _>("rest_last_warmup"),
         ),
         last_set_amrap: false, // not persisted; set by regime when generating proposed groups
+        working_sets: vec![],
     }
 }
 
@@ -216,6 +222,7 @@ CREATE TABLE IF NOT EXISTS exercise_groups (
     name TEXT NOT NULL,
     sets INTEGER NOT NULL,
     interleave_warmups BOOLEAN NOT NULL,
+    prescribed_by_regime BOOLEAN NOT NULL DEFAULT 0,
     workout_order INTEGER NOT NULL,
     rest_success INTEGER,
     rest_failure INTEGER,
@@ -380,6 +387,13 @@ impl CentralDb {
             .execute(&pool)
             .await;
 
+        // Manual migration for prescribed regime groups
+        let _ = sqlx::query(
+            "ALTER TABLE exercise_groups ADD COLUMN prescribed_by_regime BOOLEAN NOT NULL DEFAULT 0",
+        )
+        .execute(&pool)
+        .await;
+
         let (write_tx, write_rx) = tokio::sync::mpsc::unbounded_channel();
         let db = Self {
             pool,
@@ -450,8 +464,8 @@ impl CentralDb {
                 }
                 WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
                     sqlx::query(
-                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&group.id)
                     .bind(user_id)
@@ -459,6 +473,7 @@ impl CentralDb {
                     .bind(&group.name)
                     .bind(group.sets)
                     .bind(group.interleave_warmups)
+                    .bind(group.prescribed_by_regime)
                     .bind(group.workout_order)
                     .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
                     .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))
@@ -1635,7 +1650,7 @@ impl CentralDb {
         // Batch inserts for groups
         if !exercise_groups.is_empty() {
             let mut query_builder: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
-                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
+                "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup) "
             );
             query_builder.push_values(exercise_groups, |mut b, group| {
                 b.push_bind(&group.id)
@@ -1644,6 +1659,7 @@ impl CentralDb {
                     .push_bind(&group.name)
                     .push_bind(group.sets)
                     .push_bind(group.interleave_warmups)
+                    .push_bind(group.prescribed_by_regime)
                     .push_bind(group.workout_order)
                     .push_bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
                     .push_bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))

@@ -211,6 +211,7 @@ impl WorkoutRegime for Wendler531Regime {
                     include_warmup: true,
                     rest_config: None,
                     last_set_amrap: false,
+                    working_sets: vec![],
                 };
                 groups.push(ProposedExerciseGroup {
                     name: exercise_display_name(exercise),
@@ -222,6 +223,7 @@ impl WorkoutRegime for Wendler531Regime {
                     explanation: format!(
                         "Set your 1RM in Settings → Training Program to unlock Wendler percentages."
                     ),
+                    prescribed_by_regime: false,
                 });
                 continue;
             }
@@ -248,6 +250,7 @@ impl WorkoutRegime for Wendler531Regime {
                 include_warmup: true,
                 rest_config: None,
                 last_set_amrap,
+                working_sets: vec![],
             };
 
             // Deload week: lighter rest; peak/volume: full rest
@@ -265,6 +268,7 @@ impl WorkoutRegime for Wendler531Regime {
                 rest_config: group_rest,
                 tags: vec!["recommended".to_string()],
                 explanation: status.explanation.clone(),
+                prescribed_by_regime: false,
             });
         }
 
@@ -286,6 +290,7 @@ impl WorkoutRegime for Wendler531Regime {
                     include_warmup: true,
                     rest_config: None,
                     last_set_amrap: false,
+                    working_sets: vec![],
                 };
                 let cb = lift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_b as i32,
@@ -295,6 +300,7 @@ impl WorkoutRegime for Wendler531Regime {
                     include_warmup: false,
                     rest_config: None,
                     last_set_amrap: false,
+                    working_sets: vec![],
                 };
                 groups.push(ProposedExerciseGroup {
                     name: format!(
@@ -308,6 +314,7 @@ impl WorkoutRegime for Wendler531Regime {
                     rest_config: rest_cfg(90, 90),
                     tags: vec!["auxiliary".to_string()],
                     explanation: format!("BBB accessory work. {}", b.explanation),
+                    prescribed_by_regime: false,
                 });
             }
         }

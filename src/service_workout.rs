@@ -13,7 +13,8 @@ use lift::workout::v1::{
     GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, ProposedSet,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, RestConfig, StartSetRequest,
     StartSetResponse, StartWorkoutRequest, StartWorkoutResponse, UpdateExerciseGroupRequest,
-    UpdateExerciseGroupResponse, Workout, WorkoutPlanChangeStats, WorkoutStateSnapshot,
+    UpdateExerciseGroupResponse, WorkingSetSpec, Workout, WorkoutPlanChangeStats,
+    WorkoutStateSnapshot,
 };
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -108,11 +109,22 @@ fn generate_sets_for_group(
     }
 
     // Generate warmup defs per config
+    let working_set_defs: Vec<Vec<WorkingSetSpec>> = configs
+        .iter()
+        .map(|c| materialized_working_sets_for_config(group, c))
+        .collect();
+
     let warmup_defs: Vec<Vec<(f32, i32)>> = configs
         .iter()
-        .map(|c| {
+        .enumerate()
+        .map(|(idx, c)| {
+            let warmup_weight = working_set_defs
+                .get(idx)
+                .and_then(|ws| ws.first())
+                .map(|ws| ws.target_weight)
+                .unwrap_or(c.start_weight);
             if c.include_warmup {
-                generate_warmup_defs(c.start_weight)
+                generate_warmup_defs(warmup_weight)
             } else {
                 Vec::new()
             }
@@ -174,43 +186,32 @@ fn generate_sets_for_group(
         }
     }
 
-    // Working sets always interleave: A1, B1, A2, B2, ... for group.sets rounds
-    let num_sets = group.sets.max(1);
+    // Working sets interleave by round: A1, B1, A2, B2, ... . Configs may have different counts.
+    let num_sets = working_set_defs
+        .iter()
+        .map(|defs| defs.len())
+        .max()
+        .unwrap_or_else(|| group.sets.max(1) as usize);
     for set_idx in 0..num_sets {
-        let is_last_working_set = set_idx == num_sets - 1;
-        for config in configs {
-            let weight = if num_sets <= 1 {
-                config.start_weight
-            } else {
-                config.start_weight
-                    + (set_idx as f32 / (num_sets - 1) as f32)
-                        * (config.end_weight - config.start_weight)
+        for (cfg_idx, config) in configs.iter().enumerate() {
+            let Some(ws) = working_set_defs[cfg_idx].get(set_idx) else {
+                continue;
             };
-            // Round to nearest 5.0 (standard plate increment)
-            let weight = (weight / 5.0).round() * 5.0;
-
-            let is_amrap = config.last_set_amrap && is_last_working_set;
-            let instruction = if is_amrap {
-                "AMRAP — push for max reps".to_string()
-            } else {
-                String::new()
-            };
-
             let (rest_s, rest_f) = get_rest_for_config(group, config, false, false);
             sets.push(ProposedSet {
                 id: Uuid::new_v4().to_string(),
                 workout_id: workout_id.to_string(),
                 workout_order: order,
                 exercise: config.exercise,
-                target_reps: config.reps,
-                target_weight: weight,
+                target_reps: ws.target_reps,
+                target_weight: ws.target_weight,
                 warmup: false,
                 exercise_group_id: group.id.clone(),
                 rest_after_success: rest_s,
                 rest_after_failure: rest_f,
                 cancelled: false,
-                is_amrap,
-                instruction,
+                is_amrap: ws.is_amrap,
+                instruction: ws.instruction.clone(),
             });
             order += 1;
         }
@@ -308,6 +309,56 @@ fn normalize_exercise_configs(configs: &[ExerciseTypeConfig]) -> Vec<ExerciseTyp
         .collect()
 }
 
+fn materialized_working_sets_for_config(
+    group: &ExerciseGroup,
+    config: &ExerciseTypeConfig,
+) -> Vec<WorkingSetSpec> {
+    if !config.working_sets.is_empty() {
+        return config.working_sets.clone();
+    }
+
+    let num_sets = group.sets.max(1) as usize;
+    let mut sets = Vec::with_capacity(num_sets);
+    for set_idx in 0..num_sets {
+        let is_last_working_set = set_idx + 1 == num_sets;
+        let weight = if num_sets <= 1 {
+            config.start_weight
+        } else {
+            config.start_weight
+                + (set_idx as f32 / (num_sets - 1) as f32)
+                    * (config.end_weight - config.start_weight)
+        };
+        let weight = (weight / 5.0).round() * 5.0;
+        let is_amrap = config.last_set_amrap && is_last_working_set;
+        let instruction = if is_amrap {
+            "AMRAP — push for max reps".to_string()
+        } else {
+            String::new()
+        };
+        sets.push(WorkingSetSpec {
+            target_weight: weight,
+            target_reps: config.reps,
+            is_amrap,
+            instruction,
+        });
+    }
+    sets
+}
+
+fn materialize_group_working_sets(group: &mut ExerciseGroup) {
+    let current = group.clone();
+    let mut max_sets = 0usize;
+    for config in &mut group.exercise_configs {
+        if config.working_sets.is_empty() {
+            config.working_sets = materialized_working_sets_for_config(&current, config);
+        }
+        max_sets = max_sets.max(config.working_sets.len());
+    }
+    if max_sets > 0 {
+        group.sets = max_sets as i32;
+    }
+}
+
 fn apply_update_exercise_group(
     workout_ref: &mut ActiveWorkout,
     req: &UpdateExerciseGroupRequest,
@@ -318,6 +369,12 @@ fn apply_update_exercise_group(
         .find(|g| g.id == req.exercise_group_id)
         .ok_or_else(|| Status::not_found("Exercise group not found"))?;
 
+    if group.prescribed_by_regime {
+        return Err(Status::failed_precondition(
+            "Regime-prescribed exercise groups cannot be modified",
+        ));
+    }
+
     if !req.name.is_empty() {
         group.name = req.name.clone();
     }
@@ -325,6 +382,7 @@ fn apply_update_exercise_group(
     group.interleave_warmups = req.interleave_warmups;
     group.exercise_configs = normalize_exercise_configs(&req.exercise_configs);
     group.rest_config = normalize_rest_config(req.rest_config.clone());
+    materialize_group_working_sets(group);
     let group = group.clone();
 
     let completed_ids: std::collections::HashSet<String> = workout_ref
@@ -693,6 +751,7 @@ impl WorkoutService for MyWorkoutService {
             if g.id.is_empty() {
                 g.id = Uuid::new_v4().to_string();
             }
+            materialize_group_working_sets(g);
             let generated = generate_sets_for_group(&workout_id, g, set_order);
             set_order += generated.len() as i32;
             all_proposed_sets.extend(generated);
@@ -887,7 +946,10 @@ impl WorkoutService for MyWorkoutService {
                 exercise_configs: normalize_exercise_configs(&req.exercise_configs),
                 rest_config: normalize_rest_config(req.rest_config.clone()),
                 instruction: String::new(),
+                prescribed_by_regime: false,
             };
+            let mut group = group;
+            materialize_group_working_sets(&mut group);
 
             let set_order = workout_ref
                 .proposed_sets
@@ -1003,6 +1065,18 @@ impl WorkoutService for MyWorkoutService {
                 .iter()
                 .map(|c| c.proposed_set_id.clone())
                 .collect();
+
+            if workout_ref
+                .exercise_groups
+                .iter()
+                .find(|g| g.id == req.exercise_group_id)
+                .map(|g| g.prescribed_by_regime)
+                .unwrap_or(false)
+            {
+                return Err(Status::failed_precondition(
+                    "Regime-prescribed exercise groups cannot be deleted",
+                ));
+            }
 
             // Remove pending (non-completed) proposed sets for this group
             workout_ref.proposed_sets.retain(|p| {
@@ -1620,6 +1694,7 @@ mod tests {
             include_warmup,
             rest_config,
             last_set_amrap: false,
+            working_sets: vec![],
         }
     }
 
@@ -1641,6 +1716,7 @@ mod tests {
             exercise_configs: configs,
             rest_config,
             instruction: String::new(),
+            prescribed_by_regime: false,
         }
     }
 
@@ -2137,5 +2213,78 @@ mod tests {
 
         // Now it should be 150 because the default 180,300,10 should be cleared
         assert_eq!(updated_sets[0].rest_after_success, 150, "Group rest config should have taken precedence because the exercise config had defaults");
+    }
+
+    #[test]
+    fn explicit_working_sets_override_legacy_last_set_amrap_behavior() {
+        let mut cfg = config(1, 100.0, 120.0, 5, false, None);
+        cfg.last_set_amrap = true;
+        cfg.working_sets = vec![
+            WorkingSetSpec {
+                target_weight: 105.0,
+                target_reps: 5,
+                is_amrap: true,
+                instruction: "Top set first".to_string(),
+            },
+            WorkingSetSpec {
+                target_weight: 95.0,
+                target_reps: 8,
+                is_amrap: false,
+                instruction: "Backoff".to_string(),
+            },
+        ];
+        let g = group("g1", "Custom", 5, 0, vec![cfg], None);
+
+        let sets = generate_sets_for_group("w1", &g, 0);
+        let working: Vec<&ProposedSet> = sets.iter().filter(|s| !s.warmup).collect();
+        assert_eq!(working.len(), 2);
+        assert_eq!(working[0].target_weight, 105.0);
+        assert_eq!(working[0].target_reps, 5);
+        assert!(working[0].is_amrap);
+        assert_eq!(working[0].instruction, "Top set first");
+        assert_eq!(working[1].target_weight, 95.0);
+        assert_eq!(working[1].target_reps, 8);
+        assert!(!working[1].is_amrap);
+        assert_eq!(working[1].instruction, "Backoff");
+    }
+
+    #[test]
+    fn update_rejects_regime_prescribed_group() {
+        let mut prescribed = group(
+            "g1",
+            "Squat",
+            2,
+            0,
+            vec![config(1, 100.0, 100.0, 5, false, None)],
+            None,
+        );
+        prescribed.prescribed_by_regime = true;
+        let sets = generate_sets_for_group("w1", &prescribed, 0);
+
+        let mut workout = ActiveWorkout::new(
+            Workout {
+                id: "w1".to_string(),
+                name: "Test".to_string(),
+                start_time: 0,
+                end_time: 0,
+                session_id: String::new(),
+            },
+            vec![prescribed],
+            sets,
+            vec![],
+        );
+
+        let req = UpdateExerciseGroupRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: "g1".to_string(),
+            name: "Changed".to_string(),
+            sets: 3,
+            interleave_warmups: false,
+            exercise_configs: vec![config(1, 135.0, 155.0, 5, false, None)],
+            rest_config: None,
+        };
+
+        let err = apply_update_exercise_group(&mut workout, &req).expect_err("should reject");
+        assert_eq!(err.code(), tonic::Code::FailedPrecondition);
     }
 }
