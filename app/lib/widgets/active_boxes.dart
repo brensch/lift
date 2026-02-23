@@ -428,7 +428,6 @@ class ActiveSetBox extends StatefulWidget {
 }
 
 class _ActiveSetBoxState extends State<ActiveSetBox> {
-  static const _activePink = Color(0xFFEC4899);
   late FixedExtentScrollController _scrollController;
 
   @override
@@ -461,7 +460,9 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
         : 0;
     final name = exerciseNames[widget.proposedSet.exercise] ?? '?';
     final isWarmup = widget.proposedSet.warmup;
-    final accentColor = _activePink;
+    final accentColor = isWarmup
+        ? const Color(0xFF3B82F6)
+        : colorScheme.primary;
 
     return IntrinsicHeight(
       child: _AccentBox(

@@ -17,6 +17,8 @@ String _fmt(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
+const _activeSetPink = Color(0xFFEC4899);
+
 String _fmtElapsed(int totalSeconds) {
   final hours = totalSeconds ~/ 3600;
   final minutes = (totalSeconds % 3600) ~/ 60;
@@ -97,9 +99,7 @@ class WorkoutBottomBar extends StatelessWidget {
       final elapsedSecs = activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0;
 
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
-      stateColor = proposed.warmup
-          ? const Color(0xFF3B82F6)
-          : colorScheme.primary;
+      stateColor = _activeSetPink;
       timerText = _fmt(elapsedSecs);
       timerColor = colorScheme.tertiary;
       displaySet = proposed;
