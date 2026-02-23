@@ -30,51 +30,65 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _initFromCatalog(SettingsProvider provider) {
     if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) return;
-    _selectedRegimeType = provider.trainingPrograms.first.regimeType;
-    _seed(provider.trainingPrograms.first);
+    final first = provider.trainingPrograms.first;
+    _selectedRegimeType = first.regimeType;
+    _seedFromSchema(first.stateSchema.fields);
     _initialized = true;
   }
 
-  void _seed(TrainingProgramDefinition program) {
-    for (final f in program.configFields) {
+  void _seedFromSchema(List<TrainingProgramStateFieldSchema> fields) {
+    for (final f in fields) {
+      if (!f.onboardingField) continue;
       _controllers.putIfAbsent(f.key, () => TextEditingController());
-      if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK) {
-        _controllers[f.key]!.text = '${f.defaultInt32 > 0 ? f.defaultInt32 : 3}';
-      } else if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX) {
-        _controllers[f.key]!.text = f.defaultFloat > 0 ? f.defaultFloat.toStringAsFixed(0) : '';
-      } else {
-        _controllers[f.key]!.text = f.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_INT32
-            ? '${f.defaultInt32}'
-            : f.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_FLOAT
-                ? (f.defaultFloat > 0 ? f.defaultFloat.toStringAsFixed(0) : '')
-                : (f.defaultBool ? 'true' : 'false');
-      }
+      _controllers[f.key]!.text = _defaultTextForField(f);
     }
+  }
+
+  String _defaultTextForField(TrainingProgramStateFieldSchema f) {
+    if (f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
+      return f.minValue > 0 ? f.minValue.toStringAsFixed(0) : '';
+    } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
+      return f.minValue.toInt().toString();
+    } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM) {
+      return f.enumOptions.isNotEmpty ? f.enumOptions.first.value : '';
+    }
+    return '';
+  }
+
+  void _selectProgram(TrainingProgramDefinition p) {
+    setState(() {
+      _selectedRegimeType = p.regimeType;
+      // Re-seed controllers for new program's onboarding fields
+      final fields = p.stateSchema.fields.where((f) => f.onboardingField).toList();
+      for (final f in fields) {
+        if (!_controllers.containsKey(f.key)) {
+          _controllers[f.key] = TextEditingController(
+            text: _defaultTextForField(f),
+          );
+        }
+      }
+    });
   }
 
   Future<void> _save(SettingsProvider provider, TrainingProgramDefinition program) async {
     setState(() => _isSaving = true);
     try {
-      int days = 0;
-      final oneRepMaxes = <int, double>{};
-      for (final f in program.configFields) {
-        final text = _controllers[f.key]?.text.trim() ?? '';
-        if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK) {
-          final parsed = int.tryParse(text);
-          if (parsed != null && parsed > 0) days = parsed;
-        } else if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX) {
-          final parsed = double.tryParse(text);
-          if (parsed != null && parsed > 0 && f.exerciseId > 0) oneRepMaxes[f.exerciseId] = parsed;
-        }
-      }
-      if (days <= 0) days = 3;
+      final onboardingFields = program.stateSchema.fields
+          .where((f) => f.onboardingField)
+          .toList();
 
-      await provider.updateWorkoutConfig(UserWorkoutConfig(
+      final fields = <String, StateFieldValue>{};
+      for (final f in onboardingFields) {
+        final text = _controllers[f.key]?.text.trim() ?? '';
+        final val = SettingsProvider.fieldValueFromText(f, text);
+        if (val != null) fields[f.key] = val;
+      }
+
+      await provider.setActiveTrainingProgramState(
         regimeType: program.regimeType,
-        daysPerWeek: days,
-        oneRepMaxes: oneRepMaxes.entries.map((e) => MapEntry(e.key, e.value)),
-        regimeStateJson: '{}',
-      ));
+        fields: fields,
+        source: 'onboarding_init',
+      );
       if (!mounted) return;
       context.go('/');
     } finally {
@@ -122,12 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ? _ProgramStep(
                       programs: programs,
                       selectedType: selected.regimeType,
-                      onSelect: (p) {
-                        setState(() {
-                          _selectedRegimeType = p.regimeType;
-                          _seed(p);
-                        });
-                      },
+                      onSelect: _selectProgram,
                       onInfo: (p) => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => RegimeInfoScreen(regimeType: p.regimeType),
@@ -234,6 +243,11 @@ class _ConfigStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final onboardingFields = program.stateSchema.fields
+        .where((f) => f.onboardingField)
+        .toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       children: [
@@ -246,12 +260,12 @@ class _ConfigStep extends StatelessWidget {
         const SizedBox(height: 6),
         Text(program.summary, style: TextStyle(fontSize: 14, color: cs.onSurface.withValues(alpha: 0.65))),
         const SizedBox(height: 20),
-        ...program.configFields
-            .where((f) => !_hideFieldInOnboarding(f))
-            .map((f) => Padding(
+        for (final f in onboardingFields)
+          if (controllers.containsKey(f.key))
+            Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: _ProgramFieldInput(field: f, controller: controllers[f.key]!),
-            )),
+              child: _StateFieldInput(field: f, controller: controllers[f.key]!),
+            ),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -275,44 +289,57 @@ class _ConfigStep extends StatelessWidget {
       ],
     );
   }
-
-  bool _hideFieldInOnboarding(TrainingProgramConfigField field) {
-    return field.binding ==
-            TrainingProgramFieldBinding
-                .TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK &&
-        field.intChoices.length <= 1;
-  }
 }
 
-class _ProgramFieldInput extends StatelessWidget {
-  final TrainingProgramConfigField field;
+/// Renders a single state field input: enum → choice chips, numeric → text field.
+class _StateFieldInput extends StatefulWidget {
+  final TrainingProgramStateFieldSchema field;
   final TextEditingController controller;
 
-  const _ProgramFieldInput({required this.field, required this.controller});
+  const _StateFieldInput({required this.field, required this.controller});
+
+  @override
+  State<_StateFieldInput> createState() => _StateFieldInputState();
+}
+
+class _StateFieldInputState extends State<_StateFieldInput> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    if (field.intChoices.isNotEmpty &&
-        field.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_INT32) {
-      final current = int.tryParse(controller.text) ?? field.defaultInt32;
+    final f = widget.field;
+
+    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM && f.enumOptions.isNotEmpty) {
+      final current = widget.controller.text;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(field.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-          if (field.helpText.isNotEmpty)
+          Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          if (f.helpText.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Text(field.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+              child: Text(f.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
             ),
           Wrap(
             spacing: 8,
-            children: field.intChoices.map((choice) {
-              final label = choice.label.isNotEmpty ? choice.label : '${choice.value}';
+            children: f.enumOptions.map((opt) {
               return ChoiceChip(
-                label: Text(label),
-                selected: choice.value == current,
-                onSelected: (_) => controller.text = '${choice.value}',
+                label: Text(opt.label.isNotEmpty ? opt.label : opt.value),
+                selected: opt.value == current,
+                onSelected: (_) => setState(() => widget.controller.text = opt.value),
               );
             }).toList(),
           ),
@@ -320,19 +347,22 @@ class _ProgramFieldInput extends StatelessWidget {
       );
     }
 
-    final suffix = field.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX ? 'lbs' : null;
+    final isNumeric = f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
+        f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
+    final suffix = f.section.contains('Weight') || f.section.contains('Max') ? 'lbs' : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(field.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        if (field.helpText.isNotEmpty)
+        Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (f.helpText.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2, bottom: 8),
-            child: Text(field.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+            child: Text(f.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
           ),
         TextField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          controller: widget.controller,
+          keyboardType: isNumeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
           textAlign: TextAlign.right,
           decoration: InputDecoration(
             suffixText: suffix,
@@ -409,18 +439,9 @@ class _ProgramCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _PreviewPill(
-                          emoji: '📅',
-                          text: program.atAGlance.daysPerWeek,
-                        ),
-                        _PreviewPill(
-                          emoji: '🎯',
-                          text: program.atAGlance.bestFor,
-                        ),
-                        _PreviewPill(
-                          emoji: '⏱️',
-                          text: program.atAGlance.averageSessionTime,
-                        ),
+                        _PreviewPill(emoji: '📅', text: program.atAGlance.daysPerWeek),
+                        _PreviewPill(emoji: '🎯', text: program.atAGlance.bestFor),
+                        _PreviewPill(emoji: '⏱️', text: program.atAGlance.averageSessionTime),
                       ],
                     ),
                   ],

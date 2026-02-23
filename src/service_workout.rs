@@ -1,5 +1,10 @@
 use crate::db::CentralDb;
+use crate::program_state::{
+    parse_state_payload, serialize_state_payload, ProgramStateEventRecord, WorkingSetResult,
+    WorkoutCompletionResult,
+};
 use crate::progress::compute_next_up_set;
+use crate::regimes::get_regime;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
 use lift::workout::v1::{
@@ -1698,11 +1703,74 @@ impl WorkoutService for MyWorkoutService {
             active
         }; // Guard dropped here
 
-        // Incremental write: Just update end time!
+        // Incremental write: update end time
         self.central_db
             .update_workout_end_time(&user_id, &active.workout.id, active.workout.end_time)
             .await
             .map_err(|e| Status::internal(format!("Failed to end workout: {}", e)))?;
+
+        // ── State transition: compute + persist new program state ─────────────
+        if let Ok(Some(state_record)) = self.central_db.get_latest_program_state(&user_id).await {
+            let regime_type = lift::workout::v1::RegimeType::try_from(state_record.regime_type)
+                .unwrap_or(lift::workout::v1::RegimeType::Linear5x5);
+            let regime = get_regime(regime_type);
+            let current_state = parse_state_payload(&state_record.state_payload_json);
+
+            // Load proposed + completed sets to build WorkoutCompletionResult
+            let proposed_sets = self
+                .central_db
+                .get_proposed_sets(&user_id, &active.workout.id)
+                .await
+                .unwrap_or_default();
+            let completed_sets = self
+                .central_db
+                .get_completed_sets(&user_id, &active.workout.id)
+                .await
+                .unwrap_or_default();
+
+            let mut set_results = Vec::new();
+            for cs in &completed_sets {
+                if let Some(ps) = proposed_sets.iter().find(|p| p.id == cs.proposed_set_id) {
+                    if !ps.warmup && !ps.cancelled {
+                        if let Ok(ex) = lift::workout::v1::Exercise::try_from(ps.exercise) {
+                            set_results.push(WorkingSetResult {
+                                exercise: ex,
+                                target_reps: ps.target_reps,
+                                actual_reps: cs.actual_reps,
+                                target_weight: ps.target_weight,
+                                actual_weight: cs.actual_weight,
+                            });
+                        }
+                    }
+                }
+            }
+
+            let completion_result = WorkoutCompletionResult {
+                workout_id: active.workout.id.clone(),
+                ended_at: active.workout.end_time,
+                set_results,
+            };
+
+            let new_state = regime.transition_state_on_workout_complete(
+                &current_state,
+                &completion_result,
+                active.workout.end_time,
+            );
+
+            let event = ProgramStateEventRecord {
+                event_id: uuid::Uuid::new_v4().to_string(),
+                user_id: user_id.clone(),
+                regime_type: regime_type as i32,
+                effective_at: active.workout.end_time,
+                recorded_at: active.workout.end_time,
+                source: "workout_completed".to_string(),
+                state_payload_json: serialize_state_payload(&new_state),
+                source_workout_id: Some(active.workout.id.clone()),
+            };
+
+            // Best-effort: don't fail end_workout if state append fails
+            let _ = self.central_db.append_program_state_event(event).await;
+        }
 
         // Leave session
         if let Some((_, session_id)) = self.state.user_sessions.remove(&user_id) {

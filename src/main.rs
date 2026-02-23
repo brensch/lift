@@ -23,6 +23,7 @@ use webauthn_rs::prelude::PublicKeyCredential;
 
 mod auth;
 mod db;
+mod program_state;
 mod progress;
 mod regimes;
 mod scheduler;

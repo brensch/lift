@@ -1312,6 +1312,15 @@ const GetProposedWorkoutScheduleResponse$json = {
       '5': 9,
       '10': 'suggestedWorkoutName'
     },
+    {
+      '1': 'pending_state_updates',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.PendingStateUpdate',
+      '10': 'pendingStateUpdates'
+    },
+    {'1': 'can_start_workout', '3': 8, '4': 1, '5': 8, '10': 'canStartWorkout'},
   ],
 };
 
@@ -1324,7 +1333,9 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $conv
     'ZEdyb3VwcxJACg5yZWdpbWVfY29udGV4dBgEIAEoCzIZLndvcmtvdXQudjEuUmVnaW1lQ29udG'
     'V4dFINcmVnaW1lQ29udGV4dBJJChFzZXNzaW9uX3JlYWRpbmVzcxgFIAEoCzIcLndvcmtvdXQu'
     'djEuU2Vzc2lvblJlYWRpbmVzc1IQc2Vzc2lvblJlYWRpbmVzcxI0ChZzdWdnZXN0ZWRfd29ya2'
-    '91dF9uYW1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZQ==');
+    '91dF9uYW1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRJSChVwZW5kaW5nX3N0YXRlX3Vw'
+    'ZGF0ZXMYByADKAsyHi53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZVITcGVuZGluZ1N0YX'
+    'RlVXBkYXRlcxIqChFjYW5fc3RhcnRfd29ya291dBgIIAEoCFIPY2FuU3RhcnRXb3Jrb3V0');
 
 @$core.Deprecated('Use getActiveWorkoutRequestDescriptor instead')
 const GetActiveWorkoutRequest$json = {

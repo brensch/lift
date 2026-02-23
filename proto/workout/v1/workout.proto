@@ -1,6 +1,8 @@
 syntax = "proto3";
 package workout.v1;
 
+import "workout/v1/settings.proto";
+
 // --- Data Structures ---
 
 enum MuscleGroup {
@@ -409,6 +411,12 @@ message GetProposedWorkoutScheduleResponse {
   SessionReadiness session_readiness = 5;
 
   string suggested_workout_name = 6; // regime-generated name, e.g. "5/3/1 — Cycle 2, Week 3 Peak"
+
+  // Pending recommendations (e.g. temporal deload) that must be resolved before starting.
+  repeated PendingStateUpdate pending_state_updates = 7;
+
+  // False if there are unresolved pending_state_updates.
+  bool can_start_workout = 8;
 
 }
 

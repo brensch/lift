@@ -2,23 +2,20 @@ pub mod gzclp;
 pub mod linear_5x5;
 #[cfg(test)]
 pub mod test_harness;
-pub mod wendler_531_3day;
-pub mod wendler_531_4day;
-
-use std::collections::HashMap;
+pub mod wendler_531;
 
 use lift::workout::v1::{
-    Exercise, ExerciseStatus, ExerciseTypeConfig, MuscleGroup, ProposedExerciseGroup,
-    RegimeContext, RegimeType, RestConfig, SessionReadiness, TrainingProgramConfigField,
-    TrainingProgramDefinition, TrainingProgramFieldBinding, TrainingProgramFieldKind,
-    TrainingProgramIntChoice, TrainingProgramLink, TrainingProgramAtAGlance, UserWorkoutConfig,
-    WorkingSetSpec,
+    Exercise, ExerciseStatus, MuscleGroup, ProposedExerciseGroup, RegimeType, RestConfig,
+    TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink, WorkingSetSpec,
 };
 
 pub use gzclp::GzclpRegime;
 pub use linear_5x5::Linear5x5Regime;
-pub use wendler_531_3day::Wendler5313DayRegime;
-pub use wendler_531_4day::Wendler5314DayRegime;
+pub use wendler_531::Wendler531Regime;
+
+use crate::program_state::{
+    PendingUpdateDef, ProposeResult, StatePayload, WorkoutCompletionResult,
+};
 
 // ─── Static exercise metadata ─────────────────────────────────────────────────
 
@@ -164,25 +161,19 @@ pub fn exercise_display_name(exercise: Exercise) -> String {
     }
 }
 
-// ─── Per-session history entry ────────────────────────────────────────────────
+// ─── Session history (still used for ExerciseStatus display) ─────────────────
 
 /// One workout session's result for a single exercise, newest-first.
+/// Used only for building ExerciseStatus for the exercise browser, not progression.
 #[derive(Debug, Clone)]
 pub struct SessionHistory {
     pub weight: f32,
-    pub success: bool,      // all prescribed reps completed
-    pub timestamp: i64,     // unix seconds
-    pub last_set_reps: i32, // actual reps logged on last working set; 0 if unknown
+    pub success: bool,
+    pub timestamp: i64,
+    pub last_set_reps: i32,
 }
 
-// ─── Proposal output from a regime ───────────────────────────────────────────
-
-pub struct ExerciseProposal {
-    pub weight: f32,
-    pub sets: i32,
-    pub reps: i32,
-    pub explanation: String,
-}
+// ─── Catalog metadata ─────────────────────────────────────────────────────────
 
 pub struct ProgramCatalogMeta {
     pub headline: &'static str,
@@ -192,7 +183,6 @@ pub struct ProgramCatalogMeta {
     pub at_a_glance: ProgramAtAGlanceMeta,
     pub details: Vec<&'static str>,
     pub learn_more_links: Vec<(&'static str, &'static str)>,
-    pub config_fields: Vec<ProgramConfigFieldDef>,
     pub sort_order: i32,
 }
 
@@ -203,113 +193,60 @@ pub struct ProgramAtAGlanceMeta {
     pub progression_style: &'static str,
 }
 
-#[allow(dead_code)]
-pub enum ProgramFieldDefault {
-    Int(i32),
-    Float(f32),
-    Bool(bool),
-}
-
-pub struct ProgramConfigFieldDef {
-    pub key: &'static str,
-    pub label: &'static str,
-    pub help_text: &'static str,
-    pub kind: TrainingProgramFieldKind,
-    pub binding: TrainingProgramFieldBinding,
-    pub required: bool,
-    pub default_value: ProgramFieldDefault,
-    pub exercise_id: i32,
-    pub int_choices: Vec<(i32, &'static str)>,
-}
-
-pub fn cfg_field_days_per_week(
-    key: &'static str,
-    label: &'static str,
-    help_text: &'static str,
-    default_days: i32,
-    choices: Vec<(i32, &'static str)>,
-) -> ProgramConfigFieldDef {
-    ProgramConfigFieldDef {
-        key,
-        label,
-        help_text,
-        kind: TrainingProgramFieldKind::Int32,
-        binding: TrainingProgramFieldBinding::DaysPerWeek,
-        required: true,
-        default_value: ProgramFieldDefault::Int(default_days),
-        exercise_id: 0,
-        int_choices: choices,
-    }
-}
-
-pub fn cfg_field_exercise_weight(
-    key: &'static str,
-    label: &'static str,
-    help_text: &'static str,
-    exercise_id: i32,
-    default_weight: f32,
-) -> ProgramConfigFieldDef {
-    ProgramConfigFieldDef {
-        key,
-        label,
-        help_text,
-        kind: TrainingProgramFieldKind::Float,
-        binding: TrainingProgramFieldBinding::OneRepMax,
-        required: false,
-        default_value: ProgramFieldDefault::Float(default_weight),
-        exercise_id,
-        int_choices: vec![],
-    }
-}
-
-// ─── Trait ───────────────────────────────────────────────────────────────────
+// ─── Trait ────────────────────────────────────────────────────────────────────
 
 pub trait WorkoutRegime: Send + Sync {
     fn display_name(&self) -> &'static str;
     fn default_days_per_week(&self) -> i32;
     fn catalog_meta(&self) -> ProgramCatalogMeta;
 
-    /// Compute next weight/sets/reps for a single exercise from its history.
-    /// `now_ts` is the unix timestamp to use as "current time" for deload/break detection.
-    fn calculate_exercise_progression(
+    /// Return the editable state schema for this regime (for UI rendering).
+    fn state_schema(&self) -> lift::workout::v1::TrainingProgramStateSchema;
+
+    /// Return a default initial state (used when no state exists yet or for onboarding defaults).
+    fn default_state(&self) -> StatePayload;
+
+    /// Validate state fields. Returns a list of warning strings (non-fatal).
+    /// Backend will accept even invalid state if explicitly set by the user.
+    fn validate_state(&self, state: &StatePayload) -> Vec<String>;
+
+    /// Compute the proposed workout from state + time. Pure function, no side effects.
+    fn propose_from_state(
         &self,
-        exercise: Exercise,
-        config: &ExerciseConfig,
-        history: &[SessionHistory], // newest-first
-        max_weight: f32,
-        workout_config: &UserWorkoutConfig,
+        state: &StatePayload,
+        last_session_at: i64,
         now_ts: i64,
-    ) -> ExerciseProposal;
+    ) -> ProposeResult;
 
-    /// Build the full list of proposed groups for the home screen.
-    fn build_proposed_groups(
+    /// Compute the next state after completing a workout. Returns new state snapshot.
+    fn transition_state_on_workout_complete(
         &self,
-        statuses: &[ExerciseStatus],
-        workout_config: &UserWorkoutConfig,
-    ) -> Vec<ProposedExerciseGroup>;
+        state: &StatePayload,
+        result: &WorkoutCompletionResult,
+        ended_at: i64,
+    ) -> StatePayload;
 
-    /// Compute updated regime_state_json from latest history.
-    /// Called every time GetProposedWorkoutSchedule runs so state stays fresh.
-    fn compute_updated_state(
+    /// Return pending state updates (e.g. temporal deload recommendations).
+    /// These block workout start until resolved.
+    fn pending_updates_for_state(
         &self,
-        workout_config: &UserWorkoutConfig,
-        history: &HashMap<i32, Vec<SessionHistory>>,
-    ) -> String;
+        state: &StatePayload,
+        last_session_at: i64,
+        now_ts: i64,
+    ) -> Vec<PendingUpdateDef>;
 
-    /// Recovery window in seconds between sessions.
-    fn recovery_seconds(&self, workout_config: &UserWorkoutConfig) -> i64;
-
-    /// Build the RegimeContext (session description, coaching notes, etc.)
-    fn build_regime_context(
+    /// Apply a pending update's resolved field values to state.
+    /// Returns the new state or an error string if validation fails.
+    fn apply_pending_update_to_state(
         &self,
-        workout_config: &UserWorkoutConfig,
-        statuses: &[ExerciseStatus],
-    ) -> RegimeContext;
+        state: &StatePayload,
+        update_id: &str,
+        field_values: &StatePayload,
+    ) -> Result<StatePayload, String>;
 
-    /// Short name for the suggested workout, e.g. "5/3/1 — Cycle 2, Week 3 Peak".
-    /// Default returns the regime display name.
-    fn suggested_workout_name(&self, _workout_config: &UserWorkoutConfig) -> String {
-        self.display_name().to_string()
+    /// Recovery window in seconds. Derived from state (e.g. Wendler week).
+    fn recovery_seconds_for_state(&self, _state: &StatePayload) -> i64 {
+        48 * 3600
     }
 
     fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {
@@ -336,39 +273,8 @@ pub trait WorkoutRegime: Send + Sync {
                     url: url.to_string(),
                 })
                 .collect(),
-            config_fields: meta
-                .config_fields
-                .into_iter()
-                .map(|f| {
-                    let mut field = TrainingProgramConfigField {
-                        key: f.key.to_string(),
-                        label: f.label.to_string(),
-                        help_text: f.help_text.to_string(),
-                        kind: f.kind as i32,
-                        binding: f.binding as i32,
-                        required: f.required,
-                        default_int32: 0,
-                        default_float: 0.0,
-                        default_bool: false,
-                        exercise_id: f.exercise_id,
-                        int_choices: f
-                            .int_choices
-                            .into_iter()
-                            .map(|(value, label)| TrainingProgramIntChoice {
-                                value,
-                                label: label.to_string(),
-                            })
-                            .collect(),
-                    };
-                    match f.default_value {
-                        ProgramFieldDefault::Int(v) => field.default_int32 = v,
-                        ProgramFieldDefault::Float(v) => field.default_float = v,
-                        ProgramFieldDefault::Bool(v) => field.default_bool = v,
-                    }
-                    field
-                })
-                .collect(),
             sort_order: meta.sort_order,
+            state_schema: Some(self.state_schema()),
         }
     }
 }
@@ -378,8 +284,7 @@ pub trait WorkoutRegime: Send + Sync {
 pub fn get_regime(regime_type: RegimeType) -> Box<dyn WorkoutRegime> {
     match regime_type {
         RegimeType::Gzclp => Box::new(GzclpRegime),
-        RegimeType::Wendler5314day => Box::new(Wendler5314DayRegime),
-        RegimeType::Wendler5313day => Box::new(Wendler5313DayRegime),
+        RegimeType::Wendler531 => Box::new(Wendler531Regime),
         // Default / Linear5x5
         _ => Box::new(Linear5x5Regime),
     }
@@ -389,42 +294,60 @@ pub fn catalog_regime_types() -> Vec<RegimeType> {
     vec![
         RegimeType::Linear5x5,
         RegimeType::Gzclp,
-        RegimeType::Wendler5314day,
-        RegimeType::Wendler5313day,
+        RegimeType::Wendler531,
     ]
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-/// Build a basic ExerciseTypeConfig from a proposal + static config.
 pub fn make_exercise_type_config(
     exercise: Exercise,
-    proposal: &ExerciseProposal,
+    weight: f32,
+    sets: i32,
+    reps: i32,
     include_warmup: bool,
-) -> ExerciseTypeConfig {
-    make_exercise_type_config_amrap(exercise, proposal, include_warmup, false)
+) -> lift::workout::v1::ExerciseTypeConfig {
+    make_exercise_type_config_amrap(exercise, weight, sets, reps, include_warmup, false)
 }
 
-/// Like make_exercise_type_config but with explicit AMRAP control.
 pub fn make_exercise_type_config_amrap(
     exercise: Exercise,
-    proposal: &ExerciseProposal,
+    weight: f32,
+    sets: i32,
+    reps: i32,
     include_warmup: bool,
     last_set_amrap: bool,
-) -> ExerciseTypeConfig {
-    ExerciseTypeConfig {
+) -> lift::workout::v1::ExerciseTypeConfig {
+    let count = sets.max(1);
+    let working_sets = (0..count)
+        .map(|idx| {
+            let is_last = idx == count - 1;
+            let is_amrap = last_set_amrap && is_last;
+            WorkingSetSpec {
+                target_weight: weight,
+                target_reps: reps,
+                is_amrap,
+                instruction: if is_amrap {
+                    "AMRAP — push for max reps".to_string()
+                } else {
+                    String::new()
+                },
+            }
+        })
+        .collect();
+    lift::workout::v1::ExerciseTypeConfig {
         exercise: exercise as i32,
-        start_weight: proposal.weight,
-        end_weight: proposal.weight,
-        reps: proposal.reps,
+        start_weight: weight,
+        end_weight: weight,
+        reps,
         include_warmup,
         rest_config: None,
         last_set_amrap,
-        working_sets: vec![],
+        working_sets,
     }
 }
 
-/// Build a regime-appropriate RestConfig (0 = use system default for warmup fields).
+/// Build a RestConfig with just success/failure values (warmup fields = 0 = system default).
 pub fn rest_cfg(success_secs: i32, failure_secs: i32) -> Option<RestConfig> {
     Some(RestConfig {
         rest_after_success: success_secs,
@@ -438,44 +361,43 @@ pub fn rest_cfg(success_secs: i32, failure_secs: i32) -> Option<RestConfig> {
 /// Build a single-exercise ProposedExerciseGroup.
 pub fn build_single_group(
     exercise: Exercise,
-    proposal: &ExerciseProposal,
+    weight: f32,
+    sets: i32,
+    reps: i32,
     tags: Vec<String>,
     explanation: String,
     rest_config: Option<RestConfig>,
+    include_warmup: bool,
 ) -> ProposedExerciseGroup {
-    build_single_group_amrap(exercise, proposal, tags, explanation, rest_config, false)
+    build_single_group_amrap(
+        exercise,
+        weight,
+        sets,
+        reps,
+        tags,
+        explanation,
+        rest_config,
+        include_warmup,
+        false,
+    )
 }
 
-/// Like build_single_group but with explicit AMRAP control on the last working set.
 pub fn build_single_group_amrap(
     exercise: Exercise,
-    proposal: &ExerciseProposal,
+    weight: f32,
+    sets: i32,
+    reps: i32,
     tags: Vec<String>,
     explanation: String,
     rest_config: Option<RestConfig>,
+    include_warmup: bool,
     last_set_amrap: bool,
 ) -> ProposedExerciseGroup {
-    let mut cfg = make_exercise_type_config_amrap(exercise, proposal, true, last_set_amrap);
-    let count = proposal.sets.max(1);
-    cfg.working_sets = (0..count)
-        .map(|idx| {
-            let is_last = idx == count - 1;
-            let is_amrap = last_set_amrap && is_last;
-            WorkingSetSpec {
-                target_weight: proposal.weight,
-                target_reps: proposal.reps,
-                is_amrap,
-                instruction: if is_amrap {
-                    "AMRAP — push for max reps".to_string()
-                } else {
-                    String::new()
-                },
-            }
-        })
-        .collect();
+    let cfg =
+        make_exercise_type_config_amrap(exercise, weight, sets, reps, include_warmup, last_set_amrap);
     ProposedExerciseGroup {
         name: exercise_display_name(exercise),
-        sets: proposal.sets,
+        sets,
         interleave_warmups: false,
         exercise_configs: vec![cfg],
         rest_config,
@@ -520,7 +442,7 @@ pub fn build_session_readiness(
     regime_display_name: &str,
     days_per_week: i32,
     now: i64,
-) -> SessionReadiness {
+) -> lift::workout::v1::SessionReadiness {
     let next_session_at = last_session_at + recovery_seconds;
     let seconds_until = next_session_at - now;
     let is_ready = now >= next_session_at;
@@ -536,7 +458,7 @@ pub fn build_session_readiness(
         days_per_week,
         recovery_seconds / 3600
     );
-    SessionReadiness {
+    lift::workout::v1::SessionReadiness {
         next_session_at,
         last_session_at,
         readiness_label: label,
@@ -544,4 +466,64 @@ pub fn build_session_readiness(
         is_ready: last_session_at == 0 || is_ready,
         is_overdue,
     }
+}
+
+/// Build ExerciseStatus entries from history (used for display / exercise browser only).
+pub fn build_exercise_statuses(
+    all_history: &std::collections::HashMap<i32, Vec<SessionHistory>>,
+    all_max_weights: &std::collections::HashMap<i32, f32>,
+    now: i64,
+) -> Vec<ExerciseStatus> {
+    const MUSCLE_RECOVERY_HOURS: i64 = 24;
+    let recovery_seconds = MUSCLE_RECOVERY_HOURS * 3600;
+
+    let mut muscle_group_last_worked: std::collections::HashMap<i32, i64> =
+        std::collections::HashMap::new();
+    for config in EXERCISE_CONFIGS {
+        let ex_int = config.exercise as i32;
+        let last_performed = all_history
+            .get(&ex_int)
+            .and_then(|h| h.first())
+            .map(|h| h.timestamp)
+            .unwrap_or(0);
+        if last_performed > 0 {
+            for mg in config.muscle_groups {
+                let entry = muscle_group_last_worked.entry(*mg as i32).or_insert(0);
+                if last_performed > *entry {
+                    *entry = last_performed;
+                }
+            }
+        }
+    }
+
+    EXERCISE_CONFIGS
+        .iter()
+        .map(|config| {
+            let ex_int = config.exercise as i32;
+            let empty = Vec::new();
+            let history = all_history.get(&ex_int).unwrap_or(&empty);
+            let max_weight = all_max_weights.get(&ex_int).copied().unwrap_or(0.0);
+            let last_perf = history.first().map(|h| h.timestamp).unwrap_or(0);
+            let weight_history: Vec<f32> = history.iter().rev().map(|h| h.weight).collect();
+            let recovered = config.muscle_groups.iter().all(|mg| {
+                match muscle_group_last_worked.get(&(*mg as i32)) {
+                    None => true,
+                    Some(&last) => (now - last) >= recovery_seconds,
+                }
+            });
+            ExerciseStatus {
+                exercise: ex_int,
+                target_weight: max_weight,
+                explanation: String::new(),
+                last_performed_at: last_perf,
+                weight_history,
+                muscle_groups: config.muscle_groups.iter().map(|mg| *mg as i32).collect(),
+                default_sets: config.default_sets,
+                default_reps: config.default_reps,
+                recovered,
+                always_include: config.always_include,
+                category: config.category as i32,
+            }
+        })
+        .collect()
 }

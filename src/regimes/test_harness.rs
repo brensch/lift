@@ -7,15 +7,18 @@ use std::env;
 
 use chrono::DateTime;
 use lift::workout::v1::{
-    CompletedSet, ExerciseGroup, ProposedSet, RegimeType, UserWorkoutConfig, UserSetting,
-    user_setting, Workout,
+    CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout,
 };
-use prost::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::db::CentralDb;
+use crate::program_state::{
+    serialize_state_payload, set_f32, FieldVal, ProgramStateEventRecord,
+    WorkingSetResult, WorkoutCompletionResult,
+};
+use crate::regimes::get_regime;
 use crate::scheduler::Scheduler;
 use crate::service_workout::{generate_sets_for_group, materialize_group_working_sets};
 
@@ -31,8 +34,18 @@ struct Scenario {
 #[derive(Debug, Deserialize)]
 struct RegimeConfig {
     regime_type: String,
-    days_per_week: i32,
+    /// Direct state field overrides applied on top of the regime's default_state.
+    /// Use string values for enum fields (e.g. "A"), numbers for weight/int fields.
+    #[serde(default)]
+    initial_state: HashMap<String, serde_json::Value>,
+    /// Legacy: for Wendler scenarios, maps exercise name → 1RM.
+    /// Converted to TMs (× 0.9) and stored in the initial state.
+    #[serde(default)]
     one_rep_maxes: HashMap<String, f32>,
+    /// Kept for backward compat but not used by the new harness.
+    #[serde(default)]
+    #[allow(dead_code)]
+    days_per_week: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,7 +130,7 @@ struct StartStep {
 struct SetStep {
     #[serde(default)]
     note: String,
-    exercise: String,    // "squat", "bench_press", etc.
+    exercise: String,
     #[serde(rename = "warmup", default)]
     _warmup: bool,
     target_reps: i32,
@@ -179,8 +192,8 @@ fn exercise_int_to_name(ex: i32) -> &'static str {
 fn regime_type_from_str(s: &str) -> RegimeType {
     match s.to_lowercase().as_str() {
         "gzclp" => RegimeType::Gzclp,
-        "wendler_531_4day" | "wendler531_4day" => RegimeType::Wendler5314day,
-        "wendler_531_3day" | "wendler531_3day" => RegimeType::Wendler5313day,
+        "wendler_531" | "wendler531" | "wendler_531_4day" | "wendler531_4day"
+        | "wendler_531_3day" | "wendler531_3day" => RegimeType::Wendler531,
         _ => RegimeType::Linear5x5,
     }
 }
@@ -205,7 +218,85 @@ fn assert_f32_close(actual: f32, expected: f32, msg: &str) {
     );
 }
 
-fn maybe_dump_proposed_snapshot(workout_idx: usize, step_desc: &str, resp: &lift::workout::v1::GetProposedWorkoutScheduleResponse) {
+/// Build initial StatePayload from a `RegimeConfig`.
+///
+/// Priority (highest to lowest):
+///   1. `initial_state` fields (direct key→value overrides)
+///   2. `one_rep_maxes` (Wendler: compute TM = 1RM * 0.9; others: direct weight)
+///   3. regime `default_state()` baseline
+fn build_initial_state(
+    regime_type: RegimeType,
+    config: &RegimeConfig,
+) -> crate::program_state::StatePayload {
+    let regime = get_regime(regime_type);
+    let mut state = regime.default_state();
+
+    // Apply one_rep_maxes for backward compat
+    for (name, &weight) in &config.one_rep_maxes {
+        match regime_type {
+            RegimeType::Wendler531 => {
+                // Use raw TM (no rounding) so working-set weights stay accurate
+                let tm = weight * 0.9;
+                let key = match name.as_str() {
+                    "squat" => "squat_tm",
+                    "bench_press" => "bench_press_tm",
+                    "deadlift" => "deadlift_tm",
+                    "overhead_press" | "ohp" => "overhead_press_tm",
+                    _ => continue,
+                };
+                set_f32(&mut state, key, tm);
+            }
+            RegimeType::Linear5x5 => {
+                let key = match name.as_str() {
+                    "squat" => "squat_weight",
+                    "bench_press" => "bench_press_weight",
+                    "barbell_row" => "barbell_row_weight",
+                    "overhead_press" | "ohp" => "overhead_press_weight",
+                    "deadlift" => "deadlift_weight",
+                    _ => continue,
+                };
+                set_f32(&mut state, key, weight);
+            }
+            RegimeType::Gzclp => {
+                let key = match name.as_str() {
+                    "squat" => "squat_t1_weight",
+                    "deadlift" => "deadlift_t1_weight",
+                    "bench_press" => "bench_press_t2_weight",
+                    "overhead_press" | "ohp" => "overhead_press_t2_weight",
+                    "barbell_row" => "barbell_row_t2_weight",
+                    _ => continue,
+                };
+                set_f32(&mut state, key, weight);
+            }
+            _ => {}
+        }
+    }
+
+    // Apply direct initial_state overrides (highest priority)
+    for (key, val) in &config.initial_state {
+        let fv = match val {
+            serde_json::Value::Number(n) => {
+                if let Some(f) = n.as_f64() {
+                    FieldVal::Float(f)
+                } else {
+                    continue;
+                }
+            }
+            serde_json::Value::String(s) => FieldVal::Str(s.clone()),
+            serde_json::Value::Bool(b) => FieldVal::Bool(*b),
+            _ => continue,
+        };
+        state.insert(key.clone(), fv);
+    }
+
+    state
+}
+
+fn maybe_dump_proposed_snapshot(
+    workout_idx: usize,
+    step_desc: &str,
+    resp: &lift::workout::v1::GetProposedWorkoutScheduleResponse,
+) {
     if env::var("LIFT_SNAPSHOT_PROPOSED").ok().as_deref() != Some("1") {
         return;
     }
@@ -301,20 +392,29 @@ fn assert_proposed_working_sets_match_scenario(
             .collect::<Vec<_>>()
     );
 
-    for (idx, (planned, expected)) in planned_working_sets.iter().zip(scenario_sets.iter()).enumerate() {
+    for (idx, (planned, expected)) in
+        planned_working_sets.iter().zip(scenario_sets.iter()).enumerate()
+    {
         let planned_ex = exercise_int_to_name(planned.exercise);
         let expected_ex = expected.exercise.to_lowercase().replace(' ', "_");
         assert_eq!(
             planned_ex, expected_ex,
             "{}: Proposed set #{} exercise mismatch: expected '{}' got '{}'",
-            step_desc, idx + 1, expected_ex, planned_ex
+            step_desc,
+            idx + 1,
+            expected_ex,
+            planned_ex
         );
 
         if expected.target_reps > 0 {
             assert_eq!(
                 planned.target_reps, expected.target_reps,
                 "{}: Proposed set #{} reps mismatch for '{}': expected {} got {}",
-                step_desc, idx + 1, expected_ex, expected.target_reps, planned.target_reps
+                step_desc,
+                idx + 1,
+                expected_ex,
+                expected.target_reps,
+                planned.target_reps
             );
         }
 
@@ -322,7 +422,11 @@ fn assert_proposed_working_sets_match_scenario(
             assert!(
                 (planned.target_weight - expected.target_weight).abs() < 1.0,
                 "{}: Proposed set #{} weight mismatch for '{}': expected {} got {}",
-                step_desc, idx + 1, expected_ex, expected.target_weight, planned.target_weight
+                step_desc,
+                idx + 1,
+                expected_ex,
+                expected.target_weight,
+                planned.target_weight
             );
         }
     }
@@ -340,8 +444,7 @@ struct ActiveState {
 // ─── Main run function ────────────────────────────────────────────────────────
 
 pub async fn run_scenario(json: &str) {
-    let scenario: Scenario =
-        serde_json::from_str(json).expect("Failed to parse scenario JSON");
+    let scenario: Scenario = serde_json::from_str(json).expect("Failed to parse scenario JSON");
 
     // Create in-memory DB
     let db = CentralDb::new_in_memory()
@@ -349,40 +452,46 @@ pub async fn run_scenario(json: &str) {
         .expect("Failed to create in-memory DB");
 
     // Create test user
-    let user = db.create_user("test_user").await.expect("Failed to create user");
+    let user = db
+        .create_user("test_user")
+        .await
+        .expect("Failed to create user");
     let user_id = user.id.clone();
 
-    // Build and store UserWorkoutConfig
+    // ── Set up initial training program state ─────────────────────────────────
     let regime_type = regime_type_from_str(&scenario.regime_config.regime_type);
-    let one_rep_maxes: HashMap<i32, f32> = scenario
-        .regime_config
-        .one_rep_maxes
-        .iter()
-        .map(|(name, &weight)| (exercise_name_to_int(name), weight))
-        .filter(|(k, _)| *k != 0)
-        .collect();
+    let initial_state = build_initial_state(regime_type, &scenario.regime_config);
+    let regime = get_regime(regime_type);
 
-    let workout_config = UserWorkoutConfig {
+    let warnings = regime.validate_state(&initial_state);
+    for w in &warnings {
+        eprintln!("  [WARN] Initial state validation: {}", w);
+    }
+
+    let init_event = ProgramStateEventRecord {
+        event_id: Uuid::new_v4().to_string(),
+        user_id: user_id.clone(),
         regime_type: regime_type as i32,
-        days_per_week: scenario.regime_config.days_per_week,
-        one_rep_maxes,
-        regime_state_json: "{}".to_string(),
+        effective_at: 0,
+        recorded_at: 0,
+        source: "test_init".to_string(),
+        state_payload_json: serialize_state_payload(&initial_state),
+        source_workout_id: None,
     };
-
-    let setting = UserSetting {
-        setting: Some(user_setting::Setting::WorkoutConfig(workout_config)),
-    };
-    let blob = setting.encode_to_vec();
-    db.insert_user_setting(&user_id, "workout_config", &blob)
+    db.append_program_state_event(init_event)
         .await
-        .expect("Failed to insert workout config");
+        .expect("Failed to insert initial state");
 
-    // Flush to ensure config is persisted before first get_proposed
-    db.flush_writes().await.expect("Failed to flush initial config");
+    db.flush_writes()
+        .await
+        .expect("Failed to flush initial state");
 
     let scheduler = Scheduler::new(db.clone());
 
-    // ── Run each workout step ───────────────────────────────────────────────
+    // ── Run each workout step ─────────────────────────────────────────────────
+    // Track current state to pass to transition function (avoids re-loading from DB each time)
+    let mut current_state = initial_state;
+
     for (workout_idx, workout_step) in scenario.workouts.iter().enumerate() {
         let step_desc = if workout_step.note.is_empty() {
             format!("Workout #{}", workout_idx + 1)
@@ -390,7 +499,7 @@ pub async fn run_scenario(json: &str) {
             format!("Workout #{}: {}", workout_idx + 1, workout_step.note)
         };
 
-        // ── get_proposed ────────────────────────────────────────────────────
+        // ── get_proposed ─────────────────────────────────────────────────────
         let proposed_response = if let Some(gp) = &workout_step.get_proposed {
             let at_time = parse_ts(&gp.at);
             let resp = scheduler
@@ -398,7 +507,6 @@ pub async fn run_scenario(json: &str) {
                 .await
                 .unwrap_or_else(|e| panic!("{}: get_proposed_schedule failed: {}", step_desc, e));
 
-            // Validate expectations
             if let Some(expect) = &gp.expect {
                 if let Some(expected_ready) = expect.is_ready {
                     let ready = resp
@@ -454,7 +562,10 @@ pub async fn run_scenario(json: &str) {
                                 "{}: Expected group '{}' not found in proposed groups: {:?}",
                                 step_desc,
                                 group_expect.name,
-                                resp.proposed_groups.iter().map(|g| &g.name).collect::<Vec<_>>()
+                                resp.proposed_groups
+                                    .iter()
+                                    .map(|g| &g.name)
+                                    .collect::<Vec<_>>()
                             )
                         });
 
@@ -485,7 +596,9 @@ pub async fn run_scenario(json: &str) {
                             step_desc, group_expect.name
                         );
                     }
-                    if group_expect.rest_after_success.is_some() || group_expect.rest_after_failure.is_some() {
+                    if group_expect.rest_after_success.is_some()
+                        || group_expect.rest_after_failure.is_some()
+                    {
                         let actual_rc = group.rest_config.as_ref().unwrap_or_else(|| {
                             panic!(
                                 "{}: Group '{}' expected rest_config but none present",
@@ -528,14 +641,18 @@ pub async fn run_scenario(json: &str) {
                             assert_eq!(
                                 actual_ex, expected_ex,
                                 "{}: Group '{}' cfg #{} exercise mismatch",
-                                step_desc, group_expect.name, cfg_idx + 1
+                                step_desc,
+                                group_expect.name,
+                                cfg_idx + 1
                             );
                             assert_f32_close(
                                 cfg.start_weight,
                                 cfg_expect.start_weight,
                                 &format!(
                                     "{}: Group '{}' cfg #{} start_weight mismatch",
-                                    step_desc, group_expect.name, cfg_idx + 1
+                                    step_desc,
+                                    group_expect.name,
+                                    cfg_idx + 1
                                 ),
                             );
                             assert_f32_close(
@@ -543,23 +660,31 @@ pub async fn run_scenario(json: &str) {
                                 cfg_expect.end_weight,
                                 &format!(
                                     "{}: Group '{}' cfg #{} end_weight mismatch",
-                                    step_desc, group_expect.name, cfg_idx + 1
+                                    step_desc,
+                                    group_expect.name,
+                                    cfg_idx + 1
                                 ),
                             );
                             assert_eq!(
                                 cfg.reps, cfg_expect.reps,
                                 "{}: Group '{}' cfg #{} reps mismatch",
-                                step_desc, group_expect.name, cfg_idx + 1
+                                step_desc,
+                                group_expect.name,
+                                cfg_idx + 1
                             );
                             assert_eq!(
                                 cfg.include_warmup, cfg_expect.include_warmup,
                                 "{}: Group '{}' cfg #{} include_warmup mismatch",
-                                step_desc, group_expect.name, cfg_idx + 1
+                                step_desc,
+                                group_expect.name,
+                                cfg_idx + 1
                             );
                             assert_eq!(
                                 cfg.last_set_amrap, cfg_expect.last_set_amrap,
                                 "{}: Group '{}' cfg #{} last_set_amrap mismatch",
-                                step_desc, group_expect.name, cfg_idx + 1
+                                step_desc,
+                                group_expect.name,
+                                cfg_idx + 1
                             );
 
                             if !cfg_expect.working_sets.is_empty() {
@@ -567,7 +692,9 @@ pub async fn run_scenario(json: &str) {
                                     cfg.working_sets.len(),
                                     cfg_expect.working_sets.len(),
                                     "{}: Group '{}' cfg #{} working_sets count mismatch",
-                                    step_desc, group_expect.name, cfg_idx + 1
+                                    step_desc,
+                                    group_expect.name,
+                                    cfg_idx + 1
                                 );
                                 for (ws_idx, (ws, ws_expect)) in cfg
                                     .working_sets
@@ -580,18 +707,27 @@ pub async fn run_scenario(json: &str) {
                                         ws_expect.weight,
                                         &format!(
                                             "{}: Group '{}' cfg #{} ws #{} weight mismatch",
-                                            step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                            step_desc,
+                                            group_expect.name,
+                                            cfg_idx + 1,
+                                            ws_idx + 1
                                         ),
                                     );
                                     assert_eq!(
                                         ws.target_reps, ws_expect.reps,
                                         "{}: Group '{}' cfg #{} ws #{} reps mismatch",
-                                        step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                        step_desc,
+                                        group_expect.name,
+                                        cfg_idx + 1,
+                                        ws_idx + 1
                                     );
                                     assert_eq!(
                                         ws.is_amrap, ws_expect.is_amrap,
                                         "{}: Group '{}' cfg #{} ws #{} is_amrap mismatch",
-                                        step_desc, group_expect.name, cfg_idx + 1, ws_idx + 1
+                                        step_desc,
+                                        group_expect.name,
+                                        cfg_idx + 1,
+                                        ws_idx + 1
                                     );
                                 }
                             }
@@ -599,8 +735,6 @@ pub async fn run_scenario(json: &str) {
                     }
 
                     if let Some(cfg) = group.exercise_configs.first() {
-                        // For single-weight groups, start_weight == end_weight.
-                        // For Wendler, working_sets has the actual weights.
                         let weight = if !cfg.working_sets.is_empty() {
                             cfg.working_sets[0].target_weight
                         } else {
@@ -609,7 +743,10 @@ pub async fn run_scenario(json: &str) {
                         assert!(
                             (weight - group_expect.weight).abs() < 1.0,
                             "{}: Group '{}' weight mismatch: expected {}, got {}",
-                            step_desc, group_expect.name, group_expect.weight, weight
+                            step_desc,
+                            group_expect.name,
+                            group_expect.weight,
+                            weight
                         );
 
                         let reps = if !cfg.working_sets.is_empty() {
@@ -634,11 +771,13 @@ pub async fn run_scenario(json: &str) {
                 scheduler
                     .get_proposed_schedule(&user_id, start_at)
                     .await
-                    .unwrap_or_else(|e| panic!("{}: get_proposed_schedule failed: {}", step_desc, e)),
+                    .unwrap_or_else(|e| {
+                        panic!("{}: get_proposed_schedule failed: {}", step_desc, e)
+                    }),
             )
         };
 
-        // ── Start workout ───────────────────────────────────────────────────
+        // ── Start workout ─────────────────────────────────────────────────────
         let start_time = parse_ts(&workout_step.start.at);
         let workout_id = Uuid::new_v4().to_string();
         let session_id = Uuid::new_v4().to_string();
@@ -708,7 +847,7 @@ pub async fn run_scenario(json: &str) {
             completed_sets: Vec::new(),
         };
 
-        // Ensure scenario enumerates the full recommended working plan in order.
+        // Validate scenario's working set list matches the proposed plan
         let recommended_group_ids: std::collections::HashSet<String> = proposed_response
             .proposed_groups
             .iter()
@@ -725,8 +864,7 @@ pub async fn run_scenario(json: &str) {
             );
         }
 
-        // ── Auto-complete all warmup sets at once before doing working sets ──
-        // We complete all warmups at a fixed offset after start_time
+        // ── Auto-complete all warmup sets ─────────────────────────────────────
         let mut fake_warmup_time = start_time + 30;
         let warmup_ids: Vec<String> = active
             .proposed_sets
@@ -758,7 +896,7 @@ pub async fn run_scenario(json: &str) {
             active.completed_sets.push(cs);
         }
 
-        // ── Process working sets listed in scenario ─────────────────────────
+        // ── Process working sets listed in scenario ───────────────────────────
         for set_step in &workout_step.sets {
             let set_desc = if set_step.note.is_empty() {
                 format!("{} / {} set", step_desc, set_step.exercise)
@@ -770,7 +908,6 @@ pub async fn run_scenario(json: &str) {
             let started_at = parse_ts(&set_step.start_at);
             let ended_at = parse_ts(&set_step.end_at);
 
-            // Find the matching uncompleted working proposed set
             let completed_ps_ids: std::collections::HashSet<String> = active
                 .completed_sets
                 .iter()
@@ -787,8 +924,7 @@ pub async fn run_scenario(json: &str) {
                         && !completed_ps_ids.contains(&p.id)
                         && (set_step.target_weight <= 0.0
                             || (p.target_weight - set_step.target_weight).abs() < 1.0)
-                        && (set_step.target_reps <= 0
-                            || p.target_reps == set_step.target_reps)
+                        && (set_step.target_reps <= 0 || p.target_reps == set_step.target_reps)
                 })
                 .min_by_key(|p| p.workout_order)
                 .unwrap_or_else(|| {
@@ -806,7 +942,6 @@ pub async fn run_scenario(json: &str) {
                 })
                 .clone();
 
-            // Complete the set
             let ps_target_reps = ps.target_reps;
             let ps_rest_s = ps.rest_after_success as i64;
             let ps_rest_f = ps.rest_after_failure as i64;
@@ -857,7 +992,9 @@ pub async fn run_scenario(json: &str) {
                         assert!(
                             (np.target_weight - next.weight).abs() < 1.0,
                             "{}: expect_next weight mismatch: expected {} got {}",
-                            set_desc, next.weight, np.target_weight
+                            set_desc,
+                            next.weight,
+                            np.target_weight
                         );
                         assert_eq!(
                             np.target_reps, next.reps,
@@ -875,13 +1012,61 @@ pub async fn run_scenario(json: &str) {
             }
         }
 
-        // ── End workout ─────────────────────────────────────────────────────
+        // ── End workout + state transition ────────────────────────────────────
         let end_time = parse_ts(&workout_step.end.at);
         db.update_workout_end_time(&user_id, &workout_id, end_time)
             .await
             .unwrap_or_else(|e| panic!("{}: Failed to update workout end time: {}", step_desc, e));
 
-        // Flush writes to ensure DB is consistent before next get_proposed_schedule
+        // Build WorkoutCompletionResult from completed working sets
+        let mut set_results = Vec::new();
+        for cs in &active.completed_sets {
+            if let Some(ps) = active
+                .proposed_sets
+                .iter()
+                .find(|p| p.id == cs.proposed_set_id)
+            {
+                if !ps.warmup && !ps.cancelled {
+                    if let Ok(ex) = Exercise::try_from(ps.exercise) {
+                        set_results.push(WorkingSetResult {
+                            exercise: ex,
+                            target_reps: ps.target_reps,
+                            actual_reps: cs.actual_reps,
+                            target_weight: ps.target_weight,
+                            actual_weight: cs.actual_weight,
+                        });
+                    }
+                }
+            }
+        }
+
+        let completion_result = WorkoutCompletionResult {
+            workout_id: workout_id.clone(),
+            ended_at: end_time,
+            set_results,
+        };
+
+        // Transition state
+        let new_state =
+            regime.transition_state_on_workout_complete(&current_state, &completion_result, end_time);
+
+        // Append new state event (idempotency: unique per workout_id)
+        let state_event = ProgramStateEventRecord {
+            event_id: Uuid::new_v4().to_string(),
+            user_id: user_id.clone(),
+            regime_type: regime_type as i32,
+            effective_at: end_time,
+            recorded_at: end_time,
+            source: "workout_completed".to_string(),
+            state_payload_json: serialize_state_payload(&new_state),
+            source_workout_id: Some(workout_id.clone()),
+        };
+        db.append_program_state_event(state_event)
+            .await
+            .unwrap_or_else(|e| panic!("{}: Failed to append state event: {}", step_desc, e));
+
+        current_state = new_state;
+
         db.flush_writes()
             .await
             .unwrap_or_else(|e| panic!("{}: Failed to flush writes: {}", step_desc, e));
@@ -889,7 +1074,11 @@ pub async fn run_scenario(json: &str) {
         eprintln!("  [OK] {}", step_desc);
     }
 
-    eprintln!("Scenario '{}' passed ({} workouts).", scenario.description, scenario.workouts.len());
+    eprintln!(
+        "Scenario '{}' passed ({} workouts).",
+        scenario.description,
+        scenario.workouts.len()
+    );
 }
 
 // ─── Test entry points ─────────────────────────────────────────────────────────
