@@ -101,51 +101,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  Future<void> _skip() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Starting you on Linear 5×5',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        content: const Text(
-          "We'll enrol you in Linear 5×5 — the best program for beginners. "
-          "You can change this anytime in Settings → Training Program.",
-          style: TextStyle(height: 1.45),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Go back'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Got it'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    // Save default Linear 5x5 config so hasWorkoutConfig becomes true.
-    final defaults = regimeDefs.first; // Linear 5x5
-    final defaultWeights = {
-      for (final ex in exerciseDefs)
-        ex.exerciseInt: ex.defaultWeight,
-    };
-    final config = UserWorkoutConfig(
-      regimeType: defaults.type,
-      daysPerWeek: defaults.defaultDays,
-      oneRepMaxes: defaultWeights.entries
-          .map((e) => MapEntry(e.key, e.value)),
-      regimeStateJson: '{}',
-    );
-    await context.read<SettingsProvider>().updateWorkoutConfig(config);
-    if (mounted) context.go('/');
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -153,7 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Progress + skip
+            // Progress
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -173,16 +128,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       );
                     }),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: _skip,
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                          color:
-                              colorScheme.onSurface.withValues(alpha: 0.5)),
-                    ),
                   ),
                 ],
               ),
@@ -214,7 +159,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     weightControllers: _weightControllers,
                     onBack: _goBack,
                     onSave: _saveAndGo,
-                    onSkip: _skip,
                     isSaving: _isSaving,
                   ),
                 ],
@@ -699,7 +643,6 @@ class _ConfirmPage extends StatelessWidget {
   final Map<int, TextEditingController> weightControllers;
   final VoidCallback onBack;
   final VoidCallback onSave;
-  final VoidCallback onSkip;
   final bool isSaving;
 
   const _ConfirmPage({
@@ -708,7 +651,6 @@ class _ConfirmPage extends StatelessWidget {
     required this.weightControllers,
     required this.onBack,
     required this.onSave,
-    required this.onSkip,
     required this.isSaving,
   });
 
@@ -790,35 +732,6 @@ class _ConfirmPage extends StatelessWidget {
 
           const Spacer(),
 
-          SizedBox(
-            width: double.infinity,
-            height: 60,
-            child: FilledButton(
-              onPressed: isSaving ? null : onSave,
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: isSaving
-                  ? SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: cs.onPrimary,
-                      ),
-                    )
-                  : const Text(
-                      "LET'S GO",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(height: 10),
           Row(
             children: [
               OutlinedButton(
@@ -834,13 +747,31 @@ class _ConfirmPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TextButton(
-                  onPressed: onSkip,
-                  child: Text(
-                    'Skip for now',
-                    style: TextStyle(
-                        color:
-                            cs.onSurface.withValues(alpha: 0.4)),
+                child: SizedBox(
+                  height: 60,
+                  child: FilledButton(
+                    onPressed: isSaving ? null : onSave,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: isSaving
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: cs.onPrimary,
+                            ),
+                          )
+                        : const Text(
+                            "LET'S GO",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                   ),
                 ),
               ),
