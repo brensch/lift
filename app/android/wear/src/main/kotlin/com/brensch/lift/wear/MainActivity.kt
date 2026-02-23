@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -417,6 +418,10 @@ private fun WearApp(
     )
     LaunchedEffect(repOptionCount, initialReps) {
         pickerState.scrollToOption(initialReps)
+        // Wear Picker can land a few pixels off before first layout settles.
+        // Re-apply after a frame so the selected row starts centered.
+        withFrameNanos { }
+        pickerState.scrollToOption(initialReps)
     }
     val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
     val stateAccentColor = watchStateAccentColor(data.youCard.stateLabel)
@@ -606,32 +611,52 @@ private fun WearApp(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .width(26.dp)
-                                    .height(84.dp)
+                                    .width(40.dp)
+                                    .height(94.dp)
                                     .border(
                                         width = 1.dp,
                                         color = buttonContentColor.copy(alpha = 0.45f),
                                         shape = RoundedCornerShape(6.dp),
                                     )
-                                    .padding(top = 2.dp),
-                                contentAlignment = Alignment.CenterStart,
+                                    .padding(horizontal = 2.dp, vertical = 1.dp),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Picker(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxSize(),
                                     state = pickerState,
                                     gradientRatio = 0f,
                                     contentDescription = "Completed reps picker",
                                     option = { index: Int ->
-                                        Text(
-                                            text = index.toString(),
-                                            textAlign = TextAlign.End,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            fontSize = if (index == pickerState.selectedOption) 42.sp else 28.sp,
-                                            color = if (index == pickerState.selectedOption) buttonContentColor else buttonMutedContentColor,
-                                            fontFamily = WearDisplayFontFamily,
-                                            fontWeight = if (index == pickerState.selectedOption) FontWeight.Bold else FontWeight.Medium,
-                                        )
+                                        val isSelected = index == pickerState.selectedOption
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(18.dp),
+                                            contentAlignment = Alignment.CenterEnd,
+                                        ) {
+                                            Text(
+                                                text = index.toString(),
+                                                textAlign = TextAlign.End,
+                                                fontSize = 14.sp,
+                                                color = if (isSelected) Color.Transparent else buttonMutedContentColor,
+                                                fontFamily = WearDisplayFontFamily,
+                                                fontWeight = FontWeight.Medium,
+                                                lineHeight = 14.sp,
+                                            )
+                                        }
                                     },
+                                )
+                                Text(
+                                    text = selectedReps.toString(),
+                                    color = buttonContentColor,
+                                    textAlign = TextAlign.End,
+                                    fontSize = 40.sp,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 40.sp,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 1.dp),
                                 )
                             }
                             Spacer(modifier = Modifier.width(0.dp))
