@@ -465,8 +465,13 @@
           const stroke = (s.actual_reps ?? 0) < (s.target_reps ?? 0) ? "#4a1612" : "rgba(0,0,0,0.2)";
           const fill = (s.actual_reps ?? 0) < (s.target_reps ?? 0) ? shade(color, -18) : color;
           const label = `${s.exercise} ${s.target_weight}x${s.target_reps} (actual ${s.actual_reps}) | ${formatTime(s.startMs)} -> ${formatTime(s.endMs)}`;
+          const inlineText = fitLabel(compactSetText(s), ww);
+          const textColor = "rgba(255,255,255,0.96)";
           pieces.push(
             `<g><rect x="${xx}" y="${yy + 8}" width="${ww}" height="${trackH}" rx="4" fill="${fill}" stroke="${stroke}"/>` +
+            (inlineText
+              ? `<text x="${xx + 4}" y="${yy + 20}" font-size="10" fill="${textColor}" pointer-events="none">${escapeHtml(inlineText)}</text>`
+              : ``) +
             `<title>W${w.idx} #${s.idx}: ${escapeHtml(label)}</title></g>`
           );
         });
@@ -491,6 +496,23 @@
       const g = Math.max(0, Math.min(255, parseInt(n.slice(2,4),16) + amount));
       const b = Math.max(0, Math.min(255, parseInt(n.slice(4,6),16) + amount));
       return "#" + [r,g,b].map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function compactSetText(set) {
+      const w = Number(set.target_weight ?? 0);
+      const r = Number(set.target_reps ?? 0);
+      const a = Number(set.actual_reps ?? 0);
+      const ws = Number.isInteger(w) ? String(w) : String(w);
+      const base = `${ws}x${r}`;
+      return a !== r ? `${base} (${a})` : base;
+    }
+
+    function fitLabel(text, widthPx) {
+      const maxChars = Math.floor((widthPx - 8) / 6);
+      if (maxChars <= 2) return "";
+      if (text.length <= maxChars) return text;
+      if (maxChars <= 4) return text.slice(0, maxChars);
+      return text.slice(0, maxChars - 1) + "…";
     }
 
     function renderWorkoutTable(data) {
