@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
 import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.CoroutineScope
@@ -12,12 +13,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 object WearBridgeManager {
     const val PHONE_TO_WEAR_PATH = "/lift/phone/envelope"
     const val PHONE_TO_WEAR_LAUNCH_PATH = "/lift/phone/launch"
     const val WEAR_TO_PHONE_PATH = "/lift/wear/envelope"
+    const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/lift/wear/ui_heartbeat"
+    const val WEAR_APP_CAPABILITY = "lift_wear_companion"
+    private const val WATCH_UI_HEARTBEAT_TTL_MS = 8_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -25,6 +30,7 @@ object WearBridgeManager {
     private val sensorSinkRef = AtomicReference<EventChannel.EventSink?>(null)
     private val pendingIntentPayloads = ConcurrentLinkedQueue<ByteArray>()
     private val pendingSensorPayloads = ConcurrentLinkedQueue<ByteArray>()
+    private val lastWatchUiHeartbeatAtMs = AtomicLong(0L)
 
     fun setIntentSink(sink: EventChannel.EventSink?) {
         intentSinkRef.set(sink)
@@ -72,7 +78,30 @@ object WearBridgeManager {
         return sent
     }
 
+    suspend fun isWatchAppAvailable(context: Context): Boolean {
+        val capabilityClient = Wearable.getCapabilityClient(context)
+        val capability = runCatching {
+            capabilityClient
+                .getCapability(WEAR_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
+                .await()
+        }
+            .onFailure { Log.e("LiftWearBridge", "Failed capability query", it) }
+            .getOrNull()
+            ?: return false
+        return capability.nodes.isNotEmpty()
+    }
+
+    fun isWatchAppOpenOnWatch(): Boolean {
+        val lastSeen = lastWatchUiHeartbeatAtMs.get()
+        if (lastSeen <= 0L) return false
+        return (System.currentTimeMillis() - lastSeen) <= WATCH_UI_HEARTBEAT_TTL_MS
+    }
+
     fun onWearEnvelopeReceived(path: String, bytes: ByteArray) {
+        if (path == WEAR_TO_PHONE_UI_HEARTBEAT_PATH) {
+            lastWatchUiHeartbeatAtMs.set(System.currentTimeMillis())
+            return
+        }
         if (path != WEAR_TO_PHONE_PATH) return
 
         runCatching {

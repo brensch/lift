@@ -578,38 +578,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: colorScheme.onPrimary,
                         ),
                       )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'START WORKOUT',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          if (_selectedGroupIndices.isNotEmpty) ...[
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.22),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${_selectedGroupIndices.length}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                    : const Text(
+                        'START WORKOUT',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
+                          letterSpacing: 0.5,
+                        ),
                       ),
               ),
             ),

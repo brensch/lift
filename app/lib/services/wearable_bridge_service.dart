@@ -10,6 +10,8 @@ abstract class WearableBridgeService {
 
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot);
   Future<bool> openWatchApp();
+  Future<bool> isWatchAppAvailable();
+  Future<bool> isWatchAppOpenOnWatch();
 }
 
 class NoopWearableBridgeService implements WearableBridgeService {
@@ -30,4 +32,10 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<bool> openWatchApp() async => false;
+
+  @override
+  Future<bool> isWatchAppAvailable() async => false;
+
+  @override
+  Future<bool> isWatchAppOpenOnWatch() async => false;
 }

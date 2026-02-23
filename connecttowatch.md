@@ -1,8 +1,7 @@
 brensch@Schbox:~/lift$ ~/android-sdk/platform-tools/adb connect
  192.168.1.20:40203
 failed to connect to 192.168.1.20:40203
-brensch@Schbox:~/lift$ ~/android-sdk/platform-tools/adb pair 19
-2.168.1.20:36073
+brensch@Schbox:~/lift$ ~/android-sdk/platform-tools/adb pair 192.168.1.20:36073
 Enter pairing code: 100632
 Successfully paired to 192.168.1.20:36073 [guid=adb-59221WRBNW40L7-abjBLe]
 brensch@Schbox:~/lift$ ~/android-sdk/platform-tools/adb connect 192.168.1.20:44819
