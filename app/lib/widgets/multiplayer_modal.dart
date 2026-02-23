@@ -106,7 +106,16 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final sessionId = mp.sessionId;
     final userId = auth.userId ?? '';
 
+    final modalSurface = colorScheme.brightness == Brightness.dark
+        ? colorScheme.surfaceContainerHigh
+        : colorScheme.surfaceContainerLow;
+
     return Container(
+      decoration: BoxDecoration(
+        color: modalSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.25)),
+      ),
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -20,6 +20,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isSaving = false;
   bool _initialized = false;
 
+  void _goToStep(int nextStep) {
+    if (_step == nextStep) return;
+    setState(() => _step = nextStep);
+  }
+
   @override
   void dispose() {
     for (final c in _controllers.values) {
@@ -29,7 +34,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _initFromCatalog(SettingsProvider provider) {
-    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) return;
+    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty)
+      return;
     final first = provider.trainingPrograms.first;
     _selectedRegimeType = first.regimeType;
     _seedFromSchema(first.stateSchema.fields);
@@ -59,7 +65,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() {
       _selectedRegimeType = p.regimeType;
       // Re-seed controllers for new program's onboarding fields
-      final fields = p.stateSchema.fields.where((f) => f.onboardingField).toList();
+      final fields = p.stateSchema.fields
+          .where((f) => f.onboardingField)
+          .toList();
       for (final f in fields) {
         if (!_controllers.containsKey(f.key)) {
           _controllers[f.key] = TextEditingController(
@@ -70,7 +78,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
-  Future<void> _save(SettingsProvider provider, TrainingProgramDefinition program) async {
+  Future<void> _save(
+    SettingsProvider provider,
+    TrainingProgramDefinition program,
+  ) async {
     setState(() => _isSaving = true);
     try {
       final onboardingFields = program.stateSchema.fields
@@ -101,58 +112,98 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final provider = context.watch<SettingsProvider>();
     _initFromCatalog(provider);
 
-    if (!provider.loaded || provider.trainingPrograms.isEmpty || _selectedRegimeType == null) {
+    if (!provider.loaded ||
+        provider.trainingPrograms.isEmpty ||
+        _selectedRegimeType == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final programs = provider.trainingPrograms;
-    final selected = provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
+    final selected =
+        provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                children: [
-                  for (var i = 0; i < 2; i++)
-                    Expanded(
-                      child: Container(
-                        margin: EdgeInsets.only(right: i == 0 ? 8 : 0),
-                        height: 8,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: i <= _step ? cs.primary : cs.outline.withValues(alpha: 0.3),
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _step > 0) _goToStep(_step - 1);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < 2; i++)
+                      Expanded(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          margin: EdgeInsets.only(right: i == 0 ? 6 : 0),
+                          height: 5,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            color: i <= _step
+                                ? cs.primary
+                                : cs.outline.withValues(alpha: 0.25),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: _step == 0
-                  ? _ProgramStep(
-                      programs: programs,
-                      selectedType: selected.regimeType,
-                      onSelect: _selectProgram,
-                      onInfo: (p) => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => RegimeInfoScreen(regimeType: p.regimeType),
-                        ),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final curved = CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    );
+                    return FadeTransition(
+                      opacity: curved,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.03, 0),
+                          end: Offset.zero,
+                        ).animate(curved),
+                        child: child,
                       ),
-                      onNext: () => setState(() => _step = 1),
-                    )
-                  : _ConfigStep(
-                      program: selected,
-                      controllers: _controllers,
-                      onBack: () => setState(() => _step = 0),
-                      onSave: _isSaving ? null : () => _save(provider, selected),
-                      isSaving: _isSaving,
-                    ),
-            ),
-          ],
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(_step),
+                    child: _step == 0
+                        ? _ProgramStep(
+                            programs: programs,
+                            selectedType: selected.regimeType,
+                            onSelect: _selectProgram,
+                            onInfo: (p) => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    RegimeInfoScreen(regimeType: p.regimeType),
+                              ),
+                            ),
+                            onNext: () => _goToStep(1),
+                          )
+                        : _ConfigStep(
+                            program: selected,
+                            controllers: _controllers,
+                            onBack: () => _goToStep(0),
+                            onSave: _isSaving
+                                ? null
+                                : () => _save(provider, selected),
+                            isSaving: _isSaving,
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -184,14 +235,26 @@ class _ProgramStep extends StatelessWidget {
         children: [
           Text(
             'CHOOSE YOUR PROGRAM',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: cs.tertiary),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
           ),
           const SizedBox(height: 8),
-          const Text('How do you train?', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          const Text(
+            'How do you train?',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           Text(
             'Pick a program now and adjust it later anytime in Settings.',
-            style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurface.withValues(alpha: 0.6)),
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -216,7 +279,10 @@ class _ProgramStep extends StatelessWidget {
             height: 56,
             child: FilledButton(
               onPressed: onNext,
-              child: const Text('NEXT', style: TextStyle(fontWeight: FontWeight.w900)),
+              child: const Text(
+                'NEXT',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ],
@@ -243,48 +309,97 @@ class _ConfigStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final onboardingFields = program.stateSchema.fields
-        .where((f) => f.onboardingField)
-        .toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
+    final onboardingFields =
+        program.stateSchema.fields.where((f) => f.onboardingField).toList()
+          ..sort((a, b) => a.order.compareTo(b.order));
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+    return Column(
       children: [
-        Text(
-          'SETUP ${program.displayName.toUpperCase()}',
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: cs.tertiary),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            children: [
+              Text(
+                'SETUP ${program.displayName.toUpperCase()}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.4,
+                  color: cs.tertiary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                program.headline,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                program.summary,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: cs.onSurface.withValues(alpha: 0.65),
+                ),
+              ),
+              const SizedBox(height: 18),
+              for (final f in onboardingFields)
+                if (controllers.containsKey(f.key))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _StateFieldInput(
+                      field: f,
+                      controller: controllers[f.key]!,
+                    ),
+                  ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        Text(program.headline, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Text(program.summary, style: TextStyle(fontSize: 14, color: cs.onSurface.withValues(alpha: 0.65))),
-        const SizedBox(height: 20),
-        for (final f in onboardingFields)
-          if (controllers.containsKey(f.key))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: _StateFieldInput(field: f, controller: controllers[f.key]!),
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            border: Border(
+              top: BorderSide(color: cs.outline.withValues(alpha: 0.15)),
             ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onBack,
-                child: const Text('BACK'),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: onBack,
+                    child: const Text('BACK'),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                onPressed: onSave,
-                child: isSaving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('START', style: TextStyle(fontWeight: FontWeight.w900)),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: onSave,
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text(
+                            'START',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -322,7 +437,8 @@ class _StateFieldInputState extends State<_StateFieldInput> {
     final cs = Theme.of(context).colorScheme;
     final f = widget.field;
 
-    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM && f.enumOptions.isNotEmpty) {
+    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM &&
+        f.enumOptions.isNotEmpty) {
       final current = widget.controller.text;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +447,13 @@ class _StateFieldInputState extends State<_StateFieldInput> {
           if (f.helpText.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2, bottom: 8),
-              child: Text(f.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+              child: Text(
+                f.helpText,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
             ),
           Wrap(
             spacing: 8,
@@ -339,7 +461,8 @@ class _StateFieldInputState extends State<_StateFieldInput> {
               return ChoiceChip(
                 label: Text(opt.label.isNotEmpty ? opt.label : opt.value),
                 selected: opt.value == current,
-                onSelected: (_) => setState(() => widget.controller.text = opt.value),
+                onSelected: (_) =>
+                    setState(() => widget.controller.text = opt.value),
               );
             }).toList(),
           ),
@@ -347,29 +470,64 @@ class _StateFieldInputState extends State<_StateFieldInput> {
       );
     }
 
-    final isNumeric = f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
+    final isNumeric =
+        f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
-    final suffix = f.section.contains('Weight') || f.section.contains('Max') ? 'lbs' : null;
+    final suffix = f.section.contains('Weight') || f.section.contains('Max')
+        ? 'lbs'
+        : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        if (f.helpText.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 2, bottom: 8),
-            child: Text(f.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                f.label,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              if (f.helpText.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, right: 10),
+                  child: Text(
+                    f.helpText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.2,
+                      color: cs.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        TextField(
-          controller: widget.controller,
-          keyboardType: isNumeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-          textAlign: TextAlign.right,
-          decoration: InputDecoration(
-            suffixText: suffix,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 136,
+          child: TextField(
+            controller: widget.controller,
+            keyboardType: isNumeric
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
+            textAlign: TextAlign.right,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              suffixText: suffix,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: cs.outline.withValues(alpha: 0.5),
+                ),
+              ),
             ),
           ),
         ),
@@ -400,11 +558,13 @@ class _ProgramCard extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? cs.primary.withValues(alpha: 0.08) : cs.surfaceContainerLowest,
+          color: selected
+              ? cs.primary.withValues(alpha: 0.08)
+              : cs.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.4),
-            width: selected ? 2 : 1,
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
+            width: 2,
           ),
         ),
         child: Row(
@@ -418,37 +578,83 @@ class _ProgramCard extends StatelessWidget {
                 height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: selected ? cs.primary : cs.outline, width: 2),
+                  border: Border.all(
+                    color: selected ? cs.primary : cs.outline,
+                    width: 2,
+                  ),
                   color: selected ? cs.primary : Colors.transparent,
                 ),
-                child: selected ? Icon(Icons.check, size: 10, color: cs.onPrimary) : null,
+                child: selected
+                    ? Icon(Icons.check, size: 10, color: cs.onPrimary)
+                    : null,
               ),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Text(program.displayName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                  const SizedBox(height: 3),
-                  Text(program.headline,
-                      style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.65))),
-                  if (program.hasAtAGlance()) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                  Padding(
+                    padding: const EdgeInsets.only(right: 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _PreviewPill(emoji: '📅', text: program.atAGlance.daysPerWeek),
-                        _PreviewPill(emoji: '🎯', text: program.atAGlance.bestFor),
-                        _PreviewPill(emoji: '⏱️', text: program.atAGlance.averageSessionTime),
+                        Text(
+                          program.displayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          program.headline,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurface.withValues(alpha: 0.65),
+                          ),
+                        ),
+                        if (program.hasAtAGlance()) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _PreviewPill(
+                                emoji: '📅',
+                                text: program.atAGlance.daysPerWeek,
+                              ),
+                              _PreviewPill(
+                                emoji: '🎯',
+                                text: program.atAGlance.bestFor,
+                              ),
+                              _PreviewPill(
+                                emoji: '⏱️',
+                                text: program.atAGlance.averageSessionTime,
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
+                  Positioned(
+                    top: -1,
+                    right: 0,
+                    child: IconButton(
+                      onPressed: onInfo,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 24,
+                        height: 24,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      iconSize: 20,
+                      icon: const Icon(Icons.info_outline_rounded),
+                    ),
+                  ),
                 ],
               ),
             ),
-            IconButton(onPressed: onInfo, icon: const Icon(Icons.info_outline_rounded)),
           ],
         ),
       ),

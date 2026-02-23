@@ -28,7 +28,8 @@ class SettingsProvider extends ChangeNotifier {
   TrainingProgramState? get programState => _programState;
 
   /// True once the user has saved a training program state (i.e. completed onboarding).
-  bool get hasProgramState => _programState != null && _programState!.updatedAt > 0;
+  bool get hasProgramState =>
+      _programState != null && _programState!.updatedAt > 0;
 
   List<TrainingProgramDefinition> get trainingPrograms =>
       List.unmodifiable(_trainingPrograms);
@@ -44,7 +45,9 @@ class SettingsProvider extends ChangeNotifier {
 
   TrainingProgramDefinition? trainingProgramForInt(int regimeTypeValue) {
     try {
-      return _trainingPrograms.firstWhere((p) => p.regimeType.value == regimeTypeValue);
+      return _trainingPrograms.firstWhere(
+        (p) => p.regimeType.value == regimeTypeValue,
+      );
     } catch (_) {
       return null;
     }
@@ -67,8 +70,9 @@ class SettingsProvider extends ChangeNotifier {
         ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
       // Load user settings (plate colors)
-      final response = await _grpcClient.settingsService
-          .getSettings(GetSettingsRequest());
+      final response = await _grpcClient.settingsService.getSettings(
+        GetSettingsRequest(),
+      );
       for (final setting in response.settings) {
         if (setting.whichSetting() == UserSetting_Setting.plateColors) {
           _applyPlateColors(setting.plateColors);
@@ -77,7 +81,9 @@ class SettingsProvider extends ChangeNotifier {
 
       // Load training program state
       final stateRes = await _grpcClient.settingsService
-          .getActiveTrainingProgramState(GetActiveTrainingProgramStateRequest());
+          .getActiveTrainingProgramState(
+            GetActiveTrainingProgramStateRequest(),
+          );
       if (stateRes.hasState()) _programState = stateRes.state;
 
       _loaded = true;
@@ -85,6 +91,19 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       _loaded = true;
       notifyListeners();
+    }
+  }
+
+  Future<void> refreshActiveTrainingProgramState() async {
+    try {
+      final stateRes = await _grpcClient.settingsService
+          .getActiveTrainingProgramState(
+            GetActiveTrainingProgramStateRequest(),
+          );
+      _programState = stateRes.hasState() ? stateRes.state : null;
+      notifyListeners();
+    } catch (_) {
+      // Keep existing cached state on refresh failure.
     }
   }
 
@@ -107,8 +126,9 @@ class SettingsProvider extends ChangeNotifier {
       fields: fields.entries,
       source: source,
     );
-    final res = await _grpcClient.settingsService
-        .setActiveTrainingProgramState(req);
+    final res = await _grpcClient.settingsService.setActiveTrainingProgramState(
+      req,
+    );
     if (res.hasState()) _programState = res.state;
     notifyListeners();
     return res.validationWarnings;
@@ -123,8 +143,7 @@ class SettingsProvider extends ChangeNotifier {
       updateId: updateId,
       fieldValues: fieldValues.entries,
     );
-    final res = await _grpcClient.settingsService
-        .applyPendingStateUpdate(req);
+    final res = await _grpcClient.settingsService.applyPendingStateUpdate(req);
     if (res.hasState()) _programState = res.state;
     notifyListeners();
   }
@@ -134,17 +153,16 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
 
     final config = PlateColorsConfig(
-      plates: colors.entries.map((e) => PlateColor(
-        weightKg: e.key,
-        hexColor: _colorToHex(e.value),
-      )).toList(),
+      plates: colors.entries
+          .map(
+            (e) => PlateColor(weightKg: e.key, hexColor: _colorToHex(e.value)),
+          )
+          .toList(),
     );
 
     try {
       await _grpcClient.settingsService.updateSetting(
-        UpdateSettingRequest(
-          setting: UserSetting(plateColors: config),
-        ),
+        UpdateSettingRequest(setting: UserSetting(plateColors: config)),
       );
     } catch (e) {
       // Optimistic update already applied
@@ -169,7 +187,12 @@ class SettingsProvider extends ChangeNotifier {
     if (hex.length == 6) {
       final value = int.tryParse(hex, radix: 16);
       if (value == null) return null;
-      return Color.fromARGB(255, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF);
+      return Color.fromARGB(
+        255,
+        (value >> 16) & 0xFF,
+        (value >> 8) & 0xFF,
+        value & 0xFF,
+      );
     }
     return null;
   }

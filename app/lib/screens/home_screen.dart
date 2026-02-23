@@ -293,6 +293,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final tagSections = _buildTagSections();
 
+    final workoutPanelColor = colorScheme.brightness == Brightness.dark
+        ? const Color(0xFF222222)
+        : const Color(0xFFF0F0F0);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: RefreshIndicator(
@@ -405,11 +409,22 @@ class _HomeScreenState extends State<HomeScreen> {
           20 + MediaQuery.of(context).padding.bottom,
         ),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: workoutPanelColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(
-            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.4)),
+            top: BorderSide(
+              color: colorScheme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.14)
+                  : Colors.black.withValues(alpha: 0.10),
+            ),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -543,7 +558,10 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               height: 62,
               child: FilledButton(
-                onPressed: _selectedGroupIndices.isEmpty || _isStarting || !_canStartWorkout
+                onPressed:
+                    _selectedGroupIndices.isEmpty ||
+                        _isStarting ||
+                        !_canStartWorkout
                     ? null
                     : _startWorkout,
                 style: FilledButton.styleFrom(
@@ -628,14 +646,14 @@ class _ReadinessBanner extends StatelessWidget {
     String label;
 
     if (sr != null && sr.readinessLabel.isNotEmpty) {
-      if (sr.isOverdue) {
-        bannerColor = cs.errorContainer;
-        textColor = cs.onErrorContainer;
-        icon = Icons.warning_amber_rounded;
-      } else if (sr.isReady) {
+      if (sr.isReady) {
         bannerColor = const Color(0xFF1B5E20).withValues(alpha: 0.15);
         textColor = const Color(0xFF2E7D32);
         icon = Icons.fitness_center_rounded;
+      } else if (sr.isOverdue) {
+        bannerColor = cs.errorContainer;
+        textColor = cs.onErrorContainer;
+        icon = Icons.warning_amber_rounded;
       } else {
         bannerColor = cs.tertiaryContainer.withValues(alpha: 0.5);
         textColor = cs.onTertiaryContainer;
@@ -693,8 +711,29 @@ class _ReadinessBanner extends StatelessWidget {
                 ),
               ),
             ),
+          if (label.isNotEmpty) ...[
+            if (rc != null && rc.regimeDisplayName.isNotEmpty)
+              const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(icon, size: 17, color: textColor),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (rc != null && rc.sessionDescription.isNotEmpty) ...[
-            const SizedBox(height: 2),
+            if (label.isNotEmpty)
+              const SizedBox(height: 6)
+            else
+              const SizedBox(height: 2),
             Text(
               rc.sessionDescription,
               style: TextStyle(
@@ -702,24 +741,6 @@ class _ReadinessBanner extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: textColor,
               ),
-            ),
-          ],
-          if (label.isNotEmpty) ...[
-            if (rc != null && rc.sessionDescription.isNotEmpty)
-              const SizedBox(height: 6),
-            Row(
-              children: [
-                Icon(icon, size: 14, color: textColor),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                ),
-              ],
             ),
           ],
           if (sr != null && sr.readinessDetail.isNotEmpty) ...[
@@ -896,13 +917,18 @@ class _GroupChip extends StatelessWidget {
     if (allWorking.isEmpty) return 'Set plan';
 
     final amrapCount = allWorking.where((s) => s.isAmrap).length;
-    final warmupsIncluded = group.exerciseConfigs.where((c) => c.includeWarmup).length;
+    final warmupsIncluded = group.exerciseConfigs
+        .where((c) => c.includeWarmup)
+        .length;
 
     if (group.exerciseConfigs.length == 1) {
       final pattern = allWorking
           .map((s) => s.isAmrap ? '${s.targetReps}+' : '${s.targetReps}')
           .join(' / ');
-      final uniqueWeights = allWorking.map((s) => s.targetWeight).toSet().length;
+      final uniqueWeights = allWorking
+          .map((s) => s.targetWeight)
+          .toSet()
+          .length;
       final weightText = uniqueWeights > 1 ? 'ramped weights' : 'fixed weight';
       final warmupText = warmupsIncluded > 0 ? ' • warmups' : '';
       return '$pattern • ${allWorking.length} working sets • $weightText$warmupText';
@@ -1092,10 +1118,8 @@ class _PendingUpdateCard extends StatelessWidget {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => _PendingUpdateDialog(
-        update: update,
-        controllers: controllers,
-      ),
+      builder: (ctx) =>
+          _PendingUpdateDialog(update: update, controllers: controllers),
     );
 
     for (final c in controllers.values) {
@@ -1109,10 +1133,7 @@ class _PendingUpdateCard extends StatelessWidget {
     for (final f in update.fields) {
       final text = controllers[f.key]?.text.trim() ?? '';
       // Convert PendingStateUpdateField to StateFieldKind for value building
-      final schema = TrainingProgramStateFieldSchema(
-        key: f.key,
-        kind: f.kind,
-      );
+      final schema = TrainingProgramStateFieldSchema(key: f.key, kind: f.kind);
       final val = SettingsProvider.fieldValueFromText(schema, text);
       if (val != null) fieldValues[f.key] = val;
     }
@@ -1125,9 +1146,9 @@ class _PendingUpdateCard extends StatelessWidget {
       onResolved();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to apply update: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to apply update: $e')));
       }
     }
   }
@@ -1163,7 +1184,10 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text(widget.update.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+      title: Text(
+        widget.update.title,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1172,7 +1196,10 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
             if (widget.update.message.isNotEmpty) ...[
               Text(
                 widget.update.message,
-                style: TextStyle(fontSize: 13, color: cs.onSurface.withValues(alpha: 0.7)),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: cs.onSurface.withValues(alpha: 0.7),
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -1200,7 +1227,8 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
     ColorScheme cs,
   ) {
     final controller = widget.controllers[f.key]!;
-    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM && f.enumOptions.isNotEmpty) {
+    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM &&
+        f.enumOptions.isNotEmpty) {
       return ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
@@ -1209,7 +1237,10 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  f.label,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1217,7 +1248,8 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
                     return ChoiceChip(
                       label: Text(opt.label.isNotEmpty ? opt.label : opt.value),
                       selected: opt.value == controller.text,
-                      onSelected: (_) => setState(() => controller.text = opt.value),
+                      onSelected: (_) =>
+                          setState(() => controller.text = opt.value),
                     );
                   }).toList(),
                 ),
@@ -1228,7 +1260,8 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
       );
     }
 
-    final isNumeric = f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
+    final isNumeric =
+        f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -1245,10 +1278,14 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
             textAlign: TextAlign.right,
             decoration: InputDecoration(
               suffixText: 'lbs',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                borderSide: BorderSide(
+                  color: cs.outline.withValues(alpha: 0.5),
+                ),
               ),
             ),
           ),
