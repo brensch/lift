@@ -55,6 +55,55 @@ fn round_to_2_5(weight: f32) -> f32 {
     (weight / 2.5).round() * 2.5
 }
 
+fn round_to_5(weight: f32) -> f32 {
+    (weight / 5.0).round() * 5.0
+}
+
+fn is_25_45_plate_combo(total_weight: f32) -> bool {
+    if total_weight < 45.0 {
+        return false;
+    }
+    let rem = (total_weight - 45.0).round() as i32;
+    if rem < 0 || rem % 10 != 0 {
+        return false;
+    }
+    // total = 45 + 50*a + 90*b
+    for b in 0..=(rem / 90) {
+        let rest = rem - (90 * b);
+        if rest >= 0 && rest % 50 == 0 {
+            return true;
+        }
+    }
+    false
+}
+
+fn snap_warmup_weight(weight: f32, max_warmup_weight: f32) -> f32 {
+    if max_warmup_weight < 45.0 {
+        return round_to_2_5(weight).clamp(2.5, max_warmup_weight);
+    }
+
+    let candidate = round_to_5(weight).clamp(45.0, max_warmup_weight);
+    if is_25_45_plate_combo(candidate) {
+        return candidate;
+    }
+
+    // Prefer a nearby 45/25-plate-only load if it's within 5 lb.
+    let mut best = candidate;
+    let mut best_diff = f32::INFINITY;
+    let mut probe = 45.0;
+    while probe <= max_warmup_weight {
+        if is_25_45_plate_combo(probe) {
+            let diff = (probe - candidate).abs();
+            if diff <= 5.0 && (diff < best_diff || (diff == best_diff && probe < best)) {
+                best = probe;
+                best_diff = diff;
+            }
+        }
+        probe += 5.0;
+    }
+    best
+}
+
 fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
     // Always produce 4 warmup sets (5/5/3/2) and allow sub-45 weights.
     // Use percentages of the working weight, rounded to 2.5-lb increments.
@@ -65,7 +114,7 @@ fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
     let mut out = Vec::with_capacity(4);
     let mut prev = 0.0_f32;
     for (idx, pct) in pcts.iter().enumerate() {
-        let desired = round_to_2_5(working_weight * pct);
+        let desired = snap_warmup_weight(working_weight * pct, max_warmup_weight);
         let mut chosen = if idx == 0 && max_warmup_weight >= 45.0 {
             45.0
         } else {
