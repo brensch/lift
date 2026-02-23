@@ -37,6 +37,8 @@ struct RegimeConfig {
 struct WorkoutStep {
     #[serde(default)]
     note: String,
+    #[serde(default)]
+    assert_recommended_plan_matches_sets: bool,
     get_proposed: Option<GetProposedStep>,
     start: StartStep,
     sets: Vec<SetStep>,
@@ -51,10 +53,10 @@ struct GetProposedStep {
 
 #[derive(Debug, Deserialize)]
 struct ProposedExpect {
-    #[serde(default)]
-    suggested_name: String,
-    #[serde(default)]
-    is_ready: bool,
+    suggested_name: Option<String>,
+    is_ready: Option<bool>,
+    #[serde(default = "default_true")]
+    exact_groups: bool,
     #[serde(default)]
     groups: Vec<GroupExpect>,
 }
@@ -65,6 +67,10 @@ struct GroupExpect {
     sets: i32,
     reps: i32,
     weight: f32,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]
@@ -149,6 +155,64 @@ fn parse_ts(s: &str) -> i64 {
         .timestamp()
 }
 
+fn assert_proposed_working_sets_match_scenario(
+    step_desc: &str,
+    proposed_sets: &[ProposedSet],
+    included_group_ids: &std::collections::HashSet<String>,
+    scenario_sets: &[SetStep],
+) {
+    let mut planned_working_sets: Vec<&ProposedSet> = proposed_sets
+        .iter()
+        .filter(|p| {
+            !p.warmup && !p.cancelled && included_group_ids.contains(&p.exercise_group_id)
+        })
+        .collect();
+    planned_working_sets.sort_by_key(|p| p.workout_order);
+
+    assert_eq!(
+        planned_working_sets.len(),
+        scenario_sets.len(),
+        "{}: Scenario set list must exactly match proposed working sets. proposed={} scenario={}\nPlanned: {:?}\nScenario: {:?}",
+        step_desc,
+        planned_working_sets.len(),
+        scenario_sets.len(),
+        planned_working_sets
+            .iter()
+            .map(|p| format!("{} {}x{}", exercise_int_to_name(p.exercise), p.target_weight, p.target_reps))
+            .collect::<Vec<_>>(),
+        scenario_sets
+            .iter()
+            .map(|s| format!("{} {}x{}", s.exercise, s.target_weight, s.target_reps))
+            .collect::<Vec<_>>()
+    );
+
+    for (idx, (planned, expected)) in planned_working_sets.iter().zip(scenario_sets.iter()).enumerate() {
+        let planned_ex = exercise_int_to_name(planned.exercise);
+        let expected_ex = expected.exercise.to_lowercase().replace(' ', "_");
+        assert_eq!(
+            planned_ex, expected_ex,
+            "{}: Proposed set #{} exercise mismatch: expected '{}' got '{}'",
+            step_desc, idx + 1, expected_ex, planned_ex
+        );
+
+        if expected.target_reps > 0 {
+            assert_eq!(
+                planned.target_reps, expected.target_reps,
+                "{}: Proposed set #{} reps mismatch for '{}': expected {} got {}",
+                step_desc, idx + 1, expected_ex, expected.target_reps, planned.target_reps
+            );
+        }
+
+        if expected.target_weight > 0.0 {
+            assert!(
+                (planned.target_weight - expected.target_weight).abs() < 1.0,
+                "{}: Proposed set #{} weight mismatch for '{}': expected {} got {}",
+                step_desc, idx + 1, expected_ex, expected.target_weight, planned.target_weight
+            );
+        }
+    }
+}
+
 // ─── Active workout state ─────────────────────────────────────────────────────
 
 struct ActiveState {
@@ -221,23 +285,32 @@ pub async fn run_scenario(json: &str) {
 
             // Validate expectations
             if let Some(expect) = &gp.expect {
-                if expect.is_ready {
+                if let Some(expected_ready) = expect.is_ready {
                     let ready = resp
                         .session_readiness
                         .as_ref()
                         .map(|sr| sr.is_ready)
                         .unwrap_or(false);
-                    assert!(
-                        ready,
-                        "{}: Expected is_ready=true but got false. session_readiness={:?}",
-                        step_desc, resp.session_readiness
+                    assert_eq!(
+                        ready, expected_ready,
+                        "{}: session_readiness.is_ready mismatch",
+                        step_desc
                     );
                 }
 
-                if !expect.suggested_name.is_empty() {
+                if let Some(expected_name) = &expect.suggested_name {
                     assert_eq!(
-                        resp.suggested_workout_name, expect.suggested_name,
+                        resp.suggested_workout_name, *expected_name,
                         "{}: suggested_workout_name mismatch",
+                        step_desc
+                    );
+                }
+
+                if expect.exact_groups && !expect.groups.is_empty() {
+                    assert_eq!(
+                        resp.proposed_groups.len(),
+                        expect.groups.len(),
+                        "{}: proposed group count mismatch (exact_groups=true)",
                         step_desc
                     );
                 }
@@ -370,6 +443,23 @@ pub async fn run_scenario(json: &str) {
             proposed_sets: all_proposed_sets,
             completed_sets: Vec::new(),
         };
+
+        // Ensure scenario enumerates the full recommended working plan in order.
+        let recommended_group_ids: std::collections::HashSet<String> = proposed_response
+            .proposed_groups
+            .iter()
+            .enumerate()
+            .filter(|(_, pg)| pg.tags.iter().any(|t| t == "recommended"))
+            .map(|(idx, _)| active._exercise_groups[idx].id.clone())
+            .collect();
+        if workout_step.assert_recommended_plan_matches_sets {
+            assert_proposed_working_sets_match_scenario(
+                &step_desc,
+                &active.proposed_sets,
+                &recommended_group_ids,
+                &workout_step.sets,
+            );
+        }
 
         // ── Auto-complete all warmup sets at once before doing working sets ──
         // We complete all warmups at a fixed offset after start_time
