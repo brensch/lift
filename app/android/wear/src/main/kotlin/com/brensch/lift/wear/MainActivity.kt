@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,6 +77,14 @@ private val WearDisplayFontFamily = FontFamily(
     Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
     Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
 )
+
+// Match mobile app workout state accents:
+// Lifting/Warmup pink: 0xFFEC4899
+// Resting blue: 0xFF3B82F6
+// Yapping orange: 0xFFF97316
+private val MobileLiftingPink = Color(0xFFEC4899)
+private val MobileRestingBlue = Color(0xFF3B82F6)
+private val MobileYappingOrange = Color(0xFFF97316)
 
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -397,7 +406,6 @@ private fun WearApp(
     }
     val completeButtonText = "Complete\n$exerciseName"
     val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
-    val timerColor = if (isResting) Color(0xFF86EFAC) else Color.White
     val maxReps = if (isAmrap) 30 else (currentSet?.targetReps ?: 0)
     val repOptionMax = if (isAmrap) 30 else (maxReps * 2).coerceAtLeast(0)
     val repOptionCount = (repOptionMax + 1).coerceAtLeast(1)
@@ -411,6 +419,19 @@ private fun WearApp(
         pickerState.scrollToOption(initialReps)
     }
     val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
+    val stateAccentColor = watchStateAccentColor(data.youCard.stateLabel)
+    val timerColor = when {
+        data.youCard.timerText.isNotEmpty() && stateAccentColor != null -> stateAccentColor
+        isResting -> Color(0xFF86EFAC)
+        else -> Color.White
+    }
+    val buttonBackgroundColor = stateAccentColor ?: Color.White
+    val buttonContentColor = if (stateAccentColor != null) Color.White else Color.Black
+    val buttonMutedContentColor = if (stateAccentColor != null) {
+        Color.White.copy(alpha = 0.6f)
+    } else {
+        Color(0xFF6B7280)
+    }
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
@@ -455,7 +476,7 @@ private fun WearApp(
             }
             Text(
                 text = data.youCard.stateLabel,
-                color = Color.White,
+                color = stateAccentColor ?: Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.End,
@@ -501,8 +522,8 @@ private fun WearApp(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(0.dp),
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color.White,
-                        contentColor = Color.Black,
+                        backgroundColor = buttonBackgroundColor,
+                        contentColor = buttonContentColor,
                     ),
                 ) {
                     Box(
@@ -558,8 +579,8 @@ private fun WearApp(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(0.dp),
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color.White,
-                        contentColor = Color.Black,
+                        backgroundColor = buttonBackgroundColor,
+                        contentColor = buttonContentColor,
                     ),
                 ) {
                     Column(
@@ -571,7 +592,7 @@ private fun WearApp(
                     ) {
                         Text(
                             text = completeButtonText,
-                            color = Color.Black,
+                            color = buttonContentColor,
                             fontSize = 18.sp,
                             textAlign = TextAlign.Start,
                             fontFamily = WearDisplayFontFamily,
@@ -587,6 +608,11 @@ private fun WearApp(
                                 modifier = Modifier
                                     .width(26.dp)
                                     .height(84.dp)
+                                    .border(
+                                        width = 1.dp,
+                                        color = buttonContentColor.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(6.dp),
+                                    )
                                     .padding(top = 2.dp),
                                 contentAlignment = Alignment.CenterStart,
                             ) {
@@ -601,7 +627,7 @@ private fun WearApp(
                                             textAlign = TextAlign.End,
                                             modifier = Modifier.fillMaxWidth(),
                                             fontSize = if (index == pickerState.selectedOption) 42.sp else 28.sp,
-                                            color = if (index == pickerState.selectedOption) Color.Black else Color(0xFF6B7280),
+                                            color = if (index == pickerState.selectedOption) buttonContentColor else buttonMutedContentColor,
                                             fontFamily = WearDisplayFontFamily,
                                             fontWeight = if (index == pickerState.selectedOption) FontWeight.Bold else FontWeight.Medium,
                                         )
@@ -611,7 +637,7 @@ private fun WearApp(
                             Spacer(modifier = Modifier.width(0.dp))
                             Text(
                                 text = weightOnlyText,
-                                color = Color.Black,
+                                color = buttonContentColor,
                                 fontSize = 28.sp,
                                 textAlign = TextAlign.Start,
                                 fontFamily = WearDisplayFontFamily,
@@ -750,6 +776,15 @@ private fun StatLine(
 
 private fun formatNowClock(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
+}
+
+private fun watchStateAccentColor(stateLabel: String?): Color? {
+    return when (stateLabel) {
+        "Lifting", "Warmup" -> MobileLiftingPink
+        "Resting" -> MobileRestingBlue
+        "Yapping" -> MobileYappingOrange
+        else -> null
+    }
 }
 
 private fun heartRateColor(bpm: Float?): Color {
