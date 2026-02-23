@@ -1543,7 +1543,8 @@ impl CentralDb {
                   AND w.end_time IS NOT NULL AND w.end_time > 0
                 GROUP BY g_ps.exercise, g_ps.workout_id
                 HAVING ended_at IS NOT NULL
-             ) WHERE rn <= ?",
+             ) WHERE rn <= ?
+               ORDER BY exercise, rn",
         )
         .bind(user_id)
         .bind(limit_per_exercise)

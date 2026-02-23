@@ -208,7 +208,10 @@
       </div>
 
       <div class="panel">
-        <div class="small" style="margin-bottom:8px;">Workout summary</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="small">Workout summary</div>
+          <button id="copySummaryBtn" class="secondary" type="button">Copy Summary for LLM</button>
+        </div>
         <div style="overflow:auto;">
           <table id="workoutsTable"></table>
         </div>
@@ -511,6 +514,31 @@
       document.getElementById("workoutsTable").innerHTML = rows.join("");
     }
 
+    function buildSummaryText() {
+      if (!state.scenario) return "";
+      const data = collectScenarioData(state.scenario);
+      const lines = [];
+      lines.push(`Scenario: ${state.scenario.description || ""}`);
+      lines.push(`Regime: ${state.scenario.regime_config?.regime_type || "unknown"}`);
+      lines.push(`Workouts: ${data.workouts.length}`);
+      lines.push("");
+      lines.push(["#", "Note", "get_proposed", "Start", "End", "Sets", "Exercises", "Strict"].join("\\t"));
+      for (const w of data.workouts) {
+        const exList = Array.from(new Set(w.sets.map(s => s.exercise))).join(", ");
+        lines.push([
+          w.idx,
+          (w.note || "").replace(/\\s+/g, " ").trim(),
+          formatTime(w.gpMs),
+          formatTime(w.startMs),
+          formatTime(w.endMs),
+          w.sets.length,
+          exList,
+          w.assert_recommended_plan_matches_sets ? "yes" : "no"
+        ].join("\\t"));
+      }
+      return lines.join("\\n");
+    }
+
     function showError(err) {
       const box = document.getElementById("error");
       box.style.display = "";
@@ -568,6 +596,25 @@
     });
     document.getElementById("timelineWrap").addEventListener("scroll", syncStickyYAxis);
     document.getElementById("renderBtn").addEventListener("click", loadFromText);
+    document.getElementById("copySummaryBtn").addEventListener("click", async () => {
+      const text = buildSummaryText();
+      if (!text) {
+        showError("Load a scenario first.");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        // Fallback for file:// contexts where clipboard API may be blocked.
+        const ta = document.getElementById("text");
+        const prev = ta.value;
+        ta.value = text;
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        ta.value = prev;
+      }
+    });
     document.getElementById("sampleBtn").addEventListener("click", () => {
       document.getElementById("text").value = JSON.stringify({
         description: "Minimal sample",

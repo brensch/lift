@@ -38,7 +38,7 @@ impl Scheduler {
         // ── 2. Load exercise history ─────────────────────────────────────────
         let (all_history, all_max_weights) = self
             .central_db
-            .get_all_exercise_history(user_id, 10)
+            .get_all_exercise_history(user_id, 100)
             .await?;
 
         // ── 3. Get the active regime implementation ──────────────────────────
