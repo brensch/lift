@@ -57,13 +57,6 @@ impl Linear5x5State {
         }
     }
 
-    fn toggle_variant(&mut self) {
-        self.next_variant = if self.normalize_variant() == "A" {
-            "B".to_string()
-        } else {
-            "A".to_string()
-        };
-    }
 }
 
 impl WorkoutRegime for Linear5x5Regime {
@@ -120,11 +113,16 @@ impl WorkoutRegime for Linear5x5Regime {
         let mut state = Linear5x5State::from_json(&workout_config.regime_state_json);
 
         if let Some(squat_history) = history.get(&(Exercise::Squat as i32)) {
+            // Derive A/B from completed squat-session parity so alternation remains correct
+            // even if incremental state updates are missed. Odd completed squats => next is B.
+            state.next_variant = if squat_history.len() % 2 == 0 {
+                "A".to_string()
+            } else {
+                "B".to_string()
+            };
+
             if let Some(latest) = squat_history.first() {
-                if latest.timestamp > state.last_applied_squat_ts {
-                    state.last_applied_squat_ts = latest.timestamp;
-                    state.toggle_variant();
-                }
+                state.last_applied_squat_ts = state.last_applied_squat_ts.max(latest.timestamp);
             }
         }
 
