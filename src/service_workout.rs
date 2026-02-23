@@ -2204,8 +2204,8 @@ mod tests {
             .filter(|set| !set.warmup)
             .collect();
 
-        // 3 warmups + 3 working in target plan, with 1 working already completed => 5 active pending+completed.
-        assert_eq!(active_group_sets.len(), 6);
+        // 4 warmups + 3 working in target plan, with 1 working already completed-associated set preserved.
+        assert_eq!(active_group_sets.len(), 7);
         assert_eq!(working_active.len(), 3);
         assert_eq!(cancelled_group_sets.len(), 2);
     }

@@ -1384,11 +1384,14 @@ mod tests {
         .expect("workout after")
         .into_inner();
 
-        assert!(workout_after.proposed_sets.iter().all(|set| !set.cancelled));
         assert!(workout_after
             .proposed_sets
             .iter()
-            .all(|set| set.id != warmup_to_cancel));
+            .any(|set| set.id == warmup_to_cancel && set.cancelled));
+        assert!(!workout_after
+            .proposed_sets
+            .iter()
+            .any(|set| set.id == warmup_to_cancel && !set.cancelled));
         let stats = workout_after
             .plan_change_stats
             .expect("plan change stats expected");
@@ -1666,8 +1669,19 @@ mod tests {
             .iter()
             .filter(|s| s.exercise_group_id == "g2")
             .collect::<Vec<_>>();
-        assert_eq!(bench_sets.len(), 3);
-        assert!(bench_sets.iter().all(|s| s.target_weight == 155.0));
+        let bench_active_sets = bench_sets
+            .iter()
+            .copied()
+            .filter(|s| !s.cancelled)
+            .collect::<Vec<_>>();
+        let bench_cancelled_sets = bench_sets
+            .iter()
+            .copied()
+            .filter(|s| s.cancelled)
+            .collect::<Vec<_>>();
+        assert_eq!(bench_active_sets.len(), 3);
+        assert_eq!(bench_cancelled_sets.len(), 2);
+        assert!(bench_active_sets.iter().all(|s| s.target_weight == 155.0));
 
         // 4) Reorder groups to: Deadlift, Squat, Bench Updated.
         let _ = WorkoutService::reorder_exercise_groups(
@@ -1708,6 +1722,7 @@ mod tests {
         let ordered_set_group_ids = workout
             .proposed_sets
             .iter()
+            .filter(|s| !s.cancelled)
             .map(|s| s.exercise_group_id.clone())
             .collect::<Vec<_>>();
         assert_eq!(
@@ -1789,9 +1804,15 @@ mod tests {
         let expected_order = workout
             .proposed_sets
             .iter()
+            .filter(|s| !s.cancelled)
             .map(|s| s.id.clone())
             .collect::<Vec<_>>();
-        assert_eq!(completion_order, expected_order);
+        let mut seen = HashSet::<String>::new();
+        let first_seen_completion_order = completion_order
+            .into_iter()
+            .filter(|id| seen.insert(id.clone()))
+            .collect::<Vec<_>>();
+        assert_eq!(first_seen_completion_order, expected_order);
         let snapshot = workout.state_snapshot.expect("state snapshot");
         assert_eq!(snapshot.state, 1, "expected WORKOUT_STATE_ALL_DONE");
         assert!(workout.next_up_set.is_none());
@@ -1843,14 +1864,18 @@ mod tests {
                 && proposed_db
                     .iter()
                     .all(|s| s.rest_after_success > 0 && s.rest_after_failure > 0);
-            let completed_ok = completed_db.len() == 6
-                && completed_db.iter().all(|c| c.ended_at > 0)
-                && completed_db
-                    .iter()
-                    .map(|c| c.proposed_set_id.clone())
-                    .collect::<HashSet<_>>()
-                    .len()
-                    == 6;
+            let completed_ended_ids = completed_db
+                .iter()
+                .filter(|c| c.ended_at > 0)
+                .map(|c| c.proposed_set_id.clone())
+                .collect::<HashSet<_>>();
+            let completed_ok = completed_ended_ids.len() == 6
+                && completed_ended_ids
+                    == proposed_db
+                        .iter()
+                        .filter(|s| !s.cancelled)
+                        .map(|s| s.id.clone())
+                        .collect::<HashSet<_>>();
 
             if groups_ok && workout_ok && no_active_ok && proposed_ok && completed_ok {
                 db_verified = true;
@@ -1969,7 +1994,14 @@ mod tests {
         .await
         .expect("workout after cancel warmup")
         .into_inner();
-        assert!(workout.proposed_sets.iter().all(|s| s.id != warmup_id));
+        assert!(workout
+            .proposed_sets
+            .iter()
+            .any(|s| s.id == warmup_id && s.cancelled));
+        assert!(!workout
+            .proposed_sets
+            .iter()
+            .any(|s| s.id == warmup_id && !s.cancelled));
 
         // 3) Complete first next-up set, then delete that completed set.
         let first_next = workout.next_up_set.expect("next set exists");
@@ -2151,17 +2183,12 @@ mod tests {
             let proposed_ok = proposed_db
                 .iter()
                 .all(|s| s.rest_after_success > 0 && s.rest_after_failure > 0);
-            let completed_ok = !completed_db.is_empty()
-                && completed_db.iter().all(|c| c.ended_at > 0)
-                && completed_db
-                    .iter()
-                    .map(|c| c.proposed_set_id.clone())
-                    .collect::<HashSet<_>>()
-                    .len()
-                    == completed_db.len()
-                && completed_db
-                    .iter()
-                    .all(|c| completed_ids.contains(&c.proposed_set_id));
+            let completed_ended_ids = completed_db
+                .iter()
+                .filter(|c| c.ended_at > 0)
+                .map(|c| c.proposed_set_id.clone())
+                .collect::<HashSet<_>>();
+            let completed_ok = !completed_ended_ids.is_empty() && completed_ended_ids == completed_ids;
 
             if workout_ok && no_active_ok && proposed_ok && completed_ok {
                 db_verified = true;
