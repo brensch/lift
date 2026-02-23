@@ -264,6 +264,7 @@ pub fn make_exercise_type_config_amrap(
         include_warmup,
         rest_config: None,
         last_set_amrap,
+        working_sets: vec![],
     }
 }
 
@@ -311,6 +312,7 @@ pub fn build_single_group_amrap(
         rest_config,
         tags,
         explanation,
+        prescribed_by_regime: false,
     }
 }
 

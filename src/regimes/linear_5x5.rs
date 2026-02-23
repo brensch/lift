@@ -273,6 +273,7 @@ pub fn build_linear_proposed_groups(statuses: &[ExerciseStatus]) -> Vec<Proposed
                     rest_config: rest_cfg(90, 90),
                     tags: vec!["auxiliary".to_string()],
                     explanation: format!("{} {}", a.explanation, b.explanation),
+                    prescribed_by_regime: false,
                 });
             }
             (Some(a), None) => {

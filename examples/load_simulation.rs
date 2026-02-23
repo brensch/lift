@@ -385,6 +385,7 @@ async fn run_user_simulation(
                         include_warmup: false,
                         rest_config: None,
                         last_set_amrap: false,
+                        working_sets: vec![],
                     }],
                     rest_config: None,
                 },
