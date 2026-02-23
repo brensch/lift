@@ -28,6 +28,8 @@ class ExerciseGroupWidget extends StatefulWidget {
 }
 
 class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
+  static const _activePinkFg = Color(0xFFEC4899);
+  static const _activePinkBg = Color(0x1AEC4899);
   bool _isManualExpanded = false;
 
   Widget _iconActionButton({
@@ -101,7 +103,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
     if (allCompleted) {
       barColor = AppTheme.successFg;
     } else if (hasActiveSet) {
-      barColor = AppTheme.activeFg;
+      barColor = _activePinkFg;
     }
 
     // ── COLLAPSED (completed) ──────────────────────────────────────────────
@@ -197,7 +199,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: hasActiveSet
-                ? AppTheme.activeFg.withValues(alpha: 0.6)
+                ? _activePinkFg.withValues(alpha: 0.6)
                 : colorScheme.outline.withValues(alpha: 0.4),
             width: hasActiveSet ? 1.5 : 1,
           ),
@@ -399,9 +401,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       text = 'W:${set.targetReps}@$weight';
       fontWeight = isActive ? FontWeight.w800 : FontWeight.w600;
     } else if (isActive) {
-      bg = AppTheme.activeBg;
-      fg = AppTheme.activeFg;
-      borderColor = AppTheme.activeFg.withValues(alpha: 0.5);
+      bg = _activePinkBg;
+      fg = _activePinkFg;
+      borderColor = _activePinkFg.withValues(alpha: 0.5);
       text = set.isAmrap ? 'AMRAP@$weight' : '${set.targetReps}@$weight';
       fontWeight = FontWeight.w800;
     } else {
