@@ -173,7 +173,7 @@ pub fn calculate_linear_progression(
         return (
             default_weight,
             format!(
-                "Starting at {} lbs. Linear 5×5 has no phases: add weight session-to-session when you complete the work.",
+                "Starting at {} lbs. Add weight session-to-session when you complete the work.",
                 default_weight
             ),
         );
@@ -199,7 +199,7 @@ pub fn calculate_linear_progression(
             return (
                 new_weight,
                 format!(
-                    "Deloading from {} to {} lbs after {} day break. Linear 5×5 has no phase countdown; resume session-to-session progression from this lighter weight.",
+                    "Deloading from {} to {} lbs after {} day break. Resume session-to-session progression from this lighter weight.",
                     h.weight, new_weight, days_since
                 ),
             );
@@ -216,7 +216,7 @@ pub fn calculate_linear_progression(
             return (
                 new_weight,
                 format!(
-                    "3 failures at {} lbs — deloading to {} lbs to reset. Linear 5×5 has no phase change; this is a weight reset before rebuilding.",
+                    "3 failures at {} lbs — deloading to {} lbs to reset before rebuilding.",
                     h.weight, new_weight
                 ),
             );
@@ -228,7 +228,7 @@ pub fn calculate_linear_progression(
         return (
             h.weight,
             format!(
-                "Holding at {} lbs after the last failed session. Linear 5×5 has no phases; if you keep missing at the same weight, a reset triggers after 3 failures.",
+                "Holding at {} lbs after the last failed session. If you keep missing at the same weight, a reset triggers after 3 failures.",
                 h.weight
             ),
         );
@@ -243,7 +243,7 @@ pub fn calculate_linear_progression(
             return (
                 new_weight,
                 format!(
-                    "Climbing back to previous max of {} lbs (+{} lbs fast). Linear 5×5 has no phase countdown; this is accelerated catch-up after a reset/deload.",
+                    "Climbing back to previous max of {} lbs (+{} lbs fast). This is accelerated catch-up after a reset/deload.",
                     max_weight, fast_inc
                 ),
             );
@@ -255,7 +255,7 @@ pub fn calculate_linear_progression(
     (
         new_weight,
         format!(
-            "Progressing from {} to {} lbs after a successful session. Linear 5×5 has no phase countdown; next change is another weight increase after your next successful session.",
+            "Progressing from {} to {} lbs after a successful session. Next change is another weight increase after your next successful session.",
             h.weight, new_weight
         ),
     )

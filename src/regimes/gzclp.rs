@@ -385,7 +385,7 @@ fn t1_weight(
         return (
             default_weight,
             format!(
-                "GZCLP T1 {}. Start at {} lbs. No fixed week countdown: you stay in this phase until a failed session, then the next workout moves to the next phase.",
+                "GZCLP T1 {}. Start at {} lbs. Stay in this phase until a failed session, then the next workout moves to the next phase.",
                 t1_phase_text(stage),
                 default_weight
             ),
@@ -439,7 +439,7 @@ fn t2_weight(
         return (
             default_weight,
             format!(
-                "GZCLP T2 {}. Start at {} lbs. No fixed week countdown: you stay in this phase until a failed session, then the next workout moves to the next phase.",
+                "GZCLP T2 {}. Start at {} lbs. Stay in this phase until a failed session, then the next workout moves to the next phase.",
                 t2_phase_text(stage),
                 default_weight
             ),
@@ -485,7 +485,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         return (
             default_weight,
             format!(
-                "GZCLP T3 (accessory): Start at {} lbs. Do 3×15, then push the last set AMRAP. You only add weight when that last set reaches 25+ reps. No phase changes here.",
+                "GZCLP T3 (accessory): Start at {} lbs. Do 3×15, then push the last set AMRAP. You only add weight when that last set reaches 25+ reps.",
                 default_weight
             ),
         );
@@ -496,7 +496,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         (
             new_w,
             format!(
-                "GZCLP T3: last set AMRAP hit {} reps (25+ target), so add weight: {} → {} lbs. No phase change; keep building reps at the new weight.",
+                "GZCLP T3: last set AMRAP hit {} reps (25+ target), so add weight: {} → {} lbs. Keep building reps at the new weight.",
                 h.last_set_reps, h.weight, new_w
             ),
         )
@@ -504,7 +504,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         (
             h.weight,
             format!(
-                "GZCLP T3: last set AMRAP hit {} reps (need 25+). Hold {} lbs and try to build reps next session. No phase change; target 25+ on the last set.",
+                "GZCLP T3: last set AMRAP hit {} reps (need 25+). Hold {} lbs and try to build reps next session. Target 25+ on the last set.",
                 h.last_set_reps, h.weight
             ),
         )
@@ -512,7 +512,7 @@ fn t3_weight(default_weight: f32, history: &[SessionHistory]) -> (f32, String) {
         (
             h.weight,
             format!(
-                "GZCLP T3: Hold {} lbs. Progress is based on the last-set AMRAP hitting 25+ reps. No phase change; repeat the same T3 prescription.",
+                "GZCLP T3: Hold {} lbs. Progress is based on the last-set AMRAP hitting 25+ reps. Repeat the same T3 prescription.",
                 h.weight
             ),
         )
