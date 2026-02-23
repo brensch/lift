@@ -179,7 +179,8 @@ fn exercise_int_to_name(ex: i32) -> &'static str {
 fn regime_type_from_str(s: &str) -> RegimeType {
     match s.to_lowercase().as_str() {
         "gzclp" => RegimeType::Gzclp,
-        "wendler_531" | "wendler531" => RegimeType::Wendler531,
+        "wendler_531_4day" | "wendler531_4day" => RegimeType::Wendler5314day,
+        "wendler_531_3day" | "wendler531_3day" => RegimeType::Wendler5313day,
         _ => RegimeType::Linear5x5,
     }
 }

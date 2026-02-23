@@ -3,11 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
-import '../logic/regime_data.dart';
 import '../providers/settings_provider.dart';
 import 'regime_info_screen.dart';
-
-// ─── Main screen ─────────────────────────────────────────────────────────────
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -17,85 +14,69 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pageController = PageController();
-  int _currentPage = 0;
-
-  // Selection state
-  int _selectedRegimeIndex = 0;
-  int _selectedDays = 3;
-  final Map<int, TextEditingController> _weightControllers = {};
+  int _step = 0;
+  RegimeType? _selectedRegimeType;
+  final Map<String, TextEditingController> _controllers = {};
   bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    for (final ex in exerciseDefs) {
-      _weightControllers[ex.exerciseInt] = TextEditingController(
-        text: ex.defaultWeight.toStringAsFixed(0),
-      );
-    }
-    _selectedDays = _currentRegime.defaultDays;
-  }
+  bool _initialized = false;
 
   @override
   void dispose() {
-    _pageController.dispose();
-    for (final c in _weightControllers.values) {
+    for (final c in _controllers.values) {
       c.dispose();
     }
     super.dispose();
   }
 
-  RegimeDef get _currentRegime => regimeDefs[_selectedRegimeIndex];
-
-  void _selectRegime(int idx) {
-    setState(() {
-      _selectedRegimeIndex = idx;
-      _selectedDays = regimeDefs[idx].defaultDays;
-    });
+  void _initFromCatalog(SettingsProvider provider) {
+    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) return;
+    _selectedRegimeType = provider.trainingPrograms.first.regimeType;
+    _seed(provider.trainingPrograms.first);
+    _initialized = true;
   }
 
-  void _goNext() {
-    FocusScope.of(context).unfocus();
-    if (_currentPage < 2) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+  void _seed(TrainingProgramDefinition program) {
+    for (final f in program.configFields) {
+      _controllers.putIfAbsent(f.key, () => TextEditingController());
+      if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK) {
+        _controllers[f.key]!.text = '${f.defaultInt32 > 0 ? f.defaultInt32 : 3}';
+      } else if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX) {
+        _controllers[f.key]!.text = f.defaultFloat > 0 ? f.defaultFloat.toStringAsFixed(0) : '';
+      } else {
+        _controllers[f.key]!.text = f.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_INT32
+            ? '${f.defaultInt32}'
+            : f.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_FLOAT
+                ? (f.defaultFloat > 0 ? f.defaultFloat.toStringAsFixed(0) : '')
+                : (f.defaultBool ? 'true' : 'false');
+      }
     }
   }
 
-  void _goBack() {
-    if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  Future<void> _saveAndGo() async {
+  Future<void> _save(SettingsProvider provider, TrainingProgramDefinition program) async {
     setState(() => _isSaving = true);
     try {
+      int days = 0;
       final oneRepMaxes = <int, double>{};
-      for (final ex in exerciseDefs) {
-        final text = _weightControllers[ex.exerciseInt]?.text.trim() ?? '';
-        final val = double.tryParse(text);
-        if (val != null && val > 0) {
-          oneRepMaxes[ex.exerciseInt] = val;
+      for (final f in program.configFields) {
+        final text = _controllers[f.key]?.text.trim() ?? '';
+        if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK) {
+          final parsed = int.tryParse(text);
+          if (parsed != null && parsed > 0) days = parsed;
+        } else if (f.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX) {
+          final parsed = double.tryParse(text);
+          if (parsed != null && parsed > 0 && f.exerciseId > 0) oneRepMaxes[f.exerciseId] = parsed;
         }
       }
+      if (days <= 0) days = 3;
 
-      final config = UserWorkoutConfig(
-        regimeType: _currentRegime.type,
-        daysPerWeek: _selectedDays,
-        oneRepMaxes: oneRepMaxes.entries
-            .map((e) => MapEntry(e.key, e.value.toDouble())),
+      await provider.updateWorkoutConfig(UserWorkoutConfig(
+        regimeType: program.regimeType,
+        daysPerWeek: days,
+        oneRepMaxes: oneRepMaxes.entries.map((e) => MapEntry(e.key, e.value)),
         regimeStateJson: '{}',
-      );
-
-      await context.read<SettingsProvider>().updateWorkoutConfig(config);
-      if (mounted) context.go('/');
+      ));
+      if (!mounted) return;
+      context.go('/');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -103,66 +84,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final provider = context.watch<SettingsProvider>();
+    _initFromCatalog(provider);
+
+    if (!provider.loaded || provider.trainingPrograms.isEmpty || _selectedRegimeType == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final programs = provider.trainingPrograms;
+    final selected = provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Progress
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  Row(
-                    children: List.generate(3, (i) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(right: 6),
-                        width: i == _currentPage ? 20 : 8,
+                  for (var i = 0; i < 2; i++)
+                    Expanded(
+                      child: Container(
+                        margin: EdgeInsets.only(right: i == 0 ? 8 : 0),
                         height: 8,
                         decoration: BoxDecoration(
-                          color: i == _currentPage
-                              ? colorScheme.primary
-                              : colorScheme.outline.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(999),
+                          color: i <= _step ? cs.primary : cs.outline.withValues(alpha: 0.3),
                         ),
-                      );
-                    }),
-                  ),
+                      ),
+                    ),
                 ],
               ),
             ),
-
-            // Pages
             Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (p) => setState(() => _currentPage = p),
-                children: [
-                  _RegimePage(
-                    selectedIndex: _selectedRegimeIndex,
-                    onSelect: _selectRegime,
-                    onNext: _goNext,
-                  ),
-                  _DaysAndWeightsPage(
-                    regime: _currentRegime,
-                    selectedDays: _selectedDays,
-                    onDaysChanged: (d) => setState(() => _selectedDays = d),
-                    weightControllers: _weightControllers,
-                    onBack: _goBack,
-                    onNext: _goNext,
-                  ),
-                  _ConfirmPage(
-                    regime: _currentRegime,
-                    selectedDays: _selectedDays,
-                    weightControllers: _weightControllers,
-                    onBack: _goBack,
-                    onSave: _saveAndGo,
-                    isSaving: _isSaving,
-                  ),
-                ],
-              ),
+              child: _step == 0
+                  ? _ProgramStep(
+                      programs: programs,
+                      selectedType: selected.regimeType,
+                      onSelect: (p) {
+                        setState(() {
+                          _selectedRegimeType = p.regimeType;
+                          _seed(p);
+                        });
+                      },
+                      onInfo: (p) => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RegimeInfoScreen(regimeType: p.regimeType),
+                        ),
+                      ),
+                      onNext: () => setState(() => _step = 1),
+                    )
+                  : _ConfigStep(
+                      program: selected,
+                      controllers: _controllers,
+                      onBack: () => setState(() => _step = 0),
+                      onSave: _isSaving ? null : () => _save(provider, selected),
+                      isSaving: _isSaving,
+                    ),
             ),
           ],
         ),
@@ -171,16 +150,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// ─── Page 1: Regime selection ─────────────────────────────────────────────────
-
-class _RegimePage extends StatelessWidget {
-  final int selectedIndex;
-  final void Function(int) onSelect;
+class _ProgramStep extends StatelessWidget {
+  final List<TrainingProgramDefinition> programs;
+  final RegimeType selectedType;
+  final void Function(TrainingProgramDefinition) onSelect;
+  final void Function(TrainingProgramDefinition) onInfo;
   final VoidCallback onNext;
 
-  const _RegimePage({
-    required this.selectedIndex,
+  const _ProgramStep({
+    required this.programs,
+    required this.selectedType,
     required this.onSelect,
+    required this.onInfo,
     required this.onNext,
   });
 
@@ -194,47 +175,28 @@ class _RegimePage extends StatelessWidget {
         children: [
           Text(
             'CHOOSE YOUR PROGRAM',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-              color: cs.tertiary,
-            ),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: cs.tertiary),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'How do you train?',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-            ),
-          ),
-          const SizedBox(height: 6),
+          const Text('How do you train?', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
           Text(
-            'Pick the program that matches your experience and goals. You can change this anytime in Settings.',
-            style: TextStyle(
-              fontSize: 14,
-              color: cs.onSurface.withValues(alpha: 0.6),
-              height: 1.4,
-            ),
+            'Pick a program now and adjust it later anytime in Settings.',
+            style: TextStyle(fontSize: 14, height: 1.4, color: cs.onSurface.withValues(alpha: 0.6)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Expanded(
             child: ListView.separated(
-              itemCount: regimeDefs.length,
+              itemCount: programs.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, idx) {
-                final regime = regimeDefs[idx];
-                final selected = selectedIndex == idx;
-                return _RegimeCard(
-                  regime: regime,
-                  isSelected: selected,
-                  onTap: () => onSelect(idx),
-                  onInfo: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) =>
-                        RegimeInfoScreen(regimeType: regime.type),
-                  )),
+              itemBuilder: (context, i) {
+                final p = programs[i];
+                final selected = p.regimeType == selectedType;
+                return _ProgramCard(
+                  program: p,
+                  selected: selected,
+                  onTap: () => onSelect(p),
+                  onInfo: () => onInfo(p),
                 );
               },
             ),
@@ -245,15 +207,7 @@ class _RegimePage extends StatelessWidget {
             height: 56,
             child: FilledButton(
               onPressed: onNext,
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text(
-                'NEXT',
-                style:
-                    TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-              ),
+              child: const Text('NEXT', style: TextStyle(fontWeight: FontWeight.w900)),
             ),
           ),
         ],
@@ -262,15 +216,147 @@ class _RegimePage extends StatelessWidget {
   }
 }
 
-class _RegimeCard extends StatelessWidget {
-  final RegimeDef regime;
-  final bool isSelected;
+class _ConfigStep extends StatelessWidget {
+  final TrainingProgramDefinition program;
+  final Map<String, TextEditingController> controllers;
+  final VoidCallback onBack;
+  final VoidCallback? onSave;
+  final bool isSaving;
+
+  const _ConfigStep({
+    required this.program,
+    required this.controllers,
+    required this.onBack,
+    required this.onSave,
+    required this.isSaving,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      children: [
+        Text(
+          'SETUP ${program.displayName.toUpperCase()}',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: cs.tertiary),
+        ),
+        const SizedBox(height: 8),
+        Text(program.headline, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(program.summary, style: TextStyle(fontSize: 14, color: cs.onSurface.withValues(alpha: 0.65))),
+        const SizedBox(height: 20),
+        ...program.configFields
+            .where((f) => !_hideFieldInOnboarding(f))
+            .map((f) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _ProgramFieldInput(field: f, controller: controllers[f.key]!),
+            )),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onBack,
+                child: const Text('BACK'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: onSave,
+                child: isSaving
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('START', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  bool _hideFieldInOnboarding(TrainingProgramConfigField field) {
+    return field.binding ==
+            TrainingProgramFieldBinding
+                .TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK &&
+        field.intChoices.length <= 1;
+  }
+}
+
+class _ProgramFieldInput extends StatelessWidget {
+  final TrainingProgramConfigField field;
+  final TextEditingController controller;
+
+  const _ProgramFieldInput({required this.field, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    if (field.intChoices.isNotEmpty &&
+        field.kind == TrainingProgramFieldKind.TRAINING_PROGRAM_FIELD_KIND_INT32) {
+      final current = int.tryParse(controller.text) ?? field.defaultInt32;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(field.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          if (field.helpText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Text(field.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+            ),
+          Wrap(
+            spacing: 8,
+            children: field.intChoices.map((choice) {
+              final label = choice.label.isNotEmpty ? choice.label : '${choice.value}';
+              return ChoiceChip(
+                label: Text(label),
+                selected: choice.value == current,
+                onSelected: (_) => controller.text = '${choice.value}',
+              );
+            }).toList(),
+          ),
+        ],
+      );
+    }
+
+    final suffix = field.binding == TrainingProgramFieldBinding.TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX ? 'lbs' : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(field.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        if (field.helpText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: Text(field.helpText, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+          ),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textAlign: TextAlign.right,
+          decoration: InputDecoration(
+            suffixText: suffix,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgramCard extends StatelessWidget {
+  final TrainingProgramDefinition program;
+  final bool selected;
   final VoidCallback onTap;
   final VoidCallback onInfo;
 
-  const _RegimeCard({
-    required this.regime,
-    required this.isSelected,
+  const _ProgramCard({
+    required this.program,
+    required this.selected,
     required this.onTap,
     required this.onInfo,
   });
@@ -284,21 +370,16 @@ class _RegimeCard extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? cs.primary.withValues(alpha: 0.08)
-              : cs.surfaceContainerLowest,
+          color: selected ? cs.primary.withValues(alpha: 0.08) : cs.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected
-                ? cs.primary
-                : cs.outline.withValues(alpha: 0.4),
-            width: isSelected ? 2 : 1,
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.4),
+            width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Radio dot
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: AnimatedContainer(
@@ -307,17 +388,10 @@ class _RegimeCard extends StatelessWidget {
                 height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? cs.primary : cs.outline,
-                    width: 2,
-                  ),
-                  color:
-                      isSelected ? cs.primary : Colors.transparent,
+                  border: Border.all(color: selected ? cs.primary : cs.outline, width: 2),
+                  color: selected ? cs.primary : Colors.transparent,
                 ),
-                child: isSelected
-                    ? Icon(Icons.check,
-                        size: 10, color: cs.onPrimary)
-                    : null,
+                child: selected ? Icon(Icons.check, size: 10, color: cs.onPrimary) : null,
               ),
             ),
             const SizedBox(width: 14),
@@ -325,72 +399,35 @@ class _RegimeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        regime.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          letterSpacing: -0.3,
-                          color: isSelected
-                              ? cs.primary
-                              : cs.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: cs.tertiary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          regime.tagline,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: cs.tertiary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    regime.description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: isSelected
-                          ? cs.primary.withValues(alpha: 0.8)
-                          : cs.onSurface.withValues(alpha: 0.65),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: onInfo,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Text(program.displayName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                  const SizedBox(height: 3),
+                  Text(program.headline,
+                      style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.65))),
+                  if (program.hasAtAGlance()) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        Icon(Icons.info_outline_rounded,
-                            size: 13, color: cs.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Learn more',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: cs.primary,
-                          ),
+                        _PreviewPill(
+                          emoji: '📅',
+                          text: program.atAGlance.daysPerWeek,
+                        ),
+                        _PreviewPill(
+                          emoji: '🎯',
+                          text: program.atAGlance.bestFor,
+                        ),
+                        _PreviewPill(
+                          emoji: '⏱️',
+                          text: program.atAGlance.averageSessionTime,
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
+            IconButton(onPressed: onInfo, icon: const Icon(Icons.info_outline_rounded)),
           ],
         ),
       ),
@@ -398,430 +435,25 @@ class _RegimeCard extends StatelessWidget {
   }
 }
 
-// ─── Page 2: Days per week + starting weights ─────────────────────────────────
-
-class _DaysAndWeightsPage extends StatelessWidget {
-  final RegimeDef regime;
-  final int selectedDays;
-  final void Function(int) onDaysChanged;
-  final Map<int, TextEditingController> weightControllers;
-  final VoidCallback onBack;
-  final VoidCallback onNext;
-
-  const _DaysAndWeightsPage({
-    required this.regime,
-    required this.selectedDays,
-    required this.onDaysChanged,
-    required this.weightControllers,
-    required this.onBack,
-    required this.onNext,
-  });
+class _PreviewPill extends StatelessWidget {
+  final String emoji;
+  final String text;
+  const _PreviewPill({required this.emoji, required this.text});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isWendler =
-        regime.type == RegimeType.REGIME_TYPE_WENDLER_531;
-
-    final exercisesToShow = isWendler
-        ? exerciseDefs.where((e) => e.isWendlerMain).toList()
-        : exerciseDefs;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            regime.name.toUpperCase(),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isWendler
-                ? 'Enter your 1-rep maxes.'
-                : 'Set your starting weights.',
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.8,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            isWendler
-                ? 'Your Training Max (TM) = 90% of each 1RM. Leave blank for defaults.'
-                : 'Enter your current 5-rep working weight. Leave blank for defaults.',
-            style: TextStyle(
-              fontSize: 13,
-              color: cs.onSurface.withValues(alpha: 0.6),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          if (regime.daysOptions.length > 1) ...[
-            Text(
-              'DAYS PER WEEK',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                color: cs.onSurface.withValues(alpha: 0.45),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: regime.daysOptions.map((d) {
-                final selected = d == selectedDays;
-                return ChoiceChip(
-                  label: Text('$d days'),
-                  selected: selected,
-                  onSelected: (_) => onDaysChanged(d),
-                  selectedColor: cs.primary,
-                  checkmarkColor: cs.onPrimary,
-                  labelStyle: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: selected ? cs.onPrimary : cs.onSurface,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          Expanded(
-            child: ListView.separated(
-              itemCount: exercisesToShow.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, idx) {
-                final ex = exercisesToShow[idx];
-                final controller = weightControllers[ex.exerciseInt]!;
-                return _WeightField(
-                  label: ex.name,
-                  controller: controller,
-                  hint: '${ex.defaultWeight.toStringAsFixed(0)} lbs',
-                  isWendler: isWendler,
-                );
-              },
-            ),
-          ),
-
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: onBack,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('BACK',
-                    style: TextStyle(fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: onNext,
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: const Text('NEXT',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900, fontSize: 16)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: cs.surface,
+        border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
       ),
-    );
-  }
-}
-
-class _WeightField extends StatefulWidget {
-  final String label;
-  final TextEditingController controller;
-  final String hint;
-  final bool isWendler;
-
-  const _WeightField({
-    required this.label,
-    required this.controller,
-    required this.hint,
-    required this.isWendler,
-  });
-
-  @override
-  State<_WeightField> createState() => _WeightFieldState();
-}
-
-class _WeightFieldState extends State<_WeightField> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(() => setState(() {}));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final val = double.tryParse(widget.controller.text);
-    final tmText = widget.isWendler && val != null && val > 0
-        ? 'Training Max: ${(val * 0.9).round()} lbs'
-        : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              widget.label,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 14),
-            ),
-            const Spacer(),
-            if (tmText != null)
-              Text(
-                tmText,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: cs.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: widget.controller,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(
-              fontWeight: FontWeight.w700, fontSize: 15),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            suffixText: 'lbs',
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 13),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  BorderSide(color: cs.outline.withValues(alpha: 0.5)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: cs.primary, width: 1.5),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Page 3: Confirm ──────────────────────────────────────────────────────────
-
-class _ConfirmPage extends StatelessWidget {
-  final RegimeDef regime;
-  final int selectedDays;
-  final Map<int, TextEditingController> weightControllers;
-  final VoidCallback onBack;
-  final VoidCallback onSave;
-  final bool isSaving;
-
-  const _ConfirmPage({
-    required this.regime,
-    required this.selectedDays,
-    required this.weightControllers,
-    required this.onBack,
-    required this.onSave,
-    required this.isSaving,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isWendler =
-        regime.type == RegimeType.REGIME_TYPE_WENDLER_531;
-
-    final exercisesToShow = isWendler
-        ? exerciseDefs.where((e) => e.isWendlerMain).toList()
-        : exerciseDefs;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'CONFIRM',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "You're all set.",
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: cs.primary.withValues(alpha: 0.25)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(regime.name,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: cs.primary,
-                    )),
-                const SizedBox(height: 4),
-                Text(
-                  '$selectedDays days/week',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: cs.primary.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (int i = 0; i < exercisesToShow.length; i++) ...[
-                  _SummaryRow(
-                    exercise: exercisesToShow[i],
-                    controller:
-                        weightControllers[exercisesToShow[i].exerciseInt]!,
-                    isWendler: isWendler,
-                    cs: cs,
-                  ),
-                  if (i < exercisesToShow.length - 1)
-                    const SizedBox(height: 8),
-                ],
-              ],
-            ),
-          ),
-
-          const Spacer(),
-
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: onBack,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('BACK',
-                    style: TextStyle(fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 60,
-                  child: FilledButton(
-                    onPressed: isSaving ? null : onSave,
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: isSaving
-                        ? SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: cs.onPrimary,
-                            ),
-                          )
-                        : const Text(
-                            "LET'S GO",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: Text(
+        '$emoji $text',
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
       ),
-    );
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  final ExerciseDef exercise;
-  final TextEditingController controller;
-  final bool isWendler;
-  final ColorScheme cs;
-
-  const _SummaryRow({
-    required this.exercise,
-    required this.controller,
-    required this.isWendler,
-    required this.cs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final text = controller.text.trim();
-    final val = double.tryParse(text);
-    final displayWeight = val != null && val > 0
-        ? '${val.toStringAsFixed(0)} lbs'
-        : '${exercise.defaultWeight.toStringAsFixed(0)} lbs (default)';
-    final tmDisplay = isWendler && val != null && val > 0
-        ? '  →  TM: ${(val * 0.9).round()} lbs'
-        : '';
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(exercise.name,
-            style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600)),
-        Text(
-          '$displayWeight$tmDisplay',
-          style: TextStyle(
-            fontSize: 12,
-            color: cs.primary.withValues(alpha: 0.8),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -7,7 +7,8 @@ use lift::workout::v1::{
 use serde::{Deserialize, Serialize};
 
 use super::{
-    exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory,
+    cfg_field_days_per_week, cfg_field_exercise_weight, exercise_display_name, rest_cfg,
+    ExerciseConfig, ExerciseProposal, ProgramAtAGlanceMeta, ProgramCatalogMeta, SessionHistory,
     WorkoutRegime,
 };
 
@@ -148,6 +149,66 @@ impl WorkoutRegime for GzclpRegime {
 
     fn default_days_per_week(&self) -> i32 {
         4
+    }
+
+    fn catalog_meta(&self) -> ProgramCatalogMeta {
+        ProgramCatalogMeta {
+            headline: "Tiered progression that survives stalls",
+            summary: "GZCLP uses T1/T2/T3 tiers with per-lift state transitions when a lift stalls.",
+            description: "Heavy T1 lifts, moderate T2 lifts, and higher-rep T3 accessories progress independently at different paces.",
+            how_it_works: "T1 lifts (Squat/Deadlift): 5x3 -> 6x2 -> 10x1 progression stages.\nT2 lifts (Bench/OHP/Row): 3x10 -> 3x8 -> 3x6.\nT3 accessories: simple higher-rep linear work.\n\nEach lift advances or resets based on that lift's own results.",
+            at_a_glance: ProgramAtAGlanceMeta {
+                days_per_week: "3-5 (default 4)",
+                best_for: "Novice / early intermediate",
+                average_session_time: "60-90 min",
+                progression_style: "Tiered state machine",
+            },
+            details: vec![
+                "T1 and T2 lifts can be in different stages at the same time.",
+                "Last-set AMRAP is used on some tiers/stages.",
+                "Accessory work remains flexible.",
+            ],
+            learn_more_links: vec![
+                ("The Fitness Wiki: GZCLP", "https://thefitness.wiki/routines/gzclp/"),
+                (
+                    "GZCL method archive",
+                    "https://thefitness.wiki/reddit-archive/gzcl-method-novice-to-elite/",
+                ),
+            ],
+            config_fields: vec![
+                cfg_field_days_per_week(
+                    "days_per_week",
+                    "Days per week",
+                    "Choose how many days you'll run the rotation.",
+                    4,
+                    vec![(3, "3 days"), (4, "4 days"), (5, "5 days")],
+                ),
+                cfg_field_exercise_weight("squat_weight", "Squat", "Starting weight (lbs).", 1, 135.0),
+                cfg_field_exercise_weight(
+                    "bench_press_weight",
+                    "Bench Press",
+                    "Starting weight (lbs).",
+                    2,
+                    95.0,
+                ),
+                cfg_field_exercise_weight("deadlift_weight", "Deadlift", "Starting weight (lbs).", 3, 185.0),
+                cfg_field_exercise_weight(
+                    "overhead_press_weight",
+                    "Overhead Press",
+                    "Starting weight (lbs).",
+                    4,
+                    65.0,
+                ),
+                cfg_field_exercise_weight(
+                    "barbell_row_weight",
+                    "Barbell Row",
+                    "Starting weight (lbs).",
+                    5,
+                    95.0,
+                ),
+            ],
+            sort_order: 20,
+        }
     }
 
     fn recovery_seconds(&self, _workout_config: &UserWorkoutConfig) -> i64 {

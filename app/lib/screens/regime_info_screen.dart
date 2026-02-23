@@ -1,170 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../gen/workout/v1/settings.pbenum.dart';
 
-// ─── Regime info data ─────────────────────────────────────────────────────────
-
-class _RegimeInfo {
-  final RegimeType type;
-  final String name;
-  final String tagline;
-  final String description;
-  final List<(String, String)> stats; // (label, value)
-  final String howItWorks;
-  final List<(String, String)> links; // (label, url)
-
-  const _RegimeInfo({
-    required this.type,
-    required this.name,
-    required this.tagline,
-    required this.description,
-    required this.stats,
-    required this.howItWorks,
-    required this.links,
-  });
-}
-
-const _regimes = [
-  _RegimeInfo(
-    type: RegimeType.REGIME_TYPE_LINEAR_5X5,
-    name: 'Linear 5×5',
-    tagline: 'The best beginner program.',
-    description:
-        'Linear 5×5 is the simplest and most battle-tested beginner program ever designed. '
-        'You do 5 sets of 5 reps on the big compound lifts — Squat, Bench, Deadlift, Overhead Press, and Row. '
-        'After every successful session you add weight. When you stall 3 times in a row, '
-        'you deload 10% and rebuild momentum. Simple, effective, and proven.',
-    stats: [
-      ('Frequency', '3 days/week'),
-      ('Style', 'Linear progression'),
-      ('Best for', 'Beginners'),
-      ('Session time', '~45 min'),
-    ],
-    howItWorks: '''
-Week structure: Alternate between Workout A (Squat, Bench, Row) and Workout B (Squat, OHP, Deadlift) 3 days/week.
-
-Progression: Add 2.5–5 kg per session to upper body lifts, 5–10 kg to lower body.
-
-Failure: Miss all 5 reps in a set? Weight stays the same next session. Miss 3 sessions in a row at the same weight? Deload by 10%.
-
-Long break: More than 2 weeks off? Automatically deloads 10–20% to ease back in safely.
-
-The magic: Beginners can progress every single session because the CNS adapts faster than the muscles. This linear window closes eventually — that's when you graduate to GZCLP or Wendler.
-''',
-    links: [
-      (
-        'StrongLifts 5×5 (Workout Program)',
-        'https://stronglifts.com/stronglifts-5x5/workout-program/',
-      ),
-      (
-        'StrongLifts 5×5 (Progression & Plate Jumps)',
-        'https://stronglifts.com/stronglifts-5x5/progress/',
-      ),
-      (
-        'Starting Strength (Novice Program Overview)',
-        'https://startingstrength.com/get-started/programs',
-      ),
-    ],
-  ),
-  _RegimeInfo(
-    type: RegimeType.REGIME_TYPE_GZCLP,
-    name: 'GZCLP',
-    tagline: 'Tier-based linear progression.',
-    description:
-        'Developed by powerlifter Cody Lefever, GZCLP (GZCL Linear Progression) organizes every exercise '
-        'into 3 tiers based on intensity and volume. When you fail at one stage, the rep scheme shifts '
-        'to a harder pattern that preserves the intensity while managing fatigue. '
-        'This makes it far more resilient to stalls than simple linear programs.',
-    stats: [
-      ('Frequency', '4 days/week'),
-      ('Style', 'Tiered state machine'),
-      ('Best for', 'Intermediate lifters'),
-      ('Session time', '60–90 min'),
-    ],
-    howItWorks: '''
-T1 — Heavy Compounds (Squat, Deadlift):
-  Stage 1: 5×3 with last set AMRAP. Success → +5–10 lbs, stay Stage 1.
-  Stage 2: 6×2 with last set AMRAP. Triggered by Stage 1 failure. Success → +5–10 lbs, back to Stage 1.
-  Stage 3: 10×1. Triggered by Stage 2 failure. Success → +5–10 lbs, back to Stage 1.
-  Hard reset: If Stage 3 fails, reset to starting weight and Stage 1.
-
-T2 — Supplemental Compounds (Bench, OHP, Row):
-  Stage 1: 3×10. Success → +5 lbs, stay Stage 1.
-  Stage 2: 3×8. Triggered by failure. Success → +5 lbs, back to Stage 1.
-  Stage 3: 3×6. Triggered by failure. Success → +5 lbs, back to Stage 1.
-  Hard reset: If Stage 3 fails, revert to last good Stage 1 weight.
-
-T3 — Accessories (Hip Thrust, RDL, etc.): 3×15 simple linear progression.
-
-The rule: For every 1 rep in T1, do 2+ reps in T2 and 3+ reps in T3.
-''',
-    links: [
-      ('The Fitness Wiki: GZCLP', 'https://thefitness.wiki/routines/gzclp/'),
-      (
-        'Cody\'s Original Post (Applications & Adaptations)',
-        'https://swoleateveryheight.blogspot.com/2016/02/gzcl-applications-adaptations.html',
-      ),
-      ('r/gzcl: GZCLP Wiki', 'https://www.reddit.com/r/gzcl/wiki/gzclp/'),
-    ],
-  ),
-  _RegimeInfo(
-    type: RegimeType.REGIME_TYPE_WENDLER_531,
-    name: 'Wendler 5/3/1',
-    tagline: 'Slow, sustainable, built for years.',
-    description:
-        'Jim Wendler\'s 5/3/1 is one of the most popular intermediate/advanced programs ever written. '
-        'You train off 90% of your true 1RM — your Training Max — which prevents CNS burnout. '
-        'Each 4-week cycle follows a strict percentage wave: Volume → Intensity → Peak → Deload. '
-        'After every cycle your Training Max goes up. Slow, boring, and it works forever.',
-    stats: [
-      ('Frequency', '4 days/week'),
-      ('Style', 'Percentage periodization'),
-      ('Best for', 'Intermediate / Advanced'),
-      ('Session time', '45–75 min'),
-    ],
-    howItWorks: '''
-Training Max (TM): 90% of your 1RM. All percentages calculated from this number.
-
-4-Week Wave:
-  Week 1 (Volume):    65%, 75%, 85% × TM — 5-rep sets, last set AMRAP
-  Week 2 (Intensity): 70%, 80%, 90% × TM — 3-rep sets, last set AMRAP
-  Week 3 (Peak):      75%, 85%, 95% × TM — 1-rep sets, last set AMRAP
-  Week 4 (Deload):    40%, 50%, 60% × TM — 5-rep sets, easy recovery week
-
-After each 4-week cycle:
-  Upper body TM +5 lbs
-  Lower body TM +10 lbs
-
-The AMRAP set: The "plus" sets are where progress is measured. Blast them — more reps = stronger.
-
-BBB (Boring But Big): Wendler's favourite accessory protocol adds 5×10 at 50–60% TM of the main lift after the main work for pure hypertrophy volume.
-''',
-    links: [
-      (
-        'Jim Wendler: 5/3/1 Philosophy for Beginners',
-        'https://www.jimwendler.com/blogs/jimwendler-com/101065094-5-3-1-for-a-beginner',
-      ),
-      (
-        'T-Nation: 5/3/1 — How to Build Pure Strength (Original)',
-        'https://t-nation.com/t/5-3-1-how-to-build-pure-strength/281694',
-      ),
-      (
-        'The Fitness Wiki: 5/3/1 Primer',
-        'https://thefitness.wiki/5-3-1-primer/',
-      ),
-    ],
-  ),
-];
-
-_RegimeInfo? _infoForType(RegimeType type) {
-  try {
-    return _regimes.firstWhere((r) => r.type == type);
-  } catch (_) {
-    return null;
-  }
-}
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
+import '../gen/workout/v1/settings.pb.dart';
+import '../providers/settings_provider.dart';
 
 class RegimeInfoScreen extends StatelessWidget {
   final RegimeType regimeType;
@@ -173,79 +12,128 @@ class RegimeInfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final info = _infoForType(regimeType);
+    final provider = context.watch<SettingsProvider>();
+    final info = provider.trainingProgramFor(regimeType);
     if (info == null) {
-      return const Scaffold(body: Center(child: Text('Unknown regime')));
+      return const Scaffold(
+        body: Center(child: Text('Training program info unavailable')),
+      );
     }
-    final colorScheme = Theme.of(context).colorScheme;
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(info.name), centerTitle: false),
+      appBar: AppBar(title: Text(info.displayName), centerTitle: false),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
-          // Tagline
           Text(
-            info.tagline,
+            info.headline,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
-              color: colorScheme.primary,
+              color: cs.primary,
             ),
           ),
           const SizedBox(height: 12),
-          // Description
+          if (info.summary.isNotEmpty)
+            Text(
+              info.summary,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+          if (info.summary.isNotEmpty) const SizedBox(height: 10),
           Text(
             info.description,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               height: 1.5,
-              color: colorScheme.onSurface.withValues(alpha: 0.8),
+              color: cs.onSurface.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 24),
-
-          // Stats row
-          _SectionLabel('AT A GLANCE'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: info.stats
-                .map((s) => _StatChip(label: s.$1, value: s.$2))
-                .toList(),
-          ),
-          const SizedBox(height: 28),
-
-          // How it works
-          _SectionLabel('HOW IT WORKS'),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.3),
+          if (info.hasAtAGlance()) ...[
+            _SectionLabel('AT A GLANCE'),
+            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 2,
+              childAspectRatio: 1.6,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              children: [
+                _AtAGlanceCard(
+                  emoji: '📅',
+                  label: 'Days / Week',
+                  value: info.atAGlance.daysPerWeek,
+                ),
+                _AtAGlanceCard(
+                  emoji: '🎯',
+                  label: 'Best For',
+                  value: info.atAGlance.bestFor,
+                ),
+                _AtAGlanceCard(
+                  emoji: '⏱️',
+                  label: 'Session Time',
+                  value: info.atAGlance.averageSessionTime,
+                ),
+                _AtAGlanceCard(
+                  emoji: '📈',
+                  label: 'Progression',
+                  value: info.atAGlance.progressionStyle,
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+          ],
+          if (info.howItWorks.trim().isNotEmpty) ...[
+            _SectionLabel('HOW IT WORKS'),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                info.howItWorks.trim(),
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.6,
+                  color: cs.onSurface.withValues(alpha: 0.85),
+                ),
               ),
             ),
-            child: Text(
-              info.howItWorks.trim(),
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.7,
-                fontFamily: 'monospace',
-                color: colorScheme.onSurface.withValues(alpha: 0.85),
+            const SizedBox(height: 28),
+          ],
+          if (info.details.isNotEmpty) ...[
+            _SectionLabel('DETAILS'),
+            const SizedBox(height: 10),
+            ...info.details.map(
+              (d) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('• ', style: TextStyle(color: cs.primary)),
+                    Expanded(child: Text(d, style: const TextStyle(height: 1.4))),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 28),
-
-          // Learn more links
-          _SectionLabel('LEARN MORE'),
-          const SizedBox(height: 10),
-          ...info.links.map((link) => _LinkTile(label: link.$1, url: link.$2)),
+            const SizedBox(height: 20),
+          ],
+          if (info.learnMoreLinks.isNotEmpty) ...[
+            _SectionLabel('LEARN MORE'),
+            const SizedBox(height: 10),
+            ...info.learnMoreLinks
+                .map((link) => _LinkTile(label: link.label, url: link.url)),
+          ],
         ],
       ),
     );
@@ -255,51 +143,58 @@ class RegimeInfoScreen extends StatelessWidget {
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
+
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.5,
-        color: Theme.of(context).colorScheme.tertiary,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
       ),
     );
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _AtAGlanceCard extends StatelessWidget {
+  final String emoji;
   final String label;
   final String value;
-  const _StatChip({required this.label, required this.value});
+  const _AtAGlanceCard({
+    required this.emoji,
+    required this.label,
+    required this.value,
+  });
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: cs.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-              color: cs.primary.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              color: cs.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -310,69 +205,45 @@ class _LinkTile extends StatelessWidget {
   final String label;
   final String url;
   const _LinkTile({required this.label, required this.url});
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () async {
-          final uri = Uri.parse(url);
-          try {
-            // We try to launch even if canLaunchUrl returns false because
-            // query declarations can be finicky, but standard browsers usually work.
-            final launched = await launchUrl(
-              uri,
-              mode: LaunchMode.externalApplication,
-            );
-            if (!launched && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Could not open link: $url')),
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Error opening link: $e')));
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.open_in_new_rounded, size: 16, color: cs.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      url,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final uri = Uri.tryParse(url);
+        if (uri != null) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(
+                    url,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: cs.primary),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Icon(Icons.open_in_new, size: 18, color: cs.primary),
+          ],
         ),
       ),
     );

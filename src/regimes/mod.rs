@@ -2,18 +2,23 @@ pub mod gzclp;
 pub mod linear_5x5;
 #[cfg(test)]
 pub mod test_harness;
-pub mod wendler_531;
+pub mod wendler_531_3day;
+pub mod wendler_531_4day;
 
 use std::collections::HashMap;
 
 use lift::workout::v1::{
     Exercise, ExerciseStatus, ExerciseTypeConfig, MuscleGroup, ProposedExerciseGroup,
-    RegimeContext, RegimeType, RestConfig, SessionReadiness, UserWorkoutConfig, WorkingSetSpec,
+    RegimeContext, RegimeType, RestConfig, SessionReadiness, TrainingProgramConfigField,
+    TrainingProgramDefinition, TrainingProgramFieldBinding, TrainingProgramFieldKind,
+    TrainingProgramIntChoice, TrainingProgramLink, TrainingProgramAtAGlance, UserWorkoutConfig,
+    WorkingSetSpec,
 };
 
 pub use gzclp::GzclpRegime;
 pub use linear_5x5::Linear5x5Regime;
-pub use wendler_531::Wendler531Regime;
+pub use wendler_531_3day::Wendler5313DayRegime;
+pub use wendler_531_4day::Wendler5314DayRegime;
 
 // ─── Static exercise metadata ─────────────────────────────────────────────────
 
@@ -179,11 +184,90 @@ pub struct ExerciseProposal {
     pub explanation: String,
 }
 
+pub struct ProgramCatalogMeta {
+    pub headline: &'static str,
+    pub summary: &'static str,
+    pub description: &'static str,
+    pub how_it_works: &'static str,
+    pub at_a_glance: ProgramAtAGlanceMeta,
+    pub details: Vec<&'static str>,
+    pub learn_more_links: Vec<(&'static str, &'static str)>,
+    pub config_fields: Vec<ProgramConfigFieldDef>,
+    pub sort_order: i32,
+}
+
+pub struct ProgramAtAGlanceMeta {
+    pub days_per_week: &'static str,
+    pub best_for: &'static str,
+    pub average_session_time: &'static str,
+    pub progression_style: &'static str,
+}
+
+#[allow(dead_code)]
+pub enum ProgramFieldDefault {
+    Int(i32),
+    Float(f32),
+    Bool(bool),
+}
+
+pub struct ProgramConfigFieldDef {
+    pub key: &'static str,
+    pub label: &'static str,
+    pub help_text: &'static str,
+    pub kind: TrainingProgramFieldKind,
+    pub binding: TrainingProgramFieldBinding,
+    pub required: bool,
+    pub default_value: ProgramFieldDefault,
+    pub exercise_id: i32,
+    pub int_choices: Vec<(i32, &'static str)>,
+}
+
+pub fn cfg_field_days_per_week(
+    key: &'static str,
+    label: &'static str,
+    help_text: &'static str,
+    default_days: i32,
+    choices: Vec<(i32, &'static str)>,
+) -> ProgramConfigFieldDef {
+    ProgramConfigFieldDef {
+        key,
+        label,
+        help_text,
+        kind: TrainingProgramFieldKind::Int32,
+        binding: TrainingProgramFieldBinding::DaysPerWeek,
+        required: true,
+        default_value: ProgramFieldDefault::Int(default_days),
+        exercise_id: 0,
+        int_choices: choices,
+    }
+}
+
+pub fn cfg_field_exercise_weight(
+    key: &'static str,
+    label: &'static str,
+    help_text: &'static str,
+    exercise_id: i32,
+    default_weight: f32,
+) -> ProgramConfigFieldDef {
+    ProgramConfigFieldDef {
+        key,
+        label,
+        help_text,
+        kind: TrainingProgramFieldKind::Float,
+        binding: TrainingProgramFieldBinding::OneRepMax,
+        required: false,
+        default_value: ProgramFieldDefault::Float(default_weight),
+        exercise_id,
+        int_choices: vec![],
+    }
+}
+
 // ─── Trait ───────────────────────────────────────────────────────────────────
 
 pub trait WorkoutRegime: Send + Sync {
     fn display_name(&self) -> &'static str;
     fn default_days_per_week(&self) -> i32;
+    fn catalog_meta(&self) -> ProgramCatalogMeta;
 
     /// Compute next weight/sets/reps for a single exercise from its history.
     /// `now_ts` is the unix timestamp to use as "current time" for deload/break detection.
@@ -227,6 +311,66 @@ pub trait WorkoutRegime: Send + Sync {
     fn suggested_workout_name(&self, _workout_config: &UserWorkoutConfig) -> String {
         self.display_name().to_string()
     }
+
+    fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {
+        let meta = self.catalog_meta();
+        TrainingProgramDefinition {
+            regime_type: regime_type as i32,
+            display_name: self.display_name().to_string(),
+            headline: meta.headline.to_string(),
+            summary: meta.summary.to_string(),
+            description: meta.description.to_string(),
+            how_it_works: meta.how_it_works.to_string(),
+            at_a_glance: Some(TrainingProgramAtAGlance {
+                days_per_week: meta.at_a_glance.days_per_week.to_string(),
+                best_for: meta.at_a_glance.best_for.to_string(),
+                average_session_time: meta.at_a_glance.average_session_time.to_string(),
+                progression_style: meta.at_a_glance.progression_style.to_string(),
+            }),
+            details: meta.details.into_iter().map(str::to_string).collect(),
+            learn_more_links: meta
+                .learn_more_links
+                .into_iter()
+                .map(|(label, url)| TrainingProgramLink {
+                    label: label.to_string(),
+                    url: url.to_string(),
+                })
+                .collect(),
+            config_fields: meta
+                .config_fields
+                .into_iter()
+                .map(|f| {
+                    let mut field = TrainingProgramConfigField {
+                        key: f.key.to_string(),
+                        label: f.label.to_string(),
+                        help_text: f.help_text.to_string(),
+                        kind: f.kind as i32,
+                        binding: f.binding as i32,
+                        required: f.required,
+                        default_int32: 0,
+                        default_float: 0.0,
+                        default_bool: false,
+                        exercise_id: f.exercise_id,
+                        int_choices: f
+                            .int_choices
+                            .into_iter()
+                            .map(|(value, label)| TrainingProgramIntChoice {
+                                value,
+                                label: label.to_string(),
+                            })
+                            .collect(),
+                    };
+                    match f.default_value {
+                        ProgramFieldDefault::Int(v) => field.default_int32 = v,
+                        ProgramFieldDefault::Float(v) => field.default_float = v,
+                        ProgramFieldDefault::Bool(v) => field.default_bool = v,
+                    }
+                    field
+                })
+                .collect(),
+            sort_order: meta.sort_order,
+        }
+    }
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -234,10 +378,20 @@ pub trait WorkoutRegime: Send + Sync {
 pub fn get_regime(regime_type: RegimeType) -> Box<dyn WorkoutRegime> {
     match regime_type {
         RegimeType::Gzclp => Box::new(GzclpRegime),
-        RegimeType::Wendler531 => Box::new(Wendler531Regime),
+        RegimeType::Wendler5314day => Box::new(Wendler5314DayRegime),
+        RegimeType::Wendler5313day => Box::new(Wendler5313DayRegime),
         // Default / Linear5x5
         _ => Box::new(Linear5x5Regime),
     }
+}
+
+pub fn catalog_regime_types() -> Vec<RegimeType> {
+    vec![
+        RegimeType::Linear5x5,
+        RegimeType::Gzclp,
+        RegimeType::Wendler5314day,
+        RegimeType::Wendler5313day,
+    ]
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────

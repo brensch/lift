@@ -7,8 +7,8 @@ use lift::workout::v1::{
 use serde::{Deserialize, Serialize};
 
 use super::{
-    exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal, SessionHistory,
-    WorkoutRegime,
+    cfg_field_exercise_weight, exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal,
+    ProgramAtAGlanceMeta, ProgramCatalogMeta, SessionHistory, WorkoutRegime,
 };
 
 // ─── Wendler state ─────────────────────────────────────────────────────────────
@@ -115,8 +115,14 @@ const WENDLER_LIFTS: &[Exercise] = &[
     Exercise::OverheadPress,
 ];
 
-fn classic_4day_lift_for_session(session_in_week: u8) -> Exercise {
-    WENDLER_LIFTS[(session_in_week as usize) % WENDLER_LIFTS.len()]
+fn beginner_3day_lifts_for_session(session_in_week: u8, cycle: u32, week: u8) -> Vec<Exercise> {
+    let week_zero = cycle.saturating_sub(1) * 4 + week.saturating_sub(1) as u32;
+    let start_with_sb = week_zero % 2 == 0;
+    match (session_in_week % 3, start_with_sb) {
+        (0, true) | (2, false) => vec![Exercise::Squat, Exercise::BenchPress],
+        (1, true) | (0, false) => vec![Exercise::Deadlift, Exercise::OverheadPress],
+        _ => vec![Exercise::Squat, Exercise::BenchPress],
+    }
 }
 
 fn is_lower_body(exercise: Exercise) -> bool {
@@ -166,15 +172,46 @@ fn wendler_set_pattern_text(week_def: &WeekDef) -> String {
 
 // ─── Regime impl ─────────────────────────────────────────────────────────────
 
-pub struct Wendler531Regime;
+pub struct Wendler5313DayRegime;
 
-impl WorkoutRegime for Wendler531Regime {
+impl WorkoutRegime for Wendler5313DayRegime {
     fn display_name(&self) -> &'static str {
-        "Wendler 5/3/1"
+        "Wendler 5/3/1 (3-Day)"
     }
 
     fn default_days_per_week(&self) -> i32 {
-        4
+        3
+    }
+
+    fn catalog_meta(&self) -> ProgramCatalogMeta {
+        ProgramCatalogMeta {
+            headline: "3-day 5/3/1 variant",
+            summary: "Three sessions per week with paired main lifts, using the same 5/3/1 wave and Training Max progression.",
+            description: "A 3-day Wendler variant that pairs main lifts so you can run percentage waves on fewer weekly sessions.",
+            how_it_works: "Train off 90% Training Maxes.\nWeek 1: 5s, Week 2: 3s, Week 3: 5/3/1, Week 4: deload.\nSessions pair lifts (Squat+Bench and Deadlift+OHP) in a balanced weekly rotation.",
+            at_a_glance: ProgramAtAGlanceMeta {
+                days_per_week: "3",
+                best_for: "Busy intermediates",
+                average_session_time: "60-90 min",
+                progression_style: "Percentage periodization",
+            },
+            details: vec![
+                "Uses the same Training Max and cycle bump rules as classic 5/3/1.",
+                "Main lifts are paired per workout to fit a 3-day schedule.",
+                "Top set is AMRAP except deload week.",
+            ],
+            learn_more_links: vec![
+                ("The Fitness Wiki: 5/3/1 Primer", "https://thefitness.wiki/5-3-1-primer/"),
+                ("Jim Wendler beginner article", "https://www.jimwendler.com/blogs/jimwendler-com/101065094-5-3-1-for-a-beginner"),
+            ],
+            config_fields: vec![
+                cfg_field_exercise_weight("squat_1rm", "Squat 1RM", "Estimated 1RM (lbs).", 1, 225.0),
+                cfg_field_exercise_weight("bench_press_1rm", "Bench Press 1RM", "Estimated 1RM (lbs).", 2, 185.0),
+                cfg_field_exercise_weight("deadlift_1rm", "Deadlift 1RM", "Estimated 1RM (lbs).", 3, 315.0),
+                cfg_field_exercise_weight("overhead_press_1rm", "Overhead Press 1RM", "Estimated 1RM (lbs).", 4, 115.0),
+            ],
+            sort_order: 40,
+        }
     }
 
     fn recovery_seconds(&self, workout_config: &UserWorkoutConfig) -> i64 {
@@ -273,12 +310,7 @@ impl WorkoutRegime for Wendler531Regime {
         let week_def = &WEEKS[week.min(3)];
 
         let mut groups = Vec::new();
-        let classic_4day = workout_config.days_per_week >= 4;
-        let main_lifts: Vec<Exercise> = if classic_4day {
-            vec![classic_4day_lift_for_session(state.session_in_week)]
-        } else {
-            WENDLER_LIFTS.to_vec()
-        };
+        let main_lifts = beginner_3day_lifts_for_session(state.session_in_week, state.cycle, state.week);
 
         for &exercise in &main_lifts {
             let Some(status) = statuses.iter().find(|s| s.exercise == exercise as i32) else {
@@ -423,28 +455,16 @@ impl WorkoutRegime for Wendler531Regime {
 
     fn compute_updated_state(
         &self,
-        workout_config: &UserWorkoutConfig,
+        _workout_config: &UserWorkoutConfig,
         history: &HashMap<i32, Vec<SessionHistory>>,
     ) -> String {
-        // For classic 4-day 5/3/1, each workout trains one main lift. Count total
-        // completed main-lift sessions and derive week/day position from that count.
-        // For legacy non-4-day fallback, preserve prior "all 4 lifts each workout"
-        // heuristic based on the max history depth among main lifts.
-        let classic_4day = workout_config.days_per_week >= 4;
-        let total_sessions: usize = if classic_4day {
-            WENDLER_LIFTS
-                .iter()
-                .map(|&ex| history.get(&(ex as i32)).map(|h| h.len()).unwrap_or(0))
-                .sum()
-        } else {
-            WENDLER_LIFTS
-                .iter()
-                .map(|&ex| history.get(&(ex as i32)).map(|h| h.len()).unwrap_or(0))
-                .max()
-                .unwrap_or(0)
-        };
+        let total_main_entries: usize = WENDLER_LIFTS
+            .iter()
+            .map(|&ex| history.get(&(ex as i32)).map(|h| h.len()).unwrap_or(0))
+            .sum();
+        let total_sessions = total_main_entries / 2;
 
-        let sessions_per_week = if classic_4day { 4 } else { 3 };
+        let sessions_per_week = 3;
         let sessions_per_cycle = sessions_per_week * 4;
         let session_in_cycle = total_sessions % sessions_per_cycle;
         let cycle = (total_sessions / sessions_per_cycle) as u32 + 1;
@@ -488,13 +508,12 @@ impl WorkoutRegime for Wendler531Regime {
             ]
         };
 
-        let classic_4day = workout_config.days_per_week >= 4;
-        let day_suffix = if classic_4day {
-            let ex = classic_4day_lift_for_session(state.session_in_week);
-            format!(" — {}", exercise_display_name(ex))
-        } else {
-            String::new()
-        };
+        let lifts = beginner_3day_lifts_for_session(state.session_in_week, state.cycle, state.week);
+        let day_suffix = format!(
+            " — {} + {}",
+            exercise_display_name(lifts[0]),
+            exercise_display_name(lifts[1])
+        );
 
         RegimeContext {
             regime_display_name: format!("Wendler 5/3/1 — Cycle {}{}", state.cycle, day_suffix),
@@ -508,16 +527,17 @@ impl WorkoutRegime for Wendler531Regime {
         let state = WendlerState::from_json(&workout_config.regime_state_json);
         let week = state.week.saturating_sub(1) as usize;
         let week_def = &WEEKS[week.min(3)];
-        if workout_config.days_per_week >= 4 {
-            let ex = classic_4day_lift_for_session(state.session_in_week);
-            format!(
-                "5/3/1 — Cycle {}, {}, {}",
-                state.cycle,
-                week_def.name,
-                exercise_display_name(ex)
-            )
-        } else {
-            format!("5/3/1 — Cycle {}, {}", state.cycle, week_def.name)
-        }
+        let lifts = beginner_3day_lifts_for_session(state.session_in_week, state.cycle, state.week);
+        format!(
+            "5/3/1 — Cycle {}, {}, {} + {}",
+            state.cycle,
+            week_def.name,
+            exercise_display_name(lifts[0]),
+            exercise_display_name(lifts[1])
+        )
     }
 }
+
+#[cfg(test)]
+#[path = "wendler_531_3day_tests.rs"]
+mod wendler_531_3day_tests;

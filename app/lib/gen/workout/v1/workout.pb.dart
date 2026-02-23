@@ -1021,10 +1021,12 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
   factory StartWorkoutRequest({
     $core.String? name,
     $core.Iterable<ExerciseGroup>? exerciseGroups,
+    $fixnum.Int64? startedAt,
   }) {
     final result = create();
     if (name != null) result.name = name;
     if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
+    if (startedAt != null) result.startedAt = startedAt;
     return result;
   }
 
@@ -1044,6 +1046,7 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..pPM<ExerciseGroup>(2, _omitFieldNames ? '' : 'exerciseGroups',
         subBuilder: ExerciseGroup.create)
+    ..aInt64(3, _omitFieldNames ? '' : 'startedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1076,6 +1079,15 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<ExerciseGroup> get exerciseGroups => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get startedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set startedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStartedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStartedAt() => $_clearField(3);
 }
 
 class StartWorkoutResponse extends $pb.GeneratedMessage {
@@ -2242,10 +2254,12 @@ class StartSetRequest extends $pb.GeneratedMessage {
   factory StartSetRequest({
     $core.String? workoutId,
     $core.String? proposedSetId,
+    $fixnum.Int64? startedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (proposedSetId != null) result.proposedSetId = proposedSetId;
+    if (startedAt != null) result.startedAt = startedAt;
     return result;
   }
 
@@ -2264,6 +2278,7 @@ class StartSetRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workoutId')
     ..aOS(2, _omitFieldNames ? '' : 'proposedSetId')
+    ..aInt64(3, _omitFieldNames ? '' : 'startedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2302,6 +2317,15 @@ class StartSetRequest extends $pb.GeneratedMessage {
   $core.bool hasProposedSetId() => $_has(1);
   @$pb.TagNumber(2)
   void clearProposedSetId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get startedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set startedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStartedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStartedAt() => $_clearField(3);
 }
 
 class StartSetResponse extends $pb.GeneratedMessage {
@@ -2865,9 +2889,11 @@ class CancelProposedSetResponse extends $pb.GeneratedMessage {
 class EndWorkoutRequest extends $pb.GeneratedMessage {
   factory EndWorkoutRequest({
     $core.String? workoutId,
+    $fixnum.Int64? endedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
+    if (endedAt != null) result.endedAt = endedAt;
     return result;
   }
 
@@ -2885,6 +2911,7 @@ class EndWorkoutRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aInt64(2, _omitFieldNames ? '' : 'endedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2914,6 +2941,15 @@ class EndWorkoutRequest extends $pb.GeneratedMessage {
   $core.bool hasWorkoutId() => $_has(0);
   @$pb.TagNumber(1)
   void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get endedAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set endedAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEndedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEndedAt() => $_clearField(2);
 }
 
 class EndWorkoutResponse extends $pb.GeneratedMessage {
@@ -2976,9 +3012,11 @@ class EndWorkoutResponse extends $pb.GeneratedMessage {
 class GetProposedWorkoutScheduleRequest extends $pb.GeneratedMessage {
   factory GetProposedWorkoutScheduleRequest({
     $core.String? userId,
+    $fixnum.Int64? atTime,
   }) {
     final result = create();
     if (userId != null) result.userId = userId;
+    if (atTime != null) result.atTime = atTime;
     return result;
   }
 
@@ -2997,6 +3035,7 @@ class GetProposedWorkoutScheduleRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..aInt64(2, _omitFieldNames ? '' : 'atTime')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3030,6 +3069,15 @@ class GetProposedWorkoutScheduleRequest extends $pb.GeneratedMessage {
   $core.bool hasUserId() => $_has(0);
   @$pb.TagNumber(1)
   void clearUserId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get atTime => $_getI64(1);
+  @$pb.TagNumber(2)
+  set atTime($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAtTime() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAtTime() => $_clearField(2);
 }
 
 class ExerciseStatus extends $pb.GeneratedMessage {

@@ -46,6 +46,15 @@ class SettingsServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getSettings, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.GetTrainingProgramCatalogResponse>
+      getTrainingProgramCatalog(
+    $0.GetTrainingProgramCatalogRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getTrainingProgramCatalog, request,
+        options: options);
+  }
+
   // method descriptors
 
   static final _$updateSetting =
@@ -58,6 +67,12 @@ class SettingsServiceClient extends $grpc.Client {
           '/workout.v1.SettingsService/GetSettings',
           ($0.GetSettingsRequest value) => value.writeToBuffer(),
           $0.GetSettingsResponse.fromBuffer);
+  static final _$getTrainingProgramCatalog = $grpc.ClientMethod<
+          $0.GetTrainingProgramCatalogRequest,
+          $0.GetTrainingProgramCatalogResponse>(
+      '/workout.v1.SettingsService/GetTrainingProgramCatalog',
+      ($0.GetTrainingProgramCatalogRequest value) => value.writeToBuffer(),
+      $0.GetTrainingProgramCatalogResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.SettingsService')
@@ -83,6 +98,15 @@ abstract class SettingsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.GetSettingsRequest.fromBuffer(value),
             ($0.GetSettingsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetTrainingProgramCatalogRequest,
+            $0.GetTrainingProgramCatalogResponse>(
+        'GetTrainingProgramCatalog',
+        getTrainingProgramCatalog_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetTrainingProgramCatalogRequest.fromBuffer(value),
+        ($0.GetTrainingProgramCatalogResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.UpdateSettingResponse> updateSetting_Pre(
@@ -101,4 +125,13 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetSettingsResponse> getSettings(
       $grpc.ServiceCall call, $0.GetSettingsRequest request);
+
+  $async.Future<$0.GetTrainingProgramCatalogResponse>
+      getTrainingProgramCatalog_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.GetTrainingProgramCatalogRequest> $request) async {
+    return getTrainingProgramCatalog($call, await $request);
+  }
+
+  $async.Future<$0.GetTrainingProgramCatalogResponse> getTrainingProgramCatalog(
+      $grpc.ServiceCall call, $0.GetTrainingProgramCatalogRequest request);
 }

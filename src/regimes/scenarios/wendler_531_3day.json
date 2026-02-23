@@ -1,8 +1,8 @@
 {
-  "description": "Wendler 5/3/1 classic 4-day template: full 4-week cycle plus first workout of next cycle to prove phase reset",
+  "description": "Wendler 5/3/1 3-day paired-lift variant: full 4-week cycle plus first workout of next cycle to prove phase reset",
   "regime_config": {
-    "regime_type": "wendler_531_4day",
-    "days_per_week": 4,
+    "regime_type": "wendler_531_3day",
+    "days_per_week": 3,
     "one_rep_maxes": {
       "squat": 225.0,
       "bench_press": 185.0,
@@ -12,10 +12,10 @@
   },
   "workouts": [
     {
-      "note": "Cycle 1 Week 1 Day 1: squat main lift (Week 1 \u2014 Volume (5s))",
+      "note": "Cycle 1 Week 1 Day 1: squat + bench_press (Week 1 \u2014 Volume (5s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-01T09:00:00Z",
+        "at": "2024-02-01T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -60,155 +60,6 @@
               ],
               "weight": 130.0
             },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": true,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Squat"
-        }
-      },
-      "start": {
-        "at": "2024-01-01T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "squat set 1/3 at 130",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 130.0,
-          "start_at": "2024-01-01T09:05:00Z",
-          "end_at": "2024-01-01T09:06:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "squat set 2/3 at 150",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 150.0,
-          "start_at": "2024-01-01T09:10:00Z",
-          "end_at": "2024-01-01T09:11:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "squat AMRAP 3/3 at 170",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 170.0,
-          "start_at": "2024-01-01T09:15:00Z",
-          "end_at": "2024-01-01T09:16:00Z",
-          "actual_reps": 7
-        }
-      ],
-      "end": {
-        "at": "2024-01-01T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 1 Day 2: bench_press main lift (Week 1 \u2014 Volume (5s))",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-03T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
             {
               "exercise_configs": [
                 {
@@ -349,21 +200,48 @@
               "weight": 45.0
             }
           ],
-          "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Bench Press"
+          "is_ready": true,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-01-03T09:05:00Z"
+        "at": "2024-02-01T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "squat set 1/3 at 130",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 130.0,
+          "start_at": "2024-02-01T09:05:00Z",
+          "end_at": "2024-02-01T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 2/3 at 150",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 150.0,
+          "start_at": "2024-02-01T09:10:00Z",
+          "end_at": "2024-02-01T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat AMRAP 3/3 at 170",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 170.0,
+          "start_at": "2024-02-01T09:15:00Z",
+          "end_at": "2024-02-01T09:16:00Z",
+          "actual_reps": 7
+        },
         {
           "note": "bench_press set 1/3 at 110",
           "exercise": "bench_press",
           "target_reps": 5,
           "target_weight": 110.0,
-          "start_at": "2024-01-03T09:05:00Z",
-          "end_at": "2024-01-03T09:06:00Z",
+          "start_at": "2024-02-01T09:23:00Z",
+          "end_at": "2024-02-01T09:24:00Z",
           "actual_reps": 5
         },
         {
@@ -371,8 +249,8 @@
           "exercise": "bench_press",
           "target_reps": 5,
           "target_weight": 125.0,
-          "start_at": "2024-01-03T09:10:00Z",
-          "end_at": "2024-01-03T09:11:00Z",
+          "start_at": "2024-02-01T09:28:00Z",
+          "end_at": "2024-02-01T09:29:00Z",
           "actual_reps": 5
         },
         {
@@ -380,20 +258,20 @@
           "exercise": "bench_press",
           "target_reps": 5,
           "target_weight": 140.0,
-          "start_at": "2024-01-03T09:15:00Z",
-          "end_at": "2024-01-03T09:16:00Z",
+          "start_at": "2024-02-01T09:33:00Z",
+          "end_at": "2024-02-01T09:34:00Z",
           "actual_reps": 7
         }
       ],
       "end": {
-        "at": "2024-01-03T09:35:00Z"
+        "at": "2024-02-01T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 1 Day 3: deadlift main lift (Week 1 \u2014 Volume (5s))",
+      "note": "Cycle 1 Week 1 Day 2: deadlift + overhead_press (Week 1 \u2014 Volume (5s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-05T09:00:00Z",
+        "at": "2024-02-03T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -438,155 +316,6 @@
               ],
               "weight": 160.0
             },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Deadlift"
-        }
-      },
-      "start": {
-        "at": "2024-01-05T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "deadlift set 1/3 at 160",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 160.0,
-          "start_at": "2024-01-05T09:05:00Z",
-          "end_at": "2024-01-05T09:06:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "deadlift set 2/3 at 185",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 185.0,
-          "start_at": "2024-01-05T09:10:00Z",
-          "end_at": "2024-01-05T09:11:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "deadlift AMRAP 3/3 at 210",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 210.0,
-          "start_at": "2024-01-05T09:15:00Z",
-          "end_at": "2024-01-05T09:16:00Z",
-          "actual_reps": 7
-        }
-      ],
-      "end": {
-        "at": "2024-01-05T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 1 Day 4: overhead_press main lift (Week 1 \u2014 Volume (5s))",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-07T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
             {
               "exercise_configs": [
                 {
@@ -728,20 +457,47 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), OHP"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Deadlift + OHP"
         }
       },
       "start": {
-        "at": "2024-01-07T09:05:00Z"
+        "at": "2024-02-03T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "deadlift set 1/3 at 160",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 160.0,
+          "start_at": "2024-02-03T09:05:00Z",
+          "end_at": "2024-02-03T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "deadlift set 2/3 at 185",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 185.0,
+          "start_at": "2024-02-03T09:10:00Z",
+          "end_at": "2024-02-03T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "deadlift AMRAP 3/3 at 210",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 210.0,
+          "start_at": "2024-02-03T09:15:00Z",
+          "end_at": "2024-02-03T09:16:00Z",
+          "actual_reps": 7
+        },
         {
           "note": "overhead_press set 1/3 at 80",
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 80.0,
-          "start_at": "2024-01-07T09:05:00Z",
-          "end_at": "2024-01-07T09:06:00Z",
+          "start_at": "2024-02-03T09:23:00Z",
+          "end_at": "2024-02-03T09:24:00Z",
           "actual_reps": 5
         },
         {
@@ -749,8 +505,8 @@
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 90.0,
-          "start_at": "2024-01-07T09:10:00Z",
-          "end_at": "2024-01-07T09:11:00Z",
+          "start_at": "2024-02-03T09:28:00Z",
+          "end_at": "2024-02-03T09:29:00Z",
           "actual_reps": 5
         },
         {
@@ -758,20 +514,20 @@
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 105.0,
-          "start_at": "2024-01-07T09:15:00Z",
-          "end_at": "2024-01-07T09:16:00Z",
+          "start_at": "2024-02-03T09:33:00Z",
+          "end_at": "2024-02-03T09:34:00Z",
           "actual_reps": 7
         }
       ],
       "end": {
-        "at": "2024-01-07T09:35:00Z"
+        "at": "2024-02-03T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 2 Day 1: squat main lift (Week 2 \u2014 Intensity (3s))",
+      "note": "Cycle 1 Week 1 Day 3: squat + bench_press (Week 1 \u2014 Volume (5s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-09T09:00:00Z",
+        "at": "2024-02-05T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -779,27 +535,27 @@
             {
               "exercise_configs": [
                 {
-                  "end_weight": 180.0,
+                  "end_weight": 170.0,
                   "exercise": "squat",
                   "include_warmup": true,
                   "last_set_amrap": true,
-                  "reps": 3,
-                  "start_weight": 140.0,
+                  "reps": 5,
+                  "start_weight": 130.0,
                   "working_sets": [
                     {
                       "is_amrap": false,
-                      "reps": 3,
-                      "weight": 140.0
+                      "reps": 5,
+                      "weight": 130.0
                     },
                     {
                       "is_amrap": false,
-                      "reps": 3,
-                      "weight": 160.0
+                      "reps": 5,
+                      "weight": 150.0
                     },
                     {
                       "is_amrap": true,
-                      "reps": 3,
-                      "weight": 180.0
+                      "reps": 5,
+                      "weight": 170.0
                     }
                   ]
                 }
@@ -807,188 +563,39 @@
               "interleave_warmups": false,
               "name": "Squat",
               "prescribed_by_regime": true,
-              "reps": 3,
+              "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
               "sets": 3,
               "tags": [
                 "recommended"
               ],
-              "weight": 140.0
+              "weight": 130.0
             },
             {
               "exercise_configs": [
                 {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Squat"
-        }
-      },
-      "start": {
-        "at": "2024-01-09T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "squat set 1/3 at 140",
-          "exercise": "squat",
-          "target_reps": 3,
-          "target_weight": 140.0,
-          "start_at": "2024-01-09T09:05:00Z",
-          "end_at": "2024-01-09T09:06:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "squat set 2/3 at 160",
-          "exercise": "squat",
-          "target_reps": 3,
-          "target_weight": 160.0,
-          "start_at": "2024-01-09T09:10:00Z",
-          "end_at": "2024-01-09T09:11:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "squat AMRAP 3/3 at 180",
-          "exercise": "squat",
-          "target_reps": 3,
-          "target_weight": 180.0,
-          "start_at": "2024-01-09T09:15:00Z",
-          "end_at": "2024-01-09T09:16:00Z",
-          "actual_reps": 5
-        }
-      ],
-      "end": {
-        "at": "2024-01-09T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 2 Day 2: bench_press main lift (Week 2 \u2014 Intensity (3s))",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-11T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 150.0,
+                  "end_weight": 140.0,
                   "exercise": "bench_press",
                   "include_warmup": true,
                   "last_set_amrap": true,
-                  "reps": 3,
-                  "start_weight": 115.0,
+                  "reps": 5,
+                  "start_weight": 110.0,
                   "working_sets": [
                     {
                       "is_amrap": false,
-                      "reps": 3,
-                      "weight": 115.0
+                      "reps": 5,
+                      "weight": 110.0
                     },
                     {
                       "is_amrap": false,
-                      "reps": 3,
-                      "weight": 135.0
+                      "reps": 5,
+                      "weight": 125.0
                     },
                     {
                       "is_amrap": true,
-                      "reps": 3,
-                      "weight": 150.0
+                      "reps": 5,
+                      "weight": 140.0
                     }
                   ]
                 }
@@ -996,14 +603,14 @@
               "interleave_warmups": false,
               "name": "Bench Press",
               "prescribed_by_regime": true,
-              "reps": 3,
+              "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
               "sets": 3,
               "tags": [
                 "recommended"
               ],
-              "weight": 115.0
+              "weight": 110.0
             },
             {
               "exercise_configs": [
@@ -1106,50 +713,77 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Bench Press"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5-rep sets), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-01-11T09:05:00Z"
+        "at": "2024-02-05T09:05:00Z"
       },
       "sets": [
         {
-          "note": "bench_press set 1/3 at 115",
-          "exercise": "bench_press",
-          "target_reps": 3,
-          "target_weight": 115.0,
-          "start_at": "2024-01-11T09:05:00Z",
-          "end_at": "2024-01-11T09:06:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "bench_press set 2/3 at 135",
-          "exercise": "bench_press",
-          "target_reps": 3,
-          "target_weight": 135.0,
-          "start_at": "2024-01-11T09:10:00Z",
-          "end_at": "2024-01-11T09:11:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "bench_press AMRAP 3/3 at 150",
-          "exercise": "bench_press",
-          "target_reps": 3,
-          "target_weight": 150.0,
-          "start_at": "2024-01-11T09:15:00Z",
-          "end_at": "2024-01-11T09:16:00Z",
+          "note": "squat set 1/3 at 130",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 130.0,
+          "start_at": "2024-02-05T09:05:00Z",
+          "end_at": "2024-02-05T09:06:00Z",
           "actual_reps": 5
+        },
+        {
+          "note": "squat set 2/3 at 150",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 150.0,
+          "start_at": "2024-02-05T09:10:00Z",
+          "end_at": "2024-02-05T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat AMRAP 3/3 at 170",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 170.0,
+          "start_at": "2024-02-05T09:15:00Z",
+          "end_at": "2024-02-05T09:16:00Z",
+          "actual_reps": 7
+        },
+        {
+          "note": "bench_press set 1/3 at 110",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 110.0,
+          "start_at": "2024-02-05T09:23:00Z",
+          "end_at": "2024-02-05T09:24:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 2/3 at 125",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 125.0,
+          "start_at": "2024-02-05T09:28:00Z",
+          "end_at": "2024-02-05T09:29:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press AMRAP 3/3 at 140",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 140.0,
+          "start_at": "2024-02-05T09:33:00Z",
+          "end_at": "2024-02-05T09:34:00Z",
+          "actual_reps": 7
         }
       ],
       "end": {
-        "at": "2024-01-11T09:35:00Z"
+        "at": "2024-02-05T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 2 Day 3: deadlift main lift (Week 2 \u2014 Intensity (3s))",
+      "note": "Cycle 1 Week 2 Day 1: deadlift + overhead_press (Week 2 \u2014 Intensity (3s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-13T09:00:00Z",
+        "at": "2024-02-07T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -1194,155 +828,6 @@
               ],
               "weight": 175.0
             },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Deadlift"
-        }
-      },
-      "start": {
-        "at": "2024-01-13T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "deadlift set 1/3 at 175",
-          "exercise": "deadlift",
-          "target_reps": 3,
-          "target_weight": 175.0,
-          "start_at": "2024-01-13T09:05:00Z",
-          "end_at": "2024-01-13T09:06:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "deadlift set 2/3 at 200",
-          "exercise": "deadlift",
-          "target_reps": 3,
-          "target_weight": 200.0,
-          "start_at": "2024-01-13T09:10:00Z",
-          "end_at": "2024-01-13T09:11:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "deadlift AMRAP 3/3 at 225",
-          "exercise": "deadlift",
-          "target_reps": 3,
-          "target_weight": 225.0,
-          "start_at": "2024-01-13T09:15:00Z",
-          "end_at": "2024-01-13T09:16:00Z",
-          "actual_reps": 5
-        }
-      ],
-      "end": {
-        "at": "2024-01-13T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 2 Day 4: overhead_press main lift (Week 2 \u2014 Intensity (3s))",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-15T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
             {
               "exercise_configs": [
                 {
@@ -1484,20 +969,47 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), OHP"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Deadlift + OHP"
         }
       },
       "start": {
-        "at": "2024-01-15T09:05:00Z"
+        "at": "2024-02-07T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "deadlift set 1/3 at 175",
+          "exercise": "deadlift",
+          "target_reps": 3,
+          "target_weight": 175.0,
+          "start_at": "2024-02-07T09:05:00Z",
+          "end_at": "2024-02-07T09:06:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "deadlift set 2/3 at 200",
+          "exercise": "deadlift",
+          "target_reps": 3,
+          "target_weight": 200.0,
+          "start_at": "2024-02-07T09:10:00Z",
+          "end_at": "2024-02-07T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "deadlift AMRAP 3/3 at 225",
+          "exercise": "deadlift",
+          "target_reps": 3,
+          "target_weight": 225.0,
+          "start_at": "2024-02-07T09:15:00Z",
+          "end_at": "2024-02-07T09:16:00Z",
+          "actual_reps": 5
+        },
         {
           "note": "overhead_press set 1/3 at 85",
           "exercise": "overhead_press",
           "target_reps": 3,
           "target_weight": 85.0,
-          "start_at": "2024-01-15T09:05:00Z",
-          "end_at": "2024-01-15T09:06:00Z",
+          "start_at": "2024-02-07T09:23:00Z",
+          "end_at": "2024-02-07T09:24:00Z",
           "actual_reps": 3
         },
         {
@@ -1505,8 +1017,8 @@
           "exercise": "overhead_press",
           "target_reps": 3,
           "target_weight": 95.0,
-          "start_at": "2024-01-15T09:10:00Z",
-          "end_at": "2024-01-15T09:11:00Z",
+          "start_at": "2024-02-07T09:28:00Z",
+          "end_at": "2024-02-07T09:29:00Z",
           "actual_reps": 3
         },
         {
@@ -1514,20 +1026,20 @@
           "exercise": "overhead_press",
           "target_reps": 3,
           "target_weight": 110.0,
-          "start_at": "2024-01-15T09:15:00Z",
-          "end_at": "2024-01-15T09:16:00Z",
+          "start_at": "2024-02-07T09:33:00Z",
+          "end_at": "2024-02-07T09:34:00Z",
           "actual_reps": 5
         }
       ],
       "end": {
-        "at": "2024-01-15T09:35:00Z"
+        "at": "2024-02-07T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 3 Day 1: squat main lift (Week 3 \u2014 Peak (5/3/1))",
+      "note": "Cycle 1 Week 2 Day 2: squat + bench_press (Week 2 \u2014 Intensity (3s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-17T09:00:00Z",
+        "at": "2024-02-09T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -1535,27 +1047,27 @@
             {
               "exercise_configs": [
                 {
-                  "end_weight": 190.0,
+                  "end_weight": 180.0,
                   "exercise": "squat",
                   "include_warmup": true,
                   "last_set_amrap": true,
-                  "reps": 5,
-                  "start_weight": 150.0,
+                  "reps": 3,
+                  "start_weight": 140.0,
                   "working_sets": [
                     {
                       "is_amrap": false,
-                      "reps": 5,
-                      "weight": 150.0
+                      "reps": 3,
+                      "weight": 140.0
                     },
                     {
                       "is_amrap": false,
                       "reps": 3,
-                      "weight": 170.0
+                      "weight": 160.0
                     },
                     {
                       "is_amrap": true,
-                      "reps": 1,
-                      "weight": 190.0
+                      "reps": 3,
+                      "weight": 180.0
                     }
                   ]
                 }
@@ -1563,14 +1075,54 @@
               "interleave_warmups": false,
               "name": "Squat",
               "prescribed_by_regime": true,
-              "reps": 5,
+              "reps": 3,
               "rest_after_failure": 300,
               "rest_after_success": 180,
               "sets": 3,
               "tags": [
                 "recommended"
               ],
-              "weight": 150.0
+              "weight": 140.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 115.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 115.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 135.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 115.0
             },
             {
               "exercise_configs": [
@@ -1673,54 +1225,377 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Squat"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-01-17T09:05:00Z"
+        "at": "2024-02-09T09:05:00Z"
       },
       "sets": [
         {
-          "note": "squat set 1/3 at 150",
+          "note": "squat set 1/3 at 140",
           "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 150.0,
-          "start_at": "2024-01-17T09:05:00Z",
-          "end_at": "2024-01-17T09:06:00Z",
+          "target_reps": 3,
+          "target_weight": 140.0,
+          "start_at": "2024-02-09T09:05:00Z",
+          "end_at": "2024-02-09T09:06:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat set 2/3 at 160",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 160.0,
+          "start_at": "2024-02-09T09:10:00Z",
+          "end_at": "2024-02-09T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat AMRAP 3/3 at 180",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 180.0,
+          "start_at": "2024-02-09T09:15:00Z",
+          "end_at": "2024-02-09T09:16:00Z",
           "actual_reps": 5
         },
         {
-          "note": "squat set 2/3 at 170",
-          "exercise": "squat",
+          "note": "bench_press set 1/3 at 115",
+          "exercise": "bench_press",
           "target_reps": 3,
-          "target_weight": 170.0,
-          "start_at": "2024-01-17T09:10:00Z",
-          "end_at": "2024-01-17T09:11:00Z",
+          "target_weight": 115.0,
+          "start_at": "2024-02-09T09:23:00Z",
+          "end_at": "2024-02-09T09:24:00Z",
           "actual_reps": 3
         },
         {
-          "note": "squat AMRAP 3/3 at 190",
-          "exercise": "squat",
-          "target_reps": 1,
-          "target_weight": 190.0,
-          "start_at": "2024-01-17T09:15:00Z",
-          "end_at": "2024-01-17T09:16:00Z",
+          "note": "bench_press set 2/3 at 135",
+          "exercise": "bench_press",
+          "target_reps": 3,
+          "target_weight": 135.0,
+          "start_at": "2024-02-09T09:28:00Z",
+          "end_at": "2024-02-09T09:29:00Z",
           "actual_reps": 3
+        },
+        {
+          "note": "bench_press AMRAP 3/3 at 150",
+          "exercise": "bench_press",
+          "target_reps": 3,
+          "target_weight": 150.0,
+          "start_at": "2024-02-09T09:33:00Z",
+          "end_at": "2024-02-09T09:34:00Z",
+          "actual_reps": 5
         }
       ],
       "end": {
-        "at": "2024-01-17T09:35:00Z"
+        "at": "2024-02-09T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 3 Day 2: bench_press main lift (Week 3 \u2014 Peak (5/3/1))",
+      "note": "Cycle 1 Week 2 Day 3: squat + bench_press (Week 2 \u2014 Intensity (3s))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-19T09:00:00Z",
+        "at": "2024-02-11T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
           "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 180.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 140.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 140.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 160.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 180.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 140.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 150.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 3,
+                  "start_weight": 115.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 115.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 135.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 3,
+                      "weight": 150.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 3,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 115.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3-rep sets), Squat + Bench Press"
+        }
+      },
+      "start": {
+        "at": "2024-02-11T09:05:00Z"
+      },
+      "sets": [
+        {
+          "note": "squat set 1/3 at 140",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 140.0,
+          "start_at": "2024-02-11T09:05:00Z",
+          "end_at": "2024-02-11T09:06:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat set 2/3 at 160",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 160.0,
+          "start_at": "2024-02-11T09:10:00Z",
+          "end_at": "2024-02-11T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat AMRAP 3/3 at 180",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 180.0,
+          "start_at": "2024-02-11T09:15:00Z",
+          "end_at": "2024-02-11T09:16:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 1/3 at 115",
+          "exercise": "bench_press",
+          "target_reps": 3,
+          "target_weight": 115.0,
+          "start_at": "2024-02-11T09:23:00Z",
+          "end_at": "2024-02-11T09:24:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "bench_press set 2/3 at 135",
+          "exercise": "bench_press",
+          "target_reps": 3,
+          "target_weight": 135.0,
+          "start_at": "2024-02-11T09:28:00Z",
+          "end_at": "2024-02-11T09:29:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "bench_press AMRAP 3/3 at 150",
+          "exercise": "bench_press",
+          "target_reps": 3,
+          "target_weight": 150.0,
+          "start_at": "2024-02-11T09:33:00Z",
+          "end_at": "2024-02-11T09:34:00Z",
+          "actual_reps": 5
+        }
+      ],
+      "end": {
+        "at": "2024-02-11T09:50:00Z"
+      }
+    },
+    {
+      "note": "Cycle 1 Week 3 Day 1: squat + bench_press (Week 3 \u2014 Peak (5/3/1))",
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-02-13T09:00:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 190.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 150.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 150.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 3,
+                      "weight": 170.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 190.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 150.0
+            },
             {
               "exercise_configs": [
                 {
@@ -1862,20 +1737,47 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Bench Press"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-01-19T09:05:00Z"
+        "at": "2024-02-13T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "squat set 1/3 at 150",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 150.0,
+          "start_at": "2024-02-13T09:05:00Z",
+          "end_at": "2024-02-13T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 2/3 at 170",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 170.0,
+          "start_at": "2024-02-13T09:10:00Z",
+          "end_at": "2024-02-13T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat AMRAP 3/3 at 190",
+          "exercise": "squat",
+          "target_reps": 1,
+          "target_weight": 190.0,
+          "start_at": "2024-02-13T09:15:00Z",
+          "end_at": "2024-02-13T09:16:00Z",
+          "actual_reps": 3
+        },
         {
           "note": "bench_press set 1/3 at 125",
           "exercise": "bench_press",
           "target_reps": 5,
           "target_weight": 125.0,
-          "start_at": "2024-01-19T09:05:00Z",
-          "end_at": "2024-01-19T09:06:00Z",
+          "start_at": "2024-02-13T09:23:00Z",
+          "end_at": "2024-02-13T09:24:00Z",
           "actual_reps": 5
         },
         {
@@ -1883,8 +1785,8 @@
           "exercise": "bench_press",
           "target_reps": 3,
           "target_weight": 140.0,
-          "start_at": "2024-01-19T09:10:00Z",
-          "end_at": "2024-01-19T09:11:00Z",
+          "start_at": "2024-02-13T09:28:00Z",
+          "end_at": "2024-02-13T09:29:00Z",
           "actual_reps": 3
         },
         {
@@ -1892,20 +1794,20 @@
           "exercise": "bench_press",
           "target_reps": 1,
           "target_weight": 160.0,
-          "start_at": "2024-01-19T09:15:00Z",
-          "end_at": "2024-01-19T09:16:00Z",
+          "start_at": "2024-02-13T09:33:00Z",
+          "end_at": "2024-02-13T09:34:00Z",
           "actual_reps": 3
         }
       ],
       "end": {
-        "at": "2024-01-19T09:35:00Z"
+        "at": "2024-02-13T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 3 Day 3: deadlift main lift (Week 3 \u2014 Peak (5/3/1))",
+      "note": "Cycle 1 Week 3 Day 2: deadlift + overhead_press (Week 3 \u2014 Peak (5/3/1))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-21T09:00:00Z",
+        "at": "2024-02-15T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -1950,155 +1852,6 @@
               ],
               "weight": 185.0
             },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Deadlift"
-        }
-      },
-      "start": {
-        "at": "2024-01-21T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "deadlift set 1/3 at 185",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 185.0,
-          "start_at": "2024-01-21T09:05:00Z",
-          "end_at": "2024-01-21T09:06:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "deadlift set 2/3 at 210",
-          "exercise": "deadlift",
-          "target_reps": 3,
-          "target_weight": 210.0,
-          "start_at": "2024-01-21T09:10:00Z",
-          "end_at": "2024-01-21T09:11:00Z",
-          "actual_reps": 3
-        },
-        {
-          "note": "deadlift AMRAP 3/3 at 235",
-          "exercise": "deadlift",
-          "target_reps": 1,
-          "target_weight": 235.0,
-          "start_at": "2024-01-21T09:15:00Z",
-          "end_at": "2024-01-21T09:16:00Z",
-          "actual_reps": 3
-        }
-      ],
-      "end": {
-        "at": "2024-01-21T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 3 Day 4: overhead_press main lift (Week 3 \u2014 Peak (5/3/1))",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-23T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
             {
               "exercise_configs": [
                 {
@@ -2240,20 +1993,47 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), OHP"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Deadlift + OHP"
         }
       },
       "start": {
-        "at": "2024-01-23T09:05:00Z"
+        "at": "2024-02-15T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "deadlift set 1/3 at 185",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 185.0,
+          "start_at": "2024-02-15T09:05:00Z",
+          "end_at": "2024-02-15T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "deadlift set 2/3 at 210",
+          "exercise": "deadlift",
+          "target_reps": 3,
+          "target_weight": 210.0,
+          "start_at": "2024-02-15T09:10:00Z",
+          "end_at": "2024-02-15T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "deadlift AMRAP 3/3 at 235",
+          "exercise": "deadlift",
+          "target_reps": 1,
+          "target_weight": 235.0,
+          "start_at": "2024-02-15T09:15:00Z",
+          "end_at": "2024-02-15T09:16:00Z",
+          "actual_reps": 3
+        },
         {
           "note": "overhead_press set 1/3 at 90",
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 90.0,
-          "start_at": "2024-01-23T09:05:00Z",
-          "end_at": "2024-01-23T09:06:00Z",
+          "start_at": "2024-02-15T09:23:00Z",
+          "end_at": "2024-02-15T09:24:00Z",
           "actual_reps": 5
         },
         {
@@ -2261,8 +2041,8 @@
           "exercise": "overhead_press",
           "target_reps": 3,
           "target_weight": 105.0,
-          "start_at": "2024-01-23T09:10:00Z",
-          "end_at": "2024-01-23T09:11:00Z",
+          "start_at": "2024-02-15T09:28:00Z",
+          "end_at": "2024-02-15T09:29:00Z",
           "actual_reps": 3
         },
         {
@@ -2270,20 +2050,20 @@
           "exercise": "overhead_press",
           "target_reps": 1,
           "target_weight": 115.0,
-          "start_at": "2024-01-23T09:15:00Z",
-          "end_at": "2024-01-23T09:16:00Z",
+          "start_at": "2024-02-15T09:33:00Z",
+          "end_at": "2024-02-15T09:34:00Z",
           "actual_reps": 3
         }
       ],
       "end": {
-        "at": "2024-01-23T09:35:00Z"
+        "at": "2024-02-15T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 4 Day 1: squat main lift (Week 4 \u2014 Deload)",
+      "note": "Cycle 1 Week 3 Day 3: squat + bench_press (Week 3 \u2014 Peak (5/3/1))",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-25T09:00:00Z",
+        "at": "2024-02-17T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -2291,27 +2071,27 @@
             {
               "exercise_configs": [
                 {
-                  "end_weight": 120.0,
+                  "end_weight": 190.0,
                   "exercise": "squat",
                   "include_warmup": true,
-                  "last_set_amrap": false,
+                  "last_set_amrap": true,
                   "reps": 5,
-                  "start_weight": 80.0,
+                  "start_weight": 150.0,
                   "working_sets": [
                     {
                       "is_amrap": false,
                       "reps": 5,
-                      "weight": 80.0
+                      "weight": 150.0
                     },
                     {
                       "is_amrap": false,
-                      "reps": 5,
-                      "weight": 100.0
+                      "reps": 3,
+                      "weight": 170.0
                     },
                     {
-                      "is_amrap": false,
-                      "reps": 5,
-                      "weight": 120.0
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 190.0
                     }
                   ]
                 }
@@ -2320,187 +2100,38 @@
               "name": "Squat",
               "prescribed_by_regime": true,
               "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
               "sets": 3,
               "tags": [
                 "recommended"
               ],
-              "weight": 80.0
+              "weight": 150.0
             },
             {
               "exercise_configs": [
                 {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": true,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Squat"
-        }
-      },
-      "start": {
-        "at": "2024-01-25T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "squat set 1/3 at 80",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 80.0,
-          "start_at": "2024-01-25T09:05:00Z",
-          "end_at": "2024-01-25T09:06:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "squat set 2/3 at 100",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 100.0,
-          "start_at": "2024-01-25T09:10:00Z",
-          "end_at": "2024-01-25T09:11:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "squat set 3/3 at 120",
-          "exercise": "squat",
-          "target_reps": 5,
-          "target_weight": 120.0,
-          "start_at": "2024-01-25T09:15:00Z",
-          "end_at": "2024-01-25T09:16:00Z",
-          "actual_reps": 5
-        }
-      ],
-      "end": {
-        "at": "2024-01-25T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 4 Day 2: bench_press main lift (Week 4 \u2014 Deload)",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-27T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 100.0,
+                  "end_weight": 160.0,
                   "exercise": "bench_press",
                   "include_warmup": true,
-                  "last_set_amrap": false,
+                  "last_set_amrap": true,
                   "reps": 5,
-                  "start_weight": 65.0,
+                  "start_weight": 125.0,
                   "working_sets": [
                     {
                       "is_amrap": false,
                       "reps": 5,
-                      "weight": 65.0
+                      "weight": 125.0
                     },
                     {
                       "is_amrap": false,
-                      "reps": 5,
-                      "weight": 85.0
+                      "reps": 3,
+                      "weight": 140.0
                     },
                     {
-                      "is_amrap": false,
-                      "reps": 5,
-                      "weight": 100.0
+                      "is_amrap": true,
+                      "reps": 1,
+                      "weight": 160.0
                     }
                   ]
                 }
@@ -2509,13 +2140,13 @@
               "name": "Bench Press",
               "prescribed_by_regime": true,
               "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
               "sets": 3,
               "tags": [
                 "recommended"
               ],
-              "weight": 65.0
+              "weight": 125.0
             },
             {
               "exercise_configs": [
@@ -2617,51 +2248,78 @@
               "weight": 45.0
             }
           ],
-          "is_ready": true,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Bench Press"
+          "is_ready": false,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (1-rep AMRAP), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-01-27T09:05:00Z"
+        "at": "2024-02-17T09:05:00Z"
       },
       "sets": [
         {
-          "note": "bench_press set 1/3 at 65",
-          "exercise": "bench_press",
+          "note": "squat set 1/3 at 150",
+          "exercise": "squat",
           "target_reps": 5,
-          "target_weight": 65.0,
-          "start_at": "2024-01-27T09:05:00Z",
-          "end_at": "2024-01-27T09:06:00Z",
+          "target_weight": 150.0,
+          "start_at": "2024-02-17T09:05:00Z",
+          "end_at": "2024-02-17T09:06:00Z",
           "actual_reps": 5
         },
         {
-          "note": "bench_press set 2/3 at 85",
+          "note": "squat set 2/3 at 170",
+          "exercise": "squat",
+          "target_reps": 3,
+          "target_weight": 170.0,
+          "start_at": "2024-02-17T09:10:00Z",
+          "end_at": "2024-02-17T09:11:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "squat AMRAP 3/3 at 190",
+          "exercise": "squat",
+          "target_reps": 1,
+          "target_weight": 190.0,
+          "start_at": "2024-02-17T09:15:00Z",
+          "end_at": "2024-02-17T09:16:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "bench_press set 1/3 at 125",
           "exercise": "bench_press",
           "target_reps": 5,
-          "target_weight": 85.0,
-          "start_at": "2024-01-27T09:10:00Z",
-          "end_at": "2024-01-27T09:11:00Z",
+          "target_weight": 125.0,
+          "start_at": "2024-02-17T09:23:00Z",
+          "end_at": "2024-02-17T09:24:00Z",
           "actual_reps": 5
         },
         {
-          "note": "bench_press set 3/3 at 100",
+          "note": "bench_press set 2/3 at 140",
           "exercise": "bench_press",
-          "target_reps": 5,
-          "target_weight": 100.0,
-          "start_at": "2024-01-27T09:15:00Z",
-          "end_at": "2024-01-27T09:16:00Z",
-          "actual_reps": 5
+          "target_reps": 3,
+          "target_weight": 140.0,
+          "start_at": "2024-02-17T09:28:00Z",
+          "end_at": "2024-02-17T09:29:00Z",
+          "actual_reps": 3
+        },
+        {
+          "note": "bench_press AMRAP 3/3 at 160",
+          "exercise": "bench_press",
+          "target_reps": 1,
+          "target_weight": 160.0,
+          "start_at": "2024-02-17T09:33:00Z",
+          "end_at": "2024-02-17T09:34:00Z",
+          "actual_reps": 3
         }
       ],
       "end": {
-        "at": "2024-01-27T09:35:00Z"
+        "at": "2024-02-17T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 1 Week 4 Day 3: deadlift main lift (Week 4 \u2014 Deload)",
+      "note": "Cycle 1 Week 4 Day 1: deadlift + overhead_press (Week 4 \u2014 Deload)",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-01-29T09:00:00Z",
+        "at": "2024-02-19T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -2706,155 +2364,6 @@
               ],
               "weight": 100.0
             },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 10,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 10,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            }
-          ],
-          "is_ready": true,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Deadlift"
-        }
-      },
-      "start": {
-        "at": "2024-01-29T09:05:00Z"
-      },
-      "sets": [
-        {
-          "note": "deadlift set 1/3 at 100",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 100.0,
-          "start_at": "2024-01-29T09:05:00Z",
-          "end_at": "2024-01-29T09:06:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "deadlift set 2/3 at 125",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 125.0,
-          "start_at": "2024-01-29T09:10:00Z",
-          "end_at": "2024-01-29T09:11:00Z",
-          "actual_reps": 5
-        },
-        {
-          "note": "deadlift set 3/3 at 150",
-          "exercise": "deadlift",
-          "target_reps": 5,
-          "target_weight": 150.0,
-          "start_at": "2024-01-29T09:15:00Z",
-          "end_at": "2024-01-29T09:16:00Z",
-          "actual_reps": 5
-        }
-      ],
-      "end": {
-        "at": "2024-01-29T09:35:00Z"
-      }
-    },
-    {
-      "note": "Cycle 1 Week 4 Day 4: overhead_press main lift (Week 4 \u2014 Deload)",
-      "assert_recommended_plan_matches_sets": true,
-      "get_proposed": {
-        "at": "2024-01-31T09:00:00Z",
-        "expect": {
-          "exact_group_order": true,
-          "exact_groups": true,
-          "groups": [
             {
               "exercise_configs": [
                 {
@@ -2996,20 +2505,47 @@
             }
           ],
           "is_ready": true,
-          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), OHP"
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Deadlift + OHP"
         }
       },
       "start": {
-        "at": "2024-01-31T09:05:00Z"
+        "at": "2024-02-19T09:05:00Z"
       },
       "sets": [
+        {
+          "note": "deadlift set 1/3 at 100",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 100.0,
+          "start_at": "2024-02-19T09:05:00Z",
+          "end_at": "2024-02-19T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "deadlift set 2/3 at 125",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 125.0,
+          "start_at": "2024-02-19T09:10:00Z",
+          "end_at": "2024-02-19T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "deadlift set 3/3 at 150",
+          "exercise": "deadlift",
+          "target_reps": 5,
+          "target_weight": 150.0,
+          "start_at": "2024-02-19T09:15:00Z",
+          "end_at": "2024-02-19T09:16:00Z",
+          "actual_reps": 5
+        },
         {
           "note": "overhead_press set 1/3 at 50",
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 50.0,
-          "start_at": "2024-01-31T09:05:00Z",
-          "end_at": "2024-01-31T09:06:00Z",
+          "start_at": "2024-02-19T09:23:00Z",
+          "end_at": "2024-02-19T09:24:00Z",
           "actual_reps": 5
         },
         {
@@ -3017,8 +2553,8 @@
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 60.0,
-          "start_at": "2024-01-31T09:10:00Z",
-          "end_at": "2024-01-31T09:11:00Z",
+          "start_at": "2024-02-19T09:28:00Z",
+          "end_at": "2024-02-19T09:29:00Z",
           "actual_reps": 5
         },
         {
@@ -3026,20 +2562,532 @@
           "exercise": "overhead_press",
           "target_reps": 5,
           "target_weight": 75.0,
-          "start_at": "2024-01-31T09:15:00Z",
-          "end_at": "2024-01-31T09:16:00Z",
+          "start_at": "2024-02-19T09:33:00Z",
+          "end_at": "2024-02-19T09:34:00Z",
           "actual_reps": 5
         }
       ],
       "end": {
-        "at": "2024-01-31T09:35:00Z"
+        "at": "2024-02-19T09:50:00Z"
       }
     },
     {
-      "note": "Cycle 2 Week 1 Day 1: squat main lift (Week 1 \u2014 Volume (5s))",
+      "note": "Cycle 1 Week 4 Day 2: squat + bench_press (Week 4 \u2014 Deload)",
       "assert_recommended_plan_matches_sets": true,
       "get_proposed": {
-        "at": "2024-02-02T09:00:00Z",
+        "at": "2024-02-21T09:00:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 120.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 120.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 100.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 65.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 65.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 65.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": true,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Squat + Bench Press"
+        }
+      },
+      "start": {
+        "at": "2024-02-21T09:05:00Z"
+      },
+      "sets": [
+        {
+          "note": "squat set 1/3 at 80",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 80.0,
+          "start_at": "2024-02-21T09:05:00Z",
+          "end_at": "2024-02-21T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 2/3 at 100",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 100.0,
+          "start_at": "2024-02-21T09:10:00Z",
+          "end_at": "2024-02-21T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 3/3 at 120",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 120.0,
+          "start_at": "2024-02-21T09:15:00Z",
+          "end_at": "2024-02-21T09:16:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 1/3 at 65",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 65.0,
+          "start_at": "2024-02-21T09:23:00Z",
+          "end_at": "2024-02-21T09:24:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 2/3 at 85",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 85.0,
+          "start_at": "2024-02-21T09:28:00Z",
+          "end_at": "2024-02-21T09:29:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 3/3 at 100",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 100.0,
+          "start_at": "2024-02-21T09:33:00Z",
+          "end_at": "2024-02-21T09:34:00Z",
+          "actual_reps": 5
+        }
+      ],
+      "end": {
+        "at": "2024-02-21T09:50:00Z"
+      }
+    },
+    {
+      "note": "Cycle 1 Week 4 Day 3: squat + bench_press (Week 4 \u2014 Deload)",
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-02-23T09:00:00Z",
+        "expect": {
+          "exact_group_order": true,
+          "exact_groups": true,
+          "groups": [
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 120.0,
+                  "exercise": "squat",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 80.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 80.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 120.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Squat",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 80.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 100.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 5,
+                  "start_weight": 65.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 65.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 85.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 100.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 65.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "hip_thrust",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "bulgarian_split_squat",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Hip Thrust + BSS",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "romanian_deadlift",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "leg_curl",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "RDL + Leg Curl",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 45.0,
+                  "exercise": "glute_bridge",
+                  "include_warmup": true,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                },
+                {
+                  "end_weight": 45.0,
+                  "exercise": "lunge",
+                  "include_warmup": false,
+                  "last_set_amrap": false,
+                  "reps": 10,
+                  "start_weight": 45.0,
+                  "working_sets": []
+                }
+              ],
+              "interleave_warmups": true,
+              "name": "Glute Bridge + Lunge",
+              "prescribed_by_regime": true,
+              "reps": 10,
+              "rest_after_failure": 90,
+              "rest_after_success": 90,
+              "sets": 5,
+              "tags": [
+                "auxiliary"
+              ],
+              "weight": 45.0
+            }
+          ],
+          "is_ready": true,
+          "suggested_name": "5/3/1 \u2014 Cycle 1, Week 4 \u2014 Deload (easy week), Squat + Bench Press"
+        }
+      },
+      "start": {
+        "at": "2024-02-23T09:05:00Z"
+      },
+      "sets": [
+        {
+          "note": "squat set 1/3 at 80",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 80.0,
+          "start_at": "2024-02-23T09:05:00Z",
+          "end_at": "2024-02-23T09:06:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 2/3 at 100",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 100.0,
+          "start_at": "2024-02-23T09:10:00Z",
+          "end_at": "2024-02-23T09:11:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "squat set 3/3 at 120",
+          "exercise": "squat",
+          "target_reps": 5,
+          "target_weight": 120.0,
+          "start_at": "2024-02-23T09:15:00Z",
+          "end_at": "2024-02-23T09:16:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 1/3 at 65",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 65.0,
+          "start_at": "2024-02-23T09:23:00Z",
+          "end_at": "2024-02-23T09:24:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 2/3 at 85",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 85.0,
+          "start_at": "2024-02-23T09:28:00Z",
+          "end_at": "2024-02-23T09:29:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 3/3 at 100",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 100.0,
+          "start_at": "2024-02-23T09:33:00Z",
+          "end_at": "2024-02-23T09:34:00Z",
+          "actual_reps": 5
+        }
+      ],
+      "end": {
+        "at": "2024-02-23T09:50:00Z"
+      }
+    },
+    {
+      "note": "Cycle 2 Week 1 Day 1: squat + bench_press (Week 1 \u2014 Volume (5s))",
+      "assert_recommended_plan_matches_sets": true,
+      "get_proposed": {
+        "at": "2024-02-25T09:00:00Z",
         "expect": {
           "exact_group_order": true,
           "exact_groups": true,
@@ -3083,6 +3131,46 @@
                 "recommended"
               ],
               "weight": 140.0
+            },
+            {
+              "exercise_configs": [
+                {
+                  "end_weight": 145.0,
+                  "exercise": "bench_press",
+                  "include_warmup": true,
+                  "last_set_amrap": true,
+                  "reps": 5,
+                  "start_weight": 110.0,
+                  "working_sets": [
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 110.0
+                    },
+                    {
+                      "is_amrap": false,
+                      "reps": 5,
+                      "weight": 130.0
+                    },
+                    {
+                      "is_amrap": true,
+                      "reps": 5,
+                      "weight": 145.0
+                    }
+                  ]
+                }
+              ],
+              "interleave_warmups": false,
+              "name": "Bench Press",
+              "prescribed_by_regime": true,
+              "reps": 5,
+              "rest_after_failure": 300,
+              "rest_after_success": 180,
+              "sets": 3,
+              "tags": [
+                "recommended"
+              ],
+              "weight": 110.0
             },
             {
               "exercise_configs": [
@@ -3185,11 +3273,11 @@
             }
           ],
           "is_ready": false,
-          "suggested_name": "5/3/1 \u2014 Cycle 2, Week 1 \u2014 Volume (5-rep sets), Squat"
+          "suggested_name": "5/3/1 \u2014 Cycle 2, Week 1 \u2014 Volume (5-rep sets), Squat + Bench Press"
         }
       },
       "start": {
-        "at": "2024-02-02T09:05:00Z"
+        "at": "2024-02-25T09:05:00Z"
       },
       "sets": [
         {
@@ -3197,8 +3285,8 @@
           "exercise": "squat",
           "target_reps": 5,
           "target_weight": 140.0,
-          "start_at": "2024-02-02T09:05:00Z",
-          "end_at": "2024-02-02T09:06:00Z",
+          "start_at": "2024-02-25T09:05:00Z",
+          "end_at": "2024-02-25T09:06:00Z",
           "actual_reps": 5
         },
         {
@@ -3206,8 +3294,8 @@
           "exercise": "squat",
           "target_reps": 5,
           "target_weight": 160.0,
-          "start_at": "2024-02-02T09:10:00Z",
-          "end_at": "2024-02-02T09:11:00Z",
+          "start_at": "2024-02-25T09:10:00Z",
+          "end_at": "2024-02-25T09:11:00Z",
           "actual_reps": 5
         },
         {
@@ -3215,13 +3303,40 @@
           "exercise": "squat",
           "target_reps": 5,
           "target_weight": 180.0,
-          "start_at": "2024-02-02T09:15:00Z",
-          "end_at": "2024-02-02T09:16:00Z",
+          "start_at": "2024-02-25T09:15:00Z",
+          "end_at": "2024-02-25T09:16:00Z",
+          "actual_reps": 7
+        },
+        {
+          "note": "bench_press set 1/3 at 110",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 110.0,
+          "start_at": "2024-02-25T09:23:00Z",
+          "end_at": "2024-02-25T09:24:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press set 2/3 at 130",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 130.0,
+          "start_at": "2024-02-25T09:28:00Z",
+          "end_at": "2024-02-25T09:29:00Z",
+          "actual_reps": 5
+        },
+        {
+          "note": "bench_press AMRAP 3/3 at 145",
+          "exercise": "bench_press",
+          "target_reps": 5,
+          "target_weight": 145.0,
+          "start_at": "2024-02-25T09:33:00Z",
+          "end_at": "2024-02-25T09:34:00Z",
           "actual_reps": 7
         }
       ],
       "end": {
-        "at": "2024-02-02T09:35:00Z"
+        "at": "2024-02-25T09:50:00Z"
       }
     }
   ]

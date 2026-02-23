@@ -15,7 +15,8 @@ PREFIX = "__PROPOSED_EXPECT__ "
 DEFAULTS = [
     ("test_linear_5x5_progression", ROOT / "src/regimes/scenarios/linear_5x5.json"),
     ("test_gzclp_progression", ROOT / "src/regimes/scenarios/gzclp.json"),
-    ("test_wendler_531_progression", ROOT / "src/regimes/scenarios/wendler_531.json"),
+    ("test_wendler_531_4day_progression", ROOT / "src/regimes/scenarios/wendler_531.json"),
+    ("test_wendler_531_3day_progression", ROOT / "src/regimes/scenarios/wendler_531_3day.json"),
 ]
 
 
