@@ -158,6 +158,7 @@ pub enum WriteCommand {
     JoinSession(String, String),
     LeaveSession(String, String),
     InsertUserSetting(String, String, String, Vec<u8>),
+    UpsertProgramStateEvent(crate::program_state::ProgramStateEventRecord),
     #[cfg_attr(not(test), allow(dead_code))]
     Flush(tokio::sync::oneshot::Sender<()>),
     #[cfg(feature = "test-auth")]
@@ -342,6 +343,36 @@ CREATE TABLE IF NOT EXISTS user_settings (
 
 CREATE INDEX IF NOT EXISTS idx_user_settings_latest
     ON user_settings(user_id, setting_type, created_at DESC);
+
+-- Training program historised state machine
+CREATE TABLE IF NOT EXISTS training_program_state_events (
+    event_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    regime_type INTEGER NOT NULL,
+    effective_at INTEGER NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    state_payload_json TEXT NOT NULL,
+    source_workout_id TEXT,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tpse_workout_idempotency
+    ON training_program_state_events(user_id, source_workout_id)
+    WHERE source_workout_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tpse_user_effective
+    ON training_program_state_events(user_id, effective_at DESC);
+
+-- Denormalised latest state cache (one row per user, updated with every new event)
+CREATE TABLE IF NOT EXISTS training_program_state_latest (
+    user_id TEXT PRIMARY KEY,
+    regime_type INTEGER NOT NULL,
+    latest_event_id TEXT NOT NULL,
+    state_payload_json TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
 "#;
 
 impl CentralDb {
@@ -654,6 +685,43 @@ impl CentralDb {
                     .bind(setting_type)
                     .bind(blob)
                     .bind(now)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                WriteCommand::UpsertProgramStateEvent(ev) => {
+                    // Insert the historised event (ignore on conflict = idempotency via UNIQUE index)
+                    sqlx::query(
+                        "INSERT OR IGNORE INTO training_program_state_events \
+                         (event_id, user_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id) \
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind(&ev.event_id)
+                    .bind(&ev.user_id)
+                    .bind(ev.regime_type)
+                    .bind(ev.effective_at)
+                    .bind(ev.recorded_at)
+                    .bind(&ev.source)
+                    .bind(&ev.state_payload_json)
+                    .bind(&ev.source_workout_id)
+                    .execute(&mut *tx)
+                    .await?;
+                    // Upsert latest cache — always update to newest (by recorded_at)
+                    sqlx::query(
+                        "INSERT INTO training_program_state_latest \
+                         (user_id, regime_type, latest_event_id, state_payload_json, updated_at) \
+                         VALUES (?, ?, ?, ?, ?) \
+                         ON CONFLICT(user_id) DO UPDATE SET \
+                           regime_type = excluded.regime_type, \
+                           latest_event_id = excluded.latest_event_id, \
+                           state_payload_json = excluded.state_payload_json, \
+                           updated_at = excluded.updated_at \
+                         WHERE excluded.updated_at >= training_program_state_latest.updated_at",
+                    )
+                    .bind(&ev.user_id)
+                    .bind(ev.regime_type)
+                    .bind(&ev.event_id)
+                    .bind(&ev.state_payload_json)
+                    .bind(ev.recorded_at)
                     .execute(&mut *tx)
                     .await?;
                 }
@@ -1828,37 +1896,6 @@ impl CentralDb {
         Ok(())
     }
 
-    /// Fetch the user's workout config (regime selection + state) from user_settings.
-    pub async fn get_user_workout_config(
-        &self,
-        user_id: &str,
-    ) -> Result<
-        Option<lift::workout::v1::UserWorkoutConfig>,
-        Box<dyn std::error::Error + Send + Sync>,
-    > {
-        use prost::Message;
-        let row: Option<Vec<u8>> = sqlx::query_scalar(
-            "SELECT setting_blob FROM user_settings
-             WHERE user_id = ? AND setting_type = 'workout_config'
-             ORDER BY created_at DESC LIMIT 1",
-        )
-        .bind(user_id)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        if let Some(blob) = row {
-            // The blob is encoded as a UserSetting (with workout_config oneof).
-            if let Ok(setting) = lift::workout::v1::UserSetting::decode(blob.as_slice()) {
-                if let Some(lift::workout::v1::user_setting::Setting::WorkoutConfig(config)) =
-                    setting.setting
-                {
-                    return Ok(Some(config));
-                }
-            }
-        }
-        Ok(None)
-    }
-
     /// Return the end_time of the most recent completed workout for a user.
     pub async fn get_last_workout_end_time(
         &self,
@@ -1871,6 +1908,81 @@ impl CentralDb {
         .fetch_optional(&self.pool)
         .await?
         .flatten())
+    }
+
+    // ─── Training program state ──────────────────────────────────────────────
+
+    /// Append a state event and update the latest cache atomically (via write worker).
+    pub async fn append_program_state_event(
+        &self,
+        ev: crate::program_state::ProgramStateEventRecord,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.write_tx
+            .send(WriteCommand::UpsertProgramStateEvent(ev))?;
+        Ok(())
+    }
+
+    /// Return the latest program state for a user, or `None` if not initialised.
+    pub async fn get_latest_program_state(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<crate::program_state::ProgramStateRecord>, Box<dyn std::error::Error + Send + Sync>>
+    {
+        let row: Option<(i32, String, i64)> = sqlx::query_as(
+            "SELECT regime_type, state_payload_json, updated_at \
+             FROM training_program_state_latest WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|(regime_type, state_payload_json, updated_at)| {
+            crate::program_state::ProgramStateRecord {
+                user_id: user_id.to_string(),
+                regime_type,
+                state_payload_json,
+                updated_at,
+            }
+        }))
+    }
+
+    /// Return historised state events for a user, newest first.
+    pub async fn get_program_state_history(
+        &self,
+        user_id: &str,
+        limit: i64,
+    ) -> Result<Vec<crate::program_state::ProgramStateEventRecord>, Box<dyn std::error::Error + Send + Sync>>
+    {
+        let rows: Vec<(String, i32, i64, i64, String, String, Option<String>)> =
+            sqlx::query_as(
+                "SELECT event_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id \
+                 FROM training_program_state_events \
+                 WHERE user_id = ? \
+                 ORDER BY effective_at DESC \
+                 LIMIT ?",
+            )
+            .bind(user_id)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(
+                |(event_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id)| {
+                    crate::program_state::ProgramStateEventRecord {
+                        event_id,
+                        user_id: user_id.to_string(),
+                        regime_type,
+                        effective_at,
+                        recorded_at,
+                        source,
+                        state_payload_json,
+                        source_workout_id,
+                    }
+                },
+            )
+            .collect())
     }
 
     pub async fn get_latest_settings(

@@ -1,0 +1,431 @@
+/// Typed key-value state for training program state machine.
+///
+/// Stored as JSON in `training_program_state_events` and `training_program_state_latest`.
+/// Each regime defines its own set of keys and their expected types.
+use std::collections::HashMap;
+
+use lift::workout::v1::{
+    state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
+    StateFieldKind, StateFieldValue, TrainingProgramState, TrainingProgramStateEvent,
+    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
+};
+use serde::{Deserialize, Serialize};
+
+// ─── Serialisable field value ─────────────────────────────────────────────────
+
+/// Rust representation of a typed state field value. Uses serde untagged so that
+/// JSON round-trips cleanly: `"A"`, `135.0`, `3`, `true`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum FieldVal {
+    Int(i64),
+    Float(f64),
+    Bool(bool),
+    Str(String),
+}
+
+impl FieldVal {
+    pub fn as_int(&self) -> Option<i64> {
+        match self {
+            Self::Int(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        match self {
+            Self::Float(v) => Some(*v),
+            Self::Int(v) => Some(*v as f64),
+            _ => None,
+        }
+    }
+
+    pub fn as_f32(&self) -> Option<f32> {
+        self.as_float().map(|v| v as f32)
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Self::Bool(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::Str(v) => Some(v.as_str()),
+            _ => None,
+        }
+    }
+}
+
+pub type StatePayload = HashMap<String, FieldVal>;
+
+// ─── Accessor helpers ─────────────────────────────────────────────────────────
+
+pub fn get_int(s: &StatePayload, key: &str) -> Option<i64> {
+    s.get(key).and_then(|v| v.as_int())
+}
+
+pub fn get_float(s: &StatePayload, key: &str) -> Option<f64> {
+    s.get(key).and_then(|v| v.as_float())
+}
+
+pub fn get_f32(s: &StatePayload, key: &str) -> Option<f32> {
+    s.get(key).and_then(|v| v.as_f32())
+}
+
+pub fn get_bool(s: &StatePayload, key: &str) -> Option<bool> {
+    s.get(key).and_then(|v| v.as_bool())
+}
+
+pub fn get_str<'a>(s: &'a StatePayload, key: &str) -> Option<&'a str> {
+    s.get(key).and_then(|v| v.as_str())
+}
+
+// Defaults for missing keys
+pub fn get_int_or(s: &StatePayload, key: &str, default: i64) -> i64 {
+    get_int(s, key).unwrap_or(default)
+}
+
+pub fn get_f32_or(s: &StatePayload, key: &str, default: f32) -> f32 {
+    get_f32(s, key).unwrap_or(default)
+}
+
+pub fn get_str_or<'a>(s: &'a StatePayload, key: &str, default: &'a str) -> &'a str {
+    get_str(s, key).unwrap_or(default)
+}
+
+// ─── Mutator helpers ──────────────────────────────────────────────────────────
+
+pub fn set_int(s: &mut StatePayload, key: &str, val: i64) {
+    s.insert(key.to_string(), FieldVal::Int(val));
+}
+
+pub fn set_f32(s: &mut StatePayload, key: &str, val: f32) {
+    s.insert(key.to_string(), FieldVal::Float(val as f64));
+}
+
+pub fn set_bool(s: &mut StatePayload, key: &str, val: bool) {
+    s.insert(key.to_string(), FieldVal::Bool(val));
+}
+
+pub fn set_str(s: &mut StatePayload, key: impl Into<String>, val: impl Into<String>) {
+    s.insert(key.into(), FieldVal::Str(val.into()));
+}
+
+// ─── JSON serialisation ───────────────────────────────────────────────────────
+
+pub fn parse_state_payload(json: &str) -> StatePayload {
+    serde_json::from_str(json).unwrap_or_default()
+}
+
+pub fn serialize_state_payload(s: &StatePayload) -> String {
+    serde_json::to_string(s).unwrap_or_else(|_| "{}".to_string())
+}
+
+// ─── Proto conversion ─────────────────────────────────────────────────────────
+
+/// Convert our `StatePayload` → proto `map<string, StateFieldValue>`.
+pub fn payload_to_proto(s: &StatePayload) -> HashMap<String, StateFieldValue> {
+    s.iter()
+        .map(|(k, v)| {
+            let proto_val = match v {
+                FieldVal::Int(n) => StateFieldValue {
+                    value: Some(state_field_value::Value::IntVal(*n)),
+                },
+                FieldVal::Float(f) => StateFieldValue {
+                    value: Some(state_field_value::Value::FloatVal(*f)),
+                },
+                FieldVal::Bool(b) => StateFieldValue {
+                    value: Some(state_field_value::Value::BoolVal(*b)),
+                },
+                FieldVal::Str(st) => StateFieldValue {
+                    value: Some(state_field_value::Value::StringVal(st.clone())),
+                },
+            };
+            (k.clone(), proto_val)
+        })
+        .collect()
+}
+
+/// Convert proto `map<string, StateFieldValue>` → our `StatePayload`.
+pub fn payload_from_proto(map: &HashMap<String, StateFieldValue>) -> StatePayload {
+    map.iter()
+        .filter_map(|(k, v)| {
+            let fv = match &v.value {
+                Some(state_field_value::Value::IntVal(n)) => FieldVal::Int(*n),
+                Some(state_field_value::Value::FloatVal(f)) => FieldVal::Float(*f),
+                Some(state_field_value::Value::BoolVal(b)) => FieldVal::Bool(*b),
+                Some(state_field_value::Value::StringVal(s)) => FieldVal::Str(s.clone()),
+                None => return None,
+            };
+            Some((k.clone(), fv))
+        })
+        .collect()
+}
+
+/// Convert a `TrainingProgramStateEvent` proto into our DB record.
+pub fn proto_state_to_payload(state: &TrainingProgramState) -> StatePayload {
+    payload_from_proto(&state.fields)
+}
+
+// ─── Domain structs ───────────────────────────────────────────────────────────
+
+/// Result of `propose_from_state` — everything needed for the home screen.
+pub struct ProposeResult {
+    pub proposed_groups: Vec<lift::workout::v1::ProposedExerciseGroup>,
+    pub regime_context: lift::workout::v1::RegimeContext,
+    pub suggested_workout_name: String,
+    pub recovery_seconds: i64,
+}
+
+/// One working set's completion result (warmups excluded).
+#[derive(Debug, Clone)]
+pub struct WorkingSetResult {
+    pub exercise: lift::workout::v1::Exercise,
+    pub target_reps: i32,
+    pub actual_reps: i32,
+    pub target_weight: f32,
+    pub actual_weight: f32,
+}
+
+/// All completion data passed to `transition_state_on_workout_complete`.
+#[derive(Debug, Clone)]
+pub struct WorkoutCompletionResult {
+    pub workout_id: String,
+    pub ended_at: i64,
+    pub set_results: Vec<WorkingSetResult>,
+}
+
+/// Definition of a pending state update (returned before converting to proto).
+pub struct PendingUpdateDef {
+    pub update_id: String,
+    pub title: String,
+    pub message: String,
+    pub fields: Vec<PendingUpdateFieldDef>,
+}
+
+pub struct PendingUpdateFieldDef {
+    pub key: String,
+    pub label: String,
+    pub kind: StateFieldKind,
+    pub default_value: FieldVal,
+    pub min_value: f64,
+    pub max_value: f64,
+    pub step: f64,
+    pub enum_options: Vec<(String, String)>, // (value, label)
+}
+
+// ─── Proto conversion for pending updates ────────────────────────────────────
+
+pub fn pending_update_to_proto(def: PendingUpdateDef) -> PendingStateUpdate {
+    PendingStateUpdate {
+        update_id: def.update_id,
+        title: def.title,
+        message: def.message,
+        fields: def
+            .fields
+            .into_iter()
+            .map(|f| {
+                let default_proto = match &f.default_value {
+                    FieldVal::Int(n) => StateFieldValue {
+                        value: Some(state_field_value::Value::IntVal(*n)),
+                    },
+                    FieldVal::Float(fv) => StateFieldValue {
+                        value: Some(state_field_value::Value::FloatVal(*fv)),
+                    },
+                    FieldVal::Bool(b) => StateFieldValue {
+                        value: Some(state_field_value::Value::BoolVal(*b)),
+                    },
+                    FieldVal::Str(s) => StateFieldValue {
+                        value: Some(state_field_value::Value::StringVal(s.clone())),
+                    },
+                };
+                PendingStateUpdateField {
+                    key: f.key,
+                    label: f.label,
+                    kind: f.kind as i32,
+                    default_value: Some(default_proto),
+                    min_value: f.min_value,
+                    max_value: f.max_value,
+                    step: f.step,
+                    enum_options: f
+                        .enum_options
+                        .into_iter()
+                        .map(|(v, l)| StateEnumOption {
+                            value: v,
+                            label: l,
+                        })
+                        .collect(),
+                }
+            })
+            .collect(),
+    }
+}
+
+// ─── Schema builder helpers ───────────────────────────────────────────────────
+
+pub struct FieldSchemaBuilder {
+    pub key: &'static str,
+    pub label: &'static str,
+    pub help_text: &'static str,
+    pub section: &'static str,
+    pub order: i32,
+    pub kind: StateFieldKind,
+    pub required: bool,
+    pub min_value: f64,
+    pub max_value: f64,
+    pub step: f64,
+    pub enum_options: Vec<(&'static str, &'static str)>,
+}
+
+impl FieldSchemaBuilder {
+    pub fn build(self) -> TrainingProgramStateFieldSchema {
+        TrainingProgramStateFieldSchema {
+            key: self.key.to_string(),
+            label: self.label.to_string(),
+            help_text: self.help_text.to_string(),
+            section: self.section.to_string(),
+            order: self.order,
+            kind: self.kind as i32,
+            required: self.required,
+            min_value: self.min_value,
+            max_value: self.max_value,
+            step: self.step,
+            enum_options: self
+                .enum_options
+                .into_iter()
+                .map(|(v, l)| StateEnumOption {
+                    value: v.to_string(),
+                    label: l.to_string(),
+                })
+                .collect(),
+            onboarding_field: false,
+        }
+    }
+}
+
+/// Mark a field schema as visible during onboarding.
+pub fn with_onboarding(
+    mut f: TrainingProgramStateFieldSchema,
+) -> TrainingProgramStateFieldSchema {
+    f.onboarding_field = true;
+    f
+}
+
+pub fn schema_float(
+    key: &'static str,
+    label: &'static str,
+    help_text: &'static str,
+    section: &'static str,
+    order: i32,
+    min: f64,
+    max: f64,
+    step: f64,
+) -> TrainingProgramStateFieldSchema {
+    FieldSchemaBuilder {
+        key,
+        label,
+        help_text,
+        section,
+        order,
+        kind: StateFieldKind::Float,
+        required: true,
+        min_value: min,
+        max_value: max,
+        step,
+        enum_options: vec![],
+    }
+    .build()
+}
+
+pub fn schema_int(
+    key: &'static str,
+    label: &'static str,
+    help_text: &'static str,
+    section: &'static str,
+    order: i32,
+    min: i64,
+    max: i64,
+) -> TrainingProgramStateFieldSchema {
+    FieldSchemaBuilder {
+        key,
+        label,
+        help_text,
+        section,
+        order,
+        kind: StateFieldKind::Int,
+        required: false,
+        min_value: min as f64,
+        max_value: max as f64,
+        step: 1.0,
+        enum_options: vec![],
+    }
+    .build()
+}
+
+pub fn schema_enum(
+    key: &'static str,
+    label: &'static str,
+    help_text: &'static str,
+    section: &'static str,
+    order: i32,
+    options: Vec<(&'static str, &'static str)>,
+) -> TrainingProgramStateFieldSchema {
+    FieldSchemaBuilder {
+        key,
+        label,
+        help_text,
+        section,
+        order,
+        kind: StateFieldKind::Enum,
+        required: true,
+        min_value: 0.0,
+        max_value: 0.0,
+        step: 0.0,
+        enum_options: options,
+    }
+    .build()
+}
+
+pub fn build_schema(fields: Vec<TrainingProgramStateFieldSchema>) -> TrainingProgramStateSchema {
+    TrainingProgramStateSchema { fields }
+}
+
+// ─── DB record types ──────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub struct ProgramStateRecord {
+    pub user_id: String,
+    pub regime_type: i32,
+    pub state_payload_json: String,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProgramStateEventRecord {
+    pub event_id: String,
+    pub user_id: String,
+    pub regime_type: i32,
+    pub effective_at: i64,
+    pub recorded_at: i64,
+    pub source: String,
+    pub state_payload_json: String,
+    pub source_workout_id: Option<String>,
+}
+
+impl ProgramStateEventRecord {
+    pub fn to_proto(&self) -> TrainingProgramStateEvent {
+        let payload = parse_state_payload(&self.state_payload_json);
+        TrainingProgramStateEvent {
+            event_id: self.event_id.clone(),
+            regime_type: self.regime_type,
+            effective_at: self.effective_at,
+            recorded_at: self.recorded_at,
+            source: self.source.clone(),
+            fields: payload_to_proto(&payload),
+            source_workout_id: self.source_workout_id.clone().unwrap_or_default(),
+        }
+    }
+}

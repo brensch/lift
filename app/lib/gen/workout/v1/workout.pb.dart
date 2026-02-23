@@ -15,6 +15,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'settings.pb.dart' as $1;
 import 'workout.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -3590,6 +3591,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     RegimeContext? regimeContext,
     SessionReadiness? sessionReadiness,
     $core.String? suggestedWorkoutName,
+    $core.Iterable<$1.PendingStateUpdate>? pendingStateUpdates,
+    $core.bool? canStartWorkout,
   }) {
     final result = create();
     if (exerciseStatuses != null)
@@ -3600,6 +3603,9 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (sessionReadiness != null) result.sessionReadiness = sessionReadiness;
     if (suggestedWorkoutName != null)
       result.suggestedWorkoutName = suggestedWorkoutName;
+    if (pendingStateUpdates != null)
+      result.pendingStateUpdates.addAll(pendingStateUpdates);
+    if (canStartWorkout != null) result.canStartWorkout = canStartWorkout;
     return result;
   }
 
@@ -3627,6 +3633,10 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     ..aOM<SessionReadiness>(5, _omitFieldNames ? '' : 'sessionReadiness',
         subBuilder: SessionReadiness.create)
     ..aOS(6, _omitFieldNames ? '' : 'suggestedWorkoutName')
+    ..pPM<$1.PendingStateUpdate>(
+        7, _omitFieldNames ? '' : 'pendingStateUpdates',
+        subBuilder: $1.PendingStateUpdate.create)
+    ..aOB(8, _omitFieldNames ? '' : 'canStartWorkout')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3697,6 +3707,20 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   $core.bool hasSuggestedWorkoutName() => $_has(5);
   @$pb.TagNumber(6)
   void clearSuggestedWorkoutName() => $_clearField(6);
+
+  /// Pending recommendations (e.g. temporal deload) that must be resolved before starting.
+  @$pb.TagNumber(7)
+  $pb.PbList<$1.PendingStateUpdate> get pendingStateUpdates => $_getList(6);
+
+  /// False if there are unresolved pending_state_updates.
+  @$pb.TagNumber(8)
+  $core.bool get canStartWorkout => $_getBF(7);
+  @$pb.TagNumber(8)
+  set canStartWorkout($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasCanStartWorkout() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCanStartWorkout() => $_clearField(8);
 }
 
 class GetActiveWorkoutRequest extends $pb.GeneratedMessage {

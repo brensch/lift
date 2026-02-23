@@ -3,7 +3,15 @@
   "regime_config": {
     "regime_type": "linear_5x5",
     "days_per_week": 3,
-    "one_rep_maxes": {}
+    "one_rep_maxes": {},
+    "initial_state": {
+      "squat_weight": 45.0,
+      "bench_press_weight": 45.0,
+      "barbell_row_weight": 65.0,
+      "overhead_press_weight": 45.0,
+      "deadlift_weight": 135.0,
+      "next_workout_variant": "A"
+    }
   },
   "workouts": [
     {
@@ -54,7 +62,7 @@
               ],
               "interleave_warmups": false,
               "name": "Squat",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -105,7 +113,7 @@
               ],
               "interleave_warmups": false,
               "name": "Bench Press",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -156,7 +164,7 @@
               ],
               "interleave_warmups": false,
               "name": "Barbell Row",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -207,7 +215,7 @@
               ],
               "interleave_warmups": false,
               "name": "OHP",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -237,7 +245,7 @@
               ],
               "interleave_warmups": false,
               "name": "Deadlift",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -246,109 +254,10 @@
                 "compound"
               ],
               "weight": 135.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
             }
           ],
           "is_ready": true,
-          "suggested_name": "5x5 A"
+          "suggested_name": "5\u00d75 Workout A"
         }
       },
       "start": {
@@ -652,7 +561,7 @@
               ],
               "interleave_warmups": false,
               "name": "Squat",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -703,7 +612,7 @@
               ],
               "interleave_warmups": false,
               "name": "OHP",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -734,7 +643,7 @@
               ],
               "interleave_warmups": false,
               "name": "Deadlift",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -785,7 +694,7 @@
               ],
               "interleave_warmups": false,
               "name": "Bench Press",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -835,7 +744,7 @@
               ],
               "interleave_warmups": false,
               "name": "Barbell Row",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -844,109 +753,10 @@
                 "compound"
               ],
               "weight": 70.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
             }
           ],
           "is_ready": false,
-          "suggested_name": "5x5 B"
+          "suggested_name": "5\u00d75 Workout B"
         }
       }
     },
@@ -1142,7 +952,7 @@
               ],
               "interleave_warmups": false,
               "name": "Squat",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1193,7 +1003,7 @@
               ],
               "interleave_warmups": false,
               "name": "Bench Press",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1244,7 +1054,7 @@
               ],
               "interleave_warmups": false,
               "name": "Barbell Row",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1295,7 +1105,7 @@
               ],
               "interleave_warmups": false,
               "name": "OHP",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1325,7 +1135,7 @@
               ],
               "interleave_warmups": false,
               "name": "Deadlift",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1334,109 +1144,10 @@
                 "compound"
               ],
               "weight": 145.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
             }
           ],
           "is_ready": false,
-          "suggested_name": "5x5 A"
+          "suggested_name": "5\u00d75 Workout A"
         }
       }
     },
@@ -1596,7 +1307,7 @@
               ],
               "interleave_warmups": false,
               "name": "Squat",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1647,7 +1358,7 @@
               ],
               "interleave_warmups": false,
               "name": "OHP",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1678,7 +1389,7 @@
               ],
               "interleave_warmups": false,
               "name": "Deadlift",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1729,7 +1440,7 @@
               ],
               "interleave_warmups": false,
               "name": "Bench Press",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1779,7 +1490,7 @@
               ],
               "interleave_warmups": false,
               "name": "Barbell Row",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -1788,109 +1499,10 @@
                 "compound"
               ],
               "weight": 75.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
             }
           ],
           "is_ready": true,
-          "suggested_name": "5x5 B"
+          "suggested_name": "5\u00d75 Workout B"
         }
       }
     },
@@ -2086,7 +1698,7 @@
               ],
               "interleave_warmups": false,
               "name": "Squat",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -2137,7 +1749,7 @@
               ],
               "interleave_warmups": false,
               "name": "Bench Press",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -2188,7 +1800,7 @@
               ],
               "interleave_warmups": false,
               "name": "Barbell Row",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -2239,7 +1851,7 @@
               ],
               "interleave_warmups": false,
               "name": "OHP",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -2269,7 +1881,7 @@
               ],
               "interleave_warmups": false,
               "name": "Deadlift",
-              "prescribed_by_regime": true,
+              "prescribed_by_regime": false,
               "reps": 5,
               "rest_after_failure": 300,
               "rest_after_success": 180,
@@ -2278,109 +1890,10 @@
                 "compound"
               ],
               "weight": 155.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "hip_thrust",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "bulgarian_split_squat",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Hip Thrust + BSS",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "romanian_deadlift",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "leg_curl",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "RDL + Leg Curl",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
-            },
-            {
-              "exercise_configs": [
-                {
-                  "end_weight": 45.0,
-                  "exercise": "glute_bridge",
-                  "include_warmup": true,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                },
-                {
-                  "end_weight": 45.0,
-                  "exercise": "lunge",
-                  "include_warmup": false,
-                  "last_set_amrap": false,
-                  "reps": 5,
-                  "start_weight": 45.0,
-                  "working_sets": []
-                }
-              ],
-              "interleave_warmups": true,
-              "name": "Glute Bridge + Lunge",
-              "prescribed_by_regime": true,
-              "reps": 5,
-              "rest_after_failure": 90,
-              "rest_after_success": 90,
-              "sets": 5,
-              "tags": [
-                "auxiliary"
-              ],
-              "weight": 45.0
             }
           ],
           "is_ready": false,
-          "suggested_name": "5x5 A"
+          "suggested_name": "5\u00d75 Workout A"
         }
       }
     }

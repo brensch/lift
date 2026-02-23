@@ -1,6 +1,8 @@
 syntax = "proto3";
 package workout.v1;
 
+// ─── Plate colors ─────────────────────────────────────────────────────────────
+
 message PlateColor {
   float weight_kg = 1;
   string hex_color = 2;
@@ -11,12 +13,13 @@ message PlateColorsConfig {
   float bar_weight_kg = 2;
 }
 
+// ─── Training program catalog ─────────────────────────────────────────────────
+
 enum RegimeType {
   REGIME_TYPE_UNSPECIFIED = 0;
   REGIME_TYPE_LINEAR_5X5 = 1;
   REGIME_TYPE_GZCLP = 2;
-  REGIME_TYPE_WENDLER_531_4DAY = 4;
-  REGIME_TYPE_WENDLER_531_3DAY = 5;
+  REGIME_TYPE_WENDLER_531 = 3;
 }
 
 message TrainingProgramAtAGlance {
@@ -31,38 +34,7 @@ message TrainingProgramLink {
   string url = 2;
 }
 
-enum TrainingProgramFieldKind {
-  TRAINING_PROGRAM_FIELD_KIND_UNSPECIFIED = 0;
-  TRAINING_PROGRAM_FIELD_KIND_INT32 = 1;
-  TRAINING_PROGRAM_FIELD_KIND_FLOAT = 2;
-  TRAINING_PROGRAM_FIELD_KIND_BOOL = 3;
-}
-
-enum TrainingProgramFieldBinding {
-  TRAINING_PROGRAM_FIELD_BINDING_UNSPECIFIED = 0;
-  TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK = 1;
-  TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX = 2;
-}
-
-message TrainingProgramIntChoice {
-  int32 value = 1;
-  string label = 2;
-}
-
-message TrainingProgramConfigField {
-  string key = 1;
-  string label = 2;
-  string help_text = 3;
-  TrainingProgramFieldKind kind = 4;
-  TrainingProgramFieldBinding binding = 5;
-  bool required = 6;
-  int32 default_int32 = 7;
-  float default_float = 8;
-  bool default_bool = 9;
-  int32 exercise_id = 10;
-  repeated TrainingProgramIntChoice int_choices = 11;
-}
-
+// Catalog definition for a training program (display/info only, no config fields).
 message TrainingProgramDefinition {
   RegimeType regime_type = 1;
   string display_name = 2;
@@ -73,23 +45,109 @@ message TrainingProgramDefinition {
   TrainingProgramAtAGlance at_a_glance = 7;
   repeated string details = 8;
   repeated TrainingProgramLink learn_more_links = 9;
-  repeated TrainingProgramConfigField config_fields = 10;
+  // field 10 reserved (was config_fields)
   int32 sort_order = 11;
+  TrainingProgramStateSchema state_schema = 12;  // schema for editing state fields
 }
 
-message UserWorkoutConfig {
-  RegimeType regime_type = 1;
-  int32 days_per_week = 2;
-  // 1RM per exercise (Exercise enum int32 -> weight in lbs). Used for Wendler TM calculation.
-  map<int32, float> one_rep_maxes = 3;
-  // JSON blob for regime-specific mutable state (GZCLP stages, Wendler week/cycle).
-  string regime_state_json = 4;
+// ─── Program state schema ─────────────────────────────────────────────────────
+
+enum StateFieldKind {
+  STATE_FIELD_KIND_UNSPECIFIED = 0;
+  STATE_FIELD_KIND_INT = 1;
+  STATE_FIELD_KIND_FLOAT = 2;
+  STATE_FIELD_KIND_BOOL = 3;
+  STATE_FIELD_KIND_STRING = 4;
+  STATE_FIELD_KIND_ENUM = 5;
 }
+
+message StateEnumOption {
+  string value = 1;
+  string label = 2;
+}
+
+// Describes a single editable field in the program state.
+message TrainingProgramStateFieldSchema {
+  string key = 1;
+  string label = 2;
+  string help_text = 3;
+  string section = 4;   // grouping header for UI
+  int32 order = 5;
+  StateFieldKind kind = 6;
+  bool required = 7;
+  double min_value = 8;
+  double max_value = 9;
+  double step = 10;
+  repeated StateEnumOption enum_options = 11;  // for ENUM kind
+  bool onboarding_field = 12;  // show this field during initial program setup
+}
+
+message TrainingProgramStateSchema {
+  repeated TrainingProgramStateFieldSchema fields = 1;
+}
+
+// ─── State field value ────────────────────────────────────────────────────────
+
+// Typed value for a state field. Only one of the oneof members will be set.
+message StateFieldValue {
+  oneof value {
+    int64 int_val = 1;
+    double float_val = 2;
+    bool bool_val = 3;
+    string string_val = 4;  // used for both STRING and ENUM fields
+  }
+}
+
+// ─── Active state + history ───────────────────────────────────────────────────
+
+// Current (latest) state snapshot for the active training program.
+message TrainingProgramState {
+  RegimeType regime_type = 1;
+  map<string, StateFieldValue> fields = 2;
+  int64 updated_at = 3;
+  string source = 4;  // e.g. "onboarding_init", "workout_completed", "manual_edit"
+}
+
+// Historised event — append-only log of all state changes.
+message TrainingProgramStateEvent {
+  string event_id = 1;
+  RegimeType regime_type = 2;
+  int64 effective_at = 3;
+  int64 recorded_at = 4;
+  string source = 5;
+  map<string, StateFieldValue> fields = 6;
+  string source_workout_id = 7;  // non-empty for workout_completed events (idempotency key)
+}
+
+// ─── Pending state updates ────────────────────────────────────────────────────
+
+// A single input field in a pending update (e.g., "deload percent").
+message PendingStateUpdateField {
+  string key = 1;
+  string label = 2;
+  StateFieldKind kind = 3;
+  StateFieldValue default_value = 4;
+  double min_value = 5;
+  double max_value = 6;
+  double step = 7;
+  repeated StateEnumOption enum_options = 8;
+}
+
+// A pending recommendation that blocks workout start until resolved.
+// Rendered entirely by backend — frontend shows fields dynamically.
+message PendingStateUpdate {
+  string update_id = 1;
+  string title = 2;
+  string message = 3;
+  repeated PendingStateUpdateField fields = 4;
+}
+
+// ─── User settings ────────────────────────────────────────────────────────────
 
 message UserSetting {
   oneof setting {
     PlateColorsConfig plate_colors = 10;
-    UserWorkoutConfig workout_config = 11;
+    // field 11 reserved (was workout_config)
   }
 }
 
@@ -105,15 +163,63 @@ message GetSettingsResponse {
   repeated UserSetting settings = 1;
 }
 
+// ─── Catalog RPCs ─────────────────────────────────────────────────────────────
+
 message GetTrainingProgramCatalogRequest {}
 
 message GetTrainingProgramCatalogResponse {
   repeated TrainingProgramDefinition programs = 1;
 }
 
+// ─── Training program state RPCs ─────────────────────────────────────────────
+
+message GetActiveTrainingProgramStateRequest {}
+
+message GetActiveTrainingProgramStateResponse {
+  TrainingProgramState state = 1;
+  TrainingProgramStateSchema schema = 2;
+}
+
+message SetActiveTrainingProgramStateRequest {
+  RegimeType regime_type = 1;
+  map<string, StateFieldValue> fields = 2;
+  string source = 3;  // "onboarding_init" or "manual_edit"
+}
+
+message SetActiveTrainingProgramStateResponse {
+  TrainingProgramState state = 1;
+  repeated string validation_warnings = 2;
+}
+
+message GetTrainingProgramStateHistoryRequest {}
+
+message GetTrainingProgramStateHistoryResponse {
+  repeated TrainingProgramStateEvent events = 1;
+}
+
+message ApplyPendingStateUpdateRequest {
+  string update_id = 1;
+  map<string, StateFieldValue> field_values = 2;
+}
+
+message ApplyPendingStateUpdateResponse {
+  TrainingProgramState state = 1;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
 service SettingsService {
   rpc UpdateSetting(UpdateSettingRequest) returns (UpdateSettingResponse);
   rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
   rpc GetTrainingProgramCatalog(GetTrainingProgramCatalogRequest)
       returns (GetTrainingProgramCatalogResponse);
+
+  rpc GetActiveTrainingProgramState(GetActiveTrainingProgramStateRequest)
+      returns (GetActiveTrainingProgramStateResponse);
+  rpc SetActiveTrainingProgramState(SetActiveTrainingProgramStateRequest)
+      returns (SetActiveTrainingProgramStateResponse);
+  rpc GetTrainingProgramStateHistory(GetTrainingProgramStateHistoryRequest)
+      returns (GetTrainingProgramStateHistoryResponse);
+  rpc ApplyPendingStateUpdate(ApplyPendingStateUpdateRequest)
+      returns (ApplyPendingStateUpdateResponse);
 }

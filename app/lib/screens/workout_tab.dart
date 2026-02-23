@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import 'home_screen.dart';
 import 'workout_screen.dart';
@@ -101,14 +102,20 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
+    final settings = context.watch<SettingsProvider>();
 
     if (!_initialSyncComplete) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final programState = settings.programState;
+    final homeRefreshKey = ValueKey(
+      'home-${programState?.regimeType.value ?? -1}-${programState?.updatedAt ?? 0}',
+    );
+
     final child = wp.hasActiveWorkout
         ? const WorkoutScreen()
-        : const HomeScreen();
+        : HomeScreen(key: homeRefreshKey);
 
     return PopScope(
       canPop: false,

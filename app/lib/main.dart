@@ -139,11 +139,11 @@ class _LiftAppState extends State<LiftApp> {
         if (!loggedIn && !isLogin) return '/login';
         if (loggedIn && isLogin) return '/';
 
-        // Redirect new users to onboarding if they haven't configured a regime.
+        // Redirect new users to onboarding if they haven't set up a training program.
         if (loggedIn &&
             !isOnboarding &&
             _settingsProvider.loaded &&
-            !_settingsProvider.hasWorkoutConfig) {
+            !_settingsProvider.hasProgramState) {
           return '/onboarding';
         }
 
