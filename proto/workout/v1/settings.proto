@@ -15,7 +15,66 @@ enum RegimeType {
   REGIME_TYPE_UNSPECIFIED = 0;
   REGIME_TYPE_LINEAR_5X5 = 1;
   REGIME_TYPE_GZCLP = 2;
-  REGIME_TYPE_WENDLER_531 = 3;
+  REGIME_TYPE_WENDLER_531_4DAY = 4;
+  REGIME_TYPE_WENDLER_531_3DAY = 5;
+}
+
+message TrainingProgramAtAGlance {
+  string days_per_week = 1;
+  string best_for = 2;
+  string average_session_time = 3;
+  string progression_style = 4;
+}
+
+message TrainingProgramLink {
+  string label = 1;
+  string url = 2;
+}
+
+enum TrainingProgramFieldKind {
+  TRAINING_PROGRAM_FIELD_KIND_UNSPECIFIED = 0;
+  TRAINING_PROGRAM_FIELD_KIND_INT32 = 1;
+  TRAINING_PROGRAM_FIELD_KIND_FLOAT = 2;
+  TRAINING_PROGRAM_FIELD_KIND_BOOL = 3;
+}
+
+enum TrainingProgramFieldBinding {
+  TRAINING_PROGRAM_FIELD_BINDING_UNSPECIFIED = 0;
+  TRAINING_PROGRAM_FIELD_BINDING_DAYS_PER_WEEK = 1;
+  TRAINING_PROGRAM_FIELD_BINDING_ONE_REP_MAX = 2;
+}
+
+message TrainingProgramIntChoice {
+  int32 value = 1;
+  string label = 2;
+}
+
+message TrainingProgramConfigField {
+  string key = 1;
+  string label = 2;
+  string help_text = 3;
+  TrainingProgramFieldKind kind = 4;
+  TrainingProgramFieldBinding binding = 5;
+  bool required = 6;
+  int32 default_int32 = 7;
+  float default_float = 8;
+  bool default_bool = 9;
+  int32 exercise_id = 10;
+  repeated TrainingProgramIntChoice int_choices = 11;
+}
+
+message TrainingProgramDefinition {
+  RegimeType regime_type = 1;
+  string display_name = 2;
+  string headline = 3;
+  string summary = 4;
+  string description = 5;
+  string how_it_works = 6;
+  TrainingProgramAtAGlance at_a_glance = 7;
+  repeated string details = 8;
+  repeated TrainingProgramLink learn_more_links = 9;
+  repeated TrainingProgramConfigField config_fields = 10;
+  int32 sort_order = 11;
 }
 
 message UserWorkoutConfig {
@@ -46,7 +105,15 @@ message GetSettingsResponse {
   repeated UserSetting settings = 1;
 }
 
+message GetTrainingProgramCatalogRequest {}
+
+message GetTrainingProgramCatalogResponse {
+  repeated TrainingProgramDefinition programs = 1;
+}
+
 service SettingsService {
   rpc UpdateSetting(UpdateSettingRequest) returns (UpdateSettingResponse);
   rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc GetTrainingProgramCatalog(GetTrainingProgramCatalogRequest)
+      returns (GetTrainingProgramCatalogResponse);
 }

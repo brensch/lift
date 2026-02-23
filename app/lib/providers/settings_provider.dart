@@ -18,6 +18,7 @@ class SettingsProvider extends ChangeNotifier {
   Map<double, Color> _plateColors = defaultPlateColors();
 
   UserWorkoutConfig? _workoutConfig;
+  List<TrainingProgramDefinition> _trainingPrograms = const [];
   bool _loaded = false;
 
   SettingsProvider(this._grpcClient);
@@ -26,6 +27,17 @@ class SettingsProvider extends ChangeNotifier {
   bool get loaded => _loaded;
   UserWorkoutConfig? get workoutConfig => _workoutConfig;
   bool get hasWorkoutConfig => _workoutConfig != null;
+  List<TrainingProgramDefinition> get trainingPrograms =>
+      List.unmodifiable(_trainingPrograms);
+  bool get hasTrainingProgramCatalog => _trainingPrograms.isNotEmpty;
+
+  TrainingProgramDefinition? trainingProgramFor(RegimeType type) {
+    try {
+      return _trainingPrograms.firstWhere((p) => p.regimeType == type);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Color plateColor(double weight) {
     return _plateColors[weight] ?? Colors.purple;
@@ -35,9 +47,15 @@ class SettingsProvider extends ChangeNotifier {
     // Reset workout config before reload so missing settings don't leave stale
     // in-memory values around (important for fresh signup/login flows).
     _workoutConfig = null;
+    _trainingPrograms = const [];
     _loaded = false;
     notifyListeners();
     try {
+      final catalog = await _grpcClient.settingsService
+          .getTrainingProgramCatalog(GetTrainingProgramCatalogRequest());
+      _trainingPrograms = [...catalog.programs]
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
       final response = await _grpcClient.settingsService
           .getSettings(GetSettingsRequest());
       for (final setting in response.settings) {
@@ -59,6 +77,7 @@ class SettingsProvider extends ChangeNotifier {
   void clear() {
     _plateColors = defaultPlateColors();
     _workoutConfig = null;
+    _trainingPrograms = const [];
     _loaded = false;
     notifyListeners();
   }

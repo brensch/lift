@@ -374,13 +374,15 @@ const StartWorkoutRequest$json = {
       '6': '.workout.v1.ExerciseGroup',
       '10': 'exerciseGroups'
     },
+    {'1': 'started_at', '3': 3, '4': 1, '5': 3, '10': 'startedAt'},
   ],
 };
 
 /// Descriptor for `StartWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List startWorkoutRequestDescriptor = $convert.base64Decode(
     'ChNTdGFydFdvcmtvdXRSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSQgoPZXhlcmNpc2VfZ3'
-    'JvdXBzGAIgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lzZUdyb3Vwcw==');
+    'JvdXBzGAIgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lzZUdyb3VwcxId'
+    'CgpzdGFydGVkX2F0GAMgASgDUglzdGFydGVkQXQ=');
 
 @$core.Deprecated('Use startWorkoutResponseDescriptor instead')
 const StartWorkoutResponse$json = {
@@ -864,13 +866,15 @@ const StartSetRequest$json = {
   '2': [
     {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
     {'1': 'proposed_set_id', '3': 2, '4': 1, '5': 9, '10': 'proposedSetId'},
+    {'1': 'started_at', '3': 3, '4': 1, '5': 3, '10': 'startedAt'},
   ],
 };
 
 /// Descriptor for `StartSetRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List startSetRequestDescriptor = $convert.base64Decode(
     'Cg9TdGFydFNldFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEiYKD3Byb3'
-    'Bvc2VkX3NldF9pZBgCIAEoCVINcHJvcG9zZWRTZXRJZA==');
+    'Bvc2VkX3NldF9pZBgCIAEoCVINcHJvcG9zZWRTZXRJZBIdCgpzdGFydGVkX2F0GAMgASgDUglz'
+    'dGFydGVkQXQ=');
 
 @$core.Deprecated('Use startSetResponseDescriptor instead')
 const StartSetResponse$json = {
@@ -1061,12 +1065,14 @@ const EndWorkoutRequest$json = {
   '1': 'EndWorkoutRequest',
   '2': [
     {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'ended_at', '3': 2, '4': 1, '5': 3, '10': 'endedAt'},
   ],
 };
 
 /// Descriptor for `EndWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List endWorkoutRequestDescriptor = $convert.base64Decode(
-    'ChFFbmRXb3Jrb3V0UmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQ=');
+    'ChFFbmRXb3Jrb3V0UmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSGQoIZW'
+    '5kZWRfYXQYAiABKANSB2VuZGVkQXQ=');
 
 @$core.Deprecated('Use endWorkoutResponseDescriptor instead')
 const EndWorkoutResponse$json = {
@@ -1093,6 +1099,7 @@ const GetProposedWorkoutScheduleRequest$json = {
   '1': 'GetProposedWorkoutScheduleRequest',
   '2': [
     {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'at_time', '3': 2, '4': 1, '5': 3, '10': 'atTime'},
   ],
 };
 
@@ -1100,7 +1107,7 @@ const GetProposedWorkoutScheduleRequest$json = {
 final $typed_data.Uint8List getProposedWorkoutScheduleRequestDescriptor =
     $convert.base64Decode(
         'CiFHZXRQcm9wb3NlZFdvcmtvdXRTY2hlZHVsZVJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdX'
-        'Nlcklk');
+        'NlcklkEhcKB2F0X3RpbWUYAiABKANSBmF0VGltZQ==');
 
 @$core.Deprecated('Use exerciseStatusDescriptor instead')
 const ExerciseStatus$json = {

@@ -1,7 +1,9 @@
 use crate::db::CentralDb;
+use crate::regimes::{catalog_regime_types, get_regime};
 use crate::service_workout::get_user_id_authenticated;
 use lift::workout::v1::{
     settings_service_server::SettingsService, GetSettingsRequest, GetSettingsResponse,
+    GetTrainingProgramCatalogRequest, GetTrainingProgramCatalogResponse,
     UpdateSettingRequest, UpdateSettingResponse, UserSetting,
 };
 use prost::Message;
@@ -71,5 +73,23 @@ impl SettingsService for MySettingsService {
         }
 
         Ok(Response::new(GetSettingsResponse { settings }))
+    }
+
+    async fn get_training_program_catalog(
+        &self,
+        request: Request<GetTrainingProgramCatalogRequest>,
+    ) -> Result<Response<GetTrainingProgramCatalogResponse>, Status> {
+        let _user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+
+        let mut programs = catalog_regime_types()
+            .into_iter()
+            .map(|regime_type| {
+                let regime = get_regime(regime_type);
+                regime.training_program_definition(regime_type)
+            })
+            .collect::<Vec<_>>();
+        programs.sort_by_key(|p| (p.sort_order, p.regime_type));
+
+        Ok(Response::new(GetTrainingProgramCatalogResponse { programs }))
     }
 }

@@ -11,6 +11,11 @@
     }
 
     #[tokio::test]
-    async fn test_wendler_531_progression() {
+    async fn test_wendler_531_4day_progression() {
         run_scenario(include_str!("scenarios/wendler_531.json")).await;
+    }
+
+    #[tokio::test]
+    async fn test_wendler_531_3day_progression() {
+        run_scenario(include_str!("scenarios/wendler_531_3day.json")).await;
     }

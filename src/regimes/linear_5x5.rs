@@ -6,8 +6,9 @@ use lift::workout::v1::{
 use serde::{Deserialize, Serialize};
 
 use super::{
-    build_single_group, exercise_display_name, make_exercise_type_config, rest_cfg, ExerciseConfig,
-    ExerciseProposal, SessionHistory, WorkoutRegime,
+    build_single_group, cfg_field_days_per_week, cfg_field_exercise_weight, exercise_display_name,
+    make_exercise_type_config, rest_cfg, ExerciseConfig, ExerciseProposal, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, SessionHistory, WorkoutRegime,
 };
 
 const UPPER_INCREMENT: f32 = 5.0;
@@ -66,6 +67,75 @@ impl WorkoutRegime for Linear5x5Regime {
 
     fn default_days_per_week(&self) -> i32 {
         3
+    }
+
+    fn catalog_meta(&self) -> ProgramCatalogMeta {
+        ProgramCatalogMeta {
+            headline: "Best for beginners",
+            summary: "Simple session-to-session linear progression on the main barbell lifts.",
+            description: "Alternate Workout A and B, add weight after successful sessions, and deload when you stall repeatedly.",
+            how_it_works: "Workout A: Squat, Bench, Row.\nWorkout B: Squat, OHP, Deadlift.\n\nComplete the prescribed sets and the next session increases weight. Repeated misses at the same weight trigger a deload.",
+            at_a_glance: ProgramAtAGlanceMeta {
+                days_per_week: "3",
+                best_for: "Beginners",
+                average_session_time: "45-60 min",
+                progression_style: "Linear progression",
+            },
+            details: vec![
+                "Weights increase after successful sessions.",
+                "A/B alternation is tracked automatically.",
+                "Deloads happen after repeated failures.",
+            ],
+            learn_more_links: vec![
+                (
+                    "StrongLifts 5x5 overview",
+                    "https://stronglifts.com/stronglifts-5x5/workout-program/",
+                ),
+                (
+                    "Starting Strength novice program",
+                    "https://startingstrength.com/get-started/programs",
+                ),
+            ],
+            config_fields: vec![
+                cfg_field_days_per_week(
+                    "days_per_week",
+                    "Days per week",
+                    "Linear 5x5 runs three days per week.",
+                    3,
+                    vec![(3, "3 days")],
+                ),
+                cfg_field_exercise_weight("squat_weight", "Squat", "Starting weight (lbs).", 1, 135.0),
+                cfg_field_exercise_weight(
+                    "bench_press_weight",
+                    "Bench Press",
+                    "Starting weight (lbs).",
+                    2,
+                    95.0,
+                ),
+                cfg_field_exercise_weight(
+                    "deadlift_weight",
+                    "Deadlift",
+                    "Starting weight (lbs).",
+                    3,
+                    185.0,
+                ),
+                cfg_field_exercise_weight(
+                    "overhead_press_weight",
+                    "Overhead Press",
+                    "Starting weight (lbs).",
+                    4,
+                    65.0,
+                ),
+                cfg_field_exercise_weight(
+                    "barbell_row_weight",
+                    "Barbell Row",
+                    "Starting weight (lbs).",
+                    5,
+                    95.0,
+                ),
+            ],
+            sort_order: 10,
+        }
     }
 
     fn recovery_seconds(&self, _workout_config: &UserWorkoutConfig) -> i64 {
