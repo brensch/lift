@@ -33,6 +33,14 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(sent > 0)
                     }
                 }
+                "isWatchAppAvailable" -> {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        result.success(WearBridgeManager.isWatchAppAvailable(this@MainActivity))
+                    }
+                }
+                "isWatchAppOpenOnWatch" -> {
+                    result.success(WearBridgeManager.isWatchAppOpenOnWatch())
+                }
 
                 else -> result.notImplemented()
             }

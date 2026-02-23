@@ -272,7 +272,7 @@ class MainLayout extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return IconButton(
       tooltip: 'Open watch app',
-      icon: Icon(Icons.phone_android, color: colorScheme.onSurface),
+      icon: Icon(Icons.watch, color: colorScheme.onSurface),
       onPressed: () async {
         final bridge = context.read<WearableBridgeService>();
         final opened = await bridge.openWatchApp();

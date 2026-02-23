@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../widgets/exercise_group_widget.dart';
 import '../widgets/participant_ticker.dart';
 import '../widgets/set_log.dart';
 import '../widgets/workout_modals.dart';
+import '../services/wearable_bridge_service.dart';
 
 class WorkoutScreen extends StatelessWidget {
   const WorkoutScreen({super.key});
@@ -125,7 +127,9 @@ class WorkoutScreen extends StatelessWidget {
                             note,
                             style: TextStyle(
                               fontSize: 12,
-                              color: colorScheme.tertiary.withValues(alpha: 0.7),
+                              color: colorScheme.tertiary.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ),
                         ),
@@ -137,6 +141,7 @@ class WorkoutScreen extends StatelessWidget {
             ],
           ),
         ),
+        if (!isEnded) const _WatchCompanionBanner(),
 
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
@@ -477,6 +482,172 @@ class WorkoutScreen extends StatelessWidget {
           restConfig: restConfig,
         );
       },
+    );
+  }
+}
+
+class _WatchCompanionBanner extends StatefulWidget {
+  const _WatchCompanionBanner();
+
+  @override
+  State<_WatchCompanionBanner> createState() => _WatchCompanionBannerState();
+}
+
+class _WatchCompanionBannerState extends State<_WatchCompanionBanner> {
+  Timer? _pollTimer;
+  bool _watchAppAvailable = false;
+  bool _watchAppOpenOnWatch = false;
+  bool _isVisible = false;
+  bool _dismissed = false;
+  bool _isLaunching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAvailability();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _refreshAvailability(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshAvailability() async {
+    final bridge = context.read<WearableBridgeService>();
+    final available = await bridge.isWatchAppAvailable();
+    final isOpenOnWatch = await bridge.isWatchAppOpenOnWatch();
+    if (!mounted) return;
+    setState(() {
+      if (_watchAppAvailable != available ||
+          _watchAppOpenOnWatch != isOpenOnWatch) {
+        _dismissed = false;
+      }
+      _watchAppAvailable = available;
+      _watchAppOpenOnWatch = isOpenOnWatch;
+      _isVisible = !_dismissed && !_watchAppOpenOnWatch;
+    });
+  }
+
+  Future<void> _launchWatchApp() async {
+    if (_isLaunching) return;
+    setState(() => _isLaunching = true);
+    final bridge = context.read<WearableBridgeService>();
+    final opened = await bridge.openWatchApp();
+    if (!mounted) return;
+    setState(() => _isLaunching = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened ? 'Sent open request to watch' : 'No connected watch found',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const pinkBg = Color(0xFFFFE1EC);
+    const pinkBorder = Color(0xFFF06292);
+    const pinkText = Color(0xFF8E244D);
+    final bannerText = _watchAppAvailable
+        ? 'launch app on phone to track heartrate and control workout'
+        : 'do you know we have a watch companion app to track heartrate and control the workout?';
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: !_isVisible
+          ? const SizedBox.shrink()
+          : Container(
+              key: const ValueKey('watch-banner'),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: pinkBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: pinkBorder),
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: Icon(Icons.watch, size: 20, color: pinkText)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Center(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            bannerText,
+                            style: const TextStyle(
+                              color: pinkText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_watchAppAvailable) ...[
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: double.infinity,
+                        child: FilledButton(
+                          onPressed: _isLaunching ? null : _launchWatchApp,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: pinkBorder,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: _isLaunching
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Launch Watch',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                    Center(
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 28,
+                          height: 28,
+                        ),
+                        tooltip: 'Dismiss',
+                        onPressed: () {
+                          setState(() {
+                            _dismissed = true;
+                            _isVisible = false;
+                          });
+                        },
+                        icon: Icon(Icons.close, size: 16, color: pinkText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }

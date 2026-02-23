@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,8 +65,21 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import workout.v1.Wearable
 
+private val WearBodyFontFamily = FontFamily(
+    Font(R.font.manrope_variable, weight = FontWeight.Normal),
+    Font(R.font.manrope_variable, weight = FontWeight.Medium),
+    Font(R.font.manrope_variable, weight = FontWeight.SemiBold),
+    Font(R.font.manrope_variable, weight = FontWeight.Bold),
+)
+
+private val WearDisplayFontFamily = FontFamily(
+    Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
+    Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
+)
+
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var uiHeartbeatJob: kotlinx.coroutines.Job? = null
     private lateinit var heartRateStreamer: HeartRateStreamer
     private lateinit var exerciseSessionManager: WearExerciseSessionManager
     private var heartRatePermissionRequestInFlight = false
@@ -112,7 +126,36 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        startUiHeartbeat()
         maybeRequestRuntimePermissions()
+    }
+
+    override fun onPause() {
+        stopUiHeartbeat()
+        super.onPause()
+    }
+
+    private fun startUiHeartbeat() {
+        if (uiHeartbeatJob?.isActive == true) return
+        uiHeartbeatJob = scope.launch {
+            while (true) {
+                runCatching {
+                    WearTransport.sendToPhone(
+                        this@MainActivity,
+                        WearTransport.WEAR_TO_PHONE_UI_HEARTBEAT_PATH,
+                        ByteArray(0),
+                    )
+                }.onFailure {
+                    Log.d("LiftWear", "UI heartbeat not delivered", it)
+                }
+                delay(3000)
+            }
+        }
+    }
+
+    private fun stopUiHeartbeat() {
+        uiHeartbeatJob?.cancel()
+        uiHeartbeatJob = null
     }
 
     private fun requiredHeartRatePermissions(): List<String> {
@@ -371,7 +414,7 @@ private fun WearApp(
 
     CompositionLocalProvider(
         LocalTextStyle provides TextStyle(
-            fontFamily = FontFamily.SansSerif,
+            fontFamily = WearBodyFontFamily,
             fontWeight = FontWeight.Medium,
         ),
     ) {
@@ -406,6 +449,8 @@ private fun WearApp(
                     textAlign = TextAlign.End,
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 34.sp,
+                    fontFamily = WearDisplayFontFamily,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             Text(
@@ -416,6 +461,8 @@ private fun WearApp(
                 textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 19.sp,
+                fontFamily = WearDisplayFontFamily,
+                fontWeight = FontWeight.Medium,
             )
             if (data.youCard.timerText.isNotEmpty()) {
                 StatLine(
@@ -475,6 +522,8 @@ private fun WearApp(
                                 textAlign = TextAlign.Start,
                                 modifier = Modifier.fillMaxWidth(),
                                 fontSize = 18.sp,
+                                fontFamily = WearDisplayFontFamily,
+                                fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -484,6 +533,8 @@ private fun WearApp(
                                 textAlign = TextAlign.Start,
                                 modifier = Modifier.fillMaxWidth(),
                                 fontSize = 24.sp,
+                                fontFamily = WearDisplayFontFamily,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -523,6 +574,8 @@ private fun WearApp(
                             color = Color.Black,
                             fontSize = 18.sp,
                             textAlign = TextAlign.Start,
+                            fontFamily = WearDisplayFontFamily,
+                            fontWeight = FontWeight.Bold,
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(
@@ -549,6 +602,8 @@ private fun WearApp(
                                             modifier = Modifier.fillMaxWidth(),
                                             fontSize = if (index == pickerState.selectedOption) 42.sp else 28.sp,
                                             color = if (index == pickerState.selectedOption) Color.Black else Color(0xFF6B7280),
+                                            fontFamily = WearDisplayFontFamily,
+                                            fontWeight = if (index == pickerState.selectedOption) FontWeight.Bold else FontWeight.Medium,
                                         )
                                     },
                                 )
@@ -559,6 +614,8 @@ private fun WearApp(
                                 color = Color.Black,
                                 fontSize = 28.sp,
                                 textAlign = TextAlign.Start,
+                                fontFamily = WearDisplayFontFamily,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -594,6 +651,8 @@ private fun WorkoutCompleteScreen(
                 fontSize = 26.sp,
                 textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
+                fontFamily = WearDisplayFontFamily,
+                fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(6.dp))
             CompletionMetric(label = "Time", value = summary.durationText)
@@ -628,6 +687,8 @@ private fun WorkoutCompleteScreen(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.fillMaxWidth(),
                         fontSize = 16.sp,
+                        fontFamily = WearDisplayFontFamily,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
@@ -653,6 +714,8 @@ private fun CompletionMetric(label: String, value: String) {
             text = value,
             color = Color.White,
             fontSize = 18.sp,
+            fontFamily = WearDisplayFontFamily,
+            fontWeight = FontWeight.Bold,
         )
     }
 }

@@ -19,6 +19,9 @@
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="false" />
+        <meta-data
+            android:name="com.google.android.wearable.capabilities"
+            android:resource="@array/android_wear_capabilities" />
 
         <activity
             android:name=".MainActivity"

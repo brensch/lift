@@ -50,6 +50,18 @@ class PlatformWearableBridgeService implements WearableBridgeService {
     final opened = await _methods.invokeMethod<bool>('openWatchApp');
     return opened ?? false;
   }
+
+  @override
+  Future<bool> isWatchAppAvailable() async {
+    final available = await _methods.invokeMethod<bool>('isWatchAppAvailable');
+    return available ?? false;
+  }
+
+  @override
+  Future<bool> isWatchAppOpenOnWatch() async {
+    final isOpen = await _methods.invokeMethod<bool>('isWatchAppOpenOnWatch');
+    return isOpen ?? false;
+  }
 }
 
 WearableBridgeService createWearableBridgeService() {
