@@ -77,8 +77,8 @@ struct SetStep {
     #[serde(default)]
     note: String,
     exercise: String,    // "squat", "bench_press", etc.
-    #[serde(default)]
-    warmup: bool,
+    #[serde(rename = "warmup", default)]
+    _warmup: bool,
     target_reps: i32,
     target_weight: f32,
     start_at: String,
@@ -152,8 +152,8 @@ fn parse_ts(s: &str) -> i64 {
 // ─── Active workout state ─────────────────────────────────────────────────────
 
 struct ActiveState {
-    workout: Workout,
-    exercise_groups: Vec<ExerciseGroup>,
+    _workout: Workout,
+    _exercise_groups: Vec<ExerciseGroup>,
     proposed_sets: Vec<ProposedSet>,
     completed_sets: Vec<CompletedSet>,
 }
@@ -309,7 +309,7 @@ pub async fn run_scenario(json: &str) {
         let proposed_response = proposed_response.unwrap();
 
         // Convert ProposedExerciseGroups → ExerciseGroups
-        let mut exercise_groups: Vec<ExerciseGroup> = proposed_response
+        let exercise_groups: Vec<ExerciseGroup> = proposed_response
             .proposed_groups
             .iter()
             .enumerate()
@@ -365,8 +365,8 @@ pub async fn run_scenario(json: &str) {
         }
 
         let mut active = ActiveState {
-            workout,
-            exercise_groups,
+            _workout: workout,
+            _exercise_groups: exercise_groups,
             proposed_sets: all_proposed_sets,
             completed_sets: Vec::new(),
         };
