@@ -66,7 +66,8 @@ class PlatformWearableBridgeService implements WearableBridgeService {
 
 WearableBridgeService createWearableBridgeService() {
   if (kIsWeb) return NoopWearableBridgeService();
-  if (defaultTargetPlatform == TargetPlatform.android) {
+  if (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS) {
     return PlatformWearableBridgeService();
   }
   return NoopWearableBridgeService();

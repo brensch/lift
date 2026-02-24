@@ -1,0 +1,6 @@
+version: v2
+plugins:
+  - protoc_builtin: swift
+    out: ../app/ios/LiftWatch/Generated
+    opt:
+      - Visibility=Public

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Lift uses your heart rate to track workout intensity and display real-time BPM on your watch.</string>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.brensch.lift</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fonts/Manrope-Variable.ttf</string>
+		<string>Fonts/SpaceGrotesk-Variable.ttf</string>
+	</array>
+	<key>WKApplication</key>
+	<true/>
+</dict>
+</plist>
