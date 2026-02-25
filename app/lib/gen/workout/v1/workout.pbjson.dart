@@ -1605,6 +1605,41 @@ final $typed_data.Uint8List appendWorkoutHeartRateResponseDescriptor =
         'Ch5BcHBlbmRXb3Jrb3V0SGVhcnRSYXRlUmVzcG9uc2USFgoGc3RvcmVkGAEgASgFUgZzdG9yZW'
         'Q=');
 
+@$core.Deprecated('Use getWorkoutHeartRateRequestDescriptor instead')
+const GetWorkoutHeartRateRequest$json = {
+  '1': 'GetWorkoutHeartRateRequest',
+  '2': [
+    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+  ],
+};
+
+/// Descriptor for `GetWorkoutHeartRateRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getWorkoutHeartRateRequestDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRXb3Jrb3V0SGVhcnRSYXRlUmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3'
+        'V0SWQ=');
+
+@$core.Deprecated('Use getWorkoutHeartRateResponseDescriptor instead')
+const GetWorkoutHeartRateResponse$json = {
+  '1': 'GetWorkoutHeartRateResponse',
+  '2': [
+    {
+      '1': 'samples',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.WorkoutHeartRatePoint',
+      '10': 'samples'
+    },
+  ],
+};
+
+/// Descriptor for `GetWorkoutHeartRateResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getWorkoutHeartRateResponseDescriptor =
+    $convert.base64Decode(
+        'ChtHZXRXb3Jrb3V0SGVhcnRSYXRlUmVzcG9uc2USOwoHc2FtcGxlcxgBIAMoCzIhLndvcmtvdX'
+        'QudjEuV29ya291dEhlYXJ0UmF0ZVBvaW50UgdzYW1wbGVz');
+
 @$core.Deprecated('Use createUserRequestDescriptor instead')
 const CreateUserRequest$json = {
   '1': 'CreateUserRequest',

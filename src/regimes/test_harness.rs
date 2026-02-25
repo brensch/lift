@@ -6,17 +6,15 @@ use std::collections::HashMap;
 use std::env;
 
 use chrono::DateTime;
-use lift::workout::v1::{
-    CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout,
-};
+use lift::workout::v1::{CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::db::CentralDb;
 use crate::program_state::{
-    serialize_state_payload, set_f32, FieldVal, ProgramStateEventRecord,
-    WorkingSetResult, WorkoutCompletionResult,
+    serialize_state_payload, set_f32, FieldVal, ProgramStateEventRecord, WorkingSetResult,
+    WorkoutCompletionResult,
 };
 use crate::regimes::get_regime;
 use crate::scheduler::Scheduler;
@@ -365,9 +363,7 @@ fn assert_proposed_working_sets_match_scenario(
 ) {
     let mut planned_working_sets: Vec<&ProposedSet> = proposed_sets
         .iter()
-        .filter(|p| {
-            !p.warmup && !p.cancelled && included_group_ids.contains(&p.exercise_group_id)
-        })
+        .filter(|p| !p.warmup && !p.cancelled && included_group_ids.contains(&p.exercise_group_id))
         .collect();
     planned_working_sets.sort_by_key(|p| p.workout_order);
 
@@ -388,13 +384,16 @@ fn assert_proposed_working_sets_match_scenario(
             .collect::<Vec<_>>()
     );
 
-    for (idx, (planned, expected)) in
-        planned_working_sets.iter().zip(scenario_sets.iter()).enumerate()
+    for (idx, (planned, expected)) in planned_working_sets
+        .iter()
+        .zip(scenario_sets.iter())
+        .enumerate()
     {
         let planned_ex = exercise_int_to_name(planned.exercise);
         let expected_ex = expected.exercise.to_lowercase().replace(' ', "_");
         assert_eq!(
-            planned_ex, expected_ex,
+            planned_ex,
+            expected_ex,
             "{}: Proposed set #{} exercise mismatch: expected '{}' got '{}'",
             step_desc,
             idx + 1,
@@ -404,7 +403,8 @@ fn assert_proposed_working_sets_match_scenario(
 
         if expected.target_reps > 0 {
             assert_eq!(
-                planned.target_reps, expected.target_reps,
+                planned.target_reps,
+                expected.target_reps,
                 "{}: Proposed set #{} reps mismatch for '{}': expected {} got {}",
                 step_desc,
                 idx + 1,
@@ -622,7 +622,8 @@ pub async fn run_scenario(json: &str) {
                             group.exercise_configs.len(),
                             group_expect.exercise_configs.len(),
                             "{}: Group '{}' exercise_configs count mismatch",
-                            step_desc, group_expect.name
+                            step_desc,
+                            group_expect.name
                         );
 
                         for (cfg_idx, (cfg, cfg_expect)) in group
@@ -632,10 +633,10 @@ pub async fn run_scenario(json: &str) {
                             .enumerate()
                         {
                             let actual_ex = exercise_int_to_name(cfg.exercise);
-                            let expected_ex =
-                                cfg_expect.exercise.to_lowercase().replace(' ', "_");
+                            let expected_ex = cfg_expect.exercise.to_lowercase().replace(' ', "_");
                             assert_eq!(
-                                actual_ex, expected_ex,
+                                actual_ex,
+                                expected_ex,
                                 "{}: Group '{}' cfg #{} exercise mismatch",
                                 step_desc,
                                 group_expect.name,
@@ -662,21 +663,24 @@ pub async fn run_scenario(json: &str) {
                                 ),
                             );
                             assert_eq!(
-                                cfg.reps, cfg_expect.reps,
+                                cfg.reps,
+                                cfg_expect.reps,
                                 "{}: Group '{}' cfg #{} reps mismatch",
                                 step_desc,
                                 group_expect.name,
                                 cfg_idx + 1
                             );
                             assert_eq!(
-                                cfg.include_warmup, cfg_expect.include_warmup,
+                                cfg.include_warmup,
+                                cfg_expect.include_warmup,
                                 "{}: Group '{}' cfg #{} include_warmup mismatch",
                                 step_desc,
                                 group_expect.name,
                                 cfg_idx + 1
                             );
                             assert_eq!(
-                                cfg.last_set_amrap, cfg_expect.last_set_amrap,
+                                cfg.last_set_amrap,
+                                cfg_expect.last_set_amrap,
                                 "{}: Group '{}' cfg #{} last_set_amrap mismatch",
                                 step_desc,
                                 group_expect.name,
@@ -710,7 +714,8 @@ pub async fn run_scenario(json: &str) {
                                         ),
                                     );
                                     assert_eq!(
-                                        ws.target_reps, ws_expect.reps,
+                                        ws.target_reps,
+                                        ws_expect.reps,
                                         "{}: Group '{}' cfg #{} ws #{} reps mismatch",
                                         step_desc,
                                         group_expect.name,
@@ -718,7 +723,8 @@ pub async fn run_scenario(json: &str) {
                                         ws_idx + 1
                                     );
                                     assert_eq!(
-                                        ws.is_amrap, ws_expect.is_amrap,
+                                        ws.is_amrap,
+                                        ws_expect.is_amrap,
                                         "{}: Group '{}' cfg #{} ws #{} is_amrap mismatch",
                                         step_desc,
                                         group_expect.name,
@@ -1034,13 +1040,14 @@ pub async fn run_scenario(json: &str) {
             }
         }
 
-        let completion_result = WorkoutCompletionResult {
-            set_results,
-        };
+        let completion_result = WorkoutCompletionResult { set_results };
 
         // Transition state
-        let new_state =
-            regime.transition_state_on_workout_complete(&current_state, &completion_result, end_time);
+        let new_state = regime.transition_state_on_workout_complete(
+            &current_state,
+            &completion_result,
+            end_time,
+        );
 
         // Append new state event (idempotency: unique per workout_id)
         let state_event = ProgramStateEventRecord {

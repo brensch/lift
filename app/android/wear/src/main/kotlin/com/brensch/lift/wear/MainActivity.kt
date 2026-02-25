@@ -1,12 +1,15 @@
 package com.brensch.lift.wear
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ComponentCallbacks2
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
-import android.annotation.SuppressLint
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -87,6 +90,7 @@ private val WearDisplayFontFamily = FontFamily(
 private val MobileLiftingPink = Color(0xFFEC4899)
 private val MobileRestingBlue = Color(0xFF3B82F6)
 private val MobileYappingOrange = Color(0xFFF97316)
+private const val LiftWearTag = "LiftWear"
 
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -97,38 +101,53 @@ class MainActivity : ComponentActivity() {
     private var workoutPermissionRequestInFlight = false
     private var heartRatePermissionRequestedOnce = false
     private var workoutPermissionRequestedOnce = false
+    private var keepScreenOnForWorkout = false
 
     private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
-        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {}
-        override fun onExitAmbient() {}
-        override fun onUpdateAmbient() {}
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+            logLifecycleEvent("ambient onEnter", "details=$ambientDetails")
+        }
+
+        override fun onExitAmbient() {
+            logLifecycleEvent("ambient onExit")
+        }
+
+        override fun onUpdateAmbient() {
+            logLifecycleEvent("ambient onUpdate")
+        }
     }
     private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
 
     @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val heartRatePermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             heartRatePermissionRequestInFlight = false
+            Log.i(LiftWearTag, "Heart-rate permission result=$result")
             if (hasHeartRatePermissions()) {
                 maybeRequestRuntimePermissions()
             } else {
-                Log.w("LiftWear", "Required heart-rate permissions still missing after request")
+                Log.w(LiftWearTag, "Required heart-rate permissions still missing after request")
             }
         }
 
     @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val workoutPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             workoutPermissionRequestInFlight = false
+            Log.i(LiftWearTag, "Workout permission result=$result")
             if (hasWorkoutPermissions()) {
                 ensureCompanionSessionIfNeeded()
             } else {
-                Log.w("LiftWear", "Required workout permissions still missing after request")
+                Log.w(LiftWearTag, "Required workout permissions still missing after request")
             }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        logLifecycleEvent(
+            "onCreate",
+            "saved=${savedInstanceState != null} intentFlags=0x${intent?.flags?.toString(16) ?: "0"}",
+        )
         lifecycle.addObserver(ambientObserver)
         heartRateStreamer = HeartRateStreamer(applicationContext)
         exerciseSessionManager = WearExerciseSessionManager(applicationContext)
@@ -139,23 +158,68 @@ class MainActivity : ComponentActivity() {
                 heartRateStreamer = heartRateStreamer,
                 exerciseSessionManager = exerciseSessionManager,
                 ensurePermissions = { maybeRequestRuntimePermissions() },
+                setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
             )
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        logLifecycleEvent("onStart")
+    }
+
     override fun onResume() {
         super.onResume()
+        logLifecycleEvent("onResume")
         startUiHeartbeat()
         maybeRequestRuntimePermissions()
     }
 
     override fun onPause() {
+        logLifecycleEvent("onPause")
         stopUiHeartbeat()
         super.onPause()
     }
 
+    override fun onStop() {
+        logLifecycleEvent("onStop")
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        logLifecycleEvent("onDestroy")
+        setWorkoutKeepScreenOn(false)
+        stopUiHeartbeat()
+        super.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        logLifecycleEvent(
+            "onNewIntent",
+            "flags=0x${intent.flags.toString(16)} action=${intent.action}",
+        )
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        logLifecycleEvent("onUserLeaveHint")
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        logLifecycleEvent("onWindowFocusChanged", "hasFocus=$hasFocus")
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        logLifecycleEvent("onTrimMemory", "level=$level(${trimMemoryLevelName(level)})")
+    }
+
     private fun startUiHeartbeat() {
         if (uiHeartbeatJob?.isActive == true) return
+        Log.i(LiftWearTag, "Starting UI heartbeat")
         uiHeartbeatJob = scope.launch {
             while (true) {
                 runCatching {
@@ -165,7 +229,7 @@ class MainActivity : ComponentActivity() {
                         ByteArray(0),
                     )
                 }.onFailure {
-                    Log.d("LiftWear", "UI heartbeat not delivered", it)
+                    Log.d(LiftWearTag, "UI heartbeat not delivered", it)
                 }
                 delay(3000)
             }
@@ -173,8 +237,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun stopUiHeartbeat() {
+        if (uiHeartbeatJob != null) {
+            Log.i(LiftWearTag, "Stopping UI heartbeat")
+        }
         uiHeartbeatJob?.cancel()
         uiHeartbeatJob = null
+    }
+
+    private fun setWorkoutKeepScreenOn(enabled: Boolean) {
+        if (keepScreenOnForWorkout == enabled) return
+        keepScreenOnForWorkout = enabled
+        if (enabled) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        Log.i(LiftWearTag, "Workout keep-screen-on set to $enabled")
     }
 
     private fun requiredHeartRatePermissions(): List<String> {
@@ -229,6 +307,7 @@ class MainActivity : ComponentActivity() {
         if (heartRatePermissionRequestInFlight || heartRatePermissionRequestedOnce) return false
         heartRatePermissionRequestedOnce = true
         heartRatePermissionRequestInFlight = true
+        Log.i(LiftWearTag, "Requesting heart-rate permissions: ${requiredHeartRatePermissions()}")
         heartRatePermissionLauncher.launch(requiredHeartRatePermissions().toTypedArray())
         return false
     }
@@ -238,11 +317,17 @@ class MainActivity : ComponentActivity() {
         if (workoutPermissionRequestInFlight || workoutPermissionRequestedOnce) return false
         workoutPermissionRequestedOnce = true
         workoutPermissionRequestInFlight = true
+        Log.i(LiftWearTag, "Requesting workout permissions: ${requiredWorkoutPermissions()}")
         workoutPermissionLauncher.launch(requiredWorkoutPermissions().toTypedArray())
         return false
     }
 
     private fun maybeRequestRuntimePermissions(): Boolean {
+        Log.d(
+            LiftWearTag,
+            "maybeRequestRuntimePermissions hr=${hasHeartRatePermissions()} workout=${hasWorkoutPermissions()} " +
+                "hrReqInFlight=$heartRatePermissionRequestInFlight workoutReqInFlight=$workoutPermissionRequestInFlight",
+        )
         if (!requestHeartRatePermissionsIfNeeded()) return false
         requestWorkoutPermissionsIfNeeded()
         ensureCompanionSessionIfNeeded()
@@ -250,13 +335,34 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun ensureCompanionSessionIfNeeded() {
-        if (!hasHeartRatePermissions()) return
-        val snapshot = WearDataRepository.snapshot.value ?: return
-        if (snapshot.workoutId.isBlank()) return
-        if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return
+        if (!hasHeartRatePermissions()) {
+            Log.d(LiftWearTag, "ensureCompanionSessionIfNeeded skipped: missing heart-rate permission")
+            return
+        }
+        val snapshot = WearDataRepository.snapshot.value ?: run {
+            Log.d(LiftWearTag, "ensureCompanionSessionIfNeeded skipped: no snapshot yet")
+            return
+        }
+        if (snapshot.workoutId.isBlank()) {
+            Log.d(LiftWearTag, "ensureCompanionSessionIfNeeded skipped: blank workoutId")
+            return
+        }
+        if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
+            Log.d(LiftWearTag, "ensureCompanionSessionIfNeeded skipped: workout already done")
+            return
+        }
+        Log.i(
+            LiftWearTag,
+            "ensureCompanionSessionIfNeeded starting HR/session for workoutId=${snapshot.workoutId} state=${snapshot.state}",
+        )
         heartRateStreamer.start(snapshot.workoutId)
         if (hasWorkoutPermissions() && hasExerciseSessionHeartRatePermission()) {
             exerciseSessionManager.ensureSessionActive()
+        } else {
+            Log.d(
+                LiftWearTag,
+                "Exercise session not started workoutPerm=${hasWorkoutPermissions()} sessionHrPerm=${hasExerciseSessionHeartRatePermission()}",
+            )
         }
     }
 
@@ -323,13 +429,35 @@ class MainActivity : ComponentActivity() {
                     throw IllegalStateException("No connected phone node")
                 }
             }.onFailure { error ->
-                Log.e("LiftWear", "Failed to send action to phone", error)
+                Log.e(LiftWearTag, "Failed to send action to phone", error)
                 Toast.makeText(
                     this@MainActivity,
                     "Phone not connected",
                     Toast.LENGTH_SHORT,
                 ).show()
             }
+        }
+    }
+
+    private fun logLifecycleEvent(event: String, extra: String? = null) {
+        val suffix = extra?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+        Log.i(
+            LiftWearTag,
+            "Activity $event$suffix taskId=$taskId finishing=$isFinishing changingConfig=$isChangingConfigurations " +
+                "lifecycle=${lifecycle.currentState}",
+        )
+    }
+
+    private fun trimMemoryLevelName(level: Int): String {
+        return when (level) {
+            ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> "UI_HIDDEN"
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> "RUNNING_MODERATE"
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> "RUNNING_LOW"
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> "RUNNING_CRITICAL"
+            ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> "BACKGROUND"
+            ComponentCallbacks2.TRIM_MEMORY_MODERATE -> "MODERATE"
+            ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> "COMPLETE"
+            else -> "UNKNOWN"
         }
     }
 }
@@ -339,6 +467,7 @@ private fun WearApp(
     heartRateStreamer: HeartRateStreamer,
     exerciseSessionManager: WearExerciseSessionManager,
     ensurePermissions: () -> Boolean,
+    setWorkoutKeepScreenOn: (Boolean) -> Unit,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by heartRateStreamer.latestBpm.collectAsState()
@@ -347,6 +476,31 @@ private fun WearApp(
             value = formatNowClock()
             delay(1000)
         }
+    }
+    LaunchedEffect(snapshot) {
+        Log.d(
+            LiftWearTag,
+            "WearApp snapshot update present=${snapshot != null} " +
+                "workoutId=${snapshot?.workoutId ?: ""} state=${snapshot?.state} actions=${snapshot?.actionsList?.size ?: 0}",
+        )
+    }
+    LaunchedEffect(snapshot != null, snapshot?.workoutId, snapshot?.state, snapshot?.actionsList?.size) {
+        val hasEndWorkoutAction = snapshot?.actionsList?.any {
+            it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+        } == true
+        val keepOn = snapshot?.let {
+            it.workoutId.isNotBlank() &&
+                (it.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
+        } ?: false
+        Log.d(
+            LiftWearTag,
+            "WearApp keep-screen-on effect keepOn=$keepOn workoutId=${snapshot?.workoutId ?: ""} " +
+                "state=${snapshot?.state} hasEndAction=$hasEndWorkoutAction",
+        )
+        setWorkoutKeepScreenOn(keepOn)
+    }
+    DisposableEffect(Unit) {
+        onDispose { setWorkoutKeepScreenOn(false) }
     }
 
     if (snapshot == null) {
@@ -378,7 +532,9 @@ private fun WearApp(
     var isStreaming by remember(data.workoutId) { mutableStateOf(false) }
     // Cleanup only when this workout leaves composition (workout swap/unmount).
     DisposableEffect(data.workoutId) {
+        Log.d(LiftWearTag, "WearApp enter workout composition workoutId=${data.workoutId}")
         onDispose {
+            Log.d(LiftWearTag, "WearApp dispose workout composition workoutId=${data.workoutId}")
             heartRateStreamer.stop()
             exerciseSessionManager.endSessionIfActive()
         }
@@ -390,6 +546,11 @@ private fun WearApp(
         val shouldStream = data.workoutId.isNotEmpty() &&
             (data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE ||
                 hasEndWorkoutAction)
+        Log.d(
+            LiftWearTag,
+            "WearApp stream effect workoutId=${data.workoutId} state=${data.state} " +
+                "hasEndAction=$hasEndWorkoutAction shouldStream=$shouldStream isStreaming=$isStreaming",
+        )
         if (shouldStream && !isStreaming) {
             ensurePermissions()
             heartRateStreamer.start(data.workoutId)

@@ -121,6 +121,13 @@ class WorkoutServiceClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
+    $0.GetWorkoutHeartRateRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getWorkoutHeartRate, request, options: options);
+  }
+
   /// Get the next scheduled workouts for the user according to preferences and weight progression etc
   $grpc.ResponseFuture<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule(
@@ -194,6 +201,11 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/AppendWorkoutHeartRate',
       ($0.AppendWorkoutHeartRateRequest value) => value.writeToBuffer(),
       $0.AppendWorkoutHeartRateResponse.fromBuffer);
+  static final _$getWorkoutHeartRate = $grpc.ClientMethod<
+          $0.GetWorkoutHeartRateRequest, $0.GetWorkoutHeartRateResponse>(
+      '/workout.v1.WorkoutService/GetWorkoutHeartRate',
+      ($0.GetWorkoutHeartRateRequest value) => value.writeToBuffer(),
+      $0.GetWorkoutHeartRateResponse.fromBuffer);
   static final _$getProposedWorkoutSchedule = $grpc.ClientMethod<
           $0.GetProposedWorkoutScheduleRequest,
           $0.GetProposedWorkoutScheduleResponse>(
@@ -309,6 +321,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.AppendWorkoutHeartRateRequest.fromBuffer(value),
         ($0.AppendWorkoutHeartRateResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetWorkoutHeartRateRequest,
+            $0.GetWorkoutHeartRateResponse>(
+        'GetWorkoutHeartRate',
+        getWorkoutHeartRate_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetWorkoutHeartRateRequest.fromBuffer(value),
+        ($0.GetWorkoutHeartRateResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetProposedWorkoutScheduleRequest,
             $0.GetProposedWorkoutScheduleResponse>(
         'GetProposedWorkoutSchedule',
@@ -424,6 +445,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.AppendWorkoutHeartRateResponse> appendWorkoutHeartRate(
       $grpc.ServiceCall call, $0.AppendWorkoutHeartRateRequest request);
+
+  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetWorkoutHeartRateRequest> $request) async {
+    return getWorkoutHeartRate($call, await $request);
+  }
+
+  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
+      $grpc.ServiceCall call, $0.GetWorkoutHeartRateRequest request);
 
   $async.Future<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule_Pre($grpc.ServiceCall $call,

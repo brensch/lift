@@ -4525,6 +4525,114 @@ class AppendWorkoutHeartRateResponse extends $pb.GeneratedMessage {
   void clearStored() => $_clearField(1);
 }
 
+class GetWorkoutHeartRateRequest extends $pb.GeneratedMessage {
+  factory GetWorkoutHeartRateRequest({
+    $core.String? workoutId,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    return result;
+  }
+
+  GetWorkoutHeartRateRequest._();
+
+  factory GetWorkoutHeartRateRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetWorkoutHeartRateRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetWorkoutHeartRateRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetWorkoutHeartRateRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetWorkoutHeartRateRequest copyWith(
+          void Function(GetWorkoutHeartRateRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as GetWorkoutHeartRateRequest))
+          as GetWorkoutHeartRateRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetWorkoutHeartRateRequest create() => GetWorkoutHeartRateRequest._();
+  @$core.override
+  GetWorkoutHeartRateRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetWorkoutHeartRateRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetWorkoutHeartRateRequest>(create);
+  static GetWorkoutHeartRateRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+}
+
+class GetWorkoutHeartRateResponse extends $pb.GeneratedMessage {
+  factory GetWorkoutHeartRateResponse({
+    $core.Iterable<WorkoutHeartRatePoint>? samples,
+  }) {
+    final result = create();
+    if (samples != null) result.samples.addAll(samples);
+    return result;
+  }
+
+  GetWorkoutHeartRateResponse._();
+
+  factory GetWorkoutHeartRateResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetWorkoutHeartRateResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetWorkoutHeartRateResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<WorkoutHeartRatePoint>(1, _omitFieldNames ? '' : 'samples',
+        subBuilder: WorkoutHeartRatePoint.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetWorkoutHeartRateResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetWorkoutHeartRateResponse copyWith(
+          void Function(GetWorkoutHeartRateResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as GetWorkoutHeartRateResponse))
+          as GetWorkoutHeartRateResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetWorkoutHeartRateResponse create() =>
+      GetWorkoutHeartRateResponse._();
+  @$core.override
+  GetWorkoutHeartRateResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetWorkoutHeartRateResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetWorkoutHeartRateResponse>(create);
+  static GetWorkoutHeartRateResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<WorkoutHeartRatePoint> get samples => $_getList(0);
+}
+
 class CreateUserRequest extends $pb.GeneratedMessage {
   factory CreateUserRequest({
     $core.String? name,

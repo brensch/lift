@@ -447,7 +447,8 @@ impl CentralDb {
     pub async fn flush_writes(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.write_tx.send(WriteCommand::Flush(tx))?;
-        rx.await.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        rx.await
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
     }
 
     fn spawn_persistence_worker(self, mut rx: tokio::sync::mpsc::UnboundedReceiver<WriteCommand>) {
@@ -502,8 +503,8 @@ impl CentralDb {
 
             for cmd in db_commands {
                 match cmd {
-                WriteCommand::CreateWorkout(user_id, workout) => {
-                    sqlx::query(
+                    WriteCommand::CreateWorkout(user_id, workout) => {
+                        sqlx::query(
                         "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id) VALUES (?, ?, ?, ?, ?, ?)",
                     )
                     .bind(&workout.id)
@@ -514,9 +515,9 @@ impl CentralDb {
                     .bind(if workout.session_id.is_empty() { None } else { Some(&workout.session_id) })
                     .execute(&mut *tx)
                     .await?;
-                }
-                WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
-                    sqlx::query(
+                    }
+                    WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
+                        sqlx::query(
                         "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, instruction, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
@@ -541,10 +542,10 @@ impl CentralDb {
                     .execute(&mut *tx)
                     .await?;
 
-                    // Insert exercise_type_configs
-                    for (idx, config) in group.exercise_configs.iter().enumerate() {
-                        let config_id = Uuid::new_v4().to_string();
-                        sqlx::query(
+                        // Insert exercise_type_configs
+                        for (idx, config) in group.exercise_configs.iter().enumerate() {
+                            let config_id = Uuid::new_v4().to_string();
+                            sqlx::query(
                             "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
@@ -568,10 +569,10 @@ impl CentralDb {
                         )
                         .execute(&mut *tx)
                         .await?;
-                    }
+                        }
 
-                    for set in sets {
-                        sqlx::query(
+                        for set in sets {
+                            sqlx::query(
                             "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id, rest_after_success, rest_after_failure)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         )
@@ -593,10 +594,10 @@ impl CentralDb {
                         .bind(set.rest_after_failure)
                         .execute(&mut *tx)
                         .await?;
+                        }
                     }
-                }
-                WriteCommand::UpsertCompletedSet(user_id, set) => {
-                    sqlx::query(
+                    WriteCommand::UpsertCompletedSet(user_id, set) => {
+                        sqlx::query(
                         "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     )
@@ -611,13 +612,13 @@ impl CentralDb {
                     .bind(if set.rest_until == 0 { None } else { Some(set.rest_until) })
                     .execute(&mut *tx)
                     .await?;
-                }
-                WriteCommand::InsertWorkoutHeartRate(user_id, workout_id, samples) => {
-                    if samples.is_empty() {
-                        continue;
                     }
-                    for sample in samples {
-                        sqlx::query(
+                    WriteCommand::InsertWorkoutHeartRate(user_id, workout_id, samples) => {
+                        if samples.is_empty() {
+                            continue;
+                        }
+                        for sample in samples {
+                            sqlx::query(
                             "INSERT INTO workout_heart_rate_samples (id, user_id, workout_id, sampled_at, bpm, availability, source)
                              VALUES (?, ?, ?, ?, ?, ?, 'wear')",
                         )
@@ -629,35 +630,39 @@ impl CentralDb {
                         .bind(sample.availability)
                         .execute(&mut *tx)
                         .await?;
+                        }
                     }
-                }
-                WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
-                    sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
+                    WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
+                        sqlx::query(
+                            "UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?",
+                        )
                         .bind(end_time)
                         .bind(user_id)
                         .bind(workout_id)
                         .execute(&mut *tx)
                         .await?;
-                }
-                WriteCommand::UpdateWorkoutSession(user_id, workout_id, session_id) => {
-                    sqlx::query("UPDATE workouts SET session_id = ? WHERE user_id = ? AND id = ?")
+                    }
+                    WriteCommand::UpdateWorkoutSession(user_id, workout_id, session_id) => {
+                        sqlx::query(
+                            "UPDATE workouts SET session_id = ? WHERE user_id = ? AND id = ?",
+                        )
                         .bind(session_id)
                         .bind(user_id)
                         .bind(workout_id)
                         .execute(&mut *tx)
                         .await?;
-                }
-                WriteCommand::DeleteCompletedSet(user_id, workout_id, set_id) => {
-                    sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?")
+                    }
+                    WriteCommand::DeleteCompletedSet(user_id, workout_id, set_id) => {
+                        sqlx::query("DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?")
                         .bind(user_id)
                         .bind(workout_id)
                         .bind(set_id)
                         .execute(&mut *tx)
                         .await?;
-                }
-                WriteCommand::JoinSession(user_id, session_id) => {
-                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query(
+                    }
+                    WriteCommand::JoinSession(user_id, session_id) => {
+                        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                        sqlx::query(
                         "INSERT INTO sessions (session_id, user_id, joined_at) VALUES (?, ?, ?)",
                     )
                     .bind(session_id)
@@ -665,19 +670,19 @@ impl CentralDb {
                     .bind(now)
                     .execute(&mut *tx)
                     .await?;
-                }
-                WriteCommand::LeaveSession(user_id, session_id) => {
-                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query("UPDATE sessions SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at IS NULL")
+                    }
+                    WriteCommand::LeaveSession(user_id, session_id) => {
+                        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                        sqlx::query("UPDATE sessions SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at IS NULL")
                         .bind(now)
                         .bind(user_id)
                         .bind(session_id)
                         .execute(&mut *tx)
                         .await?;
-                }
-                WriteCommand::InsertUserSetting(user_id, setting_type, id, blob) => {
-                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query(
+                    }
+                    WriteCommand::InsertUserSetting(user_id, setting_type, id, blob) => {
+                        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                        sqlx::query(
                         "INSERT INTO user_settings (id, user_id, setting_type, setting_blob, created_at) VALUES (?, ?, ?, ?, ?)",
                     )
                     .bind(id)
@@ -687,10 +692,10 @@ impl CentralDb {
                     .bind(now)
                     .execute(&mut *tx)
                     .await?;
-                }
-                WriteCommand::UpsertProgramStateEvent(ev) => {
-                    // Insert the historised event (ignore on conflict = idempotency via UNIQUE index)
-                    sqlx::query(
+                    }
+                    WriteCommand::UpsertProgramStateEvent(ev) => {
+                        // Insert the historised event (ignore on conflict = idempotency via UNIQUE index)
+                        sqlx::query(
                         "INSERT OR IGNORE INTO training_program_state_events \
                          (event_id, user_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id) \
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -705,9 +710,9 @@ impl CentralDb {
                     .bind(&ev.source_workout_id)
                     .execute(&mut *tx)
                     .await?;
-                    // Upsert latest cache — always update to newest (by recorded_at)
-                    sqlx::query(
-                        "INSERT INTO training_program_state_latest \
+                        // Upsert latest cache — always update to newest (by recorded_at)
+                        sqlx::query(
+                            "INSERT INTO training_program_state_latest \
                          (user_id, regime_type, latest_event_id, state_payload_json, updated_at) \
                          VALUES (?, ?, ?, ?, ?) \
                          ON CONFLICT(user_id) DO UPDATE SET \
@@ -716,50 +721,52 @@ impl CentralDb {
                            state_payload_json = excluded.state_payload_json, \
                            updated_at = excluded.updated_at \
                          WHERE excluded.updated_at >= training_program_state_latest.updated_at",
-                    )
-                    .bind(&ev.user_id)
-                    .bind(ev.regime_type)
-                    .bind(&ev.event_id)
-                    .bind(&ev.state_payload_json)
-                    .bind(ev.recorded_at)
-                    .execute(&mut *tx)
-                    .await?;
-                }
-                #[cfg(feature = "test-auth")]
-                WriteCommand::TestLoginUpsert(user, token, expires_at) => {
-                    // Double-check user existence in case cache was cold
-                    let user_id = match sqlx::query_scalar::<_, String>(
-                        "SELECT id FROM users WHERE lower(name) = lower(?)",
-                    )
-                    .bind(&user.name)
-                    .fetch_optional(&mut *tx)
-                    .await?
-                    {
-                        Some(id) => id,
-                        None => {
-                            sqlx::query(
-                                "INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)",
-                            )
-                            .bind(&user.id)
-                            .bind(&user.name)
-                            .bind(user.created_at)
-                            .execute(&mut *tx)
-                            .await?;
-                            user.id.clone()
-                        }
-                    };
+                        )
+                        .bind(&ev.user_id)
+                        .bind(ev.regime_type)
+                        .bind(&ev.event_id)
+                        .bind(&ev.state_payload_json)
+                        .bind(ev.recorded_at)
+                        .execute(&mut *tx)
+                        .await?;
+                    }
+                    #[cfg(feature = "test-auth")]
+                    WriteCommand::TestLoginUpsert(user, token, expires_at) => {
+                        // Double-check user existence in case cache was cold
+                        let user_id = match sqlx::query_scalar::<_, String>(
+                            "SELECT id FROM users WHERE lower(name) = lower(?)",
+                        )
+                        .bind(&user.name)
+                        .fetch_optional(&mut *tx)
+                        .await?
+                        {
+                            Some(id) => id,
+                            None => {
+                                sqlx::query(
+                                    "INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)",
+                                )
+                                .bind(&user.id)
+                                .bind(&user.name)
+                                .bind(user.created_at)
+                                .execute(&mut *tx)
+                                .await?;
+                                user.id.clone()
+                            }
+                        };
 
-                    let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                    sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
+                        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+                        sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
                         .bind(&token)
                         .bind(&user_id)
                         .bind(now)
                         .bind(expires_at)
                         .execute(&mut *tx)
                         .await?;
+                    }
+                    WriteCommand::Flush(_) => {
+                        unreachable!("Flush commands are separated before this match")
+                    }
                 }
-                WriteCommand::Flush(_) => unreachable!("Flush commands are separated before this match"),
-            }
             }
 
             tx.commit().await?;
@@ -1352,6 +1359,28 @@ impl CentralDb {
         .await?)
     }
 
+    pub async fn get_workout_heart_rate_samples(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+    ) -> Result<Vec<WorkoutHeartRatePoint>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query(
+            "SELECT sampled_at, bpm, availability
+             FROM workout_heart_rate_samples
+             WHERE user_id = ? AND workout_id = ?
+             ORDER BY sampled_at",
+        )
+        .bind(user_id)
+        .bind(workout_id)
+        .map(|row: sqlx::sqlite::SqliteRow| WorkoutHeartRatePoint {
+            sampled_at: row.get("sampled_at"),
+            bpm: row.get("bpm"),
+            availability: row.get("availability"),
+        })
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
     pub async fn list_workouts(
         &self,
         user_id: &str,
@@ -1903,8 +1932,10 @@ impl CentralDb {
     pub async fn get_latest_program_state(
         &self,
         user_id: &str,
-    ) -> Result<Option<crate::program_state::ProgramStateRecord>, Box<dyn std::error::Error + Send + Sync>>
-    {
+    ) -> Result<
+        Option<crate::program_state::ProgramStateRecord>,
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         let row: Option<(i32, String, i64)> = sqlx::query_as(
             "SELECT regime_type, state_payload_json, updated_at \
              FROM training_program_state_latest WHERE user_id = ?",
@@ -1927,8 +1958,10 @@ impl CentralDb {
         &self,
         user_id: &str,
         limit: i64,
-    ) -> Result<Vec<crate::program_state::ProgramStateEventRecord>, Box<dyn std::error::Error + Send + Sync>>
-    {
+    ) -> Result<
+        Vec<crate::program_state::ProgramStateEventRecord>,
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         let rows: Vec<(String, i32, i64, i64, String, String, Option<String>)> =
             sqlx::query_as(
                 "SELECT event_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id \
@@ -1945,7 +1978,15 @@ impl CentralDb {
         Ok(rows
             .into_iter()
             .map(
-                |(event_id, regime_type, effective_at, recorded_at, source, state_payload_json, source_workout_id)| {
+                |(
+                    event_id,
+                    regime_type,
+                    effective_at,
+                    recorded_at,
+                    source,
+                    state_payload_json,
+                    source_workout_id,
+                )| {
                     crate::program_state::ProgramStateEventRecord {
                         event_id,
                         user_id: user_id.to_string(),

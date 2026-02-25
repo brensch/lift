@@ -7,21 +7,22 @@ use crate::progress::compute_next_up_set;
 use crate::regimes::get_regime;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
+#[cfg(test)]
+use lift::workout::v1::UpdateExerciseGroupRequest;
 use lift::workout::v1::{
     workout_service_server::WorkoutService, AppendWorkoutHeartRateRequest,
     AppendWorkoutHeartRateResponse, CancelProposedSetRequest, CancelProposedSetResponse,
     CompleteSetRequest, CompleteSetResponse, CompletedSet, DeleteCompletedSetRequest,
     DeleteCompletedSetResponse, EndWorkoutRequest, EndWorkoutResponse, ExerciseGroup,
     ExerciseTypeConfig, GetActiveWorkoutRequest, GetActiveWorkoutResponse,
-    GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse, GetWorkoutRequest,
-    GetWorkoutResponse, ListWorkoutsRequest, ListWorkoutsResponse, PlannedGroupSet, ProposedSet,
+    GetProposedWorkoutScheduleRequest, GetProposedWorkoutScheduleResponse,
+    GetWorkoutHeartRateRequest, GetWorkoutHeartRateResponse, GetWorkoutRequest, GetWorkoutResponse,
+    ListWorkoutsRequest, ListWorkoutsResponse, PlannedGroupSet, ProposedSet,
     ReorderExerciseGroupsRequest, ReorderExerciseGroupsResponse, ReplaceExerciseGroupPlanRequest,
     ReplaceExerciseGroupPlanResponse, RestConfig, StartSetRequest, StartSetResponse,
-    StartWorkoutRequest, StartWorkoutResponse, WorkingSetSpec, Workout,
-    WorkoutPlanChangeStats, WorkoutStateSnapshot,
+    StartWorkoutRequest, StartWorkoutResponse, WorkingSetSpec, Workout, WorkoutPlanChangeStats,
+    WorkoutStateSnapshot,
 };
-#[cfg(test)]
-use lift::workout::v1::UpdateExerciseGroupRequest;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tonic::{Request, Response, Status};
@@ -978,7 +979,11 @@ impl WorkoutService for MyWorkoutService {
         }
 
         let workout_id = Uuid::new_v4().to_string();
-        let start_time = if req.started_at > 0 { req.started_at } else { now_unix() };
+        let start_time = if req.started_at > 0 {
+            req.started_at
+        } else {
+            now_unix()
+        };
 
         let session_id = {
             let mut session_id = self
@@ -1368,7 +1373,11 @@ impl WorkoutService for MyWorkoutService {
                 .unwrap_or((0, 0.0));
 
             let id = Uuid::new_v4().to_string();
-            let started_at = if req.started_at > 0 { req.started_at } else { now_unix() };
+            let started_at = if req.started_at > 0 {
+                req.started_at
+            } else {
+                now_unix()
+            };
 
             let completed_set = CompletedSet {
                 id,
@@ -1700,6 +1709,48 @@ impl WorkoutService for MyWorkoutService {
         }))
     }
 
+    async fn get_workout_heart_rate(
+        &self,
+        request: Request<GetWorkoutHeartRateRequest>,
+    ) -> Result<Response<GetWorkoutHeartRateResponse>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
+
+        if req.workout_id.is_empty() {
+            return Err(Status::invalid_argument("workout_id is required"));
+        }
+
+        let is_active_owned = self
+            .state
+            .workouts
+            .get(&user_id)
+            .map(|w| w.workout.id == req.workout_id)
+            .unwrap_or(false);
+
+        if !is_active_owned {
+            let exists = self
+                .central_db
+                .get_workout(&user_id, &req.workout_id)
+                .await
+                .map_err(|e| Status::internal(format!("Failed to get workout: {}", e)))?
+                .is_some();
+            if !exists {
+                return Err(Status::not_found("Workout not found"));
+            }
+        }
+
+        let samples = self
+            .central_db
+            .get_workout_heart_rate_samples(&user_id, &req.workout_id)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to get heart rate samples: {}", e)))?;
+
+        Ok(Response::new(GetWorkoutHeartRateResponse { samples }))
+    }
+
     async fn end_workout(
         &self,
         request: Request<EndWorkoutRequest>,
@@ -1722,7 +1773,11 @@ impl WorkoutService for MyWorkoutService {
                 .remove(&user_id)
                 .ok_or_else(|| Status::not_found("No active workout found"))?;
 
-            let end_time = if req.ended_at > 0 { req.ended_at } else { now_unix() };
+            let end_time = if req.ended_at > 0 {
+                req.ended_at
+            } else {
+                now_unix()
+            };
             active.workout.end_time = end_time;
             active
         }; // Guard dropped here
@@ -1767,9 +1822,7 @@ impl WorkoutService for MyWorkoutService {
                 }
             }
 
-            let completion_result = WorkoutCompletionResult {
-                set_results,
-            };
+            let completion_result = WorkoutCompletionResult { set_results };
 
             let new_state = regime.transition_state_on_workout_complete(
                 &current_state,

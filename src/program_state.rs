@@ -6,8 +6,8 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
-    StateFieldKind, StateFieldValue, TrainingProgramStateEvent,
-    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
+    StateFieldKind, StateFieldValue, TrainingProgramStateEvent, TrainingProgramStateFieldSchema,
+    TrainingProgramStateSchema,
 };
 use serde::{Deserialize, Serialize};
 
@@ -224,10 +224,7 @@ pub fn pending_update_to_proto(def: PendingUpdateDef) -> PendingStateUpdate {
                     enum_options: f
                         .enum_options
                         .into_iter()
-                        .map(|(v, l)| StateEnumOption {
-                            value: v,
-                            label: l,
-                        })
+                        .map(|(v, l)| StateEnumOption { value: v, label: l })
                         .collect(),
                 }
             })
@@ -278,9 +275,7 @@ impl FieldSchemaBuilder {
 }
 
 /// Mark a field schema as visible during onboarding.
-pub fn with_onboarding(
-    mut f: TrainingProgramStateFieldSchema,
-) -> TrainingProgramStateFieldSchema {
+pub fn with_onboarding(mut f: TrainingProgramStateFieldSchema) -> TrainingProgramStateFieldSchema {
     f.onboarding_field = true;
     f
 }
