@@ -182,7 +182,7 @@ fn gzclp_t1_increment(ex: Exercise) -> f32 {
 
 struct SessionTemplate {
     t1: &'static [Exercise],
-    t2: &'static [Exercise],   // 2 T2 exercises
+    t2: &'static [Exercise],             // 2 T2 exercises
     t3: &'static [(Exercise, Exercise)], // paired T3 accessories
 }
 
@@ -314,7 +314,11 @@ impl WorkoutRegime for GzclpRegime {
             set_str(&mut s, t1_stage_key(ex), "stage_1_5x3");
         }
         // T2
-        for ex in [Exercise::BenchPress, Exercise::OverheadPress, Exercise::BarbellRow] {
+        for ex in [
+            Exercise::BenchPress,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ] {
             set_f32(&mut s, t2_weight_key(ex), default_t2_weight(ex));
             set_str(&mut s, t2_stage_key(ex), "stage_1_3x10");
         }
@@ -336,12 +340,18 @@ impl WorkoutRegime for GzclpRegime {
         let mut warnings = Vec::new();
         let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
         if variant != "three_day" && variant != "four_day" {
-            warnings.push(format!("schedule_variant '{}' is not 'three_day' or 'four_day'", variant));
+            warnings.push(format!(
+                "schedule_variant '{}' is not 'three_day' or 'four_day'",
+                variant
+            ));
         }
         let max_idx = session_count(variant) - 1;
         let idx = get_int_or(state, KEY_SESSION_IDX, 0);
         if idx < 0 || idx > max_idx {
-            warnings.push(format!("next_session_index {} is out of range 0-{}", idx, max_idx));
+            warnings.push(format!(
+                "next_session_index {} is out of range 0-{}",
+                idx, max_idx
+            ));
         }
         warnings
     }
@@ -373,7 +383,11 @@ impl WorkoutRegime for GzclpRegime {
                         target_weight: w,
                         target_reps: reps,
                         is_amrap,
-                        instruction: if is_amrap { "AMRAP — push for max reps".to_string() } else { String::new() },
+                        instruction: if is_amrap {
+                            "AMRAP — push for max reps".to_string()
+                        } else {
+                            String::new()
+                        },
                     }
                 })
                 .collect();
@@ -413,7 +427,12 @@ impl WorkoutRegime for GzclpRegime {
                 rest_config: None,
                 last_set_amrap: false,
                 working_sets: (0..sets)
-                    .map(|_| WorkingSetSpec { target_weight: w, target_reps: reps, is_amrap: false, instruction: String::new() })
+                    .map(|_| WorkingSetSpec {
+                        target_weight: w,
+                        target_reps: reps,
+                        is_amrap: false,
+                        instruction: String::new(),
+                    })
                     .collect(),
             };
             proposed_groups.push(ProposedExerciseGroup {
@@ -440,7 +459,11 @@ impl WorkoutRegime for GzclpRegime {
                             target_weight: w,
                             target_reps: 15,
                             is_amrap: is_last,
-                            instruction: if is_last { "AMRAP — 25+ reps to add weight next session".to_string() } else { String::new() },
+                            instruction: if is_last {
+                                "AMRAP — 25+ reps to add weight next session".to_string()
+                            } else {
+                                String::new()
+                            },
                         }
                     })
                     .collect()
@@ -466,13 +489,19 @@ impl WorkoutRegime for GzclpRegime {
                 working_sets: make_t3_sets(wb),
             };
             proposed_groups.push(ProposedExerciseGroup {
-                name: format!("{} + {}", exercise_display_name(ex_a), exercise_display_name(ex_b)),
+                name: format!(
+                    "{} + {}",
+                    exercise_display_name(ex_a),
+                    exercise_display_name(ex_b)
+                ),
                 sets: 3,
                 interleave_warmups: true,
                 exercise_configs: vec![ca, cb],
                 rest_config: rest_cfg(60, 60),
                 tags: vec!["auxiliary".to_string(), "T3".to_string()],
-                explanation: "T3 accessories — 3×15, last set AMRAP. Add weight when last set hits 25+ reps.".to_string(),
+                explanation:
+                    "T3 accessories — 3×15, last set AMRAP. Add weight when last set hits 25+ reps."
+                        .to_string(),
                 prescribed_by_regime: false,
             });
         }
@@ -483,7 +512,13 @@ impl WorkoutRegime for GzclpRegime {
             .map(|&ex| {
                 let stage = stage_str_to_u8_t1(get_str_or(state, t1_stage_key(ex), "stage_1_5x3"));
                 let (sets, reps) = t1_stage_prescription(stage);
-                format!("T1 {}: Stage {} ({}×{})", exercise_display_name(ex), stage, sets, reps)
+                format!(
+                    "T1 {}: Stage {} ({}×{})",
+                    exercise_display_name(ex),
+                    stage,
+                    sets,
+                    reps
+                )
             })
             .collect();
 
@@ -500,7 +535,8 @@ impl WorkoutRegime for GzclpRegime {
                 "T1: heavy, low reps — treat every rep as a max-effort lift.".to_string(),
                 "T1 last set (stages 1+2): AMRAP — push for max reps.".to_string(),
                 "T2: moderate weight, controlled tempo — build volume.".to_string(),
-                "T3: light accessories — metabolic stress. Add weight only at 25+ AMRAP reps.".to_string(),
+                "T3: light accessories — metabolic stress. Add weight only at 25+ AMRAP reps."
+                    .to_string(),
             ],
         };
 
@@ -508,14 +544,19 @@ impl WorkoutRegime for GzclpRegime {
             proposed_groups,
             regime_context,
             suggested_workout_name: {
-                let sq_stage = stage_str_to_u8_t1(get_str_or(state, "squat_t1_stage", "stage_1_5x3"));
-                let dl_stage = stage_str_to_u8_t1(get_str_or(state, "deadlift_t1_stage", "stage_1_5x3"));
+                let sq_stage =
+                    stage_str_to_u8_t1(get_str_or(state, "squat_t1_stage", "stage_1_5x3"));
+                let dl_stage =
+                    stage_str_to_u8_t1(get_str_or(state, "deadlift_t1_stage", "stage_1_5x3"));
                 let (sq_sets, sq_reps) = t1_stage_prescription(sq_stage);
                 let (dl_sets, dl_reps) = t1_stage_prescription(dl_stage);
                 if sq_stage == dl_stage {
                     format!("GZCLP — T1 Stage {} ({}×{})", sq_stage, sq_sets, sq_reps)
                 } else {
-                    format!("GZCLP — SQ {}×{} / DL {}×{}", sq_sets, sq_reps, dl_sets, dl_reps)
+                    format!(
+                        "GZCLP — SQ {}×{} / DL {}×{}",
+                        sq_sets, sq_reps, dl_sets, dl_reps
+                    )
                 }
             },
         }
@@ -531,7 +572,8 @@ impl WorkoutRegime for GzclpRegime {
 
         // Collect success/failure per exercise and last-set AMRAP reps
         let mut ex_success: std::collections::HashMap<i32, bool> = std::collections::HashMap::new();
-        let mut ex_last_amrap: std::collections::HashMap<i32, i32> = std::collections::HashMap::new();
+        let mut ex_last_amrap: std::collections::HashMap<i32, i32> =
+            std::collections::HashMap::new();
 
         for sr in &result.set_results {
             let ex_key = sr.exercise as i32;
@@ -545,7 +587,9 @@ impl WorkoutRegime for GzclpRegime {
 
         // Update T1 lifts
         for ex in [Exercise::Squat, Exercise::Deadlift] {
-            let Some(&success) = ex_success.get(&(ex as i32)) else { continue };
+            let Some(&success) = ex_success.get(&(ex as i32)) else {
+                continue;
+            };
             let current_w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
             let stage_str = get_str_or(state, t1_stage_key(ex), "stage_1_5x3");
             let stage = stage_str_to_u8_t1(stage_str);
@@ -559,13 +603,23 @@ impl WorkoutRegime for GzclpRegime {
                 // Failure: hold weight, advance stage (3→1 wraps)
                 let new_stage = if stage >= 3 { 1 } else { stage + 1 };
                 set_f32(&mut new_state, t1_weight_key(ex), current_w);
-                set_str(&mut new_state, t1_stage_key(ex), stage_u8_to_str_t1(new_stage));
+                set_str(
+                    &mut new_state,
+                    t1_stage_key(ex),
+                    stage_u8_to_str_t1(new_stage),
+                );
             }
         }
 
         // Update T2 lifts
-        for ex in [Exercise::BenchPress, Exercise::OverheadPress, Exercise::BarbellRow] {
-            let Some(&success) = ex_success.get(&(ex as i32)) else { continue };
+        for ex in [
+            Exercise::BenchPress,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ] {
+            let Some(&success) = ex_success.get(&(ex as i32)) else {
+                continue;
+            };
             let current_w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
             let stage_str = get_str_or(state, t2_stage_key(ex), "stage_1_3x10");
             let stage = stage_str_to_u8_t2(stage_str);
@@ -577,7 +631,11 @@ impl WorkoutRegime for GzclpRegime {
             } else {
                 let new_stage = if stage >= 3 { 1 } else { stage + 1 };
                 set_f32(&mut new_state, t2_weight_key(ex), current_w);
-                set_str(&mut new_state, t2_stage_key(ex), stage_u8_to_str_t2(new_stage));
+                set_str(
+                    &mut new_state,
+                    t2_stage_key(ex),
+                    stage_u8_to_str_t2(new_stage),
+                );
             }
         }
 
@@ -590,7 +648,9 @@ impl WorkoutRegime for GzclpRegime {
             Exercise::GluteBridge,
             Exercise::Lunge,
         ] {
-            let Some(&amrap_reps) = ex_last_amrap.get(&(ex as i32)) else { continue };
+            let Some(&amrap_reps) = ex_last_amrap.get(&(ex as i32)) else {
+                continue;
+            };
             let current_w = get_f32_or(state, t3_weight_key(ex), 45.0);
             if amrap_reps >= 25 {
                 set_f32(&mut new_state, t3_weight_key(ex), current_w + 5.0);
@@ -659,11 +719,23 @@ impl WorkoutRegime for GzclpRegime {
                 let mut new_state = state.clone();
                 for ex in [Exercise::Squat, Exercise::Deadlift] {
                     let w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
-                    set_f32(&mut new_state, t1_weight_key(ex), ((w * pct) / 5.0).round() * 5.0);
+                    set_f32(
+                        &mut new_state,
+                        t1_weight_key(ex),
+                        ((w * pct) / 5.0).round() * 5.0,
+                    );
                 }
-                for ex in [Exercise::BenchPress, Exercise::OverheadPress, Exercise::BarbellRow] {
+                for ex in [
+                    Exercise::BenchPress,
+                    Exercise::OverheadPress,
+                    Exercise::BarbellRow,
+                ] {
                     let w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
-                    set_f32(&mut new_state, t2_weight_key(ex), ((w * pct) / 5.0).round() * 5.0);
+                    set_f32(
+                        &mut new_state,
+                        t2_weight_key(ex),
+                        ((w * pct) / 5.0).round() * 5.0,
+                    );
                 }
                 Ok(new_state)
             }

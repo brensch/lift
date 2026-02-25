@@ -17,6 +17,8 @@ import '../logic/exercises.dart';
 import '../logic/utils.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
+  static const int _maxWearHeartRateSamplesInMemory = 50000;
+
   final WorkoutServiceWrapper _service;
   SoundProvider? _soundProvider;
 
@@ -38,6 +40,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedExerciseGroup> _proposedGroups = [];
   RegimeContext? _regimeContext;
   final List<HeartRateSample> _wearHeartRateSamples = [];
+  final Set<int> _wearHeartRateSampleTimestamps = <int>{};
   final List<WorkoutHeartRatePoint> _pendingWearHeartRateUploads = [];
   DateTime? _lastWearHeartRateUploadAt;
   bool _wearHeartRateUploadInFlight = false;
@@ -310,6 +313,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _now = DateTime.now();
+      unawaited(_hydrateWearHeartRateFromApi());
       notifyListeners();
     }
   }
@@ -527,6 +531,78 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer = null;
   }
 
+  void _resetWearHeartRateBuffer() {
+    _wearHeartRateSamples.clear();
+    _wearHeartRateSampleTimestamps.clear();
+    _pendingWearHeartRateUploads.clear();
+    _lastWearHeartRateUploadAt = null;
+    _wearHeartRateUploadInFlight = false;
+  }
+
+  void _resetWearHeartRateBufferIfWorkoutChanged(String? nextWorkoutId) {
+    final currentId = _activeWorkout?.id;
+    if (currentId != nextWorkoutId) {
+      _resetWearHeartRateBuffer();
+    }
+  }
+
+  Future<void> _hydrateWearHeartRateFromApi() async {
+    final workout = _activeWorkout;
+    if (workout == null) return;
+    if (workout.id.isEmpty) return;
+
+    try {
+      final persisted = await _service.getWorkoutHeartRate(workout.id);
+      if (persisted.isEmpty) return;
+      _mergePersistedHeartRatePoints(persisted);
+    } catch (e) {
+      debugPrint('Heart rate hydrate failed: $e');
+    }
+  }
+
+  void _mergePersistedHeartRatePoints(List<WorkoutHeartRatePoint> persisted) {
+    var insertedAny = false;
+    var needsSort = false;
+    final lastTimestampBeforeMerge = _wearHeartRateSamples.isNotEmpty
+        ? _wearHeartRateSamples.last.sampledAt.toInt()
+        : null;
+
+    for (final point in persisted) {
+      final ts = point.sampledAt.toInt();
+      if (!_wearHeartRateSampleTimestamps.add(ts)) continue;
+      if (lastTimestampBeforeMerge != null && ts < lastTimestampBeforeMerge) {
+        needsSort = true;
+      }
+      _wearHeartRateSamples.add(
+        HeartRateSample()
+          ..sampledAt = point.sampledAt
+          ..bpm = point.bpm
+          ..availability =
+              HeartRateAvailability.valueOf(point.availability) ??
+              HeartRateAvailability.HEART_RATE_AVAILABILITY_UNSPECIFIED,
+      );
+      insertedAny = true;
+    }
+
+    if (!insertedAny) return;
+
+    if (needsSort) {
+      _wearHeartRateSamples.sort((a, b) => a.sampledAt.compareTo(b.sampledAt));
+    }
+
+    if (_wearHeartRateSamples.length > _maxWearHeartRateSamplesInMemory) {
+      final removeCount =
+          _wearHeartRateSamples.length - _maxWearHeartRateSamplesInMemory;
+      final removed = _wearHeartRateSamples.take(removeCount).toList();
+      _wearHeartRateSamples.removeRange(0, removeCount);
+      for (final s in removed) {
+        _wearHeartRateSampleTimestamps.remove(s.sampledAt.toInt());
+      }
+    }
+
+    notifyListeners();
+  }
+
   Future<void> loadActiveWorkout(String userId) async {
     _isLoading = true;
     notifyListeners();
@@ -534,6 +610,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final active = await _service.getActiveWorkout();
       if (active != null) {
         final response = await _service.getWorkout(active.id);
+        _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
         _activeWorkout = response.workout;
         _activeExerciseGroups = List.from(response.exerciseGroups);
         _activeProposedSets = List.from(response.proposedSets);
@@ -543,8 +620,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           response.hasStateSnapshot() ? response.stateSnapshot : null,
         );
         _sortState();
+        await _hydrateWearHeartRateFromApi();
         _startTimer();
       } else {
+        _resetWearHeartRateBufferIfWorkoutChanged(null);
         _activeWorkout = null;
         _activeExerciseGroups = [];
         _activeProposedSets = [];
@@ -573,6 +652,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _loadWorkout(String workoutId) async {
     try {
       final response = await _service.getWorkout(workoutId);
+      _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
       _activeWorkout = response.workout;
       _activeExerciseGroups = List.from(response.exerciseGroups);
       _activeProposedSets = List.from(response.proposedSets);
@@ -582,6 +662,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         response.hasStateSnapshot() ? response.stateSnapshot : null,
       );
       _sortState();
+      await _hydrateWearHeartRateFromApi();
       if (hasActiveWorkout) {
         _startTimer();
       } else {
@@ -594,6 +675,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _applyStartWorkoutResponse(StartWorkoutResponse response) {
+    _resetWearHeartRateBufferIfWorkoutChanged(
+      response.hasWorkout() ? response.workout.id : null,
+    );
     _activeWorkout = response.hasWorkout() ? response.workout : null;
     _activeExerciseGroups = List.from(response.exerciseGroups);
     _activeProposedSets = List.from(response.proposedSets);
@@ -996,10 +1080,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeCompletedSets = [];
     _backendNextUpSet = null;
     _applyStateSnapshot(null);
-    _wearHeartRateSamples.clear();
-    _pendingWearHeartRateUploads.clear();
-    _lastWearHeartRateUploadAt = null;
-    _wearHeartRateUploadInFlight = false;
+    _resetWearHeartRateBuffer();
     _stopTimer();
     notifyListeners();
   }
@@ -1007,18 +1088,51 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void ingestWearHeartRateBatch(WearSensorBatch batch) {
     if (_activeWorkout == null) return;
     if (batch.workoutId != _activeWorkout!.id) return;
-    _wearHeartRateSamples.addAll(batch.heartRateSamples);
-    // Keep a rolling buffer in memory to avoid unbounded growth.
-    if (_wearHeartRateSamples.length > 5000) {
-      _wearHeartRateSamples.removeRange(0, _wearHeartRateSamples.length - 5000);
-    }
+
+    var insertedAny = false;
+    var needsSort = false;
+    final newSamples = <HeartRateSample>[];
+    final lastTimestampBeforeIngest = _wearHeartRateSamples.isNotEmpty
+        ? _wearHeartRateSamples.last.sampledAt.toInt()
+        : null;
+
     for (final sample in batch.heartRateSamples) {
+      final ts = sample.sampledAt.toInt();
+      if (!_wearHeartRateSampleTimestamps.add(ts)) {
+        continue;
+      }
+      if (lastTimestampBeforeIngest != null && ts < lastTimestampBeforeIngest) {
+        needsSort = true;
+      }
+      _wearHeartRateSamples.add(sample);
+      newSamples.add(sample);
+      insertedAny = true;
+    }
+
+    if (needsSort) {
+      _wearHeartRateSamples.sort((a, b) => a.sampledAt.compareTo(b.sampledAt));
+    }
+
+    // Keep a large in-memory buffer so the whole workout graph stays visible.
+    if (_wearHeartRateSamples.length > _maxWearHeartRateSamplesInMemory) {
+      final removeCount =
+          _wearHeartRateSamples.length - _maxWearHeartRateSamplesInMemory;
+      final removed = _wearHeartRateSamples.take(removeCount).toList();
+      _wearHeartRateSamples.removeRange(0, removeCount);
+      for (final s in removed) {
+        _wearHeartRateSampleTimestamps.remove(s.sampledAt.toInt());
+      }
+    }
+    for (final sample in newSamples) {
       _pendingWearHeartRateUploads.add(
         WorkoutHeartRatePoint()
           ..sampledAt = sample.sampledAt
           ..bpm = sample.bpm
           ..availability = sample.availability.value,
       );
+    }
+    if (insertedAny) {
+      notifyListeners();
     }
     unawaited(_flushPendingWearHeartRateUploads());
   }

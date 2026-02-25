@@ -492,6 +492,14 @@ message AppendWorkoutHeartRateResponse {
   int32 stored = 1;
 }
 
+message GetWorkoutHeartRateRequest {
+  string workout_id = 1;
+}
+
+message GetWorkoutHeartRateResponse {
+  repeated WorkoutHeartRatePoint samples = 1;
+}
+
 // --- Service Definition ---
 
 service WorkoutService {
@@ -511,6 +519,7 @@ service WorkoutService {
   rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
   rpc CancelProposedSet(CancelProposedSetRequest) returns (CancelProposedSetResponse);
   rpc AppendWorkoutHeartRate(AppendWorkoutHeartRateRequest) returns (AppendWorkoutHeartRateResponse);
+  rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);

@@ -358,8 +358,14 @@ pub fn build_single_group_amrap(
     include_warmup: bool,
     last_set_amrap: bool,
 ) -> ProposedExerciseGroup {
-    let cfg =
-        make_exercise_type_config_amrap(exercise, weight, sets, reps, include_warmup, last_set_amrap);
+    let cfg = make_exercise_type_config_amrap(
+        exercise,
+        weight,
+        sets,
+        reps,
+        include_warmup,
+        last_set_amrap,
+    );
     ProposedExerciseGroup {
         name: exercise_display_name(exercise),
         sets,

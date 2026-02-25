@@ -9,7 +9,9 @@ use crate::program_state::{
     ProposeResult, StatePayload, WorkoutCompletionResult,
 };
 
-use super::{exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime};
+use super::{
+    exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+};
 use lift::workout::v1::StateFieldKind;
 
 pub struct Wendler531Regime;
@@ -108,7 +110,11 @@ const WEEKS: [WeekDef; 4] = [
 // ─── Session helpers ──────────────────────────────────────────────────────────
 
 fn sessions_per_variant(variant: &str) -> i64 {
-    if variant == "four_day" { 4 } else { 3 }
+    if variant == "four_day" {
+        4
+    } else {
+        3
+    }
 }
 
 /// Returns the main lift(s) for the given session.
@@ -248,14 +254,74 @@ impl WorkoutRegime for Wendler531Regime {
                 ],
             )),
             // Progress — internal state, not shown during onboarding
-            schema_int(KEY_CYCLE, "Cycle", "Current training cycle number (starts at 1).", "Progress", 10, 1, 100),
-            schema_int(KEY_WEEK, "Week", "Current week within cycle (1=Volume, 2=Intensity, 3=Peak, 4=Deload).", "Progress", 11, 1, 4),
-            schema_int(KEY_SESSION, "Session in Week", "0-based training day index within the current week.", "Progress", 12, 0, 3),
+            schema_int(
+                KEY_CYCLE,
+                "Cycle",
+                "Current training cycle number (starts at 1).",
+                "Progress",
+                10,
+                1,
+                100,
+            ),
+            schema_int(
+                KEY_WEEK,
+                "Week",
+                "Current week within cycle (1=Volume, 2=Intensity, 3=Peak, 4=Deload).",
+                "Progress",
+                11,
+                1,
+                4,
+            ),
+            schema_int(
+                KEY_SESSION,
+                "Session in Week",
+                "0-based training day index within the current week.",
+                "Progress",
+                12,
+                0,
+                3,
+            ),
             // Training maxes — shown during onboarding
-            with_onboarding(schema_float(KEY_SQ_TM, "Squat TM", "Training Max (lbs). Set to ~90% of your estimated 1RM.", "Training Maxes", 20, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_BP_TM, "Bench Press TM", "Training Max (lbs). Set to ~90% of your estimated 1RM.", "Training Maxes", 21, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_DL_TM, "Deadlift TM", "Training Max (lbs). Set to ~90% of your estimated 1RM.", "Training Maxes", 22, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_OHP_TM, "Overhead Press TM", "Training Max (lbs). Set to ~90% of your estimated 1RM.", "Training Maxes", 23, 45.0, 1000.0, 5.0)),
+            with_onboarding(schema_float(
+                KEY_SQ_TM,
+                "Squat TM",
+                "Training Max (lbs). Set to ~90% of your estimated 1RM.",
+                "Training Maxes",
+                20,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_BP_TM,
+                "Bench Press TM",
+                "Training Max (lbs). Set to ~90% of your estimated 1RM.",
+                "Training Maxes",
+                21,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_DL_TM,
+                "Deadlift TM",
+                "Training Max (lbs). Set to ~90% of your estimated 1RM.",
+                "Training Maxes",
+                22,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_OHP_TM,
+                "Overhead Press TM",
+                "Training Max (lbs). Set to ~90% of your estimated 1RM.",
+                "Training Maxes",
+                23,
+                45.0,
+                1000.0,
+                5.0,
+            )),
         ])
     }
 
@@ -339,10 +405,7 @@ impl WorkoutRegime for Wendler531Regime {
                 .last()
                 .map(|s| s.target_weight)
                 .unwrap_or((tm * 0.85 / 5.0).round() * 5.0);
-            let first_reps = working_sets
-                .first()
-                .map(|s| s.target_reps)
-                .unwrap_or(5);
+            let first_reps = working_sets.first().map(|s| s.target_reps).unwrap_or(5);
 
             let group_rest = if week_def.is_deload {
                 rest_cfg(90, 90)
@@ -380,7 +443,11 @@ impl WorkoutRegime for Wendler531Regime {
             });
         }
 
-        let display_variant = if variant == "four_day" { "4-Day" } else { "3-Day" };
+        let display_variant = if variant == "four_day" {
+            "4-Day"
+        } else {
+            "3-Day"
+        };
         let lifts_display: Vec<String> = lifts.iter().map(|&e| exercise_display_name(e)).collect();
 
         let regime_context = RegimeContext {

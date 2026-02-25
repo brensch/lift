@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercises.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
+import '../widgets/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
 import '../services/notification_service.dart';
 
@@ -37,6 +39,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   String? _loadError;
   List<String> _sessionFriends = [];
   bool _sessionFriendsLoaded = false;
+  List<HeartRateSample> _heartRateSamples = [];
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   Future<void> _loadWorkout() async {
     final grpc = context.read<GrpcClient>();
     final auth = context.read<AuthProvider>();
+    final workoutProvider = context.read<WorkoutProvider>();
     final service = WorkoutServiceWrapper(grpc);
     final multiplayer = MultiplayerServiceWrapper(grpc);
     final sessionSelfId = auth.userId ?? '';
@@ -59,6 +63,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _workout = response.workout;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
+          _heartRateSamples = workoutProvider.workout?.id == response.workout.id
+              ? workoutProvider.wearHeartRateSamples
+              : const [];
           _isLoading = false;
           _loadError = null;
           _sessionFriends = [];
@@ -207,6 +214,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       proposedSets: ownProposedSets,
       completedSets: ownCompletedSets,
     );
+    final hasHeartRateChart =
+        workout.startTime != Int64.ZERO && _heartRateSamples.isNotEmpty;
+    final chartNow = workout.endTime != Int64.ZERO
+        ? DateTime.fromMillisecondsSinceEpoch(workout.endTime.toInt() * 1000)
+        : DateTime.now();
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -273,6 +285,16 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               ),
             ],
           ),
+          if (hasHeartRateChart) ...[
+            const SizedBox(height: 16),
+            HeartRateChart(
+              heartRateSamples: _heartRateSamples,
+              completedSets: ownCompletedSets,
+              workoutStartTime: workout.startTime,
+              now: chartNow,
+              followLiveClock: false,
+            ),
+          ],
           const SizedBox(height: 16),
           Text(
             'Friends worked out with',

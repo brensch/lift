@@ -98,7 +98,9 @@ impl SettingsService for MySettingsService {
             .collect::<Vec<_>>();
         programs.sort_by_key(|p| (p.sort_order, p.regime_type));
 
-        Ok(Response::new(GetTrainingProgramCatalogResponse { programs }))
+        Ok(Response::new(GetTrainingProgramCatalogResponse {
+            programs,
+        }))
     }
 
     async fn get_active_training_program_state(
@@ -124,8 +126,7 @@ impl SettingsService for MySettingsService {
             }
         };
 
-        let regime_type =
-            RegimeType::try_from(regime_type_int).unwrap_or(RegimeType::Linear5x5);
+        let regime_type = RegimeType::try_from(regime_type_int).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
 
         let updated_at = record.as_ref().map(|r| r.updated_at).unwrap_or(0);
@@ -150,8 +151,7 @@ impl SettingsService for MySettingsService {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        let regime_type =
-            RegimeType::try_from(req.regime_type).unwrap_or(RegimeType::Linear5x5);
+        let regime_type = RegimeType::try_from(req.regime_type).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
 
         let payload = payload_from_proto(&req.fields);
@@ -226,8 +226,7 @@ impl SettingsService for MySettingsService {
             .map_err(|e| Status::internal(e.to_string()))?
             .ok_or_else(|| Status::failed_precondition("No active training program state found"))?;
 
-        let regime_type =
-            RegimeType::try_from(record.regime_type).unwrap_or(RegimeType::Linear5x5);
+        let regime_type = RegimeType::try_from(record.regime_type).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
         let current_state = parse_state_payload(&record.state_payload_json);
         let field_values = payload_from_proto(&req.field_values);

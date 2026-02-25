@@ -19,7 +19,11 @@ impl Scheduler {
         user_id: &str,
         now: i64,
     ) -> Result<GetProposedWorkoutScheduleResponse, Box<dyn std::error::Error + Send + Sync>> {
-        let now = if now == 0 { Utc::now().timestamp() } else { now };
+        let now = if now == 0 {
+            Utc::now().timestamp()
+        } else {
+            now
+        };
 
         // ── 1. Load latest program state ─────────────────────────────────────
         let state_record = self.central_db.get_latest_program_state(user_id).await?;

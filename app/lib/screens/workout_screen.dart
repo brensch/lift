@@ -152,6 +152,7 @@ class WorkoutScreen extends StatelessWidget {
               completedSets: wp.completedSets,
               workoutStartTime: workout.startTime,
               now: wp.now,
+              stateSnapshot: wp.stateSnapshot,
             ),
           ),
 

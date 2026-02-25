@@ -7,8 +7,8 @@ use crate::program_state::{
 };
 
 use super::{
-    build_single_group_amrap, exercise_display_name, rest_cfg,
-    ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+    build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, WorkoutRegime,
 };
 use lift::workout::v1::StateFieldKind;
 
@@ -125,27 +125,121 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Which workout to do next.",
                 "Session",
                 1,
-                vec![("A", "Workout A (Squat / Bench / Row)"), ("B", "Workout B (Squat / OHP / Deadlift)")],
+                vec![
+                    ("A", "Workout A (Squat / Bench / Row)"),
+                    ("B", "Workout B (Squat / OHP / Deadlift)"),
+                ],
             ),
             // Weights — shown during onboarding
-            with_onboarding(schema_float(KEY_SQ_W, "Squat", "Starting working weight (lbs).", "Weights", 10, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_BP_W, "Bench Press", "Starting working weight (lbs).", "Weights", 11, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_ROW_W, "Barbell Row", "Starting working weight (lbs).", "Weights", 12, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_OHP_W, "Overhead Press", "Starting working weight (lbs).", "Weights", 13, 45.0, 1000.0, 5.0)),
-            with_onboarding(schema_float(KEY_DL_W, "Deadlift", "Starting working weight (lbs).", "Weights", 14, 45.0, 1000.0, 10.0)),
+            with_onboarding(schema_float(
+                KEY_SQ_W,
+                "Squat",
+                "Starting working weight (lbs).",
+                "Weights",
+                10,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_BP_W,
+                "Bench Press",
+                "Starting working weight (lbs).",
+                "Weights",
+                11,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_ROW_W,
+                "Barbell Row",
+                "Starting working weight (lbs).",
+                "Weights",
+                12,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_OHP_W,
+                "Overhead Press",
+                "Starting working weight (lbs).",
+                "Weights",
+                13,
+                45.0,
+                1000.0,
+                5.0,
+            )),
+            with_onboarding(schema_float(
+                KEY_DL_W,
+                "Deadlift",
+                "Starting working weight (lbs).",
+                "Weights",
+                14,
+                45.0,
+                1000.0,
+                10.0,
+            )),
             // Stall counters — internal state, not shown during onboarding
-            schema_int(KEY_SQ_S, "Squat Stall Count", "Consecutive failures at current weight. Resets to 0 after 3 (deload).", "Stall Counters", 20, 0, 10),
-            schema_int(KEY_BP_S, "Bench Stall Count", "Consecutive failures at current weight.", "Stall Counters", 21, 0, 10),
-            schema_int(KEY_ROW_S, "Row Stall Count", "Consecutive failures at current weight.", "Stall Counters", 22, 0, 10),
-            schema_int(KEY_OHP_S, "OHP Stall Count", "Consecutive failures at current weight.", "Stall Counters", 23, 0, 10),
-            schema_int(KEY_DL_S, "Deadlift Stall Count", "Consecutive failures at current weight.", "Stall Counters", 24, 0, 10),
+            schema_int(
+                KEY_SQ_S,
+                "Squat Stall Count",
+                "Consecutive failures at current weight. Resets to 0 after 3 (deload).",
+                "Stall Counters",
+                20,
+                0,
+                10,
+            ),
+            schema_int(
+                KEY_BP_S,
+                "Bench Stall Count",
+                "Consecutive failures at current weight.",
+                "Stall Counters",
+                21,
+                0,
+                10,
+            ),
+            schema_int(
+                KEY_ROW_S,
+                "Row Stall Count",
+                "Consecutive failures at current weight.",
+                "Stall Counters",
+                22,
+                0,
+                10,
+            ),
+            schema_int(
+                KEY_OHP_S,
+                "OHP Stall Count",
+                "Consecutive failures at current weight.",
+                "Stall Counters",
+                23,
+                0,
+                10,
+            ),
+            schema_int(
+                KEY_DL_S,
+                "Deadlift Stall Count",
+                "Consecutive failures at current weight.",
+                "Stall Counters",
+                24,
+                0,
+                10,
+            ),
         ])
     }
 
     fn default_state(&self) -> StatePayload {
         let mut s = StatePayload::new();
         set_str(&mut s, KEY_VARIANT, "A");
-        for ex in &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow, Exercise::OverheadPress, Exercise::Deadlift] {
+        for ex in &[
+            Exercise::Squat,
+            Exercise::BenchPress,
+            Exercise::BarbellRow,
+            Exercise::OverheadPress,
+            Exercise::Deadlift,
+        ] {
             set_f32(&mut s, weight_key(*ex), default_weight(*ex));
             set_int(&mut s, stall_key(*ex), 0);
         }
@@ -156,16 +250,28 @@ impl WorkoutRegime for Linear5x5Regime {
         let mut warnings = Vec::new();
         let variant = get_str_or(state, KEY_VARIANT, "A");
         if variant != "A" && variant != "B" {
-            warnings.push(format!("next_workout_variant '{}' is not A or B — will default to A", variant));
+            warnings.push(format!(
+                "next_workout_variant '{}' is not A or B — will default to A",
+                variant
+            ));
         }
-        for ex in &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow, Exercise::OverheadPress, Exercise::Deadlift] {
+        for ex in &[
+            Exercise::Squat,
+            Exercise::BenchPress,
+            Exercise::BarbellRow,
+            Exercise::OverheadPress,
+            Exercise::Deadlift,
+        ] {
             let w = get_f32_or(state, weight_key(*ex), 0.0);
             if w <= 0.0 {
                 warnings.push(format!("{} weight must be > 0", exercise_display_name(*ex)));
             }
             let stall = get_int_or(state, stall_key(*ex), 0);
             if stall < 0 {
-                warnings.push(format!("{} stall_count cannot be negative", exercise_display_name(*ex)));
+                warnings.push(format!(
+                    "{} stall_count cannot be negative",
+                    exercise_display_name(*ex)
+                ));
             }
         }
         warnings
@@ -178,8 +284,16 @@ impl WorkoutRegime for Linear5x5Regime {
         _now_ts: i64,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_VARIANT, "A");
-        let exercises = if variant.eq_ignore_ascii_case("B") { WORKOUT_B } else { WORKOUT_A };
-        let next_variant_label = if variant.eq_ignore_ascii_case("B") { "B" } else { "A" };
+        let exercises = if variant.eq_ignore_ascii_case("B") {
+            WORKOUT_B
+        } else {
+            WORKOUT_A
+        };
+        let next_variant_label = if variant.eq_ignore_ascii_case("B") {
+            "B"
+        } else {
+            "A"
+        };
         let other_variant = if next_variant_label == "A" { "B" } else { "A" };
 
         let mut proposed_groups = Vec::new();
@@ -203,7 +317,11 @@ impl WorkoutRegime for Linear5x5Regime {
         }
 
         // Show other day's compounds as optional
-        let optional = if next_variant_label == "A" { WORKOUT_B } else { WORKOUT_A };
+        let optional = if next_variant_label == "A" {
+            WORKOUT_B
+        } else {
+            WORKOUT_A
+        };
         for &ex in optional.iter().filter(|&&e| e != Exercise::Squat) {
             let w = get_f32_or(state, weight_key(ex), default_weight(ex));
             let sets = if ex == Exercise::Deadlift { 1 } else { 5 };
@@ -213,7 +331,11 @@ impl WorkoutRegime for Linear5x5Regime {
                 sets,
                 5,
                 vec!["compound".to_string()],
-                format!("{} — optional (from Workout {})", exercise_display_name(ex), other_variant),
+                format!(
+                    "{} — optional (from Workout {})",
+                    exercise_display_name(ex),
+                    other_variant
+                ),
                 rest_cfg(180, 300),
                 true,
                 false,
@@ -256,7 +378,9 @@ impl WorkoutRegime for Linear5x5Regime {
             std::collections::HashMap::new();
         // (all_sets_success, total_sets_count)
         for sr in &result.set_results {
-            let entry = exercise_results.entry(sr.exercise as i32).or_insert((true, 0));
+            let entry = exercise_results
+                .entry(sr.exercise as i32)
+                .or_insert((true, 0));
             entry.0 = entry.0 && (sr.actual_reps >= sr.target_reps);
             entry.1 += 1;
         }
@@ -299,7 +423,11 @@ impl WorkoutRegime for Linear5x5Regime {
 
         // Flip A/B
         let current_variant = get_str_or(state, KEY_VARIANT, "A");
-        let next_variant = if current_variant.eq_ignore_ascii_case("A") { "B" } else { "A" };
+        let next_variant = if current_variant.eq_ignore_ascii_case("A") {
+            "B"
+        } else {
+            "A"
+        };
         set_str(&mut new_state, KEY_VARIANT, next_variant);
 
         new_state

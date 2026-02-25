@@ -78,6 +78,15 @@ class WorkoutServiceWrapper {
     );
   }
 
+  Future<List<WorkoutHeartRatePoint>> getWorkoutHeartRate(
+    String workoutId,
+  ) async {
+    final response = await _client.workoutService.getWorkoutHeartRate(
+      GetWorkoutHeartRateRequest()..workoutId = workoutId,
+    );
+    return response.samples;
+  }
+
   Future<DeleteCompletedSetResponse> deleteCompletedSet(
     String workoutId,
     String completedSetId,
