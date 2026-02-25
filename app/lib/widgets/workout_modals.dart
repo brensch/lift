@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -10,6 +10,7 @@ import '../logic/exercise_groups.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import '../screens/completed_workout_screen.dart';
 import '../widgets/exercise_group_widget.dart';
 import 'plate_visualization.dart';
 
@@ -18,16 +19,31 @@ Future<void> endWorkout(BuildContext context) async {
   if (confirmed && context.mounted) {
     final wp = context.read<WorkoutProvider>();
     final mp = context.read<MultiplayerProvider>();
+    final settings = context.read<SettingsProvider>();
+    final navigator = Navigator.of(context, rootNavigator: true);
 
     final workoutId = wp.workout?.id;
     if (workoutId == null) return;
 
+    final completedRoute = MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
+    );
+    unawaited(navigator.push(completedRoute));
+
     await wp.endWorkout();
-    await context.read<SettingsProvider>().refreshActiveTrainingProgramState();
-    mp.markLocalWorkoutFinished();
-    if (context.mounted) {
-      context.push('/workout/$workoutId/completed');
+    final endedWorkout = wp.workout;
+    final endSucceeded =
+        endedWorkout != null &&
+        endedWorkout.id == workoutId &&
+        wp.isWorkoutEnded;
+    if (!endSucceeded) {
+      if (navigator.canPop()) navigator.pop();
+      return;
     }
+
+    await settings.refreshActiveTrainingProgramState();
+    mp.markLocalWorkoutFinished();
   }
 }
 

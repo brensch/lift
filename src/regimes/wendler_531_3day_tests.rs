@@ -8,36 +8,28 @@ fn three_day_variant_names_paired_lifts_and_advances_week_after_3_sessions() {
         Exercise::Squat as i32,
         vec![SessionHistory {
             weight: 135.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::BenchPress as i32,
         vec![SessionHistory {
             weight: 95.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::Deadlift as i32,
         vec![SessionHistory {
             weight: 185.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::OverheadPress as i32,
         vec![SessionHistory {
             weight: 65.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     // 4 main-lift entries => 2 completed 3-day sessions in this paired-lift variant.

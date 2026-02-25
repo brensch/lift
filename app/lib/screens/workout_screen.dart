@@ -14,6 +14,7 @@ import '../widgets/exercise_group_widget.dart';
 import '../widgets/participant_ticker.dart';
 import '../widgets/set_log.dart';
 import '../widgets/workout_modals.dart';
+import '../widgets/heart_rate_chart.dart';
 import '../services/wearable_bridge_service.dart';
 
 class WorkoutScreen extends StatelessWidget {
@@ -142,6 +143,17 @@ class WorkoutScreen extends StatelessWidget {
           ),
         ),
         if (!isEnded) const _WatchCompanionBanner(),
+
+        if (wp.wearHeartRateSamples.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: HeartRateChart(
+              heartRateSamples: wp.wearHeartRateSamples,
+              completedSets: wp.completedSets,
+              workoutStartTime: workout.startTime,
+              now: wp.now,
+            ),
+          ),
 
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 

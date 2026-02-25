@@ -42,10 +42,6 @@ struct RegimeConfig {
     /// Converted to TMs (× 0.9) and stored in the initial state.
     #[serde(default)]
     one_rep_maxes: HashMap<String, f32>,
-    /// Kept for backward compat but not used by the new harness.
-    #[serde(default)]
-    #[allow(dead_code)]
-    days_per_week: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1032,8 +1028,6 @@ pub async fn run_scenario(json: &str) {
                             exercise: ex,
                             target_reps: ps.target_reps,
                             actual_reps: cs.actual_reps,
-                            target_weight: ps.target_weight,
-                            actual_weight: cs.actual_weight,
                         });
                     }
                 }
@@ -1041,8 +1035,6 @@ pub async fn run_scenario(json: &str) {
         }
 
         let completion_result = WorkoutCompletionResult {
-            workout_id: workout_id.clone(),
-            ended_at: end_time,
             set_results,
         };
 

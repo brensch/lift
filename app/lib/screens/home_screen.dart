@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../services/grpc_client.dart';
+import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
 import '../logic/utils.dart';
 import 'package:uuid/uuid.dart';
@@ -208,6 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (workoutId != null && mounted) {
+        final wearableBridge = context.read<WearableBridgeService>();
+        unawaited(_attemptAutoLaunchWatchApp(wearableBridge));
         final mp = context.read<MultiplayerProvider>();
         if (mp.isInSession) {
           await mp.updateActiveWorkout(workoutId);
@@ -222,6 +226,14 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } finally {
       if (mounted) setState(() => _isStarting = false);
+    }
+  }
+
+  Future<void> _attemptAutoLaunchWatchApp(WearableBridgeService bridge) async {
+    try {
+      await bridge.openWatchApp();
+    } catch (e) {
+      debugPrint('Auto watch launch failed: $e');
     }
   }
 

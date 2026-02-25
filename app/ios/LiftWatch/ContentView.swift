@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var selectedReps: Int = 0
     @State private var isStreaming = false
     @State private var lastWorkoutId = ""
+    @State private var workoutSessionManager = WorkoutSessionManager()
 
     private let clockTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -81,6 +82,7 @@ struct ContentView: View {
                 lastWorkoutId = data.workoutID
                 if !shouldStream {
                     heartRateStreamer.stop()
+                    workoutSessionManager.endSessionIfActive()
                     isStreaming = false
                 }
             }
@@ -88,12 +90,14 @@ struct ContentView: View {
 
         if shouldStream && !isStreaming {
             DispatchQueue.main.async {
+                workoutSessionManager.ensureSessionActive()
                 heartRateStreamer.start(workoutId: data.workoutID, connector: connector)
                 isStreaming = true
             }
         } else if !shouldStream && isStreaming {
             DispatchQueue.main.async {
                 heartRateStreamer.stop()
+                workoutSessionManager.endSessionIfActive()
                 isStreaming = false
             }
         }

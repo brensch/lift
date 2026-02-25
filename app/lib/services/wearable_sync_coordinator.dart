@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
 import 'wearable_bridge_service.dart';
@@ -13,6 +14,10 @@ class WearableSyncCoordinator {
 
   StreamSubscription? _intentSub;
   StreamSubscription? _sensorSub;
+
+  /// Intents that arrived before the workout was loaded.
+  final List<WearIntent> _pendingIntents = [];
+  bool _workoutEverLoaded = false;
 
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
@@ -28,28 +33,7 @@ class WearableSyncCoordinator {
     await _bridgeService.init();
 
     _intentSub = _bridgeService.intentStream.listen((intent) async {
-      if (!_workoutProvider.hasActiveWorkout) return;
-      final workoutId = _workoutProvider.activeWorkout?.id;
-      if (workoutId == null) return;
-
-      if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
-        await _workoutProvider.startSet(intent.startSet.setId);
-      } else if (intent.hasCompleteSet() &&
-          intent.completeSet.workoutId == workoutId) {
-        await _workoutProvider.completeSet(
-          intent.completeSet.setId,
-          intent.completeSet.reps,
-          intent.completeSet.actualWeight,
-          completedAt: intent.completeSet.completedAt.toInt(),
-        );
-      } else if (intent.hasSkipWarmup() &&
-          intent.skipWarmup.workoutId == workoutId) {
-        await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
-      } else if (intent.hasEndWorkout() &&
-          intent.endWorkout.workoutId == workoutId) {
-        await _workoutProvider.endWorkout();
-        _multiplayerProvider.markLocalWorkoutFinished();
-      }
+      await _handleIntent(intent);
     });
 
     _sensorSub = _bridgeService.sensorBatchStream.listen((batch) {
@@ -59,13 +43,63 @@ class WearableSyncCoordinator {
       _workoutProvider.ingestWearHeartRateBatch(batch);
     });
 
-    _workoutProvider.addListener(_publishSnapshot);
+    _workoutProvider.addListener(_onWorkoutChanged);
     _multiplayerProvider.addListener(_publishSnapshot);
     _publishSnapshot();
   }
 
+  void _onWorkoutChanged() {
+    if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
+      _workoutEverLoaded = true;
+      _replayPendingIntents();
+    }
+    _publishSnapshot();
+  }
+
+  Future<void> _handleIntent(WearIntent intent) async {
+    if (!_workoutProvider.hasActiveWorkout) {
+      // Workout not loaded yet — queue for replay.
+      _pendingIntents.add(intent);
+      return;
+    }
+    await _executeIntent(intent);
+  }
+
+  void _replayPendingIntents() {
+    if (_pendingIntents.isEmpty) return;
+    final intents = List<WearIntent>.from(_pendingIntents);
+    _pendingIntents.clear();
+    for (final intent in intents) {
+      _executeIntent(intent);
+    }
+  }
+
+  Future<void> _executeIntent(WearIntent intent) async {
+    final workoutId = _workoutProvider.activeWorkout?.id;
+    if (workoutId == null) return;
+
+    if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
+      await _workoutProvider.startSet(intent.startSet.setId);
+    } else if (intent.hasCompleteSet() &&
+        intent.completeSet.workoutId == workoutId) {
+      await _workoutProvider.completeSet(
+        intent.completeSet.setId,
+        intent.completeSet.reps,
+        intent.completeSet.actualWeight,
+        completedAt: intent.completeSet.completedAt.toInt(),
+      );
+    } else if (intent.hasSkipWarmup() &&
+        intent.skipWarmup.workoutId == workoutId) {
+      await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
+    } else if (intent.hasEndWorkout() &&
+        intent.endWorkout.workoutId == workoutId) {
+      await _workoutProvider.endWorkout();
+      _multiplayerProvider.markLocalWorkoutFinished();
+    }
+  }
+
   Future<void> dispose() async {
-    _workoutProvider.removeListener(_publishSnapshot);
+    _workoutProvider.removeListener(_onWorkoutChanged);
     _multiplayerProvider.removeListener(_publishSnapshot);
     await _intentSub?.cancel();
     await _sensorSub?.cancel();

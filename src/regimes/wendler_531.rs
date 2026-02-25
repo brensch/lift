@@ -399,7 +399,6 @@ impl WorkoutRegime for Wendler531Regime {
                 week_def.name,
                 lifts_display.join(" + ")
             ),
-            recovery_seconds: self.recovery_seconds_for_state(state),
         }
     }
 

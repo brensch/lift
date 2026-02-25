@@ -1365,25 +1365,6 @@ impl CentralDb {
         .await?)
     }
 
-    #[allow(dead_code)]
-    pub async fn get_session_participants(
-        &self,
-        session_id: &str,
-    ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-        let rows = sqlx::query_scalar(
-            "SELECT DISTINCT user_id FROM (
-                SELECT user_id FROM sessions WHERE session_id = ? AND left_at IS NULL
-                UNION
-                SELECT user_id FROM workouts WHERE session_id = ?
-            )",
-        )
-        .bind(session_id)
-        .bind(session_id)
-        .fetch_all(&self.pool)
-        .await?;
-        Ok(rows)
-    }
-
     pub async fn get_session_membership_states(
         &self,
         session_id: &str,
@@ -1623,14 +1604,10 @@ impl CentralDb {
         for row in rows {
             let exercise = row.get::<i32, _>("exercise");
             let weight = row.get::<f32, _>("target_weight");
-            let successful = row.get::<bool, _>("successful");
             let ended_at = row.get::<i64, _>("ended_at");
-            let last_set_reps = row.get::<i32, _>("last_set_reps");
             history.entry(exercise).or_default().push(SessionHistory {
                 weight,
-                success: successful,
                 timestamp: ended_at,
-                last_set_reps,
             });
         }
 
@@ -1938,7 +1915,6 @@ impl CentralDb {
 
         Ok(row.map(|(regime_type, state_payload_json, updated_at)| {
             crate::program_state::ProgramStateRecord {
-                user_id: user_id.to_string(),
                 regime_type,
                 state_payload_json,
                 updated_at,

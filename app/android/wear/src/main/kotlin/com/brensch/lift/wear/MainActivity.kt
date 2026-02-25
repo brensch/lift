@@ -10,6 +10,7 @@ import android.annotation.SuppressLint
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Favorite
@@ -97,6 +98,13 @@ class MainActivity : ComponentActivity() {
     private var heartRatePermissionRequestedOnce = false
     private var workoutPermissionRequestedOnce = false
 
+    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {}
+        override fun onExitAmbient() {}
+        override fun onUpdateAmbient() {}
+    }
+    private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
+
     @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val heartRatePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -121,6 +129,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        lifecycle.addObserver(ambientObserver)
         heartRateStreamer = HeartRateStreamer(applicationContext)
         exerciseSessionManager = WearExerciseSessionManager(applicationContext)
 
@@ -382,9 +391,8 @@ private fun WearApp(
             (data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE ||
                 hasEndWorkoutAction)
         if (shouldStream && !isStreaming) {
-            if (!ensurePermissions()) return@LaunchedEffect
+            ensurePermissions()
             heartRateStreamer.start(data.workoutId)
-            exerciseSessionManager.ensureSessionActive()
             isStreaming = true
         } else if (!shouldStream && isStreaming) {
             heartRateStreamer.stop()

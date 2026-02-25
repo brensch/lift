@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -40,8 +40,25 @@ run-frontend:
 
 ADB = $(HOME)/android-sdk/platform-tools/adb
 
+define EXPORT_JAVA_HOME_FROM_JAVAC
+	if command -v javac >/dev/null 2>&1; then \
+		JAVAC_REAL=$$(readlink -f "$$(command -v javac)"); \
+		export JAVA_HOME="$$(dirname "$$(dirname "$$JAVAC_REAL")")"; \
+		echo "Using JAVA_HOME=$$JAVA_HOME (from javac)"; \
+	else \
+		echo "javac not found. Install a full JDK (e.g. openjdk-17-jdk or openjdk-21-jdk)."; \
+		exit 1; \
+	fi; \
+	if [ ! -x "$$JAVA_HOME/bin/javac" ]; then \
+		echo "JAVA_HOME does not contain javac: $$JAVA_HOME"; \
+		exit 1; \
+	fi; \
+	true;
+endef
+
 run-android:
 	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
 		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
 			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
 			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
@@ -58,6 +75,7 @@ run-android:
 
 run-android-clean:
 	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
 		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
 			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
 			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
@@ -93,6 +111,7 @@ run-wear:
 	fi; \
 	echo "Using wear target: $$SERIAL"; \
 	cd app/android && bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
 		GRADLE_CMD="./gradlew"; \
 		if [ ! -x "$$GRADLE_CMD" ]; then \
 			PROP_FILE="gradle/wrapper/gradle-wrapper.properties"; \
@@ -168,6 +187,7 @@ LINUX_SOFTWARE_RENDER ?= 1
 run-app:
 	@make stop-app || true
 	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
 		mkdir -p "$(TMP_RUN_DIR)"; \
 		if [ ! -x "$(ADB)" ]; then \
 			echo "adb not found at $(ADB); launching Flutter multi-device without adb prep."; \
@@ -359,10 +379,34 @@ check:
 	cargo check
 	cd web && $(BUN) run build
 
+check-android-java:
+	@bash -ec '\
+		if ! command -v java >/dev/null 2>&1; then \
+			echo "java not found"; \
+			exit 1; \
+		fi; \
+		if ! command -v javac >/dev/null 2>&1; then \
+			echo "javac not found (install a full JDK, not just a JRE)"; \
+			exit 1; \
+		fi; \
+		JAVA_REAL=$$(readlink -f "$$(command -v java)"); \
+		JAVAC_REAL=$$(readlink -f "$$(command -v javac)"); \
+		JAVA_HOME_REAL="$$(dirname "$$(dirname "$$JAVA_REAL")")"; \
+		JAVAC_HOME_REAL="$$(dirname "$$(dirname "$$JAVAC_REAL")")"; \
+		echo "java  -> $$JAVA_REAL"; \
+		echo "javac -> $$JAVAC_REAL"; \
+		echo "JAVA_HOME (from javac) -> $$JAVAC_HOME_REAL"; \
+		if [ "$$JAVA_HOME_REAL" != "$$JAVAC_HOME_REAL" ]; then \
+			echo "Warning: java and javac come from different installs."; \
+			echo "Android make targets will use JAVA_HOME=$$JAVAC_HOME_REAL"; \
+		fi; \
+		"$$JAVAC_HOME_REAL/bin/javac" -version; \
+	'
+
 install-deps:
 	@echo "=== Installing Linux build dependencies ==="
 	sudo apt-get update
-	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip
+	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip openjdk-17-jdk
 	@echo "=== Installing Flutter SDK ==="
 	@if [ ! -d "$(HOME)/flutter-sdk" ]; then \
 		git clone --depth 1 --branch stable https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
@@ -377,6 +421,8 @@ install-deps:
 	cd app && $(FLUTTER) pub get
 	@echo "=== Installing web dependencies ==="
 	cd web && $(BUN) install
+	@echo "=== Checking Android Java toolchain ==="
+	$(MAKE) check-android-java
 	@echo "=== Done ==="
 	@echo ""
 	@echo "Optional: add Flutter to your PATH permanently:"
