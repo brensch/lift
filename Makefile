@@ -331,9 +331,12 @@ ci-android-check-signing: ci-android-prepare-signing
 	cd app/android && ./gradlew :app:validateSigningRelease :wear:validateSigningRelease --no-daemon
 
 ci-android-build-release: ci-android-prepare-signing
-	cd app && $(FLUTTER) pub get
-	cd app && $(FLUTTER) build appbundle --release
-	cd app/android && ./gradlew :wear:bundleRelease --no-daemon
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		(cd app && $(FLUTTER) pub get); \
+		(cd app && $(FLUTTER) build appbundle --release); \
+		(cd app/android && ./gradlew :wear:bundleRelease --no-daemon); \
+	'
 	@echo "Phone AAB: app/build/app/outputs/bundle/release/app-release.aab"
 	@echo "Wear AAB:  app/build/wear/outputs/bundle/release/wear-release.aab"
 
