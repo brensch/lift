@@ -50,6 +50,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
   Timer? _repaintTimer;
   HeartRateZoneProfile? _zoneProfile;
   bool _zoneProfileLoaded = false;
+  late List<HeartRateSample> _uiHeartRateSamples;
+  late List<CompletedSet> _uiCompletedSets;
+  late DateTime _uiNow;
+  WorkoutStateSnapshot? _uiStateSnapshot;
   bool _isLiveViewport = true;
   bool _hasManualViewport = false;
   double _manualWindowStartSec = 0;
@@ -62,18 +66,87 @@ class _HeartRateChartState extends State<HeartRateChart> {
   @override
   void initState() {
     super.initState();
-    if (widget.followLiveClock) {
-      _repaintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
-    }
+    _syncUiSnapshotFromWidget();
+    _configureRepaintTimer();
     unawaited(_loadZoneProfile());
+  }
+
+  @override
+  void didUpdateWidget(covariant HeartRateChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.followLiveClock != widget.followLiveClock) {
+      _configureRepaintTimer();
+      _syncUiSnapshotFromWidget();
+      return;
+    }
+
+    if (!widget.followLiveClock) {
+      // Summary/snapshot chart should reflect incoming data immediately.
+      _syncUiSnapshotFromWidget();
+      return;
+    }
+
+    final stateChanged =
+        _stateSnapshotKey(oldWidget.stateSnapshot) !=
+        _stateSnapshotKey(widget.stateSnapshot);
+    final setsChanged =
+        _completedSetListKey(oldWidget.completedSets) !=
+        _completedSetListKey(widget.completedSets);
+
+    if (stateChanged || setsChanged) {
+      // Keep phase transitions / completed set edges immediate.
+      _syncUiSnapshotFromWidget();
+    }
+    // Otherwise allow the 1 Hz timer to pull the latest HR samples/now.
   }
 
   @override
   void dispose() {
     _repaintTimer?.cancel();
     super.dispose();
+  }
+
+  void _configureRepaintTimer() {
+    _repaintTimer?.cancel();
+    _repaintTimer = null;
+    if (!widget.followLiveClock) return;
+    _repaintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      _syncUiSnapshotFromWidget();
+    });
+  }
+
+  void _syncUiSnapshotFromWidget() {
+    if (!mounted) {
+      _uiHeartRateSamples = widget.heartRateSamples;
+      _uiCompletedSets = widget.completedSets;
+      _uiNow = widget.now;
+      _uiStateSnapshot = widget.stateSnapshot;
+      return;
+    }
+    setState(() {
+      _uiHeartRateSamples = widget.heartRateSamples;
+      _uiCompletedSets = widget.completedSets;
+      _uiNow = widget.now;
+      _uiStateSnapshot = widget.stateSnapshot;
+    });
+  }
+
+  String _stateSnapshotKey(WorkoutStateSnapshot? snapshot) {
+    if (snapshot == null) return 'null';
+    return [
+      snapshot.state.value,
+      snapshot.activeStartedAt.toInt(),
+      snapshot.restUntil.toInt(),
+      snapshot.lastRestEnd.toInt(),
+    ].join(':');
+  }
+
+  String _completedSetListKey(List<CompletedSet> sets) {
+    if (sets.isEmpty) return '0';
+    final last = sets.last;
+    return '${sets.length}:${last.startedAt.toInt()}:${last.endedAt.toInt()}:${last.restUntil.toInt()}';
   }
 
   Future<void> _loadZoneProfile() async {
@@ -88,13 +161,16 @@ class _HeartRateChartState extends State<HeartRateChart> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final heartRateSamples = _uiHeartRateSamples;
+    final completedSets = _uiCompletedSets;
+    final stateSnapshot = _uiStateSnapshot;
     final startMs = widget.workoutStartTime.toInt() * 1000;
     final localNow = DateTime.now();
     final effectiveNow = widget.followLiveClock
-        ? (widget.now.isAfter(localNow) ? widget.now : localNow)
-        : widget.now;
+        ? (_uiNow.isAfter(localNow) ? _uiNow : localNow)
+        : _uiNow;
 
-    final available = widget.heartRateSamples
+    final available = heartRateSamples
         .where(
           (s) =>
               s.availability ==
@@ -159,7 +235,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
       maxX: maxX,
     );
     final liveBands = _clipVerticalAnnotations(
-      _buildLiveActivityBands(startMs, effectiveNow, viewEndSec: maxX),
+      _buildLiveActivityBands(
+        startMs,
+        effectiveNow,
+        viewEndSec: maxX,
+        completedSets: completedSets,
+        stateSnapshot: stateSnapshot,
+      ),
       minX: minX,
       maxX: maxX,
     );
@@ -549,7 +631,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
   List<VerticalRangeAnnotation> _buildActivityBands(int startMs) {
     final bands = <VerticalRangeAnnotation>[];
     final sorted =
-        widget.completedSets
+        _uiCompletedSets
             .where((c) => c.startedAt != Int64.ZERO && c.endedAt != Int64.ZERO)
             .toList()
           ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
@@ -628,8 +710,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
     int startMs,
     DateTime now, {
     required double viewEndSec,
+    required List<CompletedSet> completedSets,
+    required WorkoutStateSnapshot? stateSnapshot,
   }) {
-    final snapshot = widget.stateSnapshot;
+    final snapshot = stateSnapshot;
     if (snapshot == null) return const [];
 
     final nowSec = (now.millisecondsSinceEpoch - startMs) / 1000.0;
@@ -641,7 +725,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
     const liftColor = Color(0xFFEC4899);
     const yapColor = Color(0xFFF97316);
 
-    final completedWithEnd = widget.completedSets
+    final completedWithEnd = completedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .toList();
     final lastEndedAt = completedWithEnd.fold<int>(
@@ -809,7 +893,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
   }
 
   double? _predictedCurrentRestEndSec(int startMs) {
-    final snapshot = widget.stateSnapshot;
+    final snapshot = _uiStateSnapshot;
     if (snapshot == null) return null;
     if (snapshot.state != WorkoutState.WORKOUT_STATE_RESTING) return null;
     final restUntil = snapshot.restUntil.toInt();
@@ -818,7 +902,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
   }
 
   double? _activeLiftStartSec(int startMs) {
-    final snapshot = widget.stateSnapshot;
+    final snapshot = _uiStateSnapshot;
     if (snapshot == null) return null;
     if (snapshot.state != WorkoutState.WORKOUT_STATE_LIFTING) return null;
     final startedAt = snapshot.activeStartedAt.toInt();
