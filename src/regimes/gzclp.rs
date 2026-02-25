@@ -504,7 +504,6 @@ impl WorkoutRegime for GzclpRegime {
             ],
         };
 
-        let recovery = 48 * 3600;
         ProposeResult {
             proposed_groups,
             regime_context,
@@ -519,7 +518,6 @@ impl WorkoutRegime for GzclpRegime {
                     format!("GZCLP — SQ {}×{} / DL {}×{}", sq_sets, sq_reps, dl_sets, dl_reps)
                 }
             },
-            recovery_seconds: recovery,
         }
     }
 

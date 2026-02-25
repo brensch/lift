@@ -8,9 +8,7 @@
             Exercise::Squat as i32,
             vec![SessionHistory {
                 weight: 225.0,
-                success: false,
                 timestamp: 1_700_000_000,
-                last_set_reps: 2,
             }],
         );
 

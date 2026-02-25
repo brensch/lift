@@ -1192,6 +1192,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<ReplaceExerciseGroupPlanResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         let (group, group_sets, full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
@@ -1245,6 +1248,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<ReorderExerciseGroupsResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         let (full_workout_state, next_up_set, state_snapshot) = {
             let mut workout_ref = self
@@ -1331,6 +1337,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<StartSetResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1402,6 +1411,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<CompleteSetResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1519,6 +1531,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<DeleteCompletedSetResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1565,6 +1580,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<CancelProposedSetResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1648,6 +1666,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<AppendWorkoutHeartRateResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1685,6 +1706,9 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<EndWorkoutResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         if req.workout_id.is_empty() {
             return Err(Status::invalid_argument("workout_id is required"));
@@ -1737,8 +1761,6 @@ impl WorkoutService for MyWorkoutService {
                                 exercise: ex,
                                 target_reps: ps.target_reps,
                                 actual_reps: cs.actual_reps,
-                                target_weight: ps.target_weight,
-                                actual_weight: cs.actual_weight,
                             });
                         }
                     }
@@ -1746,8 +1768,6 @@ impl WorkoutService for MyWorkoutService {
             }
 
             let completion_result = WorkoutCompletionResult {
-                workout_id: active.workout.id.clone(),
-                ended_at: active.workout.end_time,
                 set_results,
             };
 
@@ -1811,6 +1831,9 @@ impl WorkoutService for MyWorkoutService {
         request: Request<GetProposedWorkoutScheduleRequest>,
     ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
 
         // 1. Get active workout ID while holding lock
         let active_workout_id = self

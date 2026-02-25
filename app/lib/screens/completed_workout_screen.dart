@@ -34,6 +34,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
   bool _isLoading = true;
+  String? _loadError;
   List<String> _sessionFriends = [];
   bool _sessionFriendsLoaded = false;
 
@@ -50,7 +51,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final multiplayer = MultiplayerServiceWrapper(grpc);
     final sessionSelfId = auth.userId ?? '';
     try {
-      final response = await service.getWorkout(widget.workoutId);
+      _loadError = null;
+      final response = await _getWorkoutWithRetry(service);
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
@@ -58,6 +60,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
           _isLoading = false;
+          _loadError = null;
           _sessionFriends = [];
           _sessionFriendsLoaded = sessionId.isEmpty;
         });
@@ -67,14 +70,41 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
 
-      if (!widget.isHistory) {
-        _scheduleNextWorkoutNotification(auth.userId!, service);
+      final userId = auth.userId;
+      if (!widget.isHistory && userId != null && userId.isNotEmpty) {
+        _scheduleNextWorkoutNotification(userId, service);
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint(
+        'CompletedWorkoutScreen: failed to load workout ${widget.workoutId}: $e\n$st',
+      );
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _loadError = 'Failed to load workout summary.';
+        });
       }
     }
+  }
+
+  Future<GetWorkoutResponse> _getWorkoutWithRetry(
+    WorkoutServiceWrapper service,
+  ) async {
+    Object? lastError;
+    StackTrace? lastStack;
+    // Freshly ended workouts can briefly race backend persistence.
+    final attempts = widget.isHistory ? 1 : 4;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await service.getWorkout(widget.workoutId);
+      } catch (e, st) {
+        lastError = e;
+        lastStack = st;
+        if (attempt == attempts) break;
+        await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+      }
+    }
+    Error.throwWithStackTrace(lastError!, lastStack!);
   }
 
   Future<void> _scheduleNextWorkoutNotification(
@@ -134,8 +164,35 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _workout == null) {
+    if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_workout == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Workout summary')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_loadError ?? 'Failed to load workout summary.'),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                      _loadError = null;
+                    });
+                    _loadWorkout();
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     final workout = _workout!;
@@ -297,8 +354,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         wp.clear();
       }
     }
-    if (context.canPop()) {
-      context.pop();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
     } else {
       context.go('/');
     }
@@ -523,7 +581,13 @@ class WorkoutSummaryData {
     Duration liftingTime = Duration.zero;
     Duration restingTime = Duration.zero;
 
-    for (final completedSet in completed) {
+    // Sort chronologically so we can cap rest at when the next set started.
+    final ordered =
+        completed.where((set) => set.startedAt != Int64.ZERO).toList()
+          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+
+    for (var i = 0; i < ordered.length; i++) {
+      final completedSet = ordered[i];
       final proposed = proposedById[completedSet.proposedSetId];
       if (proposed == null) continue;
 
@@ -532,10 +596,20 @@ class WorkoutSummaryData {
           : 0;
       liftingTime += Duration(seconds: setDurationSeconds);
 
+      // Rest time: cap at when the next set actually started (rest stops
+      // once you begin a new lift) and at workout end if it ended sooner.
       if (completedSet.restUntil > completedSet.endedAt) {
-        final restSeconds = (completedSet.restUntil - completedSet.endedAt)
-            .toInt();
-        restingTime += Duration(seconds: restSeconds);
+        Int64 restEnd = completedSet.restUntil;
+        if (i + 1 < ordered.length && ordered[i + 1].startedAt < restEnd) {
+          restEnd = ordered[i + 1].startedAt;
+        }
+        if (workout.endTime != Int64.ZERO && workout.endTime < restEnd) {
+          restEnd = workout.endTime;
+        }
+        final restSeconds = (restEnd - completedSet.endedAt).toInt();
+        if (restSeconds > 0) {
+          restingTime += Duration(seconds: restSeconds);
+        }
       }
 
       final setVolume = completedSet.actualReps * completedSet.actualWeight;
@@ -570,7 +644,7 @@ class WorkoutSummaryData {
         ? totalVolume / liftingMinutes
         : 0.0;
 
-    final yappingTime = _calculateYappingTime(completed);
+    final yappingTime = _calculateYappingTime(ordered, workout);
 
     return WorkoutSummaryData(
       duration: workoutDuration,
@@ -584,18 +658,24 @@ class WorkoutSummaryData {
     );
   }
 
-  static Duration _calculateYappingTime(List<CompletedSet> completedSets) {
-    final ordered =
-        completedSets.where((set) => set.startedAt != Int64.ZERO).toList()
-          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
-
+  /// Yapping = time between sets that isn't lifting or resting.
+  /// If the user had rest prescribed, yapping starts when rest ends.
+  /// If no rest was prescribed (e.g. warmups), yapping is the full gap.
+  static Duration _calculateYappingTime(
+    List<CompletedSet> orderedSets,
+    Workout workout,
+  ) {
     int yappingSeconds = 0;
-    for (var i = 0; i < ordered.length - 1; i++) {
-      final current = ordered[i];
-      final next = ordered[i + 1];
-      if (current.restUntil != Int64.ZERO &&
-          next.startedAt > current.restUntil) {
-        yappingSeconds += (next.startedAt - current.restUntil).toInt();
+    for (var i = 0; i < orderedSets.length - 1; i++) {
+      final current = orderedSets[i];
+      final next = orderedSets[i + 1];
+      // Yapping starts after rest ends (or immediately after the set if
+      // no rest was prescribed) and ends when the next set starts.
+      final gapStart = current.restUntil > current.endedAt
+          ? current.restUntil
+          : current.endedAt;
+      if (next.startedAt > gapStart) {
+        yappingSeconds += (next.startedAt - gapStart).toInt();
       }
     }
     return Duration(seconds: yappingSeconds);

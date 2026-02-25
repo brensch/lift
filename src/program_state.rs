@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use lift::workout::v1::{
     state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
-    StateFieldKind, StateFieldValue, TrainingProgramState, TrainingProgramStateEvent,
+    StateFieldKind, StateFieldValue, TrainingProgramStateEvent,
     TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
 };
 use serde::{Deserialize, Serialize};
@@ -44,13 +44,6 @@ impl FieldVal {
         self.as_float().map(|v| v as f32)
     }
 
-    pub fn as_bool(&self) -> Option<bool> {
-        match self {
-            Self::Bool(v) => Some(*v),
-            _ => None,
-        }
-    }
-
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Self::Str(v) => Some(v.as_str()),
@@ -67,16 +60,8 @@ pub fn get_int(s: &StatePayload, key: &str) -> Option<i64> {
     s.get(key).and_then(|v| v.as_int())
 }
 
-pub fn get_float(s: &StatePayload, key: &str) -> Option<f64> {
-    s.get(key).and_then(|v| v.as_float())
-}
-
 pub fn get_f32(s: &StatePayload, key: &str) -> Option<f32> {
     s.get(key).and_then(|v| v.as_f32())
-}
-
-pub fn get_bool(s: &StatePayload, key: &str) -> Option<bool> {
-    s.get(key).and_then(|v| v.as_bool())
 }
 
 pub fn get_str<'a>(s: &'a StatePayload, key: &str) -> Option<&'a str> {
@@ -104,10 +89,6 @@ pub fn set_int(s: &mut StatePayload, key: &str, val: i64) {
 
 pub fn set_f32(s: &mut StatePayload, key: &str, val: f32) {
     s.insert(key.to_string(), FieldVal::Float(val as f64));
-}
-
-pub fn set_bool(s: &mut StatePayload, key: &str, val: bool) {
-    s.insert(key.to_string(), FieldVal::Bool(val));
 }
 
 pub fn set_str(s: &mut StatePayload, key: impl Into<String>, val: impl Into<String>) {
@@ -165,11 +146,6 @@ pub fn payload_from_proto(map: &HashMap<String, StateFieldValue>) -> StatePayloa
         .collect()
 }
 
-/// Convert a `TrainingProgramStateEvent` proto into our DB record.
-pub fn proto_state_to_payload(state: &TrainingProgramState) -> StatePayload {
-    payload_from_proto(&state.fields)
-}
-
 // ─── Domain structs ───────────────────────────────────────────────────────────
 
 /// Result of `propose_from_state` — everything needed for the home screen.
@@ -177,7 +153,6 @@ pub struct ProposeResult {
     pub proposed_groups: Vec<lift::workout::v1::ProposedExerciseGroup>,
     pub regime_context: lift::workout::v1::RegimeContext,
     pub suggested_workout_name: String,
-    pub recovery_seconds: i64,
 }
 
 /// One working set's completion result (warmups excluded).
@@ -186,15 +161,11 @@ pub struct WorkingSetResult {
     pub exercise: lift::workout::v1::Exercise,
     pub target_reps: i32,
     pub actual_reps: i32,
-    pub target_weight: f32,
-    pub actual_weight: f32,
 }
 
 /// All completion data passed to `transition_state_on_workout_complete`.
 #[derive(Debug, Clone)]
 pub struct WorkoutCompletionResult {
-    pub workout_id: String,
-    pub ended_at: i64,
     pub set_results: Vec<WorkingSetResult>,
 }
 
@@ -397,7 +368,6 @@ pub fn build_schema(fields: Vec<TrainingProgramStateFieldSchema>) -> TrainingPro
 
 #[derive(Debug, Clone)]
 pub struct ProgramStateRecord {
-    pub user_id: String,
     pub regime_type: i32,
     pub state_payload_json: String,
     pub updated_at: i64,

@@ -8,36 +8,28 @@ fn classic_4day_names_single_lift_and_advances_week_after_4_sessions() {
         Exercise::Squat as i32,
         vec![SessionHistory {
             weight: 135.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::BenchPress as i32,
         vec![SessionHistory {
             weight: 95.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::Deadlift as i32,
         vec![SessionHistory {
             weight: 185.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
     history.insert(
         Exercise::OverheadPress as i32,
         vec![SessionHistory {
             weight: 65.0,
-            success: true,
             timestamp: 1,
-            last_set_reps: 5,
         }],
     );
 

@@ -174,8 +174,8 @@ impl WorkoutRegime for Linear5x5Regime {
     fn propose_from_state(
         &self,
         state: &StatePayload,
-        last_session_at: i64,
-        now_ts: i64,
+        _last_session_at: i64,
+        _now_ts: i64,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_VARIANT, "A");
         let exercises = if variant.eq_ignore_ascii_case("B") { WORKOUT_B } else { WORKOUT_A };
@@ -236,12 +236,10 @@ impl WorkoutRegime for Linear5x5Regime {
             ],
         };
 
-        let recovery = RECOVERY_HOURS * 3600;
         ProposeResult {
             proposed_groups,
             regime_context,
             suggested_workout_name: format!("5×5 Workout {}", next_variant_label),
-            recovery_seconds: recovery,
         }
     }
 

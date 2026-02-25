@@ -168,9 +168,7 @@ pub fn exercise_display_name(exercise: Exercise) -> String {
 #[derive(Debug, Clone)]
 pub struct SessionHistory {
     pub weight: f32,
-    pub success: bool,
     pub timestamp: i64,
-    pub last_set_reps: i32,
 }
 
 // ─── Catalog metadata ─────────────────────────────────────────────────────────
@@ -300,16 +298,6 @@ pub fn catalog_regime_types() -> Vec<RegimeType> {
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-pub fn make_exercise_type_config(
-    exercise: Exercise,
-    weight: f32,
-    sets: i32,
-    reps: i32,
-    include_warmup: bool,
-) -> lift::workout::v1::ExerciseTypeConfig {
-    make_exercise_type_config_amrap(exercise, weight, sets, reps, include_warmup, false)
-}
-
 pub fn make_exercise_type_config_amrap(
     exercise: Exercise,
     weight: f32,
@@ -359,29 +347,6 @@ pub fn rest_cfg(success_secs: i32, failure_secs: i32) -> Option<RestConfig> {
 }
 
 /// Build a single-exercise ProposedExerciseGroup.
-pub fn build_single_group(
-    exercise: Exercise,
-    weight: f32,
-    sets: i32,
-    reps: i32,
-    tags: Vec<String>,
-    explanation: String,
-    rest_config: Option<RestConfig>,
-    include_warmup: bool,
-) -> ProposedExerciseGroup {
-    build_single_group_amrap(
-        exercise,
-        weight,
-        sets,
-        reps,
-        tags,
-        explanation,
-        rest_config,
-        include_warmup,
-        false,
-    )
-}
-
 pub fn build_single_group_amrap(
     exercise: Exercise,
     weight: f32,
@@ -502,7 +467,10 @@ pub fn build_exercise_statuses(
             let ex_int = config.exercise as i32;
             let empty = Vec::new();
             let history = all_history.get(&ex_int).unwrap_or(&empty);
-            let max_weight = all_max_weights.get(&ex_int).copied().unwrap_or(0.0);
+            let max_weight = all_max_weights
+                .get(&ex_int)
+                .copied()
+                .unwrap_or(config.default_weight);
             let last_perf = history.first().map(|h| h.timestamp).unwrap_or(0);
             let weight_history: Vec<f32> = history.iter().rev().map(|h| h.weight).collect();
             let recovered = config.muscle_groups.iter().all(|mg| {

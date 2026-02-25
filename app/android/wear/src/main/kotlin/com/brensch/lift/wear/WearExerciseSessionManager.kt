@@ -37,6 +37,10 @@ class WearExerciseSessionManager(private val context: Context) {
                     active = true
                     Log.i("LiftWear", "Exercise session started")
                 }.onFailure {
+                    if (it is SecurityException) {
+                        Log.e("LiftWear", "Missing permissions for exercise session, stopping retries", it)
+                        return@launch
+                    }
                     Log.e("LiftWear", "Failed to start exercise session", it)
                 }
                 if (!active) {
