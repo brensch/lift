@@ -1,25 +1,14 @@
-use axum::{
-    extract::Extension,
-    http::StatusCode,
-    response::{Html, IntoResponse},
-    routing::{get, post},
-    Json,
-};
-use http::{
-    header::{HeaderName, CONTENT_TYPE},
-    Method,
-};
+use axum::{routing::get, Json};
+use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
 };
 use log::{error, info};
-use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
-use webauthn_rs::prelude::PublicKeyCredential;
 
 mod auth;
 mod db;
@@ -82,6 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let auth_state = Arc::new(AuthState::new(central_db.clone()));
     let auth_service = MyAuthService {
         auth_state: auth_state.clone(),
+        app_state: app_state.clone(),
     };
 
     // CORS layer for browser access
@@ -114,18 +104,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .add_service(settings_service_web)
         .into_router();
 
-    // Assetlinks handler for Android passkey verification
     let app = grpc_router
-        .route("/", get(root_handler))
-        .route("/privacy", get(privacy_handler))
-        .route("/forget", get(forget_handler))
-        .route("/assets/schlift-theme.css", get(theme_css_handler))
-        .route("/assets/schlift-wobble.js", get(wobble_js_handler))
-        .route("/api/forget/start", post(forget_start_handler))
-        .route("/api/forget/confirm", post(forget_confirm_handler))
+        .route("/api/health", get(|| async { "ok" }))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
-        .layer(Extension(auth_state))
-        .layer(Extension(app_state))
         .layer(cors);
 
     println!("Server listening on {} (gRPC-Web)", addr);
@@ -138,102 +119,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     .await?;
 
     Ok(())
-}
-
-async fn root_handler() -> Html<&'static str> {
-    Html(include_str!("../index.html"))
-}
-
-async fn privacy_handler() -> Html<&'static str> {
-    Html(include_str!("../privacy.html"))
-}
-
-async fn forget_handler() -> Html<&'static str> {
-    Html(include_str!("../forget.html"))
-}
-
-async fn theme_css_handler() -> impl IntoResponse {
-    (
-        [(CONTENT_TYPE, "text/css; charset=utf-8")],
-        include_str!("../web/schlift-theme.css"),
-    )
-}
-
-async fn wobble_js_handler() -> impl IntoResponse {
-    (
-        [(CONTENT_TYPE, "application/javascript; charset=utf-8")],
-        include_str!("../web/schlift-wobble.js"),
-    )
-}
-
-#[derive(Serialize)]
-struct ForgetStartResponse {
-    challenge_id: String,
-    options_json: serde_json::Value,
-}
-
-#[derive(Deserialize)]
-struct ForgetConfirmRequest {
-    challenge_id: String,
-    credential_json: serde_json::Value,
-}
-
-#[derive(Serialize)]
-struct ForgetConfirmResponse {
-    deleted_user_id: String,
-}
-
-async fn forget_start_handler(
-    Extension(auth_state): Extension<Arc<AuthState>>,
-) -> Result<Json<ForgetStartResponse>, (StatusCode, String)> {
-    let (challenge_id, options) = auth_state
-        .start_authentication()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-    let options_json = serde_json::to_value(options)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(Json(ForgetStartResponse {
-        challenge_id,
-        options_json,
-    }))
-}
-
-async fn forget_confirm_handler(
-    Extension(auth_state): Extension<Arc<AuthState>>,
-    Extension(app_state): Extension<Arc<AppState>>,
-    Json(req): Json<ForgetConfirmRequest>,
-) -> Result<Json<ForgetConfirmResponse>, (StatusCode, String)> {
-    let credential: PublicKeyCredential =
-        serde_json::from_value(req.credential_json).map_err(|e| {
-            (
-                StatusCode::BAD_REQUEST,
-                format!("Invalid credential JSON: {}", e),
-            )
-        })?;
-
-    let (session_token, user_id, _) = auth_state
-        .finish_authentication(&req.challenge_id, &credential)
-        .await
-        .map_err(|e| (StatusCode::UNAUTHORIZED, e))?;
-
-    auth_state
-        .central_db
-        .delete_user_account_and_data(&user_id)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    app_state.remove_user_data(&user_id);
-
-    let _ = auth_state
-        .central_db
-        .invalidate_auth_session(&session_token)
-        .await;
-
-    Ok(Json(ForgetConfirmResponse {
-        deleted_user_id: user_id,
-    }))
 }
 
 async fn assetlinks_handler() -> Json<serde_json::Value> {

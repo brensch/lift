@@ -4,6 +4,7 @@ import 'grpc_client.dart';
 
 class MultiplayerServiceWrapper {
   final GrpcClient _client;
+  static const Duration _sessionTimeout = Duration(seconds: 10);
 
   MultiplayerServiceWrapper(this._client);
 
@@ -22,7 +23,12 @@ class MultiplayerServiceWrapper {
   }) async {
     final req = GetCurrentSessionRequest();
     if (sessionId != null) req.sessionId = sessionId;
-    return await _client.multiplayerService.getCurrentSession(req);
+    return await _client.multiplayerService
+        .getCurrentSession(req)
+        .timeout(
+          _sessionTimeout,
+          onTimeout: () => throw Exception('Timed out loading group session.'),
+        );
   }
 
   Future<void> updateActiveWorkout(String workoutId) async {

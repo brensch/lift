@@ -1,9 +1,5 @@
 version: v2
 plugins:
-  - remote: buf.build/connectrpc/es
-    out: ../web/src/gen
-    opt:
-      - target=ts
   - remote: buf.build/bufbuild/es
     out: ../web/src/gen
     opt:

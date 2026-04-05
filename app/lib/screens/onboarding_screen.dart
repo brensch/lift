@@ -315,7 +315,7 @@ class _UnitStep extends StatelessWidget {
           const SizedBox(height: 20),
           _UnitCard(
             title: 'Pounds',
-            subtitle: 'Best for US gyms and standard 45 lb bars',
+            subtitle: 'Best for making you think you lift more because the number is larger.',
             badge: 'LB',
             selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
@@ -323,7 +323,7 @@ class _UnitStep extends StatelessWidget {
           const SizedBox(height: 10),
           _UnitCard(
             title: 'Kilograms',
-            subtitle: 'Best for international gyms and standard 20 kg bars',
+            subtitle: 'Used in science and everywhere except America',
             badge: 'KG',
             selected: selectedUnit == WeightUnit.WEIGHT_UNIT_KG,
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),

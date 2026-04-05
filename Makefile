@@ -36,7 +36,7 @@ run-backend-release:
 	cargo run --release --bin schlift --features test-auth
 
 run-frontend:
-	cd web && $(BUN) run dev
+	cd web && npm run dev
 
 ADB = $(HOME)/android-sdk/platform-tools/adb
 
@@ -396,7 +396,7 @@ run-prod:
 
 check:
 	cargo check
-	cd web && $(BUN) run build
+	cd web && npm run build
 
 check-android-java:
 	@bash -ec '\
@@ -439,7 +439,7 @@ install-deps:
 	@echo "=== Installing Flutter app dependencies ==="
 	cd app && $(FLUTTER) pub get
 	@echo "=== Installing web dependencies ==="
-	cd web && $(BUN) install
+	cd web && npm install
 	@echo "=== Checking Android Java toolchain ==="
 	$(MAKE) check-android-java
 	@echo "=== Done ==="

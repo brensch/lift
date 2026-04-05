@@ -82,6 +82,11 @@ message TestLoginRequest {
   string username = 1;
 }
 
+message DeleteAccountRequest {}
+message DeleteAccountResponse {
+  string deleted_user_id = 1;
+}
+
 service AuthService {
   rpc RegisterStart(RegisterStartRequest) returns (RegisterStartResponse);
   rpc RegisterFinish(RegisterFinishRequest) returns (AuthResponse);
@@ -95,4 +100,5 @@ service AuthService {
   rpc PasswordRegister(PasswordRegisterRequest) returns (AuthResponse);
   rpc PasswordLogin(PasswordLoginRequest) returns (AuthResponse);
   rpc TestLogin(TestLoginRequest) returns (AuthResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
 }

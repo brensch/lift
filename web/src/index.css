@@ -1,0 +1,71 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-hover: #1a1a1a;
+  --color-text: #fafafa;
+  --color-muted: #a3a3a3;
+  --color-border: #262626;
+  --color-primary: #fafafa;
+  --color-on-primary: #0a0a0a;
+  --color-danger: #ef4444;
+  --color-danger-bg: #3a0d10;
+  --color-danger-border: #7f1d1d;
+  --color-danger-text: #fecaca;
+  --color-ok: #22c55e;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --font-sans: "Manrope", "Avenir Next", "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-display: "Space Grotesk", "Manrope", sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(
+        circle at 10% 5%,
+        rgba(127, 127, 127, 0.08),
+        transparent 45%
+      ),
+      var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@keyframes wobbly-move {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(-0.8px, 0.5px) rotate(-0.005rad);
+  }
+  66% {
+    transform: translate(0.5px, -0.8px) rotate(0.008rad);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

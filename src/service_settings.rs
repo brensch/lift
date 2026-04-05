@@ -89,9 +89,9 @@ impl SettingsService for MySettingsService {
 
     async fn get_training_program_catalog(
         &self,
-        request: Request<GetTrainingProgramCatalogRequest>,
+        _request: Request<GetTrainingProgramCatalogRequest>,
     ) -> Result<Response<GetTrainingProgramCatalogResponse>, Status> {
-        let _user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        // Public endpoint — catalog is static data, no auth required
 
         let mut programs = catalog_regime_types()
             .into_iter()

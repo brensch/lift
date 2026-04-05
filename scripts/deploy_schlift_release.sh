@@ -12,7 +12,7 @@ INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift}"
 LIFT_USER="${LIFT_USER:-opc}"
 LIFT_GROUP="${LIFT_GROUP:-${LIFT_USER}}"
 SERVICE_NAME="${SERVICE_NAME:-schlift.service}"
-HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:50051/}"
+HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:50051/api/health}"
 
 if [[ -z "${ARTIFACT_DIR}" || -z "${RELEASE_ID}" ]]; then
   echo "ARTIFACT_DIR and RELEASE_ID are required" >&2
@@ -20,6 +20,8 @@ if [[ -z "${ARTIFACT_DIR}" || -z "${RELEASE_ID}" ]]; then
 fi
 
 BINARY_SRC="${ARTIFACT_DIR}/schlift"
+WEB_SRC="${WEB_DIR:-}"
+
 if [[ ! -f "${BINARY_SRC}" ]]; then
   echo "binary not found at ${BINARY_SRC}" >&2
   exit 1
@@ -31,9 +33,16 @@ if [[ -L "${INSTALL_ROOT}/current" ]]; then
   PREVIOUS_TARGET="$(readlink -f "${INSTALL_ROOT}/current")"
 fi
 
-mkdir -p "${RELEASE_DIR}" "${INSTALL_ROOT}/shared/data"
+mkdir -p "${RELEASE_DIR}" "${INSTALL_ROOT}/shared/data" "${INSTALL_ROOT}/web"
 install -m 0755 "${BINARY_SRC}" "${RELEASE_DIR}/schlift"
-chown -R "${LIFT_USER}:${LIFT_GROUP}" "${RELEASE_DIR}" "${INSTALL_ROOT}/shared"
+
+# Deploy web frontend if provided
+if [[ -n "${WEB_SRC}" && -d "${WEB_SRC}" ]]; then
+  rsync -a --delete "${WEB_SRC}/" "${INSTALL_ROOT}/web/"
+  echo "deployed web frontend to ${INSTALL_ROOT}/web"
+fi
+
+chown -R "${LIFT_USER}:${LIFT_GROUP}" "${RELEASE_DIR}" "${INSTALL_ROOT}/shared" "${INSTALL_ROOT}/web"
 
 ln -sfn "${RELEASE_DIR}" "${INSTALL_ROOT}/current"
 

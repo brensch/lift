@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
@@ -31,6 +30,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Loading state
   bool _isLoading = false;
+  String? _lastLoadError;
+  bool _lastLoadWasUnauthorized = false;
 
   // Active workout state
   Workout? _activeWorkout;
@@ -356,13 +357,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _handleError(Object e) {
-    if (e is GrpcError && e.code == StatusCode.unauthenticated) return;
+    if (isUnauthenticatedError(e)) return;
     final message = cleanErrorMessage(e);
     ErrorModalService.showError(message.toUpperCase());
   }
 
   // Loading state
   bool get isLoading => _isLoading;
+  String? get lastLoadError => _lastLoadError;
+  bool get lastLoadWasUnauthorized => _lastLoadWasUnauthorized;
 
   // Active workout getters
   Workout? get workout => _activeWorkout;
@@ -606,6 +609,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> loadActiveWorkout(String userId) async {
     _isLoading = true;
+    _lastLoadError = null;
+    _lastLoadWasUnauthorized = false;
     notifyListeners();
     try {
       final active = await _service.getActiveWorkout();
@@ -643,6 +648,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ? proposedSchedule.regimeContext
           : null;
     } catch (e) {
+      _lastLoadWasUnauthorized = isUnauthenticatedError(e);
+      _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
     } finally {
       _isLoading = false;

@@ -1,4 +1,12 @@
-# Builder stage
+# Web frontend build
+FROM node:22-bookworm-slim AS web-builder
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
+# Rust backend build
 FROM rust:1.93.0-bookworm AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y protobuf-compiler && rm -rf /var/lib/apt/lists/*
@@ -13,8 +21,6 @@ RUN mkdir -p src && \
 
 # Build actual project
 COPY src/ ./src/
-COPY index.html privacy.html forget.html ./
-COPY web/ ./web/
 RUN touch src/main.rs src/lib.rs && cargo build --release
 
 # Runtime stage
@@ -23,6 +29,7 @@ RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib
 WORKDIR /app
 
 COPY --from=builder /app/target/release/schlift /app/schlift
+COPY --from=web-builder /web/dist /opt/schlift/web
 RUN mkdir -p /app/user_dbs && chmod 777 /app/user_dbs
 
 EXPOSE 50051

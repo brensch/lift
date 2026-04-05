@@ -137,6 +137,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> expireSession({String? message}) async {
+    _sessionToken = null;
+    _userId = null;
+    _username = null;
+    _grpcClient.setToken(null);
+    _isLoading = false;
+    _error = message;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('liftSessionToken');
+    await prefs.remove('liftUserId');
+    await prefs.remove('liftUsername');
+    notifyListeners();
+  }
+
   Future<void> _saveSession(AuthResponse response) async {
     _sessionToken = response.sessionToken;
     _userId = response.userId;
