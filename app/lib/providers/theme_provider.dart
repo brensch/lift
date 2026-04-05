@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  static const _key = 'lift-theme';
+  static const _key = 'schlift-theme';
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _hasLocalOverride = false;

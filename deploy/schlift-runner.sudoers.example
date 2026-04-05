@@ -1,6 +1,6 @@
 # Replace the runner workspace path if your self-hosted runner checks out elsewhere.
 opc ALL=(root) NOPASSWD:SETENV: \
-  /opt/actions-runner/_work/lift/lift/scripts/install_lift_service.sh, \
-  /opt/actions-runner/_work/lift/lift/scripts/deploy_lift_release.sh, \
+  /opt/actions-runner/_work/schlift/schlift/scripts/install_schlift_service.sh, \
+  /opt/actions-runner/_work/schlift/schlift/scripts/deploy_schlift_release.sh, \
   /usr/bin/systemctl, \
   /usr/bin/journalctl

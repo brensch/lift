@@ -27,11 +27,11 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             session.startActivity(with: Date())
             builder.beginCollection(withStart: Date()) { _, error in
                 if let error = error {
-                    print("LiftWatch: Failed to begin workout collection: \(error)")
+                    print("SchliftWatch: Failed to begin workout collection: \(error)")
                 }
             }
         } catch {
-            print("LiftWatch: Failed to create workout session: \(error)")
+            print("SchliftWatch: Failed to create workout session: \(error)")
         }
     }
 
@@ -40,11 +40,11 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         session.end()
         builder?.endCollection(withEnd: Date()) { [weak self] _, error in
             if let error = error {
-                print("LiftWatch: Failed to end workout collection: \(error)")
+                print("SchliftWatch: Failed to end workout collection: \(error)")
             }
             self?.builder?.finishWorkout { _, error in
                 if let error = error {
-                    print("LiftWatch: Failed to finish workout: \(error)")
+                    print("SchliftWatch: Failed to finish workout: \(error)")
                 }
             }
         }
@@ -59,7 +59,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        print("LiftWatch: Workout session failed: \(error)")
+        print("SchliftWatch: Workout session failed: \(error)")
         session = nil
         builder = nil
     }

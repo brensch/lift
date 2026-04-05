@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::env;
 
 use chrono::DateTime;
-use lift::workout::v1::{CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout};
+use schlift::workout::v1::{CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -151,17 +151,17 @@ struct EndStep {
 
 fn exercise_name_to_int(name: &str) -> i32 {
     match name.to_lowercase().replace(' ', "_").as_str() {
-        "squat" => lift::workout::v1::Exercise::Squat as i32,
-        "bench_press" => lift::workout::v1::Exercise::BenchPress as i32,
-        "deadlift" => lift::workout::v1::Exercise::Deadlift as i32,
-        "overhead_press" | "ohp" => lift::workout::v1::Exercise::OverheadPress as i32,
-        "barbell_row" => lift::workout::v1::Exercise::BarbellRow as i32,
-        "hip_thrust" => lift::workout::v1::Exercise::HipThrust as i32,
-        "bulgarian_split_squat" => lift::workout::v1::Exercise::BulgarianSplitSquat as i32,
-        "romanian_deadlift" | "rdl" => lift::workout::v1::Exercise::RomanianDeadlift as i32,
-        "glute_bridge" => lift::workout::v1::Exercise::GluteBridge as i32,
-        "lunge" => lift::workout::v1::Exercise::Lunge as i32,
-        "leg_curl" => lift::workout::v1::Exercise::LegCurl as i32,
+        "squat" => schlift::workout::v1::Exercise::Squat as i32,
+        "bench_press" => schlift::workout::v1::Exercise::BenchPress as i32,
+        "deadlift" => schlift::workout::v1::Exercise::Deadlift as i32,
+        "overhead_press" | "ohp" => schlift::workout::v1::Exercise::OverheadPress as i32,
+        "barbell_row" => schlift::workout::v1::Exercise::BarbellRow as i32,
+        "hip_thrust" => schlift::workout::v1::Exercise::HipThrust as i32,
+        "bulgarian_split_squat" => schlift::workout::v1::Exercise::BulgarianSplitSquat as i32,
+        "romanian_deadlift" | "rdl" => schlift::workout::v1::Exercise::RomanianDeadlift as i32,
+        "glute_bridge" => schlift::workout::v1::Exercise::GluteBridge as i32,
+        "lunge" => schlift::workout::v1::Exercise::Lunge as i32,
+        "leg_curl" => schlift::workout::v1::Exercise::LegCurl as i32,
         _ => 0,
     }
 }
@@ -289,7 +289,7 @@ fn build_initial_state(
 fn maybe_dump_proposed_snapshot(
     workout_idx: usize,
     step_desc: &str,
-    resp: &lift::workout::v1::GetProposedWorkoutScheduleResponse,
+    resp: &schlift::workout::v1::GetProposedWorkoutScheduleResponse,
 ) {
     if env::var("LIFT_SNAPSHOT_PROPOSED").ok().as_deref() != Some("1") {
         return;

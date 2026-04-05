@@ -1,6 +1,6 @@
 use crate::regimes::SessionHistory;
 use dashmap::DashMap;
-use lift::workout::v1::{
+use schlift::workout::v1::{
     CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
 };
 use sqlx::{
@@ -52,8 +52,8 @@ fn row_to_workout(row: sqlx::sqlite::SqliteRow) -> Workout {
     }
 }
 
-fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> lift::workout::v1::ExerciseGroup {
-    lift::workout::v1::ExerciseGroup {
+fn row_to_exercise_group(row: sqlx::sqlite::SqliteRow) -> schlift::workout::v1::ExerciseGroup {
+    schlift::workout::v1::ExerciseGroup {
         id: row.get("id"),
         workout_id: row.get("workout_id"),
         name: row.get("name"),
@@ -149,7 +149,7 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 
 pub enum WriteCommand {
     CreateWorkout(String, Workout),
-    InsertGroupWithSets(String, lift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
+    InsertGroupWithSets(String, schlift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
     UpdateWorkoutEnd(String, String, i64),
@@ -1108,7 +1108,7 @@ impl CentralDb {
     pub async fn insert_exercise_group_with_sets(
         &self,
         user_id: &str,
-        group: &lift::workout::v1::ExerciseGroup,
+        group: &schlift::workout::v1::ExerciseGroup,
         sets: &[ProposedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         self.write_tx.send(WriteCommand::InsertGroupWithSets(
@@ -1257,9 +1257,9 @@ impl CentralDb {
         &self,
         user_id: &str,
         workout_id: &str,
-    ) -> Result<Vec<lift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>>
+    ) -> Result<Vec<schlift::workout::v1::ExerciseGroup>, Box<dyn std::error::Error + Send + Sync>>
     {
-        let mut groups: Vec<lift::workout::v1::ExerciseGroup> = sqlx::query(
+        let mut groups: Vec<schlift::workout::v1::ExerciseGroup> = sqlx::query(
             "SELECT id, workout_id, name, instruction, sets, interleave_warmups, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup \
              FROM exercise_groups WHERE user_id = ? AND workout_id = ? ORDER BY workout_order",
         )
@@ -1434,7 +1434,7 @@ impl CentralDb {
     ) -> Result<
         (
             Vec<(String, Workout)>,
-            Vec<lift::workout::v1::ExerciseGroup>,
+            Vec<schlift::workout::v1::ExerciseGroup>,
             Vec<ProposedSet>,
             Vec<CompletedSet>,
         ),
@@ -1704,7 +1704,7 @@ impl CentralDb {
         &self,
         user_id: &str,
         workout: &Workout,
-        exercise_groups: &[lift::workout::v1::ExerciseGroup],
+        exercise_groups: &[schlift::workout::v1::ExerciseGroup],
         proposed_sets: &[ProposedSet],
         completed_sets: &[CompletedSet],
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

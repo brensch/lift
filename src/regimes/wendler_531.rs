@@ -1,4 +1,4 @@
-use lift::workout::v1::{
+use schlift::workout::v1::{
     Exercise, ExerciseTypeConfig, ProposedExerciseGroup, RegimeContext, TrainingProgramStateSchema,
     WorkingSetSpec,
 };
@@ -15,7 +15,7 @@ use crate::weight_units::{
 use super::{
     exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
-use lift::workout::v1::StateFieldKind;
+use schlift::workout::v1::StateFieldKind;
 
 pub struct Wendler531Regime;
 

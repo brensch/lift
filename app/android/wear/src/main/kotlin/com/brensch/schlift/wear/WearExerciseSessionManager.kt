@@ -1,4 +1,4 @@
-package com.brensch.lift.wear
+package com.brensch.schlift.wear
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -35,13 +35,13 @@ class WearExerciseSessionManager(private val context: Context) {
                         .build()
                     exerciseClient.startExerciseAsync(config).await()
                     active = true
-                    Log.i("LiftWear", "Exercise session started")
+                    Log.i("SchliftWear", "Exercise session started")
                 }.onFailure {
                     if (it is SecurityException) {
-                        Log.e("LiftWear", "Missing permissions for exercise session, stopping retries", it)
+                        Log.e("SchliftWear", "Missing permissions for exercise session, stopping retries", it)
                         return@launch
                     }
-                    Log.e("LiftWear", "Failed to start exercise session", it)
+                    Log.e("SchliftWear", "Failed to start exercise session", it)
                 }
                 if (!active) {
                     delay(5000)
@@ -57,9 +57,9 @@ class WearExerciseSessionManager(private val context: Context) {
         scope.launch {
             runCatching {
                 exerciseClient.endExerciseAsync().await()
-                Log.i("LiftWear", "Exercise session ended")
+                Log.i("SchliftWear", "Exercise session ended")
             }.onFailure {
-                Log.e("LiftWear", "Failed to end exercise session", it)
+                Log.e("SchliftWear", "Failed to end exercise session", it)
             }
             active = false
         }
@@ -79,7 +79,7 @@ class WearExerciseSessionManager(private val context: Context) {
             "android.permission.health.READ_HEART_RATE",
         ) == PackageManager.PERMISSION_GRANTED
         Log.i(
-            "LiftWear",
+            "SchliftWear",
             "Permissions body=$bodySensors activity=$activityRecognition readHr=$readHeartRate",
         )
     }

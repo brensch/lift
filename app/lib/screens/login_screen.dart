@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                     children: [
                       const WobblyText(
-                        text: 'LIFT',
+                        text: 'SCHLIFT',
                         fontSize: 48,
                         maxOffset: 4,
                       ),

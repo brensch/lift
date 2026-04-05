@@ -11,8 +11,8 @@ use crate::weight_units::{
     annotate_state_with_weight_unit, get_user_weight_unit, strip_weight_unit_context, AppWeightUnit,
 };
 #[cfg(test)]
-use lift::workout::v1::UpdateExerciseGroupRequest;
-use lift::workout::v1::{
+use schlift::workout::v1::UpdateExerciseGroupRequest;
+use schlift::workout::v1::{
     workout_service_server::WorkoutService, AppendWorkoutHeartRateRequest,
     AppendWorkoutHeartRateResponse, CancelProposedSetRequest, CancelProposedSetResponse,
     CompleteSetRequest, CompleteSetResponse, CompletedSet, DeleteCompletedSetRequest,
@@ -1793,8 +1793,8 @@ impl WorkoutService for MyWorkoutService {
 
         // ── State transition: compute + persist new program state ─────────────
         if let Ok(Some(state_record)) = self.central_db.get_latest_program_state(&user_id).await {
-            let regime_type = lift::workout::v1::RegimeType::try_from(state_record.regime_type)
-                .unwrap_or(lift::workout::v1::RegimeType::Linear5x5);
+            let regime_type = schlift::workout::v1::RegimeType::try_from(state_record.regime_type)
+                .unwrap_or(schlift::workout::v1::RegimeType::Linear5x5);
             let regime = get_regime(regime_type);
             let current_state = parse_state_payload(&state_record.state_payload_json);
             let weight_unit = get_user_weight_unit(&self.central_db, &user_id)
@@ -1818,7 +1818,7 @@ impl WorkoutService for MyWorkoutService {
             for cs in &completed_sets {
                 if let Some(ps) = proposed_sets.iter().find(|p| p.id == cs.proposed_set_id) {
                     if !ps.warmup && !ps.cancelled {
-                        if let Ok(ex) = lift::workout::v1::Exercise::try_from(ps.exercise) {
+                        if let Ok(ex) = schlift::workout::v1::Exercise::try_from(ps.exercise) {
                             set_results.push(WorkingSetResult {
                                 exercise: ex,
                                 target_reps: ps.target_reps,

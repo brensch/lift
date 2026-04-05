@@ -29,13 +29,13 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build backend release binary
-        run: cargo build --release --bin lift
+        run: cargo build --release --bin schlift
 
       - name: Package backend artifact
         run: |
           mkdir -p dist
-          cp target/release/lift dist/lift
-          chmod 755 dist/lift
+          cp target/release/schlift dist/schlift
+          chmod 755 dist/schlift
           printf '%s\n' "${GITHUB_SHA}" > dist/release.txt
 
       - name: Upload backend artifact
@@ -66,16 +66,16 @@ jobs:
           path: dist/backend-linux-arm64
 
       - name: Install systemd unit
-        run: sudo ./scripts/install_lift_service.sh
+        run: sudo ./scripts/install_schlift_service.sh
 
       - name: Deploy release
         run: |
           ARTIFACT_DIR="${PWD}/dist/backend-linux-arm64" \
           RELEASE_ID="${GITHUB_SHA}" \
           sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
-            ./scripts/deploy_lift_release.sh
+            ./scripts/deploy_schlift_release.sh
 
       - name: Show deployed status
         run: |
-          sudo systemctl status --no-pager lift.service
-          sudo journalctl -u lift.service -n 50 --no-pager
+          sudo systemctl status --no-pager schlift.service
+          sudo journalctl -u schlift.service -n 50 --no-pager

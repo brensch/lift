@@ -1,6 +1,6 @@
 {
-    "name": "lift",
-    "short_name": "lift",
+    "name": "schlift",
+    "short_name": "schlift",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

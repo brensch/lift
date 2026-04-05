@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use lift::workout::v1::{CompletedSet, ParticipantStatus, ProposedSet};
+use schlift::workout::v1::{CompletedSet, ParticipantStatus, ProposedSet};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticipantProgress {

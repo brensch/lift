@@ -228,7 +228,7 @@ class AuthService {
   }
 
   // TODO: iOS passkey support — add Associated Domains entitlement
-  // (webcredentials:lift.snek2.ddns.net) and serve apple-app-site-association
+  // (webcredentials:schlift.snek2.ddns.net) and serve apple-app-site-association
 
   Future<void> logout(String token) async {
     await grpcClient.authService.logout(LogoutRequest());

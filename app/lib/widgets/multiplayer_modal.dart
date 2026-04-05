@@ -71,7 +71,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
   Future<void> _shareSession(String joinId) async {
     try {
       await Share.share(
-        'Join my workout on Lift: https://lift.snek2.ddns.net/?join=$joinId',
+        'Join my workout on Schlift: https://schlift.snek2.ddns.net/?join=$joinId',
       );
     } catch (e) {
       debugPrint('Error sharing: $e');
@@ -89,7 +89,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
   Future<void> _copyLink(String joinId) async {
     await Clipboard.setData(
-      ClipboardData(text: 'https://lift.snek2.ddns.net/?join=$joinId'),
+      ClipboardData(text: 'https://schlift.snek2.ddns.net/?join=$joinId'),
     );
     if (mounted) {
       ScaffoldMessenger.of(
@@ -174,7 +174,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 ),
                 child: Center(
                   child: QrImageView(
-                    data: 'https://lift.snek2.ddns.net/?join=$userId',
+                    data: 'https://schlift.snek2.ddns.net/?join=$userId',
                     version: QrVersions.auto,
                     size: 200.0,
                   ),

@@ -1,4 +1,4 @@
-# lift
+# schlift
 
 A new Flutter project.
 

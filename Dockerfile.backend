@@ -22,10 +22,10 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY --from=builder /app/target/release/lift /app/lift
+COPY --from=builder /app/target/release/schlift /app/schlift
 RUN mkdir -p /app/user_dbs && chmod 777 /app/user_dbs
 
 EXPOSE 50051
 VOLUME /app/user_dbs
 
-CMD ["/app/lift"]
+CMD ["/app/schlift"]

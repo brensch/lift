@@ -1,4 +1,4 @@
-use lift::workout::v1::{
+use schlift::workout::v1::{
     Exercise, ExerciseTypeConfig, ProposedExerciseGroup, RegimeContext, TrainingProgramStateSchema,
     WorkingSetSpec,
 };
@@ -13,7 +13,7 @@ use crate::weight_units::{add_unit_increment, round_to_unit_increment, weight_un
 use super::{
     exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
-use lift::workout::v1::StateFieldKind;
+use schlift::workout::v1::StateFieldKind;
 
 // ─── Stage prescriptions ──────────────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 use super::*;
 use crate::service_workout::MyWorkoutService;
 use crate::state::AppState;
-use lift::workout::v1::workout_service_server::WorkoutService;
-use lift::workout::v1::{
+use schlift::workout::v1::workout_service_server::WorkoutService;
+use schlift::workout::v1::{
     CancelProposedSetRequest, CompleteSetRequest, CreateExerciseGroupRequest,
     DeleteCompletedSetRequest, EndWorkoutRequest, ExerciseGroup, ExerciseTypeConfig,
     GetCurrentSessionRequest, GetWorkoutRequest, JoinUserRequest, LeaveSessionRequest,
@@ -111,7 +111,7 @@ fn replace_req_from_create(req: CreateExerciseGroupRequest) -> ReplaceExerciseGr
 
 #[tokio::test]
 async fn api_flow_exposes_next_up_after_mid_workout_group_update() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state);
@@ -227,7 +227,7 @@ async fn api_flow_exposes_next_up_after_mid_workout_group_update() {
 
 #[tokio::test]
 async fn api_flow_exposes_group_session_next_up_user() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state.clone());
@@ -387,7 +387,7 @@ async fn api_flow_exposes_group_session_next_up_user() {
 
 #[tokio::test]
 async fn finished_user_leaves_active_membership_but_remains_visible_in_session() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state.clone());
@@ -535,7 +535,7 @@ async fn finished_user_leaves_active_membership_but_remains_visible_in_session()
 
 #[tokio::test]
 async fn next_up_skips_user_after_leaving_session_membership() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state.clone());
@@ -675,7 +675,7 @@ async fn next_up_skips_user_after_leaving_session_membership() {
 
 #[tokio::test]
 async fn api_flow_cancel_warmup_tracks_plan_change_stats() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state);
@@ -793,7 +793,7 @@ async fn api_flow_cancel_warmup_tracks_plan_change_stats() {
 
 #[tokio::test]
 async fn persisted_workout_sets_keep_rest_values_across_db_reload() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state);
@@ -900,7 +900,7 @@ async fn persisted_workout_sets_keep_rest_values_across_db_reload() {
 
 #[tokio::test]
 async fn full_workout_flow_create_edit_reorder_complete_and_verify_db_state() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state);
@@ -1283,7 +1283,7 @@ async fn full_workout_flow_create_edit_reorder_complete_and_verify_db_state() {
 
 #[tokio::test]
 async fn full_workout_flow_cancel_warmup_delete_completed_and_verify_db_state() {
-    let temp_dir = std::env::temp_dir().join(format!("lift-test-{}", uuid::Uuid::new_v4()));
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
     let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
     let state = Arc::new(AppState::new());
     let workout_service = MyWorkoutService::new(central_db.clone(), state);

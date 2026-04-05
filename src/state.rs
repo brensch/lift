@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use lift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, User, Workout};
+use schlift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, User, Workout};
 use std::collections::HashSet;
 use std::sync::Arc;
 

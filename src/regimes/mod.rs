@@ -4,7 +4,7 @@ pub mod linear_5x5;
 pub mod test_harness;
 pub mod wendler_531;
 
-use lift::workout::v1::{
+use schlift::workout::v1::{
     Exercise, ExerciseStatus, MuscleGroup, ProposedExerciseGroup, RegimeType, RestConfig,
     TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink, WorkingSetSpec,
 };
@@ -26,7 +26,7 @@ pub struct ExerciseConfig {
     pub muscle_groups: &'static [MuscleGroup],
     pub default_sets: i32,
     pub default_reps: i32,
-    pub category: lift::workout::v1::ExerciseCategory,
+    pub category: schlift::workout::v1::ExerciseCategory,
     pub always_include: bool,
 }
 
@@ -37,7 +37,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Compound,
+        category: schlift::workout::v1::ExerciseCategory::Compound,
         always_include: true,
     },
     ExerciseConfig {
@@ -50,7 +50,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         ],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Compound,
+        category: schlift::workout::v1::ExerciseCategory::Compound,
         always_include: false,
     },
     ExerciseConfig {
@@ -63,7 +63,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         ],
         default_sets: 1,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Compound,
+        category: schlift::workout::v1::ExerciseCategory::Compound,
         always_include: false,
     },
     ExerciseConfig {
@@ -72,7 +72,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Shoulders, MuscleGroup::Triceps],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Compound,
+        category: schlift::workout::v1::ExerciseCategory::Compound,
         always_include: false,
     },
     ExerciseConfig {
@@ -81,7 +81,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Back, MuscleGroup::Biceps],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Compound,
+        category: schlift::workout::v1::ExerciseCategory::Compound,
         always_include: false,
     },
     ExerciseConfig {
@@ -90,7 +90,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Glutes, MuscleGroup::Hamstrings],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
     ExerciseConfig {
@@ -99,7 +99,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
     ExerciseConfig {
@@ -112,7 +112,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         ],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
     ExerciseConfig {
@@ -121,7 +121,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Glutes],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
     ExerciseConfig {
@@ -130,7 +130,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Quads, MuscleGroup::Glutes],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
     ExerciseConfig {
@@ -139,7 +139,7 @@ pub const EXERCISE_CONFIGS: &[ExerciseConfig] = &[
         muscle_groups: &[MuscleGroup::Hamstrings],
         default_sets: 5,
         default_reps: 5,
-        category: lift::workout::v1::ExerciseCategory::Auxiliary,
+        category: schlift::workout::v1::ExerciseCategory::Auxiliary,
         always_include: false,
     },
 ];
@@ -199,7 +199,7 @@ pub trait WorkoutRegime: Send + Sync {
     fn catalog_meta(&self) -> ProgramCatalogMeta;
 
     /// Return the editable state schema for this regime (for UI rendering).
-    fn state_schema(&self) -> lift::workout::v1::TrainingProgramStateSchema;
+    fn state_schema(&self) -> schlift::workout::v1::TrainingProgramStateSchema;
 
     /// Return a default initial state (used when no state exists yet or for onboarding defaults).
     fn default_state(&self) -> StatePayload;
@@ -305,7 +305,7 @@ pub fn make_exercise_type_config_amrap(
     reps: i32,
     include_warmup: bool,
     last_set_amrap: bool,
-) -> lift::workout::v1::ExerciseTypeConfig {
+) -> schlift::workout::v1::ExerciseTypeConfig {
     let count = sets.max(1);
     let working_sets = (0..count)
         .map(|idx| {
@@ -323,7 +323,7 @@ pub fn make_exercise_type_config_amrap(
             }
         })
         .collect();
-    lift::workout::v1::ExerciseTypeConfig {
+    schlift::workout::v1::ExerciseTypeConfig {
         exercise: exercise as i32,
         start_weight: weight,
         end_weight: weight,
@@ -413,7 +413,7 @@ pub fn build_session_readiness(
     regime_display_name: &str,
     days_per_week: i32,
     now: i64,
-) -> lift::workout::v1::SessionReadiness {
+) -> schlift::workout::v1::SessionReadiness {
     let next_session_at = last_session_at + recovery_seconds;
     let seconds_until = next_session_at - now;
     let is_ready = now >= next_session_at;
@@ -429,7 +429,7 @@ pub fn build_session_readiness(
         days_per_week,
         recovery_seconds / 3600
     );
-    lift::workout::v1::SessionReadiness {
+    schlift::workout::v1::SessionReadiness {
         next_session_at,
         last_session_at,
         readiness_label: label,

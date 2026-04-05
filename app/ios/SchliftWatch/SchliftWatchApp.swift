@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct LiftWatchApp: App {
+struct SchliftWatchApp: App {
     @StateObject private var phoneConnector = PhoneConnector()
     @StateObject private var heartRateStreamer = HeartRateStreamer()
 

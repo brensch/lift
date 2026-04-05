@@ -10,7 +10,7 @@
       "runDebug": [
         "bash", 
         "-c", 
-        "if [ -d app ]; then BIN=$(pwd)/app/build/linux/x64/debug/bundle/lift; TMP=$(pwd)/.tmp/linux-1; else BIN=$(pwd)/build/linux/x64/debug/bundle/lift; TMP=$(pwd)/../.tmp/linux-1; fi; XDG_DATA_HOME=$TMP $BIN --dart-define=INSTANCE=1"
+        "if [ -d app ]; then BIN=$(pwd)/app/build/linux/x64/debug/bundle/schlift; TMP=$(pwd)/.tmp/linux-1; else BIN=$(pwd)/build/linux/x64/debug/bundle/schlift; TMP=$(pwd)/../.tmp/linux-1; fi; XDG_DATA_HOME=$TMP $BIN --dart-define=INSTANCE=1"
       ],
       "postBuild": null,
       "install": ["ls", "/"],
@@ -28,7 +28,7 @@
       "runDebug": [
         "bash", 
         "-c", 
-        "if [ -d app ]; then BIN=$(pwd)/app/build/linux/x64/debug/bundle/lift; TMP=$(pwd)/.tmp/linux-2; else BIN=$(pwd)/build/linux/x64/debug/bundle/lift; TMP=$(pwd)/../.tmp/linux-2; fi; XDG_DATA_HOME=$TMP $BIN --dart-define=INSTANCE=2"
+        "if [ -d app ]; then BIN=$(pwd)/app/build/linux/x64/debug/bundle/schlift; TMP=$(pwd)/.tmp/linux-2; else BIN=$(pwd)/build/linux/x64/debug/bundle/schlift; TMP=$(pwd)/../.tmp/linux-2; fi; XDG_DATA_HOME=$TMP $BIN --dart-define=INSTANCE=2"
       ],
       "postBuild": null,
       "install": ["ls", "/"],

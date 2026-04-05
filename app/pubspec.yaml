@@ -1,5 +1,5 @@
-name: lift
-description: "Lift workout tracker"
+name: schlift
+description: "Schlift workout tracker"
 publish_to: 'none'
 version: 0.7.0+7
 

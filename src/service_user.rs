@@ -1,5 +1,5 @@
 use crate::db::CentralDb;
-use lift::workout::v1::{
+use schlift::workout::v1::{
     user_service_server::UserService, CreateUserRequest, CreateUserResponse, GetUserRequest,
     GetUserResponse,
 };

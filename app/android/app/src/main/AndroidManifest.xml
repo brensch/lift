@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY"/>
     <application
-        android:label="lift"
+        android:label="schlift"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
@@ -48,7 +48,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="lift.snek2.ddns.net" />
+                <data android:scheme="https" android:host="schlift.snek2.ddns.net" />
             </intent-filter>
         </activity>
         <activity-alias
@@ -64,7 +64,7 @@
         <!-- Digital Asset Links for passkey/credential manager -->
         <meta-data
             android:name="asset_statements"
-            android:value='[{"include": "https://lift.snek2.ddns.net/.well-known/assetlinks.json"}]' />
+            android:value='[{"include": "https://schlift.snek2.ddns.net/.well-known/assetlinks.json"}]' />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

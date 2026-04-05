@@ -79,7 +79,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("LiftWatch: WCSession activation failed: \(error)")
+            print("SchliftWatch: WCSession activation failed: \(error)")
         }
     }
 
@@ -110,12 +110,12 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     private func sendToPhone(path: String, data: Data) {
         guard WCSession.default.isReachable else {
-            print("LiftWatch: Phone not reachable")
+            print("SchliftWatch: Phone not reachable")
             return
         }
         let message: [String: Any] = ["path": path, "data": data]
         WCSession.default.sendMessage(message, replyHandler: nil) { error in
-            print("LiftWatch: Failed to send message: \(error)")
+            print("SchliftWatch: Failed to send message: \(error)")
         }
     }
 
@@ -133,8 +133,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 }
 
 enum WatchPaths {
-    static let phoneToWearEnvelope = "/lift/phone/envelope"
-    static let phoneToWearLaunch = "/lift/phone/launch"
-    static let wearToPhoneEnvelope = "/lift/wear/envelope"
-    static let wearToPhoneHeartbeat = "/lift/wear/ui_heartbeat"
+    static let phoneToWearEnvelope = "/schlift/phone/envelope"
+    static let phoneToWearLaunch = "/schlift/phone/launch"
+    static let wearToPhoneEnvelope = "/schlift/wear/envelope"
+    static let wearToPhoneHeartbeat = "/schlift/wear/ui_heartbeat"
 }

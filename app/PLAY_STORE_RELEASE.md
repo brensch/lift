@@ -10,7 +10,7 @@ Site:
 - https://play.google.com/console
 
 In Play Console, create an app and fill:
-- App name: `Lift` (or your final name)
+- App name: `Schlift` (or your final name)
 - Default language
 - App or game: `App`
 - Free or paid
@@ -25,13 +25,13 @@ Then complete:
 ## 2) Choose Package Name (Application ID)
 
 Current package ID is:
-- `com.brensch.lift` in `app/android/app/build.gradle.kts`
-- `com.brensch.lift` in `app/android/wear/build.gradle.kts`
+- `com.brensch.schlift` in `app/android/app/build.gradle.kts`
+- `com.brensch.schlift` in `app/android/wear/build.gradle.kts`
 
 Rules:
 - Must use dot-separated Java package format.
-- `com:brensch:lift` is invalid.
-- Valid examples: `com.brensch.lift`, `io.brensch.lift`.
+- `com:brensch:schlift` is invalid.
+- Valid examples: `com.brensch.schlift`, `io.brensch.schlift`.
 - You should choose this before first publish. Changing it later means a new Play listing/app.
 
 If you change it later, update both Gradle files above and update your backend domain asset links to match.

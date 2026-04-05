@@ -16,24 +16,24 @@ run-dev:
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; make run-backend & make run-frontend & wait'
 
 run-backend:
-	@pkill -f "[/]target/debug/lift" || true
-	@pkill -f "[/]target/release/lift" || true
-	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
-	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
+	@pkill -f "[/]target/debug/schlift" || true
+	@pkill -f "[/]target/release/schlift" || true
+	WEBAUTHN_RP_ID=schlift.snek2.ddns.net \
+	WEBAUTHN_RP_ORIGIN=https://schlift.snek2.ddns.net \
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
 	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '='),android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk \
 	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
-	cargo watch -x "run --bin lift --features test-auth"
+	cargo watch -x "run --bin schlift --features test-auth"
 
 run-backend-release:
-	@pkill -f "[/]target/debug/lift" || true
-	@pkill -f "[/]target/release/lift" || true
-	WEBAUTHN_RP_ID=lift.snek2.ddns.net \
-	WEBAUTHN_RP_ORIGIN=https://lift.snek2.ddns.net \
+	@pkill -f "[/]target/debug/schlift" || true
+	@pkill -f "[/]target/release/schlift" || true
+	WEBAUTHN_RP_ID=schlift.snek2.ddns.net \
+	WEBAUTHN_RP_ORIGIN=https://schlift.snek2.ddns.net \
 	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
 	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '='),android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk \
 	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
-	cargo run --release --bin lift --features test-auth
+	cargo run --release --bin schlift --features test-auth
 
 run-frontend:
 	cd web && $(BUN) run dev
@@ -94,7 +94,7 @@ run-android-clean:
 	'
 
 WEAR_SERIAL ?=
-WEAR_LOG_FILTER ?= LiftWear:D LiftWearBridge:D Wearable:D WearTransport:D *:S
+WEAR_LOG_FILTER ?= SchliftWear:D SchliftWearBridge:D Wearable:D WearTransport:D *:S
 
 run-wear:
 	@SERIAL="$(WEAR_SERIAL)"; \
@@ -147,7 +147,7 @@ run-wear:
 		done); \
 	fi; \
 	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
-	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.lift/com.brensch.lift.wear.MainActivity
+	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.schlift/com.brensch.schlift.wear.MainActivity
 
 run-wear-logs:
 	@SERIAL="$(WEAR_SERIAL)"; \
@@ -181,7 +181,7 @@ setup-flutter:
 	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
 TMP_RUN_DIR = .tmp/run-app
-LINUX_BUNDLE = app/build/linux/x64/debug/bundle/lift
+LINUX_BUNDLE = app/build/linux/x64/debug/bundle/schlift
 LINUX_SOFTWARE_RENDER ?= 1
 
 run-app:
@@ -250,7 +250,7 @@ stop-app:
 				rm -f "$$pidfile"; \
 			done; \
 		fi; \
-		pkill -f "[/]app/build/linux/x64/debug/bundle/lift" 2>/dev/null || true; \
+		pkill -f "[/]app/build/linux/x64/debug/bundle/schlift" 2>/dev/null || true; \
 		pkill -f "[/]flutter-sdk/bin/flutter.*run -d" 2>/dev/null || true; \
 	'
 
@@ -271,7 +271,7 @@ deploy-android:
 	echo "Deploying android release to: $$SERIAL"; \
 	if ! $(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; then \
 		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
-		$(ADB) -s "$$SERIAL" uninstall com.brensch.lift || true; \
+		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
 		$(ADB) -s "$$SERIAL" install app/build/app/outputs/flutter-apk/app-release.apk || exit 1; \
 	fi
 
@@ -298,10 +298,10 @@ deploy-wear: build-wear-release
 	echo "Deploying wear release to: $$SERIAL"; \
 	if ! $(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/release/wear-release.apk; then \
 		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
-		$(ADB) -s "$$SERIAL" uninstall com.brensch.lift || true; \
+		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
 		$(ADB) -s "$$SERIAL" install app/build/wear/outputs/apk/release/wear-release.apk || exit 1; \
 	fi; \
-	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.lift/com.brensch.lift.wear.MainActivity
+	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.schlift/com.brensch.schlift.wear.MainActivity
 
 ci-android-prepare-signing:
 	@bash -ec '\
@@ -453,9 +453,9 @@ proto-android:
 
 proto-swift:
 	@echo "=== Generating Swift protobuf files with buf ==="
-	@mkdir -p app/ios/LiftWatch/Generated
+	@mkdir -p app/ios/SchliftWatch/Generated
 	cd proto && buf generate --template buf.gen.swift.yaml
-	@echo "Done. Generated files in app/ios/LiftWatch/Generated/"
+	@echo "Done. Generated files in app/ios/SchliftWatch/Generated/"
 
 proto-all: proto-dart proto-android proto-swift
 
@@ -465,7 +465,7 @@ icons:
 	python3 scripts/replace_app_icons2.py
 	@echo "Done."
 
-# ── Apple Watch (LiftWatch) ───────────────────────────────────────────
+# ── Apple Watch (SchliftWatch) ───────────────────────────────────────────
 
 # One-time setup: install xcodegen + swift-protobuf, generate xcodeproj
 watch-setup:
@@ -485,13 +485,13 @@ watch-generate:
 	cd app/ios && xcodegen generate
 	@echo "Generated Runner.xcodeproj from project.yml"
 
-# Build LiftWatch for watchOS simulator
+# Build SchliftWatch for watchOS simulator
 WATCH_SIM_DEST ?= platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)
 
 watch-build:
 	cd app/ios && xcodebuild build \
 		-project Runner.xcodeproj \
-		-scheme LiftWatch \
+		-scheme SchliftWatch \
 		-destination '$(WATCH_SIM_DEST)' \
 		-configuration Debug \
 		CODE_SIGNING_ALLOWED=NO \
@@ -500,13 +500,13 @@ watch-build:
 watch-build-release:
 	cd app/ios && xcodebuild build \
 		-project Runner.xcodeproj \
-		-scheme LiftWatch \
+		-scheme SchliftWatch \
 		-destination 'generic/platform=watchOS' \
 		-configuration Release
 
 # Boot a watchOS simulator and install/launch the app
 watch-sim:
-	@echo "=== Building LiftWatch for watchOS Simulator ==="
+	@echo "=== Building SchliftWatch for watchOS Simulator ==="
 	$(MAKE) watch-build
 	@echo "=== Booting watchOS simulator ==="
 	@WATCH_UDID=$$(xcrun simctl list devices available watchOS | grep -m1 "Watch" | sed 's/.*(\([A-F0-9-]*\)).*/\1/'); \
@@ -517,14 +517,14 @@ watch-sim:
 	echo "Using simulator: $$WATCH_UDID"; \
 	xcrun simctl boot "$$WATCH_UDID" 2>/dev/null || true; \
 	open -a Simulator; \
-	APP_PATH=$$(find app/ios/build -name "LiftWatch.app" -path "*/watchOS*" 2>/dev/null | head -1); \
+	APP_PATH=$$(find app/ios/build -name "SchliftWatch.app" -path "*/watchOS*" 2>/dev/null | head -1); \
 	if [ -z "$$APP_PATH" ]; then \
-		echo "LiftWatch.app not found in build output"; \
+		echo "SchliftWatch.app not found in build output"; \
 		exit 1; \
 	fi; \
 	echo "Installing $$APP_PATH"; \
 	xcrun simctl install "$$WATCH_UDID" "$$APP_PATH"; \
-	xcrun simctl launch "$$WATCH_UDID" com.brensch.lift.watchkitapp
+	xcrun simctl launch "$$WATCH_UDID" com.brensch.schlift.watchkitapp
 
 watch-sim-list:
 	@echo "Available watchOS simulators:"

@@ -4,7 +4,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use lift::workout::v1::{
+use schlift::workout::v1::{
     auth_service_server::AuthService, AddPasskeyFinishRequest, AddPasskeyFinishResponse,
     AddPasskeyStartRequest, AddPasskeyStartResponse, AuthResponse, DeletePasskeyRequest,
     DeletePasskeyResponse, ListPasskeysRequest, ListPasskeysResponse, LoginFinishRequest,
