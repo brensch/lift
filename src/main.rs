@@ -124,11 +124,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn assetlinks_handler() -> Json<serde_json::Value> {
     // Always include the upload signing fingerprint.
     // Google Play app signing fingerprint:
-    // FC:0A:96:93:88:92:30:42:E1:E6:DF:08:C2:63:D6:D6:21:8D:74:80:1F:55:5D:C3:EB:04:E1:C9:34:49:1A:09
+    // 90:40:E8:C2:90:6F:32:DF:2B:8D:5B:1B:36:8C:FD:D7:D9:B7:1A:34:45:82:EA:23:F2:FE:16:26:ED:05:63:00
     // Optionally include ANDROID_CERT_SHA256 (e.g. local debug cert) for dev installs.
     let mut fingerprints = vec![
         "1F:0C:6B:FD:A7:5A:7D:18:7A:AE:53:1B:33:30:CD:11:7F:31:F5:05:8E:05:A9:21:FF:23:B0:E8:74:C2:21:EC".to_string(),
-        "FC:0A:96:93:88:92:30:42:E1:E6:DF:08:C2:63:D6:D6:21:8D:74:80:1F:55:5D:C3:EB:04:E1:C9:34:49:1A:09".to_string(),
+        "90:40:E8:C2:90:6F:32:DF:2B:8D:5B:1B:36:8C:FD:D7:D9:B7:1A:34:45:82:EA:23:F2:FE:16:26:ED:05:63:00".to_string(),
     ];
     if let Ok(env_fp) = std::env::var("ANDROID_CERT_SHA256") {
         let env_fp = env_fp.trim();
