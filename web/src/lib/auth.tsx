@@ -46,6 +46,23 @@ function decodeClientDataChallenge(clientDataJSON: ArrayBuffer): string | null {
   }
 }
 
+function decodeClientDataChallengeFromBase64(
+  encodedClientDataJSON: string | null | undefined
+): string | null {
+  if (!encodedClientDataJSON) return null;
+  try {
+    const padded = encodedClientDataJSON
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(encodedClientDataJSON.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return decodeClientDataChallenge(bytes.buffer);
+  } catch {
+    return null;
+  }
+}
+
 function toBase64Url(input: ArrayBuffer | Uint8Array | null): string | null {
   if (!input) return null;
 
@@ -157,6 +174,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const credentialJson = serializeAssertion(credential);
+      const serializedChallenge = decodeClientDataChallengeFromBase64(
+        credentialJson.response.clientDataJSON
+      );
+
+      if (requestChallenge && serializedChallenge !== requestChallenge) {
+        console.error("WebAuthn serialized payload challenge mismatch", {
+          requestChallenge,
+          rawResponseChallenge: responseChallenge,
+          serializedChallenge,
+          challengeId: startResp.challengeId,
+          serializedClientDataJSON: credentialJson.response.clientDataJSON,
+        });
+        throw new Error("Serialized passkey payload challenge did not match request.");
+      }
 
       // Step 3: LoginFinish via gRPC
       const finishResp = await authClient.loginFinish({
