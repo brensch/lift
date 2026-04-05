@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../logic/exercises.dart';
+import '../logic/weight_units.dart';
+import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/plate_visualization.dart';
 
@@ -24,6 +27,8 @@ class _NextSetInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final name = exerciseNames[set.exercise] ?? '?';
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final weightText = formatWeight(set.targetWeight.toDouble(), unit);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,8 +67,8 @@ class _NextSetInfo extends StatelessWidget {
           children: [
             Text(
               set.isAmrap
-                  ? 'AMRAP\u00D7${set.targetWeight.toInt()}'
-                  : '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
+                  ? 'AMRAP\u00D7$weightText'
+                  : '${set.targetReps}\u00D7$weightText',
               style: TextStyle(
                 fontSize: large ? 18 : 14,
                 fontWeight: FontWeight.w900,
@@ -71,7 +76,7 @@ class _NextSetInfo extends StatelessWidget {
               ),
             ),
             Text(
-              ' lb',
+              ' ${weightUnitSuffix(unit)}',
               style: TextStyle(
                 fontSize: large ? 13 : 11,
                 color: colorScheme.tertiary,
@@ -433,8 +438,9 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
   @override
   void initState() {
     super.initState();
-    _scrollController =
-        FixedExtentScrollController(initialItem: widget.proposedSet.targetReps);
+    _scrollController = FixedExtentScrollController(
+      initialItem: widget.proposedSet.targetReps,
+    );
   }
 
   @override
@@ -454,6 +460,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
     final elapsedSecs = widget.activeCompletedSet != null
         ? (widget.now.millisecondsSinceEpoch ~/ 1000) -
               widget.activeCompletedSet!.startedAt.toInt()
@@ -525,14 +532,17 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${widget.proposedSet.targetWeight.toInt()}',
+                  formatWeight(
+                    widget.proposedSet.targetWeight.toDouble(),
+                    unit,
+                  ),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 Text(
-                  ' lb',
+                  ' ${weightUnitSuffix(unit)}',
                   style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
                 ),
                 Padding(
@@ -563,7 +573,9 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
               ],
             ),
             const SizedBox(height: 4),
-            PlateVisualization(weight: widget.proposedSet.targetWeight.toDouble()),
+            PlateVisualization(
+              weight: widget.proposedSet.targetWeight.toDouble(),
+            ),
             const SizedBox(height: 12),
 
             // Rep picker + complete button

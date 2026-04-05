@@ -8,6 +8,9 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
     ProposeResult, StatePayload, WorkoutCompletionResult,
 };
+use crate::weight_units::{
+    add_unit_increment, min_weight_lb, round_to_unit_increment, weight_unit_from_state,
+};
 
 use super::{
     exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
@@ -54,10 +57,10 @@ fn default_tm(ex: Exercise) -> f32 {
     }
 }
 
-fn tm_increment(ex: Exercise) -> f32 {
+fn tm_increment(ex: Exercise) -> (f32, f32) {
     match ex {
-        Exercise::Squat | Exercise::Deadlift => 10.0,
-        _ => 5.0,
+        Exercise::Squat | Exercise::Deadlift => (10.0, 5.0),
+        _ => (5.0, 2.5),
     }
 }
 
@@ -140,14 +143,19 @@ fn lifts_for_session(variant: &str, cycle: i64, week: i64, session_in_week: i64)
     }
 }
 
-fn build_wendler_working_sets(tm: f32, week_def: &WeekDef) -> Vec<WorkingSetSpec> {
+fn build_wendler_working_sets(
+    tm: f32,
+    week_def: &WeekDef,
+    state: &StatePayload,
+) -> Vec<WorkingSetSpec> {
+    let unit = weight_unit_from_state(state);
     week_def
         .set_pcts
         .iter()
         .zip(week_def.set_reps.iter())
         .enumerate()
         .map(|(idx, (&pct, &reps))| {
-            let w = (tm * pct / 5.0).round() * 5.0;
+            let w = round_to_unit_increment(tm * pct, unit, 5.0, 2.5);
             let is_top = idx == 2;
             let is_amrap = week_def.top_set_amrap && is_top;
             WorkingSetSpec {
@@ -390,21 +398,22 @@ impl WorkoutRegime for Wendler531Regime {
         let week_def = &WEEKS[(week - 1) as usize];
         let lifts = lifts_for_session(variant, cycle, week, session_in_week);
         let pattern = set_pattern_text(week_def);
+        let weight_unit = weight_unit_from_state(state);
 
         let mut proposed_groups = Vec::new();
 
         for &ex in &lifts {
             let tm = get_f32_or(state, tm_key(ex), default_tm(ex));
-            let working_sets = build_wendler_working_sets(tm, week_def);
+            let working_sets = build_wendler_working_sets(tm, week_def, state);
 
             let start_w = working_sets
                 .first()
                 .map(|s| s.target_weight)
-                .unwrap_or((tm * 0.65 / 5.0).round() * 5.0);
+                .unwrap_or(round_to_unit_increment(tm * 0.65, weight_unit, 5.0, 2.5));
             let end_w = working_sets
                 .last()
                 .map(|s| s.target_weight)
-                .unwrap_or((tm * 0.85 / 5.0).round() * 5.0);
+                .unwrap_or(round_to_unit_increment(tm * 0.85, weight_unit, 5.0, 2.5));
             let first_reps = working_sets.first().map(|s| s.target_reps).unwrap_or(5);
 
             let group_rest = if week_def.is_deload {
@@ -432,12 +441,13 @@ impl WorkoutRegime for Wendler531Regime {
                 rest_config: group_rest,
                 tags: vec!["recommended".to_string(), "compound".to_string()],
                 explanation: format!(
-                    "5/3/1 Cycle {}, {} — {} ({}). TM: {:.0} lbs.",
+                    "5/3/1 Cycle {}, {} — {} ({}). TM: {:.0} {}.",
                     cycle,
                     week_def.name,
                     exercise_display_name(ex),
                     pattern,
-                    tm
+                    tm,
+                    weight_unit.suffix()
                 ),
                 prescribed_by_regime: false,
             });
@@ -492,9 +502,15 @@ impl WorkoutRegime for Wendler531Regime {
                 // End of cycle: advance cycle, bump TMs, reset week
                 set_int(&mut new_state, KEY_WEEK, 1);
                 set_int(&mut new_state, KEY_CYCLE, cycle + 1);
+                let unit = weight_unit_from_state(state);
                 for &ex in WENDLER_LIFTS {
                     let current_tm = get_f32_or(state, tm_key(ex), default_tm(ex));
-                    set_f32(&mut new_state, tm_key(ex), current_tm + tm_increment(ex));
+                    let (lb_inc, kg_inc) = tm_increment(ex);
+                    set_f32(
+                        &mut new_state,
+                        tm_key(ex),
+                        add_unit_increment(current_tm, unit, lb_inc, kg_inc),
+                    );
                 }
             } else {
                 set_int(&mut new_state, KEY_WEEK, next_week);
@@ -557,10 +573,12 @@ impl WorkoutRegime for Wendler531Regime {
                     return Err("deload_percent must be between 50 and 100".to_string());
                 }
                 let mut new_state = state.clone();
+                let unit = weight_unit_from_state(state);
                 for &ex in WENDLER_LIFTS {
                     let current = get_f32_or(state, tm_key(ex), default_tm(ex));
-                    let deloaded = ((current * pct) / 5.0).round() * 5.0;
-                    set_f32(&mut new_state, tm_key(ex), deloaded.max(45.0));
+                    let deloaded = round_to_unit_increment(current * pct, unit, 5.0, 2.5)
+                        .max(min_weight_lb(unit, 45.0, 20.0));
+                    set_f32(&mut new_state, tm_key(ex), deloaded);
                 }
                 Ok(new_state)
             }

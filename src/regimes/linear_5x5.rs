@@ -5,6 +5,9 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
     ProposeResult, StatePayload, WorkoutCompletionResult,
 };
+use crate::weight_units::{
+    add_unit_increment, min_weight_lb, round_to_unit_increment, weight_unit_from_state,
+};
 
 use super::{
     build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
@@ -66,11 +69,11 @@ fn default_weight(ex: Exercise) -> f32 {
     }
 }
 
-fn increment(ex: Exercise) -> f32 {
+fn increments(ex: Exercise) -> (f32, f32) {
     match ex {
-        Exercise::Deadlift => DEADLIFT_INCREMENT,
-        Exercise::Squat => LOWER_INCREMENT,
-        _ => UPPER_INCREMENT,
+        Exercise::Deadlift => (DEADLIFT_INCREMENT, 5.0),
+        Exercise::Squat => (LOWER_INCREMENT, 2.5),
+        _ => (UPPER_INCREMENT, 2.5),
     }
 }
 
@@ -294,6 +297,7 @@ impl WorkoutRegime for Linear5x5Regime {
         } else {
             "A"
         };
+        let weight_unit = weight_unit_from_state(state);
         let other_variant = if next_variant_label == "A" { "B" } else { "A" };
 
         let mut proposed_groups = Vec::new();
@@ -309,7 +313,12 @@ impl WorkoutRegime for Linear5x5Regime {
                 sets,
                 reps,
                 vec!["recommended".to_string(), "compound".to_string()],
-                format!("5×5 Workout {} — {} lbs", next_variant_label, w),
+                format!(
+                    "5×5 Workout {} — {} {}",
+                    next_variant_label,
+                    w,
+                    weight_unit.suffix()
+                ),
                 rest_cfg(180, 300),
                 true,
                 false,
@@ -399,18 +408,23 @@ impl WorkoutRegime for Linear5x5Regime {
             };
             let current_w = get_f32_or(state, weight_key(ex), default_weight(ex));
             let stall = get_int_or(state, stall_key(ex), 0);
-            let inc = increment(ex);
+            let unit = weight_unit_from_state(state);
+            let (lb_inc, kg_inc) = increments(ex);
 
             if *success {
                 // Success: store next weight (current + increment), reset stall
-                set_f32(&mut new_state, weight_key(ex), current_w + inc);
+                set_f32(
+                    &mut new_state,
+                    weight_key(ex),
+                    add_unit_increment(current_w, unit, lb_inc, kg_inc),
+                );
                 set_int(&mut new_state, stall_key(ex), 0);
             } else {
                 let new_stall = stall + 1;
                 if new_stall >= 3 {
                     // Three failures: deload 10%, reset stall
-                    let deloaded = ((current_w * 0.9) / 5.0).round() * 5.0;
-                    let deloaded = deloaded.max(45.0);
+                    let deloaded = round_to_unit_increment(current_w * 0.9, unit, lb_inc, kg_inc)
+                        .max(min_weight_lb(unit, 45.0, 20.0));
                     set_f32(&mut new_state, weight_key(ex), deloaded);
                     set_int(&mut new_state, stall_key(ex), 0);
                 } else {
@@ -484,6 +498,7 @@ impl WorkoutRegime for Linear5x5Regime {
                     return Err("deload_percent must be between 50 and 100".to_string());
                 }
                 let mut new_state = state.clone();
+                let unit = weight_unit_from_state(state);
                 for ex in &[
                     Exercise::Squat,
                     Exercise::BenchPress,
@@ -492,8 +507,10 @@ impl WorkoutRegime for Linear5x5Regime {
                     Exercise::Deadlift,
                 ] {
                     let current = get_f32_or(state, weight_key(*ex), default_weight(*ex));
-                    let deloaded = ((current * pct) / 5.0).round() * 5.0;
-                    set_f32(&mut new_state, weight_key(*ex), deloaded.max(45.0));
+                    let (lb_step, kg_step) = increments(*ex);
+                    let deloaded = round_to_unit_increment(current * pct, unit, lb_step, kg_step)
+                        .max(min_weight_lb(unit, 45.0, 20.0));
+                    set_f32(&mut new_state, weight_key(*ex), deloaded);
                     set_int(&mut new_state, stall_key(*ex), 0);
                 }
                 Ok(new_state)

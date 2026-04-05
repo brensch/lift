@@ -6,6 +6,8 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
+import '../logic/weight_units.dart';
+import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 
@@ -71,6 +73,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -121,7 +124,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   Text(
-                    '${points.first.weight.toInt()} lbs',
+                    '${formatWeight(points.first.weight, unit)} ${weightUnitSuffix(unit)}',
                     style: TextStyle(color: colorScheme.tertiary),
                   ),
                 ],
@@ -159,7 +162,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             showTitles: true,
                             reservedSize: 40,
                             getTitlesWidget: (value, meta) => Text(
-                              value.toInt().toString(),
+                              formatWeight(value, unit),
                               style: TextStyle(
                                 fontSize: 10,
                                 color: colorScheme.tertiary,

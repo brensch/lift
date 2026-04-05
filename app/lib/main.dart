@@ -84,7 +84,10 @@ class _LiftAppState extends State<LiftApp> {
 
     _settingsProvider = SettingsProvider(_grpcClient);
     _soundProvider = SoundProvider();
-    _workoutProvider = WorkoutProvider(WorkoutServiceWrapper(_grpcClient));
+    _workoutProvider = WorkoutProvider(
+      WorkoutServiceWrapper(_grpcClient),
+      _settingsProvider,
+    );
     _workoutProvider.setSoundProvider(_soundProvider);
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
@@ -92,8 +95,8 @@ class _LiftAppState extends State<LiftApp> {
     // After each set operation, immediately refresh the session view so the
     // "who's up next" bar reflects the change without waiting for the next
     // background poll tick.
-    _workoutProvider.onSessionRefreshNeeded =
-        () => _multiplayerProvider.refreshNow();
+    _workoutProvider.onSessionRefreshNeeded = () =>
+        _multiplayerProvider.refreshNow();
     _themeProvider = ThemeProvider();
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(
@@ -151,7 +154,10 @@ class _LiftAppState extends State<LiftApp> {
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
+        GoRoute(
+          path: '/onboarding',
+          builder: (_, __) => const OnboardingScreen(),
+        ),
         ShellRoute(
           builder: (context, state, child) => MainLayout(child: child),
           routes: [
@@ -266,7 +272,9 @@ class _LiftAppState extends State<LiftApp> {
         ChangeNotifierProvider<MultiplayerProvider>.value(
           value: _multiplayerProvider,
         ),
-        ChangeNotifierProvider<SettingsProvider>.value(value: _settingsProvider),
+        ChangeNotifierProvider<SettingsProvider>.value(
+          value: _settingsProvider,
+        ),
         ChangeNotifierProvider<SoundProvider>.value(value: _soundProvider),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],

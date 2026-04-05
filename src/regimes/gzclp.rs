@@ -8,6 +8,7 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
     ProposeResult, StatePayload, WorkoutCompletionResult,
 };
+use crate::weight_units::{add_unit_increment, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
@@ -160,10 +161,10 @@ fn stage_u8_to_str_t2(n: u8) -> &'static str {
     }
 }
 
-fn gzclp_t1_increment(ex: Exercise) -> f32 {
+fn gzclp_t1_increment(ex: Exercise) -> (f32, f32) {
     match ex {
-        Exercise::Squat | Exercise::Deadlift => 10.0,
-        _ => 5.0,
+        Exercise::Squat | Exercise::Deadlift => (10.0, 5.0),
+        _ => (5.0, 2.5),
     }
 }
 
@@ -366,6 +367,7 @@ impl WorkoutRegime for GzclpRegime {
         let sessions = sessions_for_variant(variant);
         let idx = (get_int_or(state, KEY_SESSION_IDX, 0) as usize) % sessions.len();
         let tmpl = &sessions[idx];
+        let weight_unit = weight_unit_from_state(state);
 
         let mut proposed_groups = Vec::new();
 
@@ -442,7 +444,12 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![cfg],
                 rest_config: rest_cfg(90, 120),
                 tags: vec!["recommended".to_string(), "T2".to_string()],
-                explanation: format!("GZCLP T2 {} — {} lbs", t2_phase_text(stage), w),
+                explanation: format!(
+                    "GZCLP T2 {} — {} {}",
+                    t2_phase_text(stage),
+                    w,
+                    weight_unit.suffix()
+                ),
                 prescribed_by_regime: false,
             });
         }
@@ -593,11 +600,16 @@ impl WorkoutRegime for GzclpRegime {
             let current_w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
             let stage_str = get_str_or(state, t1_stage_key(ex), "stage_1_5x3");
             let stage = stage_str_to_u8_t1(stage_str);
-            let inc = gzclp_t1_increment(ex);
+            let (lb_inc, kg_inc) = gzclp_t1_increment(ex);
+            let unit = weight_unit_from_state(state);
 
             if success {
                 // Success: increment weight, return to stage 1
-                set_f32(&mut new_state, t1_weight_key(ex), current_w + inc);
+                set_f32(
+                    &mut new_state,
+                    t1_weight_key(ex),
+                    add_unit_increment(current_w, unit, lb_inc, kg_inc),
+                );
                 set_str(&mut new_state, t1_stage_key(ex), "stage_1_5x3");
             } else {
                 // Failure: hold weight, advance stage (3→1 wraps)
@@ -623,10 +635,14 @@ impl WorkoutRegime for GzclpRegime {
             let current_w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
             let stage_str = get_str_or(state, t2_stage_key(ex), "stage_1_3x10");
             let stage = stage_str_to_u8_t2(stage_str);
-            let inc = 5.0f32;
+            let unit = weight_unit_from_state(state);
 
             if success {
-                set_f32(&mut new_state, t2_weight_key(ex), current_w + inc);
+                set_f32(
+                    &mut new_state,
+                    t2_weight_key(ex),
+                    add_unit_increment(current_w, unit, 5.0, 2.5),
+                );
                 set_str(&mut new_state, t2_stage_key(ex), "stage_1_3x10");
             } else {
                 let new_stage = if stage >= 3 { 1 } else { stage + 1 };
@@ -653,7 +669,11 @@ impl WorkoutRegime for GzclpRegime {
             };
             let current_w = get_f32_or(state, t3_weight_key(ex), 45.0);
             if amrap_reps >= 25 {
-                set_f32(&mut new_state, t3_weight_key(ex), current_w + 5.0);
+                set_f32(
+                    &mut new_state,
+                    t3_weight_key(ex),
+                    add_unit_increment(current_w, weight_unit_from_state(state), 5.0, 2.5),
+                );
             }
             // else hold weight
         }
@@ -717,12 +737,13 @@ impl WorkoutRegime for GzclpRegime {
                     return Err("deload_percent must be 50–100".to_string());
                 }
                 let mut new_state = state.clone();
+                let unit = weight_unit_from_state(state);
                 for ex in [Exercise::Squat, Exercise::Deadlift] {
                     let w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
                     set_f32(
                         &mut new_state,
                         t1_weight_key(ex),
-                        ((w * pct) / 5.0).round() * 5.0,
+                        round_to_unit_increment(w * pct, unit, 10.0, 5.0),
                     );
                 }
                 for ex in [
@@ -734,7 +755,7 @@ impl WorkoutRegime for GzclpRegime {
                     set_f32(
                         &mut new_state,
                         t2_weight_key(ex),
-                        ((w * pct) / 5.0).round() * 5.0,
+                        round_to_unit_increment(w * pct, unit, 5.0, 2.5),
                     );
                 }
                 Ok(new_state)

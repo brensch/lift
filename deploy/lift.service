@@ -1,0 +1,19 @@
+[Unit]
+Description=Lift backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__LIFT_USER__
+Group=__LIFT_GROUP__
+WorkingDirectory=__INSTALL_ROOT__/shared
+EnvironmentFile=-__INSTALL_ROOT__/shared/lift.env
+ExecStart=__INSTALL_ROOT__/current/lift
+Restart=always
+RestartSec=2
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

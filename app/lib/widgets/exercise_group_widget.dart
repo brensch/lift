@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
+import '../logic/weight_units.dart';
+import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 
 class ExerciseGroupWidget extends StatefulWidget {
@@ -230,7 +233,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                     Expanded(
                                       child: Text(
                                         (widget.group.group?.name ??
-                                            exerciseNames[widget.group.exercise] ??
+                                            exerciseNames[widget
+                                                .group
+                                                .exercise] ??
                                             'Unknown'),
                                         style: TextStyle(
                                           fontSize: 17,
@@ -373,9 +378,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
     final isActive = set.id == widget.activeSetId;
     final isSuperset = widget.group.exercises.length > 1;
 
-    final String weight = set.targetWeight % 1 == 0
-        ? '${set.targetWeight.toInt()}'
-        : '${set.targetWeight}';
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final String weight = formatWeight(set.targetWeight.toDouble(), unit);
 
     Color bg;
     Color fg;

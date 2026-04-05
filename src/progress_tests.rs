@@ -1,4 +1,3 @@
-
 use super::*;
 use lift::workout::v1::{ParticipantStatus, User};
 

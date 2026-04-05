@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import 'regime_info_screen.dart';
 
@@ -52,7 +53,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   String _defaultTextForField(TrainingProgramStateFieldSchema f) {
     if (f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
-      return f.minValue > 0 ? f.minValue.toStringAsFixed(0) : '';
+      final provider = context.read<SettingsProvider>();
+      final value = SettingsProvider.isWeightField(f)
+          ? snapDisplayWeight(
+              displayWeightFromPounds(f.minValue, provider.weightUnit),
+              provider.weightUnit,
+              poundStep: f.step,
+              kilogramStep: SettingsProvider.displayStepForField(
+                f,
+                provider.weightUnit,
+              ),
+            )
+          : f.minValue;
+      if (value <= 0) return '';
+      return value % 1 == 0
+          ? value.toStringAsFixed(0)
+          : value.toStringAsFixed(1);
     } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
       return f.minValue.toInt().toString();
     } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM) {
@@ -78,6 +94,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
+  Future<void> _selectWeightUnit(
+    SettingsProvider provider,
+    WeightUnit unit,
+  ) async {
+    await provider.updateWeightUnit(unit);
+    final selectedProgram = _selectedRegimeType == null
+        ? null
+        : provider.trainingProgramFor(_selectedRegimeType!);
+    if (selectedProgram != null) {
+      _seedFromSchema(selectedProgram.stateSchema.fields);
+    }
+  }
+
   Future<void> _save(
     SettingsProvider provider,
     TrainingProgramDefinition program,
@@ -91,7 +120,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final fields = <String, StateFieldValue>{};
       for (final f in onboardingFields) {
         final text = _controllers[f.key]?.text.trim() ?? '';
-        final val = SettingsProvider.fieldValueFromText(f, text);
+        final val = SettingsProvider.fieldValueFromText(
+          f,
+          text,
+          unit: provider.weightUnit,
+        );
         if (val != null) fields[f.key] = val;
       }
 
@@ -122,6 +155,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final selected =
         provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
     final cs = Theme.of(context).colorScheme;
+    final progressAlignment = switch (_step) {
+      0 => Alignment.centerLeft,
+      1 => Alignment.center,
+      _ => Alignment.centerRight,
+    };
 
     return PopScope(
       canPop: _step == 0,
@@ -134,24 +172,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < 2; i++)
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          margin: EdgeInsets.only(right: i == 0 ? 6 : 0),
-                          height: 5,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: i <= _step
-                                ? cs.primary
-                                : cs.outline.withValues(alpha: 0.25),
+                child: SizedBox(
+                  height: 5,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final totalWidth = constraints.maxWidth;
+                      const gap = 8.0;
+                      final segmentWidth = (totalWidth - (gap * 2)) / 3;
+                      return Stack(
+                        children: [
+                          Row(
+                            children: [
+                              for (var i = 0; i < 3; i++) ...[
+                                if (i > 0) const SizedBox(width: gap),
+                                Container(
+                                  width: segmentWidth,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(999),
+                                    color: cs.outline.withValues(alpha: 0.18),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ),
-                      ),
-                  ],
+                          AnimatedAlign(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            alignment: progressAlignment,
+                            child: Container(
+                              width: segmentWidth,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                color: cs.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
               Expanded(
@@ -164,20 +225,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       parent: animation,
                       curve: Curves.easeOutCubic,
                     );
-                    return FadeTransition(
-                      opacity: curved,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.03, 0),
-                          end: Offset.zero,
-                        ).animate(curved),
-                        child: child,
-                      ),
-                    );
+                    return FadeTransition(opacity: curved, child: child);
                   },
                   child: KeyedSubtree(
                     key: ValueKey(_step),
                     child: _step == 0
+                        ? _UnitStep(
+                            selectedUnit: provider.weightUnit,
+                            onSelect: (unit) =>
+                                _selectWeightUnit(provider, unit),
+                            onNext: () => _goToStep(1),
+                          )
+                        : _step == 1
                         ? _ProgramStep(
                             programs: programs,
                             selectedType: selected.regimeType,
@@ -188,12 +247,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     RegimeInfoScreen(regimeType: p.regimeType),
                               ),
                             ),
-                            onNext: () => _goToStep(1),
+                            onBack: () => _goToStep(0),
+                            onNext: () => _goToStep(2),
                           )
                         : _ConfigStep(
                             program: selected,
                             controllers: _controllers,
-                            onBack: () => _goToStep(0),
+                            onBack: () => _goToStep(1),
                             onSave: _isSaving
                                 ? null
                                 : () => _save(provider, selected),
@@ -210,11 +270,88 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
+class _UnitStep extends StatelessWidget {
+  final WeightUnit selectedUnit;
+  final Future<void> Function(WeightUnit unit) onSelect;
+  final VoidCallback onNext;
+
+  const _UnitStep({
+    required this.selectedUnit,
+    required this.onSelect,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'CHOOSE YOUR UNITS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'What plates are you lifting with?',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This sets your starting weight inputs, progression jumps, and plate breakdowns.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _UnitCard(
+            title: 'Pounds',
+            subtitle: 'Best for US gyms and standard 45 lb bars',
+            badge: 'LB',
+            selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
+            onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
+          ),
+          const SizedBox(height: 10),
+          _UnitCard(
+            title: 'Kilograms',
+            subtitle: 'Best for international gyms and standard 20 kg bars',
+            badge: 'KG',
+            selected: selectedUnit == WeightUnit.WEIGHT_UNIT_KG,
+            onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: onNext,
+              child: const Text(
+                'NEXT',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProgramStep extends StatelessWidget {
   final List<TrainingProgramDefinition> programs;
   final RegimeType selectedType;
   final void Function(TrainingProgramDefinition) onSelect;
   final void Function(TrainingProgramDefinition) onInfo;
+  final VoidCallback onBack;
   final VoidCallback onNext;
 
   const _ProgramStep({
@@ -222,6 +359,7 @@ class _ProgramStep extends StatelessWidget {
     required this.selectedType,
     required this.onSelect,
     required this.onInfo,
+    required this.onBack,
     required this.onNext,
   });
 
@@ -274,16 +412,32 @@ class _ProgramStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton(
-              onPressed: onNext,
-              child: const Text(
-                'NEXT',
-                style: TextStyle(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: onBack,
+                    child: const Text('BACK'),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: onNext,
+                    child: const Text(
+                      'NEXT',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -320,7 +474,7 @@ class _ConfigStep extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
             children: [
               Text(
-                'SETUP ${program.displayName.toUpperCase()}',
+                'STARTING WEIGHTS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
@@ -329,11 +483,17 @@ class _ConfigStep extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
+              const Text(
+                'Set your starting weights',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
               Text(
-                program.headline,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
+                '${program.displayName} · ${program.headline}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface.withValues(alpha: 0.72),
                 ),
               ),
               const SizedBox(height: 6),
@@ -369,9 +529,8 @@ class _ConfigStep extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                flex: 2,
                 child: SizedBox(
-                  height: 48,
+                  height: 56,
                   child: OutlinedButton(
                     onPressed: onBack,
                     child: const Text('BACK'),
@@ -380,7 +539,7 @@ class _ConfigStep extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 3,
+                flex: 2,
                 child: SizedBox(
                   height: 56,
                   child: FilledButton(
@@ -473,8 +632,9 @@ class _StateFieldInputState extends State<_StateFieldInput> {
     final isNumeric =
         f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
-    final suffix = f.section.contains('Weight') || f.section.contains('Max')
-        ? 'lbs'
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final suffix = SettingsProvider.isWeightField(f)
+        ? weightUnitSuffixPlural(unit)
         : null;
 
     return Row(
@@ -654,6 +814,106 @@ class _ProgramCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String badge;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _UnitCard({
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected
+              ? cs.primary.withValues(alpha: 0.08)
+              : cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected
+                    ? cs.primary
+                    : cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                badge,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: selected ? cs.onPrimary : cs.onSurface,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: cs.onSurface.withValues(alpha: 0.62),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? cs.primary : cs.outline,
+                  width: 2,
+                ),
+                color: selected ? cs.primary : Colors.transparent,
+              ),
+              child: selected
+                  ? Icon(Icons.check, size: 10, color: cs.onPrimary)
+                  : null,
             ),
           ],
         ),

@@ -2,21 +2,35 @@ import 'package:fixnum/fixnum.dart' as fixnum;
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/settings.pbgrpc.dart';
+import '../logic/weight_units.dart';
 import '../services/grpc_client.dart';
 
 class SettingsProvider extends ChangeNotifier {
   final GrpcClient _grpcClient;
 
-  static Map<double, Color> defaultPlateColors() => {
-    45: Colors.red,
-    35: Colors.blue,
-    25: const Color(0xFFFFEB3B), // yellow
-    10: Colors.green,
-    5: const Color(0xFF616161), // dark grey
-    2.5: const Color(0xFFBDBDBD), // light grey
-  };
+  static Map<double, Color> defaultPlateColors([
+    WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
+  ]) => isMetricUnit(unit)
+      ? {
+          25: Colors.red,
+          20: Colors.blue,
+          15: const Color(0xFFFFEB3B),
+          10: Colors.green,
+          5: const Color(0xFF616161),
+          2.5: const Color(0xFFBDBDBD),
+          1.25: const Color(0xFFE0E0E0),
+        }
+      : {
+          45: Colors.red,
+          35: Colors.blue,
+          25: const Color(0xFFFFEB3B),
+          10: Colors.green,
+          5: const Color(0xFF616161),
+          2.5: const Color(0xFFBDBDBD),
+        };
 
   Map<double, Color> _plateColors = defaultPlateColors();
+  WeightUnit _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
   List<TrainingProgramDefinition> _trainingPrograms = const [];
   TrainingProgramState? _programState;
   bool _loaded = false;
@@ -24,6 +38,7 @@ class SettingsProvider extends ChangeNotifier {
   SettingsProvider(this._grpcClient);
 
   Map<double, Color> get plateColors => _plateColors;
+  WeightUnit get weightUnit => _weightUnit;
   bool get loaded => _loaded;
   TrainingProgramState? get programState => _programState;
 
@@ -60,6 +75,8 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> load() async {
     _programState = null;
     _trainingPrograms = const [];
+    _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
+    _plateColors = defaultPlateColors(_weightUnit);
     _loaded = false;
     notifyListeners();
     try {
@@ -76,7 +93,12 @@ class SettingsProvider extends ChangeNotifier {
       for (final setting in response.settings) {
         if (setting.whichSetting() == UserSetting_Setting.plateColors) {
           _applyPlateColors(setting.plateColors);
+        } else if (setting.whichSetting() == UserSetting_Setting.weightUnit) {
+          _weightUnit = setting.weightUnit.unit;
         }
+      }
+      if (_plateColors.isEmpty) {
+        _plateColors = defaultPlateColors(_weightUnit);
       }
 
       // Load training program state
@@ -108,11 +130,34 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   void clear() {
-    _plateColors = defaultPlateColors();
+    _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
+    _plateColors = defaultPlateColors(_weightUnit);
     _programState = null;
     _trainingPrograms = const [];
     _loaded = false;
     notifyListeners();
+  }
+
+  Future<void> updateWeightUnit(WeightUnit unit) async {
+    if (_weightUnit == unit) return;
+    _weightUnit = unit;
+    if (_plateColors.isEmpty ||
+        _plateColors.keys.every(
+          (k) => !defaultPlateColors(unit).containsKey(k),
+        )) {
+      _plateColors = defaultPlateColors(unit);
+    }
+    notifyListeners();
+
+    try {
+      await _grpcClient.settingsService.updateSetting(
+        UpdateSettingRequest(
+          setting: UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
+        ),
+      );
+    } catch (_) {
+      // Optimistic update already applied.
+    }
   }
 
   /// Save a new training program state (onboarding or manual edit).
@@ -209,13 +254,16 @@ class SettingsProvider extends ChangeNotifier {
   /// Build a [StateFieldValue] from a text controller value based on field kind.
   static StateFieldValue? fieldValueFromText(
     TrainingProgramStateFieldSchema field,
-    String text,
-  ) {
+    String text, {
+    WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
+  }) {
     final kind = field.kind;
     if (kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
       final v = double.tryParse(text);
       if (v == null) return null;
-      return StateFieldValue(floatVal: v);
+      return StateFieldValue(
+        floatVal: isWeightField(field) ? poundsFromDisplayWeight(v, unit) : v,
+      );
     } else if (kind == StateFieldKind.STATE_FIELD_KIND_INT) {
       final v = int.tryParse(text);
       if (v == null) return null;
@@ -229,12 +277,39 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  static bool isWeightField(TrainingProgramStateFieldSchema field) {
+    final haystack = '${field.section} ${field.label} ${field.helpText}'
+        .toLowerCase();
+    return haystack.contains('weight') || haystack.contains('training max');
+  }
+
+  static double displayStepForField(
+    TrainingProgramStateFieldSchema field,
+    WeightUnit unit,
+  ) {
+    if (!isWeightField(field)) return field.step;
+    if (!isMetricUnit(unit)) return field.step;
+    if (field.step >= 10) return 5;
+    if (field.step >= 5) return 2.5;
+    if (field.step >= 2.5) return 1.25;
+    return field.step;
+  }
+
   /// Get the display string for a [StateFieldValue].
-  static String fieldValueToText(StateFieldValue? v) {
+  static String fieldValueToText(
+    TrainingProgramStateFieldSchema field,
+    StateFieldValue? v, {
+    WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
+  }) {
     if (v == null) return '';
     switch (v.whichValue()) {
       case StateFieldValue_Value.floatVal:
-        return v.floatVal.toStringAsFixed(0);
+        final value = isWeightField(field)
+            ? displayWeightFromPounds(v.floatVal, unit)
+            : v.floatVal;
+        return value % 1 == 0
+            ? value.toStringAsFixed(0)
+            : value.toStringAsFixed(1);
       case StateFieldValue_Value.intVal:
         return v.intVal.toString();
       case StateFieldValue_Value.boolVal:

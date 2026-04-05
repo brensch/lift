@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../gen/workout/v1/settings.pb.dart';
+import '../providers/settings_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
+        ? 'Kilograms (kg)'
+        : 'Pounds (lb)';
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -16,6 +24,13 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _SettingsTile(
+            icon: Icons.scale_outlined,
+            label: 'Weight unit',
+            subtitle: unitLabel,
+            onTap: () => _showWeightUnitPicker(context, settings),
+          ),
+          const SizedBox(height: 8),
           _SettingsTile(
             icon: Icons.palette_outlined,
             label: 'Plate colours',
@@ -46,6 +61,41 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showWeightUnitPicker(
+    BuildContext context,
+    SettingsProvider settings,
+  ) async {
+    final choice = await showModalBottomSheet<WeightUnit>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Pounds (lb)'),
+              subtitle: const Text('Standard US gym loading'),
+              trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_LB
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_LB),
+            ),
+            ListTile(
+              title: const Text('Kilograms (kg)'),
+              subtitle: const Text('Standard international gym loading'),
+              trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_KG),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice != null) {
+      await settings.updateWeightUnit(choice);
+    }
   }
 }
 

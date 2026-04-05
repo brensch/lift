@@ -13,6 +13,7 @@ import '../providers/multiplayer_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
+import '../logic/weight_units.dart';
 import '../logic/utils.dart';
 import 'package:uuid/uuid.dart';
 
@@ -1121,7 +1122,11 @@ class _PendingUpdateCard extends StatelessWidget {
       final text = controllers[f.key]?.text.trim() ?? '';
       // Convert PendingStateUpdateField to StateFieldKind for value building
       final schema = TrainingProgramStateFieldSchema(key: f.key, kind: f.kind);
-      final val = SettingsProvider.fieldValueFromText(schema, text);
+      final val = SettingsProvider.fieldValueFromText(
+        schema,
+        text,
+        unit: settingsProvider.weightUnit,
+      );
       if (val != null) fieldValues[f.key] = val;
     }
 
@@ -1250,6 +1255,10 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
     final isNumeric =
         f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final isWeightField =
+        '${f.label} ${f.key}'.toLowerCase().contains('weight') ||
+        '${f.label} ${f.key}'.toLowerCase().contains('max');
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -1264,7 +1273,7 @@ class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
                 : TextInputType.text,
             textAlign: TextAlign.right,
             decoration: InputDecoration(
-              suffixText: 'lbs',
+              suffixText: isWeightField ? weightUnitSuffixPlural(unit) : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
