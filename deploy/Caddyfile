@@ -1,7 +1,11 @@
 app.schlift.com {
     encode zstd gzip
 
-    reverse_proxy 127.0.0.1:50051
+    reverse_proxy 127.0.0.1:50051 {
+        transport http {
+            versions h2c 2
+        }
+    }
 
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
