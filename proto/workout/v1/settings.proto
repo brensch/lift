@@ -13,6 +13,16 @@ message PlateColorsConfig {
   float bar_weight_kg = 2;
 }
 
+enum WeightUnit {
+  WEIGHT_UNIT_UNSPECIFIED = 0;
+  WEIGHT_UNIT_LB = 1;
+  WEIGHT_UNIT_KG = 2;
+}
+
+message WeightUnitConfig {
+  WeightUnit unit = 1;
+}
+
 // ─── Training program catalog ─────────────────────────────────────────────────
 
 enum RegimeType {
@@ -147,6 +157,7 @@ message PendingStateUpdate {
 message UserSetting {
   oneof setting {
     PlateColorsConfig plate_colors = 10;
+    WeightUnitConfig weight_unit = 12;
     // field 11 reserved (was workout_config)
   }
 }

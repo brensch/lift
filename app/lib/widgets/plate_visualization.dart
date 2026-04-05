@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../logic/plate_calculator.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 
 class PlateVisualization extends StatelessWidget {
@@ -22,11 +23,12 @@ class PlateVisualization extends StatelessWidget {
   });
 
   void _showDetailModal(BuildContext context) {
+    final unit = context.read<SettingsProvider>().weightUnit;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          '${weight.toInt()} LB BREAKDOWN',
+          '${formatWeight(weight, unit).toUpperCase()} BREAKDOWN',
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         content: Column(
@@ -66,8 +68,10 @@ class PlateVisualization extends StatelessWidget {
       context.watch<SettingsProvider>();
     }
 
-    final result = calcPlatesPerSide(weight);
+    final unit = context.read<SettingsProvider>().weightUnit;
+    final result = calcPlatesPerSide(weight, unit);
     final platesForDisplay = displayPlatesPerSide ?? result.plates;
+    final barWeight = standardBarWeight(unit);
     final isDumbbellWeight = weight < barWeight;
     final isBarOnly = weight == barWeight;
 
@@ -204,9 +208,7 @@ class PlateVisualization extends StatelessWidget {
           child: Container(
             width: 24,
             height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade400,
-            ),
+            decoration: BoxDecoration(color: Colors.grey.shade400),
           ),
         ),
         const SizedBox(width: 1),

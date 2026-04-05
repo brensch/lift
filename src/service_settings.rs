@@ -5,6 +5,9 @@ use crate::program_state::{
 };
 use crate::regimes::{catalog_regime_types, get_regime};
 use crate::service_workout::get_user_id_authenticated;
+use crate::weight_units::{
+    annotate_state_with_weight_unit, get_user_weight_unit, strip_weight_unit_context,
+};
 use lift::workout::v1::{
     settings_service_server::SettingsService, ApplyPendingStateUpdateRequest,
     ApplyPendingStateUpdateResponse, GetActiveTrainingProgramStateRequest,
@@ -31,6 +34,7 @@ impl MySettingsService {
 fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
     match &setting.setting {
         Some(lift::workout::v1::user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
+        Some(lift::workout::v1::user_setting::Setting::WeightUnit(_)) => Some("weight_unit"),
         None => None,
     }
 }
@@ -229,11 +233,17 @@ impl SettingsService for MySettingsService {
         let regime_type = RegimeType::try_from(record.regime_type).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
         let current_state = parse_state_payload(&record.state_payload_json);
+        let weight_unit = get_user_weight_unit(&self.central_db, &user_id)
+            .await
+            .unwrap_or(crate::weight_units::AppWeightUnit::Lb);
+        let annotated_state = annotate_state_with_weight_unit(&current_state, weight_unit);
         let field_values = payload_from_proto(&req.field_values);
 
         let new_state = regime
-            .apply_pending_update_to_state(&current_state, &req.update_id, &field_values)
+            .apply_pending_update_to_state(&annotated_state, &req.update_id, &field_values)
             .map_err(|e| Status::invalid_argument(e))?;
+        let mut new_state = new_state;
+        strip_weight_unit_context(&mut new_state);
 
         let now = chrono::Utc::now().timestamp();
         let event = ProgramStateEventRecord {

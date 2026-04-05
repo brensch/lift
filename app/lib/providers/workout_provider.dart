@@ -7,7 +7,9 @@ import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
+import '../logic/weight_units.dart';
 import '../logic/warmup.dart';
+import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
@@ -20,6 +22,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const int _maxWearHeartRateSamplesInMemory = 50000;
 
   final WorkoutServiceWrapper _service;
+  final SettingsProvider _settingsProvider;
   SoundProvider? _soundProvider;
 
   /// Called after each set mutation so the multiplayer session view can
@@ -50,7 +53,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
   DateTime _now = DateTime.now();
 
-  WorkoutProvider(this._service) {
+  WorkoutProvider(this._service, this._settingsProvider) {
     WidgetsBinding.instance.addObserver(this);
     NotificationService.onStartNextSet = _onStartNextSet;
   }
@@ -422,10 +425,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final name = exerciseNames[next.exercise] ?? '?';
     final prefix = next.warmup ? 'Warmup ' : '';
     final w = next.targetWeight.toDouble();
-    final weightStr = w == w.roundToDouble()
-        ? w.toInt().toString()
-        : w.toStringAsFixed(1);
-    return 'Next up: $prefix$name — ${weightStr}kg x ${next.targetReps}';
+    final weightStr = formatWeight(w, _settingsProvider.weightUnit);
+    return 'Next up: $prefix$name — $weightStr ${weightUnitSuffix(_settingsProvider.weightUnit)} x ${next.targetReps}';
   }
 
   bool isSetDone(String setId) {

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/plate_visualization.dart';
-
-const List<double> _plateWeights = [45, 35, 25, 10, 5, 2.5];
 
 const List<MapEntry<String, Color>> _colorOptions = [
   MapEntry('Red', Colors.red),
@@ -52,9 +51,13 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final plateWeights = standardPlates(unit);
 
-    const previewPlatesPerSide = [45.0, 35.0, 25.0, 10.0, 5.0, 2.5];
-    const contrivedWeight = 290.0;
+    final previewPlatesPerSide = plateWeights;
+    final contrivedWeight =
+        standardBarWeight(unit) +
+        previewPlatesPerSide.fold<double>(0, (sum, plate) => sum + plate * 2);
 
     return Scaffold(
       appBar: AppBar(
@@ -95,7 +98,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _plateWeights.length,
+              itemCount: plateWeights.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
@@ -103,7 +106,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
                 childAspectRatio: 1.0,
               ),
               itemBuilder: (context, index) {
-                final weight = _plateWeights[index];
+                final weight = plateWeights[index];
                 final currentColor = _colors[weight] ?? Colors.purple;
                 final plateTextColor = currentColor.computeLuminance() > 0.55
                     ? Colors.black87
@@ -209,7 +212,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
   }
 
   String _plateLabel(double weight) =>
-      weight % 1 == 0 ? '${weight.toInt()} lb' : '$weight lb';
+      '${weight % 1 == 0 ? weight.toInt() : weight} ${weightUnitSuffix(context.read<SettingsProvider>().weightUnit)}';
 }
 
 class _PlateRingPainter extends CustomPainter {

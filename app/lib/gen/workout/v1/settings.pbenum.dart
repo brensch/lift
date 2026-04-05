@@ -14,6 +14,28 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+class WeightUnit extends $pb.ProtobufEnum {
+  static const WeightUnit WEIGHT_UNIT_UNSPECIFIED =
+      WeightUnit._(0, _omitEnumNames ? '' : 'WEIGHT_UNIT_UNSPECIFIED');
+  static const WeightUnit WEIGHT_UNIT_LB =
+      WeightUnit._(1, _omitEnumNames ? '' : 'WEIGHT_UNIT_LB');
+  static const WeightUnit WEIGHT_UNIT_KG =
+      WeightUnit._(2, _omitEnumNames ? '' : 'WEIGHT_UNIT_KG');
+
+  static const $core.List<WeightUnit> values = <WeightUnit>[
+    WEIGHT_UNIT_UNSPECIFIED,
+    WEIGHT_UNIT_LB,
+    WEIGHT_UNIT_KG,
+  ];
+
+  static final $core.List<WeightUnit?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static WeightUnit? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const WeightUnit._(super.value, super.name);
+}
+
 class RegimeType extends $pb.ProtobufEnum {
   static const RegimeType REGIME_TYPE_UNSPECIFIED =
       RegimeType._(0, _omitEnumNames ? '' : 'REGIME_TYPE_UNSPECIFIED');

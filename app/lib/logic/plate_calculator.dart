@@ -1,3 +1,6 @@
+import '../gen/workout/v1/settings.pb.dart';
+import 'weight_units.dart';
+
 class PlateResult {
   final List<double> plates;
   final double remainder;
@@ -5,10 +8,9 @@ class PlateResult {
   PlateResult(this.plates, this.remainder);
 }
 
-const double barWeight = 45;
-const List<double> availablePlates = [45, 35, 25, 10, 5, 2.5];
-
-PlateResult calcPlatesPerSide(double totalWeight) {
+PlateResult calcPlatesPerSide(double totalWeight, WeightUnit unit) {
+  final barWeight = standardBarWeight(unit);
+  final availablePlates = standardPlates(unit);
   if (totalWeight <= barWeight) return PlateResult([], 0);
 
   double remaining = (totalWeight - barWeight) / 2;

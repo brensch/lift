@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import 'regime_info_screen.dart';
 
@@ -27,7 +28,8 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
   }
 
   void _ensureInitialized(SettingsProvider provider) {
-    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) return;
+    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty)
+      return;
 
     final currentState = provider.programState;
     final programs = provider.trainingPrograms;
@@ -66,7 +68,22 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
 
   String _defaultFieldText(TrainingProgramStateFieldSchema field) {
     if (field.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
-      return field.minValue > 0 ? field.minValue.toStringAsFixed(0) : '';
+      final provider = context.read<SettingsProvider>();
+      final value = SettingsProvider.isWeightField(field)
+          ? snapDisplayWeight(
+              displayWeightFromPounds(field.minValue, provider.weightUnit),
+              provider.weightUnit,
+              poundStep: field.step,
+              kilogramStep: SettingsProvider.displayStepForField(
+                field,
+                provider.weightUnit,
+              ),
+            )
+          : field.minValue;
+      if (value <= 0) return '';
+      return value % 1 == 0
+          ? value.toStringAsFixed(0)
+          : value.toStringAsFixed(1);
     }
     if (field.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
       return field.minValue.toInt().toString();
@@ -84,7 +101,11 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
   }) {
     final sameRegime = existingState?.regimeType == program.regimeType;
     if (sameRegime && (existingState?.fields[field.key]) != null) {
-      return SettingsProvider.fieldValueToText(existingState!.fields[field.key]);
+      return SettingsProvider.fieldValueToText(
+        field,
+        existingState!.fields[field.key],
+        unit: context.read<SettingsProvider>().weightUnit,
+      );
     }
     return _defaultFieldText(field);
   }
@@ -95,9 +116,17 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
   ) {
     final raw = controller?.text.trim() ?? '';
     if (raw.isEmpty) return '';
-    final parsed = SettingsProvider.fieldValueFromText(field, raw);
+    final parsed = SettingsProvider.fieldValueFromText(
+      field,
+      raw,
+      unit: context.read<SettingsProvider>().weightUnit,
+    );
     if (parsed == null) return raw;
-    return SettingsProvider.fieldValueToText(parsed);
+    return SettingsProvider.fieldValueToText(
+      field,
+      parsed,
+      unit: context.read<SettingsProvider>().weightUnit,
+    );
   }
 
   bool _hasUnsavedChanges(
@@ -111,13 +140,20 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
 
     for (final field in selectedProgram.stateSchema.fields) {
       final current = _normalizedFieldText(field, _controllers[field.key]);
-      final saved = SettingsProvider.fieldValueToText(savedState.fields[field.key]);
+      final saved = SettingsProvider.fieldValueToText(
+        field,
+        savedState.fields[field.key],
+        unit: provider.weightUnit,
+      );
       if (current != saved) return true;
     }
     return false;
   }
 
-  bool _isSwitchingProgram(SettingsProvider provider, TrainingProgramDefinition selectedProgram) {
+  bool _isSwitchingProgram(
+    SettingsProvider provider,
+    TrainingProgramDefinition selectedProgram,
+  ) {
     final savedState = provider.programState;
     if (savedState == null) return false;
     return savedState.regimeType != selectedProgram.regimeType;
@@ -146,7 +182,10 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     return confirmed ?? false;
   }
 
-  Future<void> _save(SettingsProvider provider, TrainingProgramDefinition program) async {
+  Future<void> _save(
+    SettingsProvider provider,
+    TrainingProgramDefinition program,
+  ) async {
     if (_isSwitchingProgram(provider, program)) {
       final confirmed = await _confirmProgramSwitch();
       if (!confirmed || !mounted) return;
@@ -157,7 +196,11 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
       final fields = <String, StateFieldValue>{};
       for (final f in program.stateSchema.fields) {
         final text = _controllers[f.key]?.text.trim() ?? '';
-        final val = SettingsProvider.fieldValueFromText(f, text);
+        final val = SettingsProvider.fieldValueFromText(
+          f,
+          text,
+          unit: provider.weightUnit,
+        );
         if (val != null) fields[f.key] = val;
       }
 
@@ -169,7 +212,9 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
 
       if (warnings.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved with warnings: ${warnings.join('; ')}')),
+          SnackBar(
+            content: Text('Saved with warnings: ${warnings.join('; ')}'),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +231,9 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     final provider = context.watch<SettingsProvider>();
     _ensureInitialized(provider);
 
-    if (!provider.loaded || provider.trainingPrograms.isEmpty || _selectedRegimeType == null) {
+    if (!provider.loaded ||
+        provider.trainingPrograms.isEmpty ||
+        _selectedRegimeType == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Training Program')),
         body: const Center(child: CircularProgressIndicator()),
@@ -194,7 +241,8 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     }
 
     final programs = provider.trainingPrograms;
-    final selected = provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
+    final selected =
+        provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
     final hasUnsavedChanges = _hasUnsavedChanges(provider, selected);
     final cs = Theme.of(context).colorScheme;
 
@@ -207,9 +255,14 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
                   child: FilledButton(
-                    onPressed: _isSaving ? null : () => _save(provider, selected),
+                    onPressed: _isSaving
+                        ? null
+                        : () => _save(provider, selected),
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
                       textStyle: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -248,7 +301,8 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
                 onInfo: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => RegimeInfoScreen(regimeType: program.regimeType),
+                    builder: (_) =>
+                        RegimeInfoScreen(regimeType: program.regimeType),
                   ),
                 ),
               ),
@@ -303,17 +357,19 @@ class _StateFieldsEditorState extends State<_StateFieldsEditor> {
       widgets.add(const SizedBox(height: 10));
       for (final f in entry.value) {
         if (widget.controllers.containsKey(f.key)) {
-          widgets.add(Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _StateFieldInput(
-              field: f,
-              controller: widget.controllers[f.key]!,
-              onChanged: () {
-                setState(() {});
-                widget.onFieldChanged();
-              },
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _StateFieldInput(
+                field: f,
+                controller: widget.controllers[f.key]!,
+                onChanged: () {
+                  setState(() {});
+                  widget.onFieldChanged();
+                },
+              ),
             ),
-          ));
+          );
         }
       }
       widgets.add(const SizedBox(height: 8));
@@ -342,7 +398,8 @@ class _StateFieldInput extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final f = field;
 
-    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM && f.enumOptions.isNotEmpty) {
+    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM &&
+        f.enumOptions.isNotEmpty) {
       return ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
@@ -350,12 +407,20 @@ class _StateFieldInput extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                f.label,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               if (f.helpText.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 2, bottom: 8),
-                  child: Text(f.helpText,
-                      style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+                  child: Text(
+                    f.helpText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
                 ),
               Wrap(
                 spacing: 8,
@@ -376,9 +441,13 @@ class _StateFieldInput extends StatelessWidget {
       );
     }
 
-    final isNumeric = f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
+    final isNumeric =
+        f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
-    final suffix = f.section.contains('Weight') || f.section.contains('Max') ? 'lbs' : null;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final suffix = SettingsProvider.isWeightField(f)
+        ? weightUnitSuffixPlural(unit)
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,12 +456,19 @@ class _StateFieldInput extends StatelessWidget {
         if (f.helpText.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 2, bottom: 8),
-            child: Text(f.helpText,
-                style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.55))),
+            child: Text(
+              f.helpText,
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
           ),
         TextField(
           controller: controller,
-          keyboardType: isNumeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+          keyboardType: isNumeric
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text,
           textAlign: TextAlign.right,
           onChanged: (_) => onChanged(),
           decoration: InputDecoration(
@@ -449,7 +525,9 @@ class _ProgramTile extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? cs.primary.withValues(alpha: 0.08) : cs.surfaceContainerLowest,
+          color: isSelected
+              ? cs.primary.withValues(alpha: 0.08)
+              : cs.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? cs.primary : cs.outline.withValues(alpha: 0.4),
@@ -464,10 +542,15 @@ class _ProgramTile extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: isSelected ? cs.primary : cs.outline, width: 2),
+                border: Border.all(
+                  color: isSelected ? cs.primary : cs.outline,
+                  width: 2,
+                ),
                 color: isSelected ? cs.primary : Colors.transparent,
               ),
-              child: isSelected ? Icon(Icons.check, size: 10, color: cs.onPrimary) : null,
+              child: isSelected
+                  ? Icon(Icons.check, size: 10, color: cs.onPrimary)
+                  : null,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -498,7 +581,11 @@ class _ProgramTile extends StatelessWidget {
             ),
             IconButton(
               onPressed: onInfo,
-              icon: Icon(Icons.info_outline_rounded, size: 18, color: cs.primary.withValues(alpha: 0.7)),
+              icon: Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: cs.primary.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ),

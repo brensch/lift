@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/weight_units.dart';
+import '../providers/settings_provider.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
 import 'plate_visualization.dart';
@@ -194,6 +197,8 @@ class StatusSetWeightInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final weightText = formatWeight(set.targetWeight.toDouble(), unit);
 
     return FittedBox(
       fit: BoxFit.scaleDown,
@@ -221,8 +226,8 @@ class StatusSetWeightInfo extends StatelessWidget {
           ],
           Text(
             set.isAmrap
-                ? 'AMRAP\u00D7${set.targetWeight.toInt()}'
-                : '${set.targetReps}\u00D7${set.targetWeight.toInt()}',
+                ? 'AMRAP\u00D7$weightText'
+                : '${set.targetReps}\u00D7$weightText',
             style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,
@@ -235,7 +240,7 @@ class StatusSetWeightInfo extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'lb',
+              weightUnitSuffix(unit),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

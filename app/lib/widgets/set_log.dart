@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
+import '../logic/weight_units.dart';
+import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 
 class SetLog extends StatelessWidget {
@@ -59,10 +62,12 @@ class SetLog extends StatelessWidget {
 
       // Connecting line segment between rows
       if (i < done.length - 1) {
-        items.add(Padding(
-          padding: const EdgeInsets.only(left: _dotCenterX - 0.5),
-          child: Container(width: 1, height: 7, color: lineColor),
-        ));
+        items.add(
+          Padding(
+            padding: const EdgeInsets.only(left: _dotCenterX - 0.5),
+            child: Container(width: 1, height: 7, color: lineColor),
+          ),
+        );
       }
     }
 
@@ -79,14 +84,19 @@ class SetLog extends StatelessWidget {
     ColorScheme colorScheme,
   ) {
     final proposed = proposedById[completed.proposedSetId];
-    final shortName = proposed != null ? (shortNames[proposed.exercise] ?? '?') : '?';
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final shortName = proposed != null
+        ? (shortNames[proposed.exercise] ?? '?')
+        : '?';
     final isWarmup = proposed?.warmup ?? false;
-    final hitTarget =
-        proposed != null ? completed.actualReps >= proposed.targetReps : true;
+    final hitTarget = proposed != null
+        ? completed.actualReps >= proposed.targetReps
+        : true;
 
-    final String weightStr = completed.actualWeight % 1 == 0
-        ? '${completed.actualWeight.toInt()}'
-        : '${completed.actualWeight}';
+    final String weightStr = formatWeight(
+      completed.actualWeight.toDouble(),
+      unit,
+    );
 
     Color dotColor;
     Color statusColor;
@@ -215,9 +225,7 @@ class SetLog extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.primaryContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: colorScheme.primary.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
@@ -239,9 +247,10 @@ class SetLog extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         final weight = completed.actualWeight.toDouble();
-        final weightText = weight == weight.roundToDouble()
-            ? weight.toInt().toString()
-            : weight.toStringAsFixed(1);
+        final weightText = formatWeight(
+          weight,
+          context.read<SettingsProvider>().weightUnit,
+        );
         final confirmed = await _confirmDelete(
           context,
           setSummary: '${completed.actualReps}×$weightText',

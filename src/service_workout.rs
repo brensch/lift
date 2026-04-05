@@ -7,6 +7,9 @@ use crate::progress::compute_next_up_set;
 use crate::regimes::get_regime;
 use crate::scheduler::Scheduler;
 use crate::state::{ActiveWorkout, AppState};
+use crate::weight_units::{
+    annotate_state_with_weight_unit, get_user_weight_unit, strip_weight_unit_context, AppWeightUnit,
+};
 #[cfg(test)]
 use lift::workout::v1::UpdateExerciseGroupRequest;
 use lift::workout::v1::{
@@ -1794,6 +1797,10 @@ impl WorkoutService for MyWorkoutService {
                 .unwrap_or(lift::workout::v1::RegimeType::Linear5x5);
             let regime = get_regime(regime_type);
             let current_state = parse_state_payload(&state_record.state_payload_json);
+            let weight_unit = get_user_weight_unit(&self.central_db, &user_id)
+                .await
+                .unwrap_or(AppWeightUnit::Lb);
+            let annotated_state = annotate_state_with_weight_unit(&current_state, weight_unit);
 
             // Load proposed + completed sets to build WorkoutCompletionResult
             let proposed_sets = self
@@ -1825,10 +1832,12 @@ impl WorkoutService for MyWorkoutService {
             let completion_result = WorkoutCompletionResult { set_results };
 
             let new_state = regime.transition_state_on_workout_complete(
-                &current_state,
+                &annotated_state,
                 &completion_result,
                 active.workout.end_time,
             );
+            let mut new_state = new_state;
+            strip_weight_unit_context(&mut new_state);
 
             let event = ProgramStateEventRecord {
                 event_id: uuid::Uuid::new_v4().to_string(),

@@ -15,6 +15,21 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use weightUnitDescriptor instead')
+const WeightUnit$json = {
+  '1': 'WeightUnit',
+  '2': [
+    {'1': 'WEIGHT_UNIT_UNSPECIFIED', '2': 0},
+    {'1': 'WEIGHT_UNIT_LB', '2': 1},
+    {'1': 'WEIGHT_UNIT_KG', '2': 2},
+  ],
+};
+
+/// Descriptor for `WeightUnit`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List weightUnitDescriptor = $convert.base64Decode(
+    'CgpXZWlnaHRVbml0EhsKF1dFSUdIVF9VTklUX1VOU1BFQ0lGSUVEEAASEgoOV0VJR0hUX1VOSV'
+    'RfTEIQARISCg5XRUlHSFRfVU5JVF9LRxAC');
+
 @$core.Deprecated('Use regimeTypeDescriptor instead')
 const RegimeType$json = {
   '1': 'RegimeType',
@@ -86,6 +101,26 @@ const PlateColorsConfig$json = {
 final $typed_data.Uint8List plateColorsConfigDescriptor = $convert.base64Decode(
     'ChFQbGF0ZUNvbG9yc0NvbmZpZxIuCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ2'
     '9sb3JSBnBsYXRlcxIiCg1iYXJfd2VpZ2h0X2tnGAIgASgCUgtiYXJXZWlnaHRLZw==');
+
+@$core.Deprecated('Use weightUnitConfigDescriptor instead')
+const WeightUnitConfig$json = {
+  '1': 'WeightUnitConfig',
+  '2': [
+    {
+      '1': 'unit',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.WeightUnit',
+      '10': 'unit'
+    },
+  ],
+};
+
+/// Descriptor for `WeightUnitConfig`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List weightUnitConfigDescriptor = $convert.base64Decode(
+    'ChBXZWlnaHRVbml0Q29uZmlnEioKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaX'
+    'RSBHVuaXQ=');
 
 @$core.Deprecated('Use trainingProgramAtAGlanceDescriptor instead')
 const TrainingProgramAtAGlance$json = {
@@ -480,6 +515,15 @@ const UserSetting$json = {
       '9': 0,
       '10': 'plateColors'
     },
+    {
+      '1': 'weight_unit',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WeightUnitConfig',
+      '9': 0,
+      '10': 'weightUnit'
+    },
   ],
   '8': [
     {'1': 'setting'},
@@ -489,7 +533,8 @@ const UserSetting$json = {
 /// Descriptor for `UserSetting`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List userSettingDescriptor = $convert.base64Decode(
     'CgtVc2VyU2V0dGluZxJCCgxwbGF0ZV9jb2xvcnMYCiABKAsyHS53b3Jrb3V0LnYxLlBsYXRlQ2'
-    '9sb3JzQ29uZmlnSABSC3BsYXRlQ29sb3JzQgkKB3NldHRpbmc=');
+    '9sb3JzQ29uZmlnSABSC3BsYXRlQ29sb3JzEj8KC3dlaWdodF91bml0GAwgASgLMhwud29ya291'
+    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZw==');
 
 @$core.Deprecated('Use updateSettingRequestDescriptor instead')
 const UpdateSettingRequest$json = {

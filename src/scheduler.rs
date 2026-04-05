@@ -4,6 +4,7 @@ use lift::workout::v1::{GetProposedWorkoutScheduleResponse, RegimeType};
 use crate::db::CentralDb;
 use crate::program_state::{parse_state_payload, pending_update_to_proto};
 use crate::regimes::{build_exercise_statuses, build_session_readiness, get_regime};
+use crate::weight_units::{annotate_state_with_weight_unit, get_user_weight_unit, AppWeightUnit};
 
 pub struct Scheduler {
     central_db: CentralDb,
@@ -40,6 +41,10 @@ impl Scheduler {
             }
         };
         let regime = get_regime(regime_type);
+        let weight_unit = get_user_weight_unit(&self.central_db, user_id)
+            .await
+            .unwrap_or(AppWeightUnit::Lb);
+        let state = annotate_state_with_weight_unit(&state, weight_unit);
 
         // ── 2. Load exercise history ──────────────────────────────────────────
         let (all_history, all_max_weights) = self

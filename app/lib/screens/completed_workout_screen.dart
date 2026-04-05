@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
+import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercises.dart';
+import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
@@ -209,10 +212,12 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final ownCompletedSets = _completedSets
         .where((c) => c.workoutId == workout.id)
         .toList();
+    final unit = context.watch<SettingsProvider>().weightUnit;
     final summary = WorkoutSummaryData.fromWorkout(
       workout: workout,
       proposedSets: ownProposedSets,
       completedSets: ownCompletedSets,
+      unit: unit,
     );
     final hasHeartRateChart =
         workout.startTime != Int64.ZERO && _heartRateSamples.isNotEmpty;
@@ -536,6 +541,7 @@ class _ExerciseStatColumn extends StatelessWidget {
 }
 
 class WorkoutSummaryData {
+  final WeightUnit unit;
   final Duration duration;
   final double totalVolume;
   final Duration liftingTime;
@@ -546,6 +552,7 @@ class WorkoutSummaryData {
   final List<ExerciseSummary> exerciseSummaries;
 
   WorkoutSummaryData({
+    required this.unit,
     required this.duration,
     required this.totalVolume,
     required this.liftingTime,
@@ -557,12 +564,13 @@ class WorkoutSummaryData {
   });
 
   String get durationLabel => _formatDuration(duration);
-  String get volumeLabel => '${totalVolume.round()} lb';
+  String get volumeLabel =>
+      '${formatWeight(totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get liftingTimeLabel => _formatDuration(liftingTime);
   String get restingTimeLabel => _formatDuration(restingTime);
   String get yappingTimeLabel => _formatDuration(yappingTime);
   String get volumePerMinuteLabel =>
-      '${_formatDecimal(volumePerMinute)} lb/min';
+      '${_formatDecimal(displayWeightFromPounds(volumePerMinute, unit))} ${weightUnitSuffix(unit)}/min';
   String get workRestRatioLabel => restingTime.inSeconds > 0
       ? '${_formatDecimal(liftingTime.inSeconds.toDouble() / restingTime.inSeconds.toDouble(), fractionDigits: 2)}x'
       : '—';
@@ -589,6 +597,7 @@ class WorkoutSummaryData {
     required Workout workout,
     required List<ProposedSet> proposedSets,
     required List<CompletedSet> completedSets,
+    required WeightUnit unit,
   }) {
     final completed = completedSets
         .where((set) => set.endedAt != Int64.ZERO)
@@ -641,7 +650,7 @@ class WorkoutSummaryData {
 
       final builder = exerciseBuilders.putIfAbsent(
         proposed.exercise,
-        () => ExerciseSummaryBuilder(proposed.exercise),
+        () => ExerciseSummaryBuilder(proposed.exercise, unit),
       );
       builder.addSet(completedSet, proposed);
     }
@@ -669,6 +678,7 @@ class WorkoutSummaryData {
     final yappingTime = _calculateYappingTime(ordered, workout);
 
     return WorkoutSummaryData(
+      unit: unit,
       duration: workoutDuration,
       totalVolume: totalVolume,
       liftingTime: liftingTime,
@@ -705,6 +715,7 @@ class WorkoutSummaryData {
 }
 
 class ExerciseSummary {
+  final WeightUnit unit;
   final Exercise exercise;
   final String name;
   final String emoji;
@@ -716,6 +727,7 @@ class ExerciseSummary {
   final String recordNote;
 
   ExerciseSummary({
+    required this.unit,
     required this.exercise,
     required this.name,
     required this.emoji,
@@ -727,13 +739,18 @@ class ExerciseSummary {
     required this.recordNote,
   });
 
-  String get volumeLabel => '${totalVolume.round()} lb';
-  String get formattedOneRm => bestOneRm > 0 ? '${bestOneRm.round()} lb' : '—';
-  String get heaviestSetWeightLabel =>
-      heaviestSetWeight > 0 ? '${heaviestSetWeight.round()} lb' : '—';
+  String get volumeLabel =>
+      '${formatWeight(totalVolume, unit)} ${weightUnitSuffix(unit)}';
+  String get formattedOneRm => bestOneRm > 0
+      ? '${formatWeight(bestOneRm, unit)} ${weightUnitSuffix(unit)}'
+      : '—';
+  String get heaviestSetWeightLabel => heaviestSetWeight > 0
+      ? '${formatWeight(heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
+      : '—';
 }
 
 class ExerciseSummaryBuilder {
+  final WeightUnit unit;
   final Exercise exercise;
   int totalSets = 0;
   int totalReps = 0;
@@ -741,7 +758,7 @@ class ExerciseSummaryBuilder {
   double bestOneRm = 0;
   double heaviestSetWeight = 0;
 
-  ExerciseSummaryBuilder(this.exercise);
+  ExerciseSummaryBuilder(this.exercise, this.unit);
 
   void addSet(CompletedSet completedSet, ProposedSet proposed) {
     totalSets += 1;
@@ -760,6 +777,7 @@ class ExerciseSummaryBuilder {
 
   ExerciseSummary build() {
     return ExerciseSummary(
+      unit: unit,
       exercise: exercise,
       name: exerciseNames[exercise] ?? 'Unknown',
       emoji: exerciseEmojis[exercise] ?? '?',

@@ -147,6 +147,61 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
   void clearBarWeightKg() => $_clearField(2);
 }
 
+class WeightUnitConfig extends $pb.GeneratedMessage {
+  factory WeightUnitConfig({
+    WeightUnit? unit,
+  }) {
+    final result = create();
+    if (unit != null) result.unit = unit;
+    return result;
+  }
+
+  WeightUnitConfig._();
+
+  factory WeightUnitConfig.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WeightUnitConfig.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WeightUnitConfig',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<WeightUnit>(1, _omitFieldNames ? '' : 'unit',
+        enumValues: WeightUnit.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WeightUnitConfig clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WeightUnitConfig copyWith(void Function(WeightUnitConfig) updates) =>
+      super.copyWith((message) => updates(message as WeightUnitConfig))
+          as WeightUnitConfig;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WeightUnitConfig create() => WeightUnitConfig._();
+  @$core.override
+  WeightUnitConfig createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WeightUnitConfig getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WeightUnitConfig>(create);
+  static WeightUnitConfig? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WeightUnit get unit => $_getN(0);
+  @$pb.TagNumber(1)
+  set unit(WeightUnit value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUnit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUnit() => $_clearField(1);
+}
+
 class TrainingProgramAtAGlance extends $pb.GeneratedMessage {
   factory TrainingProgramAtAGlance({
     $core.String? daysPerWeek,
@@ -1343,14 +1398,16 @@ class PendingStateUpdate extends $pb.GeneratedMessage {
   $pb.PbList<PendingStateUpdateField> get fields => $_getList(3);
 }
 
-enum UserSetting_Setting { plateColors, notSet }
+enum UserSetting_Setting { plateColors, weightUnit, notSet }
 
 class UserSetting extends $pb.GeneratedMessage {
   factory UserSetting({
     PlateColorsConfig? plateColors,
+    WeightUnitConfig? weightUnit,
   }) {
     final result = create();
     if (plateColors != null) result.plateColors = plateColors;
+    if (weightUnit != null) result.weightUnit = weightUnit;
     return result;
   }
 
@@ -1366,15 +1423,18 @@ class UserSetting extends $pb.GeneratedMessage {
   static const $core.Map<$core.int, UserSetting_Setting>
       _UserSetting_SettingByTag = {
     10: UserSetting_Setting.plateColors,
+    12: UserSetting_Setting.weightUnit,
     0: UserSetting_Setting.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'UserSetting',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10])
+    ..oo(0, [10, 12])
     ..aOM<PlateColorsConfig>(10, _omitFieldNames ? '' : 'plateColors',
         subBuilder: PlateColorsConfig.create)
+    ..aOM<WeightUnitConfig>(12, _omitFieldNames ? '' : 'weightUnit',
+        subBuilder: WeightUnitConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1397,9 +1457,11 @@ class UserSetting extends $pb.GeneratedMessage {
   static UserSetting? _defaultInstance;
 
   @$pb.TagNumber(10)
+  @$pb.TagNumber(12)
   UserSetting_Setting whichSetting() =>
       _UserSetting_SettingByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(10)
+  @$pb.TagNumber(12)
   void clearSetting() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(10)
@@ -1412,6 +1474,17 @@ class UserSetting extends $pb.GeneratedMessage {
   void clearPlateColors() => $_clearField(10);
   @$pb.TagNumber(10)
   PlateColorsConfig ensurePlateColors() => $_ensure(0);
+
+  @$pb.TagNumber(12)
+  WeightUnitConfig get weightUnit => $_getN(1);
+  @$pb.TagNumber(12)
+  set weightUnit(WeightUnitConfig value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasWeightUnit() => $_has(1);
+  @$pb.TagNumber(12)
+  void clearWeightUnit() => $_clearField(12);
+  @$pb.TagNumber(12)
+  WeightUnitConfig ensureWeightUnit() => $_ensure(1);
 }
 
 class UpdateSettingRequest extends $pb.GeneratedMessage {

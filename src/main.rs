@@ -33,6 +33,7 @@ mod service_settings;
 mod service_user;
 mod service_workout;
 mod state;
+mod weight_units;
 
 use auth::AuthState;
 use db::CentralDb;

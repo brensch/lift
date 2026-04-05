@@ -7,6 +7,7 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -1239,6 +1240,13 @@ class _WeightDisplayBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final displayWeight = snapDisplayWeight(
+      displayWeightFromPounds(weight, unit),
+      unit,
+      poundStep: 5,
+      kilogramStep: isMetricUnit(unit) ? 2.5 : 5,
+    );
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -1263,8 +1271,15 @@ class _WeightDisplayBox extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '${weight.toInt()}',
+              displayWeight % 1 == 0
+                  ? displayWeight.toStringAsFixed(0)
+                  : displayWeight.toStringAsFixed(1),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              weightUnitSuffix(unit),
+              style: TextStyle(fontSize: 12, color: colorScheme.tertiary),
             ),
             const SizedBox(width: 4),
             Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
@@ -1286,14 +1301,24 @@ class _WeightPicker extends StatefulWidget {
 }
 
 class _WeightPickerState extends State<_WeightPicker> {
-  late double _weight;
+  late double _displayWeight;
   late TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
-    _weight = widget.initialWeight;
-    _textController = TextEditingController(text: '${_weight.toInt()}');
+    final unit = context.read<SettingsProvider>().weightUnit;
+    _displayWeight = snapDisplayWeight(
+      displayWeightFromPounds(widget.initialWeight, unit),
+      unit,
+      poundStep: 5,
+      kilogramStep: isMetricUnit(unit) ? 2.5 : 5,
+    );
+    _textController = TextEditingController(
+      text: _displayWeight % 1 == 0
+          ? _displayWeight.toStringAsFixed(0)
+          : _displayWeight.toStringAsFixed(1),
+    );
   }
 
   @override
@@ -1302,17 +1327,28 @@ class _WeightPickerState extends State<_WeightPicker> {
     super.dispose();
   }
 
-  void _updateWeight(double newWeight) {
+  void _updateWeight(double newDisplayWeight) {
+    final unit = context.read<SettingsProvider>().weightUnit;
     setState(() {
-      _weight = newWeight.clamp(0, 1000);
-      _textController.text = '${_weight.toInt()}';
+      _displayWeight = newDisplayWeight.clamp(
+        0,
+        isMetricUnit(unit) ? 300 : 600,
+      );
+      _textController.text = _displayWeight % 1 == 0
+          ? _displayWeight.toStringAsFixed(0)
+          : _displayWeight.toStringAsFixed(1);
     });
-    widget.onChanged(_weight);
+    widget.onChanged(poundsFromDisplayWeight(_displayWeight, unit));
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final smallStep = isMetricUnit(unit) ? 2.5 : 5.0;
+    final bigStep = isMetricUnit(unit) ? 20.0 : 45.0;
+    final maxDisplay = isMetricUnit(unit) ? 300.0 : 600.0;
+    final sliderDivisions = (maxDisplay / smallStep).round();
 
     return Container(
       decoration: BoxDecoration(
@@ -1365,14 +1401,13 @@ class _WeightPickerState extends State<_WeightPicker> {
                   onChanged: (val) {
                     final w = double.tryParse(val);
                     if (w != null) {
-                      setState(() => _weight = w);
-                      widget.onChanged(w);
+                      _updateWeight(w);
                     }
                   },
                 ),
               ),
               Text(
-                'LB',
+                weightUnitSuffix(unit).toUpperCase(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -1383,7 +1418,10 @@ class _WeightPickerState extends State<_WeightPicker> {
           ),
           const SizedBox(height: 16),
 
-          PlateVisualization(weight: _weight, scale: 1.2),
+          PlateVisualization(
+            weight: poundsFromDisplayWeight(_displayWeight, unit),
+            scale: 1.2,
+          ),
           const SizedBox(height: 24),
 
           // Quick Adjust Buttons
@@ -1391,20 +1429,20 @@ class _WeightPickerState extends State<_WeightPicker> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _WeightAdjustBtn(
-                label: '-45',
-                onPressed: () => _updateWeight(_weight - 45),
+                label: '-${bigStep % 1 == 0 ? bigStep.toInt() : bigStep}',
+                onPressed: () => _updateWeight(_displayWeight - bigStep),
               ),
               _WeightAdjustBtn(
-                label: '-5',
-                onPressed: () => _updateWeight(_weight - 5),
+                label: '-${smallStep % 1 == 0 ? smallStep.toInt() : smallStep}',
+                onPressed: () => _updateWeight(_displayWeight - smallStep),
               ),
               _WeightAdjustBtn(
-                label: '+5',
-                onPressed: () => _updateWeight(_weight + 5),
+                label: '+${smallStep % 1 == 0 ? smallStep.toInt() : smallStep}',
+                onPressed: () => _updateWeight(_displayWeight + smallStep),
               ),
               _WeightAdjustBtn(
-                label: '+45',
-                onPressed: () => _updateWeight(_weight + 45),
+                label: '+${bigStep % 1 == 0 ? bigStep.toInt() : bigStep}',
+                onPressed: () => _updateWeight(_displayWeight + bigStep),
               ),
             ],
           ),
@@ -1412,11 +1450,13 @@ class _WeightPickerState extends State<_WeightPicker> {
 
           // Slider
           Slider(
-            value: _weight.clamp(0, 600),
+            value: _displayWeight.clamp(0, maxDisplay),
             min: 0,
-            max: 600,
-            divisions: 120,
-            label: _weight.toInt().toString(),
+            max: maxDisplay,
+            divisions: sliderDivisions,
+            label: _displayWeight % 1 == 0
+                ? _displayWeight.toStringAsFixed(0)
+                : _displayWeight.toStringAsFixed(1),
             onChanged: _updateWeight,
           ),
           const SizedBox(height: 24),
