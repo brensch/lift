@@ -1,3 +1,6 @@
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
+use log::error;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -18,11 +21,17 @@ enum AuthChallengeState {
     },
 }
 
+struct PendingAuthChallenge {
+    state: AuthChallengeState,
+    issued_challenge: String,
+    created_at: Instant,
+}
+
 pub struct AuthState {
     pub webauthn: Arc<Webauthn>,
     pub central_db: CentralDb,
     reg_challenges: Arc<Mutex<HashMap<String, (PasskeyRegistration, String, Instant)>>>,
-    auth_challenges: Arc<Mutex<HashMap<String, (AuthChallengeState, Instant)>>>,
+    auth_challenges: Arc<Mutex<HashMap<String, PendingAuthChallenge>>>,
 }
 
 impl AuthState {
@@ -232,7 +241,11 @@ impl AuthState {
         self.cleanup_expired_auth(&mut challenges);
         challenges.insert(
             challenge_id.clone(),
-            (AuthChallengeState::Discoverable(auth_state), Instant::now()),
+            PendingAuthChallenge {
+                state: AuthChallengeState::Discoverable(auth_state),
+                issued_challenge: encode_challenge(&rcr.public_key.challenge),
+                created_at: Instant::now(),
+            },
         );
 
         Ok((challenge_id, rcr))
@@ -276,13 +289,14 @@ impl AuthState {
         self.cleanup_expired_auth(&mut challenges);
         challenges.insert(
             challenge_id.clone(),
-            (
-                AuthChallengeState::Passkey {
+            PendingAuthChallenge {
+                state: AuthChallengeState::Passkey {
                     state: auth_state,
                     user_id: user.id,
                 },
-                Instant::now(),
-            ),
+                issued_challenge: encode_challenge(&rcr.public_key.challenge),
+                created_at: Instant::now(),
+            },
         );
 
         Ok((challenge_id, rcr))
@@ -291,15 +305,31 @@ impl AuthState {
     pub async fn finish_authentication(
         &self,
         challenge_id: &str,
+        credential_json: &str,
         cred: &PublicKeyCredential,
     ) -> Result<(String, String, String), String> {
         let mut challenges = self.auth_challenges.lock().await;
-        let (challenge_state, _) = challenges
+        let pending = challenges
             .remove(challenge_id)
             .ok_or_else(|| "No pending authentication challenge".to_string())?;
         drop(challenges);
 
-        let (auth_result, user_id) = match challenge_state {
+        let client_challenge = extract_client_response_challenge(credential_json);
+        if let Some(ref client_challenge) = client_challenge {
+            if client_challenge != &pending.issued_challenge {
+                error!(
+                    "WebAuthn challenge mismatch before verification: challenge_id={}, issued_challenge={}, client_challenge={}",
+                    challenge_id, pending.issued_challenge, client_challenge
+                );
+            }
+        } else {
+            error!(
+                "WebAuthn credential missing parseable client challenge: challenge_id={}",
+                challenge_id
+            );
+        }
+
+        let (auth_result, user_id) = match pending.state {
             AuthChallengeState::Discoverable(auth_state) => {
                 // Step 1: identify the user from the credential response
                 let (user_uuid, _cred_id_bytes) = self
@@ -333,7 +363,15 @@ impl AuthState {
                 let result = self
                     .webauthn
                     .finish_discoverable_authentication(cred, auth_state, &discoverable_keys)
-                    .map_err(|e| format!("WebAuthn authentication failed: {}", e))?;
+                    .map_err(|e| {
+                        format!(
+                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={})",
+                            e,
+                            challenge_id,
+                            pending.issued_challenge,
+                            client_challenge.as_deref().unwrap_or("<unparseable>")
+                        )
+                    })?;
 
                 (result, user_id)
             }
@@ -341,7 +379,15 @@ impl AuthState {
                 let result = self
                     .webauthn
                     .finish_passkey_authentication(cred, &state)
-                    .map_err(|e| format!("WebAuthn authentication failed: {}", e))?;
+                    .map_err(|e| {
+                        format!(
+                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={})",
+                            e,
+                            challenge_id,
+                            pending.issued_challenge,
+                            client_challenge.as_deref().unwrap_or("<unparseable>")
+                        )
+                    })?;
 
                 (result, user_id)
             }
@@ -404,8 +450,25 @@ impl AuthState {
         });
     }
 
-    fn cleanup_expired_auth(&self, map: &mut HashMap<String, (AuthChallengeState, Instant)>) {
+    fn cleanup_expired_auth(&self, map: &mut HashMap<String, PendingAuthChallenge>) {
         let now = Instant::now();
-        map.retain(|_, (_, created)| now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS);
+        map.retain(|_, pending| {
+            now.duration_since(pending.created_at).as_secs() < CHALLENGE_TTL_SECS
+        });
     }
+}
+
+fn extract_client_response_challenge(credential_json: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(credential_json).ok()?;
+    let encoded = value.get("response")?.get("clientDataJSON")?.as_str()?;
+    let decoded = URL_SAFE_NO_PAD.decode(encoded).ok()?;
+    let client_data: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
+    client_data.get("challenge")?.as_str().map(str::to_string)
+}
+
+fn encode_challenge(challenge: &Base64UrlSafeData) -> String {
+    serde_json::to_string(challenge)
+        .unwrap_or_else(|_| "\"<serialization-failed>\"".to_string())
+        .trim_matches('"')
+        .to_string()
 }
