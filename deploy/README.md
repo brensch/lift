@@ -41,10 +41,10 @@ Suggested runtime values:
 ```bash
 RUST_LOG=info
 WEBAUTHN_RP_ID=schlift.com
-WEBAUTHN_RP_ORIGIN=https://app.schlift.com
+WEBAUTHN_RP_ORIGIN=https://schlift.com
 ```
 
-Use `schlift.com` as the shared RP ID if you want passkeys issued by `app.schlift.com` to also work on sibling subdomains such as `stats.schlift.com`.
+Use `schlift.com` as the shared RP ID and origin to keep Android app association, passkeys, and the hosted web app on the same domain.
 
 ## TLS / Reverse Proxy
 
@@ -57,7 +57,7 @@ tcp/80
 tcp/443
 ```
 
-Do not expose `50051` publicly. Let Caddy proxy `app.schlift.com` to `127.0.0.1:50051`.
+Do not expose `50051` publicly. Let Caddy proxy `schlift.com` to `127.0.0.1:50051`.
 
 ## Required sudoers entry
 
