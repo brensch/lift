@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export function useReveal<T extends HTMLElement = HTMLDivElement>(
-  threshold = 0.15,
+  threshold = 0.2,
 ) {
   const ref = useRef<T>(null);
   const [visible, setVisible] = useState(false);
@@ -17,7 +17,10 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
           observer.unobserve(el);
         }
       },
-      { threshold },
+      {
+        threshold,
+        rootMargin: "0px 0px -6% 0px",
+      },
     );
 
     observer.observe(el);

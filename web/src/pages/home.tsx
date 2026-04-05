@@ -64,13 +64,12 @@ function Reveal({
     <div
       ref={ref}
       className={cn(
-        "transition-all duration-700 ease-out",
         visible
-          ? "opacity-100 translate-y-0 blur-0"
-          : "opacity-0 translate-y-8 blur-[2px]",
+          ? "animate-reveal-up motion-reduce:animate-none"
+          : "opacity-0 translate-y-12",
         className,
       )}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={visible ? { animationDelay: `${delay}ms` } : undefined}
     >
       {children}
     </div>
@@ -161,27 +160,37 @@ function ProgramsCarousel({
   programs: TrainingProgramDefinition[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const startRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
-  function updateScrollState() {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }
-
   useEffect(() => {
-    updateScrollState();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateScrollState, { passive: true });
-    const ro = new ResizeObserver(updateScrollState);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      ro.disconnect();
-    };
+    const root = scrollRef.current;
+    const start = startRef.current;
+    const end = endRef.current;
+    if (!root || !start || !end) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.target === start) {
+            setCanScrollLeft(!entry.isIntersecting);
+          } else if (entry.target === end) {
+            setCanScrollRight(!entry.isIntersecting);
+          }
+        }
+      },
+      {
+        root,
+        threshold: 0.95,
+      },
+    );
+
+    observer.observe(start);
+    observer.observe(end);
+
+    return () => observer.disconnect();
   }, [programs]);
 
   function scroll(dir: number) {
@@ -221,6 +230,8 @@ function ProgramsCarousel({
         className="flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-5 px-5"
         style={{ scrollbarWidth: "none" }}
       >
+        <div ref={startRef} className="w-px shrink-0 self-stretch" aria-hidden />
+
         {programs.map((p) => (
           <ProgramCard key={p.regimeType} program={p} />
         ))}
@@ -241,6 +252,8 @@ function ProgramsCarousel({
             New programs are in development. Got a request? Let us know.
           </p>
         </div>
+
+        <div ref={endRef} className="w-px shrink-0 self-stretch" aria-hidden />
       </div>
     </div>
   );
