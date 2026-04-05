@@ -25,10 +25,44 @@ The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at
 sudo mkdir -p /opt/schlift
 sudo chown -R opc:opc /opt/schlift
 sudo INSTALL_ROOT=/opt/schlift LIFT_USER=opc LIFT_GROUP=opc ./scripts/install_schlift_service.sh
-sudoedit /opt/schlift/shared/schlift.env
+sudo ./deploy/setup-prod-env.sh
 ```
 
 4. Trigger the `Backend Deploy` workflow once.
+
+Suggested runtime values:
+
+```bash
+RUST_LOG=info
+WEBAUTHN_RP_ID=schlift.com
+WEBAUTHN_RP_ORIGIN=https://app.schlift.com
+```
+
+Use `schlift.com` as the shared RP ID if you want passkeys issued by `app.schlift.com` to also work on sibling subdomains such as `stats.schlift.com`.
+
+## TLS / Reverse Proxy
+
+This deploy flow does not install TLS automatically. Run the backend under `systemd`, and terminate HTTPS with Caddy in front of it.
+
+Suggested one-time setup on Oracle Linux:
+
+```bash
+sudo dnf install -y 'dnf-command(copr)'
+sudo dnf copr enable @caddy/caddy -y
+sudo dnf install -y caddy
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+sudo systemctl enable caddy
+sudo systemctl restart caddy
+```
+
+Open OCI ingress for:
+
+```text
+tcp/80
+tcp/443
+```
+
+Do not expose `50051` publicly. Let Caddy proxy `app.schlift.com` to `127.0.0.1:50051`.
 
 ## Required sudoers entry
 

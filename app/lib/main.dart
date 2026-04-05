@@ -37,7 +37,7 @@ import 'screens/regime_settings_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
-const serverHost = kReleaseMode ? 'schlift.snek2.ddns.net' : 'localhost';
+const serverHost = kReleaseMode ? 'app.schlift.com' : 'localhost';
 const serverPort = kReleaseMode ? 443 : 50051;
 const serverBaseUrl = kReleaseMode
     ? 'https://$serverHost'

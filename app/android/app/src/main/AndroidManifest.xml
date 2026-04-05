@@ -48,7 +48,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="schlift.snek2.ddns.net" />
+                <data android:scheme="https" android:host="app.schlift.com" />
             </intent-filter>
         </activity>
         <activity-alias
@@ -64,7 +64,7 @@
         <!-- Digital Asset Links for passkey/credential manager -->
         <meta-data
             android:name="asset_statements"
-            android:value='[{"include": "https://schlift.snek2.ddns.net/.well-known/assetlinks.json"}]' />
+            android:value='[{"include": "https://app.schlift.com/.well-known/assetlinks.json"}]' />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
