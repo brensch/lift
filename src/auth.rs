@@ -315,17 +315,31 @@ impl AuthState {
         drop(challenges);
 
         let client_challenge = extract_client_response_challenge(credential_json);
+        let client_origin = extract_client_response_origin(credential_json);
+        let allowed_origins = self
+            .webauthn
+            .get_allowed_origins()
+            .iter()
+            .map(|origin| origin.as_str().to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         if let Some(ref client_challenge) = client_challenge {
             if client_challenge != &pending.issued_challenge {
                 error!(
-                    "WebAuthn challenge mismatch before verification: challenge_id={}, issued_challenge={}, client_challenge={}",
-                    challenge_id, pending.issued_challenge, client_challenge
+                    "WebAuthn challenge mismatch before verification: challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={}",
+                    challenge_id,
+                    pending.issued_challenge,
+                    client_challenge,
+                    client_origin.as_deref().unwrap_or("<unparseable>"),
+                    allowed_origins
                 );
             }
         } else {
             error!(
-                "WebAuthn credential missing parseable client challenge: challenge_id={}",
-                challenge_id
+                "WebAuthn credential missing parseable client challenge: challenge_id={}, client_origin={}, allowed_origins={}",
+                challenge_id,
+                client_origin.as_deref().unwrap_or("<unparseable>"),
+                allowed_origins
             );
         }
 
@@ -365,11 +379,13 @@ impl AuthState {
                     .finish_discoverable_authentication(cred, auth_state, &discoverable_keys)
                     .map_err(|e| {
                         format!(
-                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={})",
+                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={})",
                             e,
                             challenge_id,
                             pending.issued_challenge,
-                            client_challenge.as_deref().unwrap_or("<unparseable>")
+                            client_challenge.as_deref().unwrap_or("<unparseable>"),
+                            client_origin.as_deref().unwrap_or("<unparseable>"),
+                            allowed_origins
                         )
                     })?;
 
@@ -381,11 +397,13 @@ impl AuthState {
                     .finish_passkey_authentication(cred, &state)
                     .map_err(|e| {
                         format!(
-                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={})",
+                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={})",
                             e,
                             challenge_id,
                             pending.issued_challenge,
-                            client_challenge.as_deref().unwrap_or("<unparseable>")
+                            client_challenge.as_deref().unwrap_or("<unparseable>"),
+                            client_origin.as_deref().unwrap_or("<unparseable>"),
+                            allowed_origins
                         )
                     })?;
 
@@ -464,6 +482,14 @@ fn extract_client_response_challenge(credential_json: &str) -> Option<String> {
     let decoded = URL_SAFE_NO_PAD.decode(encoded).ok()?;
     let client_data: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
     client_data.get("challenge")?.as_str().map(str::to_string)
+}
+
+fn extract_client_response_origin(credential_json: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(credential_json).ok()?;
+    let encoded = value.get("response")?.get("clientDataJSON")?.as_str()?;
+    let decoded = URL_SAFE_NO_PAD.decode(encoded).ok()?;
+    let client_data: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
+    client_data.get("origin")?.as_str().map(str::to_string)
 }
 
 fn encode_challenge(challenge: &Base64UrlSafeData) -> String {
