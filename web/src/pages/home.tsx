@@ -79,7 +79,7 @@ function Reveal({
 function ProgramCard({ program }: { program: TrainingProgramDefinition }) {
   const glance = program.atAGlance;
   return (
-    <div className="min-w-[360px] max-w-[420px] flex-shrink-0 border border-border rounded-2xl bg-surface p-8 flex flex-col snap-center">
+    <div className="min-w-[300px] max-w-[320px] sm:min-w-[360px] sm:max-w-[420px] flex-shrink-0 border border-border rounded-2xl bg-surface p-6 sm:p-8 flex flex-col">
       <div className="mb-4">
         <h3 className="font-display text-2xl font-bold tracking-tight m-0">
           {program.displayName}
@@ -202,7 +202,11 @@ function ProgramsCarousel({
   }, [programs]);
 
   function scroll(dir: number) {
-    scrollRef.current?.scrollBy({ left: dir * 420, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const scrollAmount = Math.max(el.clientWidth * 0.85, 280);
+    el.scrollBy({ left: dir * scrollAmount, behavior: "smooth" });
   }
 
   return (
@@ -225,35 +229,11 @@ function ProgramsCarousel({
         </button>
       )}
 
-      {/* Edge fades */}
-      {canScrollLeft && (
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 z-[5] bg-gradient-to-r from-surface/30 via-surface/15 to-transparent" />
-      )}
-      {canScrollRight && (
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 z-[5] bg-gradient-to-l from-surface/30 via-surface/15 to-transparent" />
-      )}
-
       <div
         ref={scrollRef}
-        className="flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2"
+        className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide pb-2 pl-5 sm:px-5"
         style={{
           scrollbarWidth: "none",
-          WebkitMaskImage:
-            canScrollLeft && canScrollRight
-              ? "linear-gradient(to right, transparent 0, black 5rem, black calc(100% - 5rem), transparent 100%)"
-              : canScrollLeft
-                ? "linear-gradient(to right, transparent 0, black 5rem, black 100%)"
-                : canScrollRight
-                  ? "linear-gradient(to right, black 0, black calc(100% - 5rem), transparent 100%)"
-                  : undefined,
-          maskImage:
-            canScrollLeft && canScrollRight
-              ? "linear-gradient(to right, transparent 0, black 5rem, black calc(100% - 5rem), transparent 100%)"
-              : canScrollLeft
-                ? "linear-gradient(to right, transparent 0, black 5rem, black 100%)"
-                : canScrollRight
-                  ? "linear-gradient(to right, black 0, black calc(100% - 5rem), transparent 100%)"
-                  : undefined,
         }}
       >
         {programs.map((p) => (
@@ -261,7 +241,7 @@ function ProgramsCarousel({
         ))}
 
         {/* "More to come" card */}
-        <div className="min-w-[360px] max-w-[420px] flex-shrink-0 border border-dashed border-border/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center snap-center">
+        <div className="min-w-[300px] max-w-[320px] sm:min-w-[360px] sm:max-w-[420px] flex-shrink-0 border border-dashed border-border/60 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center">
           <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-5">
             <Dumbbell
               size={20}
@@ -354,8 +334,8 @@ export function HomePage() {
 
       {/* Programs — horizontal scroll carousel */}
       {programs.length > 0 && (
-        <section className="border-y border-border/50 bg-surface/30 py-20 px-5">
-          <div className="max-w-5xl mx-auto">
+        <section className="border-y border-border/50 bg-surface/30 py-20">
+          <div className="max-w-5xl mx-auto px-5">
             <Reveal>
               <p className="text-xs uppercase tracking-[0.2em] text-muted/60 mb-3">
                 Programs
@@ -366,6 +346,8 @@ export function HomePage() {
                 <span className="text-muted">Not just a notepad.</span>
               </h2>
             </Reveal>
+          </div>
+          <div className="sm:max-w-5xl sm:mx-auto">
             <Reveal delay={100} className="mt-12">
               <ProgramsCarousel programs={programs} />
             </Reveal>
