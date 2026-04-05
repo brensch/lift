@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { authClient, authHeaders } from "./grpc";
@@ -35,9 +36,20 @@ function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+function decodeClientDataChallenge(clientDataJSON: ArrayBuffer): string | null {
+  try {
+    const text = new TextDecoder().decode(new Uint8Array(clientDataJSON));
+    const parsed = JSON.parse(text) as { challenge?: string };
+    return typeof parsed.challenge === "string" ? parsed.challenge : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(loadSession);
   const [loading, setLoading] = useState(() => !!loadSession());
+  const loginRequestRef = useRef<Promise<void> | null>(null);
 
   // Validate existing session on mount
   useEffect(() => {
@@ -57,50 +69,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async () => {
-    if (
-      !window.PublicKeyCredential ||
-      !(
-        PublicKeyCredential as unknown as {
-          parseRequestOptionsFromJSON?: unknown;
-        }
-      ).parseRequestOptionsFromJSON
-    ) {
-      throw new Error("Passkeys are not supported in this browser.");
+    if (loginRequestRef.current) {
+      return loginRequestRef.current;
     }
 
-    // Step 1: LoginStart via gRPC
-    const startResp = await authClient.loginStart({});
-
-    // Step 2: Browser passkey ceremony
-    const publicKey = (
-      PublicKeyCredential as unknown as {
-        parseRequestOptionsFromJSON: (
-          opts: unknown
-        ) => CredentialRequestOptions["publicKey"];
+    const loginPromise = (async () => {
+      if (
+        !window.PublicKeyCredential ||
+        !(
+          PublicKeyCredential as unknown as {
+            parseRequestOptionsFromJSON?: unknown;
+          }
+        ).parseRequestOptionsFromJSON
+      ) {
+        throw new Error("Passkeys are not supported in this browser.");
       }
-    ).parseRequestOptionsFromJSON(JSON.parse(startResp.optionsJson));
 
-    const credential = await navigator.credentials.get({ publicKey });
-    if (!credential) throw new Error("No passkey response was returned.");
+      // Step 1: LoginStart via gRPC
+      const startResp = await authClient.loginStart({});
 
-    const credentialJson = (
-      credential as unknown as { toJSON?: () => unknown }
-    ).toJSON?.();
-    if (!credentialJson) throw new Error("Credential serialization failed.");
+      // Step 2: Browser passkey ceremony
+      const publicKey = (
+        PublicKeyCredential as unknown as {
+          parseRequestOptionsFromJSON: (
+            opts: unknown
+          ) => CredentialRequestOptions["publicKey"];
+        }
+      ).parseRequestOptionsFromJSON(JSON.parse(startResp.optionsJson));
 
-    // Step 3: LoginFinish via gRPC
-    const finishResp = await authClient.loginFinish({
-      challengeId: startResp.challengeId,
-      credentialJson: JSON.stringify(credentialJson),
-    });
+      const credential = await navigator.credentials.get({ publicKey });
+      if (!credential) throw new Error("No passkey response was returned.");
+      if (!(credential instanceof PublicKeyCredential)) {
+        throw new Error("Unexpected passkey credential type.");
+      }
 
-    const newUser: User = {
-      userId: finishResp.userId,
-      username: finishResp.username,
-      sessionToken: finishResp.sessionToken,
-    };
-    saveSession(newUser);
-    setUser(newUser);
+      const response = credential.response;
+      if (!(response instanceof AuthenticatorAssertionResponse)) {
+        throw new Error("Unexpected passkey response type.");
+      }
+
+      const requestChallenge =
+        typeof startResp.optionsJson === "string"
+          ? (JSON.parse(startResp.optionsJson) as { challenge?: string })
+              .challenge ?? null
+          : null;
+      const responseChallenge = decodeClientDataChallenge(response.clientDataJSON);
+
+      if (
+        requestChallenge &&
+        responseChallenge &&
+        requestChallenge !== responseChallenge
+      ) {
+        console.error("WebAuthn challenge mismatch before loginFinish", {
+          requestChallenge,
+          responseChallenge,
+          challengeId: startResp.challengeId,
+        });
+        throw new Error("Passkey response challenge did not match request.");
+      }
+
+      const credentialJson = (
+        credential as unknown as { toJSON?: () => unknown }
+      ).toJSON?.();
+      if (!credentialJson) throw new Error("Credential serialization failed.");
+
+      // Step 3: LoginFinish via gRPC
+      const finishResp = await authClient.loginFinish({
+        challengeId: startResp.challengeId,
+        credentialJson: JSON.stringify(credentialJson),
+      });
+
+      const newUser: User = {
+        userId: finishResp.userId,
+        username: finishResp.username,
+        sessionToken: finishResp.sessionToken,
+      };
+      saveSession(newUser);
+      setUser(newUser);
+    })();
+
+    loginRequestRef.current = loginPromise;
+
+    try {
+      await loginPromise;
+    } finally {
+      if (loginRequestRef.current === loginPromise) {
+        loginRequestRef.current = null;
+      }
+    }
   }, []);
 
   const logout = useCallback(async () => {
