@@ -38,7 +38,7 @@ import 'widgets/main_layout.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
 // overridden with --dart-define=SERVER_HOST=... and --dart-define=SERVER_PORT=...
-const _defaultServerHost = kReleaseMode ? 'app.schlift.com' : 'localhost';
+const _defaultServerHost = kReleaseMode ? 'schlift.com' : 'localhost';
 const _defaultServerPort = kReleaseMode ? '443' : '50051';
 const serverHost = String.fromEnvironment(
   'SERVER_HOST',
