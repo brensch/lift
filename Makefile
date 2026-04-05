@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -71,6 +71,22 @@ run-android:
 		echo "Using Android target: $$SERIAL"; \
 		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
 		cd app && $(FLUTTER) run -d "$$SERIAL"; \
+	'
+
+run-android-prod:
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+		if [ -z "$$SERIAL" ]; then \
+			echo "No non-watch Android device found."; \
+			$(ADB) devices; \
+			exit 1; \
+		fi; \
+		echo "Using Android target: $$SERIAL"; \
+		cd app && $(FLUTTER) run -d "$$SERIAL" --dart-define=SERVER_HOST=app.schlift.com --dart-define=SERVER_PORT=443; \
 	'
 
 run-android-clean:
