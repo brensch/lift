@@ -25,7 +25,7 @@ The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at
 sudo mkdir -p /opt/schlift
 sudo chown -R opc:opc /opt/schlift
 sudo INSTALL_ROOT=/opt/schlift LIFT_USER=opc LIFT_GROUP=opc ./scripts/install_schlift_service.sh
-sudo ./deploy/setup-prod-env.sh
+sudo /opt/schlift/bin/setup-prod-env.sh
 ```
 
 4. Trigger the `Backend Deploy` workflow once.
@@ -42,18 +42,7 @@ Use `schlift.com` as the shared RP ID if you want passkeys issued by `app.schlif
 
 ## TLS / Reverse Proxy
 
-This deploy flow does not install TLS automatically. Run the backend under `systemd`, and terminate HTTPS with Caddy in front of it.
-
-Suggested one-time setup on Oracle Linux:
-
-```bash
-sudo dnf install -y 'dnf-command(copr)'
-sudo dnf copr enable @caddy/caddy -y
-sudo dnf install -y caddy
-sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
-sudo systemctl enable caddy
-sudo systemctl restart caddy
-```
+This deploy flow installs Caddy from the production setup script and copies the checked-in `Caddyfile` to `/etc/caddy/Caddyfile`.
 
 Open OCI ingress for:
 
@@ -71,10 +60,8 @@ The self-hosted runner user must be able to run the deploy scripts non-interacti
 Example for `opc`:
 
 ```text
-opc ALL=(root) NOPASSWD:SETENV: /opt/actions-runner/_work/schlift/schlift/scripts/install_schlift_service.sh, /opt/actions-runner/_work/schlift/schlift/scripts/deploy_schlift_release.sh, /usr/bin/systemctl, /usr/bin/journalctl
+opc ALL=(root) NOPASSWD:SETENV: /opt/schlift/bin/install_schlift_service.sh, /opt/schlift/bin/deploy_schlift_release.sh, /opt/schlift/bin/setup-prod-env.sh, /usr/bin/systemctl, /usr/bin/journalctl, /usr/bin/install, /usr/bin/dnf
 ```
-
-Adjust the workspace path to match your runner's checkout directory. If you prefer less path churn, keep the repo checked out in a fixed deploy workspace and call the scripts from there.
 
 A copyable example file lives at `deploy/schlift-runner.sudoers.example`.
 

@@ -10,7 +10,7 @@ INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift}"
 APP_USER="${APP_USER:-opc}"
 APP_GROUP="${APP_GROUP:-${APP_USER}}"
 ENV_PATH="${INSTALL_ROOT}/shared/schlift.env"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CADDYFILE_SRC="${CADDYFILE_SRC:-${INSTALL_ROOT}/share/deploy/Caddyfile}"
 
 mkdir -p "${INSTALL_ROOT}/shared"
 
@@ -31,7 +31,7 @@ if ! command -v caddy >/dev/null 2>&1; then
   dnf install -y caddy
 fi
 
-install -m 0644 "${SCRIPT_DIR}/Caddyfile" /etc/caddy/Caddyfile
+install -m 0644 "${CADDYFILE_SRC}" /etc/caddy/Caddyfile
 systemctl enable caddy
 systemctl restart caddy
 

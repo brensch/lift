@@ -66,14 +66,14 @@ jobs:
           path: dist/backend-linux-arm64
 
       - name: Install systemd unit
-        run: sudo ./scripts/install_schlift_service.sh
+        run: sudo /opt/schlift/bin/install_schlift_service.sh
 
       - name: Deploy release
         run: |
           ARTIFACT_DIR="${PWD}/dist/backend-linux-arm64" \
           RELEASE_ID="${GITHUB_SHA}" \
           sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
-            ./scripts/deploy_schlift_release.sh
+            /opt/schlift/bin/deploy_schlift_release.sh
 
       - name: Show deployed status
         run: |
