@@ -46,6 +46,42 @@ function decodeClientDataChallenge(clientDataJSON: ArrayBuffer): string | null {
   }
 }
 
+function toBase64Url(input: ArrayBuffer | Uint8Array | null): string | null {
+  if (!input) return null;
+
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function serializeAssertion(credential: PublicKeyCredential) {
+  const response = credential.response;
+  if (!(response instanceof AuthenticatorAssertionResponse)) {
+    throw new Error("Unexpected passkey response type.");
+  }
+
+  return {
+    id: credential.id,
+    rawId: toBase64Url(credential.rawId),
+    type: credential.type,
+    authenticatorAttachment: credential.authenticatorAttachment ?? null,
+    clientExtensionResults: credential.getClientExtensionResults(),
+    response: {
+      clientDataJSON: toBase64Url(response.clientDataJSON),
+      authenticatorData: toBase64Url(response.authenticatorData),
+      signature: toBase64Url(response.signature),
+      userHandle: toBase64Url(response.userHandle),
+    },
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(loadSession);
   const [loading, setLoading] = useState(() => !!loadSession());
@@ -103,23 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Unexpected passkey credential type.");
       }
 
-      const response = credential.response;
-      if (!(response instanceof AuthenticatorAssertionResponse)) {
-        throw new Error("Unexpected passkey response type.");
-      }
-
       const requestChallenge =
         typeof startResp.optionsJson === "string"
           ? (JSON.parse(startResp.optionsJson) as { challenge?: string })
               .challenge ?? null
           : null;
+      const response = credential.response as AuthenticatorAssertionResponse;
       const responseChallenge = decodeClientDataChallenge(response.clientDataJSON);
 
-      if (
-        requestChallenge &&
-        responseChallenge &&
-        requestChallenge !== responseChallenge
-      ) {
+      if (requestChallenge && responseChallenge !== requestChallenge) {
         console.error("WebAuthn challenge mismatch before loginFinish", {
           requestChallenge,
           responseChallenge,
@@ -128,10 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Passkey response challenge did not match request.");
       }
 
-      const credentialJson = (
-        credential as unknown as { toJSON?: () => unknown }
-      ).toJSON?.();
-      if (!credentialJson) throw new Error("Credential serialization failed.");
+      const credentialJson = serializeAssertion(credential);
 
       // Step 3: LoginFinish via gRPC
       const finishResp = await authClient.loginFinish({
