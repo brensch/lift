@@ -130,7 +130,7 @@ impl AuthService for MyAuthService {
 
         let (token, user_id, username) = self
             .auth_state
-            .finish_authentication(&req.challenge_id, &credential)
+            .finish_authentication(&req.challenge_id, &req.credential_json, &credential)
             .await
             .map_err(|e| Status::unauthenticated(e))?;
 
