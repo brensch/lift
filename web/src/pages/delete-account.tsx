@@ -2,7 +2,7 @@ import { useState } from "react";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { authClient, authHeaders } from "@/lib/grpc";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/use-auth";
 
 export function DeleteAccountPage() {
   const { user, login, logout } = useAuth();

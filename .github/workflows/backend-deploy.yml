@@ -38,8 +38,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Build web frontend
-        run: cd web && npm ci && npm run build
+      - name: Check web frontend
+        run: cd web && npm ci && npm run check
 
       - name: Package backend artifact
         run: |
