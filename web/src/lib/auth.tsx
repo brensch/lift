@@ -1,27 +1,11 @@
 import {
-  createContext,
-  useContext,
   useState,
   useEffect,
   useCallback,
   type ReactNode,
 } from "react";
 import { authClient, authHeaders } from "./grpc";
-
-interface User {
-  userId: string;
-  username: string;
-  sessionToken: string;
-}
-
-interface AuthContextValue {
-  user: User | null;
-  loading: boolean;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type User } from "./auth-context";
 
 const TOKEN_KEY = "schlift_session_token";
 const USER_KEY = "schlift_user";
@@ -136,10 +120,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
 }

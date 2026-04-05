@@ -79,41 +79,41 @@ function Reveal({
 function ProgramCard({ program }: { program: TrainingProgramDefinition }) {
   const glance = program.atAGlance;
   return (
-    <div className="min-w-[320px] max-w-[380px] flex-shrink-0 border border-border rounded-2xl bg-surface p-7 flex flex-col snap-center">
+    <div className="min-w-[360px] max-w-[420px] flex-shrink-0 border border-border rounded-2xl bg-surface p-8 flex flex-col snap-center">
       <div className="mb-4">
-        <h3 className="font-display text-xl font-bold tracking-tight m-0">
+        <h3 className="font-display text-2xl font-bold tracking-tight m-0">
           {program.displayName}
         </h3>
-        <p className="text-sm text-muted mt-1">{program.headline}</p>
+        <p className="text-base text-muted mt-1.5">{program.headline}</p>
       </div>
 
-      <p className="text-sm text-muted leading-relaxed mb-5 flex-1">
+      <p className="text-base text-muted leading-relaxed mb-6 flex-1">
         {program.summary}
       </p>
 
       {glance && (
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {glance.daysPerWeek && (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <Calendar size={13} className="text-muted/60 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Calendar size={15} className="text-muted/60 shrink-0" />
               {glance.daysPerWeek} days/wk
             </div>
           )}
           {glance.averageSessionTime && (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <Clock size={13} className="text-muted/60 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Clock size={15} className="text-muted/60 shrink-0" />
               {glance.averageSessionTime}
             </div>
           )}
           {glance.bestFor && (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <Target size={13} className="text-muted/60 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <Target size={15} className="text-muted/60 shrink-0" />
               {glance.bestFor}
             </div>
           )}
           {glance.progressionStyle && (
-            <div className="flex items-center gap-2 text-xs text-muted">
-              <TrendingUp size={13} className="text-muted/60 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <TrendingUp size={15} className="text-muted/60 shrink-0" />
               {glance.progressionStyle}
             </div>
           )}
@@ -121,11 +121,11 @@ function ProgramCard({ program }: { program: TrainingProgramDefinition }) {
       )}
 
       {program.details.length > 0 && (
-        <ul className="space-y-1.5 mb-5">
+        <ul className="space-y-2 mb-6">
           {program.details.slice(0, 3).map((d, i) => (
             <li
               key={i}
-              className="text-xs text-muted leading-relaxed flex items-start gap-2"
+              className="text-sm text-muted leading-relaxed flex items-start gap-2"
             >
               <span className="text-muted/40 mt-0.5 shrink-0">-</span>
               {d}
@@ -142,10 +142,10 @@ function ProgramCard({ program }: { program: TrainingProgramDefinition }) {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-muted hover:text-text transition-colors no-underline flex items-center gap-1"
+              className="text-sm text-muted hover:text-text transition-colors no-underline flex items-center gap-1"
             >
               {link.label}
-              <ExternalLink size={10} />
+              <ExternalLink size={12} />
             </a>
           ))}
         </div>
@@ -160,50 +160,58 @@ function ProgramsCarousel({
   programs: TrainingProgramDefinition[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const startRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    const root = scrollRef.current;
-    const start = startRef.current;
-    const end = endRef.current;
-    if (!root || !start || !end) return;
+    const el = scrollRef.current;
+    if (!el) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.target === start) {
-            setCanScrollLeft(!entry.isIntersecting);
-          } else if (entry.target === end) {
-            setCanScrollRight(!entry.isIntersecting);
-          }
-        }
-      },
-      {
-        root,
-        threshold: 0.95,
-      },
-    );
+    let frame = 0;
 
-    observer.observe(start);
-    observer.observe(end);
+    const updateScrollState = () => {
+      frame = 0;
+      const nextCanScrollLeft = el.scrollLeft > 4;
+      const nextCanScrollRight =
+        el.scrollLeft < el.scrollWidth - el.clientWidth - 4;
 
-    return () => observer.disconnect();
+      setCanScrollLeft((prev) =>
+        prev === nextCanScrollLeft ? prev : nextCanScrollLeft,
+      );
+      setCanScrollRight((prev) =>
+        prev === nextCanScrollRight ? prev : nextCanScrollRight,
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(updateScrollState);
+    };
+
+    updateScrollState();
+    el.addEventListener("scroll", scheduleUpdate, { passive: true });
+
+    const ro = new ResizeObserver(scheduleUpdate);
+    ro.observe(el);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      el.removeEventListener("scroll", scheduleUpdate);
+      ro.disconnect();
+    };
   }, [programs]);
 
   function scroll(dir: number) {
-    scrollRef.current?.scrollBy({ left: dir * 350, behavior: "smooth" });
+    scrollRef.current?.scrollBy({ left: dir * 420, behavior: "smooth" });
   }
 
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden">
       {/* Scroll buttons */}
       {canScrollLeft && (
         <button
           onClick={() => scroll(-1)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-9 h-9 rounded-full bg-surface border border-border flex items-center justify-center text-muted hover:text-text transition-colors shadow-lg"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface border border-border flex items-center justify-center text-muted hover:text-text transition-colors shadow-lg"
         >
           <ChevronLeft size={16} />
         </button>
@@ -211,7 +219,7 @@ function ProgramsCarousel({
       {canScrollRight && (
         <button
           onClick={() => scroll(1)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-9 h-9 rounded-full bg-surface border border-border flex items-center justify-center text-muted hover:text-text transition-colors shadow-lg"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface border border-border flex items-center justify-center text-muted hover:text-text transition-colors shadow-lg"
         >
           <ChevronRight size={16} />
         </button>
@@ -219,41 +227,55 @@ function ProgramsCarousel({
 
       {/* Edge fades */}
       {canScrollLeft && (
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-[5] bg-gradient-to-r from-background to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 z-[5] bg-gradient-to-r from-surface/30 via-surface/15 to-transparent" />
       )}
       {canScrollRight && (
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-[5] bg-gradient-to-l from-background to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 z-[5] bg-gradient-to-l from-surface/30 via-surface/15 to-transparent" />
       )}
 
       <div
         ref={scrollRef}
-        className="flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-5 px-5"
-        style={{ scrollbarWidth: "none" }}
+        className="flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2"
+        style={{
+          scrollbarWidth: "none",
+          WebkitMaskImage:
+            canScrollLeft && canScrollRight
+              ? "linear-gradient(to right, transparent 0, black 5rem, black calc(100% - 5rem), transparent 100%)"
+              : canScrollLeft
+                ? "linear-gradient(to right, transparent 0, black 5rem, black 100%)"
+                : canScrollRight
+                  ? "linear-gradient(to right, black 0, black calc(100% - 5rem), transparent 100%)"
+                  : undefined,
+          maskImage:
+            canScrollLeft && canScrollRight
+              ? "linear-gradient(to right, transparent 0, black 5rem, black calc(100% - 5rem), transparent 100%)"
+              : canScrollLeft
+                ? "linear-gradient(to right, transparent 0, black 5rem, black 100%)"
+                : canScrollRight
+                  ? "linear-gradient(to right, black 0, black calc(100% - 5rem), transparent 100%)"
+                  : undefined,
+        }}
       >
-        <div ref={startRef} className="w-px shrink-0 self-stretch" aria-hidden />
-
         {programs.map((p) => (
           <ProgramCard key={p.regimeType} program={p} />
         ))}
 
         {/* "More to come" card */}
-        <div className="min-w-[320px] max-w-[380px] flex-shrink-0 border border-dashed border-border/60 rounded-2xl p-7 flex flex-col items-center justify-center text-center snap-center">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+        <div className="min-w-[360px] max-w-[420px] flex-shrink-0 border border-dashed border-border/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center snap-center">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-5">
             <Dumbbell
-              size={18}
+              size={20}
               className="text-muted/40"
               strokeWidth={1.5}
             />
           </div>
-          <h3 className="font-display font-bold text-lg tracking-tight m-0 text-muted/60">
+          <h3 className="font-display font-bold text-xl tracking-tight m-0 text-muted/60">
             More to come
           </h3>
-          <p className="text-sm text-muted/40 mt-2 leading-relaxed">
+          <p className="text-base text-muted/40 mt-3 leading-relaxed">
             New programs are in development. Got a request? Let us know.
           </p>
         </div>
-
-        <div ref={endRef} className="w-px shrink-0 self-stretch" aria-hidden />
       </div>
     </div>
   );
@@ -344,8 +366,7 @@ export function HomePage() {
                 <span className="text-muted">Not just a notepad.</span>
               </h2>
             </Reveal>
-
-            <Reveal delay={100}>
+            <Reveal delay={100} className="mt-12">
               <ProgramsCarousel programs={programs} />
             </Reveal>
           </div>

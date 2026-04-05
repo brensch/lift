@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/use-auth";
 
 export function LoginPage() {
   const { user, login, logout } = useAuth();

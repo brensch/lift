@@ -3,7 +3,7 @@ import { WobblyText } from "./wobbly-text";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/use-auth";
 
 const navItems = [
   { to: "/", label: "Home" },
