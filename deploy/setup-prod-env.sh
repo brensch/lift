@@ -10,10 +10,13 @@ INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift}"
 APP_USER="${APP_USER:-opc}"
 APP_GROUP="${APP_GROUP:-${APP_USER}}"
 ENV_PATH="${INSTALL_ROOT}/shared/schlift.env"
-CADDYFILE_SRC="${CADDYFILE_SRC:-${INSTALL_ROOT}/share/deploy/Caddyfile}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CADDYFILE_SRC="${CADDYFILE_SRC:-${SCRIPT_DIR}/Caddyfile}"
+WRITE_ENV="${WRITE_ENV:-1}"
 
 mkdir -p "${INSTALL_ROOT}/shared"
 
+if [[ "${WRITE_ENV}" == "1" ]]; then
 cat > "${ENV_PATH}" <<'EOF'
 RUST_LOG=info
 WEBAUTHN_RP_ID=schlift.com
@@ -24,6 +27,7 @@ EOF
 
 chown "${APP_USER}:${APP_GROUP}" "${ENV_PATH}"
 chmod 640 "${ENV_PATH}"
+fi
 
 if ! command -v caddy >/dev/null 2>&1; then
   dnf install -y 'dnf-command(copr)'
@@ -36,7 +40,7 @@ systemctl enable caddy
 systemctl restart caddy
 
 cat <<EOF
-wrote ${ENV_PATH}
+env file: ${ENV_PATH} (WRITE_ENV=${WRITE_ENV})
 installed /etc/caddy/Caddyfile
 
 verify after deploy:
