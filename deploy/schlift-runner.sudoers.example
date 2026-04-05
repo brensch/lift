@@ -1,8 +1,10 @@
 opc ALL=(root) NOPASSWD:SETENV: \
-  /opt/schlift/bin/install_schlift_service.sh, \
-  /opt/schlift/bin/deploy_schlift_release.sh, \
-  /opt/schlift/bin/setup-prod-env.sh, \
+  /opt/repo-schlift-current/scripts/install_schlift_service.sh, \
+  /opt/repo-schlift-current/scripts/deploy_schlift_release.sh, \
+  /opt/repo-schlift-current/deploy/setup-prod-env.sh, \
   /usr/bin/install, \
   /usr/bin/dnf, \
+  /usr/bin/rsync, \
+  /usr/bin/mkdir, \
   /usr/bin/systemctl, \
   /usr/bin/journalctl

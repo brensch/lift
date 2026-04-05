@@ -59,6 +59,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Sync repo to stable deploy path
+        run: |
+          sudo mkdir -p /opt/repo-schlift-current
+          sudo rsync -a --delete --exclude .git ./ /opt/repo-schlift-current/
+
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
@@ -66,14 +71,17 @@ jobs:
           path: dist/backend-linux-arm64
 
       - name: Install systemd unit
-        run: sudo /opt/schlift/bin/install_schlift_service.sh
+        run: sudo /opt/repo-schlift-current/scripts/install_schlift_service.sh
+
+      - name: Apply Caddy config
+        run: sudo WRITE_ENV=0 /opt/repo-schlift-current/deploy/setup-prod-env.sh
 
       - name: Deploy release
         run: |
           ARTIFACT_DIR="${PWD}/dist/backend-linux-arm64" \
           RELEASE_ID="${GITHUB_SHA}" \
           sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
-            /opt/schlift/bin/deploy_schlift_release.sh
+            /opt/repo-schlift-current/scripts/deploy_schlift_release.sh
 
       - name: Show deployed status
         run: |

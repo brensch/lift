@@ -11,6 +11,11 @@ This deploy flow builds the backend on a GitHub-hosted ARM64 runner, uploads the
   shared/
     data/
     schlift.env
+
+/opt/repo-schlift-current/
+  deploy/
+  scripts/
+  ...
 ```
 
 The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at `/opt/schlift/shared/data/central.sqlite`.
@@ -24,8 +29,9 @@ The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at
 ```bash
 sudo mkdir -p /opt/schlift
 sudo chown -R opc:opc /opt/schlift
+sudo mkdir -p /opt/repo-schlift-current
 sudo INSTALL_ROOT=/opt/schlift LIFT_USER=opc LIFT_GROUP=opc ./scripts/install_schlift_service.sh
-sudo /opt/schlift/bin/setup-prod-env.sh
+sudo ./deploy/setup-prod-env.sh
 ```
 
 4. Trigger the `Backend Deploy` workflow once.
@@ -42,7 +48,7 @@ Use `schlift.com` as the shared RP ID if you want passkeys issued by `app.schlif
 
 ## TLS / Reverse Proxy
 
-This deploy flow installs Caddy from the production setup script and copies the checked-in `Caddyfile` to `/etc/caddy/Caddyfile`.
+This deploy flow installs Caddy from the production setup script and copies the checked-in `Caddyfile` to `/etc/caddy/Caddyfile`. On every deploy, the self-hosted runner syncs the current repo checkout to `/opt/repo-schlift-current` and reapplies the checked-in Caddy config from there.
 
 Open OCI ingress for:
 
@@ -60,7 +66,7 @@ The self-hosted runner user must be able to run the deploy scripts non-interacti
 Example for `opc`:
 
 ```text
-opc ALL=(root) NOPASSWD:SETENV: /opt/schlift/bin/install_schlift_service.sh, /opt/schlift/bin/deploy_schlift_release.sh, /opt/schlift/bin/setup-prod-env.sh, /usr/bin/systemctl, /usr/bin/journalctl, /usr/bin/install, /usr/bin/dnf
+opc ALL=(root) NOPASSWD:SETENV: /opt/repo-schlift-current/scripts/install_schlift_service.sh, /opt/repo-schlift-current/scripts/deploy_schlift_release.sh, /opt/repo-schlift-current/deploy/setup-prod-env.sh, /usr/bin/systemctl, /usr/bin/journalctl, /usr/bin/install, /usr/bin/dnf, /usr/bin/rsync, /usr/bin/mkdir
 ```
 
 A copyable example file lives at `deploy/schlift-runner.sudoers.example`.
