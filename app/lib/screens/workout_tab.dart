@@ -18,6 +18,7 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
   DateTime? _lastServerSyncAt;
   bool _syncInFlight = false;
   bool _initialSyncComplete = false;
+  String? _startupError;
 
   @override
   void initState() {
@@ -65,7 +66,20 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
 
     _syncInFlight = true;
     try {
-      await context.read<WorkoutProvider>().loadActiveWorkout(userId);
+      final workoutProvider = context.read<WorkoutProvider>();
+      await workoutProvider.loadActiveWorkout(userId);
+      if (!mounted) return;
+
+      if (workoutProvider.lastLoadWasUnauthorized) {
+        await auth.expireSession(
+          message: 'Your saved session expired. Sign in again.',
+        );
+        return;
+      }
+
+      setState(() {
+        _startupError = workoutProvider.lastLoadError;
+      });
       _lastServerSyncAt = DateTime.now();
     } finally {
       _syncInFlight = false;
@@ -106,6 +120,38 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
 
     if (!_initialSyncComplete) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_startupError != null && !wp.hasActiveWorkout) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Could not finish startup',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(_startupError!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _syncInFlight
+                        ? null
+                        : () => _syncFromServer(force: true),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     final programState = settings.programState;

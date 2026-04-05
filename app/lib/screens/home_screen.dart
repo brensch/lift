@@ -111,6 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _isRefreshing = false;
       });
     } catch (e) {
+      if (isUnauthenticatedError(e)) {
+        await auth.expireSession(
+          message: 'Your saved session expired. Sign in again.',
+        );
+        return;
+      }
       if (mounted) {
         setState(() {
           if (_isLoading) {

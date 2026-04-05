@@ -1,3 +1,5 @@
+import 'package:grpc/grpc.dart';
+
 String cleanErrorMessage(dynamic error) {
   final errorStr = error.toString();
   // Handles gRPC Errors like: gRPC Error (code: 9, codeName: FAILED_PRECONDITION, message: Error Message Here, ...)
@@ -12,4 +14,8 @@ String cleanErrorMessage(dynamic error) {
         '',
       ) // Remove trailing details if any
       .trim();
+}
+
+bool isUnauthenticatedError(Object error) {
+  return error is GrpcError && error.code == StatusCode.unauthenticated;
 }

@@ -6,18 +6,21 @@ use argon2::{
 };
 use schlift::workout::v1::{
     auth_service_server::AuthService, AddPasskeyFinishRequest, AddPasskeyFinishResponse,
-    AddPasskeyStartRequest, AddPasskeyStartResponse, AuthResponse, DeletePasskeyRequest,
-    DeletePasskeyResponse, ListPasskeysRequest, ListPasskeysResponse, LoginFinishRequest,
-    LoginStartRequest, LoginStartResponse, LogoutRequest, LogoutResponse, PasskeyInfo,
-    PasswordLoginRequest, PasswordRegisterRequest, RegisterFinishRequest, RegisterStartRequest,
-    RegisterStartResponse, TestLoginRequest,
+    AddPasskeyStartRequest, AddPasskeyStartResponse, AuthResponse, DeleteAccountRequest,
+    DeleteAccountResponse, DeletePasskeyRequest, DeletePasskeyResponse, ListPasskeysRequest,
+    ListPasskeysResponse, LoginFinishRequest, LoginStartRequest, LoginStartResponse, LogoutRequest,
+    LogoutResponse, PasskeyInfo, PasswordLoginRequest, PasswordRegisterRequest,
+    RegisterFinishRequest, RegisterStartRequest, RegisterStartResponse, TestLoginRequest,
 };
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use webauthn_rs::prelude::*;
 
+use crate::state::AppState;
+
 pub struct MyAuthService {
     pub auth_state: Arc<AuthState>,
+    pub app_state: Arc<AppState>,
 }
 
 #[tonic::async_trait]
@@ -408,5 +411,37 @@ impl AuthService for MyAuthService {
                 username: user.name,
             }))
         }
+    }
+
+    async fn delete_account(
+        &self,
+        request: Request<DeleteAccountRequest>,
+    ) -> Result<Response<DeleteAccountResponse>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.auth_state.central_db).await?;
+
+        self.auth_state
+            .central_db
+            .delete_user_account_and_data(&user_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+
+        self.app_state.remove_user_data(&user_id);
+
+        // Invalidate the session token used for this request
+        if let Some(token) = request
+            .metadata()
+            .get("x-session-token")
+            .and_then(|v| v.to_str().ok())
+        {
+            let _ = self
+                .auth_state
+                .central_db
+                .invalidate_auth_session(token)
+                .await;
+        }
+
+        Ok(Response::new(DeleteAccountResponse {
+            deleted_user_id: user_id,
+        }))
     }
 }

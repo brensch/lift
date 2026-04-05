@@ -1,10 +1,44 @@
 schlift.com {
     encode zstd gzip
 
-    reverse_proxy 127.0.0.1:50051 {
-        transport http {
-            versions h2c 2
+    # API + well-known routes → Rust backend
+    handle /api/* {
+        reverse_proxy 127.0.0.1:50051 {
+            transport http {
+                versions h2c 2
+            }
         }
+    }
+
+    handle /.well-known/* {
+        reverse_proxy 127.0.0.1:50051 {
+            transport http {
+                versions h2c 2
+            }
+        }
+    }
+
+    # gRPC-Web → Rust backend (all POST to /workout.v1.* service paths)
+    @grpc {
+        method POST
+        path /workout.v1.*
+    }
+    handle @grpc {
+        reverse_proxy 127.0.0.1:50051 {
+            transport http {
+                versions h2c 2
+            }
+        }
+    }
+
+    # Redirect old paths
+    redir /forget /delete-account permanent
+
+    # Everything else → static site with SPA fallback
+    handle {
+        root * /opt/schlift/web
+        try_files {path} /index.html
+        file_server
     }
 
     header {

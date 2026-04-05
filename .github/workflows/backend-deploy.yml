@@ -31,6 +31,16 @@ jobs:
       - name: Build backend release binary
         run: cargo build --release --bin schlift
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build web frontend
+        run: cd web && npm ci && npm run build
+
       - name: Package backend artifact
         run: |
           mkdir -p dist
@@ -43,6 +53,13 @@ jobs:
         with:
           name: backend-linux-arm64
           path: dist/
+          if-no-files-found: error
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/
           if-no-files-found: error
 
   deploy-backend:
@@ -70,6 +87,12 @@ jobs:
           name: backend-linux-arm64
           path: dist/backend-linux-arm64
 
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/web-dist
+
       - name: Install systemd unit
         run: sudo /opt/repo-schlift-current/scripts/install_schlift_service.sh
 
@@ -79,8 +102,9 @@ jobs:
       - name: Deploy release
         run: |
           ARTIFACT_DIR="${PWD}/dist/backend-linux-arm64" \
+          WEB_DIR="${PWD}/dist/web-dist" \
           RELEASE_ID="${GITHUB_SHA}" \
-          sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
+          sudo --preserve-env=ARTIFACT_DIR,WEB_DIR,RELEASE_ID \
             /opt/repo-schlift-current/scripts/deploy_schlift_release.sh
 
       - name: Show deployed status
