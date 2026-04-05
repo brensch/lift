@@ -19,14 +19,14 @@ class HeartRateStreamer: ObservableObject {
         self.connector = connector
 
         guard HKHealthStore.isHealthDataAvailable() else {
-            print("LiftWatch: HealthKit not available")
+            print("SchliftWatch: HealthKit not available")
             return
         }
 
         let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
         healthStore.requestAuthorization(toShare: nil, read: [heartRateType]) { [weak self] success, error in
             guard success else {
-                print("LiftWatch: HealthKit auth failed: \(String(describing: error))")
+                print("SchliftWatch: HealthKit auth failed: \(String(describing: error))")
                 return
             }
             self?.startQuery(heartRateType: heartRateType)

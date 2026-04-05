@@ -1,5 +1,5 @@
 use super::*;
-use lift::workout::v1::{ParticipantStatus, User};
+use schlift::workout::v1::{ParticipantStatus, User};
 
 fn proposed(id: &str, order: i32, group_id: &str, weight: f32) -> ProposedSet {
     ProposedSet {

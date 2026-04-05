@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the LIFT app feature graphic."""
+"""Generate the SCHLIFT app feature graphic."""
 
 from pathlib import Path
 import math
@@ -47,7 +47,7 @@ def draw_rounded_square_logo(size: int) -> Image.Image:
 
 
 def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    # Ensure both LIFT and the byline use the exact same base font face
+    # Ensure both SCHLIFT and the byline use the exact same base font face
     candidates = [
         # Linux
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -147,10 +147,10 @@ def draw_feature_graphic() -> Image.Image:
     text_x = 380 # Shifted left to prevent cutoff
     title_font = load_font(180)
     
-    # 4. Draw Wobbly "LIFT" Text
+    # 4. Draw Wobbly "SCHLIFT" Text
     draw_wobbly_text(
         canvas=image,
-        text="LIFT",
+        text="SCHLIFT",
         origin_x=text_x,
         origin_y=125,
         font=title_font,

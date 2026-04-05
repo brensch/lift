@@ -8,7 +8,7 @@ use crate::service_workout::get_user_id_authenticated;
 use crate::weight_units::{
     annotate_state_with_weight_unit, get_user_weight_unit, strip_weight_unit_context,
 };
-use lift::workout::v1::{
+use schlift::workout::v1::{
     settings_service_server::SettingsService, ApplyPendingStateUpdateRequest,
     ApplyPendingStateUpdateResponse, GetActiveTrainingProgramStateRequest,
     GetActiveTrainingProgramStateResponse, GetSettingsRequest, GetSettingsResponse,
@@ -33,8 +33,8 @@ impl MySettingsService {
 
 fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
     match &setting.setting {
-        Some(lift::workout::v1::user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
-        Some(lift::workout::v1::user_setting::Setting::WeightUnit(_)) => Some("weight_unit"),
+        Some(schlift::workout::v1::user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
+        Some(schlift::workout::v1::user_setting::Setting::WeightUnit(_)) => Some("weight_unit"),
         None => None,
     }
 }

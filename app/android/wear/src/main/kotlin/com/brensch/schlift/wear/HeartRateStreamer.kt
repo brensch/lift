@@ -1,4 +1,4 @@
-package com.brensch.lift.wear
+package com.brensch.schlift.wear
 
 import android.content.Context
 import android.hardware.Sensor
@@ -39,12 +39,12 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         stop()
         this.workoutId = workoutId
         if (!hasRequiredPermissions()) {
-            Log.w("LiftWear", "Heart rate permissions missing, skipping sensor start")
+            Log.w("SchliftWear", "Heart rate permissions missing, skipping sensor start")
             return
         }
         val sensor = heartRateSensor
         if (sensor == null) {
-            Log.w("LiftWear", "No heart rate sensor available on this watch")
+            Log.w("SchliftWear", "No heart rate sensor available on this watch")
             return
         }
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
@@ -120,7 +120,7 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
                 )
             }
                 .onFailure {
-                    Log.e("LiftWear", "Failed to send HR batch", it)
+                    Log.e("SchliftWear", "Failed to send HR batch", it)
                 }
         }
     }

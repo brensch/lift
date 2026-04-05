@@ -6,13 +6,13 @@ import 'wearable_bridge_service.dart';
 
 class PlatformWearableBridgeService implements WearableBridgeService {
   static const MethodChannel _methods = MethodChannel(
-    'lift/wear_bridge/methods',
+    'schlift/wear_bridge/methods',
   );
   static const EventChannel _intentEvents = EventChannel(
-    'lift/wear_bridge/intents',
+    'schlift/wear_bridge/intents',
   );
   static const EventChannel _sensorEvents = EventChannel(
-    'lift/wear_bridge/sensors',
+    'schlift/wear_bridge/sensors',
   );
 
   @override

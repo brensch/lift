@@ -34,7 +34,7 @@ impl AuthState {
 
         let mut builder = WebauthnBuilder::new(&rp_id, &rp_origin)
             .expect("Failed to create WebauthnBuilder")
-            .rp_name("Lift");
+            .rp_name("Schlift");
 
         if let Ok(android_origins) = std::env::var("WEBAUTHN_ANDROID_ORIGINS") {
             for origin in android_origins

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use lift::workout::v1::{
+use schlift::workout::v1::{
     Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
     WorkingSetSpec,
 };
@@ -325,7 +325,7 @@ impl WorkoutRegime for Wendler5313DayRegime {
 
             if orm <= 0.0 {
                 // Show with placeholder — user needs to configure 1RM
-                let config = lift::workout::v1::ExerciseTypeConfig {
+                let config = schlift::workout::v1::ExerciseTypeConfig {
                     exercise: exercise as i32,
                     start_weight: status.target_weight,
                     end_weight: status.target_weight,
@@ -373,7 +373,7 @@ impl WorkoutRegime for Wendler5313DayRegime {
                 .unwrap_or(week_def.reps);
             let last_set_amrap = week_def.top_set_amrap;
 
-            let config = lift::workout::v1::ExerciseTypeConfig {
+            let config = schlift::workout::v1::ExerciseTypeConfig {
                 exercise: exercise as i32,
                 start_weight: start_w,
                 end_weight: end_w,
@@ -413,7 +413,7 @@ impl WorkoutRegime for Wendler5313DayRegime {
             let a = statuses.iter().find(|s| s.exercise == ex_a as i32);
             let b = statuses.iter().find(|s| s.exercise == ex_b as i32);
             if let (Some(a), Some(b)) = (a, b) {
-                let ca = lift::workout::v1::ExerciseTypeConfig {
+                let ca = schlift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_a as i32,
                     start_weight: a.target_weight,
                     end_weight: a.target_weight,
@@ -423,7 +423,7 @@ impl WorkoutRegime for Wendler5313DayRegime {
                     last_set_amrap: false,
                     working_sets: vec![],
                 };
-                let cb = lift::workout::v1::ExerciseTypeConfig {
+                let cb = schlift::workout::v1::ExerciseTypeConfig {
                     exercise: ex_b as i32,
                     start_weight: b.target_weight,
                     end_weight: b.target_weight,

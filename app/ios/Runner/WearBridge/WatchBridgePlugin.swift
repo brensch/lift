@@ -3,9 +3,9 @@ import UIKit
 
 /// Flutter plugin that exposes the same platform channel API as Android's WearBridgeManager.
 /// Channels:
-///   - MethodChannel("lift/wear_bridge/methods")
-///   - EventChannel("lift/wear_bridge/intents")
-///   - EventChannel("lift/wear_bridge/sensors")
+///   - MethodChannel("schlift/wear_bridge/methods")
+///   - EventChannel("schlift/wear_bridge/intents")
+///   - EventChannel("schlift/wear_bridge/sensors")
 public class WatchBridgePlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let messenger = registrar.messenger()
@@ -15,7 +15,7 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
 
         // Method channel
         let methodChannel = FlutterMethodChannel(
-            name: "lift/wear_bridge/methods",
+            name: "schlift/wear_bridge/methods",
             binaryMessenger: messenger
         )
         let instance = WatchBridgePlugin()
@@ -23,14 +23,14 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
 
         // Intent event channel
         let intentChannel = FlutterEventChannel(
-            name: "lift/wear_bridge/intents",
+            name: "schlift/wear_bridge/intents",
             binaryMessenger: messenger
         )
         intentChannel.setStreamHandler(IntentStreamHandler())
 
         // Sensor event channel
         let sensorChannel = FlutterEventChannel(
-            name: "lift/wear_bridge/sensors",
+            name: "schlift/wear_bridge/sensors",
             binaryMessenger: messenger
         )
         sensorChannel.setStreamHandler(SensorStreamHandler())

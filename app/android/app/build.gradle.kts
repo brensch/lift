@@ -21,7 +21,7 @@ if (isReleaseTask && !keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.brensch.lift"
+    namespace = "com.brensch.schlift"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.brensch.lift"
+        applicationId = "com.brensch.schlift"
         minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

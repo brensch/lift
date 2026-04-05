@@ -8,10 +8,10 @@ fi
 
 ARTIFACT_DIR="${ARTIFACT_DIR:-}"
 RELEASE_ID="${RELEASE_ID:-}"
-INSTALL_ROOT="${INSTALL_ROOT:-/opt/lift}"
+INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift}"
 LIFT_USER="${LIFT_USER:-opc}"
 LIFT_GROUP="${LIFT_GROUP:-${LIFT_USER}}"
-SERVICE_NAME="${SERVICE_NAME:-lift.service}"
+SERVICE_NAME="${SERVICE_NAME:-schlift.service}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:50051/}"
 
 if [[ -z "${ARTIFACT_DIR}" || -z "${RELEASE_ID}" ]]; then
@@ -19,7 +19,7 @@ if [[ -z "${ARTIFACT_DIR}" || -z "${RELEASE_ID}" ]]; then
   exit 1
 fi
 
-BINARY_SRC="${ARTIFACT_DIR}/lift"
+BINARY_SRC="${ARTIFACT_DIR}/schlift"
 if [[ ! -f "${BINARY_SRC}" ]]; then
   echo "binary not found at ${BINARY_SRC}" >&2
   exit 1
@@ -32,7 +32,7 @@ if [[ -L "${INSTALL_ROOT}/current" ]]; then
 fi
 
 mkdir -p "${RELEASE_DIR}" "${INSTALL_ROOT}/shared/data"
-install -m 0755 "${BINARY_SRC}" "${RELEASE_DIR}/lift"
+install -m 0755 "${BINARY_SRC}" "${RELEASE_DIR}/schlift"
 chown -R "${LIFT_USER}:${LIFT_GROUP}" "${RELEASE_DIR}" "${INSTALL_ROOT}/shared"
 
 ln -sfn "${RELEASE_DIR}" "${INSTALL_ROOT}/current"

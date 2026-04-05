@@ -1,11 +1,11 @@
-# lift Deployment Guide
+# schlift Deployment Guide
 
 This repo ships:
 - Android phone app (`app/android/app`)
 - Wear OS app (`app/android/wear`)
 - iOS app placeholder CI (`app/ios`)
 
-Current mobile package/bundle ID target is `com.brensch.lift`.
+Current mobile package/bundle ID target is `com.brensch.schlift`.
 
 ## Android + Wear Release (Play Store)
 

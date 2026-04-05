@@ -1,6 +1,6 @@
 use clap::Parser;
 use dashmap::DashMap;
-use lift::workout::v1::{
+use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
     workout_service_client::WorkoutServiceClient, CompleteSetRequest, EndWorkoutRequest, Exercise,
     GetActiveWorkoutRequest, GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest,
@@ -499,13 +499,13 @@ trait WorkoutServiceTrait<Req, Res> {
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<GetActiveWorkoutRequest, lift::workout::v1::GetActiveWorkoutResponse>
+impl WorkoutServiceTrait<GetActiveWorkoutRequest, schlift::workout::v1::GetActiveWorkoutResponse>
     for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<GetActiveWorkoutRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::GetActiveWorkoutResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::GetActiveWorkoutResponse>, Status> {
         self.get_active_workout(req).await
     }
 }
@@ -514,26 +514,26 @@ impl WorkoutServiceTrait<GetActiveWorkoutRequest, lift::workout::v1::GetActiveWo
 impl
     WorkoutServiceTrait<
         GetProposedWorkoutScheduleRequest,
-        lift::workout::v1::GetProposedWorkoutScheduleResponse,
+        schlift::workout::v1::GetProposedWorkoutScheduleResponse,
     > for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<GetProposedWorkoutScheduleRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::GetProposedWorkoutScheduleResponse>, Status>
+    ) -> Result<tonic::Response<schlift::workout::v1::GetProposedWorkoutScheduleResponse>, Status>
     {
         self.get_proposed_workout_schedule(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<StartWorkoutRequest, lift::workout::v1::StartWorkoutResponse>
+impl WorkoutServiceTrait<StartWorkoutRequest, schlift::workout::v1::StartWorkoutResponse>
     for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<StartWorkoutRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::StartWorkoutResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::StartWorkoutResponse>, Status> {
         self.start_workout(req).await
     }
 }
@@ -542,49 +542,49 @@ impl WorkoutServiceTrait<StartWorkoutRequest, lift::workout::v1::StartWorkoutRes
 impl
     WorkoutServiceTrait<
         ReplaceExerciseGroupPlanRequest,
-        lift::workout::v1::ReplaceExerciseGroupPlanResponse,
+        schlift::workout::v1::ReplaceExerciseGroupPlanResponse,
     > for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<ReplaceExerciseGroupPlanRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::ReplaceExerciseGroupPlanResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::ReplaceExerciseGroupPlanResponse>, Status> {
         self.replace_exercise_group_plan(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<StartSetRequest, lift::workout::v1::StartSetResponse>
+impl WorkoutServiceTrait<StartSetRequest, schlift::workout::v1::StartSetResponse>
     for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<StartSetRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::StartSetResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::StartSetResponse>, Status> {
         self.start_set(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<CompleteSetRequest, lift::workout::v1::CompleteSetResponse>
+impl WorkoutServiceTrait<CompleteSetRequest, schlift::workout::v1::CompleteSetResponse>
     for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<CompleteSetRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::CompleteSetResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::CompleteSetResponse>, Status> {
         self.complete_set(req).await
     }
 }
 
 #[tonic::async_trait]
-impl WorkoutServiceTrait<EndWorkoutRequest, lift::workout::v1::EndWorkoutResponse>
+impl WorkoutServiceTrait<EndWorkoutRequest, schlift::workout::v1::EndWorkoutResponse>
     for WorkoutServiceClient<Channel>
 {
     async fn call(
         &mut self,
         req: Request<EndWorkoutRequest>,
-    ) -> Result<tonic::Response<lift::workout::v1::EndWorkoutResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::EndWorkoutResponse>, Status> {
         self.end_workout(req).await
     }
 }

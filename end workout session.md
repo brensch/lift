@@ -51,7 +51,7 @@ Changes:
 This ensures the watch still receives final completion state after the phone ends the workout.
 
 ## Watch UI Changes
-File: `app/android/wear/src/main/kotlin/com/lift/lift/wear/MainActivity.kt`
+File: `app/android/wear/src/main/kotlin/com/brensch/schlift/wear/MainActivity.kt`
 
 Added dedicated completion UI:
 - If snapshot state is `WORKOUT_STATE_ALL_DONE` and `completionSummary` exists:

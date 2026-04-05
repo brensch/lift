@@ -1,5 +1,5 @@
 use chrono::Utc;
-use lift::workout::v1::{GetProposedWorkoutScheduleResponse, RegimeType};
+use schlift::workout::v1::{GetProposedWorkoutScheduleResponse, RegimeType};
 
 use crate::db::CentralDb;
 use crate::program_state::{parse_state_payload, pending_update_to_proto};

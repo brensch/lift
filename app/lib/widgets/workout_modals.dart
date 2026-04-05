@@ -1661,8 +1661,8 @@ Future<void> showHealthPermissionDialog(BuildContext context) async {
   final isAndroid = Platform.isAndroid;
   final storeName = isAndroid ? 'Health Connect' : 'Apple Health';
   final steps = isAndroid
-      ? 'Open Settings > Apps > Lift > Health Connect, then enable workout permissions.'
-      : 'Open Settings > Health > Data Access > Lift, then enable workout permissions.';
+      ? 'Open Settings > Apps > Schlift > Health Connect, then enable workout permissions.'
+      : 'Open Settings > Health > Data Access > Schlift, then enable workout permissions.';
 
   await showDialog<void>(
     context: context,
@@ -1672,7 +1672,7 @@ Future<void> showHealthPermissionDialog(BuildContext context) async {
         style: TextStyle(fontWeight: FontWeight.w900),
       ),
       content: Text(
-        'Lift can save workouts to $storeName so they appear in your fitness apps.\n\n$steps',
+        'Schlift can save workouts to $storeName so they appear in your fitness apps.\n\n$steps',
       ),
       actions: [
         FilledButton(

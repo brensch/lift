@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Lift uses your heart rate to track workout intensity and display real-time BPM on your watch.</string>
+	<string>Schlift uses your heart rate to track workout intensity and display real-time BPM on your watch.</string>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.brensch.lift</string>
+	<string>com.brensch.schlift</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Fonts/Manrope-Variable.ttf</string>

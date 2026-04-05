@@ -1,6 +1,6 @@
 use crate::db::CentralDb;
 use crate::program_state::{set_str, FieldVal, StatePayload};
-use lift::workout::v1::{user_setting, UserSetting, WeightUnit};
+use schlift::workout::v1::{user_setting, UserSetting, WeightUnit};
 use prost::Message;
 
 pub const STATE_WEIGHT_UNIT_KEY: &str = "__weight_unit";

@@ -15,7 +15,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private var pendingIntentPayloads: [Data] = []
     private var pendingSensorPayloads: [Data] = []
     private var lastWatchUiHeartbeatAtMs: Int64 = 0
-    private let queue = DispatchQueue(label: "com.brensch.lift.watchbridge", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
     private override init() {
         super.init()
@@ -53,13 +53,13 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         guard WCSession.default.isPaired else { return }
 
         let message: [String: Any] = [
-            "path": "/lift/phone/envelope",
+            "path": "/schlift/phone/envelope",
             "data": bytes.data,
         ]
 
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil) { error in
-                print("LiftWearBridge: Failed to send snapshot: \(error)")
+                print("SchliftWearBridge: Failed to send snapshot: \(error)")
             }
         }
     }
@@ -88,11 +88,11 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
         // Send a launch message — watch's WCSessionDelegate will receive it
         if WCSession.default.isReachable {
-            let message: [String: Any] = ["path": "/lift/phone/launch"]
+            let message: [String: Any] = ["path": "/schlift/phone/launch"]
             WCSession.default.sendMessage(message, replyHandler: { _ in
                 completion(true)
             }) { error in
-                print("LiftWearBridge: Failed to request watch app open: \(error)")
+                print("SchliftWearBridge: Failed to request watch app open: \(error)")
                 completion(false)
             }
         } else {
@@ -106,7 +106,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         if let error = error {
-            print("LiftWearBridge: WCSession activation failed: \(error)")
+            print("SchliftWearBridge: WCSession activation failed: \(error)")
         }
     }
 
@@ -131,12 +131,12 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private func handleIncomingMessage(_ message: [String: Any]) {
         guard let path = message["path"] as? String else { return }
 
-        if path == "/lift/wear/ui_heartbeat" {
+        if path == "/schlift/wear/ui_heartbeat" {
             lastWatchUiHeartbeatAtMs = Int64(Date().timeIntervalSince1970 * 1000)
             return
         }
 
-        guard path == "/lift/wear/envelope" else { return }
+        guard path == "/schlift/wear/envelope" else { return }
         guard let data = message["data"] as? Data else { return }
 
         // Parse the envelope to determine if it's an intent or sensor batch.
@@ -153,7 +153,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
                 break
             }
         } catch {
-            print("LiftWearBridge: Failed to parse wear envelope: \(error)")
+            print("SchliftWearBridge: Failed to parse wear envelope: \(error)")
         }
     }
 

@@ -215,9 +215,9 @@ def main() -> None:
     marketing_dir.mkdir(parents=True, exist_ok=True)
     
     generic_output_specs = {
-        "lift-square-192.png": 192,
-        "lift-square-512.png": 512,
-        "lift-square-1024.png": 1024,
+        "schlift-square-192.png": 192,
+        "schlift-square-512.png": 512,
+        "schlift-square-1024.png": 1024,
     }
     for filename, px in generic_output_specs.items():
         out_path = marketing_dir / filename

@@ -1,4 +1,4 @@
-package com.brensch.lift.wearbridge
+package com.brensch.schlift.wearbridge
 
 import android.content.Context
 import android.os.Handler
@@ -17,10 +17,10 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 object WearBridgeManager {
-    const val PHONE_TO_WEAR_PATH = "/lift/phone/envelope"
-    const val PHONE_TO_WEAR_LAUNCH_PATH = "/lift/phone/launch"
-    const val WEAR_TO_PHONE_PATH = "/lift/wear/envelope"
-    const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/lift/wear/ui_heartbeat"
+    const val PHONE_TO_WEAR_PATH = "/schlift/phone/envelope"
+    const val PHONE_TO_WEAR_LAUNCH_PATH = "/schlift/phone/launch"
+    const val WEAR_TO_PHONE_PATH = "/schlift/wear/envelope"
+    const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/schlift/wear/ui_heartbeat"
     const val WEAR_APP_CAPABILITY = "lift_wear_companion"
     private const val WATCH_UI_HEARTBEAT_TTL_MS = 8_000L
 
@@ -51,10 +51,10 @@ object WearBridgeManager {
             val nodeClient = Wearable.getNodeClient(context)
             val messageClient = Wearable.getMessageClient(context)
             val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrDefault(emptyList())
-            Log.d("LiftWearBridge", "Publishing snapshot to ${nodes.size} node(s)")
+            Log.d("SchliftWearBridge", "Publishing snapshot to ${nodes.size} node(s)")
             for (node in nodes) {
                 runCatching { messageClient.sendMessage(node.id, PHONE_TO_WEAR_PATH, bytes).await() }
-                    .onFailure { Log.e("LiftWearBridge", "Failed snapshot send to node=${node.id}", it) }
+                    .onFailure { Log.e("SchliftWearBridge", "Failed snapshot send to node=${node.id}", it) }
             }
         }
     }
@@ -72,7 +72,7 @@ object WearBridgeManager {
                     sent += 1
                 }
                 .onFailure {
-                    Log.e("LiftWearBridge", "Failed launch send to node=${node.id}", it)
+                    Log.e("SchliftWearBridge", "Failed launch send to node=${node.id}", it)
                 }
         }
         return sent
@@ -85,7 +85,7 @@ object WearBridgeManager {
                 .getCapability(WEAR_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
                 .await()
         }
-            .onFailure { Log.e("LiftWearBridge", "Failed capability query", it) }
+            .onFailure { Log.e("SchliftWearBridge", "Failed capability query", it) }
             .getOrNull()
             ?: return false
         return capability.nodes.isNotEmpty()
@@ -111,11 +111,11 @@ object WearBridgeManager {
                 envelope.hasSensorBatch() -> emitSensor(bytes)
             }
             Log.d(
-                "LiftWearBridge",
+                "SchliftWearBridge",
                 "Received wear envelope payload=intent:${envelope.hasIntent()} sensor:${envelope.hasSensorBatch()}",
             )
         }
-            .onFailure { Log.e("LiftWearBridge", "Failed to parse wear envelope", it) }
+            .onFailure { Log.e("SchliftWearBridge", "Failed to parse wear envelope", it) }
     }
 
     private fun emitIntent(bytes: ByteArray) {

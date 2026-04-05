@@ -1,4 +1,4 @@
-package com.brensch.lift.wear
+package com.brensch.schlift.wear
 
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,7 @@ object WearDataRepository {
             previous.youCard.timerText != snapshot.youCard.timerText
         ) {
             Log.d(
-                "LiftWear",
+                "SchliftWear",
                 "Snapshot update workoutId=${snapshot.workoutId} state=${snapshot.state} " +
                     "actions=${snapshot.actionsList.size} stateLabel=${snapshot.youCard.stateLabel} " +
                     "timer=${snapshot.youCard.timerText}",

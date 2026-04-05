@@ -1,5 +1,5 @@
 [Unit]
-Description=Lift backend
+Description=Schlift backend
 After=network-online.target
 Wants=network-online.target
 
@@ -8,8 +8,8 @@ Type=simple
 User=__LIFT_USER__
 Group=__LIFT_GROUP__
 WorkingDirectory=__INSTALL_ROOT__/shared
-EnvironmentFile=-__INSTALL_ROOT__/shared/lift.env
-ExecStart=__INSTALL_ROOT__/current/lift
+EnvironmentFile=-__INSTALL_ROOT__/shared/schlift.env
+ExecStart=__INSTALL_ROOT__/current/schlift
 Restart=always
 RestartSec=2
 KillSignal=SIGTERM

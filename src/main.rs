@@ -9,7 +9,7 @@ use http::{
     header::{HeaderName, CONTENT_TYPE},
     Method,
 };
-use lift::workout::v1::{
+use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
@@ -119,8 +119,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .route("/", get(root_handler))
         .route("/privacy", get(privacy_handler))
         .route("/forget", get(forget_handler))
-        .route("/assets/lift-theme.css", get(theme_css_handler))
-        .route("/assets/lift-wobble.js", get(wobble_js_handler))
+        .route("/assets/schlift-theme.css", get(theme_css_handler))
+        .route("/assets/schlift-wobble.js", get(wobble_js_handler))
         .route("/api/forget/start", post(forget_start_handler))
         .route("/api/forget/confirm", post(forget_confirm_handler))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
@@ -155,14 +155,14 @@ async fn forget_handler() -> Html<&'static str> {
 async fn theme_css_handler() -> impl IntoResponse {
     (
         [(CONTENT_TYPE, "text/css; charset=utf-8")],
-        include_str!("../web/lift-theme.css"),
+        include_str!("../web/schlift-theme.css"),
     )
 }
 
 async fn wobble_js_handler() -> impl IntoResponse {
     (
         [(CONTENT_TYPE, "application/javascript; charset=utf-8")],
-        include_str!("../web/lift-wobble.js"),
+        include_str!("../web/schlift-wobble.js"),
     )
 }
 
@@ -255,7 +255,7 @@ async fn assetlinks_handler() -> Json<serde_json::Value> {
         "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
         "target": {
             "namespace": "android_app",
-            "package_name": "com.brensch.lift",
+            "package_name": "com.brensch.schlift",
             "sha256_cert_fingerprints": fingerprints
         }
     }]))

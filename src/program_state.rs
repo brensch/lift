@@ -4,7 +4,7 @@
 /// Each regime defines its own set of keys and their expected types.
 use std::collections::HashMap;
 
-use lift::workout::v1::{
+use schlift::workout::v1::{
     state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
     StateFieldKind, StateFieldValue, TrainingProgramStateEvent, TrainingProgramStateFieldSchema,
     TrainingProgramStateSchema,
@@ -150,15 +150,15 @@ pub fn payload_from_proto(map: &HashMap<String, StateFieldValue>) -> StatePayloa
 
 /// Result of `propose_from_state` — everything needed for the home screen.
 pub struct ProposeResult {
-    pub proposed_groups: Vec<lift::workout::v1::ProposedExerciseGroup>,
-    pub regime_context: lift::workout::v1::RegimeContext,
+    pub proposed_groups: Vec<schlift::workout::v1::ProposedExerciseGroup>,
+    pub regime_context: schlift::workout::v1::RegimeContext,
     pub suggested_workout_name: String,
 }
 
 /// One working set's completion result (warmups excluded).
 #[derive(Debug, Clone)]
 pub struct WorkingSetResult {
-    pub exercise: lift::workout::v1::Exercise,
+    pub exercise: schlift::workout::v1::Exercise,
     pub target_reps: i32,
     pub actual_reps: i32,
 }

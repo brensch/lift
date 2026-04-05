@@ -37,7 +37,7 @@ import 'screens/regime_settings_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address - change for production
-const serverHost = kReleaseMode ? 'lift.snek2.ddns.net' : 'localhost';
+const serverHost = kReleaseMode ? 'schlift.snek2.ddns.net' : 'localhost';
 const serverPort = kReleaseMode ? 443 : 50051;
 const serverBaseUrl = kReleaseMode
     ? 'https://$serverHost'
@@ -46,17 +46,17 @@ const serverBaseUrl = kReleaseMode
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.init();
-  runApp(const LiftApp());
+  runApp(const SchliftApp());
 }
 
-class LiftApp extends StatefulWidget {
-  const LiftApp({super.key});
+class SchliftApp extends StatefulWidget {
+  const SchliftApp({super.key});
 
   @override
-  State<LiftApp> createState() => _LiftAppState();
+  State<SchliftApp> createState() => _SchliftAppState();
 }
 
-class _LiftAppState extends State<LiftApp> {
+class _SchliftAppState extends State<SchliftApp> {
   late final GrpcClient _grpcClient;
   late final AuthService _authService;
   late final AuthProvider _authProvider;
@@ -222,8 +222,8 @@ class _LiftAppState extends State<LiftApp> {
 
   Future<void> _checkClipboardForJoin() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && data!.text!.startsWith('lift-join:')) {
-      final joinId = data.text!.replaceFirst('lift-join:', '');
+    if (data?.text != null && data!.text!.startsWith('schlift-join:')) {
+      final joinId = data.text!.replaceFirst('schlift-join:', '');
       // Clear clipboard so we don't keep joining
       await Clipboard.setData(const ClipboardData(text: ''));
       _joinById(joinId);
@@ -280,7 +280,7 @@ class _LiftAppState extends State<LiftApp> {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp.router(
-          title: 'Lift',
+          title: 'Schlift',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

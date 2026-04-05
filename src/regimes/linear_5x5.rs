@@ -1,4 +1,4 @@
-use lift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
+use schlift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
@@ -13,7 +13,7 @@ use super::{
     build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
     ProgramCatalogMeta, WorkoutRegime,
 };
-use lift::workout::v1::StateFieldKind;
+use schlift::workout::v1::StateFieldKind;
 
 const UPPER_INCREMENT: f32 = 5.0;
 const LOWER_INCREMENT: f32 = 5.0;

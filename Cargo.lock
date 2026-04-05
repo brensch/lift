@@ -1386,38 +1386,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lift"
-version = "0.1.0"
-dependencies = [
- "argon2",
- "axum",
- "chrono",
- "clap",
- "dashmap",
- "env_logger",
- "futures",
- "futures-util",
- "http",
- "log",
- "prost",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
- "tonic",
- "tonic-build",
- "tonic-web",
- "tower 0.5.3",
- "tower-http 0.6.8",
- "url",
- "uuid",
- "webauthn-rs",
- "webauthn-rs-proto",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2081,6 +2049,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "891d81b926048e76efe18581bf793546b4c0eaf8448d72be8de2bbee5fd166e1"
 dependencies = [
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "schlift"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "axum",
+ "chrono",
+ "clap",
+ "dashmap",
+ "env_logger",
+ "futures",
+ "futures-util",
+ "http",
+ "log",
+ "prost",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tonic-build",
+ "tonic-web",
+ "tower 0.5.3",
+ "tower-http 0.6.8",
+ "url",
+ "uuid",
+ "webauthn-rs",
+ "webauthn-rs-proto",
 ]
 
 [[package]]

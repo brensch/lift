@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lift Workout Tracker</title>
-  <link rel="stylesheet" href="/assets/lift-theme.css" />
+  <title>Schlift Workout Tracker</title>
+  <link rel="stylesheet" href="/assets/schlift-theme.css" />
   <style>
     .hero-card {
       width: min(640px, 100%);
@@ -43,23 +43,23 @@
 </head>
 <body class="center-page">
   <main class="card hero-card">
-    <h1 class="hero-brand" data-wobbly="true" data-text="LIFT" data-seed="42" data-max-offset="2" data-max-rotate="0.1">LIFT</h1>
-    <p class="hero-copy">Opening your session in Lift. If the app does not open, use the store link below.</p>
+    <h1 class="hero-brand" data-wobbly="true" data-text="SCHLIFT" data-seed="42" data-max-offset="2" data-max-rotate="0.1">SCHLIFT</h1>
+    <p class="hero-copy">Opening your session in Schlift. If the app does not open, use the store link below.</p>
     <div class="actions">
-      <a href="https://play.google.com/store/apps/details?id=com.brensch.lift" class="btn primary" id="download-btn">Download on Play Store</a>
+      <a href="https://play.google.com/store/apps/details?id=com.brensch.schlift" class="btn primary" id="download-btn">Download on Play Store</a>
       <a class="btn" href="/privacy">Privacy Policy</a>
       <a class="btn" href="/forget">Delete Account</a>
     </div>
     <p class="links">Need details? Review our <a class="inline-link" href="/privacy">privacy policy</a>.</p>
   </main>
 
-  <script src="/assets/lift-wobble.js"></script>
+  <script src="/assets/schlift-wobble.js"></script>
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const joinId = urlParams.get('join');
 
-    const androidUrl = "https://play.google.com/store/apps/details?id=com.brensch.lift";
-    const iosUrl = "https://apps.apple.com/app/lift-workout-tracker/id6742123456";
+    const androidUrl = "https://play.google.com/store/apps/details?id=com.brensch.schlift";
+    const iosUrl = "https://apps.apple.com/app/schlift-workout-tracker/id6742123456";
 
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -73,7 +73,7 @@
 
     if (joinId) {
       const tempInput = document.createElement("input");
-      tempInput.value = `lift-join:${joinId}`;
+      tempInput.value = `schlift-join:${joinId}`;
       document.body.appendChild(tempInput);
       tempInput.select();
       try {

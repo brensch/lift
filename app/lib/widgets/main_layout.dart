@@ -30,7 +30,7 @@ class MainLayout extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: GestureDetector(
           onTap: () => context.go('/'),
-          child: const WobblyText(text: 'LIFT', fontSize: 24, maxOffset: 2),
+          child: const WobblyText(text: 'SCHLIFT', fontSize: 24, maxOffset: 2),
         ),
         actions: [
           _buildWatchLaunchButton(context),

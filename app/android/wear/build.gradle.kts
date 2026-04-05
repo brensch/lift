@@ -29,11 +29,11 @@ val wearVersionCode = (baseVersionCode * 1000) + 1
 val wearVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0.0"
 
 android {
-    namespace = "com.brensch.lift.wear"
+    namespace = "com.brensch.schlift.wear"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.brensch.lift"
+        applicationId = "com.brensch.schlift"
         minSdk = 30
         targetSdk = 36
         versionCode = wearVersionCode

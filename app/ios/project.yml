@@ -32,13 +32,13 @@ targets:
           - "Info.plist"
           - "*.entitlements"
       # Generated proto files shared with watch — Runner needs them to parse envelopes
-      - path: LiftWatch/Generated
+      - path: SchliftWatch/Generated
         buildPhase: sources
     entitlements:
       path: Runner/Runner.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.lift
+        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.schlift
         INFOPLIST_FILE: Runner/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_OBJC_BRIDGING_HEADER: Runner/Runner-Bridging-Header.h
@@ -62,7 +62,7 @@ targets:
           SWIFT_OPTIMIZATION_LEVEL: "-O"
     dependencies:
       - package: SwiftProtobuf
-      - target: LiftWatch
+      - target: SchliftWatch
         embed: true
     preBuildScripts:
       - name: "Flutter Build"
@@ -77,20 +77,20 @@ targets:
         inputFiles:
           - ${TARGET_BUILD_DIR}/${INFOPLIST_PATH}
 
-  LiftWatch:
+  SchliftWatch:
     type: application
     platform: watchOS
     sources:
-      - path: LiftWatch
+      - path: SchliftWatch
         excludes:
           - "Info.plist"
           - "*.entitlements"
     entitlements:
-      path: LiftWatch/LiftWatch.entitlements
+      path: SchliftWatch/SchliftWatch.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.lift.watchkitapp
-        INFOPLIST_FILE: LiftWatch/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.schlift.watchkitapp
+        INFOPLIST_FILE: SchliftWatch/Info.plist
         SWIFT_VERSION: "5.0"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CURRENT_PROJECT_VERSION: "1"
@@ -123,7 +123,7 @@ targets:
       - target: Runner
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.lift.RunnerTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.brensch.schlift.RunnerTests
         SWIFT_VERSION: "5.0"
         CODE_SIGN_STYLE: Automatic
         CURRENT_PROJECT_VERSION: "1"
@@ -141,7 +141,7 @@ schemes:
     build:
       targets:
         Runner: all
-        LiftWatch: all
+        SchliftWatch: all
     run:
       config: Debug
     test:
@@ -155,10 +155,10 @@ schemes:
     archive:
       config: Release
 
-  LiftWatch:
+  SchliftWatch:
     build:
       targets:
-        LiftWatch: all
+        SchliftWatch: all
     run:
       config: Debug
     profile:

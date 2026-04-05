@@ -1,6 +1,6 @@
-package com.brensch.lift
+package com.brensch.schlift
 
-import com.brensch.lift.wearbridge.WearBridgeManager
+import com.brensch.schlift.wearbridge.WearBridgeManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -15,7 +15,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "lift/wear_bridge/methods",
+            "schlift/wear_bridge/methods",
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "publishSnapshot" -> {
@@ -48,7 +48,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "lift/wear_bridge/intents",
+            "schlift/wear_bridge/intents",
         ).setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 WearBridgeManager.setIntentSink(events)
@@ -61,7 +61,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "lift/wear_bridge/sensors",
+            "schlift/wear_bridge/sensors",
         ).setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 WearBridgeManager.setSensorSink(events)
