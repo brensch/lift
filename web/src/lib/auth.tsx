@@ -142,15 +142,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const startResp = await authClient.loginStart({});
 
       // Step 2: Browser passkey ceremony
+      const parsedOptions = JSON.parse(startResp.optionsJson) as {
+        publicKey?: unknown;
+        mediation?: CredentialMediationRequirement;
+      };
+      const publicKeyJson = parsedOptions.publicKey ?? parsedOptions;
       const publicKey = (
         PublicKeyCredential as unknown as {
           parseRequestOptionsFromJSON: (
             opts: unknown
           ) => CredentialRequestOptions["publicKey"];
         }
-      ).parseRequestOptionsFromJSON(JSON.parse(startResp.optionsJson));
+      ).parseRequestOptionsFromJSON(publicKeyJson);
 
-      const credential = await navigator.credentials.get({ publicKey });
+      const credential = await navigator.credentials.get({
+        publicKey,
+        mediation: parsedOptions.mediation,
+      });
       if (!credential) throw new Error("No passkey response was returned.");
       if (!(credential instanceof PublicKeyCredential)) {
         throw new Error("Unexpected passkey credential type.");
