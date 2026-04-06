@@ -9,6 +9,8 @@ import workout.v1.Wearable
 object WearDataRepository {
     private val _snapshot = MutableStateFlow<Wearable.WearWorkoutSnapshot?>(null)
     val snapshot: StateFlow<Wearable.WearWorkoutSnapshot?> = _snapshot.asStateFlow()
+    private val _latestBpm = MutableStateFlow<Float?>(null)
+    val latestBpm: StateFlow<Float?> = _latestBpm.asStateFlow()
 
     fun updateSnapshot(snapshot: Wearable.WearWorkoutSnapshot) {
         val previous = _snapshot.value
@@ -27,5 +29,9 @@ object WearDataRepository {
             )
         }
         _snapshot.value = snapshot
+    }
+
+    fun updateLatestBpm(bpm: Float?) {
+        _latestBpm.value = bpm
     }
 }

@@ -32,6 +32,22 @@ class PhoneMessageListenerService : WearableListenerService() {
                     "Parsed phone snapshot workoutId=${snapshot.workoutId} state=${snapshot.state} actions=${snapshot.actionsList.size}",
                 )
                 WearDataRepository.updateSnapshot(envelope.snapshot)
+                val hasEndWorkoutAction = snapshot.actionsList.any {
+                    it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+                }
+                val activeWorkout = snapshot.workoutId.isNotBlank() &&
+                    (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
+                if (activeWorkout) {
+                    WorkoutForegroundService.startOrUpdate(
+                        this,
+                        workoutLabel = "Workout in progress",
+                        stateLabel = snapshot.youCard.stateLabel,
+                        workoutId = snapshot.workoutId,
+                        activeWorkout = true,
+                    )
+                } else {
+                    WorkoutForegroundService.stop(this)
+                }
             }
         }
             .onFailure { Log.e("SchliftWear", "Failed to parse phone message envelope", it) }

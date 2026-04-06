@@ -38,10 +38,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,8 +92,6 @@ private const val SchliftWearTag = "SchliftWear"
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var uiHeartbeatJob: kotlinx.coroutines.Job? = null
-    private lateinit var heartRateStreamer: HeartRateStreamer
-    private lateinit var exerciseSessionManager: WearExerciseSessionManager
     private var heartRatePermissionRequestInFlight = false
     private var workoutPermissionRequestInFlight = false
     private var heartRatePermissionRequestedOnce = false
@@ -149,15 +144,10 @@ class MainActivity : ComponentActivity() {
             "saved=${savedInstanceState != null} intentFlags=0x${intent?.flags?.toString(16) ?: "0"}",
         )
         lifecycle.addObserver(ambientObserver)
-        heartRateStreamer = HeartRateStreamer(applicationContext)
-        exerciseSessionManager = WearExerciseSessionManager(applicationContext)
 
         setContent {
             WearApp(
                 onAction = { action -> sendAction(action) },
-                heartRateStreamer = heartRateStreamer,
-                exerciseSessionManager = exerciseSessionManager,
-                ensurePermissions = { maybeRequestRuntimePermissions() },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
             )
         }
@@ -257,6 +247,9 @@ class MainActivity : ComponentActivity() {
 
     private fun requiredHeartRatePermissions(): List<String> {
         val required = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasPostNotificationsPermission()) {
+            required += Manifest.permission.POST_NOTIFICATIONS
+        }
         if (!hasHeartRatePermissions()) {
             required += Manifest.permission.BODY_SENSORS
         }
@@ -268,6 +261,17 @@ class MainActivity : ComponentActivity() {
 
     private fun hasHeartRatePermissions(): Boolean {
         return hasBodySensorsPermission() || hasReadHeartRatePermission()
+    }
+
+    private fun hasPostNotificationsPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
     }
 
     private fun hasBodySensorsPermission(): Boolean {
@@ -355,15 +359,13 @@ class MainActivity : ComponentActivity() {
             SchliftWearTag,
             "ensureCompanionSessionIfNeeded starting HR/session for workoutId=${snapshot.workoutId} state=${snapshot.state}",
         )
-        heartRateStreamer.start(snapshot.workoutId)
-        if (hasWorkoutPermissions() && hasExerciseSessionHeartRatePermission()) {
-            exerciseSessionManager.ensureSessionActive()
-        } else {
-            Log.d(
-                SchliftWearTag,
-                "Exercise session not started workoutPerm=${hasWorkoutPermissions()} sessionHrPerm=${hasExerciseSessionHeartRatePermission()}",
-            )
-        }
+        WorkoutForegroundService.startOrUpdate(
+            this,
+            workoutLabel = "Workout in progress",
+            stateLabel = snapshot.youCard.stateLabel,
+            workoutId = snapshot.workoutId,
+            activeWorkout = true,
+        )
     }
 
     private fun sendAction(action: Wearable.WearAction) {
@@ -464,13 +466,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
-    heartRateStreamer: HeartRateStreamer,
-    exerciseSessionManager: WearExerciseSessionManager,
-    ensurePermissions: () -> Boolean,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
-    val latestBpm by heartRateStreamer.latestBpm.collectAsState()
+    val latestBpm by WearDataRepository.latestBpm.collectAsState()
     val currentClock by produceState(initialValue = formatNowClock()) {
         while (true) {
             value = formatNowClock()
@@ -528,38 +527,6 @@ private fun WearApp(
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
     val hasEndWorkoutAction = data.actionsList.any {
         it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
-    }
-    var isStreaming by remember(data.workoutId) { mutableStateOf(false) }
-    // Cleanup only when this workout leaves composition (workout swap/unmount).
-    DisposableEffect(data.workoutId) {
-        Log.d(SchliftWearTag, "WearApp enter workout composition workoutId=${data.workoutId}")
-        onDispose {
-            Log.d(SchliftWearTag, "WearApp dispose workout composition workoutId=${data.workoutId}")
-            heartRateStreamer.stop()
-            exerciseSessionManager.endSessionIfActive()
-        }
-    }
-
-    // Explicit lifecycle: start for active workout, stop when it reaches ALL_DONE.
-    LaunchedEffect(data.workoutId, data.state, hasEndWorkoutAction) {
-        // Keep session active while waiting on explicit End Workout action.
-        val shouldStream = data.workoutId.isNotEmpty() &&
-            (data.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE ||
-                hasEndWorkoutAction)
-        Log.d(
-            SchliftWearTag,
-            "WearApp stream effect workoutId=${data.workoutId} state=${data.state} " +
-                "hasEndAction=$hasEndWorkoutAction shouldStream=$shouldStream isStreaming=$isStreaming",
-        )
-        if (shouldStream && !isStreaming) {
-            ensurePermissions()
-            heartRateStreamer.start(data.workoutId)
-            isStreaming = true
-        } else if (!shouldStream && isStreaming) {
-            heartRateStreamer.stop()
-            exerciseSessionManager.endSessionIfActive()
-            isStreaming = false
-        }
     }
 
     val hrColor = heartRateColor(latestBpm)
