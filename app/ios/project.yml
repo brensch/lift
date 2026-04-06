@@ -2,7 +2,7 @@ name: Runner
 options:
   bundleIdPrefix: com.brensch
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.5"
     watchOS: "9.0"
   xcodeVersion: "1510"
   createIntermediateGroups: true
