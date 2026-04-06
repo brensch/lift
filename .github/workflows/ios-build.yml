@@ -1,13 +1,13 @@
-name: iOS Build
+name: iOS Release
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - "ios/**"
+      - "release"
 
 jobs:
-  build-ios:
+  build-ios-release:
     runs-on: macos-latest
 
     steps:
@@ -20,10 +20,122 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Validate required signing secrets
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          IOS_APP_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISION_PROFILE_BASE64 }}
+          IOS_WATCH_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_WATCH_PROVISION_PROFILE_BASE64 }}
+        run: |
+          missing=0
+          for name in APPLE_TEAM_ID IOS_CERT_P12_BASE64 IOS_CERT_PASSWORD IOS_APP_PROVISION_PROFILE_BASE64 IOS_WATCH_PROVISION_PROFILE_BASE64; do
+            if [ -z "${!name}" ]; then
+              echo "Missing secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get
 
-      - name: Build iOS app (no codesign)
+      - name: Import signing certificate and provisioning profiles
+        env:
+          IOS_CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          IOS_APP_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISION_PROFILE_BASE64 }}
+          IOS_WATCH_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_WATCH_PROVISION_PROFILE_BASE64 }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          CERT_PATH="$RUNNER_TEMP/dist.p12"
+          APP_PROFILE_PATH="$RUNNER_TEMP/app.mobileprovision"
+          WATCH_PROFILE_PATH="$RUNNER_TEMP/watch.mobileprovision"
+          APP_PROFILE_PLIST="$RUNNER_TEMP/app-profile.plist"
+          WATCH_PROFILE_PLIST="$RUNNER_TEMP/watch-profile.plist"
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          echo "$IOS_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$IOS_APP_PROVISION_PROFILE_BASE64" | base64 --decode > "$APP_PROFILE_PATH"
+          echo "$IOS_WATCH_PROVISION_PROFILE_BASE64" | base64 --decode > "$WATCH_PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p "$PROFILE_DIR"
+          security cms -D -i "$APP_PROFILE_PATH" > "$APP_PROFILE_PLIST"
+          security cms -D -i "$WATCH_PROFILE_PATH" > "$WATCH_PROFILE_PLIST"
+
+          APP_PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$APP_PROFILE_PLIST")
+          APP_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$APP_PROFILE_PLIST")
+          WATCH_PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$WATCH_PROFILE_PLIST")
+          WATCH_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$WATCH_PROFILE_PLIST")
+
+          cp "$APP_PROFILE_PATH" "$PROFILE_DIR/$APP_PROFILE_UUID.mobileprovision"
+          cp "$WATCH_PROFILE_PATH" "$PROFILE_DIR/$WATCH_PROFILE_UUID.mobileprovision"
+
+          {
+            echo "APPLE_KEYCHAIN_PATH=$KEYCHAIN_PATH"
+            echo "APPLE_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
+            echo "IOS_APP_PROFILE_NAME=$APP_PROFILE_NAME"
+            echo "IOS_WATCH_PROFILE_NAME=$WATCH_PROFILE_NAME"
+          } >> "$GITHUB_ENV"
+
+      - name: Regenerate Xcode project
+        working-directory: app/ios
+        run: xcodegen generate
+
+      - name: Prepare CI export options
+        working-directory: app/ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_APP_PROFILE_NAME: ${{ env.IOS_APP_PROFILE_NAME }}
+          IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
+        run: |
+          cp ExportOptions.plist ExportOptions.ci.plist
+          /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ExportOptions.ci.plist
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift $IOS_APP_PROFILE_NAME" ExportOptions.ci.plist
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.watchkitapp $IOS_WATCH_PROFILE_NAME" ExportOptions.ci.plist
+
+      - name: Archive iOS app
         working-directory: app
-        run: flutter build ios --release --no-codesign
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_APP_PROFILE_NAME: ${{ env.IOS_APP_PROFILE_NAME }}
+          IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
+        run: |
+          xcodebuild archive \
+            -project ios/Runner.xcodeproj \
+            -scheme Runner \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            APPLE_TEAM_ID="$APPLE_TEAM_ID" \
+            IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
+            IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME"
+
+      - name: Export IPA
+        working-directory: app
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.ci.plist
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: app/build/ios/ipa/*.ipa
+          if-no-files-found: error

@@ -42,12 +42,12 @@ Workflow file: `.github/workflows/android-release.yml`
 
 Triggers:
 - Manual: `workflow_dispatch`
-- Tag push: `android-v*` (example: `android-v1.0.1`)
+- Branch push: `release`
 
-When tag-triggered, CI:
+When triggered, CI:
 1. Builds signed phone AAB
 2. Builds signed wear AAB
-3. Creates a GitHub Release and attaches both AABs
+3. Uploads both AABs to Google Play `internal` track
 
 ### 4) Version bump before tag
 
@@ -61,11 +61,10 @@ cd app
 flutter pub get
 ```
 
-### 5) Push release tag
+### 5) Push release branch
 
 ```bash
-git tag -a android-v1.0.1 -m "Android release 1.0.1"
-git push origin android-v1.0.1
+git push origin release
 ```
 
 ### Local CI-equivalent checks
@@ -90,37 +89,36 @@ make ci-android-clean-signing
 
 Site: https://play.google.com/console
 
-Upload both generated AAB files from the GitHub Release (or Actions artifacts) to Internal testing, then promote.
+CI uploads both generated AAB files to Google Play Internal testing. You can also download the workflow artifacts if you need the raw bundles.
 
 Detailed Android checklist: `app/PLAY_STORE_RELEASE.md`
 
-## iOS Release CI (Placeholder)
+## iOS Release CI
 
-Workflow file: `.github/workflows/ios-release-placeholder.yml`
+Workflow file: `.github/workflows/ios-build.yml`
 
 Current behavior:
-- Builds iOS simulator app without signing
-- Checks for signing secrets
-- Prints missing-secret guidance
-- Does not yet produce signed IPA/App Store upload
-
-Triggers:
-- Manual: `workflow_dispatch`
-- Branch push: `ios-release/**`
-- Tag push: `ios-v*`
+- Runs on `release` branch pushes or manual dispatch
+- Imports Apple distribution certificate into a temporary CI keychain
+- Installs provisioning profiles for the iPhone app and watch app
+- Regenerates `Runner.xcodeproj` from `app/ios/project.yml`
+- Archives the signed app and exports an IPA artifact
+- Does not yet upload to App Store Connect automatically
 
 ### Required for real iOS distribution
 
 You need Apple Developer Program + signing assets:
 - Distribution certificate (`.p12`) and password
-- Provisioning profile
+- iPhone app provisioning profile
+- watch app provisioning profile
 - Apple Team ID
 - (Later) App Store Connect API key for automated upload
 
-Placeholder secrets expected by workflow:
+Required GitHub Actions secrets:
 - `IOS_CERT_P12_BASE64`
 - `IOS_CERT_PASSWORD`
-- `IOS_PROVISION_PROFILE_BASE64`
+- `IOS_APP_PROVISION_PROFILE_BASE64`
+- `IOS_WATCH_PROVISION_PROFILE_BASE64`
 - `APPLE_TEAM_ID`
 
 ## Recommended Release Flow
@@ -128,4 +126,4 @@ Placeholder secrets expected by workflow:
 1. Merge release-ready code to `main`.
 2. Bump app version.
 3. Push `android-vX.Y.Z` tag to build Android/Wear release.
-4. Use `ios-release/*` branch (or `ios-v*` tag) for iOS CI work until full signing pipeline is implemented.
+4. Merge `main` into `release` to run the signed iOS workflow and collect IPA/AAB artifacts for store submission.
