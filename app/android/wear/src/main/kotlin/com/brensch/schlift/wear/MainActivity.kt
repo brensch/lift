@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +39,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
+import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.LocalTextStyle
 import androidx.wear.compose.material.Picker
@@ -476,6 +482,12 @@ private fun WearApp(
             delay(1000)
         }
     }
+    val nowTick by produceState(initialValue = System.currentTimeMillis() / 1000) {
+        while (true) {
+            value = System.currentTimeMillis() / 1000
+            delay(1000)
+        }
+    }
     LaunchedEffect(snapshot) {
         Log.d(
             SchliftWearTag,
@@ -513,6 +525,15 @@ private fun WearApp(
     }
 
     val data = snapshot!!
+    val hasEndWorkoutAction = data.actionsList.any {
+        it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+    }
+    val liveYouTimerText = remember(data.workoutId, data.state, data.activeStartedAt, data.restUntil, data.lastRestEnd, hasEndWorkoutAction, nowTick) {
+        deriveYouTimerText(data)
+    }
+    val liveElapsedText = remember(data.workoutId, data.workoutStartTime, data.state, nowTick) {
+        deriveElapsedText(data)
+    }
     val currentSet = if (data.youCard.hasDisplaySet()) data.youCard.displaySet else null
     val completeTemplate = data.actionsList.firstOrNull {
         it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET
@@ -525,9 +546,22 @@ private fun WearApp(
         it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
     } ?: data.actionsList.firstOrNull()
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
-    val hasEndWorkoutAction = data.actionsList.any {
-        it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+    var pendingActionKey by remember(data.workoutId) { mutableStateOf<String?>(null) }
+    var pendingActionStartedAtMs by remember(data.workoutId) { mutableLongStateOf(0L) }
+    LaunchedEffect(
+        data.state,
+        data.activeStartedAt,
+        data.restUntil,
+        data.lastRestEnd,
+        data.actionsList.size,
+        currentSet?.id,
+        currentSet?.targetReps,
+        currentSet?.targetWeight,
+    ) {
+        pendingActionKey = null
+        pendingActionStartedAtMs = 0L
     }
+    val isActionPending = pendingActionKey != null && (System.currentTimeMillis() - pendingActionStartedAtMs) < 8000L
 
     val hrColor = heartRateColor(latestBpm)
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
@@ -562,7 +596,7 @@ private fun WearApp(
     val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
     val stateAccentColor = watchStateAccentColor(data.youCard.stateLabel)
     val timerColor = when {
-        data.youCard.timerText.isNotEmpty() && stateAccentColor != null -> stateAccentColor
+        liveYouTimerText.isNotEmpty() && stateAccentColor != null -> stateAccentColor
         isResting -> Color(0xFF86EFAC)
         else -> Color.White
     }
@@ -602,9 +636,9 @@ private fun WearApp(
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.End,
         ) {
-            if (data.youCard.timerText.isNotEmpty()) {
+            if (liveYouTimerText.isNotEmpty()) {
                 Text(
-                    text = data.youCard.timerText,
+                    text = liveYouTimerText,
                     color = timerColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -626,7 +660,7 @@ private fun WearApp(
                 fontFamily = WearDisplayFontFamily,
                 fontWeight = FontWeight.Medium,
             )
-            if (data.youCard.timerText.isNotEmpty()) {
+            if (liveYouTimerText.isNotEmpty()) {
                 StatLine(
                     text = currentClock,
                     icon = Icons.Filled.AccessTime,
@@ -635,7 +669,7 @@ private fun WearApp(
                 )
             }
             StatLine(
-                text = data.elapsedText,
+                text = liveElapsedText,
                 icon = Icons.Filled.HourglassBottom,
                 color = Color(0xFFCBD5E1),
                 fontSizeSp = 19,
@@ -658,8 +692,14 @@ private fun WearApp(
         ) {
             if (!isLiftingCompleteMode) {
                 Button(
-                    onClick = { if (primaryAction != null) onAction(primaryAction) },
-                    enabled = primaryAction != null,
+                    onClick = {
+                        if (primaryAction != null && !isActionPending) {
+                            pendingActionKey = "${primaryAction.type}:${primaryAction.setId}:${data.state}"
+                            pendingActionStartedAtMs = System.currentTimeMillis()
+                            onAction(primaryAction)
+                        }
+                    },
+                    enabled = primaryAction != null && !isActionPending,
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(0.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -677,33 +717,41 @@ private fun WearApp(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.Start,
                         ) {
-                            Text(
-                                text = startButtonTitle,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier.fillMaxWidth(),
-                                fontSize = 18.sp,
-                                fontFamily = WearDisplayFontFamily,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = repsWeightText,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier.fillMaxWidth(),
-                                fontSize = 24.sp,
-                                fontFamily = WearDisplayFontFamily,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            if (isActionPending) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.width(26.dp).height(26.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Text(
+                                    text = startButtonTitle,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontSize = 18.sp,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = repsWeightText,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontSize = 24.sp,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
                         }
                     }
                 }
             } else {
                 Button(
                     onClick = {
+                        if (isActionPending) return@Button
                         val set = currentSet
                         val template = completeTemplate
                         if (set != null && template != null) {
@@ -714,103 +762,118 @@ private fun WearApp(
                                     if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
                                 )
                                 .build()
+                            pendingActionKey = "${action.type}:${action.setId}:${selectedReps}:${data.state}"
+                            pendingActionStartedAtMs = System.currentTimeMillis()
                             onAction(action)
                         }
                     },
+                    enabled = !isActionPending,
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(0.dp),
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = buttonBackgroundColor,
                         contentColor = buttonContentColor,
                     ),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 10.dp, end = 0.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.Start,
                     ) {
-                        Text(
-                            text = completeButtonText,
-                            color = buttonContentColor,
-                            fontSize = 18.sp,
-                            textAlign = TextAlign.Start,
-                            fontFamily = WearDisplayFontFamily,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Start,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                        if (isActionPending) {
                             Box(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .height(94.dp)
-                                    .border(
-                                        width = 1.dp,
-                                        color = buttonContentColor.copy(alpha = 0.45f),
-                                        shape = RoundedCornerShape(6.dp),
-                                    )
-                                    .padding(horizontal = 2.dp, vertical = 1.dp),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Picker(
-                                    modifier = Modifier.fillMaxSize(),
-                                    state = pickerState,
-                                    gradientRatio = 0f,
-                                    contentDescription = "Completed reps picker",
-                                    option = { index: Int ->
-                                        val isSelected = index == pickerState.selectedOption
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(18.dp),
-                                            contentAlignment = Alignment.CenterEnd,
-                                        ) {
-                                            Text(
-                                                text = index.toString(),
-                                                textAlign = TextAlign.End,
-                                                fontSize = 14.sp,
-                                                color = if (isSelected) Color.Transparent else buttonMutedContentColor,
-                                                fontFamily = WearDisplayFontFamily,
-                                                fontWeight = FontWeight.Medium,
-                                                lineHeight = 14.sp,
-                                            )
-                                        }
-                                    },
-                                )
-                                Text(
-                                    text = selectedReps.toString(),
-                                    color = buttonContentColor,
-                                    textAlign = TextAlign.End,
-                                    fontSize = 40.sp,
-                                    fontFamily = WearDisplayFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    lineHeight = 40.sp,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 1.dp),
+                                CircularProgressIndicator(
+                                    modifier = Modifier.width(26.dp).height(26.dp),
+                                    strokeWidth = 2.dp,
                                 )
                             }
-                            Spacer(modifier = Modifier.width(0.dp))
-                            Text(
-                                text = weightOnlyText,
-                                color = buttonContentColor,
-                                fontSize = 28.sp,
-                                textAlign = TextAlign.Start,
-                                fontFamily = WearDisplayFontFamily,
-                                fontWeight = FontWeight.Bold,
-                            )
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(start = 10.dp, end = 0.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.Start,
+                            ) {
+                                Text(
+                                    text = completeButtonText,
+                                    color = buttonContentColor,
+                                    fontSize = 18.sp,
+                                    textAlign = TextAlign.Start,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(40.dp)
+                                            .height(94.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = buttonContentColor.copy(alpha = 0.45f),
+                                                shape = RoundedCornerShape(6.dp),
+                                            )
+                                            .padding(horizontal = 2.dp, vertical = 1.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Picker(
+                                            modifier = Modifier.fillMaxSize(),
+                                            state = pickerState,
+                                            gradientRatio = 0f,
+                                            contentDescription = "Completed reps picker",
+                                            option = { index: Int ->
+                                                val isSelected = index == pickerState.selectedOption
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(18.dp),
+                                                    contentAlignment = Alignment.CenterEnd,
+                                                ) {
+                                                    Text(
+                                                        text = index.toString(),
+                                                        textAlign = TextAlign.End,
+                                                        fontSize = 14.sp,
+                                                        color = if (isSelected) Color.Transparent else buttonMutedContentColor,
+                                                        fontFamily = WearDisplayFontFamily,
+                                                        fontWeight = FontWeight.Medium,
+                                                        lineHeight = 14.sp,
+                                                    )
+                                                }
+                                            },
+                                        )
+                                        Text(
+                                            text = selectedReps.toString(),
+                                            color = buttonContentColor,
+                                            textAlign = TextAlign.End,
+                                            fontSize = 40.sp,
+                                            fontFamily = WearDisplayFontFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            lineHeight = 40.sp,
+                                            modifier = Modifier
+                                                .align(Alignment.CenterEnd)
+                                                .padding(end = 1.dp),
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(0.dp))
+                                    Text(
+                                        text = weightOnlyText,
+                                        color = buttonContentColor,
+                                        fontSize = 28.sp,
+                                        textAlign = TextAlign.Start,
+                                        fontFamily = WearDisplayFontFamily,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 }
 
 @Composable
@@ -937,6 +1000,70 @@ private fun StatLine(
 
 private fun formatNowClock(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
+}
+
+private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot): String {
+    val startTime = snapshot.workoutStartTime.toLong()
+    if (startTime <= 0L) return snapshot.elapsedText
+    val currentApiNowMs = WearDataRepository.synchronizedNowUnixMillis()
+    val elapsed = ((currentApiNowMs - (startTime * 1000L)).coerceAtLeast(0L) / 1000L).toInt()
+    return formatElapsedDuration(elapsed)
+}
+
+private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
+    val currentApiNowMs = WearDataRepository.synchronizedNowUnixMillis()
+    return when (snapshot.state) {
+        workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING -> {
+            val activeStartedAt = snapshot.activeStartedAt.toLong()
+            if (activeStartedAt <= 0L) {
+                snapshot.youCard.timerText
+            } else {
+                formatDuration(
+                    ((currentApiNowMs - (activeStartedAt * 1000L)).coerceAtLeast(0L) / 1000L).toInt(),
+                )
+            }
+        }
+
+        workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING -> {
+            val restUntil = snapshot.restUntil.toLong()
+            val restUntilMs = restUntil * 1000L
+            when {
+                restUntil <= 0L -> snapshot.youCard.timerText
+                snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs ->
+                    "-${formatDuration(((currentApiNowMs - restUntilMs).coerceAtLeast(0L) / 1000L).toInt())}"
+                else ->
+                    formatDuration(((restUntilMs - currentApiNowMs).coerceAtLeast(0L) / 1000L).toInt())
+            }
+        }
+
+        workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_READY -> {
+            val lastRestEnd = snapshot.lastRestEnd.toLong()
+            if (snapshot.youCard.stateLabel != "Yapping" || lastRestEnd <= 0L) {
+                snapshot.youCard.timerText
+            } else {
+                "-${formatDuration(((currentApiNowMs - (lastRestEnd * 1000L)).coerceAtLeast(0L) / 1000L).toInt())}"
+            }
+        }
+
+        else -> snapshot.youCard.timerText
+    }
+}
+
+private fun formatDuration(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
+}
+
+private fun formatElapsedDuration(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
+    }
 }
 
 private fun watchStateAccentColor(stateLabel: String?): Color? {
