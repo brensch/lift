@@ -99,11 +99,15 @@ Workflow file: `.github/workflows/ios-build.yml`
 
 Current behavior:
 - Runs on `release` branch pushes or manual dispatch
-- Imports Apple distribution certificate into a temporary CI keychain
-- Installs provisioning profiles for the iPhone app and watch app
 - Regenerates `Runner.xcodeproj` from `app/ios/project.yml`
-- Archives the signed app and exports an IPA artifact
-- Does not yet upload to App Store Connect automatically
+- If Apple signing secrets are present:
+  - imports the Apple distribution certificate into a temporary CI keychain
+  - installs provisioning profiles for the iPhone app and watch app
+  - archives the signed app and exports an IPA artifact
+- If Apple signing secrets are missing:
+  - builds an unsigned iOS app with `--no-codesign`
+  - uploads the unsigned `Runner.app.zip` artifact
+- Does not upload to App Store Connect automatically
 
 ### Required for real iOS distribution
 
