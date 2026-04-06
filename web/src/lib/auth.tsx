@@ -223,6 +223,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const devLogin: ((username: string) => Promise<void>) | undefined =
+    import.meta.env.DEV
+      ? async (username: string) => {
+          const { performDevLogin } = await import("./auth-dev");
+          const newUser = await performDevLogin(username);
+          saveSession(newUser);
+          setUser(newUser);
+        }
+      : undefined;
+
   const logout = useCallback(async () => {
     if (user) {
       try {
@@ -236,7 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, devLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

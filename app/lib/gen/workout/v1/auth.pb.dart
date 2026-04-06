@@ -1033,139 +1033,6 @@ class ListPasskeysResponse extends $pb.GeneratedMessage {
   $pb.PbList<PasskeyInfo> get passkeys => $_getList(0);
 }
 
-class PasswordRegisterRequest extends $pb.GeneratedMessage {
-  factory PasswordRegisterRequest({
-    $core.String? username,
-    $core.String? password,
-  }) {
-    final result = create();
-    if (username != null) result.username = username;
-    if (password != null) result.password = password;
-    return result;
-  }
-
-  PasswordRegisterRequest._();
-
-  factory PasswordRegisterRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory PasswordRegisterRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'PasswordRegisterRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'username')
-    ..aOS(2, _omitFieldNames ? '' : 'password')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PasswordRegisterRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PasswordRegisterRequest copyWith(
-          void Function(PasswordRegisterRequest) updates) =>
-      super.copyWith((message) => updates(message as PasswordRegisterRequest))
-          as PasswordRegisterRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static PasswordRegisterRequest create() => PasswordRegisterRequest._();
-  @$core.override
-  PasswordRegisterRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static PasswordRegisterRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<PasswordRegisterRequest>(create);
-  static PasswordRegisterRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get username => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set username($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasUsername() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearUsername() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get password => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set password($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasPassword() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearPassword() => $_clearField(2);
-}
-
-class PasswordLoginRequest extends $pb.GeneratedMessage {
-  factory PasswordLoginRequest({
-    $core.String? username,
-    $core.String? password,
-  }) {
-    final result = create();
-    if (username != null) result.username = username;
-    if (password != null) result.password = password;
-    return result;
-  }
-
-  PasswordLoginRequest._();
-
-  factory PasswordLoginRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory PasswordLoginRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'PasswordLoginRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'username')
-    ..aOS(2, _omitFieldNames ? '' : 'password')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PasswordLoginRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PasswordLoginRequest copyWith(void Function(PasswordLoginRequest) updates) =>
-      super.copyWith((message) => updates(message as PasswordLoginRequest))
-          as PasswordLoginRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static PasswordLoginRequest create() => PasswordLoginRequest._();
-  @$core.override
-  PasswordLoginRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static PasswordLoginRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<PasswordLoginRequest>(create);
-  static PasswordLoginRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get username => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set username($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasUsername() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearUsername() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get password => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set password($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasPassword() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearPassword() => $_clearField(2);
-}
-
 class TestLoginRequest extends $pb.GeneratedMessage {
   factory TestLoginRequest({
     $core.String? username,
@@ -1218,6 +1085,99 @@ class TestLoginRequest extends $pb.GeneratedMessage {
   $core.bool hasUsername() => $_has(0);
   @$pb.TagNumber(1)
   void clearUsername() => $_clearField(1);
+}
+
+class DeleteAccountRequest extends $pb.GeneratedMessage {
+  factory DeleteAccountRequest() => create();
+
+  DeleteAccountRequest._();
+
+  factory DeleteAccountRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteAccountRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteAccountRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteAccountRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteAccountRequest copyWith(void Function(DeleteAccountRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteAccountRequest))
+          as DeleteAccountRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteAccountRequest create() => DeleteAccountRequest._();
+  @$core.override
+  DeleteAccountRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteAccountRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteAccountRequest>(create);
+  static DeleteAccountRequest? _defaultInstance;
+}
+
+class DeleteAccountResponse extends $pb.GeneratedMessage {
+  factory DeleteAccountResponse({
+    $core.String? deletedUserId,
+  }) {
+    final result = create();
+    if (deletedUserId != null) result.deletedUserId = deletedUserId;
+    return result;
+  }
+
+  DeleteAccountResponse._();
+
+  factory DeleteAccountResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteAccountResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteAccountResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'deletedUserId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteAccountResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteAccountResponse copyWith(
+          void Function(DeleteAccountResponse) updates) =>
+      super.copyWith((message) => updates(message as DeleteAccountResponse))
+          as DeleteAccountResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteAccountResponse create() => DeleteAccountResponse._();
+  @$core.override
+  DeleteAccountResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteAccountResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteAccountResponse>(create);
+  static DeleteAccountResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get deletedUserId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set deletedUserId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDeletedUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeletedUserId() => $_clearField(1);
 }
 
 const $core.bool _omitFieldNames =

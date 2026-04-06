@@ -68,16 +68,6 @@ message ListPasskeysResponse {
   repeated PasskeyInfo passkeys = 1;
 }
 
-message PasswordRegisterRequest {
-  string username = 1;
-  string password = 2;
-}
-
-message PasswordLoginRequest {
-  string username = 1;
-  string password = 2;
-}
-
 message TestLoginRequest {
   string username = 1;
 }
@@ -97,8 +87,6 @@ service AuthService {
   rpc AddPasskeyFinish(AddPasskeyFinishRequest) returns (AddPasskeyFinishResponse);
   rpc DeletePasskey(DeletePasskeyRequest) returns (DeletePasskeyResponse);
   rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
-  rpc PasswordRegister(PasswordRegisterRequest) returns (AuthResponse);
-  rpc PasswordLogin(PasswordLoginRequest) returns (AuthResponse);
   rpc TestLogin(TestLoginRequest) returns (AuthResponse);
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
 }

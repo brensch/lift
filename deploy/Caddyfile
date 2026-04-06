@@ -18,6 +18,14 @@ schlift.com {
         }
     }
 
+    handle /apple-app-site-association {
+        reverse_proxy 127.0.0.1:50051 {
+            transport http {
+                versions h2c 2
+            }
+        }
+    }
+
     # gRPC-Web → Rust backend (all POST to /workout.v1.* service paths)
     @grpc {
         method POST

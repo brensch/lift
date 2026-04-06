@@ -1,16 +1,14 @@
 use crate::auth::AuthState;
+#[cfg(feature = "test-auth")]
+use crate::service_auth_test::handle_test_login;
 use crate::service_workout::get_user_id_authenticated;
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
 use schlift::workout::v1::{
     auth_service_server::AuthService, AddPasskeyFinishRequest, AddPasskeyFinishResponse,
     AddPasskeyStartRequest, AddPasskeyStartResponse, AuthResponse, DeleteAccountRequest,
     DeleteAccountResponse, DeletePasskeyRequest, DeletePasskeyResponse, ListPasskeysRequest,
     ListPasskeysResponse, LoginFinishRequest, LoginStartRequest, LoginStartResponse, LogoutRequest,
-    LogoutResponse, PasskeyInfo, PasswordLoginRequest, PasswordRegisterRequest,
-    RegisterFinishRequest, RegisterStartRequest, RegisterStartResponse, TestLoginRequest,
+    LogoutResponse, PasskeyInfo, RegisterFinishRequest, RegisterStartRequest,
+    RegisterStartResponse, TestLoginRequest,
 };
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -270,105 +268,6 @@ impl AuthService for MyAuthService {
         Ok(Response::new(ListPasskeysResponse { passkeys }))
     }
 
-    async fn password_register(
-        &self,
-        request: Request<PasswordRegisterRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        let req = request.into_inner();
-        let username = req.username.trim().to_string();
-        if username.is_empty() {
-            return Err(Status::invalid_argument("username is required"));
-        }
-        if username.contains(' ') {
-            return Err(Status::invalid_argument("username cannot contain spaces"));
-        }
-        if req.password.len() < 4 {
-            return Err(Status::invalid_argument(
-                "password must be at least 4 characters",
-            ));
-        }
-
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let password_hash = argon2
-            .hash_password(req.password.as_bytes(), &salt)
-            .map_err(|e| Status::internal(format!("Hash error: {}", e)))?
-            .to_string();
-
-        let user = self
-            .auth_state
-            .central_db
-            .create_user_with_password(&username, &password_hash)
-            .await
-            .map_err(|e| {
-                if e.to_string().contains("already exists") {
-                    Status::already_exists("User already exists")
-                } else {
-                    Status::internal(e.to_string())
-                }
-            })?;
-
-        let token = self
-            .auth_state
-            .central_db
-            .create_auth_session(&user.id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(Response::new(AuthResponse {
-            session_token: token,
-            user_id: user.id,
-            username: user.name,
-        }))
-    }
-
-    async fn password_login(
-        &self,
-        request: Request<PasswordLoginRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        let req = request.into_inner();
-        let username = req.username.trim().to_string();
-        if username.is_empty() {
-            return Err(Status::invalid_argument("username is required"));
-        }
-
-        let user = self
-            .auth_state
-            .central_db
-            .get_user_by_name(&username)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::unauthenticated("Invalid username or password"))?;
-
-        let stored_hash = self
-            .auth_state
-            .central_db
-            .get_password_hash(&user.id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::unauthenticated("No password set for this account"))?;
-
-        let parsed_hash = PasswordHash::new(&stored_hash)
-            .map_err(|e| Status::internal(format!("Hash parse error: {}", e)))?;
-
-        Argon2::default()
-            .verify_password(req.password.as_bytes(), &parsed_hash)
-            .map_err(|_| Status::unauthenticated("Invalid username or password"))?;
-
-        let token = self
-            .auth_state
-            .central_db
-            .create_auth_session(&user.id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        Ok(Response::new(AuthResponse {
-            session_token: token,
-            user_id: user.id,
-            username: user.name,
-        }))
-    }
-
     async fn test_login(
         &self,
         request: Request<TestLoginRequest>,
@@ -383,33 +282,7 @@ impl AuthService for MyAuthService {
 
         #[cfg(feature = "test-auth")]
         {
-            let req = request.into_inner();
-            let username = req.username.trim().to_string();
-
-            if username.is_empty() {
-                return Err(Status::invalid_argument("username is required"));
-            }
-            if username.contains(' ') {
-                return Err(Status::invalid_argument("username cannot contain spaces"));
-            }
-            if !username.starts_with("__test__") {
-                return Err(Status::invalid_argument(
-                    "TestLogin only accepts usernames starting with __test__",
-                ));
-            }
-
-            let (user, token) = self
-                .auth_state
-                .central_db
-                .test_login_upsert(&username)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?;
-
-            Ok(Response::new(AuthResponse {
-                session_token: token,
-                user_id: user.id,
-                username: user.name,
-            }))
+            handle_test_login(self.auth_state.clone(), request).await
         }
     }
 

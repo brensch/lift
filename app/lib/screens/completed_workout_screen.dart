@@ -224,125 +224,133 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final chartNow = workout.endTime != Int64.ZERO
         ? DateTime.fromMillisecondsSinceEpoch(workout.endTime.toInt() * 1000)
         : DateTime.now();
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _handleBackNavigation,
-        ),
-        title: Text(
-          workout.name.isNotEmpty ? workout.name : 'Workout summary',
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _handleBackNavigation();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleBackNavigation,
+          ),
+          title: Text(
+            workout.name.isNotEmpty ? workout.name : 'Workout summary',
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Session snapshot',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.start,
-            children: [
-              _SummaryMetric(
-                label: 'Duration',
-                value: summary.durationLabel,
-                icon: Icons.timer_outlined,
-              ),
-              _SummaryMetric(
-                label: 'Lifting',
-                value: summary.liftingTimeLabel,
-                icon: Icons.fitness_center,
-              ),
-              _SummaryMetric(
-                label: 'Yapping',
-                value: summary.yappingTimeLabel,
-                icon: Icons.chat_bubble_outline,
-              ),
-              _SummaryMetric(
-                label: 'Resting',
-                value: summary.restingTimeLabel,
-                icon: Icons.self_improvement,
-              ),
-              _SummaryMetric(
-                label: 'Volume',
-                value: summary.volumeLabel,
-                icon: Icons.line_weight,
-              ),
-              _SummaryMetric(
-                label: 'Work density',
-                value: summary.volumePerMinuteLabel,
-                icon: Icons.bar_chart,
-              ),
-              _SummaryMetric(
-                label: 'Rest ratio',
-                value: summary.workRestRatioLabel,
-                icon: Icons.self_improvement,
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              'Session snapshot',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.start,
+              children: [
+                _SummaryMetric(
+                  label: 'Duration',
+                  value: summary.durationLabel,
+                  icon: Icons.timer_outlined,
+                ),
+                _SummaryMetric(
+                  label: 'Lifting',
+                  value: summary.liftingTimeLabel,
+                  icon: Icons.fitness_center,
+                ),
+                _SummaryMetric(
+                  label: 'Yapping',
+                  value: summary.yappingTimeLabel,
+                  icon: Icons.chat_bubble_outline,
+                ),
+                _SummaryMetric(
+                  label: 'Resting',
+                  value: summary.restingTimeLabel,
+                  icon: Icons.self_improvement,
+                ),
+                _SummaryMetric(
+                  label: 'Volume',
+                  value: summary.volumeLabel,
+                  icon: Icons.line_weight,
+                ),
+                _SummaryMetric(
+                  label: 'Work density',
+                  value: summary.volumePerMinuteLabel,
+                  icon: Icons.bar_chart,
+                ),
+                _SummaryMetric(
+                  label: 'Rest ratio',
+                  value: summary.workRestRatioLabel,
+                  icon: Icons.self_improvement,
+                ),
+              ],
+            ),
+            if (hasHeartRateChart) ...[
+              const SizedBox(height: 16),
+              HeartRateChart(
+                heartRateSamples: _heartRateSamples,
+                completedSets: ownCompletedSets,
+                workoutStartTime: workout.startTime,
+                now: chartNow,
+                followLiveClock: false,
               ),
             ],
-          ),
-          if (hasHeartRateChart) ...[
             const SizedBox(height: 16),
-            HeartRateChart(
-              heartRateSamples: _heartRateSamples,
+            Text(
+              'Friends worked out with',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _buildFriendChips(context),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Exercise totals',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Text('Records TBD', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...summary.exerciseSummaries.map(
+              (exercise) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ExerciseSummaryCard(exercise: exercise),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Set log',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            SetLog(
+              proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
-              workoutStartTime: workout.startTime,
-              now: chartNow,
-              followLiveClock: false,
             ),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Friends worked out with',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _buildFriendChips(context),
-          const SizedBox(height: 28),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Exercise totals',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const Text('Records TBD', style: TextStyle(fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...summary.exerciseSummaries.map(
-            (exercise) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ExerciseSummaryCard(exercise: exercise),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Set log',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          SetLog(
-            proposedSets: ownProposedSets,
-            completedSets: ownCompletedSets,
-          ),
-        ],
+        ),
       ),
     );
   }

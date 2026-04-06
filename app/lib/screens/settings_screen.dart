@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/top_level_back_scope.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -14,51 +15,57 @@ class SettingsScreen extends StatelessWidget {
     final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
         ? 'Kilograms (kg)'
         : 'Pounds (lb)';
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Settings',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+    return TopLevelBackScope(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+          ),
+          title: const Text(
+            'Settings',
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _SettingsTile(
-            icon: Icons.scale_outlined,
-            label: 'Weight unit',
-            subtitle: unitLabel,
-            onTap: () => _showWeightUnitPicker(context, settings),
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
-            icon: Icons.palette_outlined,
-            label: 'Plate colours',
-            subtitle: 'Assign colours to plate weights',
-            onTap: () => context.push('/settings/plate-colors'),
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
-            icon: Icons.key_outlined,
-            label: 'Passkeys',
-            subtitle: 'Manage your login credentials',
-            onTap: () => context.push('/passkeys'),
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
-            icon: Icons.notifications_outlined,
-            label: 'Pick sound',
-            subtitle: 'Choose notification sound',
-            onTap: () => context.push('/sound-settings'),
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
-            icon: Icons.bug_report_outlined,
-            label: 'Debug',
-            subtitle: 'Notification debugging',
-            onTap: () => context.push('/debug-notifications'),
-          ),
-        ],
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _SettingsTile(
+              icon: Icons.scale_outlined,
+              label: 'Weight unit',
+              subtitle: unitLabel,
+              onTap: () => _showWeightUnitPicker(context, settings),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.palette_outlined,
+              label: 'Plate colours',
+              subtitle: 'Assign colours to plate weights',
+              onTap: () => context.push('/settings/plate-colors'),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.key_outlined,
+              label: 'Passkeys',
+              subtitle: 'Manage your login credentials',
+              onTap: () => context.push('/passkeys'),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.notifications_outlined,
+              label: 'Pick sound',
+              subtitle: 'Choose notification sound',
+              onTap: () => context.push('/sound-settings'),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.bug_report_outlined,
+              label: 'Debug',
+              subtitle: 'Notification debugging',
+              onTap: () => context.push('/debug-notifications'),
+            ),
+          ],
+        ),
       ),
     );
   }

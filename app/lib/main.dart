@@ -29,10 +29,12 @@ import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
+import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/passkey_notice_screen.dart';
 import 'screens/regime_settings_screen.dart';
 import 'widgets/main_layout.dart';
 
@@ -148,13 +150,21 @@ class _SchliftAppState extends State<SchliftApp> {
         final loggedIn = _authProvider.isLoggedIn;
         final isLogin = state.matchedLocation == '/login';
         final isOnboarding = state.matchedLocation == '/onboarding';
+        final isPasskeyNotice = state.matchedLocation == '/passkey-notice';
 
         if (!loggedIn && !isLogin) return '/login';
+        if (loggedIn && _authProvider.needsPasskeyNotice && !isPasskeyNotice) {
+          return '/passkey-notice';
+        }
+        if (loggedIn && !_authProvider.needsPasskeyNotice && isPasskeyNotice) {
+          return '/';
+        }
         if (loggedIn && isLogin) return '/';
 
         // Redirect new users to onboarding if they haven't set up a training program.
         if (loggedIn &&
             !isOnboarding &&
+            !isPasskeyNotice &&
             _settingsProvider.loaded &&
             !_settingsProvider.hasProgramState) {
           return '/onboarding';
@@ -165,11 +175,16 @@ class _SchliftAppState extends State<SchliftApp> {
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
         GoRoute(
+          path: '/passkey-notice',
+          builder: (_, __) => const PasskeyNoticeScreen(),
+        ),
+        GoRoute(
           path: '/onboarding',
           builder: (_, __) => const OnboardingScreen(),
         ),
         ShellRoute(
-          builder: (context, state, child) => MainLayout(child: child),
+          builder: (context, state, child) =>
+              MainLayout(currentPath: state.matchedLocation, child: child),
           routes: [
             GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
             GoRoute(
@@ -178,6 +193,14 @@ class _SchliftAppState extends State<SchliftApp> {
                 workoutId: state.pathParameters['id']!,
                 isHistory: state.uri.queryParameters['isHistory'] == 'true',
               ),
+            ),
+            GoRoute(
+              path: '/training-program',
+              builder: (_, __) => const RegimeSettingsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/regime',
+              redirect: (_, __) => '/training-program',
             ),
             GoRoute(
               path: '/progress',
@@ -196,6 +219,10 @@ class _SchliftAppState extends State<SchliftApp> {
               builder: (_, __) => const PasskeysScreen(),
             ),
             GoRoute(
+              path: '/passkeys/add',
+              builder: (_, __) => const AddPasskeyScreen(),
+            ),
+            GoRoute(
               path: '/debug-notifications',
               builder: (_, __) => const DebugNotificationsScreen(),
             ),
@@ -206,10 +233,6 @@ class _SchliftAppState extends State<SchliftApp> {
             GoRoute(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
-            ),
-            GoRoute(
-              path: '/settings/regime',
-              builder: (_, __) => const RegimeSettingsScreen(),
             ),
           ],
         ),

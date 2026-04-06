@@ -32,30 +32,6 @@ class AuthService {
     }
   }
 
-  Future<AuthResponse> register(String username, String password) async {
-    final response = await grpcClient.authService.passwordRegister(
-      PasswordRegisterRequest(username: username, password: password),
-    );
-
-    return AuthResponse(
-      sessionToken: response.sessionToken,
-      userId: response.userId,
-      username: response.username,
-    );
-  }
-
-  Future<AuthResponse> login(String username, String password) async {
-    final response = await grpcClient.authService.passwordLogin(
-      PasswordLoginRequest(username: username, password: password),
-    );
-
-    return AuthResponse(
-      sessionToken: response.sessionToken,
-      userId: response.userId,
-      username: response.username,
-    );
-  }
-
   Future<AuthResponse> testLogin(String username) async {
     final response = await grpcClient.authService.testLogin(
       TestLoginRequest(username: username),

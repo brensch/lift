@@ -675,7 +675,7 @@ class _ReadinessBanner extends StatelessWidget {
           if (rc != null && rc.regimeDisplayName.isNotEmpty)
             InkWell(
               borderRadius: BorderRadius.circular(8),
-              onTap: () => context.push('/settings/regime'),
+              onTap: () => context.go('/training-program'),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                 child: Row(
