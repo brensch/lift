@@ -95,6 +95,10 @@ jobs:
             echo "IOS_WATCH_PROFILE_NAME=$WATCH_PROFILE_NAME"
           } >> "$GITHUB_ENV"
 
+      - name: Ensure generated Swift proto directory exists
+        working-directory: app/ios
+        run: mkdir -p SchliftWatch/Generated
+
       - name: Regenerate Xcode project
         working-directory: app/ios
         run: xcodegen generate
