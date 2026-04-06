@@ -1,5 +1,4 @@
 import SwiftUI
-import WatchKit
 
 // Match mobile app workout state accents:
 private let mobileLiftingPink = Color(red: 0xEC/255, green: 0x48/255, blue: 0x99/255) // #EC4899
