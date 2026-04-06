@@ -23,7 +23,8 @@ class WearableSnapshotBuilder {
         : (stateSnapshot?.state.value ??
               WorkoutState.WORKOUT_STATE_UNSPECIFIED.value);
     final now = workoutProvider.now;
-    final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+    final nowMs = now.millisecondsSinceEpoch;
+    final nowUnix = nowMs ~/ 1000;
     final nextSet = workoutProvider.nextPendingSet;
     final proposedSets = workoutProvider.activeProposedSets;
     final completedSets = workoutProvider.activeCompletedSets;
@@ -32,7 +33,7 @@ class WearableSnapshotBuilder {
 
     final snapshot = WearWorkoutSnapshot(
       workoutId: workout.id,
-      emittedAt: Int64(nowUnix),
+      emittedAt: Int64(nowMs),
       state: isEnded
           ? WorkoutState.WORKOUT_STATE_ALL_DONE
           : (stateSnapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED),

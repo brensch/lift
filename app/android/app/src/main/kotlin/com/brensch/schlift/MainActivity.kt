@@ -41,6 +41,11 @@ class MainActivity : FlutterFragmentActivity() {
                 "isWatchAppOpenOnWatch" -> {
                     result.success(WearBridgeManager.isWatchAppOpenOnWatch())
                 }
+                "getWatchClockSync" -> {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        result.success(WearBridgeManager.requestWatchClockSync(this@MainActivity))
+                    }
+                }
 
                 else -> result.notImplemented()
             }

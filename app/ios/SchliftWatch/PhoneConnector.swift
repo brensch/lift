@@ -3,26 +3,38 @@ import WatchConnectivity
 
 class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
+    @Published private(set) var latestBpm: Double?
+    @Published private(set) var isActionPending = false
 
     private var heartbeatTimer: Timer?
+    private let heartRateStreamer = HeartRateStreamer()
+    private let workoutSessionManager = WorkoutSessionManager()
+    private var lastSnapshotReceivedUptime: TimeInterval = 0
+    private var lastSnapshotEmittedAtMs: Int64 = 0
+    private var pendingActionTimeout: DispatchWorkItem?
+    private var lastSnapshotKey: String?
 
     override init() {
         super.init()
+        heartRateStreamer.onLatestBpmChanged = { [weak self] bpm in
+            self?.latestBpm = bpm
+        }
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
             session.activate()
         }
-        startHeartbeat()
     }
 
     deinit {
         heartbeatTimer?.invalidate()
+        pendingActionTimeout?.cancel()
     }
 
     // MARK: - Send intent to phone
 
     func sendIntent(action: Workout_V1_WearAction) {
+        guard !isActionPending else { return }
         guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
 
         var intent = Workout_V1_WearIntent()
@@ -64,6 +76,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         envelope.payload = .intent(intent)
 
         guard let data = try? envelope.serializedData() else { return }
+        guard WCSession.default.isReachable else { return }
+        beginPendingAction()
         sendToPhone(path: WatchPaths.wearToPhoneEnvelope, data: data)
     }
 
@@ -102,7 +116,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             guard let envelope = try? Workout_V1_PhoneToWearEnvelope(serializedData: data) else { return }
             if case .snapshot(let snap) = envelope.payload {
                 DispatchQueue.main.async {
-                    self.snapshot = snap
+                    self.handleSnapshot(snap)
                 }
             }
         }
@@ -116,13 +130,95 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         let message: [String: Any] = ["path": path, "data": data]
         WCSession.default.sendMessage(message, replyHandler: nil) { error in
             print("SchliftWatch: Failed to send message: \(error)")
+            DispatchQueue.main.async {
+                self.clearPendingAction()
+            }
         }
     }
 
+    func setUIVisible(_ visible: Bool) {
+        if visible {
+            startHeartbeat()
+        } else {
+            stopHeartbeat()
+        }
+    }
+
+    func synchronizedNowMs() -> Int64 {
+        guard lastSnapshotEmittedAtMs > 0, lastSnapshotReceivedUptime > 0 else {
+            return Int64(Date().timeIntervalSince1970 * 1000)
+        }
+        let elapsedMs = Int64((ProcessInfo.processInfo.systemUptime - lastSnapshotReceivedUptime) * 1000)
+        return lastSnapshotEmittedAtMs + max(0, elapsedMs)
+    }
+
+    private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
+        lastSnapshotReceivedUptime = ProcessInfo.processInfo.systemUptime
+        lastSnapshotEmittedAtMs = snapshot.emittedAt
+        let snapshotKey = meaningfulSnapshotKey(snapshot)
+        self.snapshot = snapshot
+        manageCompanionSession(for: snapshot)
+        if lastSnapshotKey != snapshotKey {
+            clearPendingAction()
+        }
+        lastSnapshotKey = snapshotKey
+    }
+
+    private func manageCompanionSession(for snapshot: Workout_V1_WearWorkoutSnapshot) {
+        let hasEndWorkoutAction = snapshot.actions.contains { $0.type == .endWorkout }
+        let activeWorkout = !snapshot.workoutID.isEmpty &&
+            (snapshot.state != .allDone || hasEndWorkoutAction)
+        if activeWorkout {
+            workoutSessionManager.ensureSessionActive()
+            heartRateStreamer.start(workoutId: snapshot.workoutID, connector: self)
+        } else {
+            heartRateStreamer.stop()
+            workoutSessionManager.endSessionIfActive()
+        }
+    }
+
+    private func meaningfulSnapshotKey(_ snapshot: Workout_V1_WearWorkoutSnapshot) -> String {
+        let currentSet = snapshot.youCard.hasDisplaySet ? snapshot.youCard.displaySet : nil
+        return [
+            snapshot.workoutID,
+            "\(snapshot.state.rawValue)",
+            "\(snapshot.activeStartedAt)",
+            "\(snapshot.restUntil)",
+            "\(snapshot.lastRestEnd)",
+            snapshot.youCard.stateLabel,
+            "\(snapshot.actions.count)",
+            currentSet?.id ?? "",
+            currentSet.map { "\($0.targetReps)" } ?? "",
+            currentSet.map { "\($0.targetWeight)" } ?? "",
+        ].joined(separator: "|")
+    }
+
+    private func beginPendingAction() {
+        isActionPending = true
+        pendingActionTimeout?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.clearPendingAction()
+        }
+        pendingActionTimeout = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: workItem)
+    }
+
+    private func clearPendingAction() {
+        pendingActionTimeout?.cancel()
+        pendingActionTimeout = nil
+        isActionPending = false
+    }
+
     private func startHeartbeat() {
+        guard heartbeatTimer == nil else { return }
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             self?.sendHeartbeat()
         }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
     }
 
     private func sendHeartbeat() {
