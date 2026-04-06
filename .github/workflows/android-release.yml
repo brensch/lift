@@ -60,6 +60,16 @@ jobs:
         working-directory: app/android
         run: ./gradlew :app:validateSigningRelease :wear:validateSigningRelease --no-daemon
 
+      - name: Validate Google Play credentials
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
+            echo "Create a Google Cloud service account JSON key with Play Console app permissions."
+            exit 1
+          fi
+
       - name: Build phone app bundle (.aab)
         working-directory: app
         run: flutter build appbundle --release
@@ -81,16 +91,6 @@ jobs:
           name: wear-app-release-aab
           path: app/build/wear/outputs/bundle/release/wear-release.aab
           if-no-files-found: error
-
-      - name: Validate Google Play credentials
-        env:
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
-            echo "Create a Google Cloud service account JSON key with Play Console app permissions."
-            exit 1
-          fi
 
       - name: Upload phone + wear bundles to Google Play internal track
         uses: r0adkll/upload-google-play@v1
