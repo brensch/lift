@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:fixnum/fixnum.dart';
+
 import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
@@ -18,6 +20,7 @@ class WearableSyncCoordinator {
   /// Intents that arrived before the workout was loaded.
   final List<WearIntent> _pendingIntents = [];
   bool _workoutEverLoaded = false;
+  String? _lastPublishedSnapshotKey;
 
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
@@ -122,6 +125,22 @@ class WearableSyncCoordinator {
     );
 
     if (snapshot == null) return;
+    final snapshotKey = _snapshotPublishKey(snapshot);
+    if (_lastPublishedSnapshotKey == snapshotKey) return;
+    _lastPublishedSnapshotKey = snapshotKey;
     unawaited(_bridgeService.publishSnapshot(snapshot));
+  }
+
+  String _snapshotPublishKey(WearWorkoutSnapshot snapshot) {
+    final normalized = snapshot.deepCopy()
+      ..emittedAt = Int64.ZERO
+      ..elapsedText = '';
+    if (normalized.hasYouCard()) {
+      normalized.youCard = normalized.youCard.deepCopy()..timerText = '';
+    }
+    if (normalized.hasGroupCard()) {
+      normalized.groupCard = normalized.groupCard.deepCopy()..timerText = '';
+    }
+    return normalized.writeToBuffer().join(',');
   }
 }

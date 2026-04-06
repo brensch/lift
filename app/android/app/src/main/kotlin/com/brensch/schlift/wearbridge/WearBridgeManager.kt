@@ -10,17 +10,22 @@ import io.flutter.plugin.common.EventChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CompletableDeferred
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 object WearBridgeManager {
     const val PHONE_TO_WEAR_PATH = "/schlift/phone/envelope"
     const val PHONE_TO_WEAR_LAUNCH_PATH = "/schlift/phone/launch"
+    const val PHONE_TO_WEAR_CLOCK_SYNC_PATH = "/schlift/phone/clock_sync"
     const val WEAR_TO_PHONE_PATH = "/schlift/wear/envelope"
     const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/schlift/wear/ui_heartbeat"
+    const val WEAR_TO_PHONE_CLOCK_SYNC_PATH = "/schlift/wear/clock_sync"
     const val WEAR_APP_CAPABILITY = "lift_wear_companion"
     private const val WATCH_UI_HEARTBEAT_TTL_MS = 8_000L
 
@@ -31,6 +36,7 @@ object WearBridgeManager {
     private val pendingIntentPayloads = ConcurrentLinkedQueue<ByteArray>()
     private val pendingSensorPayloads = ConcurrentLinkedQueue<ByteArray>()
     private val lastWatchUiHeartbeatAtMs = AtomicLong(0L)
+    private val pendingClockSyncs = ConcurrentHashMap<String, CompletableDeferred<Long>>()
 
     fun setIntentSink(sink: EventChannel.EventSink?) {
         intentSinkRef.set(sink)
@@ -78,6 +84,29 @@ object WearBridgeManager {
         return sent
     }
 
+    suspend fun requestWatchClockSync(context: Context): Map<String, Long>? {
+        val nodeClient = Wearable.getNodeClient(context)
+        val messageClient = Wearable.getMessageClient(context)
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrDefault(emptyList())
+        val node = nodes.firstOrNull() ?: return null
+        val requestId = System.currentTimeMillis().toString()
+        val deferred = CompletableDeferred<Long>()
+        pendingClockSyncs[requestId] = deferred
+        val sentAtMs = System.currentTimeMillis()
+        return try {
+            messageClient.sendMessage(node.id, PHONE_TO_WEAR_CLOCK_SYNC_PATH, requestId.toByteArray()).await()
+            val watchTimeMs = withTimeoutOrNull(3000) { deferred.await() } ?: return null
+            val receivedAtMs = System.currentTimeMillis()
+            mapOf(
+                "watchTimeMs" to watchTimeMs,
+                "sentAtMs" to sentAtMs,
+                "receivedAtMs" to receivedAtMs,
+            )
+        } finally {
+            pendingClockSyncs.remove(requestId)
+        }
+    }
+
     suspend fun isWatchAppAvailable(context: Context): Boolean {
         val capabilityClient = Wearable.getCapabilityClient(context)
         val capability = runCatching {
@@ -100,6 +129,18 @@ object WearBridgeManager {
     fun onWearEnvelopeReceived(path: String, bytes: ByteArray) {
         if (path == WEAR_TO_PHONE_UI_HEARTBEAT_PATH) {
             lastWatchUiHeartbeatAtMs.set(System.currentTimeMillis())
+            return
+        }
+        if (path == WEAR_TO_PHONE_CLOCK_SYNC_PATH) {
+            val payload = bytes.decodeToString()
+            val separator = payload.indexOf(':')
+            if (separator > 0) {
+                val requestId = payload.substring(0, separator)
+                val watchTimeMs = payload.substring(separator + 1).toLongOrNull()
+                if (watchTimeMs != null) {
+                    pendingClockSyncs.remove(requestId)?.complete(watchTimeMs)
+                }
+            }
             return
         }
         if (path != WEAR_TO_PHONE_PATH) return

@@ -12,6 +12,23 @@ abstract class WearableBridgeService {
   Future<bool> openWatchApp();
   Future<bool> isWatchAppAvailable();
   Future<bool> isWatchAppOpenOnWatch();
+  Future<WatchClockSync?> getWatchClockSync();
+}
+
+class WatchClockSync {
+  final int watchTimeMs;
+  final int sentAtMs;
+  final int receivedAtMs;
+
+  const WatchClockSync({
+    required this.watchTimeMs,
+    required this.sentAtMs,
+    required this.receivedAtMs,
+  });
+
+  int get roundTripMs => receivedAtMs - sentAtMs;
+  int get estimatedPhoneMidpointMs => sentAtMs + (roundTripMs ~/ 2);
+  int get deltaMs => watchTimeMs - estimatedPhoneMidpointMs;
 }
 
 class NoopWearableBridgeService implements WearableBridgeService {
@@ -38,4 +55,7 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<bool> isWatchAppOpenOnWatch() async => false;
+
+  @override
+  Future<WatchClockSync?> getWatchClockSync() async => null;
 }
