@@ -6188,812 +6188,6 @@ public final class Auth {
     }
   }
 
-  public interface PasswordRegisterRequestOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.PasswordRegisterRequest)
-      com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The username.
-     */
-    java.lang.String getUsername();
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The bytes for username.
-     */
-    com.google.protobuf.ByteString
-        getUsernameBytes();
-
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The password.
-     */
-    java.lang.String getPassword();
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The bytes for password.
-     */
-    com.google.protobuf.ByteString
-        getPasswordBytes();
-  }
-  /**
-   * Protobuf type {@code workout.v1.PasswordRegisterRequest}
-   */
-  public  static final class PasswordRegisterRequest extends
-      com.google.protobuf.GeneratedMessageLite<
-          PasswordRegisterRequest, PasswordRegisterRequest.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.PasswordRegisterRequest)
-      PasswordRegisterRequestOrBuilder {
-    private PasswordRegisterRequest() {
-      username_ = "";
-      password_ = "";
-    }
-    public static final int USERNAME_FIELD_NUMBER = 1;
-    private java.lang.String username_;
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The username.
-     */
-    @java.lang.Override
-    public java.lang.String getUsername() {
-      return username_;
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The bytes for username.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getUsernameBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(username_);
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @param value The username to set.
-     */
-    private void setUsername(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      username_ = value;
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     */
-    private void clearUsername() {
-      
-      username_ = getDefaultInstance().getUsername();
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @param value The bytes for username to set.
-     */
-    private void setUsernameBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      username_ = value.toStringUtf8();
-      
-    }
-
-    public static final int PASSWORD_FIELD_NUMBER = 2;
-    private java.lang.String password_;
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The password.
-     */
-    @java.lang.Override
-    public java.lang.String getPassword() {
-      return password_;
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The bytes for password.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getPasswordBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(password_);
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @param value The password to set.
-     */
-    private void setPassword(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      password_ = value;
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     */
-    private void clearPassword() {
-      
-      password_ = getDefaultInstance().getPassword();
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @param value The bytes for password to set.
-     */
-    private void setPasswordBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      password_ = value.toStringUtf8();
-      
-    }
-
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordRegisterRequest parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-
-    public static Builder newBuilder() {
-      return (Builder) DEFAULT_INSTANCE.createBuilder();
-    }
-    public static Builder newBuilder(workout.v1.Auth.PasswordRegisterRequest prototype) {
-      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
-    }
-
-    /**
-     * Protobuf type {@code workout.v1.PasswordRegisterRequest}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Auth.PasswordRegisterRequest, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.PasswordRegisterRequest)
-        workout.v1.Auth.PasswordRegisterRequestOrBuilder {
-      // Construct using workout.v1.Auth.PasswordRegisterRequest.newBuilder()
-      private Builder() {
-        super(DEFAULT_INSTANCE);
-      }
-
-
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return The username.
-       */
-      @java.lang.Override
-      public java.lang.String getUsername() {
-        return instance.getUsername();
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return The bytes for username.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getUsernameBytes() {
-        return instance.getUsernameBytes();
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @param value The username to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUsername(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setUsername(value);
-        return this;
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearUsername() {
-        copyOnWrite();
-        instance.clearUsername();
-        return this;
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @param value The bytes for username to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUsernameBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setUsernameBytes(value);
-        return this;
-      }
-
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return The password.
-       */
-      @java.lang.Override
-      public java.lang.String getPassword() {
-        return instance.getPassword();
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return The bytes for password.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getPasswordBytes() {
-        return instance.getPasswordBytes();
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @param value The password to set.
-       * @return This builder for chaining.
-       */
-      public Builder setPassword(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setPassword(value);
-        return this;
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearPassword() {
-        copyOnWrite();
-        instance.clearPassword();
-        return this;
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @param value The bytes for password to set.
-       * @return This builder for chaining.
-       */
-      public Builder setPasswordBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setPasswordBytes(value);
-        return this;
-      }
-
-      // @@protoc_insertion_point(builder_scope:workout.v1.PasswordRegisterRequest)
-    }
-    @java.lang.Override
-    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
-    protected final java.lang.Object dynamicMethod(
-        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
-        java.lang.Object arg0, java.lang.Object arg1) {
-      switch (method) {
-        case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Auth.PasswordRegisterRequest();
-        }
-        case NEW_BUILDER: {
-          return new Builder();
-        }
-        case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "username_",
-              "password_",
-            };
-            java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "";
-            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
-        }
-        // fall through
-        case GET_DEFAULT_INSTANCE: {
-          return DEFAULT_INSTANCE;
-        }
-        case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Auth.PasswordRegisterRequest> parser = PARSER;
-          if (parser == null) {
-            synchronized (workout.v1.Auth.PasswordRegisterRequest.class) {
-              parser = PARSER;
-              if (parser == null) {
-                parser =
-                    new DefaultInstanceBasedParser<workout.v1.Auth.PasswordRegisterRequest>(
-                        DEFAULT_INSTANCE);
-                PARSER = parser;
-              }
-            }
-          }
-          return parser;
-      }
-      case GET_MEMOIZED_IS_INITIALIZED: {
-        return (byte) 1;
-      }
-      case SET_MEMOIZED_IS_INITIALIZED: {
-        return null;
-      }
-      }
-      throw new UnsupportedOperationException();
-    }
-
-
-    // @@protoc_insertion_point(class_scope:workout.v1.PasswordRegisterRequest)
-    private static final workout.v1.Auth.PasswordRegisterRequest DEFAULT_INSTANCE;
-    static {
-      PasswordRegisterRequest defaultInstance = new PasswordRegisterRequest();
-      // New instances are implicitly immutable so no need to make
-      // immutable.
-      DEFAULT_INSTANCE = defaultInstance;
-      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        PasswordRegisterRequest.class, defaultInstance);
-    }
-
-    public static workout.v1.Auth.PasswordRegisterRequest getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static volatile com.google.protobuf.Parser<PasswordRegisterRequest> PARSER;
-
-    public static com.google.protobuf.Parser<PasswordRegisterRequest> parser() {
-      return DEFAULT_INSTANCE.getParserForType();
-    }
-  }
-
-  public interface PasswordLoginRequestOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.PasswordLoginRequest)
-      com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The username.
-     */
-    java.lang.String getUsername();
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The bytes for username.
-     */
-    com.google.protobuf.ByteString
-        getUsernameBytes();
-
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The password.
-     */
-    java.lang.String getPassword();
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The bytes for password.
-     */
-    com.google.protobuf.ByteString
-        getPasswordBytes();
-  }
-  /**
-   * Protobuf type {@code workout.v1.PasswordLoginRequest}
-   */
-  public  static final class PasswordLoginRequest extends
-      com.google.protobuf.GeneratedMessageLite<
-          PasswordLoginRequest, PasswordLoginRequest.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.PasswordLoginRequest)
-      PasswordLoginRequestOrBuilder {
-    private PasswordLoginRequest() {
-      username_ = "";
-      password_ = "";
-    }
-    public static final int USERNAME_FIELD_NUMBER = 1;
-    private java.lang.String username_;
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The username.
-     */
-    @java.lang.Override
-    public java.lang.String getUsername() {
-      return username_;
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @return The bytes for username.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getUsernameBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(username_);
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @param value The username to set.
-     */
-    private void setUsername(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      username_ = value;
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     */
-    private void clearUsername() {
-      
-      username_ = getDefaultInstance().getUsername();
-    }
-    /**
-     * <code>string username = 1 [json_name = "username"];</code>
-     * @param value The bytes for username to set.
-     */
-    private void setUsernameBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      username_ = value.toStringUtf8();
-      
-    }
-
-    public static final int PASSWORD_FIELD_NUMBER = 2;
-    private java.lang.String password_;
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The password.
-     */
-    @java.lang.Override
-    public java.lang.String getPassword() {
-      return password_;
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @return The bytes for password.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getPasswordBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(password_);
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @param value The password to set.
-     */
-    private void setPassword(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      password_ = value;
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     */
-    private void clearPassword() {
-      
-      password_ = getDefaultInstance().getPassword();
-    }
-    /**
-     * <code>string password = 2 [json_name = "password"];</code>
-     * @param value The bytes for password to set.
-     */
-    private void setPasswordBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      password_ = value.toStringUtf8();
-      
-    }
-
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Auth.PasswordLoginRequest parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-
-    public static Builder newBuilder() {
-      return (Builder) DEFAULT_INSTANCE.createBuilder();
-    }
-    public static Builder newBuilder(workout.v1.Auth.PasswordLoginRequest prototype) {
-      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
-    }
-
-    /**
-     * Protobuf type {@code workout.v1.PasswordLoginRequest}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Auth.PasswordLoginRequest, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.PasswordLoginRequest)
-        workout.v1.Auth.PasswordLoginRequestOrBuilder {
-      // Construct using workout.v1.Auth.PasswordLoginRequest.newBuilder()
-      private Builder() {
-        super(DEFAULT_INSTANCE);
-      }
-
-
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return The username.
-       */
-      @java.lang.Override
-      public java.lang.String getUsername() {
-        return instance.getUsername();
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return The bytes for username.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getUsernameBytes() {
-        return instance.getUsernameBytes();
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @param value The username to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUsername(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setUsername(value);
-        return this;
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearUsername() {
-        copyOnWrite();
-        instance.clearUsername();
-        return this;
-      }
-      /**
-       * <code>string username = 1 [json_name = "username"];</code>
-       * @param value The bytes for username to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUsernameBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setUsernameBytes(value);
-        return this;
-      }
-
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return The password.
-       */
-      @java.lang.Override
-      public java.lang.String getPassword() {
-        return instance.getPassword();
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return The bytes for password.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getPasswordBytes() {
-        return instance.getPasswordBytes();
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @param value The password to set.
-       * @return This builder for chaining.
-       */
-      public Builder setPassword(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setPassword(value);
-        return this;
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearPassword() {
-        copyOnWrite();
-        instance.clearPassword();
-        return this;
-      }
-      /**
-       * <code>string password = 2 [json_name = "password"];</code>
-       * @param value The bytes for password to set.
-       * @return This builder for chaining.
-       */
-      public Builder setPasswordBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setPasswordBytes(value);
-        return this;
-      }
-
-      // @@protoc_insertion_point(builder_scope:workout.v1.PasswordLoginRequest)
-    }
-    @java.lang.Override
-    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
-    protected final java.lang.Object dynamicMethod(
-        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
-        java.lang.Object arg0, java.lang.Object arg1) {
-      switch (method) {
-        case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Auth.PasswordLoginRequest();
-        }
-        case NEW_BUILDER: {
-          return new Builder();
-        }
-        case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "username_",
-              "password_",
-            };
-            java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "";
-            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
-        }
-        // fall through
-        case GET_DEFAULT_INSTANCE: {
-          return DEFAULT_INSTANCE;
-        }
-        case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Auth.PasswordLoginRequest> parser = PARSER;
-          if (parser == null) {
-            synchronized (workout.v1.Auth.PasswordLoginRequest.class) {
-              parser = PARSER;
-              if (parser == null) {
-                parser =
-                    new DefaultInstanceBasedParser<workout.v1.Auth.PasswordLoginRequest>(
-                        DEFAULT_INSTANCE);
-                PARSER = parser;
-              }
-            }
-          }
-          return parser;
-      }
-      case GET_MEMOIZED_IS_INITIALIZED: {
-        return (byte) 1;
-      }
-      case SET_MEMOIZED_IS_INITIALIZED: {
-        return null;
-      }
-      }
-      throw new UnsupportedOperationException();
-    }
-
-
-    // @@protoc_insertion_point(class_scope:workout.v1.PasswordLoginRequest)
-    private static final workout.v1.Auth.PasswordLoginRequest DEFAULT_INSTANCE;
-    static {
-      PasswordLoginRequest defaultInstance = new PasswordLoginRequest();
-      // New instances are implicitly immutable so no need to make
-      // immutable.
-      DEFAULT_INSTANCE = defaultInstance;
-      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        PasswordLoginRequest.class, defaultInstance);
-    }
-
-    public static workout.v1.Auth.PasswordLoginRequest getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static volatile com.google.protobuf.Parser<PasswordLoginRequest> PARSER;
-
-    public static com.google.protobuf.Parser<PasswordLoginRequest> parser() {
-      return DEFAULT_INSTANCE.getParserForType();
-    }
-  }
-
   public interface TestLoginRequestOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.TestLoginRequest)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -7282,6 +6476,478 @@ public final class Auth {
     private static volatile com.google.protobuf.Parser<TestLoginRequest> PARSER;
 
     public static com.google.protobuf.Parser<TestLoginRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface DeleteAccountRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.DeleteAccountRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.DeleteAccountRequest}
+   */
+  public  static final class DeleteAccountRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          DeleteAccountRequest, DeleteAccountRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.DeleteAccountRequest)
+      DeleteAccountRequestOrBuilder {
+    private DeleteAccountRequest() {
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Auth.DeleteAccountRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.DeleteAccountRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Auth.DeleteAccountRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.DeleteAccountRequest)
+        workout.v1.Auth.DeleteAccountRequestOrBuilder {
+      // Construct using workout.v1.Auth.DeleteAccountRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.DeleteAccountRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Auth.DeleteAccountRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Auth.DeleteAccountRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Auth.DeleteAccountRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Auth.DeleteAccountRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.DeleteAccountRequest)
+    private static final workout.v1.Auth.DeleteAccountRequest DEFAULT_INSTANCE;
+    static {
+      DeleteAccountRequest defaultInstance = new DeleteAccountRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        DeleteAccountRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Auth.DeleteAccountRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<DeleteAccountRequest> PARSER;
+
+    public static com.google.protobuf.Parser<DeleteAccountRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface DeleteAccountResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.DeleteAccountResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @return The deletedUserId.
+     */
+    java.lang.String getDeletedUserId();
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @return The bytes for deletedUserId.
+     */
+    com.google.protobuf.ByteString
+        getDeletedUserIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.DeleteAccountResponse}
+   */
+  public  static final class DeleteAccountResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          DeleteAccountResponse, DeleteAccountResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.DeleteAccountResponse)
+      DeleteAccountResponseOrBuilder {
+    private DeleteAccountResponse() {
+      deletedUserId_ = "";
+    }
+    public static final int DELETED_USER_ID_FIELD_NUMBER = 1;
+    private java.lang.String deletedUserId_;
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @return The deletedUserId.
+     */
+    @java.lang.Override
+    public java.lang.String getDeletedUserId() {
+      return deletedUserId_;
+    }
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @return The bytes for deletedUserId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getDeletedUserIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(deletedUserId_);
+    }
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @param value The deletedUserId to set.
+     */
+    private void setDeletedUserId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      deletedUserId_ = value;
+    }
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     */
+    private void clearDeletedUserId() {
+      
+      deletedUserId_ = getDefaultInstance().getDeletedUserId();
+    }
+    /**
+     * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+     * @param value The bytes for deletedUserId to set.
+     */
+    private void setDeletedUserIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      deletedUserId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.DeleteAccountResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Auth.DeleteAccountResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.DeleteAccountResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Auth.DeleteAccountResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.DeleteAccountResponse)
+        workout.v1.Auth.DeleteAccountResponseOrBuilder {
+      // Construct using workout.v1.Auth.DeleteAccountResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+       * @return The deletedUserId.
+       */
+      @java.lang.Override
+      public java.lang.String getDeletedUserId() {
+        return instance.getDeletedUserId();
+      }
+      /**
+       * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+       * @return The bytes for deletedUserId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getDeletedUserIdBytes() {
+        return instance.getDeletedUserIdBytes();
+      }
+      /**
+       * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+       * @param value The deletedUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDeletedUserId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setDeletedUserId(value);
+        return this;
+      }
+      /**
+       * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDeletedUserId() {
+        copyOnWrite();
+        instance.clearDeletedUserId();
+        return this;
+      }
+      /**
+       * <code>string deleted_user_id = 1 [json_name = "deletedUserId"];</code>
+       * @param value The bytes for deletedUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDeletedUserIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setDeletedUserIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.DeleteAccountResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Auth.DeleteAccountResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "deletedUserId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Auth.DeleteAccountResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Auth.DeleteAccountResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Auth.DeleteAccountResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.DeleteAccountResponse)
+    private static final workout.v1.Auth.DeleteAccountResponse DEFAULT_INSTANCE;
+    static {
+      DeleteAccountResponse defaultInstance = new DeleteAccountResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        DeleteAccountResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Auth.DeleteAccountResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<DeleteAccountResponse> PARSER;
+
+    public static com.google.protobuf.Parser<DeleteAccountResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

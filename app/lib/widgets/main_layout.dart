@@ -13,8 +13,9 @@ import 'workout_bottom_bar.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
+  final String currentPath;
 
-  const MainLayout({super.key, required this.child});
+  const MainLayout({super.key, required this.child, required this.currentPath});
 
   @override
   Widget build(BuildContext context) {
@@ -25,194 +26,205 @@ class MainLayout extends StatelessWidget {
     final userName = authProvider.username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: GestureDetector(
-          onTap: () => context.go('/'),
-          child: const WobblyText(text: 'SCHLIFT', fontSize: 24, maxOffset: 2),
-        ),
-        actions: [
-          _buildWatchLaunchButton(context),
-          _buildMultiplayerButton(context, mp),
-          Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
+    void goToTopLevel(String path) {
+      Navigator.pop(context);
+      if (currentPath != path) {
+        context.go(path);
+      }
+    }
+
+    bool isSettingsSection(String path) =>
+        path == '/settings' ||
+        path == '/passkeys' ||
+        path == '/passkeys/add' ||
+        path == '/sound-settings' ||
+        path == '/debug-notifications' ||
+        path == '/settings/plate-colors';
+
+    final isTopLevelMenuPage =
+        currentPath == '/' ||
+        currentPath == '/progress' ||
+        currentPath == '/history' ||
+        currentPath == '/training-program' ||
+        currentPath == '/settings';
+
+    return PopScope(
+      canPop: !isTopLevelMenuPage,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && currentPath != '/') {
+          context.go('/');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: GestureDetector(
+            onTap: () => context.go('/'),
+            child: const WobblyText(
+              text: 'SCHLIFT',
+              fontSize: 24,
+              maxOffset: 2,
             ),
           ),
-        ],
-      ),
-      endDrawerEnableOpenDragGesture: false,
-      endDrawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Menu',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.0,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
+          actions: [
+            _buildWatchLaunchButton(context),
+            _buildMultiplayerButton(context, mp),
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _MenuButton(
-                      icon: Icons.fitness_center_outlined,
-                      label: 'Workout',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.go('/');
-                      },
-                      isActive: GoRouterState.of(context).uri.toString() == '/',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.bar_chart_outlined,
-                      label: 'Progress',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/progress');
-                      },
-                      isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/progress',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.history_outlined,
-                      label: 'History',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/history');
-                      },
-                      isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/history',
-                    ),
-                    Divider(height: 32, color: colorScheme.outline),
-                    _MenuButton(
-                      icon: Icons.fitness_center_outlined,
-                      label: 'Training Program',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/settings/regime');
-                      },
-                      isActive:
-                          GoRouterState.of(context).uri.toString() ==
-                          '/settings/regime',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: Icons.settings_outlined,
-                      label: 'Settings',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/settings');
-                      },
-                      isActive: GoRouterState.of(
-                        context,
-                      ).uri.toString().startsWith('/settings'),
-                    ),
-                    Divider(height: 32, color: colorScheme.outline),
-                  ],
-                ),
-              ),
-              Divider(color: colorScheme.outline),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (userName.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 16,
-                          right: 16,
-                          bottom: 16,
+            ),
+          ],
+        ),
+        endDrawerEnableOpenDragGesture: false,
+        endDrawer: Drawer(
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Menu',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.0,
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.person_outline,
-                              size: 20,
-                              color: colorScheme.tertiary,
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              userName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                                letterSpacing: -0.5,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _MenuButton(
+                        icon: Icons.fitness_center_outlined,
+                        label: 'Workout',
+                        onTap: () => goToTopLevel('/'),
+                        isActive: currentPath == '/',
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
+                        icon: Icons.bar_chart_outlined,
+                        label: 'Progress',
+                        onTap: () => goToTopLevel('/progress'),
+                        isActive: currentPath == '/progress',
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
+                        icon: Icons.history_outlined,
+                        label: 'History',
+                        onTap: () => goToTopLevel('/history'),
+                        isActive: currentPath == '/history',
+                      ),
+                      Divider(height: 32, color: colorScheme.outline),
+                      _MenuButton(
+                        icon: Icons.fitness_center_outlined,
+                        label: 'Training Program',
+                        onTap: () => goToTopLevel('/training-program'),
+                        isActive: currentPath == '/training-program',
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        onTap: () => goToTopLevel('/settings'),
+                        isActive: isSettingsSection(currentPath),
+                      ),
+                      Divider(height: 32, color: colorScheme.outline),
+                    ],
+                  ),
+                ),
+                Divider(color: colorScheme.outline),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (userName.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            bottom: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.person_outline,
+                                size: 20,
                                 color: colorScheme.tertiary,
                               ),
+                              const SizedBox(width: 16),
+                              Text(
+                                userName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  letterSpacing: -0.5,
+                                  color: colorScheme.tertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            _MenuButton(
+                              icon: Icons.logout,
+                              label: 'Logout',
+                              color: colorScheme.error,
+                              onTap: () {
+                                Navigator.pop(context);
+                                authProvider.logout();
+                                context.go('/login');
+                              },
+                              isActive: false,
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: Icon(
+                                themeProvider.isDarkMode(context)
+                                    ? Icons.wb_sunny
+                                    : Icons.dark_mode_outlined,
+                                color: colorScheme.onSurface,
+                              ),
+                              tooltip: themeProvider.isDarkMode(context)
+                                  ? 'Switch to light mode'
+                                  : 'Switch to dark mode',
+                              onPressed: () => themeProvider.toggle(),
                             ),
                           ],
                         ),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        children: [
-                          _MenuButton(
-                            icon: Icons.logout,
-                            label: 'Logout',
-                            color: colorScheme.error,
-                            onTap: () {
-                              Navigator.pop(context);
-                              authProvider.logout();
-                              context.go('/login');
-                            },
-                            isActive: false,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: Icon(
-                              themeProvider.isDarkMode(context)
-                                  ? Icons.wb_sunny
-                                  : Icons.dark_mode_outlined,
-                              color: colorScheme.onSurface,
-                            ),
-                            tooltip: themeProvider.isDarkMode(context)
-                                ? 'Switch to light mode'
-                                : 'Switch to dark mode',
-                            onPressed: () => themeProvider.toggle(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(child: child),
-          WorkoutBottomBar(key: ValueKey(wp.activeWorkout?.id ?? 'none')),
-        ],
+        body: Column(
+          children: [
+            Expanded(child: child),
+            WorkoutBottomBar(key: ValueKey(wp.activeWorkout?.id ?? 'none')),
+          ],
+        ),
       ),
     );
   }

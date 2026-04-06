@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import 'regime_info_screen.dart';
+import '../widgets/top_level_back_scope.dart';
 
 class RegimeSettingsScreen extends StatefulWidget {
   const RegimeSettingsScreen({super.key});
@@ -234,9 +236,17 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     if (!provider.loaded ||
         provider.trainingPrograms.isEmpty ||
         _selectedRegimeType == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Training Program')),
-        body: const Center(child: CircularProgressIndicator()),
+      return TopLevelBackScope(
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/'),
+            ),
+            title: const Text('Training Program'),
+          ),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -246,76 +256,89 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
     final hasUnsavedChanges = _hasUnsavedChanges(provider, selected);
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Training Program'),
-        centerTitle: false,
-        actions: hasUnsavedChanges
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
-                  child: FilledButton(
-                    onPressed: _isSaving
-                        ? null
-                        : () => _save(provider, selected),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Save'),
-                  ),
-                ),
-              ]
-            : const [],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-        children: [
-          _SectionTitle('PROGRAM'),
-          const SizedBox(height: 10),
-          ...programs.map((program) {
-            final isSelected = program.regimeType == selected.regimeType;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ProgramTile(
-                program: program,
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() {
-                    _selectedRegimeType = program.regimeType;
-                    _seedControllersForProgram(program, provider.programState);
-                  });
-                },
-                onInfo: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        RegimeInfoScreen(regimeType: program.regimeType),
-                  ),
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 24),
-          _StateFieldsEditor(
-            program: selected,
-            controllers: _controllers,
-            colorScheme: cs,
-            onFieldChanged: () => setState(() {}),
+    return TopLevelBackScope(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
           ),
-        ],
+          title: const Text('Training Program'),
+          centerTitle: false,
+          actions: hasUnsavedChanges
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      right: 12,
+                      top: 8,
+                      bottom: 8,
+                    ),
+                    child: FilledButton(
+                      onPressed: _isSaving
+                          ? null
+                          : () => _save(provider, selected),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ),
+                ]
+              : const [],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+          children: [
+            _SectionTitle('PROGRAM'),
+            const SizedBox(height: 10),
+            ...programs.map((program) {
+              final isSelected = program.regimeType == selected.regimeType;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ProgramTile(
+                  program: program,
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      _selectedRegimeType = program.regimeType;
+                      _seedControllersForProgram(
+                        program,
+                        provider.programState,
+                      );
+                    });
+                  },
+                  onInfo: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          RegimeInfoScreen(regimeType: program.regimeType),
+                    ),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 24),
+            _StateFieldsEditor(
+              program: selected,
+              controllers: _controllers,
+              colorScheme: cs,
+              onFieldChanged: () => setState(() {}),
+            ),
+          ],
+        ),
       ),
     );
   }

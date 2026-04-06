@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:credential_manager/credential_manager.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../gen/workout/v1/auth.pb.dart';
@@ -14,7 +14,6 @@ class PasskeysScreen extends StatefulWidget {
 class _PasskeysScreenState extends State<PasskeysScreen> {
   List<PasskeyInfo>? _passkeys;
   bool _loading = true;
-  bool _adding = false;
   String? _deletingId;
   String? _error;
 
@@ -40,25 +39,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     }
   }
 
-  Future<void> _addPasskey() async {
-    final name = await _showNameDialog();
-    if (name == null) return;
-
-    setState(() {
-      _adding = true;
-      _error = null;
-    });
-    try {
-      final authService = context.read<AuthService>();
-      await authService.addPasskey(name);
+  Future<void> _openAddPasskey() async {
+    final added = await context.push<bool>('/passkeys/add');
+    if (added == true && mounted) {
       await _loadPasskeys();
-    } on CredentialException catch (e) {
-      if (e.code == 601) return; // user cancelled
-      if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _adding = false);
     }
   }
 
@@ -79,35 +63,6 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     } finally {
       if (mounted) setState(() => _deletingId = null);
     }
-  }
-
-  Future<String?> _showNameDialog() {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Passkey'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            hintText: 'e.g. Work Phone',
-          ),
-          onSubmitted: (value) => Navigator.pop(context, value.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<bool?> _showDeleteConfirmDialog() {
@@ -235,15 +190,9 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _adding ? null : _addPasskey,
-                      icon: _adding
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.add, size: 18),
-                      label: Text(_adding ? 'Adding...' : 'Add Passkey'),
+                      onPressed: _openAddPasskey,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add Passkey'),
                     ),
                   ),
                   const SizedBox(height: 16),

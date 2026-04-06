@@ -278,35 +278,6 @@ final $typed_data.Uint8List listPasskeysResponseDescriptor = $convert.base64Deco
     'ChRMaXN0UGFzc2tleXNSZXNwb25zZRIzCghwYXNza2V5cxgBIAMoCzIXLndvcmtvdXQudjEuUG'
     'Fzc2tleUluZm9SCHBhc3NrZXlz');
 
-@$core.Deprecated('Use passwordRegisterRequestDescriptor instead')
-const PasswordRegisterRequest$json = {
-  '1': 'PasswordRegisterRequest',
-  '2': [
-    {'1': 'username', '3': 1, '4': 1, '5': 9, '10': 'username'},
-    {'1': 'password', '3': 2, '4': 1, '5': 9, '10': 'password'},
-  ],
-};
-
-/// Descriptor for `PasswordRegisterRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List passwordRegisterRequestDescriptor =
-    $convert.base64Decode(
-        'ChdQYXNzd29yZFJlZ2lzdGVyUmVxdWVzdBIaCgh1c2VybmFtZRgBIAEoCVIIdXNlcm5hbWUSGg'
-        'oIcGFzc3dvcmQYAiABKAlSCHBhc3N3b3Jk');
-
-@$core.Deprecated('Use passwordLoginRequestDescriptor instead')
-const PasswordLoginRequest$json = {
-  '1': 'PasswordLoginRequest',
-  '2': [
-    {'1': 'username', '3': 1, '4': 1, '5': 9, '10': 'username'},
-    {'1': 'password', '3': 2, '4': 1, '5': 9, '10': 'password'},
-  ],
-};
-
-/// Descriptor for `PasswordLoginRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List passwordLoginRequestDescriptor = $convert.base64Decode(
-    'ChRQYXNzd29yZExvZ2luUmVxdWVzdBIaCgh1c2VybmFtZRgBIAEoCVIIdXNlcm5hbWUSGgoIcG'
-    'Fzc3dvcmQYAiABKAlSCHBhc3N3b3Jk');
-
 @$core.Deprecated('Use testLoginRequestDescriptor instead')
 const TestLoginRequest$json = {
   '1': 'TestLoginRequest',
@@ -318,3 +289,25 @@ const TestLoginRequest$json = {
 /// Descriptor for `TestLoginRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List testLoginRequestDescriptor = $convert.base64Decode(
     'ChBUZXN0TG9naW5SZXF1ZXN0EhoKCHVzZXJuYW1lGAEgASgJUgh1c2VybmFtZQ==');
+
+@$core.Deprecated('Use deleteAccountRequestDescriptor instead')
+const DeleteAccountRequest$json = {
+  '1': 'DeleteAccountRequest',
+};
+
+/// Descriptor for `DeleteAccountRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteAccountRequestDescriptor =
+    $convert.base64Decode('ChREZWxldGVBY2NvdW50UmVxdWVzdA==');
+
+@$core.Deprecated('Use deleteAccountResponseDescriptor instead')
+const DeleteAccountResponse$json = {
+  '1': 'DeleteAccountResponse',
+  '2': [
+    {'1': 'deleted_user_id', '3': 1, '4': 1, '5': 9, '10': 'deletedUserId'},
+  ],
+};
+
+/// Descriptor for `DeleteAccountResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteAccountResponseDescriptor = $convert.base64Decode(
+    'ChVEZWxldGVBY2NvdW50UmVzcG9uc2USJgoPZGVsZXRlZF91c2VyX2lkGAEgASgJUg1kZWxldG'
+    'VkVXNlcklk');

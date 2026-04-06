@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fixnum/fixnum.dart';
@@ -10,6 +11,7 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
+import '../widgets/top_level_back_scope.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -80,35 +82,72 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
 
     if (_data == null || _data!.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Progress',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+      return TopLevelBackScope(
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/'),
+            ),
+            title: const Text(
+              'Progress',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
           ),
-        ),
-        body: Center(
-          child: Text(
-            'No workout history yet',
-            style: TextStyle(color: colorScheme.tertiary),
+          body: Center(
+            child: Text(
+              'No workout history yet',
+              style: TextStyle(color: colorScheme.tertiary),
+            ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Progress',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+    return TopLevelBackScope(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+          ),
+          title: const Text(
+            'Progress',
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: _data!.entries.map((entry) {
-          final name = exerciseNames[entry.key] ?? '?';
-          final points = entry.value;
-          if (points.length < 2) {
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: _data!.entries.map((entry) {
+            final name = exerciseNames[entry.key] ?? '?';
+            final points = entry.value;
+            if (points.length < 2) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '${formatWeight(points.first.weight, unit)} ${weightUnitSuffix(unit)}',
+                      style: TextStyle(color: colorScheme.tertiary),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
@@ -116,107 +155,86 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: colorScheme.outline),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  Text(
-                    '${formatWeight(points.first.weight, unit)} ${weightUnitSuffix(unit)}',
-                    style: TextStyle(color: colorScheme.tertiary),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 150,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: const FlGridData(show: false),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40,
+                              getTitlesWidget: (value, meta) => Text(
+                                formatWeight(value, unit),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: colorScheme.tertiary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          bottomTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: points
+                                .asMap()
+                                .entries
+                                .map(
+                                  (e) =>
+                                      FlSpot(e.key.toDouble(), e.value.weight),
+                                )
+                                .toList(),
+                            isCurved: true,
+                            color: colorScheme.onSurface,
+                            barWidth: 2,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) =>
+                                  FlDotCirclePainter(
+                                    radius: 3,
+                                    color: colorScheme.onSurface,
+                                    strokeWidth: 0,
+                                  ),
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: colorScheme.onSurface.withValues(
+                                alpha: 0.05,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             );
-          }
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: colorScheme.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 150,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: const FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            getTitlesWidget: (value, meta) => Text(
-                              formatWeight(value, unit),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: colorScheme.tertiary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        bottomTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: points
-                              .asMap()
-                              .entries
-                              .map(
-                                (e) => FlSpot(e.key.toDouble(), e.value.weight),
-                              )
-                              .toList(),
-                          isCurved: true,
-                          color: colorScheme.onSurface,
-                          barWidth: 2,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) =>
-                                FlDotCirclePainter(
-                                  radius: 3,
-                                  color: colorScheme.onSurface,
-                                  strokeWidth: 0,
-                                ),
-                          ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: colorScheme.onSurface.withValues(
-                              alpha: 0.05,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+          }).toList(),
+        ),
       ),
     );
   }

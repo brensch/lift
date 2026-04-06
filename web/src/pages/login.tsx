@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/use-auth";
 
 export function LoginPage() {
-  const { user, login, logout } = useAuth();
+  const { user, login, devLogin, logout } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [devUsername, setDevUsername] = useState("");
   const navigate = useNavigate();
 
   async function handleLogin() {
@@ -18,6 +19,20 @@ export function LoginPage() {
       navigate("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDevLogin() {
+    if (!devLogin) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await devLogin(devUsername);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Dev login failed");
     } finally {
       setLoading(false);
     }
@@ -79,6 +94,36 @@ export function LoginPage() {
         <p className="text-sm text-muted/70">
           You'll need a passkey created in the Schlift app.
         </p>
+
+        {import.meta.env.DEV && devLogin && (
+          <div className="border-t border-border pt-6 text-left space-y-3">
+            <p className="text-xs font-semibold tracking-[0.18em] text-muted uppercase text-center">
+              Dev Name Login
+            </p>
+            <input
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-text outline-none focus:border-text"
+              value={devUsername}
+              onChange={(e) => setDevUsername(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !loading) {
+                  void handleDevLogin();
+                }
+              }}
+              placeholder="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            <Button
+              variant="default"
+              className="w-full disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleDevLogin}
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in / Create Dev Account"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -42,9 +42,13 @@ Suggested runtime values:
 RUST_LOG=info
 WEBAUTHN_RP_ID=schlift.com
 WEBAUTHN_RP_ORIGIN=https://schlift.com
+APPLE_TEAM_ID=REPLACE_WITH_YOUR_APPLE_TEAM_ID
 ```
 
 Use `schlift.com` as the shared RP ID and origin to keep Android app association, passkeys, and the hosted web app on the same domain.
+
+For iOS passkeys, the backend serves `/.well-known/apple-app-site-association` and `/apple-app-site-association`.
+Set `APPLE_TEAM_ID` for the default `TEAMID.com.brensch.schlift` app identifier, or set `APPLE_APP_IDS` to a comma-separated list if you need multiple Apple app identifiers.
 
 ## TLS / Reverse Proxy
 

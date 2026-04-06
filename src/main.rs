@@ -17,6 +17,8 @@ mod progress;
 mod regimes;
 mod scheduler;
 mod service_auth;
+#[cfg(feature = "test-auth")]
+mod service_auth_test;
 mod service_group;
 mod service_settings;
 mod service_user;
@@ -107,6 +109,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let app = grpc_router
         .route("/api/health", get(|| async { "ok" }))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
+        .route(
+            "/.well-known/apple-app-site-association",
+            get(apple_app_site_association_handler),
+        )
+        .route(
+            "/apple-app-site-association",
+            get(apple_app_site_association_handler),
+        )
         .layer(cors);
 
     println!("Server listening on {} (gRPC-Web)", addr);
@@ -144,4 +154,30 @@ async fn assetlinks_handler() -> Json<serde_json::Value> {
             "sha256_cert_fingerprints": fingerprints
         }
     }]))
+}
+
+async fn apple_app_site_association_handler() -> Json<serde_json::Value> {
+    let apps: Vec<String> = if let Ok(app_ids) = std::env::var("APPLE_APP_IDS") {
+        app_ids
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(ToOwned::to_owned)
+            .collect()
+    } else if let Ok(team_id) = std::env::var("APPLE_TEAM_ID") {
+        let team_id = team_id.trim();
+        if team_id.is_empty() {
+            Vec::new()
+        } else {
+            vec![format!("{}.com.brensch.schlift", team_id)]
+        }
+    } else {
+        Vec::new()
+    };
+
+    Json(serde_json::json!({
+        "webcredentials": {
+            "apps": apps
+        }
+    }))
 }

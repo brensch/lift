@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -90,19 +91,24 @@ class _LoginScreenState extends State<LoginScreen>
     context.read<AuthProvider>().passkeyLogin();
   }
 
-  void _createAccount() {
+  Future<void> _createAccount() async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
       context.read<AuthProvider>().setError('you gotta pick a username');
       return;
     }
-    context.read<AuthProvider>().passkeyRegister(username);
+    final auth = context.read<AuthProvider>();
+    await auth.passkeyRegister(username);
+    if (!mounted) return;
+    if (auth.isLoggedIn && auth.needsPasskeyNotice) {
+      context.go('/passkey-notice');
+    }
   }
 
   void _devLogin() {
     final username = _devUsernameController.text.trim();
     if (username.isEmpty) return;
-    context.read<AuthProvider>().testLogin('__test__$username');
+    context.read<AuthProvider>().testLogin(username);
   }
 
   @override
@@ -200,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
 
-                      if (Platform.isLinux) ...[
+                      if (kDebugMode) ...[
                         const SizedBox(height: 32),
 
                         const Divider(),
@@ -208,7 +214,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(height: 16),
 
                         Text(
-                          'DEV LOGIN',
+                          'DEV NAME LOGIN',
 
                           style: TextStyle(
                             fontSize: 12,
@@ -228,8 +234,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                           decoration: const InputDecoration(
                             labelText: 'Username',
-
-                            prefixText: '__test__',
                           ),
 
                           textInputAction: TextInputAction.done,
@@ -357,7 +361,7 @@ class _LoginScreenState extends State<LoginScreen>
         SizedBox(
           height: 56,
           child: FilledButton.icon(
-            onPressed: auth.isLoading ? null : _createAccount,
+            onPressed: auth.isLoading ? null : () => _createAccount(),
             icon: const Icon(Icons.fingerprint, size: 24),
             label: auth.isLoading
                 ? const SizedBox(

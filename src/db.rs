@@ -161,8 +161,6 @@ pub enum WriteCommand {
     UpsertProgramStateEvent(crate::program_state::ProgramStateEventRecord),
     #[cfg_attr(not(test), allow(dead_code))]
     Flush(tokio::sync::oneshot::Sender<()>),
-    #[cfg(feature = "test-auth")]
-    TestLoginUpsert(User, String, i64),
 }
 
 #[derive(Clone)]
@@ -170,7 +168,7 @@ pub struct CentralDb {
     pub pool: Pool<Sqlite>,
     // In-memory cache: token -> (user_id, expires_at_secs)
     auth_cache: Arc<DashMap<String, (String, i64)>>,
-    // Cache for user lookups by name to speed up TestLogin
+    // Cache for user lookups by name
     user_by_name_cache: Arc<DashMap<String, User>>,
     // Serializes all write operations to prevent SQLite lock contention
     write_lock: Arc<tokio::sync::Mutex<()>>,
@@ -182,8 +180,7 @@ const CENTRAL_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL,
-    password_hash TEXT
+    created_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (
@@ -730,39 +727,6 @@ impl CentralDb {
                         .execute(&mut *tx)
                         .await?;
                     }
-                    #[cfg(feature = "test-auth")]
-                    WriteCommand::TestLoginUpsert(user, token, expires_at) => {
-                        // Double-check user existence in case cache was cold
-                        let user_id = match sqlx::query_scalar::<_, String>(
-                            "SELECT id FROM users WHERE lower(name) = lower(?)",
-                        )
-                        .bind(&user.name)
-                        .fetch_optional(&mut *tx)
-                        .await?
-                        {
-                            Some(id) => id,
-                            None => {
-                                sqlx::query(
-                                    "INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)",
-                                )
-                                .bind(&user.id)
-                                .bind(&user.name)
-                                .bind(user.created_at)
-                                .execute(&mut *tx)
-                                .await?;
-                                user.id.clone()
-                            }
-                        };
-
-                        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-                        sqlx::query("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
-                        .bind(&token)
-                        .bind(&user_id)
-                        .bind(now)
-                        .bind(expires_at)
-                        .execute(&mut *tx)
-                        .await?;
-                    }
                     WriteCommand::Flush(_) => {
                         unreachable!("Flush commands are separated before this match")
                     }
@@ -1047,50 +1011,6 @@ impl CentralDb {
         Ok(())
     }
 
-    pub async fn create_user_with_password(
-        &self,
-        name: &str,
-        password_hash: &str,
-    ) -> Result<User, Box<dyn std::error::Error + Send + Sync>> {
-        let _lock = self.write_lock.lock().await;
-        let existing = self.get_user_by_name(name).await?;
-        if existing.is_some() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::AlreadyExists,
-                "User already exists",
-            )));
-        }
-
-        let id = Uuid::new_v4().to_string();
-        let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-
-        sqlx::query("INSERT INTO users (id, name, created_at, password_hash) VALUES (?, ?, ?, ?)")
-            .bind(&id)
-            .bind(name)
-            .bind(created_at)
-            .bind(password_hash)
-            .execute(&self.pool)
-            .await?;
-
-        Ok(User {
-            id,
-            name: name.to_string(),
-            created_at,
-        })
-    }
-
-    pub async fn get_password_hash(
-        &self,
-        user_id: &str,
-    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(
-            sqlx::query_scalar("SELECT password_hash FROM users WHERE id = ?")
-                .bind(user_id)
-                .fetch_optional(&self.pool)
-                .await?,
-        )
-    }
-
     // --- Incremental Write Methods ---
 
     pub async fn create_workout_record(
@@ -1174,67 +1094,6 @@ impl CentralDb {
             samples.to_vec(),
         ))?;
         Ok(())
-    }
-
-    #[cfg(feature = "test-auth")]
-    pub async fn test_login_upsert(
-        &self,
-        username: &str,
-    ) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
-        // 1. Check cache first
-        if let Some(entry) = self.user_by_name_cache.get(username) {
-            let user = entry.value().clone();
-            let token = Uuid::new_v4().to_string();
-            let expires_at = Self::now_plus_30_days();
-
-            // Optimistically update auth cache
-            self.auth_cache
-                .insert(token.clone(), (user.id.clone(), expires_at));
-
-            // Queue session creation
-            self.write_tx.send(WriteCommand::TestLoginUpsert(
-                user.clone(),
-                token.clone(),
-                expires_at,
-            ))?;
-
-            return Ok((user, token));
-        }
-
-        // 2. Cold cache: Generate new ID and queue full upsert
-        let id = Uuid::new_v4().to_string();
-        let created_at = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
-        let user = User {
-            id,
-            name: username.to_string(),
-            created_at,
-        };
-        let token = Uuid::new_v4().to_string();
-        let expires_at = Self::now_plus_30_days();
-
-        // Optimistically cache both
-        self.user_by_name_cache
-            .insert(username.to_string(), user.clone());
-        self.auth_cache
-            .insert(token.clone(), (user.id.clone(), expires_at));
-
-        // Queue background upsert
-        self.write_tx.send(WriteCommand::TestLoginUpsert(
-            user.clone(),
-            token.clone(),
-            expires_at,
-        ))?;
-
-        Ok((user, token))
-    }
-
-    #[cfg(feature = "test-auth")]
-    fn now_plus_30_days() -> i64 {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
-        now + 30 * 24 * 60 * 60
     }
 
     pub async fn delete_completed_set_record(

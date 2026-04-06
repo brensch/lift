@@ -95,25 +95,18 @@ class AuthServiceClient extends $grpc.Client {
     return $createUnaryCall(_$listPasskeys, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.AuthResponse> passwordRegister(
-    $0.PasswordRegisterRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$passwordRegister, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.AuthResponse> passwordLogin(
-    $0.PasswordLoginRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$passwordLogin, request, options: options);
-  }
-
   $grpc.ResponseFuture<$0.AuthResponse> testLogin(
     $0.TestLoginRequest request, {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$testLogin, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DeleteAccountResponse> deleteAccount(
+    $0.DeleteAccountRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$deleteAccount, request, options: options);
   }
 
   // method descriptors
@@ -163,21 +156,16 @@ class AuthServiceClient extends $grpc.Client {
           '/workout.v1.AuthService/ListPasskeys',
           ($0.ListPasskeysRequest value) => value.writeToBuffer(),
           $0.ListPasskeysResponse.fromBuffer);
-  static final _$passwordRegister =
-      $grpc.ClientMethod<$0.PasswordRegisterRequest, $0.AuthResponse>(
-          '/workout.v1.AuthService/PasswordRegister',
-          ($0.PasswordRegisterRequest value) => value.writeToBuffer(),
-          $0.AuthResponse.fromBuffer);
-  static final _$passwordLogin =
-      $grpc.ClientMethod<$0.PasswordLoginRequest, $0.AuthResponse>(
-          '/workout.v1.AuthService/PasswordLogin',
-          ($0.PasswordLoginRequest value) => value.writeToBuffer(),
-          $0.AuthResponse.fromBuffer);
   static final _$testLogin =
       $grpc.ClientMethod<$0.TestLoginRequest, $0.AuthResponse>(
           '/workout.v1.AuthService/TestLogin',
           ($0.TestLoginRequest value) => value.writeToBuffer(),
           $0.AuthResponse.fromBuffer);
+  static final _$deleteAccount =
+      $grpc.ClientMethod<$0.DeleteAccountRequest, $0.DeleteAccountResponse>(
+          '/workout.v1.AuthService/DeleteAccount',
+          ($0.DeleteAccountRequest value) => value.writeToBuffer(),
+          $0.DeleteAccountResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.AuthService')
@@ -260,22 +248,6 @@ abstract class AuthServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.ListPasskeysRequest.fromBuffer(value),
             ($0.ListPasskeysResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.PasswordRegisterRequest, $0.AuthResponse>(
-        'PasswordRegister',
-        passwordRegister_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.PasswordRegisterRequest.fromBuffer(value),
-        ($0.AuthResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.PasswordLoginRequest, $0.AuthResponse>(
-        'PasswordLogin',
-        passwordLogin_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.PasswordLoginRequest.fromBuffer(value),
-        ($0.AuthResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.TestLoginRequest, $0.AuthResponse>(
         'TestLogin',
         testLogin_Pre,
@@ -283,6 +255,15 @@ abstract class AuthServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.TestLoginRequest.fromBuffer(value),
         ($0.AuthResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.DeleteAccountRequest, $0.DeleteAccountResponse>(
+            'DeleteAccount',
+            deleteAccount_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.DeleteAccountRequest.fromBuffer(value),
+            ($0.DeleteAccountResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.RegisterStartResponse> registerStart_Pre(
@@ -362,22 +343,6 @@ abstract class AuthServiceBase extends $grpc.Service {
   $async.Future<$0.ListPasskeysResponse> listPasskeys(
       $grpc.ServiceCall call, $0.ListPasskeysRequest request);
 
-  $async.Future<$0.AuthResponse> passwordRegister_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.PasswordRegisterRequest> $request) async {
-    return passwordRegister($call, await $request);
-  }
-
-  $async.Future<$0.AuthResponse> passwordRegister(
-      $grpc.ServiceCall call, $0.PasswordRegisterRequest request);
-
-  $async.Future<$0.AuthResponse> passwordLogin_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.PasswordLoginRequest> $request) async {
-    return passwordLogin($call, await $request);
-  }
-
-  $async.Future<$0.AuthResponse> passwordLogin(
-      $grpc.ServiceCall call, $0.PasswordLoginRequest request);
-
   $async.Future<$0.AuthResponse> testLogin_Pre($grpc.ServiceCall $call,
       $async.Future<$0.TestLoginRequest> $request) async {
     return testLogin($call, await $request);
@@ -385,4 +350,13 @@ abstract class AuthServiceBase extends $grpc.Service {
 
   $async.Future<$0.AuthResponse> testLogin(
       $grpc.ServiceCall call, $0.TestLoginRequest request);
+
+  $async.Future<$0.DeleteAccountResponse> deleteAccount_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DeleteAccountRequest> $request) async {
+    return deleteAccount($call, await $request);
+  }
+
+  $async.Future<$0.DeleteAccountResponse> deleteAccount(
+      $grpc.ServiceCall call, $0.DeleteAccountRequest request);
 }
