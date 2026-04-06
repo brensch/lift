@@ -103,14 +103,17 @@ class MainActivity : ComponentActivity() {
     private var heartRatePermissionRequestedOnce = false
     private var workoutPermissionRequestedOnce = false
     private var keepScreenOnForWorkout = false
+    private var isAmbientMode by mutableStateOf(false)
 
     private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
         override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
             logLifecycleEvent("ambient onEnter", "details=$ambientDetails")
+            isAmbientMode = true
         }
 
         override fun onExitAmbient() {
             logLifecycleEvent("ambient onExit")
+            isAmbientMode = false
         }
 
         override fun onUpdateAmbient() {
@@ -155,6 +158,7 @@ class MainActivity : ComponentActivity() {
             WearApp(
                 onAction = { action -> sendAction(action) },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
+                isAmbientMode = isAmbientMode,
             )
         }
     }
@@ -473,6 +477,7 @@ class MainActivity : ComponentActivity() {
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
+    isAmbientMode: Boolean,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by WearDataRepository.latestBpm.collectAsState()
@@ -531,8 +536,8 @@ private fun WearApp(
     val liveYouTimerText = remember(data.workoutId, data.state, data.activeStartedAt, data.restUntil, data.lastRestEnd, hasEndWorkoutAction, nowTick) {
         deriveYouTimerText(data)
     }
-    val liveElapsedText = remember(data.workoutId, data.workoutStartTime, data.state, nowTick) {
-        deriveElapsedText(data)
+    val liveElapsedText = remember(data.workoutId, data.workoutStartTime, data.state, nowTick, isAmbientMode) {
+        deriveElapsedText(data, hideSeconds = isAmbientMode)
     }
     val currentSet = if (data.youCard.hasDisplaySet()) data.youCard.displaySet else null
     val completeTemplate = data.actionsList.firstOrNull {
@@ -636,7 +641,7 @@ private fun WearApp(
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.End,
         ) {
-            if (liveYouTimerText.isNotEmpty()) {
+            if (!isAmbientMode && liveYouTimerText.isNotEmpty()) {
                 Text(
                     text = liveYouTimerText,
                     color = timerColor,
@@ -708,42 +713,47 @@ private fun WearApp(
                     ),
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 10.dp, end = 6.dp),
-                        contentAlignment = Alignment.CenterStart,
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.Start,
-                        ) {
-                            if (isActionPending) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.width(26.dp).height(26.dp),
-                                    strokeWidth = 2.dp,
-                                )
-                            } else {
-                                Text(
-                                    text = startButtonTitle,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Start,
+                        if (isActionPending) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.width(26.dp).height(26.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(start = 10.dp, end = 6.dp),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    fontSize = 18.sp,
-                                    fontFamily = WearDisplayFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = repsWeightText,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Start,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    fontSize = 24.sp,
-                                    fontFamily = WearDisplayFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                )
+                                    horizontalAlignment = Alignment.Start,
+                                ) {
+                                    Text(
+                                        text = startButtonTitle,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        fontSize = 18.sp,
+                                        fontFamily = WearDisplayFontFamily,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = repsWeightText,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        fontSize = 24.sp,
+                                        fontFamily = WearDisplayFontFamily,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1002,12 +1012,16 @@ private fun formatNowClock(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
 }
 
-private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot): String {
+private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot, hideSeconds: Boolean = false): String {
     val startTime = snapshot.workoutStartTime.toLong()
     if (startTime <= 0L) return snapshot.elapsedText
     val currentApiNowMs = WearDataRepository.synchronizedNowUnixMillis()
     val elapsed = ((currentApiNowMs - (startTime * 1000L)).coerceAtLeast(0L) / 1000L).toInt()
-    return formatElapsedDuration(elapsed)
+    return if (hideSeconds) {
+        formatElapsedDurationNoSeconds(elapsed)
+    } else {
+        formatElapsedDuration(elapsed)
+    }
 }
 
 private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
@@ -1063,6 +1077,17 @@ private fun formatElapsedDuration(totalSeconds: Int): String {
         "%d:%02d:%02d".format(hours, minutes, seconds)
     } else {
         "%d:%02d".format(minutes, seconds)
+    }
+}
+
+private fun formatElapsedDurationNoSeconds(totalSeconds: Int): String {
+    val totalMinutes = totalSeconds / 60
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) {
+        "%d:%02d".format(hours, minutes)
+    } else {
+        "%d min".format(minutes)
     }
 }
 
