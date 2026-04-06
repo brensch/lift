@@ -120,14 +120,14 @@ make print-cert-hashes DEBUG_KEYSTORE=/path/to/upload-keystore.jks DEBUG_ALIAS=u
 Workflow file:
 - `.github/workflows/android-release.yml`
 
-It builds signed release AABs for both phone and wear and uploads them as workflow artifacts.
-For tag pushes matching `android-v*`, it also creates a GitHub Release and attaches both AAB files.
+It builds signed release AABs for both phone and wear, uploads them as workflow artifacts, and then uploads both bundles to the Google Play `internal` track.
 
 Create these GitHub repository secrets before running:
 - `RELEASE_KEYSTORE_BASE64`: base64 of your JKS keystore file
 - `RELEASE_KEYSTORE_PASSWORD`
 - `RELEASE_KEY_ALIAS`
 - `RELEASE_KEY_PASSWORD`
+- `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`: raw JSON contents of a Google Cloud service-account key with Play Console app access
 
 Create base64 keystore value:
 
@@ -137,5 +137,5 @@ base64 -w 0 ~/upload-keystore.jks
 
 Run options:
 - Manual: Actions tab -> `Android Release` -> `Run workflow`
-- Tag trigger: push tag `android-vX.Y.Z` (example: `android-v1.0.1`)
-  - This builds artifacts and publishes a GitHub Release for that tag.
+- Branch trigger: push `release`
+  - This builds artifacts and uploads both AABs to the Play Console internal track.

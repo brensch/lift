@@ -11,7 +11,9 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>com.brensch.schlift</key>
-		<string>Schlift Provisioning Profile</string>
+		<string>__IOS_APP_PROFILE_NAME__</string>
+		<key>com.brensch.schlift.watchkitapp</key>
+		<string>__IOS_WATCH_PROFILE_NAME__</string>
 	</dict>
 	<key>signingCertificate</key>
 	<string>Apple Distribution</string>
@@ -20,7 +22,7 @@
 	<key>stripSwiftSymbols</key>
 	<true/>
 	<key>teamID</key>
-	<string>YOUR_TEAM_ID</string>
+	<string>__APPLE_TEAM_ID__</string>
 	<key>uploadSymbols</key>
 	<true/>
 </dict>

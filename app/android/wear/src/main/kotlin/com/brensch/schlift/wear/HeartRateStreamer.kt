@@ -9,9 +9,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,8 +25,6 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
     private val pendingSamples = mutableListOf<Wearable.HeartRateSample>()
     private val pendingLock = Any()
     private var flushJob: Job? = null
-    private val _latestBpm = MutableStateFlow<Float?>(null)
-    val latestBpm: StateFlow<Float?> = _latestBpm.asStateFlow()
 
     @Volatile
     private var workoutId: String? = null
@@ -61,7 +56,7 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         workoutId = null
         flushJob?.cancel()
         flushJob = null
-        _latestBpm.value = null
+        WearDataRepository.updateLatestBpm(null)
         sensorManager.unregisterListener(this)
     }
 
@@ -76,7 +71,7 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         synchronized(pendingLock) {
             pendingSamples.add(sample)
         }
-        _latestBpm.value = bpm
+        WearDataRepository.updateLatestBpm(bpm)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit

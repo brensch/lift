@@ -1,8 +1,8 @@
 import Foundation
 import HealthKit
 
-class HeartRateStreamer: ObservableObject {
-    @Published var latestBpm: Double?
+class HeartRateStreamer {
+    var onLatestBpmChanged: ((Double?) -> Void)?
 
     private let healthStore = HKHealthStore()
     private var query: HKAnchoredObjectQuery?
@@ -43,8 +43,8 @@ class HeartRateStreamer: ObservableObject {
         flushTimer = nil
         workoutId = nil
         connector = nil
-        DispatchQueue.main.async {
-            self.latestBpm = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.onLatestBpmChanged?(nil)
         }
     }
 
@@ -93,8 +93,8 @@ class HeartRateStreamer: ObservableObject {
             pendingSamples.append(hrSample)
             lock.unlock()
 
-            DispatchQueue.main.async {
-                self.latestBpm = bpm
+            DispatchQueue.main.async { [weak self] in
+                self?.onLatestBpmChanged?(bpm)
             }
         }
     }

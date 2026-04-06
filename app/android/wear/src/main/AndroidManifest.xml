@@ -3,6 +3,7 @@
     <uses-feature android:name="android.hardware.type.watch" />
     <uses-feature android:name="android.hardware.sensor.heart_rate" android:required="false" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
@@ -44,5 +45,11 @@
                     tools:ignore="WearableBindListener" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".WorkoutForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="health" />
     </application>
 </manifest>

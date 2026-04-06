@@ -6,6 +6,7 @@ import '../gen/workout/v1/workout.pbenum.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/workout_provider.dart';
 import '../services/notification_service.dart';
+import '../services/wearable_bridge_service.dart';
 
 class DebugNotificationsScreen extends StatefulWidget {
   const DebugNotificationsScreen({super.key});
@@ -19,17 +20,27 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
   List<PendingNotificationRequest> _pending = [];
   List<ActiveNotification> _active = [];
   Timer? _timer;
+  Timer? _watchClockTimer;
+  WatchClockSync? _watchClockSync;
 
   @override
   void initState() {
     super.initState();
     _loadData();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _loadData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshWatchClockSync();
+      _watchClockTimer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) => _refreshWatchClockSync(),
+      );
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _watchClockTimer?.cancel();
     super.dispose();
   }
 
@@ -42,6 +53,16 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         _active = active;
       });
     }
+  }
+
+  Future<void> _refreshWatchClockSync() async {
+    if (!mounted) return;
+    final bridge = context.read<WearableBridgeService>();
+    final sync = await bridge.getWatchClockSync();
+    if (!mounted) return;
+    setState(() {
+      _watchClockSync = sync;
+    });
   }
 
   @override
@@ -108,6 +129,37 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
             }()),
             _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
             _row('now (unix)', '$nowUnix'),
+          ], colorScheme),
+          const SizedBox(height: 16),
+          _section('Watch Clock Sync', [
+            _row(
+              'delta',
+              _watchClockSync == null
+                  ? 'unavailable'
+                  : '${_watchClockSync!.deltaMs}ms',
+            ),
+            _row(
+              'rtt',
+              _watchClockSync == null
+                  ? 'unavailable'
+                  : '${_watchClockSync!.roundTripMs}ms',
+            ),
+            _row(
+              'watchTime',
+              _watchClockSync == null
+                  ? 'unavailable'
+                  : _fmtTime(DateTime.fromMillisecondsSinceEpoch(_watchClockSync!.watchTimeMs)),
+            ),
+            _row(
+              'phoneMidpoint',
+              _watchClockSync == null
+                  ? 'unavailable'
+                  : _fmtTime(
+                      DateTime.fromMillisecondsSinceEpoch(
+                        _watchClockSync!.estimatedPhoneMidpointMs,
+                      ),
+                    ),
+            ),
           ], colorScheme),
           const SizedBox(height: 16),
           _section('Wear Heart Rate (Last 60s)', [

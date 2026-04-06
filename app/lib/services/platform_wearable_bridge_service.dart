@@ -62,6 +62,23 @@ class PlatformWearableBridgeService implements WearableBridgeService {
     final isOpen = await _methods.invokeMethod<bool>('isWatchAppOpenOnWatch');
     return isOpen ?? false;
   }
+
+  @override
+  Future<WatchClockSync?> getWatchClockSync() async {
+    final result = await _methods.invokeMapMethod<String, dynamic>('getWatchClockSync');
+    if (result == null) return null;
+    final watchTimeMs = (result['watchTimeMs'] as num?)?.toInt();
+    final sentAtMs = (result['sentAtMs'] as num?)?.toInt();
+    final receivedAtMs = (result['receivedAtMs'] as num?)?.toInt();
+    if (watchTimeMs == null || sentAtMs == null || receivedAtMs == null) {
+      return null;
+    }
+    return WatchClockSync(
+      watchTimeMs: watchTimeMs,
+      sentAtMs: sentAtMs,
+      receivedAtMs: receivedAtMs,
+    );
+  }
 }
 
 WearableBridgeService createWearableBridgeService() {

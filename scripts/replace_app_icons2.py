@@ -78,6 +78,7 @@ def draw_wobbly_text(
     seed: int,
     max_offset: float,
     max_rotate_radians: float,
+    tracking: float = 0.0,
 ) -> None:
     rng = random.Random(seed)
     cursor_x = float(origin_x)
@@ -114,7 +115,7 @@ def draw_wobbly_text(
             rotated,
             (int(round(cursor_x + dx)), int(round(origin_y + dy))),
         )
-        cursor_x += advance
+        cursor_x += advance + tracking
 
 
 def draw_feature_graphic() -> Image.Image:
@@ -144,20 +145,29 @@ def draw_feature_graphic() -> Image.Image:
     image.alpha_composite(logo, (logo_x, logo_y))
 
     # 3. Text Placement Setup
-    text_x = 380 # Shifted left to prevent cutoff
-    title_font = load_font(180)
+    text_x = 350
+    title_text = "SCHLIFT"
+    title_font_size = 180
+    max_text_width = width - text_x - 30
+
+    while True:
+        title_font = load_font(title_font_size)
+        if title_font.getlength(title_text) <= max_text_width or title_font_size <= 20:
+            break
+        title_font_size -= 2
     
     # 4. Draw Wobbly "SCHLIFT" Text
     draw_wobbly_text(
         canvas=image,
-        text="SCHLIFT",
+        text=title_text,
         origin_x=text_x,
         origin_y=125,
         font=title_font,
         color=WHITE,
         seed=42,
-        max_offset=6.0,
-        max_rotate_radians=0.12,
+        max_offset=3.5,
+        max_rotate_radians=0.06,
+        tracking=-8.0,
     )
 
     # 5. Draw Motto with Auto-scaling (Ensures it never cuts off)

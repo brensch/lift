@@ -1,5 +1,4 @@
 import SwiftUI
-import WatchKit
 
 // Match mobile app workout state accents:
 private let mobileLiftingPink = Color(red: 0xEC/255, green: 0x48/255, blue: 0x99/255) // #EC4899
@@ -19,42 +18,42 @@ private func displayFontName(size: CGFloat, weight: Font.Weight = .bold) -> Font
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @EnvironmentObject var connector: PhoneConnector
-    @EnvironmentObject var heartRateStreamer: HeartRateStreamer
 
-    @State private var currentClock = formatNowClock()
     @State private var selectedReps: Int = 0
-    @State private var isStreaming = false
-    @State private var lastWorkoutId = ""
-    @State private var workoutSessionManager = WorkoutSessionManager()
-
-    private let clockTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        Group {
-            if let snapshot = connector.snapshot {
-                workoutView(snapshot)
-            } else {
-                Text("Waiting for phone")
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 60 : 1)) { context in
+            Group {
+                if let snapshot = connector.snapshot {
+                    workoutView(snapshot, now: context.date)
+                } else {
+                    Text("Waiting for phone")
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
-        .onReceive(clockTimer) { _ in
-            currentClock = formatNowClock()
+        .onAppear {
+            connector.setUIVisible(true)
+        }
+        .onDisappear {
+            connector.setUIVisible(false)
+        }
+        .onChange(of: scenePhase) { newPhase in
+            connector.setUIVisible(newPhase == .active)
         }
     }
 
     @ViewBuilder
-    private func workoutView(_ data: Workout_V1_WearWorkoutSnapshot) -> some View {
+    private func workoutView(_ data: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
         let currentSet: Workout_V1_ProposedSet? = data.youCard.hasDisplaySet ? data.youCard.displaySet : nil
         let completeTemplate = data.actions.first { $0.type == .completeSet }
         let isLiftingCompleteMode = data.state == .lifting && currentSet != nil && completeTemplate != nil
         let primaryAction = data.actions.first { $0.style == .primary } ?? data.actions.first
         let completionSummary: Workout_V1_WearCompletionSummary? = data.hasCompletionSummary ? data.completionSummary : nil
-        let hasEndWorkoutAction = data.actions.contains { $0.type == .endWorkout }
-
-        let _ = manageStreaming(data: data, hasEndWorkoutAction: hasEndWorkoutAction)
 
         if data.state == .allDone, let summary = completionSummary {
             workoutCompleteScreen(
@@ -65,6 +64,7 @@ struct ContentView: View {
         } else {
             mainLayout(
                 data: data,
+                now: now,
                 currentSet: currentSet,
                 completeTemplate: completeTemplate,
                 isLiftingCompleteMode: isLiftingCompleteMode,
@@ -73,39 +73,10 @@ struct ContentView: View {
         }
     }
 
-    private func manageStreaming(data: Workout_V1_WearWorkoutSnapshot, hasEndWorkoutAction: Bool) {
-        let shouldStream = !data.workoutID.isEmpty &&
-            (data.state != .allDone || hasEndWorkoutAction)
-
-        if data.workoutID != lastWorkoutId {
-            DispatchQueue.main.async {
-                lastWorkoutId = data.workoutID
-                if !shouldStream {
-                    heartRateStreamer.stop()
-                    workoutSessionManager.endSessionIfActive()
-                    isStreaming = false
-                }
-            }
-        }
-
-        if shouldStream && !isStreaming {
-            DispatchQueue.main.async {
-                workoutSessionManager.ensureSessionActive()
-                heartRateStreamer.start(workoutId: data.workoutID, connector: connector)
-                isStreaming = true
-            }
-        } else if !shouldStream && isStreaming {
-            DispatchQueue.main.async {
-                heartRateStreamer.stop()
-                workoutSessionManager.endSessionIfActive()
-                isStreaming = false
-            }
-        }
-    }
-
     @ViewBuilder
     private func mainLayout(
         data: Workout_V1_WearWorkoutSnapshot,
+        now: Date,
         currentSet: Workout_V1_ProposedSet?,
         completeTemplate: Workout_V1_WearAction?,
         isLiftingCompleteMode: Bool,
@@ -143,19 +114,25 @@ struct ContentView: View {
         }()
         let buttonBackgroundColor = stateAccentColor ?? .white
         let buttonContentColor: Color = stateAccentColor != nil ? .white : .black
-        let buttonMutedContentColor: Color = stateAccentColor != nil ? .white.opacity(0.6) : Color(red: 0x6B/255, green: 0x72/255, blue: 0x80/255)
 
         let maxReps = isAmrap ? 30 : Int(currentSet?.targetReps ?? 0)
         let repOptionMax = isAmrap ? 30 : max(maxReps * 2, 0)
         let initialReps = isAmrap ? min(Int(currentSet?.targetReps ?? 0), 30) : max(maxReps, 0)
 
-        let hrColor = heartRateColor(heartRateStreamer.latestBpm)
+        let hrColor = heartRateColor(connector.latestBpm)
+        let liveYouTimerText = isLuminanceReduced ? "" : deriveYouTimerText(data, currentApiNowMs: connector.synchronizedNowMs())
+        let liveElapsedText = deriveElapsedText(
+            data,
+            currentApiNowMs: connector.synchronizedNowMs(),
+            hideSeconds: isLuminanceReduced
+        )
+        let currentClock = formatNowClock(now)
 
         HStack(spacing: 0) {
             // Left column: stats
             VStack(alignment: .trailing, spacing: 4) {
-                if !data.youCard.timerText.isEmpty {
-                    Text(data.youCard.timerText)
+                if !liveYouTimerText.isEmpty {
+                    Text(liveYouTimerText)
                         .font(displayFontName(size: 34))
                         .foregroundColor(timerColor)
                         .lineLimit(1)
@@ -168,24 +145,22 @@ struct ContentView: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .trailing)
 
-                if !data.youCard.timerText.isEmpty {
-                    statLine(
-                        text: currentClock,
-                        systemImage: "clock",
-                        color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
-                        fontSize: 18
-                    )
-                }
+                statLine(
+                    text: currentClock,
+                    systemImage: "clock",
+                    color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
+                    fontSize: 18
+                )
 
                 statLine(
-                    text: data.elapsedText,
+                    text: liveElapsedText,
                     systemImage: "hourglass.bottomhalf.filled",
                     color: Color(red: 0xCB/255, green: 0xD5/255, blue: 0xE1/255),
                     fontSize: 19
                 )
 
                 statLine(
-                    text: heartRateStreamer.latestBpm.map { "\(Int($0))" } ?? "--",
+                    text: connector.latestBpm.map { "\(Int($0))" } ?? "--",
                     systemImage: "heart.fill",
                     color: hrColor,
                     fontSize: 21
@@ -198,37 +173,45 @@ struct ContentView: View {
             if !isLiftingCompleteMode {
                 // Simple action button
                 Button(action: {
-                    if let action = primaryAction {
+                    if let action = primaryAction, !connector.isActionPending {
                         connector.sendIntent(action: action)
                     }
                 }) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(startButtonTitle)
-                            .font(displayFontName(size: 18))
-                            .foregroundColor(buttonContentColor)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    ZStack {
+                        if connector.isActionPending {
+                            ProgressView()
+                                .tint(buttonContentColor)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        } else {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(startButtonTitle)
+                                    .font(displayFontName(size: 18))
+                                    .foregroundColor(buttonContentColor)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Spacer().frame(height: 8)
+                                Spacer().frame(height: 8)
 
-                        Text(repsWeightText)
-                            .font(displayFontName(size: 24))
-                            .foregroundColor(buttonContentColor)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(repsWeightText)
+                                    .font(displayFontName(size: 24))
+                                    .foregroundColor(buttonContentColor)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.leading, 10)
+                            .padding(.trailing, 6)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
                     }
-                    .padding(.leading, 10)
-                    .padding(.trailing, 6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
                 .background(buttonBackgroundColor)
-                .disabled(primaryAction == nil)
+                .disabled(primaryAction == nil || connector.isActionPending)
             } else {
                 // Rep picker + complete button
                 Button(action: {
-                    if let set = currentSet, let template = completeTemplate {
+                    if let set = currentSet, let template = completeTemplate, !connector.isActionPending {
                         var action = template
                         action.setID = set.id
                         action.reps = Int32(selectedReps)
@@ -236,49 +219,57 @@ struct ContentView: View {
                         connector.sendIntent(action: action)
                     }
                 }) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(completeButtonText)
-                            .font(displayFontName(size: 18))
-                            .foregroundColor(buttonContentColor)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-
-                        Spacer().frame(height: 6)
-
-                        HStack(alignment: .center, spacing: 0) {
-                            // Rep picker using Digital Crown
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(buttonContentColor.opacity(0.45), lineWidth: 1)
-                                    .frame(width: 40, height: 94)
-
-                                Text("\(selectedReps)")
-                                    .font(displayFontName(size: 40))
+                    ZStack {
+                        if connector.isActionPending {
+                            ProgressView()
+                                .tint(buttonContentColor)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        } else {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(completeButtonText)
+                                    .font(displayFontName(size: 18))
                                     .foregroundColor(buttonContentColor)
-                                    .lineLimit(1)
-                            }
-                            .frame(width: 40, height: 94)
-                            .focusable()
-                            .digitalCrownRotation(
-                                detent: $selectedReps,
-                                from: 0,
-                                through: repOptionMax,
-                                by: 1,
-                                sensitivity: .medium
-                            )
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
 
-                            Text(weightOnlyText)
-                                .font(displayFontName(size: 28))
-                                .foregroundColor(buttonContentColor)
-                                .lineLimit(1)
+                                Spacer().frame(height: 6)
+
+                                HStack(alignment: .center, spacing: 0) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(buttonContentColor.opacity(0.45), lineWidth: 1)
+                                            .frame(width: 40, height: 94)
+
+                                        Text("\(selectedReps)")
+                                            .font(displayFontName(size: 40))
+                                            .foregroundColor(buttonContentColor)
+                                            .lineLimit(1)
+                                    }
+                                    .frame(width: 40, height: 94)
+                                    .focusable()
+                                    .digitalCrownRotation(
+                                        detent: $selectedReps,
+                                        from: 0,
+                                        through: repOptionMax,
+                                        by: 1,
+                                        sensitivity: .medium
+                                    )
+
+                                    Text(weightOnlyText)
+                                        .font(displayFontName(size: 28))
+                                        .foregroundColor(buttonContentColor)
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .padding(.leading, 10)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.leading, 10)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
                 .background(buttonBackgroundColor)
+                .disabled(connector.isActionPending)
                 .onAppear {
                     selectedReps = initialReps
                 }
@@ -366,9 +357,78 @@ struct ContentView: View {
 // MARK: - Helpers
 
 private func formatNowClock() -> String {
+    formatNowClock(Date())
+}
+
+private func formatNowClock(_ date: Date) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "h:mm a"
-    return formatter.string(from: Date())
+    return formatter.string(from: date)
+}
+
+private func deriveElapsedText(
+    _ snapshot: Workout_V1_WearWorkoutSnapshot,
+    currentApiNowMs: Int64,
+    hideSeconds: Bool = false
+) -> String {
+    guard snapshot.workoutStartTime > 0 else { return snapshot.elapsedText }
+    let elapsedSeconds = Int(max(0, (currentApiNowMs - (snapshot.workoutStartTime * 1000)) / 1000))
+    return hideSeconds ? formatElapsedDurationNoSeconds(elapsedSeconds) : formatElapsedDuration(elapsedSeconds)
+}
+
+private func deriveYouTimerText(
+    _ snapshot: Workout_V1_WearWorkoutSnapshot,
+    currentApiNowMs: Int64
+) -> String {
+    switch snapshot.state {
+    case .lifting:
+        guard snapshot.activeStartedAt > 0 else { return snapshot.youCard.timerText }
+        let elapsedSeconds = Int(max(0, (currentApiNowMs - (snapshot.activeStartedAt * 1000)) / 1000))
+        return formatDuration(elapsedSeconds)
+    case .resting:
+        guard snapshot.restUntil > 0 else { return snapshot.youCard.timerText }
+        let restUntilMs = snapshot.restUntil * 1000
+        if snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs {
+            let elapsedSeconds = Int(max(0, (currentApiNowMs - restUntilMs) / 1000))
+            return "-\(formatDuration(elapsedSeconds))"
+        }
+        let remainingSeconds = Int(max(0, (restUntilMs - currentApiNowMs) / 1000))
+        return formatDuration(remainingSeconds)
+    case .ready:
+        guard snapshot.youCard.stateLabel == "Yapping", snapshot.lastRestEnd > 0 else {
+            return snapshot.youCard.timerText
+        }
+        let elapsedSeconds = Int(max(0, (currentApiNowMs - (snapshot.lastRestEnd * 1000)) / 1000))
+        return "-\(formatDuration(elapsedSeconds))"
+    default:
+        return snapshot.youCard.timerText
+    }
+}
+
+private func formatDuration(_ totalSeconds: Int) -> String {
+    let minutes = totalSeconds / 60
+    let seconds = totalSeconds % 60
+    return String(format: "%d:%02d", minutes, seconds)
+}
+
+private func formatElapsedDuration(_ totalSeconds: Int) -> String {
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let seconds = totalSeconds % 60
+    if hours > 0 {
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+    return String(format: "%d:%02d", minutes, seconds)
+}
+
+private func formatElapsedDurationNoSeconds(_ totalSeconds: Int) -> String {
+    let totalMinutes = totalSeconds / 60
+    let hours = totalMinutes / 60
+    let minutes = totalMinutes % 60
+    if hours > 0 {
+        return String(format: "%d:%02d", hours, minutes)
+    }
+    return "\(minutes) min"
 }
 
 private func watchStateAccentColor(_ stateLabel: String) -> Color? {
