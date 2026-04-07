@@ -37,16 +37,13 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
     func endSessionIfActive() {
         guard let session = session else { return }
+        let builder = builder
         session.end()
-        builder?.endCollection(withEnd: Date()) { [weak self] _, error in
+        builder?.endCollection(withEnd: Date()) { _, error in
             if let error = error {
                 print("SchliftWatch: Failed to end workout collection: \(error)")
             }
-            self?.builder?.finishWorkout { _, error in
-                if let error = error {
-                    print("SchliftWatch: Failed to finish workout: \(error)")
-                }
-            }
+            builder?.discardWorkout()
         }
         self.session = nil
         self.builder = nil

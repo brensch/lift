@@ -145,12 +145,14 @@ struct ContentView: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .trailing)
 
-                statLine(
-                    text: currentClock,
-                    systemImage: "clock",
-                    color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
-                    fontSize: 18
-                )
+                if !liveYouTimerText.isEmpty {
+                    statLine(
+                        text: currentClock,
+                        systemImage: "clock",
+                        color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
+                        fontSize: 18
+                    )
+                }
 
                 statLine(
                     text: liveElapsedText,
@@ -461,32 +463,54 @@ private func heartRateColor(_ bpm: Double?) -> Color {
 }
 
 private func formatExerciseName(_ exercise: Workout_V1_Exercise?) -> String {
-    guard let exercise else { return "" }
+    guard let exercise = exercise else { return "" }
 
-    switch exercise.rawValue {
-    case 1:
-        return "Squat"
-    case 2:
-        return "Bench Press"
-    case 3:
-        return "Deadlift"
-    case 4:
-        return "Overhead Press"
-    case 5:
-        return "Barbell Row"
-    case 6:
-        return "Hip Thrust"
-    case 7:
-        return "Bulgarian Split Squat"
-    case 8:
-        return "Romanian Deadlift"
-    case 9:
-        return "Glute Bridge"
-    case 10:
-        return "Lunge"
-    case 11:
-        return "Leg Curl"
-    default:
+    return formatProtoExerciseName(String(describing: exercise))
+}
+
+private func formatProtoExerciseName(_ raw: String) -> String {
+    var name = raw.split(separator: ".").last.map(String.init) ?? raw
+    if name.contains("UNRECOGNIZED") || name.contains("unknown") {
         return ""
     }
+    if name.hasPrefix("EXERCISE_") {
+        name = String(name.dropFirst("EXERCISE_".count))
+    } else if name.hasPrefix("exercise") {
+        name = String(name.dropFirst("exercise".count))
+    }
+    if name.lowercased() == "unspecified" || name.isEmpty {
+        return ""
+    }
+
+    let words = splitExerciseNameWords(name)
+    return words.map { word in
+        guard let first = word.first else { return "" }
+        return first.uppercased() + word.dropFirst().lowercased()
+    }.joined(separator: " ")
+}
+
+private func splitExerciseNameWords(_ name: String) -> [String] {
+    var words: [String] = []
+    var current = ""
+
+    for character in name {
+        if character == "_" {
+            if !current.isEmpty {
+                words.append(current)
+                current = ""
+            }
+            continue
+        }
+        if character.isUppercase && !current.isEmpty {
+            words.append(current)
+            current = String(character)
+        } else {
+            current.append(character)
+        }
+    }
+
+    if !current.isEmpty {
+        words.append(current)
+    }
+    return words
 }
