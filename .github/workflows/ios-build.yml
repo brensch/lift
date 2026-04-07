@@ -41,8 +41,8 @@ jobs:
             echo "Proceeding with unsigned iOS build."
           fi
 
-      - name: Install xcodegen
-        run: brew install xcodegen
+      - name: Install iOS build tools
+        run: brew install buf swift-protobuf xcodegen
 
       - name: Install Flutter dependencies
         working-directory: app
@@ -95,9 +95,8 @@ jobs:
             echo "IOS_WATCH_PROFILE_NAME=$WATCH_PROFILE_NAME"
           } >> "$GITHUB_ENV"
 
-      - name: Ensure generated Swift proto directory exists
-        working-directory: app/ios
-        run: mkdir -p SchliftWatch/Generated
+      - name: Generate Swift protobuf files
+        run: make proto-swift
 
       - name: Regenerate Xcode project
         working-directory: app/ios
