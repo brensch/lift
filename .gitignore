@@ -34,3 +34,7 @@ aab/
 # Local secrets
 .env
 .env.*
+apple-signing/
+*.p12
+*.mobileprovision
+*.certSigningRequest
