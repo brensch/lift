@@ -1,0 +1,73 @@
+name: iOS Debug Compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      open_tmate:
+        description: "Open a tmate SSH session after setup"
+        required: true
+        type: boolean
+        default: false
+      build_runner:
+        description: "Also compile the iOS Runner scheme"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios-debug-compile:
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install iOS build tools
+        run: brew install buf swift-protobuf xcodegen
+
+      - name: Install Flutter dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Generate Swift protobuf files
+        run: make proto-swift
+
+      - name: Regenerate Xcode project
+        working-directory: app/ios
+        run: xcodegen generate
+
+      - name: Open tmate SSH session
+        if: ${{ inputs.open_tmate }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 60
+
+      - name: Compile watch app without signing
+        working-directory: app/ios
+        run: |
+          xcodebuild build \
+            -project Runner.xcodeproj \
+            -scheme SchliftWatch \
+            -destination "generic/platform=watchOS" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Compile iOS app without signing
+        if: ${{ inputs.build_runner }}
+        working-directory: app/ios
+        run: |
+          xcodebuild build \
+            -project Runner.xcodeproj \
+            -scheme Runner \
+            -destination "generic/platform=iOS" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO

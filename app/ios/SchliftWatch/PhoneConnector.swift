@@ -113,7 +113,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
         if path == WatchPaths.phoneToWearEnvelope {
             guard let data = message["data"] as? Data else { return }
-            guard let envelope = try? Workout_V1_PhoneToWearEnvelope(serializedData: data) else { return }
+            guard let envelope = try? Workout_V1_PhoneToWearEnvelope(serializedBytes: data) else { return }
             if case .snapshot(let snap) = envelope.payload {
                 DispatchQueue.main.async {
                     self.handleSnapshot(snap)
