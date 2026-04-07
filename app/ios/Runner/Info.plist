@@ -59,7 +59,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Schlift uses the camera to scan codes for app features that require camera input.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Schlift includes media libraries that may access the microphone; microphone input is only used when an app feature explicitly requires audio capture.</string>
+	<string>Schlift plays rest timer sounds through iOS audio APIs. Schlift does not record audio.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
