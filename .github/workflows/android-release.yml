@@ -92,42 +92,22 @@ jobs:
           path: app/build/wear/outputs/bundle/release/wear-release.aab
           if-no-files-found: error
 
-      - name: Upload phone bundle to Google Play internal testing track
+      - name: Upload phone bundle to Google Play testing tracks
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.brensch.schlift
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
-          track: internal
+          tracks: internal,beta
           status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone-internal
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone
 
-      - name: Upload phone bundle to Google Play open testing track
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.brensch.schlift
-          releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
-          track: beta
-          status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone-open
-
-      - name: Upload wear bundle to Google Play Wear OS internal testing track
+      - name: Upload wear bundle to Google Play Wear OS testing tracks
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.brensch.schlift
           releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
-          track: wear:qa
+          tracks: wear:qa,wear:beta
           status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear-internal
-
-      - name: Upload wear bundle to Google Play Wear OS open testing track
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.brensch.schlift
-          releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
-          track: wear:beta
-          status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear-open
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear
