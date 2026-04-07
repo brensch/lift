@@ -92,6 +92,16 @@ jobs:
           path: app/build/wear/outputs/bundle/release/wear-release.aab
           if-no-files-found: error
 
+      - name: Upload phone bundle to Google Play internal testing track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.brensch.schlift
+          releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone-internal
+
       - name: Upload phone bundle to Google Play open testing track
         uses: r0adkll/upload-google-play@v1
         with:
@@ -100,7 +110,17 @@ jobs:
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
           track: beta
           status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone-open
+
+      - name: Upload wear bundle to Google Play Wear OS internal testing track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.brensch.schlift
+          releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
+          track: wear:qa
+          status: completed
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear-internal
 
       - name: Upload wear bundle to Google Play Wear OS open testing track
         uses: r0adkll/upload-google-play@v1
@@ -110,4 +130,4 @@ jobs:
           releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
           track: wear:beta
           status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear
+          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear-open
