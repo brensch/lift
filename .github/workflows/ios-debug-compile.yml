@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   ios-debug-compile:
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 90
 
     steps:
@@ -31,6 +31,21 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Verify Xcode SDK
+        run: |
+          xcodebuild -version
+          ios_sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          watch_sdk="$(xcrun --sdk watchos --show-sdk-version)"
+          echo "iOS SDK: $ios_sdk"
+          echo "watchOS SDK: $watch_sdk"
+          case "$ios_sdk" in
+            26.*) ;;
+            *)
+              echo "Expected iOS 26 SDK or later, got $ios_sdk"
+              exit 1
+              ;;
+          esac
 
       - name: Install iOS build tools
         run: brew install buf swift-protobuf xcodegen

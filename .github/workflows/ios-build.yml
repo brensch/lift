@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-ios-release:
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       IOS_CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
@@ -28,6 +28,21 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Verify Xcode SDK
+        run: |
+          xcodebuild -version
+          ios_sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          watch_sdk="$(xcrun --sdk watchos --show-sdk-version)"
+          echo "iOS SDK: $ios_sdk"
+          echo "watchOS SDK: $watch_sdk"
+          case "$ios_sdk" in
+            26.*) ;;
+            *)
+              echo "Expected iOS 26 SDK or later, got $ios_sdk"
+              exit 1
+              ;;
+          esac
 
       - name: Decide signing mode
         id: signing-mode
