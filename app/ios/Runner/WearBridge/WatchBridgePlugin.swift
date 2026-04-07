@@ -58,6 +58,11 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
         case "isWatchAppOpenOnWatch":
             result(WatchBridgeManager.shared.isWatchAppOpenOnWatch())
 
+        case "getWatchClockSync":
+            WatchBridgeManager.shared.requestWatchClockSync { sync in
+                result(sync)
+            }
+
         default:
             result(FlutterMethodNotImplemented)
         }

@@ -95,6 +95,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         if let error = error {
             print("SchliftWatch: WCSession activation failed: \(error)")
         }
+        if activationState == .activated, !session.receivedApplicationContext.isEmpty {
+            handleIncomingMessage(session.receivedApplicationContext)
+        }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
@@ -106,10 +109,36 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         replyHandler([:])
     }
 
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        handleIncomingMessage(applicationContext)
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        handleIncomingMessage(userInfo)
+    }
+
     // MARK: - Private
 
     private func handleIncomingMessage(_ message: [String: Any]) {
         guard let path = message["path"] as? String else { return }
+
+        if path == WatchPaths.phoneToWearLaunch {
+            DispatchQueue.main.async {
+                self.setUIVisible(true)
+                self.sendHeartbeat()
+            }
+            return
+        }
+
+        if path == WatchPaths.phoneToWearClockSync {
+            guard let data = message["data"] as? Data,
+                  let requestId = String(data: data, encoding: .utf8) else {
+                return
+            }
+            let payload = "\(requestId):\(Int64(Date().timeIntervalSince1970 * 1000))"
+            sendToPhone(path: WatchPaths.wearToPhoneClockSync, data: Data(payload.utf8))
+            return
+        }
 
         if path == WatchPaths.phoneToWearEnvelope {
             guard let data = message["data"] as? Data else { return }
@@ -231,6 +260,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 enum WatchPaths {
     static let phoneToWearEnvelope = "/schlift/phone/envelope"
     static let phoneToWearLaunch = "/schlift/phone/launch"
+    static let phoneToWearClockSync = "/schlift/phone/clock_sync"
     static let wearToPhoneEnvelope = "/schlift/wear/envelope"
     static let wearToPhoneHeartbeat = "/schlift/wear/ui_heartbeat"
+    static let wearToPhoneClockSync = "/schlift/wear/clock_sync"
 }

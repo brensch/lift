@@ -9,11 +9,18 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     static let shared = WatchBridgeManager()
 
     private static let watchUiHeartbeatTtlMs: Int64 = 8_000
+    private static let phoneToWearEnvelopePath = "/schlift/phone/envelope"
+    private static let phoneToWearLaunchPath = "/schlift/phone/launch"
+    private static let phoneToWearClockSyncPath = "/schlift/phone/clock_sync"
+    private static let wearToPhoneEnvelopePath = "/schlift/wear/envelope"
+    private static let wearToPhoneUiHeartbeatPath = "/schlift/wear/ui_heartbeat"
+    private static let wearToPhoneClockSyncPath = "/schlift/wear/clock_sync"
 
     private var intentSink: FlutterEventSink?
     private var sensorSink: FlutterEventSink?
     private var pendingIntentPayloads: [Data] = []
     private var pendingSensorPayloads: [Data] = []
+    private var pendingClockSyncs: [String: (Int64) -> Void] = [:]
     private var lastWatchUiHeartbeatAtMs: Int64 = 0
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
@@ -53,9 +60,15 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         guard WCSession.default.isPaired else { return }
 
         let message: [String: Any] = [
-            "path": "/schlift/phone/envelope",
+            "path": WatchBridgeManager.phoneToWearEnvelopePath,
             "data": bytes.data,
         ]
+
+        do {
+            try WCSession.default.updateApplicationContext(message)
+        } catch {
+            print("SchliftWearBridge: Failed to update watch app context: \(error)")
+        }
 
         if WCSession.default.isReachable {
             WCSession.default.sendMessage(message, replyHandler: nil) { error in
@@ -88,7 +101,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
         // Send a launch message — watch's WCSessionDelegate will receive it
         if WCSession.default.isReachable {
-            let message: [String: Any] = ["path": "/schlift/phone/launch"]
+            let message: [String: Any] = ["path": WatchBridgeManager.phoneToWearLaunchPath]
             WCSession.default.sendMessage(message, replyHandler: { _ in
                 completion(true)
             }) { error in
@@ -96,9 +109,47 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
                 completion(false)
             }
         } else {
-            // Transfer user info as fallback — will be delivered when watch becomes reachable
-            WCSession.default.transferUserInfo(["launch": true])
-            completion(true)
+            WCSession.default.transferUserInfo(["path": WatchBridgeManager.phoneToWearLaunchPath])
+            completion(false)
+        }
+    }
+
+    func requestWatchClockSync(completion: @escaping ([String: Int64]?) -> Void) {
+        guard WCSession.default.activationState == .activated,
+              WCSession.default.isPaired,
+              WCSession.default.isReachable else {
+            completion(nil)
+            return
+        }
+
+        let requestId = UUID().uuidString
+        let sentAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+        let message: [String: Any] = [
+            "path": WatchBridgeManager.phoneToWearClockSyncPath,
+            "data": Data(requestId.utf8),
+        ]
+
+        queue.async {
+            self.pendingClockSyncs[requestId] = { watchTimeMs in
+                let receivedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+                completion([
+                    "watchTimeMs": watchTimeMs,
+                    "sentAtMs": sentAtMs,
+                    "receivedAtMs": receivedAtMs,
+                ])
+            }
+        }
+
+        WCSession.default.sendMessage(message, replyHandler: nil) { [weak self] error in
+            print("SchliftWearBridge: Failed clock sync request: \(error)")
+            self?.completeClockSync(requestId: requestId, watchTimeMs: nil, completion: completion)
+        }
+
+        queue.asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let strongSelf = self else { return }
+            if strongSelf.pendingClockSyncs.removeValue(forKey: requestId) != nil {
+                DispatchQueue.main.async { completion(nil) }
+            }
         }
     }
 
@@ -131,12 +182,26 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private func handleIncomingMessage(_ message: [String: Any]) {
         guard let path = message["path"] as? String else { return }
 
-        if path == "/schlift/wear/ui_heartbeat" {
+        if path == WatchBridgeManager.wearToPhoneUiHeartbeatPath {
             lastWatchUiHeartbeatAtMs = Int64(Date().timeIntervalSince1970 * 1000)
             return
         }
 
-        guard path == "/schlift/wear/envelope" else { return }
+        if path == WatchBridgeManager.wearToPhoneClockSyncPath {
+            guard let data = message["data"] as? Data,
+                  let payload = String(data: data, encoding: .utf8),
+                  let separator = payload.firstIndex(of: ":") else {
+                return
+            }
+            let requestId = String(payload[..<separator])
+            guard let watchTimeMs = Int64(String(payload[payload.index(after: separator)...])) else {
+                return
+            }
+            completeClockSync(requestId: requestId, watchTimeMs: watchTimeMs, completion: nil)
+            return
+        }
+
+        guard path == WatchBridgeManager.wearToPhoneEnvelopePath else { return }
         guard let data = message["data"] as? Data else { return }
 
         // Parse the envelope to determine if it's an intent or sensor batch.
@@ -154,6 +219,29 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             }
         } catch {
             print("SchliftWearBridge: Failed to parse wear envelope: \(error)")
+        }
+    }
+
+    private func completeClockSync(
+        requestId: String,
+        watchTimeMs: Int64?,
+        completion fallbackCompletion: (([String: Int64]?) -> Void)?
+    ) {
+        queue.async {
+            let pending = self.pendingClockSyncs.removeValue(forKey: requestId)
+            guard let pending = pending else {
+                if watchTimeMs == nil, let fallbackCompletion = fallbackCompletion {
+                    DispatchQueue.main.async { fallbackCompletion(nil) }
+                }
+                return
+            }
+            DispatchQueue.main.async {
+                if let watchTimeMs = watchTimeMs {
+                    pending(watchTimeMs)
+                } else {
+                    fallbackCompletion?(nil)
+                }
+            }
         }
     }
 
