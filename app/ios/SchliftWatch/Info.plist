@@ -40,6 +40,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Schlift uses your heart rate to track workout intensity and display real-time BPM on your watch.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Schlift uses HealthKit workout sessions on your watch to track active workouts and heart-rate data.</string>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>com.brensch.schlift</string>
 	<key>UIAppFonts</key>
