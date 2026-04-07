@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import glob
+import json
 import math
 import random
 
@@ -151,12 +152,20 @@ def draw_wobbly_text(
         cursor_x += advance
 
 
-def write_png_to_existing_size(master: Image.Image, path: Path) -> None:
+def write_png_to_existing_size(master: Image.Image, path: Path, *, opaque: bool = False) -> None:
     with Image.open(path) as existing:
         width, height = existing.size
 
     target = master.resize((width, height), Image.Resampling.LANCZOS)
+    if opaque:
+        target = target.convert("RGB")
     target.save(path, format="PNG", optimize=True)
+
+
+def write_png_at_size(master: Image.Image, path: Path, size: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    target = master.resize((size, size), Image.Resampling.LANCZOS)
+    target.convert("RGB").save(path, format="PNG", optimize=True)
 
 
 def write_ico(master: Image.Image, path: Path) -> None:
@@ -198,12 +207,15 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
 def main() -> None:
     repo_root = Path(__file__).resolve().parent.parent
     icon_master = draw_master_icon(1024)
+    apple_icon_master = draw_marketing_icon(1024)
 
     png_targets = collect_png_targets(repo_root)
     updated_files: set[Path] = set()
 
     for target in png_targets:
-        write_png_to_existing_size(icon_master, repo_root / target)
+        is_ios_icon = target.parts[:2] == ("app", "ios")
+        source = apple_icon_master if is_ios_icon else icon_master
+        write_png_to_existing_size(source, repo_root / target, opaque=is_ios_icon)
         updated_files.add(target)
 
     ico_path = repo_root / "app/windows/runner/resources/app_icon.ico"
@@ -227,6 +239,46 @@ def main() -> None:
             optimize=True,
         )
         updated_files.add(out_path.relative_to(repo_root))
+
+    watch_icon_dir = repo_root / "app/ios/SchliftWatch/Assets.xcassets/AppIcon.appiconset"
+    watch_icon_specs = [
+        {"idiom": "watch", "scale": "2x", "size": "24x24", "role": "notificationCenter", "subtype": "38mm", "pixels": 48},
+        {"idiom": "watch", "scale": "2x", "size": "27.5x27.5", "role": "notificationCenter", "subtype": "42mm", "pixels": 55},
+        {"idiom": "watch", "scale": "2x", "size": "29x29", "role": "companionSettings", "pixels": 58},
+        {"idiom": "watch", "scale": "3x", "size": "29x29", "role": "companionSettings", "pixels": 87},
+        {"idiom": "watch", "scale": "2x", "size": "40x40", "role": "appLauncher", "subtype": "38mm", "pixels": 80},
+        {"idiom": "watch", "scale": "2x", "size": "44x44", "role": "appLauncher", "subtype": "40mm", "pixels": 88},
+        {"idiom": "watch", "scale": "2x", "size": "50x50", "role": "appLauncher", "subtype": "44mm", "pixels": 100},
+        {"idiom": "watch", "scale": "2x", "size": "46x46", "role": "appLauncher", "subtype": "41mm", "pixels": 92},
+        {"idiom": "watch", "scale": "2x", "size": "51x51", "role": "appLauncher", "subtype": "45mm", "pixels": 102},
+        {"idiom": "watch", "scale": "2x", "size": "54x54", "role": "appLauncher", "subtype": "49mm", "pixels": 108},
+        {"idiom": "watch", "scale": "2x", "size": "86x86", "role": "quickLook", "subtype": "38mm", "pixels": 172},
+        {"idiom": "watch", "scale": "2x", "size": "98x98", "role": "quickLook", "subtype": "42mm", "pixels": 196},
+        {"idiom": "watch", "scale": "2x", "size": "108x108", "role": "quickLook", "subtype": "44mm", "pixels": 216},
+        {"idiom": "watch", "scale": "2x", "size": "117x117", "role": "quickLook", "subtype": "45mm", "pixels": 234},
+        {"idiom": "watch", "scale": "2x", "size": "129x129", "role": "quickLook", "subtype": "49mm", "pixels": 258},
+        {"idiom": "watch-marketing", "scale": "1x", "size": "1024x1024", "pixels": 1024},
+    ]
+    watch_images: list[dict[str, str]] = []
+    for spec in watch_icon_specs:
+        pixels = spec.pop("pixels")
+        role = spec.get("role", "marketing")
+        subtype = f"-{spec['subtype']}" if "subtype" in spec else ""
+        filename = f"Icon-Watch-{role}{subtype}-{pixels}.png"
+        write_png_at_size(apple_icon_master, watch_icon_dir / filename, pixels)
+        watch_images.append({k: v for k, v in spec.items()} | {"filename": filename})
+        updated_files.add((watch_icon_dir / filename).relative_to(repo_root))
+
+    contents = {
+        "images": watch_images,
+        "info": {
+            "author": "xcode",
+            "version": 1,
+        },
+    }
+    watch_contents = watch_icon_dir / "Contents.json"
+    overwrite_text(watch_contents, json.dumps(contents, indent=2) + "\n")
+    updated_files.add(watch_contents.relative_to(repo_root))
 
     background_xml = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
