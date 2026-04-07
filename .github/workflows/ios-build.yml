@@ -102,6 +102,10 @@ jobs:
         working-directory: app/ios
         run: xcodegen generate
 
+      - name: Install CocoaPods dependencies
+        working-directory: app/ios
+        run: pod install
+
       - name: Prepare CI export options
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app/ios
@@ -124,7 +128,7 @@ jobs:
           IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
         run: |
           xcodebuild archive \
-            -project ios/Runner.xcodeproj \
+            -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
             -destination "generic/platform=iOS" \
