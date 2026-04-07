@@ -83,7 +83,7 @@ struct ContentView: View {
         primaryAction: Workout_V1_WearAction?
     ) -> some View {
         let isAmrap = currentSet?.isAmrap ?? false
-        let exerciseName = formatExerciseName(currentSet?.exercise.name ?? "")
+        let exerciseName = formatExerciseName(currentSet?.exercise)
         let repsWeightText: String = {
             guard let set = currentSet else { return "" }
             if isAmrap {
@@ -460,10 +460,33 @@ private func heartRateColor(_ bpm: Double?) -> Color {
     }
 }
 
-private func formatExerciseName(_ raw: String) -> String {
-    raw.replacingOccurrences(of: "EXERCISE_", with: "")
-        .lowercased()
-        .split(separator: "_")
-        .map { $0.prefix(1).uppercased() + $0.dropFirst() }
-        .joined(separator: " ")
+private func formatExerciseName(_ exercise: Workout_V1_Exercise?) -> String {
+    guard let exercise else { return "" }
+
+    switch exercise.rawValue {
+    case 1:
+        return "Squat"
+    case 2:
+        return "Bench Press"
+    case 3:
+        return "Deadlift"
+    case 4:
+        return "Overhead Press"
+    case 5:
+        return "Barbell Row"
+    case 6:
+        return "Hip Thrust"
+    case 7:
+        return "Bulgarian Split Squat"
+    case 8:
+        return "Romanian Deadlift"
+    case 9:
+        return "Glute Bridge"
+    case 10:
+        return "Lunge"
+    case 11:
+        return "Leg Curl"
+    default:
+        return ""
+    }
 }
