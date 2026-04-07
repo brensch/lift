@@ -56,6 +56,10 @@
 	<string>Schlift reads health data to avoid duplicate workout entries</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Schlift saves your completed workouts to Apple Health</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Schlift uses the camera to scan codes for app features that require camera input.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Schlift includes media libraries that may access the microphone; microphone input is only used when an app feature explicitly requires audio capture.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
