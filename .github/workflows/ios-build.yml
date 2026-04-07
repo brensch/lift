@@ -15,6 +15,9 @@ jobs:
       IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
       IOS_APP_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISION_PROFILE_BASE64 }}
       IOS_WATCH_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_WATCH_PROVISION_PROFILE_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
 
     steps:
       - name: Checkout
@@ -40,6 +43,18 @@ jobs:
           if [ "$signing_ready" = false ]; then
             echo "Proceeding with unsigned iOS build."
           fi
+
+      - name: Decide App Store Connect upload mode
+        id: app-store-connect-mode
+        run: |
+          upload_ready=true
+          for name in APP_STORE_CONNECT_KEY_ID APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_PRIVATE_KEY_BASE64; do
+            if [ -z "${!name}" ]; then
+              echo "Missing App Store Connect secret: $name"
+              upload_ready=false
+            fi
+          done
+          echo "enabled=$upload_ready" >> "$GITHUB_OUTPUT"
 
       - name: Install iOS build tools
         run: brew install buf swift-protobuf xcodegen
@@ -153,6 +168,34 @@ jobs:
           name: ios-release-ipa
           path: app/build/ios/ipa/*.ipa
           if-no-files-found: error
+
+      - name: Install App Store Connect API key
+        if: steps.signing-mode.outputs.enabled == 'true' && steps.app-store-connect-mode.outputs.enabled == 'true'
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ env.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ env.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+        run: |
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY_BASE64" | base64 --decode > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+
+      - name: Upload IPA to App Store Connect
+        if: steps.signing-mode.outputs.enabled == 'true' && steps.app-store-connect-mode.outputs.enabled == 'true'
+        working-directory: app
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ env.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ env.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          IPA_PATH="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -print -quit)"
+          if [ -z "$IPA_PATH" ]; then
+            echo "No IPA found under build/ios/ipa"
+            exit 1
+          fi
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
 
       - name: Build unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'
