@@ -125,6 +125,20 @@ jobs:
             echo "IOS_WATCH_PROFILE_NAME=$WATCH_PROFILE_NAME"
           } >> "$GITHUB_ENV"
 
+          echo "App provisioning profile entitlements:"
+          /usr/libexec/PlistBuddy -c "Print :Entitlements" "$APP_PROFILE_PLIST"
+
+          if ! /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$APP_PROFILE_PLIST" | grep -Fx "${APPLE_TEAM_ID}.com.brensch.schlift"; then
+            echo "Provisioning profile application-identifier does not match ${APPLE_TEAM_ID}.com.brensch.schlift"
+            exit 1
+          fi
+
+          if ! /usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.developer.associated-domains" "$APP_PROFILE_PLIST" >/dev/null 2>&1; then
+            echo "Provisioning profile is missing com.apple.developer.associated-domains."
+            echo "Enable Associated Domains for App ID com.brensch.schlift in Apple Developer, then regenerate the App Store provisioning profile and update IOS_APP_PROVISION_PROFILE_BASE64."
+            exit 1
+          fi
+
       - name: Generate Swift protobuf files
         run: make proto-swift
 
@@ -172,7 +186,6 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/ios/archive/Runner.xcarchive \
-            CODE_SIGN_ENTITLEMENTS="ios/Runner/Runner.entitlements" \
             APPLE_TEAM_ID="$APPLE_TEAM_ID" \
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
             IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME"
