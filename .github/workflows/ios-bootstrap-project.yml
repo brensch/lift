@@ -1,0 +1,79 @@
+name: iOS Bootstrap Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-ios-project:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install iOS build tools
+        run: brew install buf swift-protobuf xcodegen
+
+      - name: Install xcodeproj gem
+        run: gem install xcodeproj --no-document
+
+      - name: Install Flutter dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Generate Swift protobuf files
+        run: make proto-swift
+
+      - name: Generate Xcode project
+        working-directory: app/ios
+        run: xcodegen generate
+
+      - name: Set Xcode target capabilities
+        working-directory: app/ios
+        run: |
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          project = Xcodeproj::Project.open('Runner.xcodeproj')
+          target_attributes = project.root_object.attributes['TargetAttributes'] ||= {}
+
+          runner = project.targets.find { |t| t.name == 'Runner' }
+          raise 'Runner target not found' unless runner
+          runner_attrs = target_attributes[runner.uuid] ||= {}
+          runner_attrs['ProvisioningStyle'] = 'Manual'
+          runner_caps = runner_attrs['SystemCapabilities'] ||= {}
+          runner_caps['com.apple.HealthKit'] = { 'enabled' => 1 }
+          runner_caps['com.apple.SafariKeychain'] = { 'enabled' => 1 }
+
+          watch = project.targets.find { |t| t.name == 'SchliftWatch' }
+          raise 'SchliftWatch target not found' unless watch
+          watch_attrs = target_attributes[watch.uuid] ||= {}
+          watch_attrs['ProvisioningStyle'] = 'Manual'
+          watch_caps = watch_attrs['SystemCapabilities'] ||= {}
+          watch_caps['com.apple.HealthKit'] = { 'enabled' => 1 }
+
+          project.save
+          RUBY
+
+      - name: Verify generated project capabilities
+        working-directory: app/ios
+        run: |
+          grep -n "SystemCapabilities = {" Runner.xcodeproj/project.pbxproj
+          grep -n "com.apple.SafariKeychain = {" Runner.xcodeproj/project.pbxproj
+          grep -n "com.apple.HealthKit = {" Runner.xcodeproj/project.pbxproj
+
+      - name: Upload generated Runner.xcodeproj
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-xcodeproj
+          path: app/ios/Runner.xcodeproj
+          if-no-files-found: error
