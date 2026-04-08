@@ -3,307 +3,546 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
-		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
-		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
-		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
-		A1B2C3D41234567800SOUNDS /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D51234567800SOUNDS /* sounds */; };
-		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
-		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
-		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C129A9FB18F81555600E71B3 /* RunnerTests.swift */; };
+		0512486446519281E28F1B8A /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
+		2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
+		2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		34ED2D9264A9484E2CD750EE /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 56FCCA0B02AD162D3D1A6632 /* SwiftProtobuf */; };
+		3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
+		3D1B69E6E6E41BC0CA2F07D6 /* sound_bell_high.wav in Resources */ = {isa = PBXBuildFile; fileRef = A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */; };
+		4BFA56509017551A55367603 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
+		5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9240986A58A7473DBCC0828C /* PhoneConnector.swift */; };
+		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
+		66BD0871C37660FA6096B4E3 /* sound_retro_arcade.wav in Resources */ = {isa = PBXBuildFile; fileRef = 640B490B81349149F2547907 /* sound_retro_arcade.wav */; };
+		694497500D2DB1A222A36DCD /* sound_elevator_ding.wav in Resources */ = {isa = PBXBuildFile; fileRef = 9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */; };
+		6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */; };
+		7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */; };
+		79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
+		83BB02C86913F697A5CE5427 /* sound_success_rise.wav in Resources */ = {isa = PBXBuildFile; fileRef = 556437B0D22597E83CE168E9 /* sound_success_rise.wav */; };
+		8546F4930CC1BA59425F50DD /* sound_boxing_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */; };
+		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
+		96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */; };
+		9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C0B02B8A3792430DE97AC0B /* Assets.xcassets */; };
+		A0E50E0216FDA99832AF42F1 /* sound_chord_strum.wav in Resources */ = {isa = PBXBuildFile; fileRef = 160F374E2E877285D06DBB04 /* sound_chord_strum.wav */; };
+		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
+		B85CD84E2281AB98BD8A40A0 /* sound_dojo_gong.wav in Resources */ = {isa = PBXBuildFile; fileRef = 024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */; };
+		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
+		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
+		C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A421681FD4BE14DDF968D0D /* AppDelegate.swift */; };
+		C7DDABD8487D5ED6706AE62C /* HeartRateStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */; };
+		CCF04A21D61D51C1307C17D2 /* sound_crystal_shine.wav in Resources */ = {isa = PBXBuildFile; fileRef = FB4E2177508418730B143F90 /* sound_crystal_shine.wav */; };
+		D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
+		D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
+		DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 510043DBEC3442DBC23147B8 /* Assets.xcassets */; };
+		DE9B466CFF96ABA4D7B1C895 /* sound_morning_dew.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3EB2394F56D082D799844284 /* sound_morning_dew.wav */; };
+		E71E24BC7C805F70F56B0811 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 619E4DB7FFFAEAF2006D3497 /* SwiftProtobuf */; };
+		E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */; };
+		E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */; };
+		EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
+		ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */; };
+		F94353DFBE9508EDA357A6A9 /* sound_classic_beep.wav in Resources */ = {isa = PBXBuildFile; fileRef = A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */; };
+		FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
+		FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		331C8085294A63A400263BE5 /* PBXContainerItemProxy */ = {
+		5AC12041E357B48BFFCB4689 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			containerPortal = 5FC4EA95F23E6A8CF0BD7276 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
+			remoteGlobalIDString = 9CD2564376257B68352FF5BC;
+			remoteInfo = SchliftWatch;
+		};
+		979A20949DB7465AFE66261A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5FC4EA95F23E6A8CF0BD7276 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0CE8B55E2312A581679889BF;
 			remoteInfo = Runner;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
+		2CC0B055E26CE73DC5933585 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
 			files = (
+				2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */,
 			);
-			name = "Embed Frameworks";
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
-		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
-		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
-		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
-		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
-		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
-		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
-		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		97C146FB1CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A1B2C3D51234567800SOUNDS /* sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = sounds; sourceTree = "<group>"; };
+		024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_dojo_gong.wav; sourceTree = "<group>"; };
+		0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateStreamer.swift; sourceTree = "<group>"; };
+		11B240A653CCF4590B0EA9CC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		160F374E2E877285D06DBB04 /* sound_chord_strum.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_chord_strum.wav; sourceTree = "<group>"; };
+		1BA5CF54A368DD151691BD9F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		1C0B02B8A3792430DE97AC0B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2369EE1B891E190DF2D26271 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Variable.ttf"; sourceTree = "<group>"; };
+		2BA101BC039C30FFF53AA926 /* workout.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = workout.pb.swift; sourceTree = "<group>"; };
+		3EB2394F56D082D799844284 /* sound_morning_dew.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_morning_dew.wav; sourceTree = "<group>"; };
+		3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SchliftWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		510043DBEC3442DBC23147B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		556437B0D22597E83CE168E9 /* sound_success_rise.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_success_rise.wav; sourceTree = "<group>"; };
+		5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_boxing_bell.wav; sourceTree = "<group>"; };
+		610ACADC6746B84139F5257E /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
+		640B490B81349149F2547907 /* sound_retro_arcade.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_retro_arcade.wav; sourceTree = "<group>"; };
+		68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionManager.swift; sourceTree = "<group>"; };
+		694BB823ADF1C3067C48A654 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgePlugin.swift; sourceTree = "<group>"; };
+		7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		8675EB0B800687D68D206C6C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		9240986A58A7473DBCC0828C /* PhoneConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnector.swift; sourceTree = "<group>"; };
+		9A421681FD4BE14DDF968D0D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		9BFFD28DDBB97D71080156CC /* wearable.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wearable.pb.swift; sourceTree = "<group>"; };
+		9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_elevator_ding.wav; sourceTree = "<group>"; };
+		A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_classic_beep.wav; sourceTree = "<group>"; };
+		A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_bell_high.wav; sourceTree = "<group>"; };
+		ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = auth.pb.swift; sourceTree = "<group>"; };
+		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B51B61E8EB9ED1721D316467 /* settings.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = settings.pb.swift; sourceTree = "<group>"; };
+		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
+		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
+		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
+		E0856CC1A3E00E1DFC68F89A /* group.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = group.pb.swift; sourceTree = "<group>"; };
+		E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgeManager.swift; sourceTree = "<group>"; };
+		F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchliftWatchApp.swift; sourceTree = "<group>"; };
+		FB4E2177508418730B143F90 /* sound_crystal_shine.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_crystal_shine.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		97C146EB1CF9000F007C117D /* Frameworks */ = {
+		8B7B0841CA3D43EBD7058960 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34ED2D9264A9484E2CD750EE /* SwiftProtobuf in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C4568360E2F1A7AED411251 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E71E24BC7C805F70F56B0811 /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		331C8082294A63A400263BE5 /* RunnerTests */ = {
+		05D9A16B876157F93400D0B8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				331C807B294A618700263BE5 /* RunnerTests.swift */,
-			);
-			path = RunnerTests;
-			sourceTree = "<group>";
-		};
-		9740EEB11CF90186004384FC /* Flutter */ = {
-			isa = PBXGroup;
-			children = (
-				3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */,
-				9740EEB21CF90195004384FC /* Debug.xcconfig */,
-				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
-				9740EEB31CF90195004384FC /* Generated.xcconfig */,
-			);
-			name = Flutter;
-			sourceTree = "<group>";
-		};
-		97C146E51CF9000F007C117D = {
-			isa = PBXGroup;
-			children = (
-				9740EEB11CF90186004384FC /* Flutter */,
-				97C146F01CF9000F007C117D /* Runner */,
-				97C146EF1CF9000F007C117D /* Products */,
-				331C8082294A63A400263BE5 /* RunnerTests */,
-			);
-			sourceTree = "<group>";
-		};
-		97C146EF1CF9000F007C117D /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				97C146EE1CF9000F007C117D /* Runner.app */,
-				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				B2E448C1951CDAF54DC87758 /* Runner.app */,
+				48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */,
+				3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		97C146F01CF9000F007C117D /* Runner */ = {
+		0F581CC3412D2F2F02AF1463 /* Runner */ = {
 			isa = PBXGroup;
 			children = (
-				97C146FA1CF9000F007C117D /* Main.storyboard */,
-				97C146FD1CF9000F007C117D /* Assets.xcassets */,
-				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
-				97C147021CF9000F007C117D /* Info.plist */,
-				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
-				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
-				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
-				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
-				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
-				A1B2C3D51234567800SOUNDS /* sounds */,
+				9A421681FD4BE14DDF968D0D /* AppDelegate.swift */,
+				510043DBEC3442DBC23147B8 /* Assets.xcassets */,
+				DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */,
+				7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */,
+				610ACADC6746B84139F5257E /* Runner-Bridging-Header.h */,
+				2369EE1B891E190DF2D26271 /* SceneDelegate.swift */,
+				F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */,
+				AE2A21C9C9BF6449C319D76B /* Main.storyboard */,
+				D205003FCD234D119F5482BD /* sounds */,
+				3B63DE885A3277CAA8D6B916 /* WearBridge */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		179A2E274ED7284ECD3564E0 /* workout */ = {
+			isa = PBXGroup;
+			children = (
+				1C9C6F8B8A6637A2A86E298C /* v1 */,
+			);
+			path = workout;
+			sourceTree = "<group>";
+		};
+		1C9C6F8B8A6637A2A86E298C /* v1 */ = {
+			isa = PBXGroup;
+			children = (
+				ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */,
+				E0856CC1A3E00E1DFC68F89A /* group.pb.swift */,
+				B51B61E8EB9ED1721D316467 /* settings.pb.swift */,
+				9BFFD28DDBB97D71080156CC /* wearable.pb.swift */,
+				2BA101BC039C30FFF53AA926 /* workout.pb.swift */,
+			);
+			path = v1;
+			sourceTree = "<group>";
+		};
+		255F1CC48DAF4C9EEF8C9938 /* RunnerTests */ = {
+			isa = PBXGroup;
+			children = (
+				C129A9FB18F81555600E71B3 /* RunnerTests.swift */,
+			);
+			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		3B63DE885A3277CAA8D6B916 /* WearBridge */ = {
+			isa = PBXGroup;
+			children = (
+				E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */,
+				6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */,
+			);
+			path = WearBridge;
+			sourceTree = "<group>";
+		};
+		813DA9EE07BC3B30725BF5B2 = {
+			isa = PBXGroup;
+			children = (
+				F107FD69CE5AF121C238B950 /* Flutter */,
+				0F581CC3412D2F2F02AF1463 /* Runner */,
+				255F1CC48DAF4C9EEF8C9938 /* RunnerTests */,
+				D0DC4A58112C5020CF38DD33 /* SchliftWatch */,
+				05D9A16B876157F93400D0B8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		94944B13DDD876F1DF397D9D /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */,
+				B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		D0DC4A58112C5020CF38DD33 /* SchliftWatch */ = {
+			isa = PBXGroup;
+			children = (
+				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
+				C791F424CC08582321BD3041 /* ContentView.swift */,
+				0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */,
+				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
+				F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */,
+				68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */,
+				94944B13DDD876F1DF397D9D /* Fonts */,
+				F2578023A451A1B05FF76B68 /* Generated */,
+			);
+			path = SchliftWatch;
+			sourceTree = "<group>";
+		};
+		D205003FCD234D119F5482BD /* sounds */ = {
+			isa = PBXGroup;
+			children = (
+				A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */,
+				5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */,
+				160F374E2E877285D06DBB04 /* sound_chord_strum.wav */,
+				A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */,
+				FB4E2177508418730B143F90 /* sound_crystal_shine.wav */,
+				024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */,
+				9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */,
+				3EB2394F56D082D799844284 /* sound_morning_dew.wav */,
+				640B490B81349149F2547907 /* sound_retro_arcade.wav */,
+				556437B0D22597E83CE168E9 /* sound_success_rise.wav */,
+			);
+			path = sounds;
+			sourceTree = "<group>";
+		};
+		F107FD69CE5AF121C238B950 /* Flutter */ = {
+			isa = PBXGroup;
+			children = (
+				694BB823ADF1C3067C48A654 /* Debug.xcconfig */,
+				1BA5CF54A368DD151691BD9F /* Release.xcconfig */,
+			);
+			path = Flutter;
+			sourceTree = "<group>";
+		};
+		F2578023A451A1B05FF76B68 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				179A2E274ED7284ECD3564E0 /* workout */,
+			);
+			path = Generated;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		331C8080294A63A400263BE5 /* RunnerTests */ = {
+		0CE8B55E2312A581679889BF /* Runner */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
+			buildConfigurationList = 1C8B6CAA696D8F432715C5A8 /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
-				331C807D294A63A400263BE5 /* Sources */,
-				331C807F294A63A400263BE5 /* Resources */,
+				CAB78D03B2D69E02F565DA93 /* Flutter Build */,
+				D735B3CFE9B0688D9736E917 /* Sources */,
+				AF3954250A8A50E99B88AFA5 /* Resources */,
+				8B7B0841CA3D43EBD7058960 /* Frameworks */,
+				2CC0B055E26CE73DC5933585 /* Embed Watch Content */,
+				EE278657219F7FCB934DC8BF /* Thin Binary */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				331C8086294A63A400263BE5 /* PBXTargetDependency */,
+				626CE82117F60184E96C28DB /* PBXTargetDependency */,
+			);
+			name = Runner;
+			packageProductDependencies = (
+				56FCCA0B02AD162D3D1A6632 /* SwiftProtobuf */,
+			);
+			productName = Runner;
+			productReference = B2E448C1951CDAF54DC87758 /* Runner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9CD2564376257B68352FF5BC /* SchliftWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 80DB97DF94BB5A28BDE5DCC0 /* Build configuration list for PBXNativeTarget "SchliftWatch" */;
+			buildPhases = (
+				6457411C00248C9A3A274F02 /* Sources */,
+				516B65F4FA90CE0B54DE132F /* Resources */,
+				9C4568360E2F1A7AED411251 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SchliftWatch;
+			packageProductDependencies = (
+				619E4DB7FFFAEAF2006D3497 /* SwiftProtobuf */,
+			);
+			productName = SchliftWatch;
+			productReference = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		ABAFB01E7FEA9C1DB0CE46CE /* RunnerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E4B487D78CD299B2286DE782 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
+			buildPhases = (
+				ACA1F3DE67878150D3C72EC1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1BDCC358D5033CC24618A73 /* PBXTargetDependency */,
 			);
 			name = RunnerTests;
 			productName = RunnerTests;
-			productReference = 331C8081294A63A400263BE5 /* RunnerTests.xctest */;
+			productReference = 48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		97C146ED1CF9000F007C117D /* Runner */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
-			buildPhases = (
-				9740EEB61CF901F6004384FC /* Run Script */,
-				97C146EA1CF9000F007C117D /* Sources */,
-				97C146EB1CF9000F007C117D /* Frameworks */,
-				97C146EC1CF9000F007C117D /* Resources */,
-				9705A1C41CF9048500538489 /* Embed Frameworks */,
-				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = Runner;
-			productName = Runner;
-			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
-			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		97C146E61CF9000F007C117D /* Project object */ = {
+		5FC4EA95F23E6A8CF0BD7276 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1510;
-				ORGANIZATIONNAME = "";
 				TargetAttributes = {
-					331C8080294A63A400263BE5 = {
-						CreatedOnToolsVersion = 14.0;
-						TestTargetID = 97C146ED1CF9000F007C117D;
+					0CE8B55E2312A581679889BF = {
+						DevelopmentTeam = "$(APPLE_TEAM_ID)";
+						ProvisioningStyle = Manual;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+							com.apple.SafariKeychain = {
+								enabled = 1;
+							};
+						};
 					};
-					97C146ED1CF9000F007C117D = {
-						CreatedOnToolsVersion = 7.3.1;
-						LastSwiftMigration = 1100;
+					9CD2564376257B68352FF5BC = {
+						DevelopmentTeam = "$(APPLE_TEAM_ID)";
+						ProvisioningStyle = Manual;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
+					};
+					ABAFB01E7FEA9C1DB0CE46CE = {
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */;
-			compatibilityVersion = "Xcode 9.3";
+			buildConfigurationList = 987220A47DC5D93D17710971 /* Build configuration list for PBXProject "Runner" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = 97C146E51CF9000F007C117D;
-			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
+			mainGroup = 813DA9EE07BC3B30725BF5B2;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AFC00E92B7AF3561A47DB961 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 05D9A16B876157F93400D0B8 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				97C146ED1CF9000F007C117D /* Runner */,
-				331C8080294A63A400263BE5 /* RunnerTests */,
+				0CE8B55E2312A581679889BF /* Runner */,
+				ABAFB01E7FEA9C1DB0CE46CE /* RunnerTests */,
+				9CD2564376257B68352FF5BC /* SchliftWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		331C807F294A63A400263BE5 /* Resources */ = {
+		516B65F4FA90CE0B54DE132F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */,
+				6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */,
+				86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		97C146EC1CF9000F007C117D /* Resources */ = {
+		AF3954250A8A50E99B88AFA5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
-				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
-				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
-				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
-				A1B2C3D41234567800SOUNDS /* sounds in Resources */,
+				DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */,
+				ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */,
+				BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */,
+				3D1B69E6E6E41BC0CA2F07D6 /* sound_bell_high.wav in Resources */,
+				8546F4930CC1BA59425F50DD /* sound_boxing_bell.wav in Resources */,
+				A0E50E0216FDA99832AF42F1 /* sound_chord_strum.wav in Resources */,
+				F94353DFBE9508EDA357A6A9 /* sound_classic_beep.wav in Resources */,
+				CCF04A21D61D51C1307C17D2 /* sound_crystal_shine.wav in Resources */,
+				B85CD84E2281AB98BD8A40A0 /* sound_dojo_gong.wav in Resources */,
+				694497500D2DB1A222A36DCD /* sound_elevator_ding.wav in Resources */,
+				DE9B466CFF96ABA4D7B1C895 /* sound_morning_dew.wav in Resources */,
+				66BD0871C37660FA6096B4E3 /* sound_retro_arcade.wav in Resources */,
+				83BB02C86913F697A5CE5427 /* sound_success_rise.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
+		CAB78D03B2D69E02F565DA93 /* Flutter Build */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Flutter Build";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build\n";
+		};
+		EE278657219F7FCB934DC8BF /* Thin Binary */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
 			);
 			inputPaths = (
 				"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}",
 			);
 			name = "Thin Binary";
+			outputFileListPaths = (
+			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
-		};
-		9740EEB61CF901F6004384FC /* Run Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Run Script";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		331C807D294A63A400263BE5 /* Sources */ = {
+		6457411C00248C9A3A274F02 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
+				C7DDABD8487D5ED6706AE62C /* HeartRateStreamer.swift in Sources */,
+				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,
+				E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */,
+				96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */,
+				79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */,
+				FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */,
+				FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */,
+				0512486446519281E28F1B8A /* wearable.pb.swift in Sources */,
+				D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		97C146EA1CF9000F007C117D /* Sources */ = {
+		ACA1F3DE67878150D3C72EC1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
-				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
-				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D735B3CFE9B0688D9736E917 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */,
+				A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */,
+				5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */,
+				7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */,
+				E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */,
+				EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */,
+				2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */,
+				3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */,
+				D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */,
+				4BFA56509017551A55367603 /* workout.pb.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		331C8086294A63A400263BE5 /* PBXTargetDependency */ = {
+		626CE82117F60184E96C28DB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 97C146ED1CF9000F007C117D /* Runner */;
-			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+			target = 9CD2564376257B68352FF5BC /* SchliftWatch */;
+			targetProxy = 5AC12041E357B48BFFCB4689 /* PBXContainerItemProxy */;
+		};
+		A1BDCC358D5033CC24618A73 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0CE8B55E2312A581679889BF /* Runner */;
+			targetProxy = 979A20949DB7465AFE66261A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
+		AE2A21C9C9BF6449C319D76B /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				97C146FB1CF9000F007C117D /* Base */,
+				8675EB0B800687D68D206C6C /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
-		97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */ = {
+		F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				97C147001CF9000F007C117D /* Base */,
+				11B240A653CCF4590B0EA9CC /* Base */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
@@ -311,22 +550,76 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		249021D3217E4FDB00AE95B9 /* Profile */ = {
+		128D4961A4EEAA0944B16058 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = Debug;
+		};
+		29805E1DF6B7920DC260EAF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 694BB823ADF1C3067C48A654 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_BITCODE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_APP_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		59902B3437269D7EDB4D0AFA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -335,18 +628,18 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -354,100 +647,77 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
-			name = Profile;
+			name = Release;
 		};
-		249021D4217E4FDB00AE95B9 /* Profile */ = {
+		5D7A1B64955A53055FA7173A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = Runner/Info.plist;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
-				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
-			};
-			name = Profile;
-		};
-		331C8088294A63A400263BE5 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
-			};
-			name = Debug;
-		};
-		331C8089294A63A400263BE5 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
 			name = Release;
 		};
-		331C808A294A63A400263BE5 /* Profile */ = {
+		6D19B738415D34FC0679F96D /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
 			};
 			name = Profile;
 		};
-		97C147031CF9000F007C117D /* Debug */ = {
+		7CF6CFF957D9345E14BFCBE0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -456,24 +726,24 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -481,30 +751,36 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MTL_ENABLE_DEBUG_INFO = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
 			name = Debug;
 		};
-		97C147041CF9000F007C117D /* Release */ = {
+		99ACB5790A68BE0B2AD5F03D /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -513,18 +789,18 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -532,96 +808,228 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = iphoneos;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
+				SWIFT_VERSION = 5.0;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
-			name = Release;
+			name = Profile;
 		};
-		97C147061CF9000F007C117D /* Debug */ = {
+		A6D2F591E0A6A012D3F00F11 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
+			baseConfigurationReference = 1BA5CF54A368DD151691BD9F /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
 				ENABLE_BITCODE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_APP_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		AA83D29FCCA1A323B5923018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SchliftWatch/SchliftWatch.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SchliftWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.watchkitapp;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_WATCH_PROFILE_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
+		BAC022D65242F9D3C506D76B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SchliftWatch/SchliftWatch.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SchliftWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.watchkitapp;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_WATCH_PROFILE_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
+				TARGETED_DEVICE_FAMILY = 4;
 			};
 			name = Debug;
 		};
-		97C147071CF9000F007C117D /* Release */ = {
+		C51692B8B342770422198EF0 /* Profile */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
+			baseConfigurationReference = 1BA5CF54A368DD151691BD9F /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
 				ENABLE_BITCODE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_APP_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
-			name = Release;
+			name = Profile;
+		};
+		E9867229F575A1AE99F4A5DF /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = SchliftWatch/SchliftWatch.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SchliftWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.watchkitapp;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_WATCH_PROFILE_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Profile;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
+		1C8B6CAA696D8F432715C5A8 /* Build configuration list for PBXNativeTarget "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				331C8088294A63A400263BE5 /* Debug */,
-				331C8089294A63A400263BE5 /* Release */,
-				331C808A294A63A400263BE5 /* Profile */,
+				29805E1DF6B7920DC260EAF9 /* Debug */,
+				C51692B8B342770422198EF0 /* Profile */,
+				A6D2F591E0A6A012D3F00F11 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {
+		80DB97DF94BB5A28BDE5DCC0 /* Build configuration list for PBXNativeTarget "SchliftWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				97C147031CF9000F007C117D /* Debug */,
-				97C147041CF9000F007C117D /* Release */,
-				249021D3217E4FDB00AE95B9 /* Profile */,
+				BAC022D65242F9D3C506D76B /* Debug */,
+				E9867229F575A1AE99F4A5DF /* Profile */,
+				AA83D29FCCA1A323B5923018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */ = {
+		987220A47DC5D93D17710971 /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				97C147061CF9000F007C117D /* Debug */,
-				97C147071CF9000F007C117D /* Release */,
-				249021D4217E4FDB00AE95B9 /* Profile */,
+				7CF6CFF957D9345E14BFCBE0 /* Debug */,
+				99ACB5790A68BE0B2AD5F03D /* Profile */,
+				59902B3437269D7EDB4D0AFA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
+		};
+		E4B487D78CD299B2286DE782 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				128D4961A4EEAA0944B16058 /* Debug */,
+				6D19B738415D34FC0679F96D /* Profile */,
+				5D7A1B64955A53055FA7173A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AFC00E92B7AF3561A47DB961 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.28.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		56FCCA0B02AD162D3D1A6632 /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AFC00E92B7AF3561A47DB961 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+		619E4DB7FFFAEAF2006D3497 /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AFC00E92B7AF3561A47DB961 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 97C146E61CF9000F007C117D /* Project object */;
+	rootObject = 5FC4EA95F23E6A8CF0BD7276 /* Project object */;
 }

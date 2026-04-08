@@ -48,7 +48,7 @@ jobs:
           esac
 
       - name: Install iOS build tools
-        run: brew install buf swift-protobuf xcodegen
+        run: brew install buf swift-protobuf
 
       - name: Install Flutter dependencies
         working-directory: app
@@ -56,10 +56,6 @@ jobs:
 
       - name: Generate Swift protobuf files
         run: make proto-swift
-
-      - name: Regenerate Xcode project
-        working-directory: app/ios
-        run: xcodegen generate
 
       - name: Install CocoaPods dependencies
         working-directory: app/ios
