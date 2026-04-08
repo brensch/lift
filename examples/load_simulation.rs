@@ -1,5 +1,6 @@
 use clap::Parser;
 use dashmap::DashMap;
+use rand::Rng;
 use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
     workout_service_client::WorkoutServiceClient, CompleteSetRequest, EndWorkoutRequest, Exercise,
@@ -7,7 +8,6 @@ use schlift::workout::v1::{
     JoinUserRequest, PlannedGroupSet, ReplaceExerciseGroupPlanRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest,
 };
-use rand::Rng;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -389,12 +389,15 @@ async fn run_user_simulation(
                             rest_after_failure: 300,
                             is_amrap: false,
                             instruction: String::new(),
+                            progression_hint: None,
+                            client_set_id: uuid::Uuid::new_v4().to_string(),
                         };
                         3
                     ],
                     rest_config: None,
                     delete_group_if_empty: false,
                     instruction: String::new(),
+                    create_if_missing: false,
                 },
                 "ReplaceExerciseGroupPlan",
             )
@@ -548,7 +551,8 @@ impl
     async fn call(
         &mut self,
         req: Request<ReplaceExerciseGroupPlanRequest>,
-    ) -> Result<tonic::Response<schlift::workout::v1::ReplaceExerciseGroupPlanResponse>, Status> {
+    ) -> Result<tonic::Response<schlift::workout::v1::ReplaceExerciseGroupPlanResponse>, Status>
+    {
         self.replace_exercise_group_plan(req).await
     }
 }

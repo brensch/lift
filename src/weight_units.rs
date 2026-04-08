@@ -1,7 +1,7 @@
 use crate::db::CentralDb;
 use crate::program_state::{set_str, FieldVal, StatePayload};
-use schlift::workout::v1::{user_setting, UserSetting, WeightUnit};
 use prost::Message;
+use schlift::workout::v1::{user_setting, UserSetting, WeightUnit};
 
 pub const STATE_WEIGHT_UNIT_KEY: &str = "__weight_unit";
 const LB_TO_KG: f32 = 0.453_592_37;

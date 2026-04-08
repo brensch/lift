@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use std::env;
 
 use chrono::DateTime;
-use schlift::workout::v1::{CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout};
+use schlift::workout::v1::{
+    CompletedSet, Exercise, ExerciseGroup, ProposedSet, RegimeType, Workout,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -1011,7 +1013,11 @@ pub async fn run_scenario(json: &str) {
 
         // ── End workout + state transition ────────────────────────────────────
         let end_time = parse_ts(&workout_step.end.at);
-        db.update_workout_end_time(&user_id, &workout_id, end_time)
+        sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
+            .bind(end_time)
+            .bind(&user_id)
+            .bind(&workout_id)
+            .execute(&db.pool)
             .await
             .unwrap_or_else(|e| panic!("{}: Failed to update workout end time: {}", step_desc, e));
 

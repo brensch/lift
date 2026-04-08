@@ -78,6 +78,7 @@ fn planned_sets_from_legacy(sets: i32, configs: &[ExerciseTypeConfig]) -> Vec<Pl
                 is_amrap: false,
                 instruction: String::new(),
                 progression_hint: None,
+                client_set_id: uuid::Uuid::new_v4().to_string(),
             });
         }
     }

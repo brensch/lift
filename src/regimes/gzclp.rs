@@ -622,7 +622,10 @@ impl WorkoutRegime for GzclpRegime {
                 schlift::workout::v1::ProgressionRule::TopSetAmrap => {
                     slot_last_amrap.insert(
                         slot_key,
-                        (sr.actual_reps, sr.amrap_success_threshold.max(sr.target_reps)),
+                        (
+                            sr.actual_reps,
+                            sr.amrap_success_threshold.max(sr.target_reps),
+                        ),
                     );
                 }
                 _ => {

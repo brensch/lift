@@ -8,6 +8,7 @@ use crate::service_workout::get_user_id_authenticated;
 use crate::weight_units::{
     annotate_state_with_weight_unit, get_user_weight_unit, strip_weight_unit_context,
 };
+use prost::Message;
 use schlift::workout::v1::{
     settings_service_server::SettingsService, ApplyPendingStateUpdateRequest,
     ApplyPendingStateUpdateResponse, GetActiveTrainingProgramStateRequest,
@@ -17,7 +18,6 @@ use schlift::workout::v1::{
     SetActiveTrainingProgramStateRequest, SetActiveTrainingProgramStateResponse,
     TrainingProgramState, UpdateSettingRequest, UpdateSettingResponse, UserSetting,
 };
-use prost::Message;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
