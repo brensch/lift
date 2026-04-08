@@ -72,7 +72,7 @@ jobs:
           echo "enabled=$upload_ready" >> "$GITHUB_OUTPUT"
 
       - name: Install iOS build tools
-        run: brew install buf swift-protobuf xcodegen
+        run: brew install buf swift-protobuf
 
       - name: Install Flutter dependencies
         working-directory: app
@@ -142,13 +142,7 @@ jobs:
       - name: Generate Swift protobuf files
         run: make proto-swift
 
-      - name: Regenerate Xcode project
-        working-directory: app/ios
-        run: |
-          xcodegen generate
-          python3 scripts/patch_target_capabilities.py Runner.xcodeproj/project.pbxproj
-
-      - name: Verify generated Xcode capabilities
+      - name: Verify checked-in Xcode capabilities
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app/ios
         run: |
