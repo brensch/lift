@@ -93,6 +93,7 @@ impl Scheduler {
             suggested_workout_name: propose_result.suggested_workout_name,
             pending_state_updates,
             can_start_workout,
+            draft: None,
         })
     }
 }

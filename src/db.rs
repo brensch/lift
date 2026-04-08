@@ -1,4 +1,5 @@
 use crate::regimes::SessionHistory;
+use crate::workout_events::{WorkoutEventRecord, WorkoutEventType};
 use dashmap::DashMap;
 use schlift::workout::v1::{
     CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
@@ -121,6 +122,7 @@ fn row_to_proposed_set(row: sqlx::sqlite::SqliteRow) -> ProposedSet {
         cancelled: row.get::<Option<bool>, _>("cancelled").unwrap_or(false),
         is_amrap: false, // not persisted; set during set generation
         instruction: String::new(),
+        progression_hint: None,
     }
 }
 
@@ -149,7 +151,11 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 
 pub enum WriteCommand {
     CreateWorkout(String, Workout),
-    InsertGroupWithSets(String, schlift::workout::v1::ExerciseGroup, Vec<ProposedSet>),
+    InsertGroupWithSets(
+        String,
+        schlift::workout::v1::ExerciseGroup,
+        Vec<ProposedSet>,
+    ),
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
     UpdateWorkoutEnd(String, String, i64),
@@ -299,6 +305,17 @@ CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
     FOREIGN KEY(workout_id) REFERENCES workouts(id)
 );
 
+CREATE TABLE IF NOT EXISTS workout_events (
+    event_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    event_type INTEGER NOT NULL,
+    payload BLOB NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(workout_id) REFERENCES workouts(id)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -325,6 +342,7 @@ CREATE INDEX IF NOT EXISTS idx_proposed_sets_cancelled ON proposed_sets(user_id,
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout_id ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed_id ON completed_sets(proposed_set_id);
 CREATE INDEX IF NOT EXISTS idx_hr_samples_user_workout_time ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
+CREATE INDEX IF NOT EXISTS idx_workout_events_user_workout_time ON workout_events(user_id, workout_id, recorded_at, event_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_start_time ON workouts(start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_workouts_user_id ON workouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_workouts_session_user_start ON workouts(session_id, user_id, start_time DESC);
@@ -1039,6 +1057,135 @@ impl CentralDb {
         Ok(())
     }
 
+    pub async fn persist_new_workout_with_checkpoint(
+        &self,
+        user_id: &str,
+        workout: &Workout,
+        exercise_groups: &[schlift::workout::v1::ExerciseGroup],
+        proposed_sets: &[ProposedSet],
+        checkpoint_event: &WorkoutEventRecord,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&workout.id)
+        .bind(user_id)
+        .bind(&workout.name)
+        .bind(workout.start_time)
+        .bind(if workout.end_time == 0 {
+            None
+        } else {
+            Some(workout.end_time)
+        })
+        .bind(if workout.session_id.is_empty() {
+            None
+        } else {
+            Some(&workout.session_id)
+        })
+        .execute(&mut *tx)
+        .await?;
+
+        for group in exercise_groups {
+            sqlx::query(
+                "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, instruction, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&group.id)
+            .bind(user_id)
+            .bind(&group.workout_id)
+            .bind(&group.name)
+            .bind(&group.instruction)
+            .bind(group.sets)
+            .bind(group.interleave_warmups)
+            .bind(group.prescribed_by_regime)
+            .bind(group.workout_order)
+            .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
+            .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+            .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+            .bind(
+                group
+                    .rest_config
+                    .as_ref()
+                    .map(|rc| rc.rest_after_last_warmup),
+            )
+            .execute(&mut *tx)
+            .await?;
+
+            for (idx, config) in group.exercise_configs.iter().enumerate() {
+                let config_id = Uuid::new_v4().to_string();
+                sqlx::query(
+                    "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                )
+                .bind(&config_id)
+                .bind(user_id)
+                .bind(&group.id)
+                .bind(config.exercise)
+                .bind(config.start_weight)
+                .bind(config.end_weight)
+                .bind(config.reps)
+                .bind(config.include_warmup)
+                .bind(idx as i32)
+                .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_success))
+                .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_failure))
+                .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
+                .bind(
+                    config
+                        .rest_config
+                        .as_ref()
+                        .map(|rc| rc.rest_after_last_warmup),
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+        }
+
+        for set in proposed_sets {
+            sqlx::query(
+                "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id, rest_after_success, rest_after_failure)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&set.id)
+            .bind(user_id)
+            .bind(&set.workout_id)
+            .bind(set.workout_order)
+            .bind(set.exercise)
+            .bind(set.target_reps)
+            .bind(set.target_weight)
+            .bind(set.warmup)
+            .bind(set.cancelled)
+            .bind(if set.exercise_group_id.is_empty() {
+                None
+            } else {
+                Some(&set.exercise_group_id)
+            })
+            .bind(set.rest_after_success)
+            .bind(set.rest_after_failure)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        sqlx::query(
+            "INSERT OR IGNORE INTO workout_events (event_id, user_id, workout_id, recorded_at, event_type, payload)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&checkpoint_event.event_id)
+        .bind(&checkpoint_event.user_id)
+        .bind(&checkpoint_event.workout_id)
+        .bind(checkpoint_event.recorded_at)
+        .bind(checkpoint_event.event_type as i32)
+        .bind(&checkpoint_event.payload)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
     pub async fn upsert_completed_set(
         &self,
         user_id: &str,
@@ -1238,6 +1385,60 @@ impl CentralDb {
         })
         .fetch_all(&self.pool)
         .await?)
+    }
+
+    pub async fn append_workout_event(
+        &self,
+        event: &WorkoutEventRecord,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let result = sqlx::query(
+            "INSERT OR IGNORE INTO workout_events (event_id, user_id, workout_id, recorded_at, event_type, payload)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&event.event_id)
+        .bind(&event.user_id)
+        .bind(&event.workout_id)
+        .bind(event.recorded_at)
+        .bind(event.event_type as i32)
+        .bind(&event.payload)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn get_workout_events(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+    ) -> Result<Vec<WorkoutEventRecord>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows = sqlx::query(
+            "SELECT event_id, user_id, workout_id, recorded_at, event_type, payload
+             FROM workout_events
+             WHERE user_id = ? AND workout_id = ?
+             ORDER BY recorded_at ASC, event_id ASC",
+        )
+        .bind(user_id)
+        .bind(workout_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut out = Vec::with_capacity(rows.len());
+        for row in rows {
+            let event_type_raw: i32 = row.get("event_type");
+            let Some(event_type) = WorkoutEventType::from_i32(event_type_raw) else {
+                continue;
+            };
+            out.push(WorkoutEventRecord {
+                event_id: row.get("event_id"),
+                user_id: row.get("user_id"),
+                workout_id: row.get("workout_id"),
+                recorded_at: row.get("recorded_at"),
+                event_type,
+                payload: row.get("payload"),
+            });
+        }
+        Ok(out)
     }
 
     pub async fn list_workouts(
@@ -1878,6 +2079,24 @@ impl CentralDb {
         .fetch_all(&self.pool)
         .await?;
         Ok(rows)
+    }
+
+    pub async fn get_latest_setting_by_type(
+        &self,
+        user_id: &str,
+        setting_type: &str,
+    ) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
+        let row: Option<(Vec<u8>,)> = sqlx::query_as(
+            "SELECT setting_blob FROM user_settings
+             WHERE user_id = ? AND setting_type = ?
+             ORDER BY created_at DESC
+             LIMIT 1",
+        )
+        .bind(user_id)
+        .bind(setting_type)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|(blob,)| blob))
     }
 
     pub async fn delete_user_account_and_data(

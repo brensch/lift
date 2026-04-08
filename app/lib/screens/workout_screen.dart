@@ -250,9 +250,7 @@ class WorkoutScreen extends StatelessWidget {
                       group,
                       wp.completedSets,
                     );
-                    final stableKey = group.sets.isNotEmpty
-                        ? group.sets.first.id
-                        : 'empty-$idx';
+                    final stableKey = group.stableId;
 
                     return Padding(
                       key: ValueKey('reorder-$stableKey'),

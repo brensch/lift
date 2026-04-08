@@ -118,7 +118,7 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
     final wp = context.watch<WorkoutProvider>();
     final settings = context.watch<SettingsProvider>();
 
-    if (!_initialSyncComplete) {
+    if (!_initialSyncComplete && !wp.hasActiveWorkout) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 

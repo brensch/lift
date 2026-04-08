@@ -343,12 +343,14 @@ class WorkingSetSpec extends $pb.GeneratedMessage {
     $core.int? targetReps,
     $core.bool? isAmrap,
     $core.String? instruction,
+    ProgressionHint? progressionHint,
   }) {
     final result = create();
     if (targetWeight != null) result.targetWeight = targetWeight;
     if (targetReps != null) result.targetReps = targetReps;
     if (isAmrap != null) result.isAmrap = isAmrap;
     if (instruction != null) result.instruction = instruction;
+    if (progressionHint != null) result.progressionHint = progressionHint;
     return result;
   }
 
@@ -370,6 +372,8 @@ class WorkingSetSpec extends $pb.GeneratedMessage {
     ..aI(2, _omitFieldNames ? '' : 'targetReps')
     ..aOB(3, _omitFieldNames ? '' : 'isAmrap')
     ..aOS(4, _omitFieldNames ? '' : 'instruction')
+    ..aOM<ProgressionHint>(5, _omitFieldNames ? '' : 'progressionHint',
+        subBuilder: ProgressionHint.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -426,6 +430,17 @@ class WorkingSetSpec extends $pb.GeneratedMessage {
   $core.bool hasInstruction() => $_has(3);
   @$pb.TagNumber(4)
   void clearInstruction() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  ProgressionHint get progressionHint => $_getN(4);
+  @$pb.TagNumber(5)
+  set progressionHint(ProgressionHint value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasProgressionHint() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProgressionHint() => $_clearField(5);
+  @$pb.TagNumber(5)
+  ProgressionHint ensureProgressionHint() => $_ensure(4);
 }
 
 class RestConfig extends $pb.GeneratedMessage {
@@ -694,6 +709,7 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.bool? cancelled,
     $core.bool? isAmrap,
     $core.String? instruction,
+    ProgressionHint? progressionHint,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -709,6 +725,7 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (cancelled != null) result.cancelled = cancelled;
     if (isAmrap != null) result.isAmrap = isAmrap;
     if (instruction != null) result.instruction = instruction;
+    if (progressionHint != null) result.progressionHint = progressionHint;
     return result;
   }
 
@@ -740,6 +757,8 @@ class ProposedSet extends $pb.GeneratedMessage {
     ..aOB(11, _omitFieldNames ? '' : 'cancelled')
     ..aOB(12, _omitFieldNames ? '' : 'isAmrap')
     ..aOS(13, _omitFieldNames ? '' : 'instruction')
+    ..aOM<ProgressionHint>(14, _omitFieldNames ? '' : 'progressionHint',
+        subBuilder: ProgressionHint.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -877,6 +896,17 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasInstruction() => $_has(12);
   @$pb.TagNumber(13)
   void clearInstruction() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  ProgressionHint get progressionHint => $_getN(13);
+  @$pb.TagNumber(14)
+  set progressionHint(ProgressionHint value) => $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasProgressionHint() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearProgressionHint() => $_clearField(14);
+  @$pb.TagNumber(14)
+  ProgressionHint ensureProgressionHint() => $_ensure(13);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -1670,6 +1700,7 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     $core.int? restAfterFailure,
     $core.bool? isAmrap,
     $core.String? instruction,
+    ProgressionHint? progressionHint,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -1680,6 +1711,7 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     if (restAfterFailure != null) result.restAfterFailure = restAfterFailure;
     if (isAmrap != null) result.isAmrap = isAmrap;
     if (instruction != null) result.instruction = instruction;
+    if (progressionHint != null) result.progressionHint = progressionHint;
     return result;
   }
 
@@ -1706,6 +1738,8 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     ..aI(6, _omitFieldNames ? '' : 'restAfterFailure')
     ..aOB(7, _omitFieldNames ? '' : 'isAmrap')
     ..aOS(8, _omitFieldNames ? '' : 'instruction')
+    ..aOM<ProgressionHint>(9, _omitFieldNames ? '' : 'progressionHint',
+        subBuilder: ProgressionHint.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1798,6 +1832,122 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
   $core.bool hasInstruction() => $_has(7);
   @$pb.TagNumber(8)
   void clearInstruction() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  ProgressionHint get progressionHint => $_getN(8);
+  @$pb.TagNumber(9)
+  set progressionHint(ProgressionHint value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasProgressionHint() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearProgressionHint() => $_clearField(9);
+  @$pb.TagNumber(9)
+  ProgressionHint ensureProgressionHint() => $_ensure(8);
+}
+
+class ProgressionHint extends $pb.GeneratedMessage {
+  factory ProgressionHint({
+    $core.String? slotKey,
+    $core.String? tier,
+    ProgressionRule? rule,
+    $core.int? amrapSuccessThreshold,
+    $core.bool? countsTowardProgram,
+  }) {
+    final result = create();
+    if (slotKey != null) result.slotKey = slotKey;
+    if (tier != null) result.tier = tier;
+    if (rule != null) result.rule = rule;
+    if (amrapSuccessThreshold != null)
+      result.amrapSuccessThreshold = amrapSuccessThreshold;
+    if (countsTowardProgram != null)
+      result.countsTowardProgram = countsTowardProgram;
+    return result;
+  }
+
+  ProgressionHint._();
+
+  factory ProgressionHint.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProgressionHint.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProgressionHint',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'slotKey')
+    ..aOS(2, _omitFieldNames ? '' : 'tier')
+    ..aE<ProgressionRule>(3, _omitFieldNames ? '' : 'rule',
+        enumValues: ProgressionRule.values)
+    ..aI(4, _omitFieldNames ? '' : 'amrapSuccessThreshold')
+    ..aOB(5, _omitFieldNames ? '' : 'countsTowardProgram')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProgressionHint clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProgressionHint copyWith(void Function(ProgressionHint) updates) =>
+      super.copyWith((message) => updates(message as ProgressionHint))
+          as ProgressionHint;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProgressionHint create() => ProgressionHint._();
+  @$core.override
+  ProgressionHint createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProgressionHint getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProgressionHint>(create);
+  static ProgressionHint? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get slotKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set slotKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSlotKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlotKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get tier => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set tier($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTier() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTier() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  ProgressionRule get rule => $_getN(2);
+  @$pb.TagNumber(3)
+  set rule(ProgressionRule value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasRule() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRule() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get amrapSuccessThreshold => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set amrapSuccessThreshold($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAmrapSuccessThreshold() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmrapSuccessThreshold() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get countsTowardProgram => $_getBF(4);
+  @$pb.TagNumber(5)
+  set countsTowardProgram($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCountsTowardProgram() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCountsTowardProgram() => $_clearField(5);
 }
 
 class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
@@ -1810,6 +1960,7 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
     RestConfig? restConfig,
     $core.bool? deleteGroupIfEmpty,
     $core.String? instruction,
+    $core.bool? createIfMissing,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -1821,6 +1972,7 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
     if (deleteGroupIfEmpty != null)
       result.deleteGroupIfEmpty = deleteGroupIfEmpty;
     if (instruction != null) result.instruction = instruction;
+    if (createIfMissing != null) result.createIfMissing = createIfMissing;
     return result;
   }
 
@@ -1847,6 +1999,7 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
         subBuilder: RestConfig.create)
     ..aOB(7, _omitFieldNames ? '' : 'deleteGroupIfEmpty')
     ..aOS(8, _omitFieldNames ? '' : 'instruction')
+    ..aOB(9, _omitFieldNames ? '' : 'createIfMissing')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1939,6 +2092,15 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
   $core.bool hasInstruction() => $_has(7);
   @$pb.TagNumber(8)
   void clearInstruction() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get createIfMissing => $_getBF(8);
+  @$pb.TagNumber(9)
+  set createIfMissing($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasCreateIfMissing() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearCreateIfMissing() => $_clearField(9);
 }
 
 class ReplaceExerciseGroupPlanResponse extends $pb.GeneratedMessage {
@@ -3593,6 +3755,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     $core.String? suggestedWorkoutName,
     $core.Iterable<$1.PendingStateUpdate>? pendingStateUpdates,
     $core.bool? canStartWorkout,
+    WorkoutDraft? draft,
   }) {
     final result = create();
     if (exerciseStatuses != null)
@@ -3606,6 +3769,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (pendingStateUpdates != null)
       result.pendingStateUpdates.addAll(pendingStateUpdates);
     if (canStartWorkout != null) result.canStartWorkout = canStartWorkout;
+    if (draft != null) result.draft = draft;
     return result;
   }
 
@@ -3637,6 +3801,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
         7, _omitFieldNames ? '' : 'pendingStateUpdates',
         subBuilder: $1.PendingStateUpdate.create)
     ..aOB(8, _omitFieldNames ? '' : 'canStartWorkout')
+    ..aOM<WorkoutDraft>(9, _omitFieldNames ? '' : 'draft',
+        subBuilder: WorkoutDraft.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3721,6 +3887,284 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   $core.bool hasCanStartWorkout() => $_has(7);
   @$pb.TagNumber(8)
   void clearCanStartWorkout() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  WorkoutDraft get draft => $_getN(8);
+  @$pb.TagNumber(9)
+  set draft(WorkoutDraft value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasDraft() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearDraft() => $_clearField(9);
+  @$pb.TagNumber(9)
+  WorkoutDraft ensureDraft() => $_ensure(8);
+}
+
+class WorkoutDraft extends $pb.GeneratedMessage {
+  factory WorkoutDraft({
+    $core.String? name,
+    $core.Iterable<ExerciseGroup>? exerciseGroups,
+    $fixnum.Int64? updatedAt,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
+    if (updatedAt != null) result.updatedAt = updatedAt;
+    return result;
+  }
+
+  WorkoutDraft._();
+
+  factory WorkoutDraft.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutDraft.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutDraft',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..pPM<ExerciseGroup>(2, _omitFieldNames ? '' : 'exerciseGroups',
+        subBuilder: ExerciseGroup.create)
+    ..aInt64(3, _omitFieldNames ? '' : 'updatedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutDraft clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutDraft copyWith(void Function(WorkoutDraft) updates) =>
+      super.copyWith((message) => updates(message as WorkoutDraft))
+          as WorkoutDraft;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutDraft create() => WorkoutDraft._();
+  @$core.override
+  WorkoutDraft createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutDraft getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutDraft>(create);
+  static WorkoutDraft? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<ExerciseGroup> get exerciseGroups => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get updatedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set updatedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUpdatedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUpdatedAt() => $_clearField(3);
+}
+
+class SaveWorkoutDraftRequest extends $pb.GeneratedMessage {
+  factory SaveWorkoutDraftRequest({
+    WorkoutDraft? draft,
+  }) {
+    final result = create();
+    if (draft != null) result.draft = draft;
+    return result;
+  }
+
+  SaveWorkoutDraftRequest._();
+
+  factory SaveWorkoutDraftRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveWorkoutDraftRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveWorkoutDraftRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<WorkoutDraft>(1, _omitFieldNames ? '' : 'draft',
+        subBuilder: WorkoutDraft.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveWorkoutDraftRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveWorkoutDraftRequest copyWith(
+          void Function(SaveWorkoutDraftRequest) updates) =>
+      super.copyWith((message) => updates(message as SaveWorkoutDraftRequest))
+          as SaveWorkoutDraftRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveWorkoutDraftRequest create() => SaveWorkoutDraftRequest._();
+  @$core.override
+  SaveWorkoutDraftRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveWorkoutDraftRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveWorkoutDraftRequest>(create);
+  static SaveWorkoutDraftRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WorkoutDraft get draft => $_getN(0);
+  @$pb.TagNumber(1)
+  set draft(WorkoutDraft value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDraft() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDraft() => $_clearField(1);
+  @$pb.TagNumber(1)
+  WorkoutDraft ensureDraft() => $_ensure(0);
+}
+
+class SaveWorkoutDraftResponse extends $pb.GeneratedMessage {
+  factory SaveWorkoutDraftResponse({
+    WorkoutDraft? draft,
+  }) {
+    final result = create();
+    if (draft != null) result.draft = draft;
+    return result;
+  }
+
+  SaveWorkoutDraftResponse._();
+
+  factory SaveWorkoutDraftResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveWorkoutDraftResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveWorkoutDraftResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<WorkoutDraft>(1, _omitFieldNames ? '' : 'draft',
+        subBuilder: WorkoutDraft.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveWorkoutDraftResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveWorkoutDraftResponse copyWith(
+          void Function(SaveWorkoutDraftResponse) updates) =>
+      super.copyWith((message) => updates(message as SaveWorkoutDraftResponse))
+          as SaveWorkoutDraftResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveWorkoutDraftResponse create() => SaveWorkoutDraftResponse._();
+  @$core.override
+  SaveWorkoutDraftResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveWorkoutDraftResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveWorkoutDraftResponse>(create);
+  static SaveWorkoutDraftResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WorkoutDraft get draft => $_getN(0);
+  @$pb.TagNumber(1)
+  set draft(WorkoutDraft value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDraft() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDraft() => $_clearField(1);
+  @$pb.TagNumber(1)
+  WorkoutDraft ensureDraft() => $_ensure(0);
+}
+
+class ClearWorkoutDraftRequest extends $pb.GeneratedMessage {
+  factory ClearWorkoutDraftRequest() => create();
+
+  ClearWorkoutDraftRequest._();
+
+  factory ClearWorkoutDraftRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ClearWorkoutDraftRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ClearWorkoutDraftRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ClearWorkoutDraftRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ClearWorkoutDraftRequest copyWith(
+          void Function(ClearWorkoutDraftRequest) updates) =>
+      super.copyWith((message) => updates(message as ClearWorkoutDraftRequest))
+          as ClearWorkoutDraftRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ClearWorkoutDraftRequest create() => ClearWorkoutDraftRequest._();
+  @$core.override
+  ClearWorkoutDraftRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ClearWorkoutDraftRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ClearWorkoutDraftRequest>(create);
+  static ClearWorkoutDraftRequest? _defaultInstance;
+}
+
+class ClearWorkoutDraftResponse extends $pb.GeneratedMessage {
+  factory ClearWorkoutDraftResponse() => create();
+
+  ClearWorkoutDraftResponse._();
+
+  factory ClearWorkoutDraftResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ClearWorkoutDraftResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ClearWorkoutDraftResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ClearWorkoutDraftResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ClearWorkoutDraftResponse copyWith(
+          void Function(ClearWorkoutDraftResponse) updates) =>
+      super.copyWith((message) => updates(message as ClearWorkoutDraftResponse))
+          as ClearWorkoutDraftResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ClearWorkoutDraftResponse create() => ClearWorkoutDraftResponse._();
+  @$core.override
+  ClearWorkoutDraftResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ClearWorkoutDraftResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ClearWorkoutDraftResponse>(create);
+  static ClearWorkoutDraftResponse? _defaultInstance;
 }
 
 class GetActiveWorkoutRequest extends $pb.GeneratedMessage {
@@ -4631,6 +5075,493 @@ class GetWorkoutHeartRateResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<WorkoutHeartRatePoint> get samples => $_getList(0);
+}
+
+enum WorkoutMutation_Mutation {
+  startSet,
+  completeSet,
+  cancelProposedSet,
+  deleteCompletedSet,
+  endWorkout,
+  replaceExerciseGroupPlan,
+  reorderExerciseGroups,
+  notSet
+}
+
+class WorkoutMutation extends $pb.GeneratedMessage {
+  factory WorkoutMutation({
+    $core.String? eventId,
+    $fixnum.Int64? clientCreatedAt,
+    StartSetRequest? startSet,
+    CompleteSetRequest? completeSet,
+    CancelProposedSetRequest? cancelProposedSet,
+    DeleteCompletedSetRequest? deleteCompletedSet,
+    EndWorkoutRequest? endWorkout,
+    ReplaceExerciseGroupPlanRequest? replaceExerciseGroupPlan,
+    ReorderExerciseGroupsRequest? reorderExerciseGroups,
+  }) {
+    final result = create();
+    if (eventId != null) result.eventId = eventId;
+    if (clientCreatedAt != null) result.clientCreatedAt = clientCreatedAt;
+    if (startSet != null) result.startSet = startSet;
+    if (completeSet != null) result.completeSet = completeSet;
+    if (cancelProposedSet != null) result.cancelProposedSet = cancelProposedSet;
+    if (deleteCompletedSet != null)
+      result.deleteCompletedSet = deleteCompletedSet;
+    if (endWorkout != null) result.endWorkout = endWorkout;
+    if (replaceExerciseGroupPlan != null)
+      result.replaceExerciseGroupPlan = replaceExerciseGroupPlan;
+    if (reorderExerciseGroups != null)
+      result.reorderExerciseGroups = reorderExerciseGroups;
+    return result;
+  }
+
+  WorkoutMutation._();
+
+  factory WorkoutMutation.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutMutation.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, WorkoutMutation_Mutation>
+      _WorkoutMutation_MutationByTag = {
+    10: WorkoutMutation_Mutation.startSet,
+    11: WorkoutMutation_Mutation.completeSet,
+    12: WorkoutMutation_Mutation.cancelProposedSet,
+    13: WorkoutMutation_Mutation.deleteCompletedSet,
+    14: WorkoutMutation_Mutation.endWorkout,
+    15: WorkoutMutation_Mutation.replaceExerciseGroupPlan,
+    16: WorkoutMutation_Mutation.reorderExerciseGroups,
+    0: WorkoutMutation_Mutation.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutMutation',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [10, 11, 12, 13, 14, 15, 16])
+    ..aOS(1, _omitFieldNames ? '' : 'eventId')
+    ..aInt64(2, _omitFieldNames ? '' : 'clientCreatedAt')
+    ..aOM<StartSetRequest>(10, _omitFieldNames ? '' : 'startSet',
+        subBuilder: StartSetRequest.create)
+    ..aOM<CompleteSetRequest>(11, _omitFieldNames ? '' : 'completeSet',
+        subBuilder: CompleteSetRequest.create)
+    ..aOM<CancelProposedSetRequest>(
+        12, _omitFieldNames ? '' : 'cancelProposedSet',
+        subBuilder: CancelProposedSetRequest.create)
+    ..aOM<DeleteCompletedSetRequest>(
+        13, _omitFieldNames ? '' : 'deleteCompletedSet',
+        subBuilder: DeleteCompletedSetRequest.create)
+    ..aOM<EndWorkoutRequest>(14, _omitFieldNames ? '' : 'endWorkout',
+        subBuilder: EndWorkoutRequest.create)
+    ..aOM<ReplaceExerciseGroupPlanRequest>(
+        15, _omitFieldNames ? '' : 'replaceExerciseGroupPlan',
+        subBuilder: ReplaceExerciseGroupPlanRequest.create)
+    ..aOM<ReorderExerciseGroupsRequest>(
+        16, _omitFieldNames ? '' : 'reorderExerciseGroups',
+        subBuilder: ReorderExerciseGroupsRequest.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutMutation clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutMutation copyWith(void Function(WorkoutMutation) updates) =>
+      super.copyWith((message) => updates(message as WorkoutMutation))
+          as WorkoutMutation;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutMutation create() => WorkoutMutation._();
+  @$core.override
+  WorkoutMutation createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutMutation getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutMutation>(create);
+  static WorkoutMutation? _defaultInstance;
+
+  @$pb.TagNumber(10)
+  @$pb.TagNumber(11)
+  @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
+  @$pb.TagNumber(14)
+  @$pb.TagNumber(15)
+  @$pb.TagNumber(16)
+  WorkoutMutation_Mutation whichMutation() =>
+      _WorkoutMutation_MutationByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(10)
+  @$pb.TagNumber(11)
+  @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
+  @$pb.TagNumber(14)
+  @$pb.TagNumber(15)
+  @$pb.TagNumber(16)
+  void clearMutation() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  $core.String get eventId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set eventId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEventId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEventId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get clientCreatedAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set clientCreatedAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasClientCreatedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearClientCreatedAt() => $_clearField(2);
+
+  @$pb.TagNumber(10)
+  StartSetRequest get startSet => $_getN(2);
+  @$pb.TagNumber(10)
+  set startSet(StartSetRequest value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasStartSet() => $_has(2);
+  @$pb.TagNumber(10)
+  void clearStartSet() => $_clearField(10);
+  @$pb.TagNumber(10)
+  StartSetRequest ensureStartSet() => $_ensure(2);
+
+  @$pb.TagNumber(11)
+  CompleteSetRequest get completeSet => $_getN(3);
+  @$pb.TagNumber(11)
+  set completeSet(CompleteSetRequest value) => $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCompleteSet() => $_has(3);
+  @$pb.TagNumber(11)
+  void clearCompleteSet() => $_clearField(11);
+  @$pb.TagNumber(11)
+  CompleteSetRequest ensureCompleteSet() => $_ensure(3);
+
+  @$pb.TagNumber(12)
+  CancelProposedSetRequest get cancelProposedSet => $_getN(4);
+  @$pb.TagNumber(12)
+  set cancelProposedSet(CancelProposedSetRequest value) =>
+      $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasCancelProposedSet() => $_has(4);
+  @$pb.TagNumber(12)
+  void clearCancelProposedSet() => $_clearField(12);
+  @$pb.TagNumber(12)
+  CancelProposedSetRequest ensureCancelProposedSet() => $_ensure(4);
+
+  @$pb.TagNumber(13)
+  DeleteCompletedSetRequest get deleteCompletedSet => $_getN(5);
+  @$pb.TagNumber(13)
+  set deleteCompletedSet(DeleteCompletedSetRequest value) =>
+      $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasDeleteCompletedSet() => $_has(5);
+  @$pb.TagNumber(13)
+  void clearDeleteCompletedSet() => $_clearField(13);
+  @$pb.TagNumber(13)
+  DeleteCompletedSetRequest ensureDeleteCompletedSet() => $_ensure(5);
+
+  @$pb.TagNumber(14)
+  EndWorkoutRequest get endWorkout => $_getN(6);
+  @$pb.TagNumber(14)
+  set endWorkout(EndWorkoutRequest value) => $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasEndWorkout() => $_has(6);
+  @$pb.TagNumber(14)
+  void clearEndWorkout() => $_clearField(14);
+  @$pb.TagNumber(14)
+  EndWorkoutRequest ensureEndWorkout() => $_ensure(6);
+
+  @$pb.TagNumber(15)
+  ReplaceExerciseGroupPlanRequest get replaceExerciseGroupPlan => $_getN(7);
+  @$pb.TagNumber(15)
+  set replaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest value) =>
+      $_setField(15, value);
+  @$pb.TagNumber(15)
+  $core.bool hasReplaceExerciseGroupPlan() => $_has(7);
+  @$pb.TagNumber(15)
+  void clearReplaceExerciseGroupPlan() => $_clearField(15);
+  @$pb.TagNumber(15)
+  ReplaceExerciseGroupPlanRequest ensureReplaceExerciseGroupPlan() =>
+      $_ensure(7);
+
+  @$pb.TagNumber(16)
+  ReorderExerciseGroupsRequest get reorderExerciseGroups => $_getN(8);
+  @$pb.TagNumber(16)
+  set reorderExerciseGroups(ReorderExerciseGroupsRequest value) =>
+      $_setField(16, value);
+  @$pb.TagNumber(16)
+  $core.bool hasReorderExerciseGroups() => $_has(8);
+  @$pb.TagNumber(16)
+  void clearReorderExerciseGroups() => $_clearField(16);
+  @$pb.TagNumber(16)
+  ReorderExerciseGroupsRequest ensureReorderExerciseGroups() => $_ensure(8);
+}
+
+class AppendWorkoutMutationsRequest extends $pb.GeneratedMessage {
+  factory AppendWorkoutMutationsRequest({
+    $core.Iterable<WorkoutMutation>? mutations,
+  }) {
+    final result = create();
+    if (mutations != null) result.mutations.addAll(mutations);
+    return result;
+  }
+
+  AppendWorkoutMutationsRequest._();
+
+  factory AppendWorkoutMutationsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AppendWorkoutMutationsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AppendWorkoutMutationsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<WorkoutMutation>(1, _omitFieldNames ? '' : 'mutations',
+        subBuilder: WorkoutMutation.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutMutationsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutMutationsRequest copyWith(
+          void Function(AppendWorkoutMutationsRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as AppendWorkoutMutationsRequest))
+          as AppendWorkoutMutationsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutMutationsRequest create() =>
+      AppendWorkoutMutationsRequest._();
+  @$core.override
+  AppendWorkoutMutationsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutMutationsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AppendWorkoutMutationsRequest>(create);
+  static AppendWorkoutMutationsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<WorkoutMutation> get mutations => $_getList(0);
+}
+
+class AppendWorkoutMutationsResponse extends $pb.GeneratedMessage {
+  factory AppendWorkoutMutationsResponse({
+    $core.Iterable<$core.String>? appliedEventIds,
+    GetWorkoutResponse? workoutState,
+  }) {
+    final result = create();
+    if (appliedEventIds != null) result.appliedEventIds.addAll(appliedEventIds);
+    if (workoutState != null) result.workoutState = workoutState;
+    return result;
+  }
+
+  AppendWorkoutMutationsResponse._();
+
+  factory AppendWorkoutMutationsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AppendWorkoutMutationsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AppendWorkoutMutationsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'appliedEventIds')
+    ..aOM<GetWorkoutResponse>(2, _omitFieldNames ? '' : 'workoutState',
+        subBuilder: GetWorkoutResponse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutMutationsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AppendWorkoutMutationsResponse copyWith(
+          void Function(AppendWorkoutMutationsResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as AppendWorkoutMutationsResponse))
+          as AppendWorkoutMutationsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutMutationsResponse create() =>
+      AppendWorkoutMutationsResponse._();
+  @$core.override
+  AppendWorkoutMutationsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AppendWorkoutMutationsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AppendWorkoutMutationsResponse>(create);
+  static AppendWorkoutMutationsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get appliedEventIds => $_getList(0);
+
+  @$pb.TagNumber(2)
+  GetWorkoutResponse get workoutState => $_getN(1);
+  @$pb.TagNumber(2)
+  set workoutState(GetWorkoutResponse value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkoutState() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkoutState() => $_clearField(2);
+  @$pb.TagNumber(2)
+  GetWorkoutResponse ensureWorkoutState() => $_ensure(1);
+}
+
+class RehydrateWorkoutFromEventsRequest extends $pb.GeneratedMessage {
+  factory RehydrateWorkoutFromEventsRequest({
+    $core.String? workoutId,
+    $core.bool? persist,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (persist != null) result.persist = persist;
+    return result;
+  }
+
+  RehydrateWorkoutFromEventsRequest._();
+
+  factory RehydrateWorkoutFromEventsRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RehydrateWorkoutFromEventsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RehydrateWorkoutFromEventsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOB(2, _omitFieldNames ? '' : 'persist')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RehydrateWorkoutFromEventsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RehydrateWorkoutFromEventsRequest copyWith(
+          void Function(RehydrateWorkoutFromEventsRequest) updates) =>
+      super.copyWith((message) =>
+              updates(message as RehydrateWorkoutFromEventsRequest))
+          as RehydrateWorkoutFromEventsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RehydrateWorkoutFromEventsRequest create() =>
+      RehydrateWorkoutFromEventsRequest._();
+  @$core.override
+  RehydrateWorkoutFromEventsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RehydrateWorkoutFromEventsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RehydrateWorkoutFromEventsRequest>(
+          create);
+  static RehydrateWorkoutFromEventsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get persist => $_getBF(1);
+  @$pb.TagNumber(2)
+  set persist($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPersist() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPersist() => $_clearField(2);
+}
+
+class RehydrateWorkoutFromEventsResponse extends $pb.GeneratedMessage {
+  factory RehydrateWorkoutFromEventsResponse({
+    GetWorkoutResponse? workoutState,
+    $core.int? appliedEventCount,
+  }) {
+    final result = create();
+    if (workoutState != null) result.workoutState = workoutState;
+    if (appliedEventCount != null) result.appliedEventCount = appliedEventCount;
+    return result;
+  }
+
+  RehydrateWorkoutFromEventsResponse._();
+
+  factory RehydrateWorkoutFromEventsResponse.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RehydrateWorkoutFromEventsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RehydrateWorkoutFromEventsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<GetWorkoutResponse>(1, _omitFieldNames ? '' : 'workoutState',
+        subBuilder: GetWorkoutResponse.create)
+    ..aI(2, _omitFieldNames ? '' : 'appliedEventCount')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RehydrateWorkoutFromEventsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RehydrateWorkoutFromEventsResponse copyWith(
+          void Function(RehydrateWorkoutFromEventsResponse) updates) =>
+      super.copyWith((message) =>
+              updates(message as RehydrateWorkoutFromEventsResponse))
+          as RehydrateWorkoutFromEventsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RehydrateWorkoutFromEventsResponse create() =>
+      RehydrateWorkoutFromEventsResponse._();
+  @$core.override
+  RehydrateWorkoutFromEventsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RehydrateWorkoutFromEventsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RehydrateWorkoutFromEventsResponse>(
+          create);
+  static RehydrateWorkoutFromEventsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GetWorkoutResponse get workoutState => $_getN(0);
+  @$pb.TagNumber(1)
+  set workoutState(GetWorkoutResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutState() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutState() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetWorkoutResponse ensureWorkoutState() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.int get appliedEventCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set appliedEventCount($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAppliedEventCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAppliedEventCount() => $_clearField(2);
 }
 
 class CreateUserRequest extends $pb.GeneratedMessage {

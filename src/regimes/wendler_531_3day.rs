@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 
 use schlift::workout::v1::{
-    Exercise, ExerciseStatus, ProposedExerciseGroup, RegimeContext, UserWorkoutConfig,
-    WorkingSetSpec,
+    Exercise, ExerciseStatus, ProgressionRule, ProposedExerciseGroup, RegimeContext,
+    UserWorkoutConfig, WorkingSetSpec,
 };
 use serde::{Deserialize, Serialize};
 
 use super::{
-    cfg_field_exercise_weight, exercise_display_name, rest_cfg, ExerciseConfig, ExerciseProposal,
-    ProgramAtAGlanceMeta, ProgramCatalogMeta, SessionHistory, WorkoutRegime,
+    cfg_field_exercise_weight, exercise_display_name, progression_hint_for_set, rest_cfg,
+    ExerciseConfig, ExerciseProposal, ProgramAtAGlanceMeta, ProgramCatalogMeta, SessionHistory,
+    WorkoutRegime,
 };
 
 // ─── Wendler state ─────────────────────────────────────────────────────────────
@@ -129,7 +130,11 @@ fn is_lower_body(exercise: Exercise) -> bool {
     matches!(exercise, Exercise::Squat | Exercise::Deadlift)
 }
 
-fn build_wendler_working_sets(tm: f32, week_def: &WeekDef) -> Vec<WorkingSetSpec> {
+fn build_wendler_working_sets(
+    exercise: Exercise,
+    tm: f32,
+    week_def: &WeekDef,
+) -> Vec<WorkingSetSpec> {
     week_def
         .set_pcts
         .iter()
@@ -148,6 +153,17 @@ fn build_wendler_working_sets(tm: f32, week_def: &WeekDef) -> Vec<WorkingSetSpec
                 } else {
                     String::new()
                 },
+                progression_hint: Some(progression_hint_for_set(
+                    exercise,
+                    "MAIN",
+                    if is_amrap {
+                        ProgressionRule::TopSetAmrap
+                    } else {
+                        ProgressionRule::None
+                    },
+                    reps,
+                    is_amrap,
+                )),
             }
         })
         .collect()
@@ -358,7 +374,7 @@ impl WorkoutRegime for Wendler5313DayRegime {
             };
             let tm = tm + cycle_bonus;
 
-            let working_sets = build_wendler_working_sets(tm, week_def);
+            let working_sets = build_wendler_working_sets(exercise, tm, week_def);
             let start_w = working_sets
                 .first()
                 .map(|s| s.target_weight)

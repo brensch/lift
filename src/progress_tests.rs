@@ -16,6 +16,7 @@ fn proposed(id: &str, order: i32, group_id: &str, weight: f32) -> ProposedSet {
         cancelled: false,
         is_amrap: false,
         instruction: String::new(),
+        progression_hint: None,
     }
 }
 

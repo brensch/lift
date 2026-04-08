@@ -1,7 +1,8 @@
 use schlift::workout::v1::{
-    Exercise, ExerciseTypeConfig, ProposedExerciseGroup, RegimeContext, TrainingProgramStateSchema,
-    WorkingSetSpec,
+    Exercise, ExerciseTypeConfig, ProgressionRule, ProposedExerciseGroup, RegimeContext,
+    TrainingProgramStateSchema, WorkingSetSpec,
 };
+use std::collections::HashMap;
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
@@ -11,7 +12,8 @@ use crate::program_state::{
 use crate::weight_units::{add_unit_increment, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
-    exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+    exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 
@@ -390,6 +392,13 @@ impl WorkoutRegime for GzclpRegime {
                         } else {
                             String::new()
                         },
+                        progression_hint: Some(progression_hint_for_set(
+                            ex,
+                            "T1",
+                            ProgressionRule::AllSetsMatchTarget,
+                            0,
+                            true,
+                        )),
                     }
                 })
                 .collect();
@@ -434,6 +443,13 @@ impl WorkoutRegime for GzclpRegime {
                         target_reps: reps,
                         is_amrap: false,
                         instruction: String::new(),
+                        progression_hint: Some(progression_hint_for_set(
+                            ex,
+                            "T2",
+                            ProgressionRule::AllSetsMatchTarget,
+                            0,
+                            true,
+                        )),
                     })
                     .collect(),
             };
@@ -458,7 +474,7 @@ impl WorkoutRegime for GzclpRegime {
         for &(ex_a, ex_b) in tmpl.t3 {
             let wa = get_f32_or(state, t3_weight_key(ex_a), 45.0);
             let wb = get_f32_or(state, t3_weight_key(ex_b), 10.0);
-            let make_t3_sets = |w: f32| -> Vec<WorkingSetSpec> {
+            let make_t3_sets = |exercise: Exercise, w: f32| -> Vec<WorkingSetSpec> {
                 (0..3)
                     .map(|i| {
                         let is_last = i == 2;
@@ -471,6 +487,13 @@ impl WorkoutRegime for GzclpRegime {
                             } else {
                                 String::new()
                             },
+                            progression_hint: Some(progression_hint_for_set(
+                                exercise,
+                                "T3",
+                                ProgressionRule::TopSetAmrap,
+                                25,
+                                is_last,
+                            )),
                         }
                     })
                     .collect()
@@ -483,7 +506,7 @@ impl WorkoutRegime for GzclpRegime {
                 include_warmup: true,
                 rest_config: None,
                 last_set_amrap: true,
-                working_sets: make_t3_sets(wa),
+                working_sets: make_t3_sets(ex_a, wa),
             };
             let cb = ExerciseTypeConfig {
                 exercise: ex_b as i32,
@@ -493,7 +516,7 @@ impl WorkoutRegime for GzclpRegime {
                 include_warmup: false,
                 rest_config: None,
                 last_set_amrap: true,
-                working_sets: make_t3_sets(wb),
+                working_sets: make_t3_sets(ex_b, wb),
             };
             proposed_groups.push(ProposedExerciseGroup {
                 name: format!(
@@ -577,24 +600,47 @@ impl WorkoutRegime for GzclpRegime {
     ) -> StatePayload {
         let mut new_state = state.clone();
 
-        // Collect success/failure per exercise and last-set AMRAP reps
-        let mut ex_success: std::collections::HashMap<i32, bool> = std::collections::HashMap::new();
-        let mut ex_last_amrap: std::collections::HashMap<i32, i32> =
-            std::collections::HashMap::new();
+        // Collect per-slot signals from the final workout audit.
+        let mut slot_success: HashMap<String, bool> = HashMap::new();
+        let mut slot_last_amrap: HashMap<String, (i32, i32)> = HashMap::new();
 
         for sr in &result.set_results {
-            let ex_key = sr.exercise as i32;
-            let success = ex_success.entry(ex_key).or_insert(true);
-            *success = *success && (sr.actual_reps >= sr.target_reps);
-            // Track last set reps as potential AMRAP (will be overwritten until the actual last)
-            ex_last_amrap.insert(ex_key, sr.actual_reps);
+            let slot_key = if !sr.progression_slot_key.is_empty() {
+                sr.progression_slot_key.clone()
+            } else {
+                super::progression_slot_key(sr.exercise)
+            };
+            let counts = if sr.progression_slot_key.is_empty() {
+                true
+            } else {
+                sr.counts_toward_program
+            };
+            if !counts {
+                continue;
+            }
+            match sr.progression_rule {
+                schlift::workout::v1::ProgressionRule::TopSetAmrap => {
+                    slot_last_amrap.insert(
+                        slot_key,
+                        (sr.actual_reps, sr.amrap_success_threshold.max(sr.target_reps)),
+                    );
+                }
+                _ => {
+                    let success = sr.actual_reps >= sr.target_reps;
+                    slot_success
+                        .entry(slot_key)
+                        .and_modify(|current| *current = *current && success)
+                        .or_insert(success);
+                }
+            }
         }
 
         let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
 
         // Update T1 lifts
         for ex in [Exercise::Squat, Exercise::Deadlift] {
-            let Some(&success) = ex_success.get(&(ex as i32)) else {
+            let slot_key = super::progression_slot_key(ex);
+            let Some(&success) = slot_success.get(&slot_key) else {
                 continue;
             };
             let current_w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
@@ -629,7 +675,8 @@ impl WorkoutRegime for GzclpRegime {
             Exercise::OverheadPress,
             Exercise::BarbellRow,
         ] {
-            let Some(&success) = ex_success.get(&(ex as i32)) else {
+            let slot_key = super::progression_slot_key(ex);
+            let Some(&success) = slot_success.get(&slot_key) else {
                 continue;
             };
             let current_w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
@@ -664,11 +711,12 @@ impl WorkoutRegime for GzclpRegime {
             Exercise::GluteBridge,
             Exercise::Lunge,
         ] {
-            let Some(&amrap_reps) = ex_last_amrap.get(&(ex as i32)) else {
+            let slot_key = super::progression_slot_key(ex);
+            let Some(&(amrap_reps, threshold)) = slot_last_amrap.get(&slot_key) else {
                 continue;
             };
             let current_w = get_f32_or(state, t3_weight_key(ex), 45.0);
-            if amrap_reps >= 25 {
+            if amrap_reps >= threshold {
                 set_f32(
                     &mut new_state,
                     t3_weight_key(ex),

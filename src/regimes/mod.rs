@@ -5,8 +5,9 @@ pub mod test_harness;
 pub mod wendler_531;
 
 use schlift::workout::v1::{
-    Exercise, ExerciseStatus, MuscleGroup, ProposedExerciseGroup, RegimeType, RestConfig,
-    TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink, WorkingSetSpec,
+    Exercise, ExerciseStatus, MuscleGroup, ProgressionHint, ProgressionRule, ProposedExerciseGroup,
+    RegimeType, RestConfig, TrainingProgramAtAGlance, TrainingProgramDefinition,
+    TrainingProgramLink, WorkingSetSpec,
 };
 
 pub use gzclp::GzclpRegime;
@@ -320,6 +321,13 @@ pub fn make_exercise_type_config_amrap(
                 } else {
                     String::new()
                 },
+                progression_hint: Some(progression_hint_for_set(
+                    exercise,
+                    "MAIN",
+                    ProgressionRule::AllSetsMatchTarget,
+                    0,
+                    true,
+                )),
             }
         })
         .collect();
@@ -332,6 +340,26 @@ pub fn make_exercise_type_config_amrap(
         rest_config: None,
         last_set_amrap,
         working_sets,
+    }
+}
+
+pub fn progression_slot_key(exercise: Exercise) -> String {
+    exercise.as_str_name().to_ascii_lowercase()
+}
+
+pub fn progression_hint_for_set(
+    exercise: Exercise,
+    tier: &str,
+    rule: ProgressionRule,
+    amrap_success_threshold: i32,
+    counts_toward_program: bool,
+) -> ProgressionHint {
+    ProgressionHint {
+        slot_key: progression_slot_key(exercise),
+        tier: tier.to_string(),
+        rule: rule as i32,
+        amrap_success_threshold,
+        counts_toward_program,
     }
 }
 

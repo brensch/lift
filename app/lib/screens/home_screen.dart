@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _draftSaveDebounce = Duration(milliseconds: 400);
   List<ExerciseStatus>? _schedule;
   List<ProposedExerciseGroup>? _proposedGroups;
   RegimeContext? _regimeContext;
@@ -40,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRefreshing = false;
   bool _isStarting = false;
   String? _error;
+  Timer? _draftSaveTimer;
   late final TextEditingController _nameController = TextEditingController(
     text: _getDefaultWorkoutName(),
   );
@@ -47,11 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(_queueDraftSave);
     _loadData();
   }
 
   @override
   void dispose() {
+    _draftSaveTimer?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -93,6 +98,14 @@ class _HomeScreenState extends State<HomeScreen> {
       final suggestedName = scheduleRes.suggestedWorkoutName.isNotEmpty
           ? scheduleRes.suggestedWorkoutName
           : null;
+      final draft = scheduleRes.hasDraft() ? scheduleRes.draft : null;
+      final selectedFromDraft = <int>{};
+      if (draft != null && draft.exerciseGroups.isNotEmpty) {
+        for (final group in draft.exerciseGroups) {
+          final idx = proposedGroups.indexWhere((p) => p.name == group.name);
+          if (idx != -1) selectedFromDraft.add(idx);
+        }
+      }
 
       setState(() {
         _schedule = schedule;
@@ -105,8 +118,12 @@ class _HomeScreenState extends State<HomeScreen> {
             : null;
         _pendingUpdates = scheduleRes.pendingStateUpdates;
         _canStartWorkout = scheduleRes.canStartWorkout;
-        _selectedGroupIndices = autoSelected;
-        _nameController.text = suggestedName ?? _getDefaultWorkoutName();
+        _selectedGroupIndices = selectedFromDraft.isNotEmpty
+            ? selectedFromDraft
+            : autoSelected;
+        _nameController.text = draft != null && draft.name.isNotEmpty
+            ? draft.name
+            : (suggestedName ?? _getDefaultWorkoutName());
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -140,65 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isStarting = true);
 
     try {
-      final exerciseGroups = <ExerciseGroup>[];
-      int groupOrder = 0;
-
-      final statusMap = <int, ExerciseStatus>{};
-      if (_schedule != null) {
-        for (final s in _schedule!) {
-          statusMap[s.exercise.value] = s;
-        }
-      }
-
-      for (final idx in _selectedGroupIndices.toList()..sort()) {
-        final proposed = _proposedGroups![idx];
-        final groupId = _uuid.v4();
-
-        final configs = proposed.exerciseConfigs.map((c) {
-          final status = statusMap[c.exercise.value];
-          final startWeight = status?.targetWeight ?? c.startWeight;
-          // Keep regime's weight ramp (e.g. Wendler 65%→85% TM).
-          // For Linear/GZCLP start==end so endWeight = startWeight.
-          final endWeight = c.endWeight != c.startWeight
-              ? c.endWeight
-              : startWeight;
-          final cfg = ExerciseTypeConfig()
-            ..exercise = c.exercise
-            ..startWeight = startWeight
-            ..endWeight = endWeight
-            ..reps = c.reps
-            ..includeWarmup = c.includeWarmup
-            ..lastSetAmrap = c.lastSetAmrap; // carry AMRAP flag from regime
-          cfg.workingSets.addAll(
-            c.workingSets.map(
-              (ws) => WorkingSetSpec()
-                ..targetWeight = ws.targetWeight
-                ..targetReps = ws.targetReps
-                ..isAmrap = ws.isAmrap
-                ..instruction = ws.instruction,
-            ),
-          );
-          if (c.hasRestConfig()) {
-            cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
-          }
-          return cfg;
-        }).toList();
-
-        final group = ExerciseGroup()
-          ..id = groupId
-          ..name = proposed.name
-          ..sets = proposed.sets
-          ..interleaveWarmups = proposed.interleaveWarmups
-          ..workoutOrder = groupOrder++
-          ..prescribedByRegime = proposed.prescribedByRegime
-          ..exerciseConfigs.addAll(configs)
-          ..instruction = proposed.explanation; // carry regime coaching text
-        if (proposed.hasRestConfig()) {
-          group.restConfig = RestConfig()
-            ..mergeFromMessage(proposed.restConfig);
-        }
-        exerciseGroups.add(group);
-      }
+      final exerciseGroups = _buildExerciseGroupsFromSelection();
+      final grpc = context.read<GrpcClient>();
+      final wearableBridge = context.read<WearableBridgeService>();
+      final mp = context.read<MultiplayerProvider>();
 
       final now = DateTime.now();
       final dateStr =
@@ -217,9 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (workoutId != null && mounted) {
-        final wearableBridge = context.read<WearableBridgeService>();
+        await WorkoutServiceWrapper(grpc).clearWorkoutDraft();
         unawaited(_attemptAutoLaunchWatchApp(wearableBridge));
-        final mp = context.read<MultiplayerProvider>();
         if (mp.isInSession) {
           await mp.updateActiveWorkout(workoutId);
         }
@@ -252,6 +213,92 @@ class _HomeScreenState extends State<HomeScreen> {
         _selectedGroupIndices.add(index);
       }
     });
+    _queueDraftSave();
+  }
+
+  List<ExerciseGroup> _buildExerciseGroupsFromSelection() {
+    final exerciseGroups = <ExerciseGroup>[];
+    int groupOrder = 0;
+
+    final statusMap = <int, ExerciseStatus>{};
+    if (_schedule != null) {
+      for (final s in _schedule!) {
+        statusMap[s.exercise.value] = s;
+      }
+    }
+
+    for (final idx in _selectedGroupIndices.toList()..sort()) {
+      final proposed = _proposedGroups![idx];
+      final groupId = _uuid.v4();
+
+      final configs = proposed.exerciseConfigs.map((c) {
+        final status = statusMap[c.exercise.value];
+        final startWeight = status?.targetWeight ?? c.startWeight;
+        final endWeight = c.endWeight != c.startWeight
+            ? c.endWeight
+            : startWeight;
+        final cfg = ExerciseTypeConfig()
+          ..exercise = c.exercise
+          ..startWeight = startWeight
+          ..endWeight = endWeight
+          ..reps = c.reps
+          ..includeWarmup = c.includeWarmup
+          ..lastSetAmrap = c.lastSetAmrap;
+        cfg.workingSets.addAll(
+          c.workingSets.map(
+            (ws) => WorkingSetSpec()
+              ..targetWeight = ws.targetWeight
+              ..targetReps = ws.targetReps
+              ..isAmrap = ws.isAmrap
+              ..instruction = ws.instruction
+              ..progressionHint = ws.progressionHint.deepCopy(),
+          ),
+        );
+        if (c.hasRestConfig()) {
+          cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
+        }
+        return cfg;
+      }).toList();
+
+      final group = ExerciseGroup()
+        ..id = groupId
+        ..name = proposed.name
+        ..sets = proposed.sets
+        ..interleaveWarmups = proposed.interleaveWarmups
+        ..workoutOrder = groupOrder++
+        ..prescribedByRegime = proposed.prescribedByRegime
+        ..exerciseConfigs.addAll(configs)
+        ..instruction = proposed.explanation;
+      if (proposed.hasRestConfig()) {
+        group.restConfig = RestConfig()..mergeFromMessage(proposed.restConfig);
+      }
+      exerciseGroups.add(group);
+    }
+    return exerciseGroups;
+  }
+
+  void _queueDraftSave() {
+    if (!mounted) return;
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(_draftSaveDebounce, () {
+      unawaited(_saveDraftToServer());
+    });
+  }
+
+  Future<void> _saveDraftToServer() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.userId == null) return;
+    final grpc = context.read<GrpcClient>();
+    final workoutService = WorkoutServiceWrapper(grpc);
+    try {
+      final draft = WorkoutDraft()
+        ..name = _nameController.text.trim()
+        ..exerciseGroups.addAll(_buildExerciseGroupsFromSelection())
+        ..updatedAt = Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000);
+      await workoutService.saveWorkoutDraft(draft);
+    } catch (e) {
+      debugPrint('Failed to save workout draft: $e');
+    }
   }
 
   void _toggleSection(String tag) {

@@ -5,9 +5,9 @@
 use std::collections::HashMap;
 
 use schlift::workout::v1::{
-    state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
-    StateFieldKind, StateFieldValue, TrainingProgramStateEvent, TrainingProgramStateFieldSchema,
-    TrainingProgramStateSchema,
+    state_field_value, PendingStateUpdate, PendingStateUpdateField, ProgressionRule,
+    StateEnumOption, StateFieldKind, StateFieldValue, TrainingProgramStateEvent,
+    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
 };
 use serde::{Deserialize, Serialize};
 
@@ -156,11 +156,20 @@ pub struct ProposeResult {
 }
 
 /// One working set's completion result (warmups excluded).
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct WorkingSetResult {
     pub exercise: schlift::workout::v1::Exercise,
     pub target_reps: i32,
     pub actual_reps: i32,
+    pub target_weight: f32,
+    pub actual_weight: f32,
+    pub is_amrap: bool,
+    pub progression_slot_key: String,
+    pub progression_tier: String,
+    pub progression_rule: ProgressionRule,
+    pub amrap_success_threshold: i32,
+    pub counts_toward_program: bool,
 }
 
 /// All completion data passed to `transition_state_on_workout_complete`.
