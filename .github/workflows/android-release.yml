@@ -93,7 +93,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload phone bundle to Google Play testing tracks
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@41571de6d8a402a9565f0fc067d3ecc5f235a4c9
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.brensch.schlift
@@ -103,7 +103,7 @@ jobs:
           releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone
 
       - name: Upload wear bundle to Google Play Wear OS testing tracks
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@41571de6d8a402a9565f0fc067d3ecc5f235a4c9
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.brensch.schlift
