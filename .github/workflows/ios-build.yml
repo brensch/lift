@@ -167,6 +167,35 @@ jobs:
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
             IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME"
 
+      - name: Verify archived iOS entitlements
+        if: steps.signing-mode.outputs.enabled == 'true'
+        working-directory: app
+        env:
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          APP_PATH="build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app"
+          ENTITLEMENTS_PLIST="$RUNNER_TEMP/runner-entitlements.plist"
+          PROFILE_PLIST="$RUNNER_TEMP/runner-embedded-profile.plist"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Archived app not found at $APP_PATH"
+            exit 1
+          fi
+
+          codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PLIST"
+          security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$PROFILE_PLIST"
+
+          echo "Archived app entitlements:"
+          /usr/libexec/PlistBuddy -c "Print" "$ENTITLEMENTS_PLIST"
+
+          /usr/libexec/PlistBuddy -c "Print :com.apple.developer.associated-domains:0" "$ENTITLEMENTS_PLIST" | grep -Fx "webcredentials:schlift.com"
+          /usr/libexec/PlistBuddy -c "Print :application-identifier" "$ENTITLEMENTS_PLIST" | grep -Fx "${APPLE_TEAM_ID}.com.brensch.schlift"
+          /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$PROFILE_PLIST" | grep -Fx "${APPLE_TEAM_ID}.com.brensch.schlift"
+
+          echo "Embedded provisioning profile entitlements:"
+          /usr/libexec/PlistBuddy -c "Print :Entitlements" "$PROFILE_PLIST"
+
       - name: Export IPA
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app
