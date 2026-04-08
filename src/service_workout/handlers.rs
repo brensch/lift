@@ -9,14 +9,19 @@ fn mutation_kind_name(mutation: &WorkoutMutation) -> &'static str {
         Some(workout_mutation::Mutation::CancelProposedSet(_)) => "cancel_proposed_set",
         Some(workout_mutation::Mutation::DeleteCompletedSet(_)) => "delete_completed_set",
         Some(workout_mutation::Mutation::EndWorkout(_)) => "end_workout",
-        Some(workout_mutation::Mutation::ReplaceExerciseGroupPlan(_)) => "replace_exercise_group_plan",
+        Some(workout_mutation::Mutation::ReplaceExerciseGroupPlan(_)) => {
+            "replace_exercise_group_plan"
+        }
         Some(workout_mutation::Mutation::ReorderExerciseGroups(_)) => "reorder_exercise_groups",
         None => "missing",
     }
 }
 
 fn is_stale_local_mutation_error(status: &Status) -> bool {
-    matches!(status.code(), tonic::Code::FailedPrecondition | tonic::Code::NotFound)
+    matches!(
+        status.code(),
+        tonic::Code::FailedPrecondition | tonic::Code::NotFound
+    )
 }
 
 #[tonic::async_trait]
