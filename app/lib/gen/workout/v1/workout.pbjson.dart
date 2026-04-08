@@ -703,6 +703,7 @@ const PlannedGroupSet$json = {
       '6': '.workout.v1.ProgressionHint',
       '10': 'progressionHint'
     },
+    {'1': 'client_set_id', '3': 10, '4': 1, '5': 9, '10': 'clientSetId'},
   ],
 };
 
@@ -714,7 +715,8 @@ final $typed_data.Uint8List plannedGroupSetDescriptor = $convert.base64Decode(
     'VzdF9hZnRlcl9zdWNjZXNzGAUgASgFUhByZXN0QWZ0ZXJTdWNjZXNzEiwKEnJlc3RfYWZ0ZXJf'
     'ZmFpbHVyZRgGIAEoBVIQcmVzdEFmdGVyRmFpbHVyZRIZCghpc19hbXJhcBgHIAEoCFIHaXNBbX'
     'JhcBIgCgtpbnN0cnVjdGlvbhgIIAEoCVILaW5zdHJ1Y3Rpb24SRgoQcHJvZ3Jlc3Npb25faGlu'
-    'dBgJIAEoCzIbLndvcmtvdXQudjEuUHJvZ3Jlc3Npb25IaW50Ug9wcm9ncmVzc2lvbkhpbnQ=');
+    'dBgJIAEoCzIbLndvcmtvdXQudjEuUHJvZ3Jlc3Npb25IaW50Ug9wcm9ncmVzc2lvbkhpbnQSIg'
+    'oNY2xpZW50X3NldF9pZBgKIAEoCVILY2xpZW50U2V0SWQ=');
 
 @$core.Deprecated('Use progressionHintDescriptor instead')
 const ProgressionHint$json = {

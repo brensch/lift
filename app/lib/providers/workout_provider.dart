@@ -26,6 +26,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       'workout_provider.local_workout_state.v1';
   static const _pendingMutationsKey = 'workout_provider.pending_mutations.v1';
   static const _mutationFlushDebounce = Duration(milliseconds: 350);
+  static const _mutationRetryBaseDelay = Duration(seconds: 2);
+  static const _mutationRetryMaxDelay = Duration(seconds: 15);
 
   final WorkoutServiceWrapper _service;
   final SettingsProvider _settingsProvider;
@@ -61,6 +63,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final List<WorkoutMutation> _pendingMutations = [];
   Timer? _mutationFlushTimer;
   bool _mutationFlushInFlight = false;
+  int _mutationFlushRetryCount = 0;
+  late final Future<void> _restoreLocalCacheFuture;
 
   Timer? _timer;
   DateTime _now = DateTime.now();
@@ -68,7 +72,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutProvider(this._service, this._settingsProvider) {
     WidgetsBinding.instance.addObserver(this);
     NotificationService.onStartNextSet = _onStartNextSet;
-    unawaited(_restoreLocalCache());
+    _restoreLocalCacheFuture = _restoreLocalCache();
   }
 
   void _onStartNextSet() {
@@ -181,25 +185,25 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final c = exerciseConfigs[cfgIdx];
       final warm = warmupByConfig[cfgIdx][warmIdx];
       final isLastWarmup = warmIdx == warmupByConfig[cfgIdx].length - 1;
-      out.add(
-        PlannedGroupSet()
-          ..exercise = c.exercise
-          ..targetReps = warm.reps
-          ..targetWeight = warm.weight
-          ..warmup = true
-          ..restAfterSuccess = _effectiveRestSuccess(
-            config: c,
-            groupRest: restConfig,
-            warmup: true,
-            lastWarmup: isLastWarmup,
-          )
-          ..restAfterFailure = _effectiveRestFailure(
-            config: c,
-            groupRest: restConfig,
-            warmup: true,
-            lastWarmup: isLastWarmup,
-          ),
-      );
+      final planned = PlannedGroupSet()
+        ..exercise = c.exercise
+        ..targetReps = warm.reps
+        ..targetWeight = warm.weight
+        ..warmup = true
+        ..restAfterSuccess = _effectiveRestSuccess(
+          config: c,
+          groupRest: restConfig,
+          warmup: true,
+          lastWarmup: isLastWarmup,
+        )
+        ..restAfterFailure = _effectiveRestFailure(
+          config: c,
+          groupRest: restConfig,
+          warmup: true,
+          lastWarmup: isLastWarmup,
+        )
+        ..clientSetId = _uuid.v4();
+      out.add(planned);
     }
 
     if (interleaveWarmups && exerciseConfigs.length > 1) {
@@ -235,28 +239,28 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (round >= workingByConfig[cfgIdx].length) continue;
         final c = exerciseConfigs[cfgIdx];
         final ws = workingByConfig[cfgIdx][round];
-        out.add(
-          PlannedGroupSet()
-            ..exercise = c.exercise
-            ..targetReps = ws.targetReps
-            ..targetWeight = ws.targetWeight
-            ..warmup = false
-            ..restAfterSuccess = _effectiveRestSuccess(
-              config: c,
-              groupRest: restConfig,
-              warmup: false,
-              lastWarmup: false,
-            )
-            ..restAfterFailure = _effectiveRestFailure(
-              config: c,
-              groupRest: restConfig,
-              warmup: false,
-              lastWarmup: false,
-            )
-            ..isAmrap = ws.isAmrap
-            ..instruction = ws.instruction
-            ..progressionHint = ws.progressionHint.deepCopy(),
-        );
+        final planned = PlannedGroupSet()
+          ..exercise = c.exercise
+          ..targetReps = ws.targetReps
+          ..targetWeight = ws.targetWeight
+          ..warmup = false
+          ..restAfterSuccess = _effectiveRestSuccess(
+            config: c,
+            groupRest: restConfig,
+            warmup: false,
+            lastWarmup: false,
+          )
+          ..restAfterFailure = _effectiveRestFailure(
+            config: c,
+            groupRest: restConfig,
+            warmup: false,
+            lastWarmup: false,
+          )
+          ..isAmrap = ws.isAmrap
+          ..instruction = ws.instruction
+          ..progressionHint = ws.progressionHint.deepCopy()
+          ..clientSetId = _uuid.v4();
+        out.add(planned);
       }
     }
 
@@ -266,11 +270,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<PlannedGroupSet> _buildPlannedGroupSetsFromExistingGroup(
     ExerciseGroupData groupData,
   ) {
-    final sets = List<ProposedSet>.from(groupData.sets)
+    final sets = groupData.sets.where((s) => !s.cancelled).toList()
       ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     return sets
         .map(
           (s) => PlannedGroupSet()
+            ..clientSetId = s.id
             ..exercise = s.exercise
             ..targetReps = s.targetReps
             ..targetWeight = s.targetWeight
@@ -308,7 +313,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     for (final set in sets) {
       out.add(
         ProposedSet()
-          ..id = _uuid.v4()
+          ..id = set.clientSetId.isNotEmpty ? set.clientSetId : _uuid.v4()
           ..workoutId = workoutId
           ..workoutOrder = order++
           ..exercise = set.exercise
@@ -472,11 +477,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_activeWorkout == null) return;
     final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
+    final normalizedSets = sets
+        .map(
+          (set) => (set.clientSetId.isNotEmpty
+              ? set
+              : (set.deepCopy()..clientSetId = _uuid.v4())),
+        )
+        .toList();
     final effectiveGroupId = _applyLocalReplaceExerciseGroupPlan(
       name: name,
       exerciseGroupId: exerciseGroupId,
       interleaveWarmups: interleaveWarmups,
-      sets: sets,
+      sets: normalizedSets,
       restConfig: restConfig,
       deleteGroupIfEmpty: deleteGroupIfEmpty,
       instruction: instruction,
@@ -491,7 +503,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       ..exerciseGroupId = effectiveGroupId ?? (exerciseGroupId ?? '')
       ..name = name
       ..interleaveWarmups = interleaveWarmups
-      ..sets.addAll(sets)
+      ..sets.addAll(normalizedSets)
       ..deleteGroupIfEmpty = deleteGroupIfEmpty
       ..instruction = instruction
       ..createIfMissing = createIfMissing;
@@ -668,6 +680,105 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _refreshDerivedState();
   }
 
+  String? _workoutIdForMutation(WorkoutMutation mutation) {
+    final payload = mutation.whichMutation();
+    switch (payload) {
+      case WorkoutMutation_Mutation.startSet:
+        return mutation.startSet.workoutId;
+      case WorkoutMutation_Mutation.completeSet:
+        return mutation.completeSet.workoutId;
+      case WorkoutMutation_Mutation.cancelProposedSet:
+        return mutation.cancelProposedSet.workoutId;
+      case WorkoutMutation_Mutation.deleteCompletedSet:
+        return mutation.deleteCompletedSet.workoutId;
+      case WorkoutMutation_Mutation.endWorkout:
+        return mutation.endWorkout.workoutId;
+      case WorkoutMutation_Mutation.replaceExerciseGroupPlan:
+        return mutation.replaceExerciseGroupPlan.workoutId;
+      case WorkoutMutation_Mutation.reorderExerciseGroups:
+        return mutation.reorderExerciseGroups.workoutId;
+      case WorkoutMutation_Mutation.notSet:
+        return null;
+    }
+  }
+
+  void _applyLocalReorderExerciseGroups(List<String> groupIds) {
+    if (_activeWorkout == null) return;
+    final orderedGroups = <ExerciseGroup>[];
+    for (final id in groupIds) {
+      final idx = _activeExerciseGroups.indexWhere((g) => g.id == id);
+      if (idx == -1) continue;
+      final group = _activeExerciseGroups[idx];
+      orderedGroups.add(group..workoutOrder = orderedGroups.length);
+    }
+    for (final group in _activeExerciseGroups) {
+      if (orderedGroups.any((existing) => existing.id == group.id)) continue;
+      orderedGroups.add(group..workoutOrder = orderedGroups.length);
+    }
+    _activeExerciseGroups = orderedGroups;
+
+    final orderedSets = <ProposedSet>[];
+    for (final group in orderedGroups) {
+      final sets = _activeProposedSets
+          .where((s) => s.exerciseGroupId == group.id)
+          .toList();
+      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      for (final set in sets) {
+        orderedSets.add(set..workoutOrder = orderedSets.length);
+      }
+    }
+    _activeProposedSets = orderedSets;
+    _refreshDerivedState();
+  }
+
+  void _overlayPendingMutationsOnActiveWorkout() {
+    final workout = _activeWorkout;
+    if (workout == null) return;
+
+    for (final mutation in _pendingMutations) {
+      if (_workoutIdForMutation(mutation) != workout.id) continue;
+      switch (mutation.whichMutation()) {
+        case WorkoutMutation_Mutation.startSet:
+          _applyLocalStartSet(
+            mutation.startSet.proposedSetId,
+            startedAt: mutation.startSet.startedAt.toInt(),
+          );
+        case WorkoutMutation_Mutation.completeSet:
+          _applyLocalCompleteSet(
+            mutation.completeSet.proposedSetId,
+            mutation.completeSet.actualReps,
+            mutation.completeSet.actualWeight,
+            completedAt: mutation.completeSet.completedAt.toInt(),
+          );
+        case WorkoutMutation_Mutation.cancelProposedSet:
+          _applyLocalSkipWarmup(mutation.cancelProposedSet.proposedSetId);
+        case WorkoutMutation_Mutation.deleteCompletedSet:
+          _applyLocalDeleteCompletedSet(
+            mutation.deleteCompletedSet.completedSetId,
+          );
+        case WorkoutMutation_Mutation.replaceExerciseGroupPlan:
+          final req = mutation.replaceExerciseGroupPlan;
+          _applyLocalReplaceExerciseGroupPlan(
+            name: req.name,
+            exerciseGroupId: req.exerciseGroupId,
+            interleaveWarmups: req.interleaveWarmups,
+            sets: req.sets,
+            restConfig: req.hasRestConfig() ? req.restConfig : null,
+            deleteGroupIfEmpty: req.deleteGroupIfEmpty,
+            instruction: req.instruction,
+            createIfMissing: req.createIfMissing,
+          );
+        case WorkoutMutation_Mutation.reorderExerciseGroups:
+          _applyLocalReorderExerciseGroups(
+            mutation.reorderExerciseGroups.exerciseGroupIds,
+          );
+        case WorkoutMutation_Mutation.endWorkout:
+        case WorkoutMutation_Mutation.notSet:
+          continue;
+      }
+    }
+  }
+
   Future<void> _persistLocalCache() async {
     final prefs = await SharedPreferences.getInstance();
     if (_activeWorkout == null) {
@@ -775,7 +886,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     return _activeExerciseGroups.map((group) {
       final sets = _activeProposedSets
-          .where((s) => s.exerciseGroupId == group.id)
+          .where((s) => s.exerciseGroupId == group.id && !s.cancelled)
           .toList();
       sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
 
@@ -989,6 +1100,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> loadActiveWorkout(String userId) async {
+    await _restoreLocalCacheFuture;
     _isLoading = true;
     _lastLoadError = null;
     _lastLoadWasUnauthorized = false;
@@ -998,6 +1110,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (active != null) {
         final response = await _service.getWorkout(active.id);
         _applyWorkoutResponse(response);
+        _overlayPendingMutationsOnActiveWorkout();
         await _hydrateWearHeartRateFromApi();
         _startTimer();
       } else {
@@ -1031,9 +1144,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> loadWorkoutFromServer(String workoutId) async {
+    await _restoreLocalCacheFuture;
     try {
       final response = await _service.getWorkout(workoutId);
       _applyWorkoutResponse(response);
+      _overlayPendingMutationsOnActiveWorkout();
       await _hydrateWearHeartRateFromApi();
       if (hasActiveWorkout) {
         _startTimer();
@@ -1082,8 +1197,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _queueMutation(WorkoutMutation mutation) {
     _pendingMutations.add(mutation);
     unawaited(_persistLocalCache());
+    _scheduleMutationFlush(_mutationFlushDebounce);
+  }
+
+  void _scheduleMutationFlush(Duration delay) {
     _mutationFlushTimer?.cancel();
-    _mutationFlushTimer = Timer(_mutationFlushDebounce, () {
+    _mutationFlushTimer = Timer(delay, () {
       unawaited(_flushPendingMutations());
     });
   }
@@ -1095,11 +1214,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _mutationFlushInFlight = true;
     final batch = List<WorkoutMutation>.from(_pendingMutations);
+    var progressMade = false;
     try {
       final response = await _service.appendWorkoutMutations(batch);
       if (response.appliedEventIds.isNotEmpty) {
         final applied = response.appliedEventIds.toSet();
+        final before = _pendingMutations.length;
         _pendingMutations.removeWhere((m) => applied.contains(m.eventId));
+        progressMade = _pendingMutations.length < before;
+      }
+      if (progressMade || _pendingMutations.isEmpty) {
+        _mutationFlushRetryCount = 0;
       }
       await _persistLocalCache();
       notifyListeners();
@@ -1109,7 +1234,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } finally {
       _mutationFlushInFlight = false;
       if (_pendingMutations.isNotEmpty) {
-        unawaited(_flushPendingMutations());
+        if (progressMade) {
+          _scheduleMutationFlush(Duration.zero);
+        } else {
+          _mutationFlushRetryCount++;
+          final multiplier = 1 << (_mutationFlushRetryCount - 1).clamp(0, 3);
+          final retryMs = _mutationRetryBaseDelay.inMilliseconds * multiplier;
+          final cappedMs = retryMs > _mutationRetryMaxDelay.inMilliseconds
+              ? _mutationRetryMaxDelay.inMilliseconds
+              : retryMs;
+          _scheduleMutationFlush(Duration(milliseconds: cappedMs));
+        }
       }
     }
   }
@@ -1244,26 +1379,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
 
     // Optimistically update local state
-    final orderedGroups = <ExerciseGroup>[];
-    for (final id in groupIds) {
-      final group = _activeExerciseGroups.firstWhere((g) => g.id == id);
-      orderedGroups.add(group..workoutOrder = orderedGroups.length);
-    }
-    _activeExerciseGroups = orderedGroups;
-
-    // Reorder sets to match groups
-    final orderedSets = <ProposedSet>[];
-    for (final group in orderedGroups) {
-      final sets = _activeProposedSets
-          .where((s) => s.exerciseGroupId == group.id)
-          .toList();
-      for (final set in sets) {
-        orderedSets.add(set..workoutOrder = orderedSets.length);
-      }
-    }
-    _activeProposedSets = orderedSets;
-
-    _refreshDerivedState();
+    _applyLocalReorderExerciseGroups(groupIds);
     notifyListeners();
 
     _queueMutation(

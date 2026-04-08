@@ -152,7 +152,6 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 pub enum WriteCommand {
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
-    UpdateWorkoutEnd(String, String, i64),
     UpdateWorkoutSession(String, String, String),
     DeleteCompletedSet(String, String, String),
     JoinSession(String, String),
@@ -547,16 +546,6 @@ impl CentralDb {
                         .execute(&mut *tx)
                         .await?;
                         }
-                    }
-                    WriteCommand::UpdateWorkoutEnd(user_id, workout_id, end_time) => {
-                        sqlx::query(
-                            "UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?",
-                        )
-                        .bind(end_time)
-                        .bind(user_id)
-                        .bind(workout_id)
-                        .execute(&mut *tx)
-                        .await?;
                     }
                     WriteCommand::UpdateWorkoutSession(user_id, workout_id, session_id) => {
                         sqlx::query(
@@ -1073,20 +1062,6 @@ impl CentralDb {
         Ok(())
     }
 
-    pub async fn update_workout_end_time(
-        &self,
-        user_id: &str,
-        workout_id: &str,
-        end_time: i64,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::UpdateWorkoutEnd(
-            user_id.to_string(),
-            workout_id.to_string(),
-            end_time,
-        ))?;
-        Ok(())
-    }
-
     pub async fn update_workout_session_id(
         &self,
         user_id: &str,
@@ -1279,6 +1254,40 @@ impl CentralDb {
         .bind(&event.payload)
         .execute(&self.pool)
         .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn finalize_workout_end(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        end_time: i64,
+        event: &WorkoutEventRecord,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query("UPDATE workouts SET end_time = ? WHERE user_id = ? AND id = ?")
+            .bind(end_time)
+            .bind(user_id)
+            .bind(workout_id)
+            .execute(&mut *tx)
+            .await?;
+
+        let result = sqlx::query(
+            "INSERT OR IGNORE INTO workout_events (event_id, user_id, workout_id, recorded_at, event_type, payload)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&event.event_id)
+        .bind(&event.user_id)
+        .bind(&event.workout_id)
+        .bind(event.recorded_at)
+        .bind(event.event_type as i32)
+        .bind(&event.payload)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
         Ok(result.rows_affected() > 0)
     }
 

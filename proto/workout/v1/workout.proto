@@ -187,6 +187,7 @@ message PlannedGroupSet {
   bool is_amrap = 7;
   string instruction = 8;
   ProgressionHint progression_hint = 9;
+  string client_set_id = 10;
 }
 
 enum ProgressionRule {

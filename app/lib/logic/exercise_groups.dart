@@ -87,6 +87,7 @@ List<ExerciseGroupData> groupSetsByExercise(List<ProposedSet> sets) {
   final ungrouped = <ProposedSet>[];
 
   for (final set in sets) {
+    if (set.cancelled) continue;
     if (set.exerciseGroupId.isNotEmpty) {
       byGroup.putIfAbsent(set.exerciseGroupId, () => []).add(set);
     } else {

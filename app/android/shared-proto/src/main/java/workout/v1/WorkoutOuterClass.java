@@ -12378,6 +12378,18 @@ public final class WorkoutOuterClass {
      * @return The progressionHint.
      */
     workout.v1.WorkoutOuterClass.ProgressionHint getProgressionHint();
+
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @return The clientSetId.
+     */
+    java.lang.String getClientSetId();
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @return The bytes for clientSetId.
+     */
+    com.google.protobuf.ByteString
+        getClientSetIdBytes();
   }
   /**
    * Protobuf type {@code workout.v1.PlannedGroupSet}
@@ -12389,6 +12401,7 @@ public final class WorkoutOuterClass {
       PlannedGroupSetOrBuilder {
     private PlannedGroupSet() {
       instruction_ = "";
+      clientSetId_ = "";
     }
     public static final int EXERCISE_FIELD_NUMBER = 1;
     private int exercise_;
@@ -12678,6 +12691,53 @@ public final class WorkoutOuterClass {
      * <code>.workout.v1.ProgressionHint progression_hint = 9 [json_name = "progressionHint"];</code>
      */
     private void clearProgressionHint() {  progressionHint_ = null;
+      
+    }
+
+    public static final int CLIENT_SET_ID_FIELD_NUMBER = 10;
+    private java.lang.String clientSetId_;
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @return The clientSetId.
+     */
+    @java.lang.Override
+    public java.lang.String getClientSetId() {
+      return clientSetId_;
+    }
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @return The bytes for clientSetId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getClientSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(clientSetId_);
+    }
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @param value The clientSetId to set.
+     */
+    private void setClientSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      clientSetId_ = value;
+    }
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     */
+    private void clearClientSetId() {
+      
+      clientSetId_ = getDefaultInstance().getClientSetId();
+    }
+    /**
+     * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+     * @param value The bytes for clientSetId to set.
+     */
+    private void setClientSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      clientSetId_ = value.toStringUtf8();
       
     }
 
@@ -13086,6 +13146,55 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+       * @return The clientSetId.
+       */
+      @java.lang.Override
+      public java.lang.String getClientSetId() {
+        return instance.getClientSetId();
+      }
+      /**
+       * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+       * @return The bytes for clientSetId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getClientSetIdBytes() {
+        return instance.getClientSetIdBytes();
+      }
+      /**
+       * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+       * @param value The clientSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setClientSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setClientSetId(value);
+        return this;
+      }
+      /**
+       * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearClientSetId() {
+        copyOnWrite();
+        instance.clearClientSetId();
+        return this;
+      }
+      /**
+       * <code>string client_set_id = 10 [json_name = "clientSetId"];</code>
+       * @param value The bytes for clientSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setClientSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setClientSetIdBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.PlannedGroupSet)
     }
     @java.lang.Override
@@ -13111,10 +13220,11 @@ public final class WorkoutOuterClass {
               "isAmrap_",
               "instruction_",
               "progressionHint_",
+              "clientSetId_",
             };
             java.lang.String info =
-                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0000\u0000\u0001\f\u0002\u0004\u0003\u0001" +
-                "\u0004\u0007\u0005\u0004\u0006\u0004\u0007\u0007\b\u0208\t\t";
+                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0000\u0000\u0001\f\u0002\u0004\u0003\u0001" +
+                "\u0004\u0007\u0005\u0004\u0006\u0004\u0007\u0007\b\u0208\t\t\n\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
