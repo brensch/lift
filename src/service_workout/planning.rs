@@ -389,7 +389,11 @@ fn proposed_sets_from_planned_group_sets(
     let mut out = Vec::with_capacity(planned_sets.len());
     for s in planned_sets {
         out.push(ProposedSet {
-            id: Uuid::new_v4().to_string(),
+            id: if s.client_set_id.is_empty() {
+                Uuid::new_v4().to_string()
+            } else {
+                s.client_set_id.clone()
+            },
             workout_id: workout_id.to_string(),
             workout_order: order,
             exercise: s.exercise,

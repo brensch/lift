@@ -1701,6 +1701,7 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     $core.bool? isAmrap,
     $core.String? instruction,
     ProgressionHint? progressionHint,
+    $core.String? clientSetId,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -1712,6 +1713,7 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     if (isAmrap != null) result.isAmrap = isAmrap;
     if (instruction != null) result.instruction = instruction;
     if (progressionHint != null) result.progressionHint = progressionHint;
+    if (clientSetId != null) result.clientSetId = clientSetId;
     return result;
   }
 
@@ -1740,6 +1742,7 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'instruction')
     ..aOM<ProgressionHint>(9, _omitFieldNames ? '' : 'progressionHint',
         subBuilder: ProgressionHint.create)
+    ..aOS(10, _omitFieldNames ? '' : 'clientSetId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1843,6 +1846,15 @@ class PlannedGroupSet extends $pb.GeneratedMessage {
   void clearProgressionHint() => $_clearField(9);
   @$pb.TagNumber(9)
   ProgressionHint ensureProgressionHint() => $_ensure(8);
+
+  @$pb.TagNumber(10)
+  $core.String get clientSetId => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set clientSetId($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasClientSetId() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearClientSetId() => $_clearField(10);
 }
 
 class ProgressionHint extends $pb.GeneratedMessage {

@@ -103,18 +103,25 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     Object? lastError;
     StackTrace? lastStack;
     // Freshly ended workouts can briefly race backend persistence.
-    final attempts = widget.isHistory ? 1 : 4;
+    final attempts = widget.isHistory ? 1 : 8;
     for (var attempt = 1; attempt <= attempts; attempt++) {
       try {
-        return await service.getWorkout(widget.workoutId);
+        final response = await service.getWorkout(widget.workoutId);
+        if (widget.isHistory || response.workout.endTime != Int64.ZERO) {
+          return response;
+        }
+        lastError = StateError('Workout summary is not finalized yet.');
       } catch (e, st) {
         lastError = e;
         lastStack = st;
-        if (attempt == attempts) break;
-        await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
       }
+      if (attempt == attempts) break;
+      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
     }
-    Error.throwWithStackTrace(lastError!, lastStack!);
+    if (lastStack != null) {
+      Error.throwWithStackTrace(lastError!, lastStack);
+    }
+    throw lastError ?? StateError('Failed to load finalized workout summary.');
   }
 
   Future<void> _scheduleNextWorkoutNotification(

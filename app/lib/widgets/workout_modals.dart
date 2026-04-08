@@ -225,7 +225,55 @@ Future<void> showEditExerciseDialog(
   RestConfig restConfig = group.group?.restConfig.deepCopy() ?? RestConfig();
 
   List<_EditableConfig> editableConfigs = [];
-  if (group.group != null && group.group!.exerciseConfigs.isNotEmpty) {
+  final currentSets = List<ProposedSet>.from(group.sets)
+    ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+  final currentWorkingSets = currentSets.where((s) => !s.warmup).toList();
+
+  if (currentSets.isNotEmpty) {
+    final exercises = <Exercise>[];
+    for (final set in currentSets) {
+      if (!exercises.contains(set.exercise)) {
+        exercises.add(set.exercise);
+      }
+    }
+
+    for (final exercise in exercises) {
+      final exerciseWorkingSets =
+          currentWorkingSets.where((s) => s.exercise == exercise).toList()
+            ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      final matchingConfig = group.group?.exerciseConfigs
+          .cast<ExerciseTypeConfig?>()
+          .firstWhere(
+            (config) => config?.exercise == exercise,
+            orElse: () => null,
+          );
+
+      final baseSet = exerciseWorkingSets.isNotEmpty
+          ? exerciseWorkingSets.first
+          : currentSets.firstWhere((s) => s.exercise == exercise);
+      final endSet = exerciseWorkingSets.isNotEmpty
+          ? exerciseWorkingSets.last
+          : baseSet;
+
+      editableConfigs.add(
+        _EditableConfig(
+          exercise: exercise,
+          startWeight: baseSet.targetWeight.toDouble(),
+          endWeight: endSet.targetWeight.toDouble(),
+          differentEndWeight:
+              exerciseWorkingSets.length > 1 &&
+              baseSet.targetWeight != endSet.targetWeight,
+          reps: baseSet.targetReps,
+          includeWarmup: currentSets.any(
+            (s) => s.warmup && s.exercise == exercise,
+          ),
+          restConfig: matchingConfig != null && matchingConfig.hasRestConfig()
+              ? matchingConfig.restConfig.deepCopy()
+              : null,
+        ),
+      );
+    }
+  } else if (group.group != null && group.group!.exerciseConfigs.isNotEmpty) {
     for (final config in group.group!.exerciseConfigs) {
       editableConfigs.add(
         _EditableConfig(
@@ -367,6 +415,7 @@ Future<void> showEditExerciseDialog(
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _CompactExerciseConfig(
+                        key: ValueKey(config.exercise.value),
                         config: config,
                         isExpanded: isExpanded,
                         onTap: () => setState(() {
@@ -607,6 +656,7 @@ Future<void> showAddExerciseDialog(
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _CompactExerciseConfig(
+                          key: ValueKey(config.exercise.value),
                           config: config,
                           isExpanded: isExpanded,
                           onTap: () => setState(() {
@@ -896,6 +946,7 @@ class _CompactExerciseConfig extends StatefulWidget {
   final ValueChanged<RestConfig> onRestChanged;
 
   const _CompactExerciseConfig({
+    super.key,
     required this.config,
     required this.isExpanded,
     required this.onTap,
