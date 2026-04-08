@@ -1101,10 +1101,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         final applied = response.appliedEventIds.toSet();
         _pendingMutations.removeWhere((m) => applied.contains(m.eventId));
       }
-      if (response.hasWorkoutState() &&
-          !_matchesLocalWorkoutResponse(response.workoutState)) {
-        _applyWorkoutResponse(response.workoutState);
-      }
       await _persistLocalCache();
       notifyListeners();
       onSessionRefreshNeeded?.call();
@@ -1112,6 +1108,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('Workout mutation flush failed: $e');
     } finally {
       _mutationFlushInFlight = false;
+      if (_pendingMutations.isNotEmpty) {
+        unawaited(_flushPendingMutations());
+      }
     }
   }
 
@@ -1142,57 +1141,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       mutation.reorderExerciseGroups = reorderExerciseGroups;
     }
     return mutation;
-  }
-
-  bool _matchesLocalWorkoutResponse(GetWorkoutResponse response) {
-    final localWorkout = _activeWorkout;
-    if (localWorkout == null || !response.hasWorkout()) return false;
-    final remoteWorkout = response.workout;
-    if (localWorkout.id != remoteWorkout.id ||
-        localWorkout.endTime != remoteWorkout.endTime ||
-        localWorkout.sessionId != remoteWorkout.sessionId) {
-      return false;
-    }
-
-    if (_activeExerciseGroups.length != response.exerciseGroups.length ||
-        _activeProposedSets.length != response.proposedSets.length ||
-        _activeCompletedSets.length != response.completedSets.length) {
-      return false;
-    }
-
-    for (var i = 0; i < _activeExerciseGroups.length; i++) {
-      final local = _activeExerciseGroups[i];
-      final remote = response.exerciseGroups[i];
-      if (local.id != remote.id ||
-          local.workoutOrder != remote.workoutOrder ||
-          local.name != remote.name) {
-        return false;
-      }
-    }
-
-    for (var i = 0; i < _activeProposedSets.length; i++) {
-      final local = _activeProposedSets[i];
-      final remote = response.proposedSets[i];
-      if (local.id != remote.id ||
-          local.workoutOrder != remote.workoutOrder ||
-          local.exerciseGroupId != remote.exerciseGroupId ||
-          local.cancelled != remote.cancelled) {
-        return false;
-      }
-    }
-
-    for (var i = 0; i < _activeCompletedSets.length; i++) {
-      final local = _activeCompletedSets[i];
-      final remote = response.completedSets[i];
-      if (local.id != remote.id ||
-          local.proposedSetId != remote.proposedSetId ||
-          local.endedAt != remote.endedAt ||
-          local.restUntil != remote.restUntil) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   void _applyLocalStartSet(String proposedSetId, {int? startedAt}) {

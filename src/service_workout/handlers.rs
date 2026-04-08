@@ -1,4 +1,20 @@
 use super::*;
+use schlift::workout::v1::WorkoutMutation;
+use tokio::time::{sleep, Duration};
+use tracing::info;
+
+fn mutation_kind_name(mutation: &WorkoutMutation) -> &'static str {
+    match mutation.mutation.as_ref() {
+        Some(workout_mutation::Mutation::StartSet(_)) => "start_set",
+        Some(workout_mutation::Mutation::CompleteSet(_)) => "complete_set",
+        Some(workout_mutation::Mutation::CancelProposedSet(_)) => "cancel_proposed_set",
+        Some(workout_mutation::Mutation::DeleteCompletedSet(_)) => "delete_completed_set",
+        Some(workout_mutation::Mutation::EndWorkout(_)) => "end_workout",
+        Some(workout_mutation::Mutation::ReplaceExerciseGroupPlan(_)) => "replace_exercise_group_plan",
+        Some(workout_mutation::Mutation::ReorderExerciseGroups(_)) => "reorder_exercise_groups",
+        None => "missing",
+    }
+}
 
 #[tonic::async_trait]
 impl WorkoutService for MyWorkoutService {
@@ -772,6 +788,13 @@ impl WorkoutService for MyWorkoutService {
     ) -> Result<Response<AppendWorkoutHeartRateResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        info!(
+            sync_event = "append_workout_heart_rate",
+            phase = "received",
+            user_id = %user_id,
+            workout_id = %req.workout_id,
+            sample_count = req.samples.len()
+        );
         self.state
             .try_recover_user(&self.central_db, &user_id)
             .await;
@@ -801,6 +824,13 @@ impl WorkoutService for MyWorkoutService {
                 Status::internal(format!("Failed to persist heart rate samples: {}", e))
             })?;
 
+        info!(
+            sync_event = "append_workout_heart_rate",
+            phase = "applied",
+            user_id = %user_id,
+            workout_id = %req.workout_id,
+            stored_count = req.samples.len()
+        );
         Ok(Response::new(AppendWorkoutHeartRateResponse {
             stored: req.samples.len() as i32,
         }))
@@ -822,8 +852,51 @@ impl WorkoutService for MyWorkoutService {
             ));
         }
 
+        let batch_len = req.mutations.len();
+        let first_workout_id = req
+            .mutations
+            .first()
+            .and_then(|m| match m.mutation.as_ref() {
+                Some(workout_mutation::Mutation::StartSet(r)) => Some(r.workout_id.as_str()),
+                Some(workout_mutation::Mutation::CompleteSet(r)) => Some(r.workout_id.as_str()),
+                Some(workout_mutation::Mutation::CancelProposedSet(r)) => {
+                    Some(r.workout_id.as_str())
+                }
+                Some(workout_mutation::Mutation::DeleteCompletedSet(r)) => {
+                    Some(r.workout_id.as_str())
+                }
+                Some(workout_mutation::Mutation::EndWorkout(r)) => Some(r.workout_id.as_str()),
+                Some(workout_mutation::Mutation::ReplaceExerciseGroupPlan(r)) => {
+                    Some(r.workout_id.as_str())
+                }
+                Some(workout_mutation::Mutation::ReorderExerciseGroups(r)) => {
+                    Some(r.workout_id.as_str())
+                }
+                None => None,
+            })
+            .unwrap_or("");
+        let mutation_kinds = req
+            .mutations
+            .iter()
+            .map(mutation_kind_name)
+            .collect::<Vec<_>>()
+            .join(",");
+
+        info!(
+            sync_event = "append_workout_mutations",
+            phase = "received",
+            user_id = %user_id,
+            workout_id = %first_workout_id,
+            mutation_count = batch_len,
+            mutation_kinds = %mutation_kinds,
+            artificial_delay_ms = 1000
+        );
+
+        // Temporary latency injection to verify the local-first client flow
+        // stays responsive under slow network/server conditions.
+        sleep(Duration::from_secs(1)).await;
+
         let mut applied_event_ids = Vec::new();
-        let mut final_state: Option<GetWorkoutResponse> = None;
 
         for mutation in req.mutations {
             if mutation.event_id.is_empty() {
@@ -992,7 +1065,6 @@ impl WorkoutService for MyWorkoutService {
 
             *workout_ref = trial;
             applied_event_ids.push(mutation.event_id);
-            final_state = Some(get_workout_response_from_active(&workout_ref));
         }
 
         let active = self
@@ -1011,9 +1083,20 @@ impl WorkoutService for MyWorkoutService {
             .await
             .map_err(|e| Status::internal(format!("Failed to persist workout state: {}", e)))?;
 
+        info!(
+            sync_event = "append_workout_mutations",
+            phase = "applied",
+            user_id = %user_id,
+            workout_id = %active.workout.id,
+            mutation_count = batch_len,
+            applied_count = applied_event_ids.len(),
+            remaining_pending = batch_len.saturating_sub(applied_event_ids.len()),
+            end_time = active.workout.end_time
+        );
+
         Ok(Response::new(AppendWorkoutMutationsResponse {
             applied_event_ids,
-            workout_state: final_state.or_else(|| Some(get_workout_response_from_active(&active))),
+            workout_state: None,
         }))
     }
 
@@ -1287,11 +1370,25 @@ impl WorkoutService for MyWorkoutService {
         let draft = req
             .draft
             .ok_or_else(|| Status::invalid_argument("draft is required"))?;
+        info!(
+            sync_event = "save_workout_draft",
+            phase = "received",
+            user_id = %user_id,
+            group_count = draft.exercise_groups.len(),
+            updated_at = draft.updated_at
+        );
         let blob = draft.encode_to_vec();
         self.central_db
             .insert_user_setting(&user_id, WORKOUT_DRAFT_SETTING_TYPE, &blob)
             .await
             .map_err(|e| Status::internal(format!("Failed to save workout draft: {}", e)))?;
+        info!(
+            sync_event = "save_workout_draft",
+            phase = "applied",
+            user_id = %user_id,
+            group_count = draft.exercise_groups.len(),
+            updated_at = draft.updated_at
+        );
         Ok(Response::new(SaveWorkoutDraftResponse {
             draft: Some(draft),
         }))
@@ -1302,6 +1399,11 @@ impl WorkoutService for MyWorkoutService {
         request: Request<ClearWorkoutDraftRequest>,
     ) -> Result<Response<ClearWorkoutDraftResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        info!(
+            sync_event = "clear_workout_draft",
+            phase = "received",
+            user_id = %user_id
+        );
         let draft = WorkoutDraft {
             name: String::new(),
             exercise_groups: vec![],
@@ -1311,6 +1413,11 @@ impl WorkoutService for MyWorkoutService {
             .insert_user_setting(&user_id, WORKOUT_DRAFT_SETTING_TYPE, &draft.encode_to_vec())
             .await
             .map_err(|e| Status::internal(format!("Failed to clear workout draft: {}", e)))?;
+        info!(
+            sync_event = "clear_workout_draft",
+            phase = "applied",
+            user_id = %user_id
+        );
         Ok(Response::new(ClearWorkoutDraftResponse {}))
     }
 }

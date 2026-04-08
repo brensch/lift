@@ -1,6 +1,5 @@
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
-use log::{error, info};
 use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
@@ -35,10 +34,20 @@ use service_settings::MySettingsService;
 use service_user::MyUserService;
 use service_workout::MyWorkoutService;
 use state::AppState;
+use tracing::{error, info};
+use tracing_subscriber::{fmt, EnvFilter};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    env_logger::init();
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt()
+        .json()
+        .with_env_filter(env_filter)
+        .with_current_span(false)
+        .with_span_list(false)
+        .flatten_event(true)
+        .init();
     info!("Starting server...");
 
     // Catch panics and log them
