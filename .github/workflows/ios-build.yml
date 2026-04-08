@@ -149,6 +149,15 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift $IOS_APP_PROFILE_NAME" ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.watchkitapp $IOS_WATCH_PROFILE_NAME" ExportOptions.ci.plist
 
+      - name: Verify iOS signing build settings
+        if: steps.signing-mode.outputs.enabled == 'true'
+        working-directory: app
+        run: |
+          set -euo pipefail
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -showBuildSettings > "$RUNNER_TEMP/runner-build-settings.txt"
+          grep -E "^[[:space:]]*CODE_SIGN_ENTITLEMENTS = ios/Runner/Runner.entitlements$" "$RUNNER_TEMP/runner-build-settings.txt"
+          grep -E "^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = com\\.brensch\\.schlift$" "$RUNNER_TEMP/runner-build-settings.txt"
+
       - name: Archive iOS app
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app
@@ -163,6 +172,7 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/ios/archive/Runner.xcarchive \
+            CODE_SIGN_ENTITLEMENTS="ios/Runner/Runner.entitlements" \
             APPLE_TEAM_ID="$APPLE_TEAM_ID" \
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
             IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME"
