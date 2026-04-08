@@ -146,6 +146,14 @@ jobs:
         working-directory: app/ios
         run: xcodegen generate
 
+      - name: Verify generated Xcode capabilities
+        if: steps.signing-mode.outputs.enabled == 'true'
+        working-directory: app/ios
+        run: |
+          set -euo pipefail
+          grep -n "com.apple.SafariKeychain" Runner.xcodeproj/project.pbxproj
+          grep -n "SystemCapabilities" Runner.xcodeproj/project.pbxproj
+
       - name: Install CocoaPods dependencies
         working-directory: app/ios
         run: pod install
