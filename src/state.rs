@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use crate::db::CentralDb;
 
+#[derive(Clone)]
 pub struct ActiveWorkout {
     pub workout: Workout,
     pub exercise_groups: Vec<ExerciseGroup>,
@@ -94,17 +95,21 @@ impl AppState {
         if self.checked_users.contains_key(user_id) {
             return;
         }
-        self.checked_users.insert(user_id.to_string(), ());
 
         // Already have an active workout in memory — nothing more to recover
         if self.workouts.contains_key(user_id) {
+            self.checked_users.insert(user_id.to_string(), ());
             return;
         }
 
         // Check CentralDb for un-ended workout
         let active = match central_db.get_active_workout(user_id).await {
             Ok(Some(w)) => w,
-            _ => return,
+            Ok(None) => {
+                self.checked_users.insert(user_id.to_string(), ());
+                return;
+            }
+            Err(_) => return,
         };
 
         let groups = central_db
@@ -129,9 +134,12 @@ impl AppState {
             }
             Entry::Occupied(_) => {
                 // Someone else started a workout while we were fetching from DB
+                self.checked_users.insert(user_id.to_string(), ());
                 return;
             }
         }
+
+        self.checked_users.insert(user_id.to_string(), ());
 
         // Recover session membership
         if let Ok(Some(session_id)) = central_db.get_active_session(user_id).await {

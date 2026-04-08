@@ -21,9 +21,18 @@ class ExerciseGroupData {
     this.exercises = const [],
   });
 
+  String get stableId {
+    if (group != null && group!.id.isNotEmpty) return group!.id;
+    if (sets.isNotEmpty && sets.first.exerciseGroupId.isNotEmpty) {
+      return sets.first.exerciseGroupId;
+    }
+    if (sets.isNotEmpty) return 'set-${sets.first.id}';
+    return 'exercise-${exercise.value}';
+  }
+
   List<Round> get rounds {
     final List<Round> rounds = [];
-    
+
     // Split into warmup and working sets
     final warmupSets = sets.where((s) => s.warmup).toList();
     final workingSets = sets.where((s) => !s.warmup).toList();
@@ -41,11 +50,15 @@ class ExerciseGroupData {
     return rounds;
   }
 
-  void _groupIntoRounds(List<ProposedSet> sourceSets, List<Round> targetRounds, bool isWarmup) {
+  void _groupIntoRounds(
+    List<ProposedSet> sourceSets,
+    List<Round> targetRounds,
+    bool isWarmup,
+  ) {
     // We assume sets are already in correct workout order from the backend.
     // For interleaved groups, the order is E1-S1, E2-S1, E1-S2, E2-S2...
     // We group by "occurrence index" of each exercise.
-    
+
     final Map<Exercise, int> exerciseCounts = {};
     final Map<int, List<ProposedSet>> roundMap = {};
     int maxRound = 0;
@@ -53,18 +66,16 @@ class ExerciseGroupData {
     for (final set in sourceSets) {
       final count = (exerciseCounts[set.exercise] ?? 0) + 1;
       exerciseCounts[set.exercise] = count;
-      
+
       roundMap.putIfAbsent(count, () => []).add(set);
       if (count > maxRound) maxRound = count;
     }
 
     for (int i = 1; i <= maxRound; i++) {
       if (roundMap.containsKey(i)) {
-        targetRounds.add(Round(
-          index: i,
-          sets: roundMap[i]!,
-          isWarmup: isWarmup,
-        ));
+        targetRounds.add(
+          Round(index: i, sets: roundMap[i]!, isWarmup: isWarmup),
+        );
       }
     }
   }
@@ -94,11 +105,13 @@ List<ExerciseGroupData> groupSetsByExercise(List<ProposedSet> sets) {
     for (final s in groupSets) {
       if (!exercises.contains(s.exercise)) exercises.add(s.exercise);
     }
-    groups.add(ExerciseGroupData(
-      exercise: exercise,
-      sets: groupSets,
-      exercises: exercises,
-    ));
+    groups.add(
+      ExerciseGroupData(
+        exercise: exercise,
+        sets: groupSets,
+        exercises: exercises,
+      ),
+    );
   }
 
   // Fallback: group ungrouped by consecutive exercise runs

@@ -1034,6 +1034,36 @@ pub async fn run_scenario(json: &str) {
                             exercise: ex,
                             target_reps: ps.target_reps,
                             actual_reps: cs.actual_reps,
+                            target_weight: ps.target_weight,
+                            actual_weight: cs.actual_weight,
+                            is_amrap: ps.is_amrap,
+                            progression_slot_key: ps
+                                .progression_hint
+                                .as_ref()
+                                .map(|h| h.slot_key.clone())
+                                .unwrap_or_default(),
+                            progression_tier: ps
+                                .progression_hint
+                                .as_ref()
+                                .map(|h| h.tier.clone())
+                                .unwrap_or_default(),
+                            progression_rule: ps
+                                .progression_hint
+                                .as_ref()
+                                .and_then(|h| {
+                                    schlift::workout::v1::ProgressionRule::try_from(h.rule).ok()
+                                })
+                                .unwrap_or(schlift::workout::v1::ProgressionRule::Unspecified),
+                            amrap_success_threshold: ps
+                                .progression_hint
+                                .as_ref()
+                                .map(|h| h.amrap_success_threshold)
+                                .unwrap_or(0),
+                            counts_toward_program: ps
+                                .progression_hint
+                                .as_ref()
+                                .map(|h| h.counts_toward_program)
+                                .unwrap_or(false),
                         });
                     }
                 }

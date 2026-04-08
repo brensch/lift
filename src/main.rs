@@ -1,11 +1,11 @@
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
+use log::{error, info};
 use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
 };
-use log::{error, info};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -25,6 +25,7 @@ mod service_user;
 mod service_workout;
 mod state;
 mod weight_units;
+mod workout_events;
 
 use auth::AuthState;
 use db::CentralDb;

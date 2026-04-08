@@ -112,6 +112,24 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$cancelProposedSet, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.AppendWorkoutMutationsResponse>
+      appendWorkoutMutations(
+    $0.AppendWorkoutMutationsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$appendWorkoutMutations, request,
+        options: options);
+  }
+
+  $grpc.ResponseFuture<$0.RehydrateWorkoutFromEventsResponse>
+      rehydrateWorkoutFromEvents(
+    $0.RehydrateWorkoutFromEventsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$rehydrateWorkoutFromEvents, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.AppendWorkoutHeartRateResponse>
       appendWorkoutHeartRate(
     $0.AppendWorkoutHeartRateRequest request, {
@@ -136,6 +154,20 @@ class WorkoutServiceClient extends $grpc.Client {
   }) {
     return $createUnaryCall(_$getProposedWorkoutSchedule, request,
         options: options);
+  }
+
+  $grpc.ResponseFuture<$0.SaveWorkoutDraftResponse> saveWorkoutDraft(
+    $0.SaveWorkoutDraftRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveWorkoutDraft, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ClearWorkoutDraftResponse> clearWorkoutDraft(
+    $0.ClearWorkoutDraftRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$clearWorkoutDraft, request, options: options);
   }
 
   // method descriptors
@@ -196,6 +228,17 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/CancelProposedSet',
       ($0.CancelProposedSetRequest value) => value.writeToBuffer(),
       $0.CancelProposedSetResponse.fromBuffer);
+  static final _$appendWorkoutMutations = $grpc.ClientMethod<
+          $0.AppendWorkoutMutationsRequest, $0.AppendWorkoutMutationsResponse>(
+      '/workout.v1.WorkoutService/AppendWorkoutMutations',
+      ($0.AppendWorkoutMutationsRequest value) => value.writeToBuffer(),
+      $0.AppendWorkoutMutationsResponse.fromBuffer);
+  static final _$rehydrateWorkoutFromEvents = $grpc.ClientMethod<
+          $0.RehydrateWorkoutFromEventsRequest,
+          $0.RehydrateWorkoutFromEventsResponse>(
+      '/workout.v1.WorkoutService/RehydrateWorkoutFromEvents',
+      ($0.RehydrateWorkoutFromEventsRequest value) => value.writeToBuffer(),
+      $0.RehydrateWorkoutFromEventsResponse.fromBuffer);
   static final _$appendWorkoutHeartRate = $grpc.ClientMethod<
           $0.AppendWorkoutHeartRateRequest, $0.AppendWorkoutHeartRateResponse>(
       '/workout.v1.WorkoutService/AppendWorkoutHeartRate',
@@ -212,6 +255,16 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetProposedWorkoutSchedule',
       ($0.GetProposedWorkoutScheduleRequest value) => value.writeToBuffer(),
       $0.GetProposedWorkoutScheduleResponse.fromBuffer);
+  static final _$saveWorkoutDraft = $grpc.ClientMethod<
+          $0.SaveWorkoutDraftRequest, $0.SaveWorkoutDraftResponse>(
+      '/workout.v1.WorkoutService/SaveWorkoutDraft',
+      ($0.SaveWorkoutDraftRequest value) => value.writeToBuffer(),
+      $0.SaveWorkoutDraftResponse.fromBuffer);
+  static final _$clearWorkoutDraft = $grpc.ClientMethod<
+          $0.ClearWorkoutDraftRequest, $0.ClearWorkoutDraftResponse>(
+      '/workout.v1.WorkoutService/ClearWorkoutDraft',
+      ($0.ClearWorkoutDraftRequest value) => value.writeToBuffer(),
+      $0.ClearWorkoutDraftResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.WorkoutService')
@@ -312,6 +365,25 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.CancelProposedSetRequest.fromBuffer(value),
         ($0.CancelProposedSetResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AppendWorkoutMutationsRequest,
+            $0.AppendWorkoutMutationsResponse>(
+        'AppendWorkoutMutations',
+        appendWorkoutMutations_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.AppendWorkoutMutationsRequest.fromBuffer(value),
+        ($0.AppendWorkoutMutationsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RehydrateWorkoutFromEventsRequest,
+            $0.RehydrateWorkoutFromEventsResponse>(
+        'RehydrateWorkoutFromEvents',
+        rehydrateWorkoutFromEvents_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.RehydrateWorkoutFromEventsRequest.fromBuffer(value),
+        ($0.RehydrateWorkoutFromEventsResponse value) =>
+            value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.AppendWorkoutHeartRateRequest,
             $0.AppendWorkoutHeartRateResponse>(
         'AppendWorkoutHeartRate',
@@ -340,6 +412,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
             $0.GetProposedWorkoutScheduleRequest.fromBuffer(value),
         ($0.GetProposedWorkoutScheduleResponse value) =>
             value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SaveWorkoutDraftRequest,
+            $0.SaveWorkoutDraftResponse>(
+        'SaveWorkoutDraft',
+        saveWorkoutDraft_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SaveWorkoutDraftRequest.fromBuffer(value),
+        ($0.SaveWorkoutDraftResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ClearWorkoutDraftRequest,
+            $0.ClearWorkoutDraftResponse>(
+        'ClearWorkoutDraft',
+        clearWorkoutDraft_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ClearWorkoutDraftRequest.fromBuffer(value),
+        ($0.ClearWorkoutDraftResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.StartWorkoutResponse> startWorkout_Pre(
@@ -437,6 +527,25 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.CancelProposedSetResponse> cancelProposedSet(
       $grpc.ServiceCall call, $0.CancelProposedSetRequest request);
 
+  $async.Future<$0.AppendWorkoutMutationsResponse> appendWorkoutMutations_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.AppendWorkoutMutationsRequest> $request) async {
+    return appendWorkoutMutations($call, await $request);
+  }
+
+  $async.Future<$0.AppendWorkoutMutationsResponse> appendWorkoutMutations(
+      $grpc.ServiceCall call, $0.AppendWorkoutMutationsRequest request);
+
+  $async.Future<$0.RehydrateWorkoutFromEventsResponse>
+      rehydrateWorkoutFromEvents_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.RehydrateWorkoutFromEventsRequest> $request) async {
+    return rehydrateWorkoutFromEvents($call, await $request);
+  }
+
+  $async.Future<$0.RehydrateWorkoutFromEventsResponse>
+      rehydrateWorkoutFromEvents(
+          $grpc.ServiceCall call, $0.RehydrateWorkoutFromEventsRequest request);
+
   $async.Future<$0.AppendWorkoutHeartRateResponse> appendWorkoutHeartRate_Pre(
       $grpc.ServiceCall $call,
       $async.Future<$0.AppendWorkoutHeartRateRequest> $request) async {
@@ -464,6 +573,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule(
           $grpc.ServiceCall call, $0.GetProposedWorkoutScheduleRequest request);
+
+  $async.Future<$0.SaveWorkoutDraftResponse> saveWorkoutDraft_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SaveWorkoutDraftRequest> $request) async {
+    return saveWorkoutDraft($call, await $request);
+  }
+
+  $async.Future<$0.SaveWorkoutDraftResponse> saveWorkoutDraft(
+      $grpc.ServiceCall call, $0.SaveWorkoutDraftRequest request);
+
+  $async.Future<$0.ClearWorkoutDraftResponse> clearWorkoutDraft_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ClearWorkoutDraftRequest> $request) async {
+    return clearWorkoutDraft($call, await $request);
+  }
+
+  $async.Future<$0.ClearWorkoutDraftResponse> clearWorkoutDraft(
+      $grpc.ServiceCall call, $0.ClearWorkoutDraftRequest request);
 }
 
 @$pb.GrpcServiceName('workout.v1.UserService')

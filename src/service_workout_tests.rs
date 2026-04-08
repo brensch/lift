@@ -86,6 +86,7 @@ fn proposed(id: &str, group_id: &str, cancelled: bool) -> ProposedSet {
         cancelled,
         is_amrap: false,
         instruction: String::new(),
+        progression_hint: None,
     }
 }
 
@@ -552,12 +553,14 @@ fn explicit_working_sets_override_legacy_last_set_amrap_behavior() {
             target_reps: 5,
             is_amrap: true,
             instruction: "Top set first".to_string(),
+            progression_hint: None,
         },
         WorkingSetSpec {
             target_weight: 95.0,
             target_reps: 8,
             is_amrap: false,
             instruction: "Backoff".to_string(),
+            progression_hint: None,
         },
     ];
     let g = group("g1", "Custom", 5, 0, vec![cfg], None);

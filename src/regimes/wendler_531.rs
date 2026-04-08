@@ -1,6 +1,6 @@
 use schlift::workout::v1::{
-    Exercise, ExerciseTypeConfig, ProposedExerciseGroup, RegimeContext, TrainingProgramStateSchema,
-    WorkingSetSpec,
+    Exercise, ExerciseTypeConfig, ProgressionRule, ProposedExerciseGroup, RegimeContext,
+    TrainingProgramStateSchema, WorkingSetSpec,
 };
 
 use crate::program_state::{
@@ -13,7 +13,8 @@ use crate::weight_units::{
 };
 
 use super::{
-    exercise_display_name, rest_cfg, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+    exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 
@@ -144,6 +145,7 @@ fn lifts_for_session(variant: &str, cycle: i64, week: i64, session_in_week: i64)
 }
 
 fn build_wendler_working_sets(
+    exercise: Exercise,
     tm: f32,
     week_def: &WeekDef,
     state: &StatePayload,
@@ -167,6 +169,17 @@ fn build_wendler_working_sets(
                 } else {
                     String::new()
                 },
+                progression_hint: Some(progression_hint_for_set(
+                    exercise,
+                    "MAIN",
+                    if is_amrap {
+                        ProgressionRule::TopSetAmrap
+                    } else {
+                        ProgressionRule::None
+                    },
+                    reps,
+                    is_amrap,
+                )),
             }
         })
         .collect()
@@ -404,7 +417,7 @@ impl WorkoutRegime for Wendler531Regime {
 
         for &ex in &lifts {
             let tm = get_f32_or(state, tm_key(ex), default_tm(ex));
-            let working_sets = build_wendler_working_sets(tm, week_def, state);
+            let working_sets = build_wendler_working_sets(ex, tm, week_def, state);
 
             let start_w = working_sets
                 .first()

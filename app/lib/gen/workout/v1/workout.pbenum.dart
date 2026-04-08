@@ -155,5 +155,32 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
+class ProgressionRule extends $pb.ProtobufEnum {
+  static const ProgressionRule PROGRESSION_RULE_UNSPECIFIED = ProgressionRule._(
+      0, _omitEnumNames ? '' : 'PROGRESSION_RULE_UNSPECIFIED');
+  static const ProgressionRule PROGRESSION_RULE_NONE =
+      ProgressionRule._(1, _omitEnumNames ? '' : 'PROGRESSION_RULE_NONE');
+  static const ProgressionRule PROGRESSION_RULE_ALL_SETS_MATCH_TARGET =
+      ProgressionRule._(
+          2, _omitEnumNames ? '' : 'PROGRESSION_RULE_ALL_SETS_MATCH_TARGET');
+  static const ProgressionRule PROGRESSION_RULE_TOP_SET_AMRAP =
+      ProgressionRule._(
+          3, _omitEnumNames ? '' : 'PROGRESSION_RULE_TOP_SET_AMRAP');
+
+  static const $core.List<ProgressionRule> values = <ProgressionRule>[
+    PROGRESSION_RULE_UNSPECIFIED,
+    PROGRESSION_RULE_NONE,
+    PROGRESSION_RULE_ALL_SETS_MATCH_TARGET,
+    PROGRESSION_RULE_TOP_SET_AMRAP,
+  ];
+
+  static final $core.List<ProgressionRule?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ProgressionRule? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ProgressionRule._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

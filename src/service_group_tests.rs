@@ -77,6 +77,7 @@ fn planned_sets_from_legacy(sets: i32, configs: &[ExerciseTypeConfig]) -> Vec<Pl
                 rest_after_failure: 300,
                 is_amrap: false,
                 instruction: String::new(),
+                progression_hint: None,
             });
         }
     }
@@ -93,6 +94,7 @@ fn replace_req_from_update(req: UpdateExerciseGroupRequest) -> ReplaceExerciseGr
         rest_config: req.rest_config,
         delete_group_if_empty: false,
         instruction: String::new(),
+        create_if_missing: false,
     }
 }
 
@@ -106,6 +108,7 @@ fn replace_req_from_create(req: CreateExerciseGroupRequest) -> ReplaceExerciseGr
         rest_config: req.rest_config,
         delete_group_if_empty: false,
         instruction: String::new(),
+        create_if_missing: false,
     }
 }
 

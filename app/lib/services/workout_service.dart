@@ -96,6 +96,25 @@ class WorkoutServiceWrapper {
     return response.samples;
   }
 
+  Future<AppendWorkoutMutationsResponse> appendWorkoutMutations(
+    List<WorkoutMutation> mutations,
+  ) async {
+    return await _client.workoutService.appendWorkoutMutations(
+      AppendWorkoutMutationsRequest()..mutations.addAll(mutations),
+    );
+  }
+
+  Future<RehydrateWorkoutFromEventsResponse> rehydrateWorkoutFromEvents(
+    String workoutId, {
+    bool persist = true,
+  }) async {
+    return await _client.workoutService.rehydrateWorkoutFromEvents(
+      RehydrateWorkoutFromEventsRequest()
+        ..workoutId = workoutId
+        ..persist = persist,
+    );
+  }
+
   Future<DeleteCompletedSetResponse> deleteCompletedSet(
     String workoutId,
     String completedSetId,
@@ -170,5 +189,16 @@ class WorkoutServiceWrapper {
           onTimeout: () =>
               throw Exception('Timed out loading your workout plan.'),
         );
+  }
+
+  Future<WorkoutDraft> saveWorkoutDraft(WorkoutDraft draft) async {
+    final response = await _client.workoutService.saveWorkoutDraft(
+      SaveWorkoutDraftRequest()..draft = draft,
+    );
+    return response.draft;
+  }
+
+  Future<void> clearWorkoutDraft() async {
+    await _client.workoutService.clearWorkoutDraft(ClearWorkoutDraftRequest());
   }
 }

@@ -1,4 +1,5 @@
 use schlift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
+use std::collections::HashMap;
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
@@ -382,16 +383,27 @@ impl WorkoutRegime for Linear5x5Regime {
     ) -> StatePayload {
         let mut new_state = state.clone();
 
-        // Determine which exercises were in this workout from set_results
-        let mut exercise_results: std::collections::HashMap<i32, (bool, i32)> =
-            std::collections::HashMap::new();
-        // (all_sets_success, total_sets_count)
+        // Determine which progression slots were successfully completed.
+        let mut slot_results: HashMap<String, bool> = HashMap::new();
         for sr in &result.set_results {
-            let entry = exercise_results
-                .entry(sr.exercise as i32)
-                .or_insert((true, 0));
-            entry.0 = entry.0 && (sr.actual_reps >= sr.target_reps);
-            entry.1 += 1;
+            let slot_key = if !sr.progression_slot_key.is_empty() {
+                sr.progression_slot_key.clone()
+            } else {
+                super::progression_slot_key(sr.exercise)
+            };
+            let counts = if sr.progression_slot_key.is_empty() {
+                true
+            } else {
+                sr.counts_toward_program
+            };
+            if !counts {
+                continue;
+            }
+            let success = sr.actual_reps >= sr.target_reps;
+            slot_results
+                .entry(slot_key)
+                .and_modify(|current| *current = *current && success)
+                .or_insert(success);
         }
 
         let all_main_lifts = [
@@ -403,7 +415,8 @@ impl WorkoutRegime for Linear5x5Regime {
         ];
 
         for ex in all_main_lifts {
-            let Some((success, _)) = exercise_results.get(&(ex as i32)) else {
+            let slot_key = super::progression_slot_key(ex);
+            let Some(success) = slot_results.get(&slot_key) else {
                 continue;
             };
             let current_w = get_f32_or(state, weight_key(ex), default_weight(ex));
