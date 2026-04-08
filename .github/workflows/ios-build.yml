@@ -144,15 +144,18 @@ jobs:
 
       - name: Regenerate Xcode project
         working-directory: app/ios
-        run: xcodegen generate
+        run: |
+          xcodegen generate
+          python3 scripts/patch_target_capabilities.py Runner.xcodeproj/project.pbxproj
 
       - name: Verify generated Xcode capabilities
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app/ios
         run: |
           set -euo pipefail
-          grep -n "com.apple.SafariKeychain" Runner.xcodeproj/project.pbxproj
-          grep -n "SystemCapabilities" Runner.xcodeproj/project.pbxproj
+          grep -n "SystemCapabilities = {" Runner.xcodeproj/project.pbxproj
+          grep -n "com.apple.SafariKeychain = {" Runner.xcodeproj/project.pbxproj
+          grep -n "com.apple.HealthKit = {" Runner.xcodeproj/project.pbxproj
 
       - name: Install CocoaPods dependencies
         working-directory: app/ios

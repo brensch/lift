@@ -22,12 +22,6 @@ targets:
   Runner:
     type: application
     platform: iOS
-    attributes:
-      SystemCapabilities:
-        com.apple.HealthKit:
-          enabled: 1
-        com.apple.SafariKeychain:
-          enabled: 1
     configFiles:
       Debug: Flutter/Debug.xcconfig
       Release: Flutter/Release.xcconfig
@@ -91,10 +85,6 @@ targets:
   SchliftWatch:
     type: application
     platform: watchOS
-    attributes:
-      SystemCapabilities:
-        com.apple.HealthKit:
-          enabled: 1
     sources:
       - path: SchliftWatch
         excludes:
