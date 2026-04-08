@@ -150,12 +150,6 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
 }
 
 pub enum WriteCommand {
-    CreateWorkout(String, Workout),
-    InsertGroupWithSets(
-        String,
-        schlift::workout::v1::ExerciseGroup,
-        Vec<ProposedSet>,
-    ),
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
     UpdateWorkoutEnd(String, String, i64),
@@ -518,99 +512,6 @@ impl CentralDb {
 
             for cmd in db_commands {
                 match cmd {
-                    WriteCommand::CreateWorkout(user_id, workout) => {
-                        sqlx::query(
-                        "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id) VALUES (?, ?, ?, ?, ?, ?)",
-                    )
-                    .bind(&workout.id)
-                    .bind(user_id)
-                    .bind(&workout.name)
-                    .bind(workout.start_time)
-                    .bind(if workout.end_time == 0 { None } else { Some(workout.end_time) })
-                    .bind(if workout.session_id.is_empty() { None } else { Some(&workout.session_id) })
-                    .execute(&mut *tx)
-                    .await?;
-                    }
-                    WriteCommand::InsertGroupWithSets(user_id, group, sets) => {
-                        sqlx::query(
-                        "INSERT OR REPLACE INTO exercise_groups (id, user_id, workout_id, name, instruction, sets, interleave_warmups, prescribed_by_regime, workout_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    )
-                    .bind(&group.id)
-                    .bind(&user_id)
-                    .bind(&group.workout_id)
-                    .bind(&group.name)
-                    .bind(&group.instruction)
-                    .bind(group.sets)
-                    .bind(group.interleave_warmups)
-                    .bind(group.prescribed_by_regime)
-                    .bind(group.workout_order)
-                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_success))
-                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_failure))
-                    .bind(group.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
-                    .bind(
-                        group
-                            .rest_config
-                            .as_ref()
-                            .map(|rc| rc.rest_after_last_warmup),
-                    )
-                    .execute(&mut *tx)
-                    .await?;
-
-                        // Insert exercise_type_configs
-                        for (idx, config) in group.exercise_configs.iter().enumerate() {
-                            let config_id = Uuid::new_v4().to_string();
-                            sqlx::query(
-                            "INSERT OR REPLACE INTO exercise_type_configs (id, user_id, exercise_group_id, exercise, start_weight, end_weight, reps, include_warmup, config_order, rest_success, rest_failure, rest_warmup, rest_last_warmup)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        )
-                        .bind(&config_id)
-                        .bind(&user_id)
-                        .bind(&group.id)
-                        .bind(config.exercise)
-                        .bind(config.start_weight)
-                        .bind(config.end_weight)
-                        .bind(config.reps)
-                        .bind(config.include_warmup)
-                        .bind(idx as i32)
-                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_success))
-                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_failure))
-                        .bind(config.rest_config.as_ref().map(|rc| rc.rest_after_warmup))
-                        .bind(
-                            config
-                                .rest_config
-                                .as_ref()
-                                .map(|rc| rc.rest_after_last_warmup),
-                        )
-                        .execute(&mut *tx)
-                        .await?;
-                        }
-
-                        for set in sets {
-                            sqlx::query(
-                            "INSERT OR REPLACE INTO proposed_sets (id, user_id, workout_id, workout_order, exercise, target_reps, target_weight, warmup, cancelled, exercise_group_id, rest_after_success, rest_after_failure)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                        )
-                        .bind(&set.id)
-                        .bind(&user_id)
-                        .bind(&set.workout_id)
-                        .bind(set.workout_order)
-                        .bind(set.exercise)
-                        .bind(set.target_reps)
-                        .bind(set.target_weight)
-                        .bind(set.warmup)
-                        .bind(set.cancelled)
-                        .bind(if set.exercise_group_id.is_empty() {
-                            None
-                        } else {
-                            Some(&set.exercise_group_id)
-                        })
-                        .bind(set.rest_after_success)
-                        .bind(set.rest_after_failure)
-                        .execute(&mut *tx)
-                        .await?;
-                        }
-                    }
                     WriteCommand::UpsertCompletedSet(user_id, set) => {
                         sqlx::query(
                         "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
@@ -1030,32 +931,6 @@ impl CentralDb {
     }
 
     // --- Incremental Write Methods ---
-
-    pub async fn create_workout_record(
-        &self,
-        user_id: &str,
-        workout: &Workout,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::CreateWorkout(
-            user_id.to_string(),
-            workout.clone(),
-        ))?;
-        Ok(())
-    }
-
-    pub async fn insert_exercise_group_with_sets(
-        &self,
-        user_id: &str,
-        group: &schlift::workout::v1::ExerciseGroup,
-        sets: &[ProposedSet],
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.write_tx.send(WriteCommand::InsertGroupWithSets(
-            user_id.to_string(),
-            group.clone(),
-            sets.to_vec(),
-        ))?;
-        Ok(())
-    }
 
     pub async fn persist_new_workout_with_checkpoint(
         &self,

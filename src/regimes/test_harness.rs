@@ -827,20 +827,15 @@ pub async fn run_scenario(json: &str) {
             session_id: session_id.clone(),
         };
 
-        db.create_workout_record(&user_id, &workout)
-            .await
-            .expect("Failed to create workout record");
-
-        for g in &exercise_groups {
-            let sets: Vec<ProposedSet> = all_proposed_sets
-                .iter()
-                .filter(|s| s.exercise_group_id == g.id)
-                .cloned()
-                .collect();
-            db.insert_exercise_group_with_sets(&user_id, g, &sets)
-                .await
-                .expect("Failed to insert exercise group with sets");
-        }
+        db.flush_workout(
+            &user_id,
+            &workout,
+            &exercise_groups,
+            &all_proposed_sets,
+            &[],
+        )
+        .await
+        .expect("Failed to persist workout");
 
         let mut active = ActiveState {
             _workout: workout,
