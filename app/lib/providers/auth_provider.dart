@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:credential_manager/credential_manager.dart';
+import 'package:flutter/services.dart';
+import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/grpc_client.dart';
@@ -172,8 +173,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   static String _formatError(Object e) {
-    if (e is CredentialException) {
-      return e.message;
+    if (e is AuthenticatorException) {
+      return formatPasskeyError(e);
+    }
+    if (e is PlatformException) {
+      return formatPlatformError(e);
     }
     return cleanErrorMessage(e);
   }
