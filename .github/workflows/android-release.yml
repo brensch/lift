@@ -26,6 +26,11 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Google Play upload dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install google-api-python-client google-auth
+
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get
@@ -92,22 +97,16 @@ jobs:
           path: app/build/wear/outputs/bundle/release/wear-release.aab
           if-no-files-found: error
 
-      - name: Upload phone bundle to Google Play testing tracks
-        uses: r0adkll/upload-google-play@41571de6d8a402a9565f0fc067d3ecc5f235a4c9
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.brensch.schlift
-          releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
-          tracks: "internal,beta"
-          status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-phone
-
-      - name: Upload wear bundle to Google Play Wear OS testing tracks
-        uses: r0adkll/upload-google-play@41571de6d8a402a9565f0fc067d3ecc5f235a4c9
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.brensch.schlift
-          releaseFiles: app/build/wear/outputs/bundle/release/wear-release.aab
-          tracks: "wear:internal,wear:beta watch"
-          status: completed
-          releaseName: ${{ github.ref_name }}-${{ github.run_number }}-wear
+      - name: Upload bundles to Google Play testing tracks
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          scripts/upload_google_play.py \
+            --package-name com.brensch.schlift \
+            --status completed \
+            --phone-aab app/build/app/outputs/bundle/release/app-release.aab \
+            --phone-release-name "${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}-phone" \
+            --phone-tracks internal beta \
+            --wear-aab app/build/wear/outputs/bundle/release/wear-release.aab \
+            --wear-release-name "${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}-wear" \
+            --wear-tracks "wear:internal" "wear:beta watch"
