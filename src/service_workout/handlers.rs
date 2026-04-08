@@ -158,30 +158,36 @@ impl WorkoutService for MyWorkoutService {
         });
 
         if let Some((workout, groups, proposed, _)) = cached {
-            // Even if cached, we need to re-fetch completed sets if it's a shared session
-            // to see other people's updates.
-            let completed_sets = if !workout.session_id.is_empty() {
-                self.central_db
+            // Use the in-memory copy of the caller's workout state for read-after-write
+            // consistency. DB writes are queued asynchronously, so re-reading only from
+            // SQLite here can briefly resurrect deleted/unfinished sets.
+            let mut completed_sets = self
+                .state
+                .workouts
+                .get(&user_id)
+                .map(|w| w.completed_sets.clone())
+                .unwrap_or_default();
+
+            // If this workout is part of a shared session, merge in other participants'
+            // completed sets from the DB so the caller still sees the session ledger.
+            if !workout.session_id.is_empty() {
+                let session_completed = self
+                    .central_db
                     .get_completed_sets_by_session(&workout.session_id)
                     .await
-                    .map_err(|e| Status::internal(format!("Failed to get session sets: {}", e)))?
-            } else {
-                self.central_db
-                    .get_completed_sets(&user_id, &workout.id)
-                    .await
-                    .map_err(|e| Status::internal(format!("Failed to get completed sets: {}", e)))?
-            };
+                    .map_err(|e| Status::internal(format!("Failed to get session sets: {}", e)))?;
+                completed_sets.extend(
+                    session_completed
+                        .into_iter()
+                        .filter(|c| c.workout_id != workout.id),
+                );
+            }
 
-            // For state snapshot and next-up computation, only use the current user's
-            // own completed sets. Using all session sets would incorrectly detect
-            // another participant's active set (ended_at==0) as our own lifting state,
-            // causing the bottom bar to vanish when display_set can't be resolved.
-            let own_workout_id = workout.id.clone();
-            let own_completed: Vec<CompletedSet> = completed_sets
+            let own_completed = completed_sets
                 .iter()
-                .filter(|c| c.workout_id == own_workout_id)
+                .filter(|c| c.workout_id == workout.id)
                 .cloned()
-                .collect();
+                .collect::<Vec<_>>();
 
             let proposed_active = active_proposed_sets(&proposed);
             let next_up_set = compute_next_up_set(&proposed_active, &own_completed);

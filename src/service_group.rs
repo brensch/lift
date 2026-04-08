@@ -322,7 +322,14 @@ impl MultiplayerService for GroupService {
                 }
             }
             // Record in user's DB
-            let _ = self.central_db.leave_session(&user_id, &session_id).await;
+            self.central_db
+                .leave_session(&user_id, &session_id)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            self.central_db
+                .flush_writes()
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
         }
 
         Ok(Response::new(LeaveSessionResponse {}))
