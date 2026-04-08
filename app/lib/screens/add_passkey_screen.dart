@@ -1,8 +1,9 @@
-import 'package:credential_manager/credential_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:passkeys/exceptions.dart';
 import 'package:provider/provider.dart';
 
+import '../logic/utils.dart';
 import '../services/auth_service.dart';
 
 class AddPasskeyScreen extends StatefulWidget {
@@ -40,11 +41,10 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
       await authService.addPasskey(name);
       if (!mounted) return;
       context.pop(true);
-    } on CredentialException catch (e) {
-      if (e.code == 601) {
-        return;
-      }
-      if (mounted) setState(() => _error = e.message);
+    } on PasskeyAuthCancelledException {
+      return;
+    } on AuthenticatorException catch (e) {
+      if (mounted) setState(() => _error = formatPasskeyError(e));
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
