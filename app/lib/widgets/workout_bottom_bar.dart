@@ -143,7 +143,9 @@ class WorkoutBottomBar extends StatelessWidget {
           onPressed: () {
             if (displaySet != null) wp.startSet(displaySet.id);
           },
-          secondaryLabel: displaySet != null && wp.canSkipWarmup(displaySet.id) ? 'Skip Warmup' : null,
+          secondaryLabel: displaySet != null && wp.canSkipWarmup(displaySet.id)
+              ? 'Skip Warmup'
+              : null,
           onSecondary: displaySet != null && wp.canSkipWarmup(displaySet.id)
               ? () => wp.skipWarmup(displaySet!.id)
               : null,
@@ -219,6 +221,7 @@ class WorkoutBottomBar extends StatelessWidget {
                   timerColor: timerColor,
                   set: displaySet,
                   isComplete: _isAllDoneState(stateValue),
+                  sideLabelWidth: 44,
                 ),
 
                 // Row 3: action + total time on one line
@@ -271,36 +274,7 @@ class WorkoutBottomBar extends StatelessWidget {
     final error = Theme.of(context).colorScheme.error;
     final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
 
-    // "You're up next" takes priority over everything else — check it first so
-    // it shows regardless of whether someone else is currently lifting.
     final nextUpUserId = status.nextUpUserId;
-    if (nextUpUserId.isNotEmpty && nextUpUserId == myUserId) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: purple.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: purple.withValues(alpha: 0.2)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: purple, size: 18),
-            SizedBox(width: 8),
-            Text(
-              "You're up next in the group",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-                color: purple,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Find someone in the group who is active or next
     ParticipantStatus? groupActive;
     String groupState = '';
     String? groupTimer;
@@ -313,23 +287,24 @@ class WorkoutBottomBar extends StatelessWidget {
     // for an active set — this handles simultaneous lifts where
     // currentLifterId == myUserId but someone else is also mid-set.
     final currentLifterId = status.currentlyLiftingUserId;
-    final otherLifter = currentLifterId.isNotEmpty && currentLifterId != myUserId
-        ? status.participants
-            .cast<ParticipantStatus?>()
-            .firstWhere((p) => p!.user.id == currentLifterId, orElse: () => null)
-        : status.participants
-            .cast<ParticipantStatus?>()
-            .firstWhere(
-              (p) =>
-                  p!.user.id != myUserId &&
-                  p.completedSets.any((c) => c.endedAt == Int64.ZERO),
-              orElse: () => null,
-            );
+    final otherLifter =
+        currentLifterId.isNotEmpty && currentLifterId != myUserId
+        ? status.participants.cast<ParticipantStatus?>().firstWhere(
+            (p) => p!.user.id == currentLifterId,
+            orElse: () => null,
+          )
+        : status.participants.cast<ParticipantStatus?>().firstWhere(
+            (p) =>
+                p!.user.id != myUserId &&
+                p.completedSets.any((c) => c.endedAt == Int64.ZERO),
+            orElse: () => null,
+          );
 
     if (otherLifter != null) {
-      final active = otherLifter.completedSets
-          .cast<CompletedSet?>()
-          .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
+      final active = otherLifter.completedSets.cast<CompletedSet?>().firstWhere(
+        (c) => c!.endedAt == Int64.ZERO,
+        orElse: () => null,
+      );
       final proposed = active == null
           ? null
           : otherLifter.proposedSets.cast<ProposedSet?>().firstWhere(
@@ -339,7 +314,7 @@ class WorkoutBottomBar extends StatelessWidget {
       groupActive = otherLifter;
       groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
       groupTimer = active != null
-          ? _fmt(nowUnix - active.startedAt.toInt())
+          ? _fmt((nowUnix - active.startedAt.toInt()).toInt())
           : null;
       groupSet = proposed;
     }
@@ -356,10 +331,10 @@ class WorkoutBottomBar extends StatelessWidget {
         final remaining = nextRestUntil - nowUnix;
         if (remaining > 0) {
           groupState = 'Resting';
-          groupTimer = _fmt(remaining);
+          groupTimer = _fmt(remaining.toInt());
         } else if (nextRestUntil > 0) {
           groupState = 'Yapping';
-          groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
+          groupTimer = '+${_fmt((nowUnix - nextRestUntil).toInt())}';
           groupTimerColor = error;
           boxColor = error;
         } else {
@@ -374,50 +349,42 @@ class WorkoutBottomBar extends StatelessWidget {
       }
     }
 
-    // If the current user is lifting and no other participant state can be
-    // determined yet, show a placeholder so the group section doesn't disappear
-    // transiently the moment the user starts a set.
     if (groupActive == null && currentLifterId == myUserId) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: purple.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: purple.withValues(alpha: 0.2)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.group, color: purple, size: 18),
-            SizedBox(width: 8),
-            Text(
-              "Everyone's watching",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-                color: purple,
-              ),
-            ),
-          ],
-        ),
+      final me = status.participants.cast<ParticipantStatus?>().firstWhere(
+        (p) => p!.user.id == myUserId,
+        orElse: () => null,
       );
+      if (me != null) {
+        groupActive = me;
+        groupState = 'Watching';
+        boxColor = purple;
+      }
     }
 
     if (groupActive == null) return const SizedBox.shrink();
 
-    final name = groupActive.user.name;
+    final rawName = groupActive.user.name.isNotEmpty
+        ? groupActive.user.name
+        : groupActive.user.id;
+    final sideLabel = _sideLabelName(rawName);
 
     return StatusBox(
-      sideLabel: 'GROUP',
-      header: 'UP NEXT: $name',
+      sideLabel: sideLabel,
       stateLabel: groupState,
       color: boxColor,
       timerText: groupTimer,
       timerColor: groupTimerColor,
       set: groupSet,
-      showHeader: true,
+      sideLabelWidth: 44,
     );
   }
+}
+
+String _sideLabelName(String name) {
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) return 'GROUP';
+  if (trimmed.length <= 10) return trimmed.toUpperCase();
+  return '${trimmed.substring(0, 9).toUpperCase()}…';
 }
 
 // ─── Big full-width action button ────────────────────────────────────
@@ -503,8 +470,9 @@ class _RepButtonsState extends State<_RepButtons> {
   @override
   void initState() {
     super.initState();
-    _scrollController =
-        FixedExtentScrollController(initialItem: widget.targetReps.clamp(0, 50));
+    _scrollController = FixedExtentScrollController(
+      initialItem: widget.targetReps.clamp(0, 50),
+    );
   }
 
   @override
@@ -584,10 +552,7 @@ class _RepButtonsState extends State<_RepButtons> {
                       widget.onComplete(_scrollController.selectedItem),
                   child: const Text(
                     'Complete Set',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                   ),
                 ),
               ),

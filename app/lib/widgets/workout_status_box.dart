@@ -4,7 +4,6 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../logic/exercises.dart';
-import '../theme/app_theme.dart';
 import 'plate_visualization.dart';
 
 class StatusBox extends StatelessWidget {
@@ -18,6 +17,7 @@ class StatusBox extends StatelessWidget {
   final ProposedSet? set;
   final bool isComplete;
   final bool showHeader;
+  final double sideLabelWidth;
 
   const StatusBox({
     super.key,
@@ -31,25 +31,37 @@ class StatusBox extends StatelessWidget {
     this.set,
     this.isComplete = false,
     this.showHeader = false,
+    this.sideLabelWidth = 32,
   });
 
   @override
   Widget build(BuildContext context) {
     final name = set != null ? (exerciseNames[set!.exercise] ?? '?') : null;
+    final contentColor =
+        ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+    final accentColor = contentColor.withValues(alpha: 0.82);
+    final dividerColor = contentColor.withValues(alpha: 0.22);
+    final effectiveTimerColor =
+        timerColor != null &&
+            (timerColor!.toARGB32() == color.toARGB32() ||
+                timerColor!.computeLuminance() == color.computeLuminance())
+        ? contentColor
+        : (timerColor ?? contentColor);
 
     return Container(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: dividerColor),
       ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Side Label: YOU / GROUP
             Container(
-              width: 32,
+              width: sideLabelWidth,
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Center(
                 child: RotatedBox(
@@ -60,20 +72,22 @@ class StatusBox extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 2.0,
-                      color: color,
+                      color: accentColor,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                   ),
                 ),
               ),
             ),
-            // Vertical Line
-            Container(width: 1, color: color.withValues(alpha: 0.2)),
-            // Main Content
+            Container(width: 1, color: dividerColor),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -84,7 +98,7 @@ class StatusBox extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
-                          color: color,
+                          color: accentColor,
                           letterSpacing: -0.2,
                         ),
                         maxLines: 1,
@@ -95,7 +109,6 @@ class StatusBox extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Column 1: Info (Exercise Name, Weight)
                         Expanded(
                           flex: 3,
                           child: Column(
@@ -105,24 +118,29 @@ class StatusBox extends StatelessWidget {
                               if (name != null) ...[
                                 Text(
                                   name,
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w900,
-                                    fontFamily: 'monospace',
                                     height: 1.1,
+                                    color: contentColor,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                               ],
                               if (set != null) ...[
-                                StatusSetWeightInfo(set: set!),
+                                StatusSetWeightInfo(
+                                  set: set!,
+                                  textColor: contentColor,
+                                  secondaryTextColor: accentColor,
+                                ),
                               ] else if (isComplete) ...[
-                                const Text(
+                                Text(
                                   'All sets complete',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w900,
                                     fontFamily: 'monospace',
+                                    color: contentColor,
                                   ),
                                 ),
                               ] else if (child != null) ...[
@@ -131,20 +149,7 @@ class StatusBox extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // Column 2: Plate Visualization
-                        if (set != null) ...[
-                          Expanded(
-                            flex: 4,
-                            child: Center(
-                              child: PlateVisualization(
-                                weight: set!.targetWeight.toDouble(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        // Column 3: Timer & State
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -153,11 +158,10 @@ class StatusBox extends StatelessWidget {
                               Text(
                                 stateLabel!,
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w900,
-                                  fontFamily: 'monospace',
-                                  color: color.withValues(alpha: 0.9),
-                                  letterSpacing: 0.5,
+                                  color: accentColor,
+                                  height: 1.1,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -171,7 +175,7 @@ class StatusBox extends StatelessWidget {
                                   fontFamily: 'monospace',
                                   letterSpacing: -1.5,
                                   height: 1.0,
-                                  color: timerColor ?? color,
+                                  color: effectiveTimerColor,
                                 ),
                               ),
                           ],
@@ -191,14 +195,23 @@ class StatusBox extends StatelessWidget {
 
 class StatusSetWeightInfo extends StatelessWidget {
   final ProposedSet set;
+  final Color textColor;
+  final Color secondaryTextColor;
 
-  const StatusSetWeightInfo({super.key, required this.set});
+  const StatusSetWeightInfo({
+    super.key,
+    required this.set,
+    required this.textColor,
+    required this.secondaryTextColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final weightText = formatWeight(set.targetWeight.toDouble(), unit);
+    void detailTrigger() {
+      showPlateBreakdownDialog(context, weight: set.targetWeight.toDouble());
+    }
 
     return FittedBox(
       fit: BoxFit.scaleDown,
@@ -206,24 +219,6 @@ class StatusSetWeightInfo extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (set.warmup) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.warmupFg.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Text(
-                'W',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.warmupFg,
-                ),
-              ),
-            ),
-          ],
           Text(
             set.isAmrap
                 ? 'AMRAP\u00D7$weightText'
@@ -234,17 +229,46 @@ class StatusSetWeightInfo extends StatelessWidget {
               fontFamily: 'monospace',
               letterSpacing: -1.5,
               height: 1.0,
-            ),
+            ).copyWith(color: textColor),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 6),
             child: Text(
               weightUnitSuffix(unit),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: colorScheme.tertiary,
+                color: secondaryTextColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: detailTrigger,
+              borderRadius: BorderRadius.circular(999),
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: textColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: secondaryTextColor.withValues(alpha: 0.85),
+                    width: 1.2,
+                  ),
+                ),
+                child: SizedBox(
+                  width: 92,
+                  height: 32,
+                  child: Center(
+                    child: PlateVisualization(
+                      weight: set.targetWeight.toDouble(),
+                      scale: 0.72,
+                      isInteractive: false,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

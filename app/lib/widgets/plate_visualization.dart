@@ -4,6 +4,45 @@ import '../logic/plate_calculator.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 
+Future<void> showPlateBreakdownDialog(
+  BuildContext context, {
+  required double weight,
+  Map<double, Color>? colorOverrides,
+  List<double>? displayPlatesPerSide,
+}) {
+  final unit = context.read<SettingsProvider>().weightUnit;
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(
+        '${formatWeight(weight, unit).toUpperCase()} BREAKDOWN',
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 20),
+          PlateVisualization(
+            weight: weight,
+            scale: 2.0,
+            showText: true,
+            isInteractive: false,
+            colorOverrides: colorOverrides,
+            displayPlatesPerSide: displayPlatesPerSide,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CLOSE'),
+        ),
+      ],
+    ),
+  );
+}
+
 class PlateVisualization extends StatelessWidget {
   final double weight;
   final double scale;
@@ -21,38 +60,6 @@ class PlateVisualization extends StatelessWidget {
     this.colorOverrides,
     this.displayPlatesPerSide,
   });
-
-  void _showDetailModal(BuildContext context) {
-    final unit = context.read<SettingsProvider>().weightUnit;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          '${formatWeight(weight, unit).toUpperCase()} BREAKDOWN',
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            PlateVisualization(
-              weight: weight,
-              scale: 2.0,
-              showText: true,
-              isInteractive: false,
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CLOSE'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Color _plateColor(BuildContext context, double plate) {
     if (colorOverrides != null) {
@@ -161,7 +168,12 @@ class PlateVisualization extends StatelessWidget {
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            onTap: () => _showDetailModal(context),
+            onTap: () => showPlateBreakdownDialog(
+              context,
+              weight: weight,
+              colorOverrides: colorOverrides,
+              displayPlatesPerSide: displayPlatesPerSide,
+            ),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
