@@ -305,7 +305,7 @@ class _UnitStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'This sets your starting weight inputs, progression jumps, and plate breakdowns.',
+            'Ie are you in America',
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -316,15 +316,15 @@ class _UnitStep extends StatelessWidget {
           _UnitCard(
             title: 'Pounds',
             subtitle: 'Best for making you think you lift more because the number is larger.',
-            badge: 'LB',
+            badge: '🦅',
             selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
           ),
           const SizedBox(height: 10),
           _UnitCard(
             title: 'Kilograms',
-            subtitle: 'Used in science and everywhere except America',
-            badge: 'KG',
+            subtitle: 'Best for science and everywhere except America',
+            badge: '🌍',
             selected: selectedUnit == WeightUnit.WEIGHT_UNIT_KG,
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),
           ),
@@ -387,7 +387,7 @@ class _ProgramStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Pick a program now and adjust it later anytime in Settings.',
+            "Each program builds up the weight you can lift over time using different strategies. Pick one based on how much time you spend in the gym, how experienced you are, and/or vibes.",
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -633,9 +633,8 @@ class _StateFieldInputState extends State<_StateFieldInput> {
         f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final suffix = SettingsProvider.isWeightField(f)
-        ? weightUnitSuffixPlural(unit)
-        : null;
+    final isWeightField = SettingsProvider.isWeightField(f);
+    final suffix = isWeightField ? weightUnitSuffixPlural(unit) : null;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -646,9 +645,12 @@ class _StateFieldInputState extends State<_StateFieldInput> {
             children: [
               Text(
                 f.label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontWeight: isWeightField ? FontWeight.w900 : FontWeight.w700,
+                  fontSize: isWeightField ? 18 : 14,
+                ),
               ),
-              if (f.helpText.isNotEmpty)
+              if (f.helpText.isNotEmpty && !isWeightField)
                 Padding(
                   padding: const EdgeInsets.only(top: 2, right: 10),
                   child: Text(
@@ -857,21 +859,15 @@ class _UnitCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
+            SizedBox(
               width: 44,
               height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected
-                    ? cs.primary
-                    : cs.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
               child: Text(
                 badge,
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: selected ? cs.onPrimary : cs.onSurface,
+                  fontSize: 32,
+                  height: 1.0,
                 ),
               ),
             ),
