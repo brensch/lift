@@ -13,8 +13,8 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
-        ? 'Kilograms (kg)'
-        : 'Pounds (lb)';
+        ? 'Kilograms (🌍)'
+        : 'Pounds (🦅)';
     return TopLevelBackScope(
       child: Scaffold(
         appBar: AppBar(
@@ -81,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Pounds (lb)'),
+              title: const Text('Pounds (🦅)'),
               subtitle: const Text('Standard US gym loading'),
               trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_LB
                   ? const Icon(Icons.check)
@@ -89,7 +89,7 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_LB),
             ),
             ListTile(
-              title: const Text('Kilograms (kg)'),
+              title: const Text('Kilograms (🌍)'),
               subtitle: const Text('Standard international gym loading'),
               trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
                   ? const Icon(Icons.check)

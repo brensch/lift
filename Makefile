@@ -238,23 +238,19 @@ run-app:
 
 run-linux:
 	@bash -ec '\
-		mkdir -p "$(TMP_RUN_DIR)" .tmp/linux-1 .tmp/linux-2; \
-		echo "Building Linux bundle once..."; \
-		(cd app && $(FLUTTER) build linux --debug); \
-		if [ ! -x "$(LINUX_BUNDLE)" ]; then \
-			echo "Linux bundle missing: $(LINUX_BUNDLE)"; \
-			exit 1; \
-		fi; \
-		echo "Launching linux-1 and linux-2..."; \
-		nohup env XDG_DATA_HOME="$(PWD)/.tmp/linux-1" LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
-			"$(PWD)/$(LINUX_BUNDLE)" --dart-define=INSTANCE=1 \
-			> "$(TMP_RUN_DIR)/linux-1.log" 2>&1 & \
-		echo $$! > "$(TMP_RUN_DIR)/linux-1.pid"; \
-		nohup env XDG_DATA_HOME="$(PWD)/.tmp/linux-2" LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
-			"$(PWD)/$(LINUX_BUNDLE)" --dart-define=INSTANCE=2 \
-			> "$(TMP_RUN_DIR)/linux-2.log" 2>&1 & \
-		echo $$! > "$(TMP_RUN_DIR)/linux-2.pid"; \
-		echo "Linux logs: $(TMP_RUN_DIR)/linux-1.log, $(TMP_RUN_DIR)/linux-2.log"; \
+		mkdir -p "$(TMP_RUN_DIR)"; \
+		SESSION_ROOT=$$(mktemp -d "$(PWD)/$(TMP_RUN_DIR)/linux-session-XXXXXX"); \
+		SESSION_ID=$$(basename "$$SESSION_ROOT"); \
+		mkdir -p "$$SESSION_ROOT/data" "$$SESSION_ROOT/config" "$$SESSION_ROOT/cache"; \
+		echo "Starting interactive Flutter hot-reload session (linux)..."; \
+		echo "Linux session id: $$SESSION_ID"; \
+		echo "Linux session root: $$SESSION_ROOT"; \
+		cd app && \
+			XDG_DATA_HOME="$$SESSION_ROOT/data" \
+			XDG_CONFIG_HOME="$$SESSION_ROOT/config" \
+			XDG_CACHE_HOME="$$SESSION_ROOT/cache" \
+			LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
+			$(FLUTTER) run -d linux --dart-define=INSTANCE=$$SESSION_ID; \
 	'
 
 stop-app:
