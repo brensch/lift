@@ -16,6 +16,7 @@ class HeartRateChart extends StatefulWidget {
   final DateTime now;
   final WorkoutStateSnapshot? stateSnapshot;
   final bool followLiveClock;
+  final bool collapsible;
 
   const HeartRateChart({
     super.key,
@@ -25,6 +26,7 @@ class HeartRateChart extends StatefulWidget {
     required this.now,
     this.stateSnapshot,
     this.followLiveClock = true,
+    this.collapsible = false,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -62,6 +64,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
   double? _gestureStartWindowStartSec;
   double? _gestureStartWindowSpanSec;
   double? _gestureStartLocalFocalX;
+  bool _collapsed = false;
 
   @override
   void initState() {
@@ -248,6 +251,147 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final bottomInterval = _bottomAxisInterval(viewport.spanSec);
     final zoneLineSegments = _buildZoneLineSegments(spots, zones);
 
+    final expandedHeader = Row(
+      children: [
+        Text(
+          'HEART RATE',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '${currentBpm.round()}',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            height: 1.0,
+            color: zoneColor,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'BPM',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        if (currentZone != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: zoneColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '${currentZone.name} ${currentZone.label}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+                color: zoneColor,
+              ),
+            ),
+          ),
+        ],
+        if (_zoneProfileLoaded &&
+            _zoneProfile != null &&
+            _zoneProfile!.ageYears != null) ...[
+          const SizedBox(width: 8),
+          Text(
+            _zoneProfile!.hasRestingHeartRate ? 'HRR' : '%MAX',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: colorScheme.tertiary,
+            ),
+          ),
+        ],
+        if (_zoneProfile?.restingHeartRateBpm != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: colorScheme.onSurface.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ],
+        if (widget.collapsible) ...[
+          const SizedBox(width: 6),
+          Icon(
+            _collapsed
+                ? Icons.keyboard_arrow_down_rounded
+                : Icons.keyboard_arrow_up_rounded,
+            color: colorScheme.tertiary,
+          ),
+        ],
+      ],
+    );
+
+    final collapsedHeader = Row(
+      children: [
+        Text(
+          'HEART RATE',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            height: 24,
+            child: CustomPaint(
+              painter: _HeartRateTrendPainter(
+                samples: available,
+                lineColor: zoneColor,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '${currentBpm.round()}',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            height: 1.0,
+            color: zoneColor,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'BPM',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Icon(Icons.keyboard_arrow_down_rounded, color: colorScheme.tertiary),
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -258,314 +402,279 @@ class _HeartRateChartState extends State<HeartRateChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'HEART RATE',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${currentBpm.round()}',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  height: 1.0,
-                  color: zoneColor,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'BPM',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-              if (currentZone != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: zoneColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${currentZone.name} ${currentZone.label}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                      color: zoneColor,
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: widget.collapsible
+                ? () => setState(() => _collapsed = !_collapsed)
+                : null,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _collapsed && widget.collapsible
+                  ? KeyedSubtree(
+                      key: const ValueKey('collapsed-hr-header'),
+                      child: collapsedHeader,
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('expanded-hr-header'),
+                      child: expandedHeader,
                     ),
-                  ),
-                ),
-              ],
-              if (_zoneProfileLoaded &&
-                  _zoneProfile != null &&
-                  _zoneProfile!.ageYears != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  _zoneProfile!.hasRestingHeartRate ? 'HRR' : '%MAX',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                    color: colorScheme.tertiary,
-                  ),
-                ),
-              ],
-              if (_zoneProfile?.restingHeartRateBpm != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
-                      color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ),
-              ],
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 160,
-            child: LayoutBuilder(
-              builder: (context, constraints) => GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onScaleStart: (details) {
-                  _gestureStartWindowStartSec = minX;
-                  _gestureStartWindowSpanSec = maxX - minX;
-                  _gestureStartLocalFocalX = details.localFocalPoint.dx;
-                },
-                onScaleUpdate: (details) {
-                  final width = constraints.maxWidth;
-                  final startStart = _gestureStartWindowStartSec;
-                  final startSpan = _gestureStartWindowSpanSec;
-                  final startFocalX = _gestureStartLocalFocalX;
-                  if (width <= 0 ||
-                      startStart == null ||
-                      startSpan == null ||
-                      startFocalX == null) {
-                    return;
-                  }
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            child: ClipRect(
+              child: _collapsed && widget.collapsible
+                  ? const SizedBox.shrink()
+                  : Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 160,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) => GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onScaleStart: (details) {
+                                _gestureStartWindowStartSec = minX;
+                                _gestureStartWindowSpanSec = maxX - minX;
+                                _gestureStartLocalFocalX =
+                                    details.localFocalPoint.dx;
+                              },
+                              onScaleUpdate: (details) {
+                                final width = constraints.maxWidth;
+                                final startStart = _gestureStartWindowStartSec;
+                                final startSpan = _gestureStartWindowSpanSec;
+                                final startFocalX = _gestureStartLocalFocalX;
+                                if (width <= 0 ||
+                                    startStart == null ||
+                                    startSpan == null ||
+                                    startFocalX == null) {
+                                  return;
+                                }
 
-                  final clampedScale = details.scale.clamp(0.5, 4.0);
-                  var newSpan = (startSpan / clampedScale).clamp(
-                    _minWindowSeconds,
-                    _maxWindowSeconds,
-                  );
+                                final clampedScale = details.scale.clamp(
+                                  0.5,
+                                  4.0,
+                                );
+                                var newSpan = (startSpan / clampedScale).clamp(
+                                  _minWindowSeconds,
+                                  _maxWindowSeconds,
+                                );
 
-                  final startFrac = (startFocalX / width).clamp(0.0, 1.0);
-                  final currFrac = (details.localFocalPoint.dx / width).clamp(
-                    0.0,
-                    1.0,
-                  );
-                  final focalTimeAtStart = startStart + startSpan * startFrac;
-                  var newStart = focalTimeAtStart - newSpan * currFrac;
+                                final startFrac = (startFocalX / width).clamp(
+                                  0.0,
+                                  1.0,
+                                );
+                                final currFrac =
+                                    (details.localFocalPoint.dx / width).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                final focalTimeAtStart =
+                                    startStart + startSpan * startFrac;
+                                var newStart =
+                                    focalTimeAtStart - newSpan * currFrac;
 
-                  final clamped = _clampViewport(
-                    startSec: newStart,
-                    spanSec: newSpan,
-                    domainMaxX: domainMaxX,
-                  );
-                  setState(() {
-                    _hasManualViewport = true;
-                    if (widget.followLiveClock) {
-                      _isLiveViewport = false;
-                    }
-                    _manualWindowStartSec = clamped.startSec;
-                    _manualWindowSpanSec = clamped.spanSec;
-                  });
-                },
-                child: LineChart(
-                  LineChartData(
-                    minX: minX,
-                    maxX: maxX,
-                    minY: minY,
-                    maxY: maxY,
-                    clipData: const FlClipData.all(),
-                    lineTouchData: const LineTouchData(enabled: false),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 28,
-                          interval: 10,
-                          getTitlesWidget: (value, meta) {
-                            final bpm = value.round();
-                            final boundaryValues = <int>{
-                              0,
-                              ...zones.map((z) => z.low),
-                              ...zones.map((z) => z.high),
-                            };
-                            if (boundaryValues.contains(bpm)) {
-                              return SideTitleWidget(
-                                meta: meta,
-                                child: Text(
-                                  '$bpm',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    color: colorScheme.onSurface.withValues(
-                                      alpha: 0.4,
-                                    ),
+                                final clamped = _clampViewport(
+                                  startSec: newStart,
+                                  spanSec: newSpan,
+                                  domainMaxX: domainMaxX,
+                                );
+                                setState(() {
+                                  _hasManualViewport = true;
+                                  if (widget.followLiveClock) {
+                                    _isLiveViewport = false;
+                                  }
+                                  _manualWindowStartSec = clamped.startSec;
+                                  _manualWindowSpanSec = clamped.spanSec;
+                                });
+                              },
+                              child: LineChart(
+                                LineChartData(
+                                  minX: minX,
+                                  maxX: maxX,
+                                  minY: minY,
+                                  maxY: maxY,
+                                  clipData: const FlClipData.all(),
+                                  lineTouchData: const LineTouchData(
+                                    enabled: false,
                                   ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 20,
-                          interval: 5,
-                          getTitlesWidget: (value, meta) {
-                            for (final z in zones) {
-                              final mid = (z.low + z.high) / 2.0;
-                              if ((value - mid).abs() < 1) {
-                                return SideTitleWidget(
-                                  meta: meta,
-                                  child: Text(
-                                    z.name,
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.onSurface.withValues(
-                                        alpha: 0.35,
+                                  titlesData: FlTitlesData(
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 28,
+                                        interval: 10,
+                                        getTitlesWidget: (value, meta) {
+                                          final bpm = value.round();
+                                          final boundaryValues = <int>{
+                                            0,
+                                            ...zones.map((z) => z.low),
+                                            ...zones.map((z) => z.high),
+                                          };
+                                          if (boundaryValues.contains(bpm)) {
+                                            return SideTitleWidget(
+                                              meta: meta,
+                                              child: Text(
+                                                '$bpm',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  color: colorScheme.onSurface
+                                                      .withValues(alpha: 0.4),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                    rightTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 20,
+                                        interval: 5,
+                                        getTitlesWidget: (value, meta) {
+                                          for (final z in zones) {
+                                            final mid = (z.low + z.high) / 2.0;
+                                            if ((value - mid).abs() < 1) {
+                                              return SideTitleWidget(
+                                                meta: meta,
+                                                child: Text(
+                                                  z.name,
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: colorScheme.onSurface
+                                                        .withValues(
+                                                          alpha: 0.35,
+                                                        ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 22,
+                                        interval: bottomInterval,
+                                        getTitlesWidget: (value, meta) {
+                                          if (value < 0 || value > maxX + 0.5) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return SideTitleWidget(
+                                            meta: meta,
+                                            space: 6,
+                                            child: Text(
+                                              _formatElapsed(value.round()),
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.45),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),
-                                );
-                              }
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ),
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 22,
-                          interval: bottomInterval,
-                          getTitlesWidget: (value, meta) {
-                            if (value < 0 || value > maxX + 0.5) {
-                              return const SizedBox.shrink();
-                            }
-                            return SideTitleWidget(
-                              meta: meta,
-                              space: 6,
-                              child: Text(
-                                _formatElapsed(value.round()),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.45,
+                                  gridData: const FlGridData(show: false),
+                                  borderData: FlBorderData(show: false),
+                                  rangeAnnotations: RangeAnnotations(
+                                    horizontalRangeAnnotations: const [],
+                                    verticalRangeAnnotations: [
+                                      ...activityBands,
+                                      ...liveBands,
+                                    ],
                                   ),
+                                  extraLinesData: ExtraLinesData(
+                                    verticalLines: [
+                                      VerticalLine(
+                                        x: nowSec,
+                                        color: colorScheme.primary.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        strokeWidth: 1,
+                                        dashArray: [4, 4],
+                                      ),
+                                    ],
+                                  ),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: spots,
+                                      isCurved: true,
+                                      curveSmoothness: 0.2,
+                                      color: colorScheme.onSurface.withValues(
+                                        alpha: 0.10,
+                                      ),
+                                      barWidth: 1.0,
+                                      dotData: const FlDotData(show: false),
+                                      belowBarData: BarAreaData(show: false),
+                                    ),
+                                    ...zoneLineSegments,
+                                  ],
                                 ),
+                                duration: Duration.zero,
+                                transformationConfig:
+                                    const FlTransformationConfig(
+                                      scaleAxis: FlScaleAxis.none,
+                                    ),
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                    rangeAnnotations: RangeAnnotations(
-                      horizontalRangeAnnotations: const [],
-                      verticalRangeAnnotations: [
-                        ...activityBands,
-                        ...liveBands,
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Expanded(
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 4,
+                                children: [
+                                  _HeartRateLegendItem(
+                                    label: 'Lift',
+                                    color: Color(0xFFEC4899),
+                                  ),
+                                  _HeartRateLegendItem(
+                                    label: 'Rest',
+                                    color: Color(0xFF3B82F6),
+                                  ),
+                                  _HeartRateLegendItem(
+                                    label: 'Yap',
+                                    color: Color(0xFFF97316),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (widget.followLiveClock) ...[
+                              const SizedBox(width: 8),
+                              _buildLiveWindowButton(
+                                context,
+                                label: '5m',
+                                spanSec: 300,
+                              ),
+                              const SizedBox(width: 6),
+                              _buildLiveWindowButton(
+                                context,
+                                label: '10m',
+                                spanSec: 600,
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                    extraLinesData: ExtraLinesData(
-                      verticalLines: [
-                        VerticalLine(
-                          x: nowSec,
-                          color: colorScheme.primary.withValues(alpha: 0.35),
-                          strokeWidth: 1,
-                          dashArray: [4, 4],
-                        ),
-                      ],
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        isCurved: true,
-                        curveSmoothness: 0.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.10),
-                        barWidth: 1.0,
-                        dotData: const FlDotData(show: false),
-                        belowBarData: BarAreaData(show: false),
-                      ),
-                      ...zoneLineSegments,
-                    ],
-                  ),
-                  duration: Duration.zero,
-                  transformationConfig: const FlTransformationConfig(
-                    scaleAxis: FlScaleAxis.none,
-                  ),
-                ),
-              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Expanded(
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 4,
-                  children: [
-                    _HeartRateLegendItem(
-                      label: 'Lift',
-                      color: Color(0xFFEC4899),
-                    ),
-                    _HeartRateLegendItem(
-                      label: 'Rest',
-                      color: Color(0xFF3B82F6),
-                    ),
-                    _HeartRateLegendItem(
-                      label: 'Yap',
-                      color: Color(0xFFF97316),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.followLiveClock) ...[
-                const SizedBox(width: 8),
-                _buildLiveWindowButton(context, label: '5m', spanSec: 300),
-                const SizedBox(width: 6),
-                _buildLiveWindowButton(context, label: '10m', spanSec: 600),
-              ],
-            ],
           ),
         ],
       ),
@@ -1025,6 +1134,57 @@ class _HeartRateChartState extends State<HeartRateChart> {
       );
     }
     return segments;
+  }
+}
+
+class _HeartRateTrendPainter extends CustomPainter {
+  final List<HeartRateSample> samples;
+  final Color lineColor;
+
+  const _HeartRateTrendPainter({
+    required this.samples,
+    required this.lineColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (samples.isEmpty || size.width <= 0 || size.height <= 0) return;
+
+    final values = samples.map((sample) => sample.bpm).toList(growable: false);
+    final minBpm = values.reduce(min);
+    final maxBpm = values.reduce(max);
+    final span = max(1.0, maxBpm - minBpm);
+    final path = Path();
+
+    for (int i = 0; i < values.length; i++) {
+      final dx = values.length == 1
+          ? 0.0
+          : (i / (values.length - 1)) * size.width;
+      final normalized = (values[i] - minBpm) / span;
+      final dy = size.height - (normalized * (size.height - 2)) - 1;
+      if (i == 0) {
+        path.moveTo(dx, dy);
+      } else {
+        path.lineTo(dx, dy);
+      }
+    }
+
+    final paint = Paint()
+      ..color = lineColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartRateTrendPainter oldDelegate) {
+    if (oldDelegate.lineColor != lineColor) return true;
+    if (oldDelegate.samples.length != samples.length) return true;
+    if (samples.isEmpty) return false;
+    return oldDelegate.samples.last.bpm != samples.last.bpm ||
+        oldDelegate.samples.last.sampledAt != samples.last.sampledAt;
   }
 }
 
