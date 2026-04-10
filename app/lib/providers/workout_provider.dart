@@ -338,6 +338,55 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return out;
   }
 
+  void _resequenceAllProposedSets({
+    String? prioritizeCompletedGroupId,
+    Set<String> completedIds = const {},
+  }) {
+    final orderedGroups = List<ExerciseGroup>.from(_activeExerciseGroups)
+      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+
+    final reordered = <ProposedSet>[];
+    final cancelled = <ProposedSet>[];
+
+    for (final group in orderedGroups) {
+      final groupSets = _activeProposedSets
+          .where((set) => set.exerciseGroupId == group.id)
+          .toList();
+      final visible = groupSets.where((set) => !set.cancelled).toList()
+        ..sort((a, b) {
+          if (group.id == prioritizeCompletedGroupId) {
+            final aDone = completedIds.contains(a.id);
+            final bDone = completedIds.contains(b.id);
+            if (aDone != bDone) return aDone ? -1 : 1;
+          }
+          return a.workoutOrder.compareTo(b.workoutOrder);
+        });
+      final hidden = groupSets.where((set) => set.cancelled).toList()
+        ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      reordered.addAll(visible);
+      cancelled.addAll(hidden);
+    }
+
+    final ungroupedVisible =
+        _activeProposedSets
+            .where((set) => set.exerciseGroupId.isEmpty && !set.cancelled)
+            .toList()
+          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    final ungroupedCancelled =
+        _activeProposedSets
+            .where((set) => set.exerciseGroupId.isEmpty && set.cancelled)
+            .toList()
+          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+
+    reordered.addAll(ungroupedVisible);
+    cancelled.addAll(ungroupedCancelled);
+
+    _activeProposedSets = [...reordered, ...cancelled];
+    for (int i = 0; i < _activeProposedSets.length; i++) {
+      _activeProposedSets[i].workoutOrder = i;
+    }
+  }
+
   String? _applyLocalReplaceExerciseGroupPlan({
     required String name,
     required String? exerciseGroupId,
@@ -461,6 +510,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       startOrder: 0,
     );
     _activeProposedSets.addAll(generated);
+    _resequenceAllProposedSets(
+      prioritizeCompletedGroupId: existing.id,
+      completedIds: completedIds,
+    );
     _refreshDerivedState();
     return existing.id;
   }

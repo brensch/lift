@@ -17,6 +17,7 @@ class HeartRateChart extends StatefulWidget {
   final WorkoutStateSnapshot? stateSnapshot;
   final bool followLiveClock;
   final bool collapsible;
+  final bool startCollapsed;
 
   const HeartRateChart({
     super.key,
@@ -27,6 +28,7 @@ class HeartRateChart extends StatefulWidget {
     this.stateSnapshot,
     this.followLiveClock = true,
     this.collapsible = false,
+    this.startCollapsed = false,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -69,6 +71,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
   @override
   void initState() {
     super.initState();
+    _collapsed = widget.collapsible && widget.startCollapsed;
     _syncUiSnapshotFromWidget();
     _configureRepaintTimer();
     unawaited(_loadZoneProfile());

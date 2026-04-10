@@ -166,6 +166,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               now: wp.now,
               stateSnapshot: wp.stateSnapshot,
               collapsible: true,
+              startCollapsed: true,
             ),
           ),
 
@@ -203,6 +204,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   group: focusedGroup,
                   completedSets: wp.completedSets,
                   activeSetId: activeSetId,
+                  onEdit: () => _editCurrentGroup(context, wp, focusedGroup),
                   onInfo: () => _showGroupDetails(context, focusedGroup),
                 ),
                 const SizedBox(height: 16),
@@ -276,6 +278,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         groupIndex: idx,
                         onDelete: () => _confirmDeleteGroup(context, wp, group),
                         onInfo: () => _showGroupDetails(context, group),
+                        onEdit: () => _editCurrentGroup(context, wp, group),
                       ),
                     );
                   },
@@ -517,6 +520,41 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
+  void _editCurrentGroup(
+    BuildContext context,
+    WorkoutProvider wp,
+    ExerciseGroupData group,
+  ) {
+    final groupIndex = wp.exerciseGroups.indexWhere(
+      (candidate) => candidate.stableId == group.stableId,
+    );
+    if (groupIndex == -1) return;
+
+    showEditExerciseDialog(
+      context,
+      group: group,
+      groupIndex: groupIndex,
+      exerciseStatuses: wp.exerciseStatuses,
+      isSetDone: wp.isSetDone,
+      onSave:
+          (
+            groupIndex, {
+            required int sets,
+            required bool interleaveWarmups,
+            required List<ExerciseTypeConfig> exerciseConfigs,
+            RestConfig? restConfig,
+          }) {
+            wp.updateGroup(
+              groupIndex,
+              sets: sets,
+              interleaveWarmups: interleaveWarmups,
+              exerciseConfigs: exerciseConfigs,
+              restConfig: restConfig,
+            );
+          },
+    );
+  }
+
   Future<void> _showWorkoutInfoDialog(
     String workoutName,
     RegimeContext? regimeContext,
@@ -603,12 +641,14 @@ class _CurrentExerciseCard extends StatelessWidget {
   final ExerciseGroupData group;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
+  final VoidCallback onEdit;
   final VoidCallback onInfo;
 
   const _CurrentExerciseCard({
     required this.group,
     required this.completedSets,
     required this.activeSetId,
+    required this.onEdit,
     required this.onInfo,
   });
 
@@ -682,18 +722,36 @@ class _CurrentExerciseCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onInfo,
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(36, 36),
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: Icon(
-                  Icons.info_outline_rounded,
-                  size: 20,
-                  color: colorScheme.onSurface.withValues(alpha: 0.65),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: onEdit,
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(36, 36),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: colorScheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onInfo,
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(36, 36),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: Icon(
+                      Icons.info_outline_rounded,
+                      size: 20,
+                      color: colorScheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -992,12 +1050,14 @@ class _RemainingExerciseCard extends StatelessWidget {
   final int groupIndex;
   final VoidCallback onDelete;
   final VoidCallback onInfo;
+  final VoidCallback onEdit;
 
   const _RemainingExerciseCard({
     required this.group,
     required this.groupIndex,
     required this.onDelete,
     required this.onInfo,
+    required this.onEdit,
   });
 
   double? _maxWorkingWeight() {
@@ -1046,7 +1106,7 @@ class _RemainingExerciseCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(14),
@@ -1055,6 +1115,21 @@ class _RemainingExerciseCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          ReorderableDragStartListener(
+            index: groupIndex,
+            child: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.drag_indicator,
+                size: 18,
+                color: colorScheme.onSurface.withValues(alpha: 0.24),
+              ),
+            ),
+          ),
+          iconButton(icon: Icons.info_outline_rounded, onPressed: onInfo),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               title,
@@ -1098,24 +1173,14 @@ class _RemainingExerciseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          iconButton(icon: Icons.info_outline_rounded, onPressed: onInfo),
+          iconButton(
+            icon: Icons.edit_outlined,
+            onPressed: onEdit,
+          ),
           iconButton(
             icon: Icons.delete_outline_rounded,
             onPressed: onDelete,
             color: colorScheme.error,
-          ),
-          ReorderableDragStartListener(
-            index: groupIndex,
-            child: Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.drag_indicator,
-                size: 18,
-                color: colorScheme.onSurface.withValues(alpha: 0.24),
-              ),
-            ),
           ),
         ],
       ),
