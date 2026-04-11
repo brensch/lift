@@ -1,25 +1,31 @@
 use schlift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
-use std::collections::HashMap;
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
-    ProposeResult, StatePayload, WorkoutCompletionResult,
+    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
+    PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
-use crate::weight_units::{
-    add_unit_increment, min_weight_lb, round_to_unit_increment, weight_unit_from_state,
-};
+use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, WorkoutRegime,
+    ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 
 const UPPER_INCREMENT: f32 = 5.0;
 const LOWER_INCREMENT: f32 = 5.0;
 const DEADLIFT_INCREMENT: f32 = 10.0;
-const RECOVERY_HOURS: i64 = 48;
+const STANDARD_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 1000.0,
+    step: 5.0,
+};
+const DEADLIFT_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 1000.0,
+    step: 10.0,
+};
 
 pub struct Linear5x5Regime;
 
@@ -86,10 +92,6 @@ impl WorkoutRegime for Linear5x5Regime {
         "Stronglifts 5x5"
     }
 
-    fn default_days_per_week(&self) -> i32 {
-        3
-    }
-
     fn catalog_meta(&self) -> ProgramCatalogMeta {
         ProgramCatalogMeta {
             headline: "Best for beginners",
@@ -141,9 +143,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Starting working weight (lbs).",
                 "Weights",
                 10,
-                45.0,
-                1000.0,
-                5.0,
+                STANDARD_WEIGHT_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_BP_W,
@@ -151,9 +151,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Starting working weight (lbs).",
                 "Weights",
                 11,
-                45.0,
-                1000.0,
-                5.0,
+                STANDARD_WEIGHT_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_ROW_W,
@@ -161,9 +159,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Starting working weight (lbs).",
                 "Weights",
                 12,
-                45.0,
-                1000.0,
-                5.0,
+                STANDARD_WEIGHT_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_OHP_W,
@@ -171,9 +167,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Starting working weight (lbs).",
                 "Weights",
                 13,
-                45.0,
-                1000.0,
-                5.0,
+                STANDARD_WEIGHT_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_DL_W,
@@ -181,9 +175,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Starting working weight (lbs).",
                 "Weights",
                 14,
-                45.0,
-                1000.0,
-                10.0,
+                DEADLIFT_WEIGHT_BOUNDS,
             )),
             // Stall counters — internal state, not shown during onboarding
             schema_int(
@@ -313,16 +305,18 @@ impl WorkoutRegime for Linear5x5Regime {
                 w,
                 sets,
                 reps,
-                vec!["recommended".to_string(), "compound".to_string()],
-                format!(
-                    "5×5 Workout {} — {} {}",
-                    next_variant_label,
-                    w,
-                    weight_unit.suffix()
-                ),
-                rest_cfg(180, 300),
-                true,
-                false,
+                SingleGroupOptions {
+                    tags: vec!["recommended".to_string(), "compound".to_string()],
+                    explanation: format!(
+                        "5×5 Workout {} — {} {}",
+                        next_variant_label,
+                        w,
+                        weight_unit.suffix()
+                    ),
+                    rest_config: rest_cfg(180, 300),
+                    include_warmup: true,
+                    last_set_amrap: false,
+                },
             ));
         }
 
@@ -340,15 +334,17 @@ impl WorkoutRegime for Linear5x5Regime {
                 w,
                 sets,
                 5,
-                vec!["compound".to_string()],
-                format!(
-                    "{} — optional (from Workout {})",
-                    exercise_display_name(ex),
-                    other_variant
-                ),
-                rest_cfg(180, 300),
-                true,
-                false,
+                SingleGroupOptions {
+                    tags: vec!["compound".to_string()],
+                    explanation: format!(
+                        "{} — optional (from Workout {})",
+                        exercise_display_name(ex),
+                        other_variant
+                    ),
+                    rest_config: rest_cfg(180, 300),
+                    include_warmup: true,
+                    last_set_amrap: false,
+                },
             ));
         }
 
@@ -373,91 +369,6 @@ impl WorkoutRegime for Linear5x5Regime {
             regime_context,
             suggested_workout_name: format!("5×5 Workout {}", next_variant_label),
         }
-    }
-
-    fn transition_state_on_workout_complete(
-        &self,
-        state: &StatePayload,
-        result: &WorkoutCompletionResult,
-        _ended_at: i64,
-    ) -> StatePayload {
-        let mut new_state = state.clone();
-
-        // Determine which progression slots were successfully completed.
-        let mut slot_results: HashMap<String, bool> = HashMap::new();
-        for sr in &result.set_results {
-            let slot_key = if !sr.progression_slot_key.is_empty() {
-                sr.progression_slot_key.clone()
-            } else {
-                super::progression_slot_key(sr.exercise)
-            };
-            let counts = if sr.progression_slot_key.is_empty() {
-                true
-            } else {
-                sr.counts_toward_program
-            };
-            if !counts {
-                continue;
-            }
-            let success = sr.actual_reps >= sr.target_reps;
-            slot_results
-                .entry(slot_key)
-                .and_modify(|current| *current = *current && success)
-                .or_insert(success);
-        }
-
-        let all_main_lifts = [
-            Exercise::Squat,
-            Exercise::BenchPress,
-            Exercise::BarbellRow,
-            Exercise::OverheadPress,
-            Exercise::Deadlift,
-        ];
-
-        for ex in all_main_lifts {
-            let slot_key = super::progression_slot_key(ex);
-            let Some(success) = slot_results.get(&slot_key) else {
-                continue;
-            };
-            let current_w = get_f32_or(state, weight_key(ex), default_weight(ex));
-            let stall = get_int_or(state, stall_key(ex), 0);
-            let unit = weight_unit_from_state(state);
-            let (lb_inc, kg_inc) = increments(ex);
-
-            if *success {
-                // Success: store next weight (current + increment), reset stall
-                set_f32(
-                    &mut new_state,
-                    weight_key(ex),
-                    add_unit_increment(current_w, unit, lb_inc, kg_inc),
-                );
-                set_int(&mut new_state, stall_key(ex), 0);
-            } else {
-                let new_stall = stall + 1;
-                if new_stall >= 3 {
-                    // Three failures: deload 10%, reset stall
-                    let deloaded = round_to_unit_increment(current_w * 0.9, unit, lb_inc, kg_inc)
-                        .max(min_weight_lb(unit, 45.0, 20.0));
-                    set_f32(&mut new_state, weight_key(ex), deloaded);
-                    set_int(&mut new_state, stall_key(ex), 0);
-                } else {
-                    // Hold weight, increment stall counter
-                    set_f32(&mut new_state, weight_key(ex), current_w);
-                    set_int(&mut new_state, stall_key(ex), new_stall);
-                }
-            }
-        }
-
-        // Flip A/B
-        let current_variant = get_str_or(state, KEY_VARIANT, "A");
-        let next_variant = if current_variant.eq_ignore_ascii_case("A") {
-            "B"
-        } else {
-            "A"
-        };
-        set_str(&mut new_state, KEY_VARIANT, next_variant);
-
-        new_state
     }
 
     fn pending_updates_for_state(
@@ -530,9 +441,5 @@ impl WorkoutRegime for Linear5x5Regime {
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
         }
-    }
-
-    fn recovery_seconds_for_state(&self, _state: &StatePayload) -> i64 {
-        RECOVERY_HOURS * 3600
     }
 }

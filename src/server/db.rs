@@ -1,8 +1,8 @@
 use prost::Message;
 use schlift::workout::v1::{
     CompletedSet, ExerciseGroup, ExerciseTypeConfig, GetActiveTrainingProgramStateResponse,
-    GetProposedWorkoutScheduleResponse, GetWorkoutResponse, ParticipantStatus, ProposedSet,
-    ProgressionHint, RestConfig, UserSetting, Workout, WorkoutDraft, WorkoutHeartRatePoint,
+    GetProposedWorkoutScheduleResponse, GetWorkoutResponse, ParticipantStatus, ProgressionHint,
+    ProposedSet, RestConfig, UserSetting, Workout, WorkoutDraft, WorkoutHeartRatePoint,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -175,7 +175,7 @@ fn now_unix() -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[derive(Clone)]
-pub struct ScratchDb {
+pub struct ServerDb {
     /// Read pool: many connections for concurrent SELECT queries (WAL mode allows this).
     pub read_pool: Pool<Sqlite>,
     /// Write pool: single connection — SQLite only allows one writer at a time,
@@ -183,11 +183,11 @@ pub struct ScratchDb {
     write_pool: Pool<Sqlite>,
 }
 
-impl ScratchDb {
+impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
         let data_dir = data_dir.as_ref();
         std::fs::create_dir_all(data_dir)?;
-        let db_path = format!("{}/scratch.sqlite", data_dir.display());
+        let db_path = format!("{}/server.sqlite", data_dir.display());
         let options = SqliteConnectOptions::from_str(&format!("sqlite://{}", db_path))?
             .create_if_missing(true)
             .synchronous(SqliteSynchronous::Normal)
@@ -203,7 +203,10 @@ impl ScratchDb {
             .connect_with(options)
             .await?;
         sqlx::query(SCRATCH_SCHEMA).execute(&write_pool).await?;
-        Ok(Self { read_pool, write_pool })
+        Ok(Self {
+            read_pool,
+            write_pool,
+        })
     }
 
     // ── Auth ──
@@ -212,7 +215,6 @@ impl ScratchDb {
         &self,
         username: &str,
     ) -> DbResult<(schlift::workout::v1::User, String)> {
-
         let mut tx = self.write_pool.begin().await?;
         let normalized = username.trim().to_lowercase();
         let existing: Option<Vec<u8>> =
@@ -263,7 +265,6 @@ impl ScratchDb {
     }
 
     pub async fn delete_auth_session(&self, token: &str) -> DbResult<()> {
-
         sqlx::query("DELETE FROM auth_sessions WHERE token = ?")
             .bind(token)
             .execute(&self.write_pool)
@@ -271,10 +272,7 @@ impl ScratchDb {
         Ok(())
     }
 
-    pub async fn get_user(
-        &self,
-        user_id: &str,
-    ) -> DbResult<Option<schlift::workout::v1::User>> {
+    pub async fn get_user(&self, user_id: &str) -> DbResult<Option<schlift::workout::v1::User>> {
         let blob: Option<Vec<u8>> =
             sqlx::query_scalar("SELECT user_blob FROM users_current WHERE user_id = ?")
                 .bind(user_id)
@@ -296,7 +294,6 @@ impl ScratchDb {
         groups: &[ExerciseGroup],
         proposed_sets: &[ProposedSet],
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
 
         sqlx::query(
@@ -403,12 +400,7 @@ impl ScratchDb {
     }
 
     /// Insert a single completed set.
-    pub async fn insert_completed_set(
-        &self,
-        user_id: &str,
-        set: &CompletedSet,
-    ) -> DbResult<()> {
-
+    pub async fn insert_completed_set(&self, user_id: &str, set: &CompletedSet) -> DbResult<()> {
         sqlx::query(
             "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
              actual_reps, actual_weight, started_at, ended_at, rest_until)
@@ -437,7 +429,6 @@ impl ScratchDb {
         ended_at: i64,
         rest_until: i64,
     ) -> DbResult<()> {
-
         sqlx::query(
             "UPDATE completed_sets SET actual_reps = ?, actual_weight = ?, ended_at = ?, rest_until = ? WHERE id = ?",
         )
@@ -453,7 +444,6 @@ impl ScratchDb {
 
     /// Delete a completed set by id.
     pub async fn delete_completed_set(&self, set_id: &str, workout_id: &str) -> DbResult<()> {
-
         sqlx::query("DELETE FROM completed_sets WHERE id = ? AND workout_id = ?")
             .bind(set_id)
             .bind(workout_id)
@@ -464,7 +454,6 @@ impl ScratchDb {
 
     /// Cancel a proposed set.
     pub async fn cancel_proposed_set(&self, set_id: &str, workout_id: &str) -> DbResult<()> {
-
         sqlx::query("UPDATE proposed_sets SET cancelled = 1 WHERE id = ? AND workout_id = ?")
             .bind(set_id)
             .bind(workout_id)
@@ -480,7 +469,6 @@ impl ScratchDb {
         workout_id: &str,
         end_time: i64,
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
         sqlx::query("UPDATE workouts SET end_time = ? WHERE id = ? AND user_id = ?")
             .bind(end_time)
@@ -503,7 +491,6 @@ impl ScratchDb {
         workout_id: &str,
         session_id: &str,
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
         sqlx::query("UPDATE workouts SET session_id = ? WHERE id = ? AND user_id = ?")
             .bind(session_id)
@@ -530,7 +517,6 @@ impl ScratchDb {
         proposed_sets: &[ProposedSet],
         completed_sets: &[CompletedSet],
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
 
         // Update workout row
@@ -625,10 +611,7 @@ impl ScratchDb {
     }
 
     /// Load exercise groups for a workout.
-    pub async fn get_exercise_groups(
-        &self,
-        workout_id: &str,
-    ) -> DbResult<Vec<ExerciseGroup>> {
+    pub async fn get_exercise_groups(&self, workout_id: &str) -> DbResult<Vec<ExerciseGroup>> {
         let rows = sqlx::query(
             "SELECT id, workout_id, name, sets, interleave_warmups, prescribed_by_regime,
              workout_order, instruction, rest_success, rest_failure, rest_warmup,
@@ -679,8 +662,8 @@ impl ScratchDb {
         let mut sets = Vec::with_capacity(rows.len());
         for r in rows {
             let prog_blob: Option<Vec<u8>> = r.get("progression_blob");
-            let progression_hint = prog_blob
-                .and_then(|b| ProgressionHint::decode(b.as_slice()).ok());
+            let progression_hint =
+                prog_blob.and_then(|b| ProgressionHint::decode(b.as_slice()).ok());
             sets.push(ProposedSet {
                 id: r.get("id"),
                 workout_id: r.get("workout_id"),
@@ -741,8 +724,11 @@ impl ScratchDb {
         let proposed_sets = self.get_proposed_sets(workout_id).await?;
         let completed_sets = self.get_completed_sets(workout_id).await?;
 
-        use crate::service_workout::{active_proposed_sets, workout_plan_change_stats_from_sets, workout_state_snapshot_from_state};
         use crate::progress::compute_next_up_set;
+        use crate::workout::{
+            active_proposed_sets, workout_plan_change_stats_from_sets,
+            workout_state_snapshot_from_state,
+        };
 
         let now = now_unix()?;
         let active_proposed = active_proposed_sets(&proposed_sets);
@@ -778,7 +764,8 @@ impl ScratchDb {
         .await?;
         Ok(row.map(|r| {
             let prog_blob: Option<Vec<u8>> = r.get("progression_blob");
-            let progression_hint = prog_blob.and_then(|b| ProgressionHint::decode(b.as_slice()).ok());
+            let progression_hint =
+                prog_blob.and_then(|b| ProgressionHint::decode(b.as_slice()).ok());
             ProposedSet {
                 id: r.get("id"),
                 workout_id: r.get("workout_id"),
@@ -854,7 +841,6 @@ impl ScratchDb {
         user_id: &str,
         status: &ParticipantStatus,
     ) -> DbResult<()> {
-
         sqlx::query(
             "INSERT INTO session_participants_current (session_id, user_id, participant_blob, updated_at)
              VALUES (?, ?, ?, ?)
@@ -876,7 +862,6 @@ impl ScratchDb {
         session_id: &str,
         user_id: &str,
     ) -> DbResult<()> {
-
         sqlx::query(
             "DELETE FROM session_participants_current WHERE session_id = ? AND user_id = ?",
         )
@@ -887,10 +872,7 @@ impl ScratchDb {
         Ok(())
     }
 
-    pub async fn get_current_session_id_for_user(
-        &self,
-        user_id: &str,
-    ) -> DbResult<Option<String>> {
+    pub async fn get_current_session_id_for_user(&self, user_id: &str) -> DbResult<Option<String>> {
         let session_id: Option<String> = sqlx::query_scalar(
             "SELECT session_id FROM session_memberships WHERE user_id = ? AND left_at = 0 ORDER BY joined_at DESC LIMIT 1",
         )
@@ -901,7 +883,6 @@ impl ScratchDb {
     }
 
     pub async fn join_session(&self, user_id: &str, session_id: &str) -> DbResult<()> {
-
         let now = now_unix()?;
         let mut tx = self.write_pool.begin().await?;
         sqlx::query(
@@ -932,7 +913,6 @@ impl ScratchDb {
     }
 
     pub async fn leave_session(&self, user_id: &str, session_id: &str) -> DbResult<()> {
-
         sqlx::query(
             "UPDATE session_memberships SET left_at = ? WHERE user_id = ? AND session_id = ? AND left_at = 0",
         )
@@ -969,7 +949,6 @@ impl ScratchDb {
         user_id: &str,
         response: &GetProposedWorkoutScheduleResponse,
     ) -> DbResult<()> {
-
         sqlx::query(
             "INSERT INTO proposed_schedule_cache (user_id, response_blob, updated_at)
              VALUES (?, ?, ?)
@@ -983,8 +962,12 @@ impl ScratchDb {
         Ok(())
     }
 
-    pub async fn put_setting(&self, user_id: &str, setting_type: &str, setting: &UserSetting) -> DbResult<()> {
-
+    pub async fn put_setting(
+        &self,
+        user_id: &str,
+        setting_type: &str,
+        setting: &UserSetting,
+    ) -> DbResult<()> {
         sqlx::query(
             "INSERT INTO user_settings_current (user_id, setting_type, setting_blob, updated_at)
              VALUES (?, ?, ?, ?)
@@ -1014,8 +997,11 @@ impl ScratchDb {
         Ok(out)
     }
 
-    pub async fn put_program_state(&self, user_id: &str, response: &GetActiveTrainingProgramStateResponse) -> DbResult<()> {
-
+    pub async fn put_program_state(
+        &self,
+        user_id: &str,
+        response: &GetActiveTrainingProgramStateResponse,
+    ) -> DbResult<()> {
         sqlx::query(
             "INSERT INTO training_program_state_latest (user_id, response_blob, updated_at)
              VALUES (?, ?, ?)
@@ -1029,7 +1015,10 @@ impl ScratchDb {
         Ok(())
     }
 
-    pub async fn get_program_state(&self, user_id: &str) -> DbResult<Option<GetActiveTrainingProgramStateResponse>> {
+    pub async fn get_program_state(
+        &self,
+        user_id: &str,
+    ) -> DbResult<Option<GetActiveTrainingProgramStateResponse>> {
         let blob: Option<Vec<u8>> = sqlx::query_scalar(
             "SELECT response_blob FROM training_program_state_latest WHERE user_id = ?",
         )
@@ -1037,13 +1026,14 @@ impl ScratchDb {
         .fetch_optional(&self.read_pool)
         .await?;
         match blob {
-            Some(blob) => Ok(Some(GetActiveTrainingProgramStateResponse::decode(blob.as_slice())?)),
+            Some(blob) => Ok(Some(GetActiveTrainingProgramStateResponse::decode(
+                blob.as_slice(),
+            )?)),
             None => Ok(None),
         }
     }
 
     pub async fn put_workout_draft(&self, user_id: &str, draft: &WorkoutDraft) -> DbResult<()> {
-
         sqlx::query(
             "INSERT INTO workout_drafts_current (user_id, draft_blob, updated_at)
              VALUES (?, ?, ?)
@@ -1058,12 +1048,11 @@ impl ScratchDb {
     }
 
     pub async fn get_workout_draft(&self, user_id: &str) -> DbResult<Option<WorkoutDraft>> {
-        let blob: Option<Vec<u8>> = sqlx::query_scalar(
-            "SELECT draft_blob FROM workout_drafts_current WHERE user_id = ?",
-        )
-        .bind(user_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
+        let blob: Option<Vec<u8>> =
+            sqlx::query_scalar("SELECT draft_blob FROM workout_drafts_current WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
         match blob {
             Some(blob) => Ok(Some(WorkoutDraft::decode(blob.as_slice())?)),
             None => Ok(None),
@@ -1071,7 +1060,6 @@ impl ScratchDb {
     }
 
     pub async fn clear_workout_draft(&self, user_id: &str) -> DbResult<()> {
-
         sqlx::query("DELETE FROM workout_drafts_current WHERE user_id = ?")
             .bind(user_id)
             .execute(&self.write_pool)
@@ -1087,7 +1075,6 @@ impl ScratchDb {
         workout_id: &str,
         events: &[(String, i64, i32, Vec<u8>)],
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
         for (event_id, recorded_at, event_type, payload) in events {
             sqlx::query(
@@ -1112,7 +1099,6 @@ impl ScratchDb {
         workout_id: &str,
         samples: &[WorkoutHeartRatePoint],
     ) -> DbResult<()> {
-
         let mut tx = self.write_pool.begin().await?;
         for sample in samples {
             sqlx::query(

@@ -5,12 +5,10 @@ use schlift::workout::v1::{
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
-    ProposeResult, StatePayload, WorkoutCompletionResult,
+    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
+    PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
-use crate::weight_units::{
-    add_unit_increment, min_weight_lb, round_to_unit_increment, weight_unit_from_state,
-};
+use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
@@ -30,6 +28,11 @@ const KEY_SQ_TM: &str = "squat_tm";
 const KEY_BP_TM: &str = "bench_press_tm";
 const KEY_DL_TM: &str = "deadlift_tm";
 const KEY_OHP_TM: &str = "overhead_press_tm";
+const TRAINING_MAX_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 1000.0,
+    step: 5.0,
+};
 
 const WENDLER_LIFTS: &[Exercise] = &[
     Exercise::Squat,
@@ -55,13 +58,6 @@ fn default_tm(ex: Exercise) -> f32 {
         Exercise::Deadlift => 275.0,
         Exercise::OverheadPress => 100.0,
         _ => 100.0,
-    }
-}
-
-fn tm_increment(ex: Exercise) -> (f32, f32) {
-    match ex {
-        Exercise::Squat | Exercise::Deadlift => (10.0, 5.0),
-        _ => (5.0, 2.5),
     }
 }
 
@@ -229,10 +225,6 @@ impl WorkoutRegime for Wendler531Regime {
         "Wendler 5/3/1"
     }
 
-    fn default_days_per_week(&self) -> i32 {
-        4
-    }
-
     fn catalog_meta(&self) -> ProgramCatalogMeta {
         ProgramCatalogMeta {
             headline: "For intermediates and beyond",
@@ -309,9 +301,7 @@ impl WorkoutRegime for Wendler531Regime {
                 "Training Max (lbs). Set to ~90% of your estimated 1RM.",
                 "Training Maxes",
                 20,
-                45.0,
-                1000.0,
-                5.0,
+                TRAINING_MAX_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_BP_TM,
@@ -319,9 +309,7 @@ impl WorkoutRegime for Wendler531Regime {
                 "Training Max (lbs). Set to ~90% of your estimated 1RM.",
                 "Training Maxes",
                 21,
-                45.0,
-                1000.0,
-                5.0,
+                TRAINING_MAX_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_DL_TM,
@@ -329,9 +317,7 @@ impl WorkoutRegime for Wendler531Regime {
                 "Training Max (lbs). Set to ~90% of your estimated 1RM.",
                 "Training Maxes",
                 22,
-                45.0,
-                1000.0,
-                5.0,
+                TRAINING_MAX_BOUNDS,
             )),
             with_onboarding(schema_float(
                 KEY_OHP_TM,
@@ -339,9 +325,7 @@ impl WorkoutRegime for Wendler531Regime {
                 "Training Max (lbs). Set to ~90% of your estimated 1RM.",
                 "Training Maxes",
                 23,
-                45.0,
-                1000.0,
-                5.0,
+                TRAINING_MAX_BOUNDS,
             )),
         ])
     }
@@ -368,7 +352,7 @@ impl WorkoutRegime for Wendler531Regime {
             ));
         }
         let week = get_int_or(state, KEY_WEEK, 1);
-        if week < 1 || week > 4 {
+        if !(1..=4).contains(&week) {
             warnings.push(format!("week {} is out of range (must be 1-4)", week));
         }
         let cycle = get_int_or(state, KEY_CYCLE, 1);
@@ -492,49 +476,6 @@ impl WorkoutRegime for Wendler531Regime {
         }
     }
 
-    fn transition_state_on_workout_complete(
-        &self,
-        state: &StatePayload,
-        _result: &WorkoutCompletionResult,
-        _ended_at: i64,
-    ) -> StatePayload {
-        let mut new_state = state.clone();
-
-        let variant = get_str_or(state, KEY_VARIANT, "four_day");
-        let sessions = sessions_per_variant(variant);
-        let cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
-        let week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
-        let session_in_week = get_int_or(state, KEY_SESSION, 0).max(0);
-
-        let next_session = session_in_week + 1;
-        if next_session >= sessions {
-            // End of week
-            set_int(&mut new_state, KEY_SESSION, 0);
-            let next_week = week + 1;
-            if next_week > 4 {
-                // End of cycle: advance cycle, bump TMs, reset week
-                set_int(&mut new_state, KEY_WEEK, 1);
-                set_int(&mut new_state, KEY_CYCLE, cycle + 1);
-                let unit = weight_unit_from_state(state);
-                for &ex in WENDLER_LIFTS {
-                    let current_tm = get_f32_or(state, tm_key(ex), default_tm(ex));
-                    let (lb_inc, kg_inc) = tm_increment(ex);
-                    set_f32(
-                        &mut new_state,
-                        tm_key(ex),
-                        add_unit_increment(current_tm, unit, lb_inc, kg_inc),
-                    );
-                }
-            } else {
-                set_int(&mut new_state, KEY_WEEK, next_week);
-            }
-        } else {
-            set_int(&mut new_state, KEY_SESSION, next_session);
-        }
-
-        new_state
-    }
-
     fn pending_updates_for_state(
         &self,
         _state: &StatePayload,
@@ -596,15 +537,6 @@ impl WorkoutRegime for Wendler531Regime {
                 Ok(new_state)
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
-        }
-    }
-
-    fn recovery_seconds_for_state(&self, state: &StatePayload) -> i64 {
-        let week = get_int_or(state, KEY_WEEK, 1);
-        match week {
-            4 => 24 * 3600,
-            3 => 72 * 3600,
-            _ => 48 * 3600,
         }
     }
 }

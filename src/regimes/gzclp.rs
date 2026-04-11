@@ -2,14 +2,13 @@ use schlift::workout::v1::{
     Exercise, ExerciseTypeConfig, ProgressionRule, ProposedExerciseGroup, RegimeContext,
     TrainingProgramStateSchema, WorkingSetSpec,
 };
-use std::collections::HashMap;
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, PendingUpdateDef, PendingUpdateFieldDef,
-    ProposeResult, StatePayload, WorkoutCompletionResult,
+    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
+    PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
-use crate::weight_units::{add_unit_increment, round_to_unit_increment, weight_unit_from_state};
+use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
@@ -55,6 +54,31 @@ fn t2_phase_text(stage: u8) -> &'static str {
 
 const KEY_SCHEDULE: &str = "schedule_variant";
 const KEY_SESSION_IDX: &str = "next_session_index";
+const T1_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 1000.0,
+    step: 10.0,
+};
+const T2_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 1000.0,
+    step: 5.0,
+};
+const T3_HEAVY_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 45.0,
+    max: 500.0,
+    step: 5.0,
+};
+const T3_LIGHT_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 10.0,
+    max: 500.0,
+    step: 5.0,
+};
+const LEG_CURL_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
+    min: 10.0,
+    max: 300.0,
+    step: 5.0,
+};
 
 fn t1_weight_key(ex: Exercise) -> &'static str {
     match ex {
@@ -139,34 +163,11 @@ fn stage_str_to_u8_t1(s: &str) -> u8 {
     }
 }
 
-fn stage_u8_to_str_t1(n: u8) -> &'static str {
-    match n {
-        2 => "stage_2_6x2",
-        3 => "stage_3_10x1",
-        _ => "stage_1_5x3",
-    }
-}
-
 fn stage_str_to_u8_t2(s: &str) -> u8 {
     match s {
         "stage_2_3x8" => 2,
         "stage_3_3x6" => 3,
         _ => 1,
-    }
-}
-
-fn stage_u8_to_str_t2(n: u8) -> &'static str {
-    match n {
-        2 => "stage_2_3x8",
-        3 => "stage_3_3x6",
-        _ => "stage_1_3x10",
-    }
-}
-
-fn gzclp_t1_increment(ex: Exercise) -> (f32, f32) {
-    match ex {
-        Exercise::Squat | Exercise::Deadlift => (10.0, 5.0),
-        _ => (5.0, 2.5),
     }
 }
 
@@ -251,10 +252,6 @@ impl WorkoutRegime for GzclpRegime {
         "GZCLP"
     }
 
-    fn default_days_per_week(&self) -> i32 {
-        4
-    }
-
     fn catalog_meta(&self) -> ProgramCatalogMeta {
         ProgramCatalogMeta {
             headline: "Tiered progression that survives stalls",
@@ -286,24 +283,24 @@ impl WorkoutRegime for GzclpRegime {
                 vec![("three_day", "3-Day (both T1 lifts each session)"), ("four_day", "4-Day (alternating T1 each session)")])),
             schema_int(KEY_SESSION_IDX, "Next Session Index", "0-based index of the next session in the rotation. Edit to correct if out of sync.", "Session", 2, 0, 9),
             // T1 weights (onboarding) + stages (internal)
-            with_onboarding(schema_float("squat_t1_weight", "Squat (T1)", "Starting weight for T1 Squat (lbs).", "T1 Weights", 10, 45.0, 1000.0, 10.0)),
+            with_onboarding(schema_float("squat_t1_weight", "Squat (T1)", "Starting weight for T1 Squat (lbs).", "T1 Weights", 10, T1_WEIGHT_BOUNDS)),
             schema_enum("squat_t1_stage", "Squat Stage", "T1 progression stage.", "T1 Stages", 11, T1_STAGE_OPTIONS.to_vec()),
-            with_onboarding(schema_float("deadlift_t1_weight", "Deadlift (T1)", "Starting weight for T1 Deadlift (lbs).", "T1 Weights", 12, 45.0, 1000.0, 10.0)),
+            with_onboarding(schema_float("deadlift_t1_weight", "Deadlift (T1)", "Starting weight for T1 Deadlift (lbs).", "T1 Weights", 12, T1_WEIGHT_BOUNDS)),
             schema_enum("deadlift_t1_stage", "Deadlift Stage", "T1 progression stage.", "T1 Stages", 13, T1_STAGE_OPTIONS.to_vec()),
             // T2 weights (onboarding) + stages (internal)
-            with_onboarding(schema_float("bench_press_t2_weight", "Bench Press (T2)", "Starting weight for T2 Bench (lbs).", "T2 Weights", 20, 45.0, 1000.0, 5.0)),
+            with_onboarding(schema_float("bench_press_t2_weight", "Bench Press (T2)", "Starting weight for T2 Bench (lbs).", "T2 Weights", 20, T2_WEIGHT_BOUNDS)),
             schema_enum("bench_press_t2_stage", "Bench Press Stage", "T2 progression stage.", "T2 Stages", 21, T2_STAGE_OPTIONS.to_vec()),
-            with_onboarding(schema_float("overhead_press_t2_weight", "Overhead Press (T2)", "Starting weight for T2 OHP (lbs).", "T2 Weights", 22, 45.0, 1000.0, 5.0)),
+            with_onboarding(schema_float("overhead_press_t2_weight", "Overhead Press (T2)", "Starting weight for T2 OHP (lbs).", "T2 Weights", 22, T2_WEIGHT_BOUNDS)),
             schema_enum("overhead_press_t2_stage", "OHP Stage", "T2 progression stage.", "T2 Stages", 23, T2_STAGE_OPTIONS.to_vec()),
-            with_onboarding(schema_float("barbell_row_t2_weight", "Barbell Row (T2)", "Starting weight for T2 Row (lbs).", "T2 Weights", 24, 45.0, 1000.0, 5.0)),
+            with_onboarding(schema_float("barbell_row_t2_weight", "Barbell Row (T2)", "Starting weight for T2 Row (lbs).", "T2 Weights", 24, T2_WEIGHT_BOUNDS)),
             schema_enum("barbell_row_t2_stage", "Barbell Row Stage", "T2 progression stage.", "T2 Stages", 25, T2_STAGE_OPTIONS.to_vec()),
             // T3 weights — not shown in onboarding (defaults are fine)
-            schema_float("hip_thrust_t3_weight", "Hip Thrust (T3)", "T3 weight — increments when AMRAP ≥ 25 reps.", "T3 Weights", 30, 45.0, 500.0, 5.0),
-            schema_float("bss_t3_weight", "BSS (T3)", "Bulgarian Split Squat weight.", "T3 Weights", 31, 10.0, 500.0, 5.0),
-            schema_float("rdl_t3_weight", "RDL (T3)", "Romanian Deadlift weight.", "T3 Weights", 32, 45.0, 500.0, 5.0),
-            schema_float("leg_curl_t3_weight", "Leg Curl (T3)", "Leg Curl weight.", "T3 Weights", 33, 10.0, 300.0, 5.0),
-            schema_float("glute_bridge_t3_weight", "Glute Bridge (T3)", "Glute Bridge weight.", "T3 Weights", 34, 45.0, 500.0, 5.0),
-            schema_float("lunge_t3_weight", "Lunge (T3)", "Lunge weight.", "T3 Weights", 35, 10.0, 300.0, 5.0),
+            schema_float("hip_thrust_t3_weight", "Hip Thrust (T3)", "T3 weight — increments when AMRAP ≥ 25 reps.", "T3 Weights", 30, T3_HEAVY_WEIGHT_BOUNDS),
+            schema_float("bss_t3_weight", "BSS (T3)", "Bulgarian Split Squat weight.", "T3 Weights", 31, T3_LIGHT_WEIGHT_BOUNDS),
+            schema_float("rdl_t3_weight", "RDL (T3)", "Romanian Deadlift weight.", "T3 Weights", 32, T3_HEAVY_WEIGHT_BOUNDS),
+            schema_float("leg_curl_t3_weight", "Leg Curl (T3)", "Leg Curl weight.", "T3 Weights", 33, LEG_CURL_WEIGHT_BOUNDS),
+            schema_float("glute_bridge_t3_weight", "Glute Bridge (T3)", "Glute Bridge weight.", "T3 Weights", 34, T3_HEAVY_WEIGHT_BOUNDS),
+            schema_float("lunge_t3_weight", "Lunge (T3)", "Lunge weight.", "T3 Weights", 35, LEG_CURL_WEIGHT_BOUNDS),
         ])
     }
 
@@ -592,151 +589,6 @@ impl WorkoutRegime for GzclpRegime {
         }
     }
 
-    fn transition_state_on_workout_complete(
-        &self,
-        state: &StatePayload,
-        result: &WorkoutCompletionResult,
-        _ended_at: i64,
-    ) -> StatePayload {
-        let mut new_state = state.clone();
-
-        // Collect per-slot signals from the final workout audit.
-        let mut slot_success: HashMap<String, bool> = HashMap::new();
-        let mut slot_last_amrap: HashMap<String, (i32, i32)> = HashMap::new();
-
-        for sr in &result.set_results {
-            let slot_key = if !sr.progression_slot_key.is_empty() {
-                sr.progression_slot_key.clone()
-            } else {
-                super::progression_slot_key(sr.exercise)
-            };
-            let counts = if sr.progression_slot_key.is_empty() {
-                true
-            } else {
-                sr.counts_toward_program
-            };
-            if !counts {
-                continue;
-            }
-            match sr.progression_rule {
-                schlift::workout::v1::ProgressionRule::TopSetAmrap => {
-                    slot_last_amrap.insert(
-                        slot_key,
-                        (
-                            sr.actual_reps,
-                            sr.amrap_success_threshold.max(sr.target_reps),
-                        ),
-                    );
-                }
-                _ => {
-                    let success = sr.actual_reps >= sr.target_reps;
-                    slot_success
-                        .entry(slot_key)
-                        .and_modify(|current| *current = *current && success)
-                        .or_insert(success);
-                }
-            }
-        }
-
-        let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
-
-        // Update T1 lifts
-        for ex in [Exercise::Squat, Exercise::Deadlift] {
-            let slot_key = super::progression_slot_key(ex);
-            let Some(&success) = slot_success.get(&slot_key) else {
-                continue;
-            };
-            let current_w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
-            let stage_str = get_str_or(state, t1_stage_key(ex), "stage_1_5x3");
-            let stage = stage_str_to_u8_t1(stage_str);
-            let (lb_inc, kg_inc) = gzclp_t1_increment(ex);
-            let unit = weight_unit_from_state(state);
-
-            if success {
-                // Success: increment weight, return to stage 1
-                set_f32(
-                    &mut new_state,
-                    t1_weight_key(ex),
-                    add_unit_increment(current_w, unit, lb_inc, kg_inc),
-                );
-                set_str(&mut new_state, t1_stage_key(ex), "stage_1_5x3");
-            } else {
-                // Failure: hold weight, advance stage (3→1 wraps)
-                let new_stage = if stage >= 3 { 1 } else { stage + 1 };
-                set_f32(&mut new_state, t1_weight_key(ex), current_w);
-                set_str(
-                    &mut new_state,
-                    t1_stage_key(ex),
-                    stage_u8_to_str_t1(new_stage),
-                );
-            }
-        }
-
-        // Update T2 lifts
-        for ex in [
-            Exercise::BenchPress,
-            Exercise::OverheadPress,
-            Exercise::BarbellRow,
-        ] {
-            let slot_key = super::progression_slot_key(ex);
-            let Some(&success) = slot_success.get(&slot_key) else {
-                continue;
-            };
-            let current_w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
-            let stage_str = get_str_or(state, t2_stage_key(ex), "stage_1_3x10");
-            let stage = stage_str_to_u8_t2(stage_str);
-            let unit = weight_unit_from_state(state);
-
-            if success {
-                set_f32(
-                    &mut new_state,
-                    t2_weight_key(ex),
-                    add_unit_increment(current_w, unit, 5.0, 2.5),
-                );
-                set_str(&mut new_state, t2_stage_key(ex), "stage_1_3x10");
-            } else {
-                let new_stage = if stage >= 3 { 1 } else { stage + 1 };
-                set_f32(&mut new_state, t2_weight_key(ex), current_w);
-                set_str(
-                    &mut new_state,
-                    t2_stage_key(ex),
-                    stage_u8_to_str_t2(new_stage),
-                );
-            }
-        }
-
-        // Update T3 lifts (increment if AMRAP last set >= 25 reps)
-        for ex in [
-            Exercise::HipThrust,
-            Exercise::BulgarianSplitSquat,
-            Exercise::RomanianDeadlift,
-            Exercise::LegCurl,
-            Exercise::GluteBridge,
-            Exercise::Lunge,
-        ] {
-            let slot_key = super::progression_slot_key(ex);
-            let Some(&(amrap_reps, threshold)) = slot_last_amrap.get(&slot_key) else {
-                continue;
-            };
-            let current_w = get_f32_or(state, t3_weight_key(ex), 45.0);
-            if amrap_reps >= threshold {
-                set_f32(
-                    &mut new_state,
-                    t3_weight_key(ex),
-                    add_unit_increment(current_w, weight_unit_from_state(state), 5.0, 2.5),
-                );
-            }
-            // else hold weight
-        }
-
-        // Advance session index
-        let count = session_count(variant);
-        let idx = get_int_or(state, KEY_SESSION_IDX, 0);
-        set_int(&mut new_state, KEY_SESSION_IDX, (idx + 1) % count);
-
-        new_state
-    }
-
     fn pending_updates_for_state(
         &self,
         _state: &StatePayload,
@@ -813,9 +665,5 @@ impl WorkoutRegime for GzclpRegime {
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
         }
-    }
-
-    fn recovery_seconds_for_state(&self, _state: &StatePayload) -> i64 {
-        48 * 3600
     }
 }

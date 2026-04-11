@@ -5,9 +5,8 @@
 use std::collections::HashMap;
 
 use schlift::workout::v1::{
-    state_field_value, PendingStateUpdate, PendingStateUpdateField, ProgressionRule,
-    StateEnumOption, StateFieldKind, StateFieldValue, TrainingProgramStateEvent,
-    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
+    state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
+    StateFieldKind, StateFieldValue, TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
 };
 use serde::{Deserialize, Serialize};
 
@@ -95,16 +94,6 @@ pub fn set_str(s: &mut StatePayload, key: impl Into<String>, val: impl Into<Stri
     s.insert(key.into(), FieldVal::Str(val.into()));
 }
 
-// ─── JSON serialisation ───────────────────────────────────────────────────────
-
-pub fn parse_state_payload(json: &str) -> StatePayload {
-    serde_json::from_str(json).unwrap_or_default()
-}
-
-pub fn serialize_state_payload(s: &StatePayload) -> String {
-    serde_json::to_string(s).unwrap_or_else(|_| "{}".to_string())
-}
-
 // ─── Proto conversion ─────────────────────────────────────────────────────────
 
 /// Convert our `StatePayload` → proto `map<string, StateFieldValue>`.
@@ -153,29 +142,6 @@ pub struct ProposeResult {
     pub proposed_groups: Vec<schlift::workout::v1::ProposedExerciseGroup>,
     pub regime_context: schlift::workout::v1::RegimeContext,
     pub suggested_workout_name: String,
-}
-
-/// One working set's completion result (warmups excluded).
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct WorkingSetResult {
-    pub exercise: schlift::workout::v1::Exercise,
-    pub target_reps: i32,
-    pub actual_reps: i32,
-    pub target_weight: f32,
-    pub actual_weight: f32,
-    pub is_amrap: bool,
-    pub progression_slot_key: String,
-    pub progression_tier: String,
-    pub progression_rule: ProgressionRule,
-    pub amrap_success_threshold: i32,
-    pub counts_toward_program: bool,
-}
-
-/// All completion data passed to `transition_state_on_workout_complete`.
-#[derive(Debug, Clone)]
-pub struct WorkoutCompletionResult {
-    pub set_results: Vec<WorkingSetResult>,
 }
 
 /// Definition of a pending state update (returned before converting to proto).
@@ -257,6 +223,13 @@ pub struct FieldSchemaBuilder {
     pub enum_options: Vec<(&'static str, &'static str)>,
 }
 
+#[derive(Clone, Copy)]
+pub struct FloatFieldBounds {
+    pub min: f64,
+    pub max: f64,
+    pub step: f64,
+}
+
 impl FieldSchemaBuilder {
     pub fn build(self) -> TrainingProgramStateFieldSchema {
         TrainingProgramStateFieldSchema {
@@ -295,9 +268,7 @@ pub fn schema_float(
     help_text: &'static str,
     section: &'static str,
     order: i32,
-    min: f64,
-    max: f64,
-    step: f64,
+    bounds: FloatFieldBounds,
 ) -> TrainingProgramStateFieldSchema {
     FieldSchemaBuilder {
         key,
@@ -307,9 +278,9 @@ pub fn schema_float(
         order,
         kind: StateFieldKind::Float,
         required: true,
-        min_value: min,
-        max_value: max,
-        step,
+        min_value: bounds.min,
+        max_value: bounds.max,
+        step: bounds.step,
         enum_options: vec![],
     }
     .build()
@@ -366,40 +337,4 @@ pub fn schema_enum(
 
 pub fn build_schema(fields: Vec<TrainingProgramStateFieldSchema>) -> TrainingProgramStateSchema {
     TrainingProgramStateSchema { fields }
-}
-
-// ─── DB record types ──────────────────────────────────────────────────────────
-
-#[derive(Debug, Clone)]
-pub struct ProgramStateRecord {
-    pub regime_type: i32,
-    pub state_payload_json: String,
-    pub updated_at: i64,
-}
-
-#[derive(Debug, Clone)]
-pub struct ProgramStateEventRecord {
-    pub event_id: String,
-    pub user_id: String,
-    pub regime_type: i32,
-    pub effective_at: i64,
-    pub recorded_at: i64,
-    pub source: String,
-    pub state_payload_json: String,
-    pub source_workout_id: Option<String>,
-}
-
-impl ProgramStateEventRecord {
-    pub fn to_proto(&self) -> TrainingProgramStateEvent {
-        let payload = parse_state_payload(&self.state_payload_json);
-        TrainingProgramStateEvent {
-            event_id: self.event_id.clone(),
-            regime_type: self.regime_type,
-            effective_at: self.effective_at,
-            recorded_at: self.recorded_at,
-            source: self.source.clone(),
-            fields: payload_to_proto(&payload),
-            source_workout_id: self.source_workout_id.clone().unwrap_or_default(),
-        }
-    }
 }

@@ -5,11 +5,11 @@ use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
     settings_service_client::SettingsServiceClient, workout_mutation,
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
-    AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise,
-    ExerciseGroup, ExerciseTypeConfig, GetActiveTrainingProgramStateRequest,
-    GetActiveWorkoutRequest, GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest,
-    GetSettingsRequest, GetTrainingProgramCatalogRequest, JoinUserRequest, StartWorkoutRequest,
-    TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint, WorkoutMutation,
+    AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
+    ExerciseTypeConfig, GetActiveTrainingProgramStateRequest, GetActiveWorkoutRequest,
+    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, GetSettingsRequest,
+    GetTrainingProgramCatalogRequest, JoinUserRequest, StartWorkoutRequest, TestLoginRequest,
+    UpdateActiveWorkoutRequest, WorkoutHeartRatePoint, WorkoutMutation,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -20,7 +20,7 @@ use tonic::{Request, Status};
 use uuid::Uuid;
 
 #[derive(Parser, Debug)]
-#[command(about = "Focused workout-session benchmark against the scratch-safe gRPC surface")]
+#[command(about = "Focused workout-session benchmark against the server gRPC surface")]
 struct Args {
     #[arg(short, long, default_value = "http://127.0.0.1:50051")]
     addr: String,
@@ -188,16 +188,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let is_leader = idx % group_size == 0;
         handles.push(tokio::spawn(async move {
             stats.active_users.fetch_add(1, Ordering::Relaxed);
-            let res = run_user(
+            let res = run_user(UserConfig {
                 username,
                 addr,
-                stats.clone(),
+                stats: stats.clone(),
                 registry,
                 group_idx,
                 is_leader,
                 sets_per_user,
                 poll_interval_ms,
-            )
+            })
             .await;
             if let Err(err) = res {
                 eprintln!("user failed: {err}");
@@ -212,9 +212,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn connect_channel(
-    addr: &str,
-) -> Result<Channel, Box<dyn std::error::Error + Send + Sync>> {
+async fn connect_channel(addr: &str) -> Result<Channel, Box<dyn std::error::Error + Send + Sync>> {
     Ok(Endpoint::from_shared(addr.to_string())?.connect().await?)
 }
 
@@ -242,7 +240,7 @@ where
     res.map(|r| r.into_inner())
 }
 
-async fn run_user(
+struct UserConfig {
     username: String,
     addr: String,
     stats: Arc<GlobalStats>,
@@ -251,7 +249,18 @@ async fn run_user(
     is_leader: bool,
     sets_per_user: usize,
     poll_interval_ms: u64,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+}
+
+async fn run_user(config: UserConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let username = config.username;
+    let addr = config.addr;
+    let stats = config.stats;
+    let registry = config.registry;
+    let group_idx = config.group_idx;
+    let is_leader = config.is_leader;
+    let sets_per_user = config.sets_per_user;
+    let poll_interval_ms = config.poll_interval_ms;
+
     let channel = connect_channel(&addr).await?;
     let mut auth = AuthServiceClient::new(channel.clone());
     let mut workout = WorkoutServiceClient::new(channel.clone());
@@ -426,13 +435,15 @@ async fn run_user(
         let complete_set = WorkoutMutation {
             event_id: Uuid::new_v4().to_string(),
             client_created_at: now_unix(),
-            mutation: Some(workout_mutation::Mutation::CompleteSet(CompleteSetRequest {
-                workout_id: workout_id.clone(),
-                proposed_set_id: set.id.clone(),
-                actual_reps: set.target_reps,
-                actual_weight: set.target_weight,
-                completed_at: now_unix(),
-            })),
+            mutation: Some(workout_mutation::Mutation::CompleteSet(
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: set.target_reps,
+                    actual_weight: set.target_weight,
+                    completed_at: now_unix(),
+                },
+            )),
         };
         let _ = timed_call(
             &mut workout,
