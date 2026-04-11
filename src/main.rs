@@ -5,16 +5,18 @@ use schlift::workout::v1::{
 };
 use std::net::SocketAddr;
 
+mod db;
 mod program_state;
 mod progress;
 mod regimes;
 mod server;
 mod state;
+mod time;
 mod weight_units;
 mod workout;
 
-use server::db::ServerDb;
-use server::services::{
+use db::ServerDb;
+use server::{
     ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
     ServerWorkoutService,
 };

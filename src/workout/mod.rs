@@ -23,6 +23,37 @@ pub(crate) use reducer::{
     workout_state_snapshot_from_state,
 };
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum WorkoutError {
+    FailedPrecondition(&'static str),
+    Internal(&'static str),
+    NotFound(&'static str),
+}
+
+impl WorkoutError {
+    pub(crate) fn failed_precondition(message: &'static str) -> Self {
+        Self::FailedPrecondition(message)
+    }
+
+    pub(crate) fn internal(message: &'static str) -> Self {
+        Self::Internal(message)
+    }
+
+    pub(crate) fn not_found(message: &'static str) -> Self {
+        Self::NotFound(message)
+    }
+}
+
+impl From<WorkoutError> for Status {
+    fn from(value: WorkoutError) -> Self {
+        match value {
+            WorkoutError::FailedPrecondition(message) => Status::failed_precondition(message),
+            WorkoutError::Internal(message) => Status::internal(message),
+            WorkoutError::NotFound(message) => Status::not_found(message),
+        }
+    }
+}
+
 // Helper to get current Unix timestamp
 pub fn now_unix() -> i64 {
     SystemTime::now()

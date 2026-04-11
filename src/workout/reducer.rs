@@ -1,6 +1,5 @@
 use super::*;
 use crate::progress::compute_next_up_set;
-use tonic::Status;
 use uuid::Uuid;
 
 pub(crate) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
@@ -162,10 +161,10 @@ pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> Star
 
 pub(crate) fn active_from_get_workout_response(
     resp: GetWorkoutResponse,
-) -> Result<ActiveWorkout, Box<Status>> {
+) -> Result<ActiveWorkout, WorkoutError> {
     let workout = resp
         .workout
-        .ok_or_else(|| Box::new(Status::internal("Checkpoint missing workout")))?;
+        .ok_or_else(|| WorkoutError::internal("Checkpoint missing workout"))?;
     Ok(ActiveWorkout::new(
         workout,
         resp.exercise_groups,
@@ -177,18 +176,18 @@ pub(crate) fn active_from_get_workout_response(
 pub(crate) fn apply_start_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &StartSetRequest,
-) -> Result<(), Box<Status>> {
+) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
     let proposed = workout_ref
         .proposed_sets
         .iter()
         .find(|p| p.id == req.proposed_set_id && !p.cancelled);
     if proposed.is_none() {
-        return Err(Box::new(Status::failed_precondition(
+        return Err(WorkoutError::failed_precondition(
             "Proposed set not available",
-        )));
+        ));
     }
     if workout_ref
         .completed_sets
@@ -220,16 +219,16 @@ pub(crate) fn apply_start_set_to_active(
 pub(crate) fn apply_complete_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &CompleteSetRequest,
-) -> Result<(), Box<Status>> {
+) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
     let proposed = workout_ref
         .proposed_sets
         .iter()
         .find(|p| p.id == req.proposed_set_id && !p.cancelled)
         .cloned()
-        .ok_or_else(|| Box::new(Status::failed_precondition("Proposed set not available")))?;
+        .ok_or_else(|| WorkoutError::failed_precondition("Proposed set not available"))?;
     let ended_at = if req.completed_at > 0 {
         req.completed_at
     } else {
@@ -277,9 +276,9 @@ pub(crate) fn apply_complete_set_to_active(
 pub(crate) fn apply_delete_completed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &DeleteCompletedSetRequest,
-) -> Result<(), Box<Status>> {
+) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
     workout_ref
         .completed_sets
@@ -290,9 +289,9 @@ pub(crate) fn apply_delete_completed_set_to_active(
 pub(crate) fn apply_cancel_proposed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &CancelProposedSetRequest,
-) -> Result<(), Box<Status>> {
+) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
     let proposed_idx = workout_ref
         .proposed_sets
@@ -300,20 +299,20 @@ pub(crate) fn apply_cancel_proposed_set_to_active(
         .position(|set| {
             set.workout_id == req.workout_id && set.id == req.proposed_set_id && !set.cancelled
         })
-        .ok_or_else(|| Box::new(Status::not_found("Proposed set not found")))?;
+        .ok_or_else(|| WorkoutError::not_found("Proposed set not found"))?;
     if !workout_ref.proposed_sets[proposed_idx].warmup {
-        return Err(Box::new(Status::failed_precondition(
+        return Err(WorkoutError::failed_precondition(
             "Only warmup sets can be cancelled with this endpoint",
-        )));
+        ));
     }
     let has_completed = workout_ref
         .completed_sets
         .iter()
         .any(|set| set.proposed_set_id == req.proposed_set_id);
     if has_completed {
-        return Err(Box::new(Status::failed_precondition(
+        return Err(WorkoutError::failed_precondition(
             "Cannot cancel a proposed set that has completed-set records",
-        )));
+        ));
     }
     workout_ref.proposed_sets[proposed_idx].cancelled = true;
     Ok(())

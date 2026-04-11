@@ -1,639 +1,4 @@
-use crate::program_state::{payload_from_proto, payload_to_proto, pending_update_to_proto};
-use crate::progress::compute_next_up_set;
-use crate::regimes::{catalog_regime_types, get_regime};
-use crate::server::db::ServerDb;
-use crate::state::ActiveWorkout;
-use crate::workout::{
-    active_from_get_workout_response, active_proposed_sets, apply_cancel_proposed_set_to_active,
-    apply_complete_set_to_active, apply_delete_completed_set_to_active,
-    apply_reorder_exercise_groups, apply_replace_exercise_group_plan, apply_start_set_to_active,
-    generate_sets_for_group, get_workout_response_from_active,
-    is_final_set_in_exercise_group_after_completion, start_workout_response_from_active,
-    workout_state_snapshot_from_state, END_OF_EXERCISE_GROUP_REST_SECONDS,
-};
-use prost::Message;
-use schlift::workout::v1::auth_service_server::AuthService;
-use schlift::workout::v1::multiplayer_service_server::MultiplayerService;
-use schlift::workout::v1::settings_service_server::SettingsService;
-use schlift::workout::v1::user_service_server::UserService;
-use schlift::workout::v1::workout_mutation::Mutation;
-use schlift::workout::v1::workout_service_server::WorkoutService;
-use schlift::workout::v1::*;
-use std::pin::Pin;
-use tonic::{Request, Response, Status};
-use uuid::Uuid;
-
-fn now_unix() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0)
-}
-
-async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> Result<String, Status> {
-    let token = request
-        .metadata()
-        .get("x-session-token")
-        .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
-    db.validate_auth_session(token)
-        .await
-        .map_err(|e| Status::internal(e.to_string()))?
-        .ok_or_else(|| Status::unauthenticated("Invalid session token"))
-}
-
-fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
-    match &setting.setting {
-        Some(user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
-        Some(user_setting::Setting::WeightUnit(_)) => Some("weight_unit"),
-        None => None,
-    }
-}
-
-fn build_participant_status(
-    user: User,
-    workout_resp: Option<&GetWorkoutResponse>,
-) -> ParticipantStatus {
-    if let Some(resp) = workout_resp {
-        let rest_until = resp
-            .state_snapshot
-            .as_ref()
-            .map(|s| s.rest_until)
-            .unwrap_or(0);
-        let has_active_set = resp.completed_sets.iter().any(|set| set.ended_at == 0);
-        ParticipantStatus {
-            user: Some(user),
-            active_workout_id: resp
-                .workout
-                .as_ref()
-                .map(|w| w.id.clone())
-                .unwrap_or_default(),
-            active_workout: resp.workout.clone(),
-            exercise_groups: resp.exercise_groups.clone(),
-            proposed_sets: resp.proposed_sets.clone(),
-            completed_sets: resp.completed_sets.clone(),
-            next_up_set: resp.next_up_set.clone(),
-            rest_until,
-            has_active_set,
-        }
-    } else {
-        ParticipantStatus {
-            user: Some(user),
-            active_workout_id: String::new(),
-            active_workout: None,
-            exercise_groups: Vec::new(),
-            proposed_sets: Vec::new(),
-            completed_sets: Vec::new(),
-            next_up_set: None,
-            rest_until: 0,
-            has_active_set: false,
-        }
-    }
-}
-
-/// Refresh participant status from real tables and update the denormalized cache.
-async fn refresh_participant_for_user(
-    db: &ServerDb,
-    user_id: &str,
-    session_id: &str,
-) -> Result<(), Status> {
-    let user = db
-        .get_user(user_id)
-        .await
-        .map_err(|e| Status::internal(e.to_string()))?
-        .ok_or_else(|| Status::not_found("User not found"))?;
-    // Load workout from real tables
-    let active = if let Some((workout_id, _)) = db
-        .get_active_workout_id(user_id)
-        .await
-        .map_err(|e| Status::internal(e.to_string()))?
-    {
-        db.load_workout_full(user_id, &workout_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-    } else {
-        None
-    };
-    let participant = build_participant_status(user, active.as_ref());
-    db.upsert_session_participant(session_id, user_id, &participant)
-        .await
-        .map_err(|e| Status::internal(e.to_string()))
-}
-
-// ── Auth Service ──
-
-#[derive(Clone)]
-pub struct ServerAuthService {
-    pub db: ServerDb,
-}
-
-#[tonic::async_trait]
-impl AuthService for ServerAuthService {
-    async fn test_login(
-        &self,
-        request: Request<TestLoginRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        let req = request.into_inner();
-        let username = req.username.trim();
-        if username.is_empty() {
-            return Err(Status::invalid_argument("username is required"));
-        }
-        let (user, token) = self
-            .db
-            .get_or_create_user_with_auth_session(username)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(AuthResponse {
-            session_token: token,
-            user_id: user.id,
-            username: user.name,
-        }))
-    }
-
-    async fn logout(
-        &self,
-        request: Request<LogoutRequest>,
-    ) -> Result<Response<LogoutResponse>, Status> {
-        let token = request
-            .metadata()
-            .get("x-session-token")
-            .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
-        self.db
-            .delete_auth_session(token)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(LogoutResponse {}))
-    }
-
-    async fn register_start(
-        &self,
-        _r: Request<RegisterStartRequest>,
-    ) -> Result<Response<RegisterStartResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn register_finish(
-        &self,
-        _r: Request<RegisterFinishRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn login_start(
-        &self,
-        _r: Request<LoginStartRequest>,
-    ) -> Result<Response<LoginStartResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn login_finish(
-        &self,
-        _r: Request<LoginFinishRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn add_passkey_start(
-        &self,
-        _r: Request<AddPasskeyStartRequest>,
-    ) -> Result<Response<AddPasskeyStartResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn add_passkey_finish(
-        &self,
-        _r: Request<AddPasskeyFinishRequest>,
-    ) -> Result<Response<AddPasskeyFinishResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn delete_passkey(
-        &self,
-        _r: Request<DeletePasskeyRequest>,
-    ) -> Result<Response<DeletePasskeyResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn list_passkeys(
-        &self,
-        _r: Request<ListPasskeysRequest>,
-    ) -> Result<Response<ListPasskeysResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-    async fn delete_account(
-        &self,
-        _r: Request<DeleteAccountRequest>,
-    ) -> Result<Response<DeleteAccountResponse>, Status> {
-        Err(Status::unimplemented(
-            "server auth only supports TestLogin/Logout",
-        ))
-    }
-}
-
-// ── User Service ──
-
-#[derive(Clone)]
-pub struct ServerUserService {
-    pub db: ServerDb,
-}
-
-#[tonic::async_trait]
-impl UserService for ServerUserService {
-    async fn create_user(
-        &self,
-        request: Request<CreateUserRequest>,
-    ) -> Result<Response<CreateUserResponse>, Status> {
-        let req = request.into_inner();
-        let name = req.name.trim();
-        if name.is_empty() {
-            return Err(Status::invalid_argument("name is required"));
-        }
-        let (user, _) = self
-            .db
-            .get_or_create_user_with_auth_session(name)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(CreateUserResponse { user: Some(user) }))
-    }
-
-    async fn get_user(
-        &self,
-        request: Request<GetUserRequest>,
-    ) -> Result<Response<GetUserResponse>, Status> {
-        let req = request.into_inner();
-        let user = self
-            .db
-            .get_user(&req.user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("User not found"))?;
-        Ok(Response::new(GetUserResponse { user: Some(user) }))
-    }
-}
-
-// ── Settings Service ──
-
-#[derive(Clone)]
-pub struct ServerSettingsService {
-    pub db: ServerDb,
-}
-
-#[tonic::async_trait]
-impl SettingsService for ServerSettingsService {
-    async fn update_setting(
-        &self,
-        request: Request<UpdateSettingRequest>,
-    ) -> Result<Response<UpdateSettingResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let setting = req
-            .setting
-            .ok_or_else(|| Status::invalid_argument("setting is required"))?;
-        let type_key = setting_type_key(&setting)
-            .ok_or_else(|| Status::invalid_argument("unknown setting type"))?;
-        self.db
-            .put_setting(&user_id, type_key, &setting)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(UpdateSettingResponse {}))
-    }
-
-    async fn get_settings(
-        &self,
-        request: Request<GetSettingsRequest>,
-    ) -> Result<Response<GetSettingsResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let settings = self
-            .db
-            .get_settings(&user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(GetSettingsResponse { settings }))
-    }
-
-    async fn get_training_program_catalog(
-        &self,
-        _request: Request<GetTrainingProgramCatalogRequest>,
-    ) -> Result<Response<GetTrainingProgramCatalogResponse>, Status> {
-        let mut programs = catalog_regime_types()
-            .into_iter()
-            .map(|rt| get_regime(rt).training_program_definition(rt))
-            .collect::<Vec<_>>();
-        programs.sort_by_key(|p| (p.sort_order, p.regime_type));
-        Ok(Response::new(GetTrainingProgramCatalogResponse {
-            programs,
-        }))
-    }
-
-    async fn get_active_training_program_state(
-        &self,
-        request: Request<GetActiveTrainingProgramStateRequest>,
-    ) -> Result<Response<GetActiveTrainingProgramStateResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        if let Some(state) = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-        {
-            return Ok(Response::new(state));
-        }
-        let regime_type = RegimeType::Linear5x5;
-        let regime = get_regime(regime_type);
-        let response = GetActiveTrainingProgramStateResponse {
-            state: Some(TrainingProgramState {
-                regime_type: regime_type as i32,
-                fields: payload_to_proto(&regime.default_state()),
-                updated_at: 0,
-                source: "default".to_string(),
-            }),
-            schema: Some(regime.state_schema()),
-        };
-        self.db
-            .put_program_state(&user_id, &response)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(response))
-    }
-
-    async fn set_active_training_program_state(
-        &self,
-        request: Request<SetActiveTrainingProgramStateRequest>,
-    ) -> Result<Response<SetActiveTrainingProgramStateResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let regime_type = RegimeType::try_from(req.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let payload = payload_from_proto(&req.fields);
-        let state = TrainingProgramState {
-            regime_type: regime_type as i32,
-            fields: payload_to_proto(&payload),
-            updated_at: now_unix(),
-            source: if req.source.is_empty() {
-                "manual_edit".to_string()
-            } else {
-                req.source
-            },
-        };
-        let response = GetActiveTrainingProgramStateResponse {
-            state: Some(state.clone()),
-            schema: Some(regime.state_schema()),
-        };
-        self.db
-            .put_program_state(&user_id, &response)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(SetActiveTrainingProgramStateResponse {
-            state: Some(state),
-            validation_warnings: regime.validate_state(&payload),
-        }))
-    }
-
-    async fn get_training_program_state_history(
-        &self,
-        _request: Request<GetTrainingProgramStateHistoryRequest>,
-    ) -> Result<Response<GetTrainingProgramStateHistoryResponse>, Status> {
-        Err(Status::unimplemented(
-            "server settings does not store state history yet",
-        ))
-    }
-
-    async fn apply_pending_state_update(
-        &self,
-        request: Request<ApplyPendingStateUpdateRequest>,
-    ) -> Result<Response<ApplyPendingStateUpdateResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let current = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::failed_precondition("No active training program state"))?;
-        let current_state = current
-            .state
-            .ok_or_else(|| Status::internal("missing state"))?;
-        let regime_type =
-            RegimeType::try_from(current_state.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let current_payload = payload_from_proto(&current_state.fields);
-        let updates = payload_from_proto(&req.field_values);
-        let next_payload = regime
-            .apply_pending_update_to_state(&current_payload, &req.update_id, &updates)
-            .map_err(Status::invalid_argument)?;
-        let state = TrainingProgramState {
-            regime_type: regime_type as i32,
-            fields: payload_to_proto(&next_payload),
-            updated_at: now_unix(),
-            source: format!("pending_update:{}", req.update_id),
-        };
-        let response = GetActiveTrainingProgramStateResponse {
-            state: Some(state.clone()),
-            schema: Some(regime.state_schema()),
-        };
-        self.db
-            .put_program_state(&user_id, &response)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        Ok(Response::new(ApplyPendingStateUpdateResponse {
-            state: Some(state),
-        }))
-    }
-}
-
-// ── Multiplayer Service ──
-
-#[derive(Clone)]
-pub struct ServerMultiplayerService {
-    pub db: ServerDb,
-}
-
-#[tonic::async_trait]
-impl MultiplayerService for ServerMultiplayerService {
-    type SubscribeSessionStream =
-        Pin<Box<dyn futures_util::Stream<Item = Result<SessionSubscriptionEvent, Status>> + Send>>;
-
-    async fn join_user(
-        &self,
-        request: Request<JoinUserRequest>,
-    ) -> Result<Response<JoinUserResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let target_id = req.user_id;
-        if target_id.is_empty() || target_id == caller_id {
-            return Err(Status::invalid_argument("target user_id is required"));
-        }
-        let _target = self
-            .db
-            .get_user(&target_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("Target user not found"))?;
-
-        let session_id = self
-            .db
-            .get_current_session_id_for_user(&target_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .unwrap_or_else(|| Uuid::new_v4().to_string());
-
-        self.db
-            .join_session(&target_id, &session_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        self.db
-            .join_session(&caller_id, &session_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-
-        // Update session_id on both users' active workouts
-        for user_id in [&caller_id, &target_id] {
-            if let Some((workout_id, _)) = self
-                .db
-                .get_active_workout_id(user_id)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?
-            {
-                self.db
-                    .update_workout_session_id(user_id, &workout_id, &session_id)
-                    .await
-                    .map_err(|e| Status::internal(e.to_string()))?;
-            }
-            refresh_participant_for_user(&self.db, user_id, &session_id).await?;
-        }
-
-        Ok(Response::new(JoinUserResponse { session_id }))
-    }
-
-    async fn leave_session(
-        &self,
-        request: Request<LeaveSessionRequest>,
-    ) -> Result<Response<LeaveSessionResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        if let Some(session_id) = self
-            .db
-            .get_current_session_id_for_user(&user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-        {
-            self.db
-                .leave_session(&user_id, &session_id)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?;
-            self.db
-                .remove_session_participant(&session_id, &user_id)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?;
-        }
-        Ok(Response::new(LeaveSessionResponse {}))
-    }
-
-    async fn get_participant_workout(
-        &self,
-        request: Request<GetParticipantWorkoutRequest>,
-    ) -> Result<Response<ParticipantStatus>, Status> {
-        let _caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let user = self
-            .db
-            .get_user(&req.user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-            .ok_or_else(|| Status::not_found("User not found"))?;
-        let active = if let Some((workout_id, _)) = self
-            .db
-            .get_active_workout_id(&req.user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-        {
-            self.db
-                .load_workout_full(&req.user_id, &workout_id)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?
-        } else {
-            None
-        };
-        Ok(Response::new(build_participant_status(
-            user,
-            active.as_ref(),
-        )))
-    }
-
-    async fn get_current_session(
-        &self,
-        request: Request<GetCurrentSessionRequest>,
-    ) -> Result<Response<GetCurrentSessionResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let session_id = if req.session_id.is_empty() {
-            self.db
-                .get_current_session_id_for_user(&caller_id)
-                .await
-                .map_err(|e| Status::internal(e.to_string()))?
-                .unwrap_or_default()
-        } else {
-            req.session_id
-        };
-        if session_id.is_empty() {
-            return Ok(Response::new(GetCurrentSessionResponse {
-                session_id,
-                session_status: None,
-            }));
-        }
-        let mut participants = self
-            .db
-            .get_session_participants(&session_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(caller_id.as_str()));
-        Ok(Response::new(GetCurrentSessionResponse {
-            session_id: session_id.clone(),
-            session_status: Some(SessionStatus {
-                session_id,
-                participants,
-                next_up_user_id: String::new(),
-                next_up_set: None,
-                next_up_rest_until: 0,
-                currently_lifting_user_id: String::new(),
-            }),
-        }))
-    }
-
-    async fn subscribe_session(
-        &self,
-        _request: Request<SubscribeSessionRequest>,
-    ) -> Result<Response<Self::SubscribeSessionStream>, Status> {
-        Err(Status::unimplemented(
-            "server multiplayer uses polling, not streaming",
-        ))
-    }
-
-    async fn update_active_workout(
-        &self,
-        request: Request<UpdateActiveWorkoutRequest>,
-    ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        if let Some(session_id) = self
-            .db
-            .get_current_session_id_for_user(&user_id)
-            .await
-            .map_err(|e| Status::internal(e.to_string()))?
-        {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
-        }
-        Ok(Response::new(UpdateActiveWorkoutResponse {}))
-    }
-}
+use super::*;
 
 // ── Workout Service ──
 
@@ -652,7 +17,7 @@ impl ServerWorkoutService {
             .db
             .get_program_state(user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
         {
             resp
         } else {
@@ -685,7 +50,7 @@ impl ServerWorkoutService {
             .db
             .get_active_workout_id(user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .map(|(id, _)| id)
             .unwrap_or_default();
 
@@ -709,12 +74,12 @@ impl ServerWorkoutService {
                 .db
                 .get_workout_draft(user_id)
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?,
+                .map_err(internal_error)?,
         };
         self.db
             .put_schedule_cache(user_id, &response)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(response)
     }
 
@@ -736,12 +101,12 @@ impl ServerWorkoutService {
             .db
             .get_proposed_sets(workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         let completed_sets = self
             .db
             .get_completed_sets(workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         let active_proposed = active_proposed_sets(&proposed_sets);
         let next_up = compute_next_up_set(&active_proposed, &completed_sets);
         let snapshot = Some(workout_state_snapshot_from_state(
@@ -758,7 +123,7 @@ impl ServerWorkoutService {
             .db
             .get_active_workout_id(user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .map(|(_, sid)| sid)
             .unwrap_or_default())
     }
@@ -776,7 +141,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_current_session_id_for_user(&user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .unwrap_or_default();
         let workout_id = Uuid::new_v4().to_string();
         let started_at = if req.started_at > 0 {
@@ -815,7 +180,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .insert_workout(&user_id, &workout, &groups, &proposed_sets)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let active = ActiveWorkout::new(workout, groups, proposed_sets, Vec::new());
         let response = start_workout_response_from_active(&active);
@@ -844,13 +209,13 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .end_workout(&user_id, &req.workout_id, ended_at)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let workout = self
             .db
             .get_workout(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
 
         if !session_id.is_empty() {
@@ -871,7 +236,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .load_workout_full(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
         Ok(Response::new(workout))
     }
@@ -885,12 +250,12 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_active_workout_id(&user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
         {
             self.db
                 .get_workout(&user_id, &workout_id)
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?
+                .map_err(internal_error)?
         } else {
             None
         };
@@ -906,7 +271,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .list_workouts(&user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(Response::new(ListWorkoutsResponse { workouts }))
     }
 
@@ -929,7 +294,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_proposed_set(&req.proposed_set_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::failed_precondition("Proposed set not found"))?;
         if proposed.cancelled {
             return Err(Status::failed_precondition("Proposed set is cancelled"));
@@ -940,7 +305,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .is_some()
         {
             // Already started - load and return current state
@@ -951,7 +316,7 @@ impl WorkoutService for ServerWorkoutService {
                 .db
                 .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
             return Ok(Response::new(StartSetResponse {
                 completed_set: existing,
                 next_up_set: next_up,
@@ -978,7 +343,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .insert_completed_set(&user_id, &completed_set)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let (_, _, next_up, snapshot) = self
             .load_sets_and_compute(&user_id, &req.workout_id)
@@ -1007,7 +372,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_proposed_set(&req.proposed_set_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::failed_precondition("Proposed set not found"))?;
 
         let ended_at = if req.completed_at > 0 {
@@ -1021,12 +386,12 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_proposed_sets(&req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         let completed_sets = self
             .db
             .get_completed_sets(&req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let is_final = is_final_set_in_exercise_group_after_completion(
             &req.proposed_set_id,
@@ -1048,7 +413,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
         {
             self.db
                 .update_completed_set(
@@ -1059,7 +424,7 @@ impl WorkoutService for ServerWorkoutService {
                     rest_until,
                 )
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
 
             let completed_set = CompletedSet {
                 id: existing.id,
@@ -1101,7 +466,7 @@ impl WorkoutService for ServerWorkoutService {
             self.db
                 .insert_completed_set(&user_id, &completed_set)
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
 
             let (_, _, next_up, snapshot) = self
                 .load_sets_and_compute(&user_id, &req.workout_id)
@@ -1130,7 +495,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .delete_completed_set(&req.completed_set_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let (_, _, next_up, snapshot) = self
             .load_sets_and_compute(&user_id, &req.workout_id)
@@ -1157,7 +522,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .cancel_proposed_set(&req.proposed_set_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let (_, _, next_up, snapshot) = self
             .load_sets_and_compute(&user_id, &req.workout_id)
@@ -1188,13 +553,12 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .load_workout_full(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let mut active = active_from_get_workout_response(resp).map_err(|e| *e)?;
+        let mut active = active_from_get_workout_response(resp)?;
 
         // Apply the complex group plan replacement
-        let (group, generated_sets) =
-            apply_replace_exercise_group_plan(&mut active, &req).map_err(|e| *e)?;
+        let (group, generated_sets) = apply_replace_exercise_group_plan(&mut active, &req)?;
 
         // Persist the full updated state back to real tables
         self.db
@@ -1206,7 +570,7 @@ impl WorkoutService for ServerWorkoutService {
                 &active.completed_sets,
             )
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let active_proposed = active_proposed_sets(&active.proposed_sets);
         let next_up = compute_next_up_set(&active_proposed, &active.completed_sets);
@@ -1240,11 +604,11 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .load_workout_full(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let mut active = active_from_get_workout_response(resp).map_err(|e| *e)?;
+        let mut active = active_from_get_workout_response(resp)?;
 
-        apply_reorder_exercise_groups(&mut active, &req).map_err(|e| *e)?;
+        apply_reorder_exercise_groups(&mut active, &req)?;
 
         self.db
             .persist_workout_state(
@@ -1255,7 +619,7 @@ impl WorkoutService for ServerWorkoutService {
                 &active.completed_sets,
             )
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         let active_proposed = active_proposed_sets(&active.proposed_sets);
         let next_up = compute_next_up_set(&active_proposed, &active.completed_sets);
@@ -1304,9 +668,9 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .load_workout_full(&user_id, &workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?
+            .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let mut active = active_from_get_workout_response(resp).map_err(|e| *e)?;
+        let mut active = active_from_get_workout_response(resp)?;
         let mut events = Vec::with_capacity(req.mutations.len());
         let mut applied = Vec::with_capacity(req.mutations.len());
 
@@ -1326,19 +690,19 @@ impl WorkoutService for ServerWorkoutService {
                 .ok_or_else(|| Status::invalid_argument("mutation missing"))?
             {
                 Mutation::StartSet(req) => {
-                    apply_start_set_to_active(&mut active, &req).map_err(|e| *e)?;
+                    apply_start_set_to_active(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 2, req.encode_to_vec()));
                 }
                 Mutation::CompleteSet(req) => {
-                    apply_complete_set_to_active(&mut active, &req).map_err(|e| *e)?;
+                    apply_complete_set_to_active(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 3, req.encode_to_vec()));
                 }
                 Mutation::DeleteCompletedSet(req) => {
-                    apply_delete_completed_set_to_active(&mut active, &req).map_err(|e| *e)?;
+                    apply_delete_completed_set_to_active(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 4, req.encode_to_vec()));
                 }
                 Mutation::CancelProposedSet(req) => {
-                    apply_cancel_proposed_set_to_active(&mut active, &req).map_err(|e| *e)?;
+                    apply_cancel_proposed_set_to_active(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 5, req.encode_to_vec()));
                 }
                 Mutation::EndWorkout(req) => {
@@ -1351,11 +715,11 @@ impl WorkoutService for ServerWorkoutService {
                     events.push((event_id.clone(), recorded_at, 6, req.encode_to_vec()));
                 }
                 Mutation::ReplaceExerciseGroupPlan(req) => {
-                    apply_replace_exercise_group_plan(&mut active, &req).map_err(|e| *e)?;
+                    apply_replace_exercise_group_plan(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 7, req.encode_to_vec()));
                 }
                 Mutation::ReorderExerciseGroups(req) => {
-                    apply_reorder_exercise_groups(&mut active, &req).map_err(|e| *e)?;
+                    apply_reorder_exercise_groups(&mut active, &req)?;
                     events.push((event_id.clone(), recorded_at, 8, req.encode_to_vec()));
                 }
             }
@@ -1366,7 +730,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .append_workout_events(&user_id, &workout_id, &events)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
 
         // Persist full state back to tables
         if active.workout.end_time > 0 {
@@ -1379,12 +743,12 @@ impl WorkoutService for ServerWorkoutService {
                     &active.completed_sets,
                 )
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
             // End workout: remove active pointer
             self.db
                 .end_workout(&user_id, &workout_id, active.workout.end_time)
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
         } else {
             self.db
                 .persist_workout_state(
@@ -1395,7 +759,7 @@ impl WorkoutService for ServerWorkoutService {
                     &active.completed_sets,
                 )
                 .await
-                .map_err(|e| Status::internal(e.to_string()))?;
+                .map_err(internal_error)?;
         }
 
         let response = get_workout_response_from_active(&active);
@@ -1421,7 +785,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .insert_heart_rate_samples(&user_id, &req.workout_id, &req.samples)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(Response::new(AppendWorkoutHeartRateResponse {
             stored: req.samples.len() as i32,
         }))
@@ -1437,7 +801,7 @@ impl WorkoutService for ServerWorkoutService {
             .db
             .get_workout_heart_rate(&user_id, &req.workout_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(Response::new(GetWorkoutHeartRateResponse { samples }))
     }
 
@@ -1465,7 +829,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .put_workout_draft(&user_id, &draft)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(Response::new(SaveWorkoutDraftResponse {
             draft: Some(draft),
         }))
@@ -1479,7 +843,7 @@ impl WorkoutService for ServerWorkoutService {
         self.db
             .clear_workout_draft(&user_id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(internal_error)?;
         Ok(Response::new(ClearWorkoutDraftResponse {}))
     }
 

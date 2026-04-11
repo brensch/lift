@@ -407,9 +407,9 @@ fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<Propose
 pub(crate) fn apply_replace_exercise_group_plan(
     workout_ref: &mut ActiveWorkout,
     req: &ReplaceExerciseGroupPlanRequest,
-) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), Box<Status>> {
+) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
 
     let normalized_sets = normalize_group_plan_sets(&req.sets);
@@ -496,13 +496,13 @@ pub(crate) fn apply_replace_exercise_group_plan(
                 active_group_sets(workout_ref, &req.exercise_group_id),
             ));
         }
-        None => return Err(Box::new(Status::not_found("Exercise group not found"))),
+        None => return Err(WorkoutError::not_found("Exercise group not found")),
     };
 
     if workout_ref.exercise_groups[existing_idx].prescribed_by_regime {
-        return Err(Box::new(Status::failed_precondition(
+        return Err(WorkoutError::failed_precondition(
             "Regime-prescribed exercise groups cannot be modified",
-        )));
+        ));
     }
 
     if req.delete_group_if_empty && normalized_sets.is_empty() {
@@ -585,9 +585,9 @@ pub(crate) fn apply_replace_exercise_group_plan(
 pub(crate) fn apply_reorder_exercise_groups(
     workout_ref: &mut ActiveWorkout,
     req: &ReorderExerciseGroupsRequest,
-) -> Result<(), Box<Status>> {
+) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
     for (idx, group_id) in req.exercise_group_ids.iter().enumerate() {
         if let Some(g) = workout_ref
