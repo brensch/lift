@@ -31,6 +31,12 @@ class MultiplayerServiceWrapper {
         );
   }
 
+  Stream<SessionSubscriptionEvent> subscribeSession({String? sessionId}) {
+    final req = SubscribeSessionRequest();
+    if (sessionId != null) req.sessionId = sessionId;
+    return _client.multiplayerService.subscribeSession(req);
+  }
+
   Future<void> updateActiveWorkout(String workoutId) async {
     await _client.multiplayerService.updateActiveWorkout(
       UpdateActiveWorkoutRequest()..workoutId = workoutId,

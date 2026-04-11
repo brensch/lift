@@ -41,17 +41,8 @@ mod planning;
 mod reducer;
 
 use planning::*;
-pub(crate) use planning::{
-    apply_replace_exercise_group_plan, apply_reorder_exercise_groups, generate_sets_for_group,
-    materialize_group_working_sets,
-};
-pub(crate) use reducer::{
-    active_from_get_workout_response, active_proposed_sets, apply_cancel_proposed_set_to_active,
-    apply_complete_set_to_active, apply_delete_completed_set_to_active,
-    apply_start_set_to_active, get_workout_response_from_active,
-    is_final_set_in_exercise_group_after_completion, start_workout_response_from_active,
-    workout_plan_change_stats_from_sets, workout_state_snapshot_from_state,
-};
+pub(crate) use planning::{generate_sets_for_group, materialize_group_working_sets};
+pub(crate) use reducer::active_from_get_workout_response;
 use reducer::*;
 
 pub struct MyWorkoutService {
@@ -105,7 +96,7 @@ pub async fn get_user_id_authenticated<T>(
     Err(Status::unauthenticated("Authentication required"))
 }
 
-pub(crate) const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 10;
+const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 10;
 const WORKOUT_DRAFT_SETTING_TYPE: &str = "workout_draft";
 
 #[cfg(test)]

@@ -245,7 +245,7 @@ class MainLayout extends StatelessWidget {
       }
     }
 
-    final participantCount = mp.participants.length;
+    final participantCount = mp.isInSession ? mp.participants.length + 1 : 0;
     final buttonLabel = participantCount > 1
         ? 'Multiplayer ($participantCount)'
         : 'Multiplayer';

@@ -268,8 +268,13 @@ stop-app:
 		pkill -f "[/]flutter-sdk/bin/flutter.*run -d" 2>/dev/null || true; \
 	'
 
+run-backend-scratch:
+	@pkill -f "[/]target/release/schlift" || true
+	@rm -f data/scratch.sqlite data/scratch.sqlite-wal data/scratch.sqlite-shm
+	TEST_AUTH_ENABLED=1 cargo run --release --bin schlift --features test-auth
+
 load-test:
-	cargo run --release --example load_simulation --all-features -- --duration 3000
+	cargo run --release --example load_simulation -- --duration 3000
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release

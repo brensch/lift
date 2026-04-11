@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
+pub(super) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
     proposed_sets
         .iter()
         .filter(|set| !set.cancelled)
@@ -8,7 +8,7 @@ pub(crate) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<Propose
         .collect()
 }
 
-pub(crate) fn workout_plan_change_stats_from_sets(
+pub(super) fn workout_plan_change_stats_from_sets(
     proposed_sets: &[ProposedSet],
 ) -> WorkoutPlanChangeStats {
     let cancelled_total = proposed_sets.iter().filter(|set| set.cancelled).count() as i32;
@@ -27,14 +27,14 @@ pub(crate) fn workout_plan_change_stats_from_sets(
     }
 }
 
-pub(crate) fn next_up_from_workout_state(
+pub(super) fn next_up_from_workout_state(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> Option<ProposedSet> {
     compute_next_up_set(proposed_sets, completed_sets)
 }
 
-pub(crate) fn is_final_set_in_exercise_group_after_completion(
+pub(super) fn is_final_set_in_exercise_group_after_completion(
     proposed_set_id: &str,
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
@@ -67,7 +67,7 @@ pub(super) fn now_unix() -> i64 {
         .unwrap_or(0)
 }
 
-pub(crate) fn workout_state_snapshot_from_state(
+pub(super) fn workout_state_snapshot_from_state(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
     now: i64,
@@ -151,7 +151,7 @@ pub(crate) fn workout_state_snapshot_from_state(
     }
 }
 
-pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
+pub(super) fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
     let proposed_active = active_proposed_sets(&active.proposed_sets);
     let next_up_set = compute_next_up_set(&proposed_active, &active.completed_sets);
     let state_snapshot = Some(workout_state_snapshot_from_state(
@@ -171,7 +171,7 @@ pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> Star
     }
 }
 
-pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutResponse {
+pub(super) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutResponse {
     let proposed_sets = active_proposed_sets(&active.proposed_sets);
     let completed_sets = active.completed_sets.clone();
     let next_up_set = compute_next_up_set(&proposed_sets, &completed_sets);
@@ -221,7 +221,7 @@ pub(crate) fn active_from_get_workout_response(
     ))
 }
 
-pub(crate) fn apply_start_set_to_active(
+pub(super) fn apply_start_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &StartSetRequest,
 ) -> Result<(), Status> {
@@ -262,7 +262,7 @@ pub(crate) fn apply_start_set_to_active(
     Ok(())
 }
 
-pub(crate) fn apply_complete_set_to_active(
+pub(super) fn apply_complete_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &CompleteSetRequest,
 ) -> Result<(), Status> {
@@ -319,7 +319,7 @@ pub(crate) fn apply_complete_set_to_active(
     Ok(())
 }
 
-pub(crate) fn apply_delete_completed_set_to_active(
+pub(super) fn apply_delete_completed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &DeleteCompletedSetRequest,
 ) -> Result<(), Status> {
@@ -332,7 +332,7 @@ pub(crate) fn apply_delete_completed_set_to_active(
     Ok(())
 }
 
-pub(crate) fn apply_cancel_proposed_set_to_active(
+pub(super) fn apply_cancel_proposed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &CancelProposedSetRequest,
 ) -> Result<(), Status> {

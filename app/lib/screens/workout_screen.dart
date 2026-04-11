@@ -7,7 +7,6 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
-import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -32,7 +31,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
-    final auth = context.read<AuthProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     if (wp.workout == null) {
@@ -49,32 +47,27 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         .toList(growable: false);
 
     final nextUpUserId = mp.sessionStatus?.nextUpUserId ?? '';
-    final otherParticipants = mp.participants
-        .where((p) => p.user.id != auth.userId)
-        .toList();
-    final sessionLedgerProposed = <ProposedSet>[];
-    final sessionLedgerCompleted = <CompletedSet>[];
+    final otherParticipants = mp.participants;
+    final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
+    final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
     final workoutOwnerLabels = <String, String>{};
+    if (wp.workout != null) {
+      workoutOwnerLabels[wp.workout!.id] = 'You';
+    }
     if (mp.isInSession && mp.sessionStatus != null) {
       for (final participant in mp.participants) {
         sessionLedgerProposed.addAll(participant.proposedSets);
         sessionLedgerCompleted.addAll(participant.completedSets);
         if (participant.activeWorkoutId.isNotEmpty) {
-          final rawName = participant.user.id == auth.userId
-              ? 'You'
-              : (participant.user.name.isNotEmpty
-                    ? participant.user.name
-                    : participant.user.id);
+          final rawName = participant.user.name.isNotEmpty
+              ? participant.user.name
+              : participant.user.id;
           workoutOwnerLabels[participant.activeWorkoutId] = rawName;
         }
       }
     }
-    final logProposedSets = sessionLedgerProposed.isNotEmpty
-        ? sessionLedgerProposed
-        : wp.proposedSets;
-    final logCompletedSets = sessionLedgerCompleted.isNotEmpty
-        ? sessionLedgerCompleted
-        : wp.completedSets;
+    final logProposedSets = sessionLedgerProposed;
+    final logCompletedSets = sessionLedgerCompleted;
 
     final workout = wp.workout!;
     final hasWorkoutInfo =
@@ -1173,10 +1166,7 @@ class _RemainingExerciseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          iconButton(
-            icon: Icons.edit_outlined,
-            onPressed: onEdit,
-          ),
+          iconButton(icon: Icons.edit_outlined, onPressed: onEdit),
           iconButton(
             icon: Icons.delete_outline_rounded,
             onPressed: onDelete,

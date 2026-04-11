@@ -442,7 +442,7 @@ fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<Propose
     sets
 }
 
-pub(crate) fn apply_replace_exercise_group_plan(
+pub(super) fn apply_replace_exercise_group_plan(
     workout_ref: &mut ActiveWorkout,
     req: &ReplaceExerciseGroupPlanRequest,
 ) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), Status> {
@@ -620,7 +620,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
     Ok((Some(group), visible_sets))
 }
 
-pub(crate) fn apply_reorder_exercise_groups(
+pub(super) fn apply_reorder_exercise_groups(
     workout_ref: &mut ActiveWorkout,
     req: &ReorderExerciseGroupsRequest,
 ) -> Result<(), Status> {

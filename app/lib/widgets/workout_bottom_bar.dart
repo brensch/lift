@@ -202,7 +202,7 @@ class WorkoutBottomBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Row 1: Group status box
-                if (mp.participants.length > 1) ...[
+                if (mp.participants.isNotEmpty) ...[
                   _buildGroupStatusBox(
                     context,
                     mp.sessionStatus,
@@ -350,20 +350,17 @@ class WorkoutBottomBar extends StatelessWidget {
     }
 
     if (groupActive == null && currentLifterId == myUserId) {
-      final me = status.participants.cast<ParticipantStatus?>().firstWhere(
-        (p) => p!.user.id == myUserId,
-        orElse: () => null,
-      );
-      if (me != null) {
-        groupActive = me;
-        groupState = 'Watching';
-        boxColor = purple;
-      }
+      groupState = 'Watching';
+      boxColor = purple;
     }
 
-    if (groupActive == null) return const SizedBox.shrink();
+    if (groupActive == null && groupState.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-    final rawName = groupActive.user.name.isNotEmpty
+    final rawName = groupActive == null
+        ? 'You'
+        : groupActive.user.name.isNotEmpty
         ? groupActive.user.name
         : groupActive.user.id;
     final sideLabel = _sideLabelName(rawName);

@@ -18,6 +18,10 @@ service MultiplayerService {
   // OR get a specific session's status if session_id is provided.
   rpc GetCurrentSession(GetCurrentSessionRequest) returns (GetCurrentSessionResponse);
 
+  // Subscribe to live updates for a current multiplayer session.
+  // The server always emits a full snapshot immediately after subscribe.
+  rpc SubscribeSession(SubscribeSessionRequest) returns (stream SessionSubscriptionEvent);
+
   // Update the active workout for the current user's session
   rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
 }
@@ -46,6 +50,16 @@ message GetCurrentSessionRequest {
 message GetCurrentSessionResponse {
   string session_id = 1;
   SessionStatus session_status = 2; // populated if session_id is present
+}
+
+message SubscribeSessionRequest {
+  string session_id = 1; // Optional: if omitted, subscribes to caller's current session.
+}
+
+message SessionSubscriptionEvent {
+  string session_id = 1;
+  int64 version = 2;
+  SessionStatus session_status = 3;
 }
 
 message UpdateActiveWorkoutRequest {
