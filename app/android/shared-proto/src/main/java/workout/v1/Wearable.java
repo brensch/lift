@@ -438,6 +438,26 @@ public final class Wearable {
      * @return The displaySet.
      */
     workout.v1.WorkoutOuterClass.ProposedSet getDisplaySet();
+
+    /**
+     * <pre>
+     * optional, 1-based
+     * </pre>
+     *
+     * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+     * @return The currentGroupSet.
+     */
+    int getCurrentGroupSet();
+
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+     * @return The totalGroupSets.
+     */
+    int getTotalGroupSets();
   }
   /**
    * Protobuf type {@code workout.v1.WearStatusCard}
@@ -791,6 +811,82 @@ public final class Wearable {
      */
     private void clearDisplaySet() {  displaySet_ = null;
       
+    }
+
+    public static final int CURRENT_GROUP_SET_FIELD_NUMBER = 7;
+    private int currentGroupSet_;
+    /**
+     * <pre>
+     * optional, 1-based
+     * </pre>
+     *
+     * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+     * @return The currentGroupSet.
+     */
+    @java.lang.Override
+    public int getCurrentGroupSet() {
+      return currentGroupSet_;
+    }
+    /**
+     * <pre>
+     * optional, 1-based
+     * </pre>
+     *
+     * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+     * @param value The currentGroupSet to set.
+     */
+    private void setCurrentGroupSet(int value) {
+      
+      currentGroupSet_ = value;
+    }
+    /**
+     * <pre>
+     * optional, 1-based
+     * </pre>
+     *
+     * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+     */
+    private void clearCurrentGroupSet() {
+      
+      currentGroupSet_ = 0;
+    }
+
+    public static final int TOTAL_GROUP_SETS_FIELD_NUMBER = 8;
+    private int totalGroupSets_;
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+     * @return The totalGroupSets.
+     */
+    @java.lang.Override
+    public int getTotalGroupSets() {
+      return totalGroupSets_;
+    }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+     * @param value The totalGroupSets to set.
+     */
+    private void setTotalGroupSets(int value) {
+      
+      totalGroupSets_ = value;
+    }
+    /**
+     * <pre>
+     * optional
+     * </pre>
+     *
+     * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+     */
+    private void clearTotalGroupSets() {
+      
+      totalGroupSets_ = 0;
     }
 
     public static workout.v1.Wearable.WearStatusCard parseFrom(
@@ -1243,6 +1339,86 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * optional, 1-based
+       * </pre>
+       *
+       * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+       * @return The currentGroupSet.
+       */
+      @java.lang.Override
+      public int getCurrentGroupSet() {
+        return instance.getCurrentGroupSet();
+      }
+      /**
+       * <pre>
+       * optional, 1-based
+       * </pre>
+       *
+       * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+       * @param value The currentGroupSet to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCurrentGroupSet(int value) {
+        copyOnWrite();
+        instance.setCurrentGroupSet(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * optional, 1-based
+       * </pre>
+       *
+       * <code>int32 current_group_set = 7 [json_name = "currentGroupSet"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCurrentGroupSet() {
+        copyOnWrite();
+        instance.clearCurrentGroupSet();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+       * @return The totalGroupSets.
+       */
+      @java.lang.Override
+      public int getTotalGroupSets() {
+        return instance.getTotalGroupSets();
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+       * @param value The totalGroupSets to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTotalGroupSets(int value) {
+        copyOnWrite();
+        instance.setTotalGroupSets(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * optional
+       * </pre>
+       *
+       * <code>int32 total_group_sets = 8 [json_name = "totalGroupSets"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTotalGroupSets() {
+        copyOnWrite();
+        instance.clearTotalGroupSets();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearStatusCard)
     }
     @java.lang.Override
@@ -1265,10 +1441,12 @@ public final class Wearable {
               "timerText_",
               "isComplete_",
               "displaySet_",
+              "currentGroupSet_",
+              "totalGroupSets_",
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0208\u0004\u0208\u0005\u0007\u0006\t";
+                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
+                "\u0004\u0208\u0005\u0007\u0006\t\u0007\u0004\b\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

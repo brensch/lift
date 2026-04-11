@@ -30,6 +30,8 @@ class WearStatusCard extends $pb.GeneratedMessage {
     $core.String? timerText,
     $core.bool? isComplete,
     $0.ProposedSet? displaySet,
+    $core.int? currentGroupSet,
+    $core.int? totalGroupSets,
   }) {
     final result = create();
     if (sideLabel != null) result.sideLabel = sideLabel;
@@ -38,6 +40,8 @@ class WearStatusCard extends $pb.GeneratedMessage {
     if (timerText != null) result.timerText = timerText;
     if (isComplete != null) result.isComplete = isComplete;
     if (displaySet != null) result.displaySet = displaySet;
+    if (currentGroupSet != null) result.currentGroupSet = currentGroupSet;
+    if (totalGroupSets != null) result.totalGroupSets = totalGroupSets;
     return result;
   }
 
@@ -61,6 +65,8 @@ class WearStatusCard extends $pb.GeneratedMessage {
     ..aOB(5, _omitFieldNames ? '' : 'isComplete')
     ..aOM<$0.ProposedSet>(6, _omitFieldNames ? '' : 'displaySet',
         subBuilder: $0.ProposedSet.create)
+    ..aI(7, _omitFieldNames ? '' : 'currentGroupSet')
+    ..aI(8, _omitFieldNames ? '' : 'totalGroupSets')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -137,6 +143,24 @@ class WearStatusCard extends $pb.GeneratedMessage {
   void clearDisplaySet() => $_clearField(6);
   @$pb.TagNumber(6)
   $0.ProposedSet ensureDisplaySet() => $_ensure(5);
+
+  @$pb.TagNumber(7)
+  $core.int get currentGroupSet => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set currentGroupSet($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasCurrentGroupSet() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearCurrentGroupSet() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get totalGroupSets => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set totalGroupSets($core.int value) => $_setSignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasTotalGroupSets() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearTotalGroupSets() => $_clearField(8);
 }
 
 class WearAction extends $pb.GeneratedMessage {

@@ -570,6 +570,8 @@ private fun WearApp(
 
     val hrColor = heartRateColor(latestBpm)
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
+    val groupProgressText = formatGroupProgress(data.youCard)
+    val setsLeftText = formatSetsLeft(data.youCard)
     val isAmrap = currentSet?.isAmrap ?: false
     val repsWeightText = if (currentSet != null) {
         if (isAmrap) "AMRAPx${currentSet.targetWeight.toInt()}" else "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
@@ -753,6 +755,32 @@ private fun WearApp(
                                         fontFamily = WearDisplayFontFamily,
                                         fontWeight = FontWeight.Bold,
                                     )
+                                    if (groupProgressText.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = groupProgressText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Start,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            fontSize = 16.sp,
+                                            fontFamily = WearDisplayFontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                        if (setsLeftText.isNotEmpty()) {
+                                            Text(
+                                                text = setsLeftText,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                textAlign = TextAlign.Start,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                fontSize = 12.sp,
+                                                fontFamily = WearBodyFontFamily,
+                                                fontWeight = FontWeight.Medium,
+                                                color = buttonContentColor.copy(alpha = 0.72f),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -876,6 +904,33 @@ private fun WearApp(
                                         fontFamily = WearDisplayFontFamily,
                                         fontWeight = FontWeight.Bold,
                                     )
+                                }
+                                if (groupProgressText.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = groupProgressText,
+                                        color = buttonContentColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        fontSize = 16.sp,
+                                        fontFamily = WearDisplayFontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    if (setsLeftText.isNotEmpty()) {
+                                        Text(
+                                            text = setsLeftText,
+                                            color = buttonContentColor.copy(alpha = 0.72f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Start,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            fontSize = 12.sp,
+                                            fontFamily = WearBodyFontFamily,
+                                            fontWeight = FontWeight.Medium,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1010,6 +1065,21 @@ private fun StatLine(
 
 private fun formatNowClock(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
+}
+
+private fun formatGroupProgress(card: Wearable.WearStatusCard): String {
+    val current = card.currentGroupSet
+    val total = card.totalGroupSets
+    if (current <= 0 || total <= 0) return ""
+    return "$current/$total"
+}
+
+private fun formatSetsLeft(card: Wearable.WearStatusCard): String {
+    val current = card.currentGroupSet
+    val total = card.totalGroupSets
+    if (current <= 0 || total <= 0) return ""
+    val remaining = (total - current).coerceAtLeast(0)
+    return if (remaining == 1) "1 set left" else "$remaining sets left"
 }
 
 private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot, hideSeconds: Boolean = false): String {

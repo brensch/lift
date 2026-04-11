@@ -126,7 +126,8 @@ struct ContentView: View {
             currentApiNowMs: connector.synchronizedNowMs(),
             hideSeconds: isLuminanceReduced
         )
-        let currentClock = formatNowClock(now)
+        let groupProgressText = formatGroupProgress(data.youCard)
+        let setsLeftText = formatSetsLeft(data.youCard)
 
         HStack(spacing: 0) {
             // Left column: stats
@@ -144,15 +145,6 @@ struct ContentView: View {
                     .foregroundColor(stateAccentColor ?? .white)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .trailing)
-
-                if !liveYouTimerText.isEmpty {
-                    statLine(
-                        text: currentClock,
-                        systemImage: "clock",
-                        color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
-                        fontSize: 18
-                    )
-                }
 
                 statLine(
                     text: liveElapsedText,
@@ -200,6 +192,23 @@ struct ContentView: View {
                                     .foregroundColor(buttonContentColor)
                                     .lineLimit(1)
                                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if !groupProgressText.isEmpty {
+                                    Spacer().frame(height: 6)
+                                    Text(groupProgressText)
+                                        .font(displayFontName(size: 16, weight: .medium))
+                                        .foregroundColor(buttonContentColor.opacity(0.9))
+                                        .lineLimit(1)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    if !setsLeftText.isEmpty {
+                                        Text(setsLeftText)
+                                            .font(.custom(bodyFont, size: 12).weight(.medium))
+                                            .foregroundColor(buttonContentColor.opacity(0.72))
+                                            .lineLimit(1)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
                             }
                             .padding(.leading, 10)
                             .padding(.trailing, 6)
@@ -263,6 +272,23 @@ struct ContentView: View {
                                         .lineLimit(1)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if !groupProgressText.isEmpty {
+                                    Spacer().frame(height: 6)
+                                    Text(groupProgressText)
+                                        .font(displayFontName(size: 16, weight: .medium))
+                                        .foregroundColor(buttonContentColor.opacity(0.9))
+                                        .lineLimit(1)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    if !setsLeftText.isEmpty {
+                                        Text(setsLeftText)
+                                            .font(.custom(bodyFont, size: 12).weight(.medium))
+                                            .foregroundColor(buttonContentColor.opacity(0.72))
+                                            .lineLimit(1)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
                             }
                             .padding(.leading, 10)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -366,6 +392,17 @@ private func formatNowClock(_ date: Date) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "h:mm a"
     return formatter.string(from: date)
+}
+
+private func formatGroupProgress(_ card: Workout_V1_WearStatusCard) -> String {
+    guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
+    return "\(card.currentGroupSet)/\(card.totalGroupSets)"
+}
+
+private func formatSetsLeft(_ card: Workout_V1_WearStatusCard) -> String {
+    guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
+    let remaining = max(0, Int(card.totalGroupSets - card.currentGroupSet))
+    return remaining == 1 ? "1 set left" : "\(remaining) sets left"
 }
 
 private func deriveElapsedText(

@@ -11,6 +11,92 @@ String _fmt(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
+String participantDisplayName(ParticipantStatus participant) {
+  final name = participant.user.name.trim();
+  if (name.isNotEmpty) return name;
+  final id = participant.user.id.trim();
+  if (id.isNotEmpty) return id;
+  return 'Unknown';
+}
+
+ParticipantVisualStatus describeParticipantStatus(
+  ParticipantStatus participant, {
+  DateTime? now,
+}) {
+  final nowUnix = (now ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
+  final nextSet = participant.hasNextUpSet() ? participant.nextUpSet : null;
+  final restUntil = participant.restUntil.toInt();
+
+  if (participant.hasActiveWorkout() &&
+      participant.activeWorkout.endTime != Int64.ZERO) {
+    return ParticipantVisualStatus(
+      stateLabel: 'Finished',
+      stateColor: AppTheme.successFg,
+      sortPriority: 0,
+      isComplete: true,
+    );
+  }
+
+  final activeSet = participant.completedSets.cast<CompletedSet?>().firstWhere(
+    (c) => c!.endedAt == Int64.ZERO,
+    orElse: () => null,
+  );
+  if (participant.hasActiveSet || activeSet != null) {
+    final proposed = participant.proposedSets.cast<ProposedSet?>().firstWhere(
+      (ps) => ps!.id == activeSet?.proposedSetId,
+      orElse: () => null,
+    );
+    final elapsed =
+        activeSet != null ? nowUnix - activeSet.startedAt.toInt() : 0;
+    return ParticipantVisualStatus(
+      stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
+      stateColor: AppTheme.activeFg,
+      proposedSet: proposed,
+      timerText: _fmt(elapsed),
+      sortPriority: 4,
+    );
+  }
+
+  if (restUntil > nowUnix && nextSet != null) {
+    final remaining = restUntil - nowUnix;
+    return ParticipantVisualStatus(
+      stateLabel: 'Resting',
+      stateColor: const Color(0xFF3B82F6),
+      proposedSet: nextSet,
+      timerText: _fmt(remaining),
+      sortPriority: 2,
+    );
+  }
+
+  if (restUntil > 0 && restUntil <= nowUnix && nextSet != null) {
+    final elapsed = nowUnix - restUntil;
+    return ParticipantVisualStatus(
+      stateLabel: 'Yapping',
+      stateColor: AppTheme.destructive,
+      proposedSet: nextSet,
+      timerText: '+${_fmt(elapsed)}',
+      timerColor: AppTheme.destructive,
+      sortPriority: 3,
+    );
+  }
+
+  if (nextSet != null) {
+    return ParticipantVisualStatus(
+      stateLabel: 'Next up',
+      stateColor: AppTheme.warmupFg,
+      proposedSet: nextSet,
+      sortPriority: 1,
+    );
+  }
+
+  return ParticipantVisualStatus(
+    stateLabel: 'Done',
+    stateColor: AppTheme.successFg,
+    sortPriority: 0,
+    isComplete: true,
+  );
+}
+
 /// Card showing a participant's current workout state.
 /// Shows: name, state label, exercise/weight info, timer.
 class ParticipantCard extends StatelessWidget {
@@ -27,17 +113,17 @@ class ParticipantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = _getStatus(participant);
+    final status = describeParticipantStatus(participant);
+    final displayName = participantDisplayName(participant);
     final box = StatusBox(
-      sideLabel: participant.user.name,
-      header: participant.user.name,
+      sideLabel: displayName,
+      header: displayName,
       stateLabel: status.stateLabel,
       color: status.stateColor,
       timerText: status.timerText,
       timerColor: status.timerColor,
       set: status.proposedSet,
-      isComplete:
-          status.stateLabel == 'Done' || status.stateLabel == 'Finished',
+      isComplete: status.isComplete,
       showHeader: false,
     );
 
@@ -52,93 +138,24 @@ class ParticipantCard extends StatelessWidget {
       ),
     );
   }
-
-  _ParticipantStatusInfo _getStatus(ParticipantStatus p) {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final nextSet = p.hasNextUpSet() ? p.nextUpSet : null;
-    final restUntil = p.restUntil.toInt();
-
-    // Check if workout is ended
-    if (p.hasActiveWorkout() && p.activeWorkout.endTime != Int64.ZERO) {
-      return _ParticipantStatusInfo(
-        stateLabel: 'Finished',
-        stateColor: AppTheme.successFg,
-      );
-    }
-
-    // Check if actively lifting
-    final activeSet = p.completedSets.cast<CompletedSet?>().firstWhere(
-      (c) => c!.endedAt == Int64.ZERO,
-      orElse: () => null,
-    );
-    if (p.hasActiveSet || activeSet != null) {
-      final proposed = p.proposedSets.cast<ProposedSet?>().firstWhere(
-        (ps) => ps!.id == activeSet?.proposedSetId,
-        orElse: () => null,
-      );
-      final elapsed = activeSet != null ? now - activeSet.startedAt.toInt() : 0;
-      return _ParticipantStatusInfo(
-        stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
-        stateColor: AppTheme.activeFg,
-        proposedSet: proposed,
-        timerText: _fmt(elapsed),
-        timerColor: null,
-      );
-    }
-
-    // Check if resting
-    if (restUntil > now && nextSet != null) {
-      final remaining = restUntil - now;
-      return _ParticipantStatusInfo(
-        stateLabel: 'Resting',
-        stateColor: const Color(0xFF3B82F6),
-        proposedSet: nextSet,
-        timerText: _fmt(remaining),
-        timerColor: null,
-      );
-    }
-
-    // Check for yapping (rest ended, next set pending)
-    if (restUntil > 0 && restUntil <= now && nextSet != null) {
-      final elapsed = now - restUntil;
-      return _ParticipantStatusInfo(
-        stateLabel: 'Yapping',
-        stateColor: AppTheme.destructive,
-        proposedSet: nextSet,
-        timerText: '+${_fmt(elapsed)}',
-        timerColor: AppTheme.destructive,
-      );
-    }
-
-    // Idle / next up
-    if (nextSet != null) {
-      return _ParticipantStatusInfo(
-        stateLabel: 'Next up',
-        stateColor: AppTheme.warmupFg,
-        proposedSet: nextSet,
-      );
-    }
-
-    // All done
-    return _ParticipantStatusInfo(
-      stateLabel: 'Done',
-      stateColor: AppTheme.successFg,
-    );
-  }
 }
 
-class _ParticipantStatusInfo {
+class ParticipantVisualStatus {
   final String stateLabel;
   final Color stateColor;
   final ProposedSet? proposedSet;
   final String? timerText;
   final Color? timerColor;
+  final int sortPriority;
+  final bool isComplete;
 
-  _ParticipantStatusInfo({
+  const ParticipantVisualStatus({
     required this.stateLabel,
     required this.stateColor,
     this.proposedSet,
     this.timerText,
     this.timerColor,
+    required this.sortPriority,
+    this.isComplete = false,
   });
 }

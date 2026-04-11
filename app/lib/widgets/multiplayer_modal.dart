@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
+import 'participant_ticker.dart';
 
 class MultiplayerModal extends StatefulWidget {
   const MultiplayerModal({super.key});
@@ -105,6 +106,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final colorScheme = Theme.of(context).colorScheme;
     final sessionId = mp.sessionId;
     final userId = auth.userId ?? '';
+    final username = auth.username?.trim();
 
     final modalSurface = colorScheme.brightness == Brightness.dark
         ? colorScheme.surfaceContainerHigh
@@ -281,21 +283,21 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                         dense: true,
                         leading: CircleAvatar(
                           radius: 12,
-                          backgroundColor: colorScheme.secondaryContainer,
+                          backgroundColor: colorScheme.secondary,
                           child: Text(
-                            auth.username != null && auth.username!.isNotEmpty
-                                ? auth.username![0].toUpperCase()
+                            username != null && username.isNotEmpty
+                                ? username[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: colorScheme.onSecondaryContainer,
+                              color: colorScheme.onSecondary,
                             ),
                           ),
                         ),
                         title: Text(
-                          auth.username?.isNotEmpty == true
-                              ? '${auth.username} (You)'
+                          username != null && username.isNotEmpty
+                              ? '$username (You)'
                               : 'You',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
@@ -304,27 +306,43 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                         ),
                       ),
                       ...mp.participants.map((p) {
+                        final status = describeParticipantStatus(p);
+                        final displayName = participantDisplayName(p);
                         return ListTile(
                           dense: true,
                           leading: CircleAvatar(
                             radius: 12,
-                            backgroundColor: colorScheme.primaryContainer,
+                            backgroundColor: status.stateColor,
                             child: Text(
-                              p.user.name.isNotEmpty
-                                  ? p.user.name[0].toUpperCase()
+                              displayName.isNotEmpty
+                                  ? displayName[0].toUpperCase()
                                   : '?',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: colorScheme.onPrimaryContainer,
+                                color:
+                                    ThemeData.estimateBrightnessForColor(
+                                          status.stateColor,
+                                        ) ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                               ),
                             ),
                           ),
                           title: Text(
-                            p.user.name,
+                            displayName,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
+                            ),
+                          ),
+                          trailing: Text(
+                            status.stateLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: status.stateColor,
                             ),
                           ),
                         );
