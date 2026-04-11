@@ -34,6 +34,16 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id);
 
+CREATE TABLE IF NOT EXISTS passkey_credentials (
+    credential_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    credential_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    created_at_ip TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
+    ON passkey_credentials(user_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS workouts (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
