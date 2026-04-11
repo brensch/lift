@@ -1,12 +1,21 @@
+use std::collections::HashSet;
+use std::pin::Pin;
+use std::sync::Arc;
+
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{Request, Response, Status};
+
 use crate::db::CentralDb;
-use crate::progress::{compute_participant_progress, compute_session_next_up};
+use crate::multiplayer_current::{
+    build_participant_status_from_state, load_current_session_snapshot,
+    publish_current_session_snapshot, publish_current_session_snapshot_from_state,
+    remove_and_publish_user_session_state, sync_and_publish_user_session_state,
+};
 use crate::service_workout::get_user_id_authenticated;
 use crate::state::AppState;
 use schlift::workout::v1::multiplayer_service_server::MultiplayerService;
 use schlift::workout::v1::*;
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
 
 #[derive(Clone)]
 pub struct GroupService {
@@ -14,75 +23,12 @@ pub struct GroupService {
     state: Arc<AppState>,
 }
 
+type SessionStream =
+    Pin<Box<dyn futures_util::Stream<Item = Result<SessionSubscriptionEvent, Status>> + Send>>;
+
 impl GroupService {
     pub fn new(central_db: CentralDb, state: Arc<AppState>) -> Self {
         Self { central_db, state }
-    }
-
-    fn build_participant_status(&self, user_id: &str) -> ParticipantStatus {
-        let user = self
-            .state
-            .users
-            .get(user_id)
-            .map(|u| u.clone())
-            .unwrap_or_else(|| User {
-                id: user_id.to_string(),
-                name: String::new(),
-                created_at: 0,
-            });
-
-        if let Some(w) = self.state.workouts.get(user_id) {
-            let proposed_sets: Vec<ProposedSet> = w
-                .proposed_sets
-                .iter()
-                .filter(|set| !set.cancelled)
-                .cloned()
-                .collect();
-            let progress = compute_participant_progress(&proposed_sets, &w.completed_sets);
-            ParticipantStatus {
-                user: Some(user),
-                active_workout_id: w.workout.id.clone(),
-                active_workout: Some(w.workout.clone()),
-                exercise_groups: w.exercise_groups.clone(),
-                proposed_sets,
-                completed_sets: w.completed_sets.clone(),
-                next_up_set: progress.next_up_set,
-                rest_until: progress.rest_until,
-                has_active_set: progress.has_active_set,
-            }
-        } else {
-            ParticipantStatus {
-                user: Some(user),
-                active_workout_id: String::new(),
-                ..Default::default()
-            }
-        }
-    }
-
-    fn current_lifting_user_id(participants: &[ParticipantStatus]) -> String {
-        participants
-            .iter()
-            .filter_map(|participant| {
-                if !participant.has_active_set {
-                    return None;
-                }
-                let started_at = participant
-                    .completed_sets
-                    .iter()
-                    .filter(|set| set.ended_at == 0)
-                    .map(|set| set.started_at)
-                    .max()
-                    .unwrap_or(0);
-                let user_id = participant
-                    .user
-                    .as_ref()
-                    .map(|u| u.id.clone())
-                    .unwrap_or_default();
-                Some((started_at, user_id))
-            })
-            .max_by_key(|(started_at, _)| *started_at)
-            .map(|(_, user_id)| user_id)
-            .unwrap_or_default()
     }
 
     async fn active_member_ids_for_session(&self, session_id: &str) -> Vec<String> {
@@ -91,12 +37,13 @@ impl GroupService {
                 return members.iter().cloned().collect();
             }
         }
+
         self.central_db
-            .get_session_membership_states(session_id)
+            .get_current_session_participants(session_id)
             .await
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|(user_id, is_active)| if is_active { Some(user_id) } else { None })
+            .map(|row| row.user_id)
             .collect()
     }
 
@@ -146,12 +93,17 @@ impl GroupService {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
+        sync_and_publish_user_session_state(&self.central_db, &self.state, user_id, "session_move")
+            .await?;
+        publish_current_session_snapshot(&self.central_db, &self.state, from_session_id).await?;
         Ok(())
     }
 }
 
 #[tonic::async_trait]
 impl MultiplayerService for GroupService {
+    type SubscribeSessionStream = SessionStream;
+
     async fn join_user(
         &self,
         request: Request<JoinUserRequest>,
@@ -163,7 +115,6 @@ impl MultiplayerService for GroupService {
             return Err(Status::invalid_argument("Cannot join yourself"));
         }
 
-        // Recover both users to ensure we have their latest session info
         self.state
             .try_recover_user(&self.central_db, &caller_id)
             .await;
@@ -196,12 +147,13 @@ impl MultiplayerService for GroupService {
                             .await?;
                         c_sid
                     } else {
-                        return Err(Status::failed_precondition("Both users are already in different active sessions. Leave your current session first."));
+                        return Err(Status::failed_precondition(
+                            "Both users are already in different active sessions. Leave your current session first.",
+                        ));
                     }
                 }
             }
             (None, Some(t_sid)) => {
-                // Caller joins target's session
                 self.state
                     .user_sessions
                     .insert(caller_id.clone(), t_sid.clone());
@@ -217,7 +169,6 @@ impl MultiplayerService for GroupService {
                 t_sid
             }
             (Some(c_sid), None) => {
-                // Target joins caller's session
                 self.state
                     .user_sessions
                     .insert(target_id.clone(), c_sid.clone());
@@ -233,14 +184,10 @@ impl MultiplayerService for GroupService {
                 c_sid
             }
             (None, None) => {
-                // Create new session for both
                 let sid = uuid::Uuid::new_v4().to_string();
-
-                // Use entry logic to avoid race conditions where both create sessions simultaneously
                 use dashmap::mapref::entry::Entry;
                 match self.state.user_sessions.entry(target_id.clone()) {
                     Entry::Occupied(existing) => {
-                        // Someone else just put the target in a session
                         let sid = existing.get().clone();
                         self.state
                             .user_sessions
@@ -281,16 +228,13 @@ impl MultiplayerService for GroupService {
             }
         };
 
-        // Cache user info if needed
-        for uid in &[&caller_id, &target_id] {
-            if !self.state.users.contains_key(*uid) {
+        for uid in [&caller_id, &target_id] {
+            if !self.state.users.contains_key(uid) {
                 if let Ok(Some(user)) = self.central_db.get_user(uid).await {
                     self.state.users.insert(uid.to_string(), user);
                 }
             }
-
-            // Update active workout with session_id if exists
-            if let Some(mut active) = self.state.workouts.get_mut(*uid) {
+            if let Some(mut active) = self.state.workouts.get_mut(uid) {
                 if active.workout.session_id != session_id {
                     active.workout.session_id = session_id.clone();
                     let _ = self
@@ -299,6 +243,8 @@ impl MultiplayerService for GroupService {
                         .await;
                 }
             }
+            sync_and_publish_user_session_state(&self.central_db, &self.state, uid, "session_join")
+                .await?;
         }
 
         Ok(Response::new(JoinUserResponse { session_id }))
@@ -321,11 +267,18 @@ impl MultiplayerService for GroupService {
                     self.state.sessions.remove(&session_id);
                 }
             }
-            // Record in user's DB
             self.central_db
                 .leave_session(&user_id, &session_id)
                 .await
                 .map_err(|e| Status::internal(e.to_string()))?;
+            remove_and_publish_user_session_state(
+                &self.central_db,
+                &self.state,
+                &session_id,
+                &user_id,
+                "session_leave",
+            )
+            .await?;
             self.central_db
                 .flush_writes()
                 .await
@@ -342,13 +295,11 @@ impl MultiplayerService for GroupService {
         let _ = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
 
-        // Ensure target is recovered if possible
         self.state
             .try_recover_user(&self.central_db, &req.user_id)
             .await;
 
-        // Read directly from in-memory state
-        let status = self.build_participant_status(&req.user_id);
+        let status = build_participant_status_from_state(&self.state, &req.user_id);
         if status.active_workout_id.is_empty() {
             return Err(Status::not_found(
                 "Participant not in an active session or workout not found",
@@ -364,250 +315,178 @@ impl MultiplayerService for GroupService {
     ) -> Result<Response<GetCurrentSessionResponse>, Status> {
         let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
         let req = request.into_inner();
+        let explicit_session = !req.session_id.is_empty();
 
-        // Ensure user is recovered if possible
         self.state
             .try_recover_user(&self.central_db, &user_id)
             .await;
 
-        // Determine session ID
         let session_id = if !req.session_id.is_empty() {
-            Some(req.session_id)
+            req.session_id
+        } else if let Some(in_memory) = self.state.user_sessions.get(&user_id) {
+            in_memory.clone()
+        } else if let Some(db_session) = self
+            .central_db
+            .get_current_session_id_for_user(&user_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?
+        {
+            db_session
         } else {
-            self.state.user_sessions.get(&user_id).map(|r| r.clone())
-        };
-
-        if let Some(sid) = session_id {
-            // 1. Get session roster (latest membership state per user).
-            let membership_states = self
-                .central_db
-                .get_session_membership_states(&sid)
-                .await
-                .unwrap_or_default();
-
-            // 2. Get all workout data for the session in bulk
-            let (workouts_with_user, all_groups, all_proposed, all_completed) = self
-                .central_db
-                .get_session_workout_data(&sid)
-                .await
-                .unwrap_or_default();
-
-            // 3. Index data for efficient assembly
-            let workouts_by_user: HashMap<String, Workout> =
-                workouts_with_user.into_iter().collect();
-
-            let mut active_members = HashSet::new();
-            let mut session_members = Vec::<String>::new();
-            let mut seen_members = HashSet::new();
-
-            for (user_id, is_active_member) in membership_states {
-                if is_active_member {
-                    active_members.insert(user_id.clone());
-                }
-                if seen_members.insert(user_id.clone()) {
-                    session_members.push(user_id);
-                }
-            }
-
-            if let Some(live_members) = self.state.sessions.get(&sid) {
-                for user_id in live_members.iter() {
-                    active_members.insert(user_id.clone());
-                    if seen_members.insert(user_id.clone()) {
-                        session_members.push(user_id.clone());
-                    }
-                }
-            }
-
-            // Fallback for older rows where workouts.session_id exists but membership rows do not.
-            for user_id in workouts_by_user.keys() {
-                if seen_members.insert(user_id.clone()) {
-                    session_members.push(user_id.clone());
-                }
-            }
-
-            // Keep active members first so "currently in session" users remain prominent.
-            session_members.sort_by_key(|user_id| {
-                if active_members.contains(user_id) {
-                    0
-                } else {
-                    1
-                }
-            });
-
-            let mut groups_by_workout: HashMap<String, Vec<ExerciseGroup>> = HashMap::new();
-            for g in all_groups {
-                groups_by_workout
-                    .entry(g.workout_id.clone())
-                    .or_default()
-                    .push(g);
-            }
-
-            let mut proposed_by_workout: HashMap<String, Vec<ProposedSet>> = HashMap::new();
-            for p in all_proposed {
-                proposed_by_workout
-                    .entry(p.workout_id.clone())
-                    .or_default()
-                    .push(p);
-            }
-
-            let mut completed_by_workout: HashMap<String, Vec<CompletedSet>> = HashMap::new();
-            for c in all_completed {
-                completed_by_workout
-                    .entry(c.workout_id.clone())
-                    .or_default()
-                    .push(c);
-            }
-
-            // Bulk-load uncached users to avoid N+1 queries in the 1Hz poll path.
-            let missing_user_ids: Vec<String> = session_members
-                .iter()
-                .filter(|user_id| !self.state.users.contains_key(*user_id))
-                .cloned()
-                .collect();
-            if !missing_user_ids.is_empty() {
-                if let Ok(users) = self.central_db.get_users_by_ids(&missing_user_ids).await {
-                    for (uid, user) in users {
-                        self.state.users.insert(uid, user);
-                    }
-                }
-            }
-
-            let mut participant_statuses = Vec::new();
-            for member_id in &session_members {
-                // Get user info (check cache first)
-                let user = if let Some(u) = self.state.users.get(member_id) {
-                    u.clone()
-                } else {
-                    self.central_db
-                        .get_user(member_id)
-                        .await
-                        .ok()
-                        .flatten()
-                        .unwrap_or_else(|| User {
-                            id: member_id.clone(),
-                            name: String::new(),
-                            created_at: 0,
-                        })
-                };
-
-                // Self-heal: if the workout is active in memory but its
-                // session_id is wrong/empty, fix it so subsequent polls use
-                // the fast in-memory path correctly.
-                {
-                    let needs_heal = self
-                        .state
-                        .workouts
-                        .get(member_id)
-                        .map(|w| w.workout.end_time == 0 && w.workout.session_id != sid)
-                        .unwrap_or(false);
-                    if needs_heal {
-                        if let Some(mut active) = self.state.workouts.get_mut(member_id) {
-                            if active.workout.end_time == 0 {
-                                active.workout.session_id = sid.clone();
-                                let _ = self
-                                    .central_db
-                                    .update_workout_session_id(member_id, &active.workout.id, &sid)
-                                    .await;
-                            }
-                        }
-                    }
-                }
-
-                let use_in_memory_status = self
-                    .state
-                    .workouts
-                    .get(member_id)
-                    .map(|w| w.workout.session_id == sid && w.workout.end_time == 0)
-                    .unwrap_or(false);
-
-                if use_in_memory_status {
-                    let mut status = self.build_participant_status(member_id);
-                    status.user = Some(user);
-                    participant_statuses.push(status);
-                    continue;
-                }
-
-                if let Some(workout) = workouts_by_user.get(member_id) {
-                    let groups = groups_by_workout.remove(&workout.id).unwrap_or_default();
-                    let proposed = proposed_by_workout.remove(&workout.id).unwrap_or_default();
-                    let completed = completed_by_workout.remove(&workout.id).unwrap_or_default();
-
-                    let proposed_active: Vec<ProposedSet> =
-                        proposed.iter().filter(|s| !s.cancelled).cloned().collect();
-                    let progress = compute_participant_progress(&proposed_active, &completed);
-
-                    participant_statuses.push(ParticipantStatus {
-                        user: Some(user),
-                        active_workout_id: workout.id.clone(),
-                        active_workout: Some(workout.clone()),
-                        exercise_groups: groups,
-                        proposed_sets: proposed_active,
-                        completed_sets: completed,
-                        next_up_set: progress.next_up_set,
-                        rest_until: progress.rest_until,
-                        has_active_set: progress.has_active_set,
-                    });
-                } else {
-                    // Just a lurker
-                    participant_statuses.push(ParticipantStatus {
-                        user: Some(user),
-                        active_workout_id: String::new(),
-                        ..Default::default()
-                    });
-                }
-            }
-
-            let next_up_participants: Vec<ParticipantStatus> = if active_members.is_empty() {
-                participant_statuses.clone()
-            } else {
-                participant_statuses
-                    .iter()
-                    .filter(|participant| {
-                        participant
-                            .user
-                            .as_ref()
-                            .map(|u| active_members.contains(&u.id))
-                            .unwrap_or(false)
-                    })
-                    .cloned()
-                    .collect()
-            };
-
-            let now_unix = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs() as i64)
-                .unwrap_or(0);
-            let session_next_up = compute_session_next_up(&next_up_participants, now_unix);
-            let currently_lifting_user_id = Self::current_lifting_user_id(&participant_statuses);
-
-            Ok(Response::new(GetCurrentSessionResponse {
-                session_id: sid.clone(),
-                session_status: Some(SessionStatus {
-                    session_id: sid,
-                    participants: participant_statuses,
-                    next_up_user_id: session_next_up
-                        .as_ref()
-                        .map(|n| n.user_id.clone())
-                        .unwrap_or_default(),
-                    next_up_set: session_next_up.as_ref().map(|n| n.next_up_set.clone()),
-                    next_up_rest_until: session_next_up.as_ref().map(|n| n.rest_until).unwrap_or(0),
-                    currently_lifting_user_id,
-                }),
-            }))
-        } else {
-            Ok(Response::new(GetCurrentSessionResponse {
+            return Ok(Response::new(GetCurrentSessionResponse {
                 session_id: String::new(),
                 session_status: None,
-            }))
+            }));
+        };
+
+        if explicit_session {
+            let caller_session = self
+                .central_db
+                .get_current_session_id_for_user(&user_id)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            let caller_was_member = self
+                .central_db
+                .was_user_in_session(&user_id, &session_id)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            if caller_session.as_deref() != Some(session_id.as_str()) && !caller_was_member {
+                return Err(Status::permission_denied(
+                    "You are not a member of this multiplayer session",
+                ));
+            }
         }
+
+        let Some((_, mut session_status)) =
+            load_current_session_snapshot(&self.central_db, &self.state, &session_id).await?
+        else {
+            return Ok(Response::new(GetCurrentSessionResponse {
+                session_id: String::new(),
+                session_status: None,
+            }));
+        };
+        session_status.participants.retain(|participant| {
+            participant.user.as_ref().map(|u| u.id.as_str()) != Some(user_id.as_str())
+        });
+
+        Ok(Response::new(GetCurrentSessionResponse {
+            session_id,
+            session_status: Some(session_status),
+        }))
+    }
+
+    async fn subscribe_session(
+        &self,
+        request: Request<SubscribeSessionRequest>,
+    ) -> Result<Response<Self::SubscribeSessionStream>, Status> {
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        let req = request.into_inner();
+
+        let session_id = if !req.session_id.is_empty() {
+            req.session_id
+        } else {
+            self.central_db
+                .get_current_session_id_for_user(&user_id)
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?
+                .ok_or_else(|| Status::not_found("No active multiplayer session"))?
+        };
+
+        let caller_session = self
+            .central_db
+            .get_current_session_id_for_user(&user_id)
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
+        if caller_session.as_deref() != Some(session_id.as_str()) {
+            return Err(Status::permission_denied(
+                "You are not a member of this multiplayer session",
+            ));
+        }
+
+        let sender = self.state.session_sender(&session_id);
+        let mut rx = sender.subscribe();
+        let central_db = self.central_db.clone();
+        let state = self.state.clone();
+        let session_id_for_task = session_id.clone();
+        let (tx, out_rx) = mpsc::channel(32);
+
+        tokio::spawn(async move {
+            if let Ok(Some((version, session_status))) =
+                load_current_session_snapshot(&central_db, &state, &session_id_for_task).await
+            {
+                if tx
+                    .send(Ok(SessionSubscriptionEvent {
+                        session_id: session_id_for_task.clone(),
+                        version,
+                        session_status: Some(session_status),
+                    }))
+                    .await
+                    .is_err()
+                {
+                    return;
+                }
+            }
+
+            loop {
+                match rx.recv().await {
+                    Ok(event) => {
+                        if tx.send(Ok(event)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        if let Ok(Some((version, session_status))) =
+                            load_current_session_snapshot(&central_db, &state, &session_id_for_task)
+                                .await
+                        {
+                            if tx
+                                .send(Ok(SessionSubscriptionEvent {
+                                    session_id: session_id_for_task.clone(),
+                                    version,
+                                    session_status: Some(session_status),
+                                }))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                        } else if tx
+                            .send(Err(Status::unavailable(
+                                "Session stream lost sync and could not recover",
+                            )))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        let _ = publish_current_session_snapshot(
+                            &central_db,
+                            &state,
+                            &session_id_for_task,
+                        )
+                        .await;
+                        break;
+                    }
+                }
+            }
+        });
+
+        Ok(Response::new(Box::pin(ReceiverStream::new(out_rx))))
     }
 
     async fn update_active_workout(
         &self,
         request: Request<UpdateActiveWorkoutRequest>,
     ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
-        let _user_id = get_user_id_authenticated(&request, &self.central_db).await?;
-        // No-op: workout state is read directly from AppState.workouts
+        let user_id = get_user_id_authenticated(&request, &self.central_db).await?;
+        self.state
+            .try_recover_user(&self.central_db, &user_id)
+            .await;
+        if let Some(session_id) = self.state.user_sessions.get(&user_id).map(|s| s.clone()) {
+            publish_current_session_snapshot_from_state(&self.state, &session_id)?;
+        }
         Ok(Response::new(UpdateActiveWorkoutResponse {}))
     }
 }

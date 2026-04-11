@@ -108,6 +108,43 @@ final $typed_data.Uint8List getCurrentSessionResponseDescriptor = $convert.base6
     '5JZBJACg5zZXNzaW9uX3N0YXR1cxgCIAEoCzIZLndvcmtvdXQudjEuU2Vzc2lvblN0YXR1c1IN'
     'c2Vzc2lvblN0YXR1cw==');
 
+@$core.Deprecated('Use subscribeSessionRequestDescriptor instead')
+const SubscribeSessionRequest$json = {
+  '1': 'SubscribeSessionRequest',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+  ],
+};
+
+/// Descriptor for `SubscribeSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List subscribeSessionRequestDescriptor =
+    $convert.base64Decode(
+        'ChdTdWJzY3JpYmVTZXNzaW9uUmVxdWVzdBIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW9uSW'
+        'Q=');
+
+@$core.Deprecated('Use sessionSubscriptionEventDescriptor instead')
+const SessionSubscriptionEvent$json = {
+  '1': 'SessionSubscriptionEvent',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'version', '3': 2, '4': 1, '5': 3, '10': 'version'},
+    {
+      '1': 'session_status',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.SessionStatus',
+      '10': 'sessionStatus'
+    },
+  ],
+};
+
+/// Descriptor for `SessionSubscriptionEvent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sessionSubscriptionEventDescriptor = $convert.base64Decode(
+    'ChhTZXNzaW9uU3Vic2NyaXB0aW9uRXZlbnQSHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbk'
+    'lkEhgKB3ZlcnNpb24YAiABKANSB3ZlcnNpb24SQAoOc2Vzc2lvbl9zdGF0dXMYAyABKAsyGS53'
+    'b3Jrb3V0LnYxLlNlc3Npb25TdGF0dXNSDXNlc3Npb25TdGF0dXM=');
+
 @$core.Deprecated('Use updateActiveWorkoutRequestDescriptor instead')
 const UpdateActiveWorkoutRequest$json = {
   '1': 'UpdateActiveWorkoutRequest',

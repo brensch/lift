@@ -65,6 +65,17 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getCurrentSession, request, options: options);
   }
 
+  /// Subscribe to live updates for a current multiplayer session.
+  /// The server always emits a full snapshot immediately after subscribe.
+  $grpc.ResponseStream<$0.SessionSubscriptionEvent> subscribeSession(
+    $0.SubscribeSessionRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$subscribeSession, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   /// Update the active workout for the current user's session
   $grpc.ResponseFuture<$0.UpdateActiveWorkoutResponse> updateActiveWorkout(
     $0.UpdateActiveWorkoutRequest request, {
@@ -95,6 +106,11 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/GetCurrentSession',
       ($0.GetCurrentSessionRequest value) => value.writeToBuffer(),
       $0.GetCurrentSessionResponse.fromBuffer);
+  static final _$subscribeSession = $grpc.ClientMethod<
+          $0.SubscribeSessionRequest, $0.SessionSubscriptionEvent>(
+      '/workout.v1.MultiplayerService/SubscribeSession',
+      ($0.SubscribeSessionRequest value) => value.writeToBuffer(),
+      $0.SessionSubscriptionEvent.fromBuffer);
   static final _$updateActiveWorkout = $grpc.ClientMethod<
           $0.UpdateActiveWorkoutRequest, $0.UpdateActiveWorkoutResponse>(
       '/workout.v1.MultiplayerService/UpdateActiveWorkout',
@@ -141,6 +157,15 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetCurrentSessionRequest.fromBuffer(value),
         ($0.GetCurrentSessionResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SubscribeSessionRequest,
+            $0.SessionSubscriptionEvent>(
+        'SubscribeSession',
+        subscribeSession_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) =>
+            $0.SubscribeSessionRequest.fromBuffer(value),
+        ($0.SessionSubscriptionEvent value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.UpdateActiveWorkoutRequest,
             $0.UpdateActiveWorkoutResponse>(
         'UpdateActiveWorkout',
@@ -186,6 +211,15 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetCurrentSessionResponse> getCurrentSession(
       $grpc.ServiceCall call, $0.GetCurrentSessionRequest request);
+
+  $async.Stream<$0.SessionSubscriptionEvent> subscribeSession_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SubscribeSessionRequest> $request) async* {
+    yield* subscribeSession($call, await $request);
+  }
+
+  $async.Stream<$0.SessionSubscriptionEvent> subscribeSession(
+      $grpc.ServiceCall call, $0.SubscribeSessionRequest request);
 
   $async.Future<$0.UpdateActiveWorkoutResponse> updateActiveWorkout_Pre(
       $grpc.ServiceCall $call,

@@ -75,9 +75,7 @@ class WearableSnapshotBuilder {
       }
       final proposed = liftingSnapshot.displaySet;
       final activeStartedAt = liftingSnapshot.activeStartedAt.toInt();
-      final elapsed = activeStartedAt > 0
-          ? nowUnix - activeStartedAt
-          : 0;
+      final elapsed = activeStartedAt > 0 ? nowUnix - activeStartedAt : 0;
       final liftLabel = proposed.warmup
           ? 'Warmup'
           : (proposed.isAmrap ? 'AMRAP' : 'Lifting');
@@ -102,7 +100,8 @@ class WearableSnapshotBuilder {
       }
     } else if (_isRestingState(stateValue)) {
       final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
-      final hasExpiredRest = restUntil > 0 && restUntil <= nowUnix && nextSet != null;
+      final hasExpiredRest =
+          restUntil > 0 && restUntil <= nowUnix && nextSet != null;
       final actionSet = stateSnapshot?.hasDisplaySet() == true
           ? stateSnapshot!.displaySet
           : nextSet;
@@ -124,7 +123,9 @@ class WearableSnapshotBuilder {
           ),
         );
       } else {
-        final restSeconds = restUntil > 0 ? (restUntil - nowUnix).clamp(0, 1 << 30) : 0;
+        final restSeconds = restUntil > 0
+            ? (restUntil - nowUnix).clamp(0, 1 << 30)
+            : 0;
         youCard = WearStatusCard(
           sideLabel: 'YOU',
           stateLabel: 'Resting',
@@ -205,7 +206,7 @@ class WearableSnapshotBuilder {
     String myUserId,
     int nowUnix,
   ) {
-    if (status == null || status.participants.length <= 1) return null;
+    if (status == null || status.participants.isEmpty) return null;
 
     ParticipantStatus? groupActive;
     String groupState = '';
@@ -215,13 +216,15 @@ class WearableSnapshotBuilder {
 
     final currentLifterId = status.currentlyLiftingUserId;
     if (currentLifterId.isNotEmpty && currentLifterId != myUserId) {
-      final lifting = status.participants
-          .cast<ParticipantStatus?>()
-          .firstWhere((p) => p!.user.id == currentLifterId, orElse: () => null);
+      final lifting = status.participants.cast<ParticipantStatus?>().firstWhere(
+        (p) => p!.user.id == currentLifterId,
+        orElse: () => null,
+      );
       if (lifting != null) {
-        final active = lifting.completedSets
-            .cast<CompletedSet?>()
-            .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
+        final active = lifting.completedSets.cast<CompletedSet?>().firstWhere(
+          (c) => c!.endedAt == Int64.ZERO,
+          orElse: () => null,
+        );
         final proposed = active == null
             ? null
             : lifting.proposedSets.cast<ProposedSet?>().firstWhere(
@@ -230,7 +233,9 @@ class WearableSnapshotBuilder {
               );
         groupActive = lifting;
         groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-        groupTimer = active != null ? _fmt(nowUnix - active.startedAt.toInt()) : '';
+        groupTimer = active != null
+            ? _fmt(nowUnix - active.startedAt.toInt())
+            : '';
         groupSet = proposed;
       }
     }
@@ -238,9 +243,10 @@ class WearableSnapshotBuilder {
     if (groupActive == null) {
       final nextUpUserId = status.nextUpUserId;
       if (nextUpUserId.isNotEmpty && nextUpUserId != myUserId) {
-        final next = status.participants
-            .cast<ParticipantStatus?>()
-            .firstWhere((p) => p!.user.id == nextUpUserId, orElse: () => null);
+        final next = status.participants.cast<ParticipantStatus?>().firstWhere(
+          (p) => p!.user.id == nextUpUserId,
+          orElse: () => null,
+        );
         if (next != null) {
           groupActive = next;
           final nextRestUntil = status.nextUpRestUntil.toInt() > 0
@@ -284,9 +290,7 @@ class WearableSnapshotBuilder {
     required List<CompletedSet> completedSets,
   }) {
     final durationSeconds = _elapsedSeconds(workout, nowUnix);
-    final proposedById = {
-      for (final set in proposedSets) set.id: set,
-    };
+    final proposedById = {for (final set in proposedSets) set.id: set};
 
     var completedWorkingSets = 0;
     var totalVolume = 0.0;

@@ -1,8 +1,10 @@
 use crate::regimes::SessionHistory;
 use crate::workout_events::{WorkoutEventRecord, WorkoutEventType};
 use dashmap::DashMap;
+use prost::Message;
 use schlift::workout::v1::{
-    CompletedSet, ExerciseTypeConfig, ProposedSet, RestConfig, User, Workout, WorkoutHeartRatePoint,
+    CompletedSet, ExerciseTypeConfig, GetWorkoutResponse, ParticipantStatus, ProposedSet,
+    RestConfig, User, Workout, WorkoutHeartRatePoint,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -15,6 +17,31 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
+
+pub struct CurrentSessionParticipantRow {
+    pub user_id: String,
+    pub updated_at: i64,
+    pub status: ParticipantStatus,
+}
+
+#[derive(Clone, Debug)]
+pub enum WorkoutMutationDbOp {
+    UpsertCompletedSet(CompletedSet),
+    DeleteCompletedSet {
+        workout_id: String,
+        completed_set_id: String,
+    },
+    CancelProposedSet {
+        workout_id: String,
+        proposed_set_id: String,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct WorkoutMutationPersist {
+    pub event: WorkoutEventRecord,
+    pub op: Option<WorkoutMutationDbOp>,
+}
 
 // Row mapping functions - single place to define DB <-> Proto mapping. Yes
 fn rest_config_from_columns(
@@ -149,6 +176,10 @@ fn row_to_user(row: sqlx::sqlite::SqliteRow) -> User {
     }
 }
 
+fn now_unix_i64() -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
+}
+
 pub enum WriteCommand {
     UpsertCompletedSet(String, CompletedSet),
     InsertWorkoutHeartRate(String, String, Vec<WorkoutHeartRatePoint>),
@@ -217,6 +248,18 @@ CREATE TABLE IF NOT EXISTS workouts (
     session_id TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS active_workout_current (
+    user_id TEXT PRIMARY KEY,
+    workout_id TEXT NOT NULL,
+    session_id TEXT NOT NULL DEFAULT '',
+    response_blob BLOB NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_active_workout_current_session
+    ON active_workout_current(session_id, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS exercise_groups (
     id TEXT PRIMARY KEY,
@@ -318,9 +361,32 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS session_participants_current (
+    session_id TEXT NOT NULL,
+    user_id TEXT NOT NULL UNIQUE,
+    participant_blob BLOB NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(session_id, user_id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS session_events (
+    version INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload BLOB NOT NULL,
+    recorded_at INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_joined_at ON sessions(joined_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions(session_id) WHERE left_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_sessions_session_user_joined ON sessions(session_id, user_id, joined_at DESC);
+CREATE INDEX IF NOT EXISTS idx_session_participants_current_session
+    ON session_participants_current(session_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_session_events_session_version
+    ON session_events(session_id, version DESC);
 
 -- Speed up deletion during flush
 CREATE INDEX IF NOT EXISTS idx_exercise_groups_user_workout ON exercise_groups(user_id, workout_id);
@@ -879,6 +945,58 @@ impl CentralDb {
         Ok(token)
     }
 
+    pub async fn get_or_create_user_with_auth_session(
+        &self,
+        username: &str,
+    ) -> Result<(User, String), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
+        let now = now_unix_i64()?;
+
+        let existing =
+            sqlx::query("SELECT id, name, created_at FROM users WHERE lower(name) = lower(?)")
+                .bind(username)
+                .map(row_to_user)
+                .fetch_optional(&mut *tx)
+                .await?;
+
+        let user = if let Some(user) = existing {
+            user
+        } else {
+            let user = User {
+                id: Uuid::new_v4().to_string(),
+                name: username.to_string(),
+                created_at: now,
+            };
+            sqlx::query("INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)")
+                .bind(&user.id)
+                .bind(&user.name)
+                .bind(user.created_at)
+                .execute(&mut *tx)
+                .await?;
+            user
+        };
+
+        let token = Uuid::new_v4().to_string();
+        let expires_at = now + 30 * 24 * 60 * 60;
+        sqlx::query(
+            "INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&token)
+        .bind(&user.id)
+        .bind(now)
+        .bind(expires_at)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        self.user_by_name_cache
+            .insert(user.name.clone(), user.clone());
+        self.auth_cache
+            .insert(token.clone(), (user.id.clone(), expires_at));
+        Ok((user, token))
+    }
+
     pub async fn validate_auth_session(
         &self,
         token: &str,
@@ -931,9 +1049,12 @@ impl CentralDb {
         exercise_groups: &[schlift::workout::v1::ExerciseGroup],
         proposed_sets: &[ProposedSet],
         checkpoint_event: &WorkoutEventRecord,
+        active_workout_response: &GetWorkoutResponse,
+        participant_status: Option<(&str, &ParticipantStatus)>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let _lock = self.write_lock.lock().await;
         let mut tx = self.pool.begin().await?;
+        let now = now_unix_i64()?;
 
         sqlx::query(
             "INSERT OR REPLACE INTO workouts (id, user_id, name, start_time, end_time, session_id)
@@ -955,6 +1076,22 @@ impl CentralDb {
         })
         .execute(&mut *tx)
         .await?;
+
+        if !workout.session_id.is_empty() {
+            sqlx::query(
+                "INSERT INTO sessions (session_id, user_id, joined_at)
+                 SELECT ?, ?, ?
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM sessions WHERE user_id = ? AND left_at IS NULL
+                 )",
+            )
+            .bind(&workout.session_id)
+            .bind(user_id)
+            .bind(now)
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        }
 
         for group in exercise_groups {
             sqlx::query(
@@ -1049,6 +1186,40 @@ impl CentralDb {
         .execute(&mut *tx)
         .await?;
 
+        sqlx::query(
+            "INSERT INTO active_workout_current (user_id, workout_id, session_id, response_blob, updated_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               workout_id = excluded.workout_id,
+               session_id = excluded.session_id,
+               response_blob = excluded.response_blob,
+               updated_at = excluded.updated_at",
+        )
+        .bind(user_id)
+        .bind(&workout.id)
+        .bind(&workout.session_id)
+        .bind(active_workout_response.encode_to_vec())
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        if let Some((session_id, status)) = participant_status {
+            sqlx::query(
+                "INSERT INTO session_participants_current (session_id, user_id, participant_blob, updated_at)
+                 VALUES (?, ?, ?, ?)
+                 ON CONFLICT(user_id) DO UPDATE SET
+                   session_id = excluded.session_id,
+                   participant_blob = excluded.participant_blob,
+                   updated_at = excluded.updated_at",
+            )
+            .bind(session_id)
+            .bind(user_id)
+            .bind(status.encode_to_vec())
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
         tx.commit().await?;
         Ok(())
     }
@@ -1107,6 +1278,62 @@ impl CentralDb {
             workout_id.to_string(),
             completed_set_id.to_string(),
         ))?;
+        Ok(())
+    }
+
+    pub async fn upsert_active_workout_current(
+        &self,
+        user_id: &str,
+        workout: &Workout,
+        response: &GetWorkoutResponse,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let now = now_unix_i64()?;
+        sqlx::query(
+            "INSERT INTO active_workout_current (user_id, workout_id, session_id, response_blob, updated_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               workout_id = excluded.workout_id,
+               session_id = excluded.session_id,
+               response_blob = excluded.response_blob,
+               updated_at = excluded.updated_at",
+        )
+        .bind(user_id)
+        .bind(&workout.id)
+        .bind(&workout.session_id)
+        .bind(response.encode_to_vec())
+        .bind(now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_active_workout_current(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<GetWorkoutResponse>, Box<dyn std::error::Error + Send + Sync>> {
+        let row: Option<Vec<u8>> = sqlx::query_scalar(
+            "SELECT response_blob FROM active_workout_current WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        match row {
+            Some(blob) => Ok(Some(GetWorkoutResponse::decode(blob.as_slice())?)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn delete_active_workout_current(
+        &self,
+        user_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        sqlx::query("DELETE FROM active_workout_current WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -1258,6 +1485,141 @@ impl CentralDb {
         .execute(&self.pool)
         .await?;
         Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn apply_workout_mutation_batch(
+        &self,
+        user_id: &str,
+        batch: &[WorkoutMutationPersist],
+        updated_workout: Option<(&Workout, &GetWorkoutResponse)>,
+        participant_status: Option<(&str, &ParticipantStatus)>,
+    ) -> Result<(Vec<String>, Vec<String>), Box<dyn std::error::Error + Send + Sync>> {
+        if batch.is_empty() {
+            return Ok((Vec::new(), Vec::new()));
+        }
+
+        let _lock = self.write_lock.lock().await;
+        let mut tx = self.pool.begin().await?;
+        let now = now_unix_i64()?;
+        let mut acked_event_ids = Vec::with_capacity(batch.len());
+        let mut inserted_event_ids = Vec::with_capacity(batch.len());
+
+        for item in batch {
+            let result = sqlx::query(
+                "INSERT OR IGNORE INTO workout_events (event_id, user_id, workout_id, recorded_at, event_type, payload)
+                 VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&item.event.event_id)
+            .bind(&item.event.user_id)
+            .bind(&item.event.workout_id)
+            .bind(item.event.recorded_at)
+            .bind(item.event.event_type as i32)
+            .bind(&item.event.payload)
+            .execute(&mut *tx)
+            .await?;
+
+            acked_event_ids.push(item.event.event_id.clone());
+
+            if result.rows_affected() == 0 {
+                continue;
+            }
+
+            match item.op.as_ref() {
+                Some(WorkoutMutationDbOp::UpsertCompletedSet(set)) => {
+                    sqlx::query(
+                        "INSERT OR REPLACE INTO completed_sets (id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at, rest_until)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind(&set.id)
+                    .bind(user_id)
+                    .bind(&set.workout_id)
+                    .bind(if set.proposed_set_id.is_empty() {
+                        None
+                    } else {
+                        Some(&set.proposed_set_id)
+                    })
+                    .bind(set.actual_reps)
+                    .bind(set.actual_weight)
+                    .bind(set.started_at)
+                    .bind(set.ended_at)
+                    .bind(if set.rest_until == 0 {
+                        None
+                    } else {
+                        Some(set.rest_until)
+                    })
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                Some(WorkoutMutationDbOp::DeleteCompletedSet {
+                    workout_id,
+                    completed_set_id,
+                }) => {
+                    sqlx::query(
+                        "DELETE FROM completed_sets WHERE user_id = ? AND workout_id = ? AND id = ?",
+                    )
+                    .bind(user_id)
+                    .bind(workout_id)
+                    .bind(completed_set_id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                Some(WorkoutMutationDbOp::CancelProposedSet {
+                    workout_id,
+                    proposed_set_id,
+                }) => {
+                    sqlx::query(
+                        "UPDATE proposed_sets SET cancelled = 1 WHERE user_id = ? AND workout_id = ? AND id = ?",
+                    )
+                    .bind(user_id)
+                    .bind(workout_id)
+                    .bind(proposed_set_id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                None => {}
+            }
+
+            inserted_event_ids.push(item.event.event_id.clone());
+        }
+
+        if let Some((workout, response)) = updated_workout {
+            sqlx::query(
+                "INSERT INTO active_workout_current (user_id, workout_id, session_id, response_blob, updated_at)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT(user_id) DO UPDATE SET
+                   workout_id = excluded.workout_id,
+                   session_id = excluded.session_id,
+                   response_blob = excluded.response_blob,
+                   updated_at = excluded.updated_at",
+            )
+            .bind(user_id)
+            .bind(&workout.id)
+            .bind(&workout.session_id)
+            .bind(response.encode_to_vec())
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        if let Some((session_id, status)) = participant_status {
+            sqlx::query(
+                "INSERT INTO session_participants_current (session_id, user_id, participant_blob, updated_at)
+                 VALUES (?, ?, ?, ?)
+                 ON CONFLICT(user_id) DO UPDATE SET
+                   session_id = excluded.session_id,
+                   participant_blob = excluded.participant_blob,
+                   updated_at = excluded.updated_at",
+            )
+            .bind(session_id)
+            .bind(user_id)
+            .bind(status.encode_to_vec())
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok((acked_event_ids, inserted_event_ids))
     }
 
     pub async fn finalize_workout_end(
@@ -1609,6 +1971,153 @@ impl CentralDb {
         }
 
         Ok((history, max_weights))
+    }
+
+    pub async fn upsert_session_participant_current(
+        &self,
+        session_id: &str,
+        user_id: &str,
+        status: &ParticipantStatus,
+        event_kind: &str,
+    ) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let blob = status.encode_to_vec();
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "INSERT INTO session_participants_current (session_id, user_id, participant_blob, updated_at)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               session_id = excluded.session_id,
+               participant_blob = excluded.participant_blob,
+               updated_at = excluded.updated_at",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .bind(&blob)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        let result = sqlx::query(
+            "INSERT INTO session_events (session_id, user_id, kind, payload, recorded_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .bind(event_kind)
+        .bind(&blob)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(result.last_insert_rowid())
+    }
+
+    pub async fn remove_session_participant_current(
+        &self,
+        session_id: &str,
+        user_id: &str,
+        event_kind: &str,
+    ) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
+        let _lock = self.write_lock.lock().await;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let payload = format!("removed:{user_id}").into_bytes();
+        let mut tx = self.pool.begin().await?;
+
+        sqlx::query(
+            "DELETE FROM session_participants_current WHERE session_id = ? AND user_id = ?",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+
+        let result = sqlx::query(
+            "INSERT INTO session_events (session_id, user_id, kind, payload, recorded_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .bind(event_kind)
+        .bind(payload)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(result.last_insert_rowid())
+    }
+
+    pub async fn get_current_session_id_for_user(
+        &self,
+        user_id: &str,
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar(
+            "SELECT session_id
+                 FROM sessions
+                 WHERE user_id = ? AND left_at IS NULL
+                 ORDER BY joined_at DESC
+                 LIMIT 1",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?)
+    }
+
+    pub async fn was_user_in_session(
+        &self,
+        user_id: &str,
+        session_id: &str,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM sessions WHERE user_id = ? AND session_id = ?)",
+        )
+        .bind(user_id)
+        .bind(session_id)
+        .fetch_one(&self.pool)
+        .await?)
+    }
+
+    pub async fn get_current_session_participants(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<CurrentSessionParticipantRow>, Box<dyn std::error::Error + Send + Sync>> {
+        let rows = sqlx::query(
+            "SELECT user_id, participant_blob, updated_at
+             FROM session_participants_current
+             WHERE session_id = ?
+             ORDER BY updated_at DESC, user_id ASC",
+        )
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut out = Vec::with_capacity(rows.len());
+        for row in rows {
+            let blob: Vec<u8> = row.get("participant_blob");
+            let status = ParticipantStatus::decode(blob.as_slice())?;
+            out.push(CurrentSessionParticipantRow {
+                user_id: row.get("user_id"),
+                updated_at: row.get("updated_at"),
+                status,
+            });
+        }
+        Ok(out)
+    }
+
+    pub async fn get_latest_session_event_version(
+        &self,
+        session_id: &str,
+    ) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(sqlx::query_scalar(
+            "SELECT COALESCE(MAX(version), 0) FROM session_events WHERE session_id = ?",
+        )
+        .bind(session_id)
+        .fetch_one(&self.pool)
+        .await?)
     }
 
     pub async fn join_session(

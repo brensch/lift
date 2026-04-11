@@ -373,12 +373,10 @@ async fn api_flow_exposes_group_session_next_up_user() {
     assert!(session.next_up_set.is_some());
     assert_eq!(session.currently_lifting_user_id, "u1");
 
-    let u1_status = session
+    assert!(session
         .participants
         .iter()
-        .find(|p| p.user.as_ref().map(|u| u.id.as_str()) == Some("u1"))
-        .expect("u1 status");
-    assert!(u1_status.has_active_set);
+        .all(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some("u1")));
 
     let u2_status = session
         .participants
@@ -1692,10 +1690,7 @@ async fn concurrent_mutations_and_session_poll_does_not_deadlock() {
         .filter(|s| !s.warmup && !s.cancelled)
         .map(|s| s.id.clone())
         .collect();
-    assert!(
-        proposed_set_ids.len() >= 3,
-        "Need at least 3 proposed sets"
-    );
+    assert!(proposed_set_ids.len() >= 3, "Need at least 3 proposed sets");
 
     // Fire off concurrent tasks:
     // Task A: user1 sends mutations (start_set + complete_set via append_workout_mutations)

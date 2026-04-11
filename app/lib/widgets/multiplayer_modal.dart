@@ -276,32 +276,60 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
-                    children: mp.participants.map((p) {
-                      return ListTile(
+                    children: [
+                      ListTile(
                         dense: true,
                         leading: CircleAvatar(
                           radius: 12,
-                          backgroundColor: colorScheme.primaryContainer,
+                          backgroundColor: colorScheme.secondaryContainer,
                           child: Text(
-                            p.user.name.isNotEmpty
-                                ? p.user.name[0].toUpperCase()
+                            auth.username != null && auth.username!.isNotEmpty
+                                ? auth.username![0].toUpperCase()
                                 : '?',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: colorScheme.onPrimaryContainer,
+                              color: colorScheme.onSecondaryContainer,
                             ),
                           ),
                         ),
                         title: Text(
-                          p.user.name,
+                          auth.username?.isNotEmpty == true
+                              ? '${auth.username} (You)'
+                              : 'You',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                      ...mp.participants.map((p) {
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: colorScheme.primaryContainer,
+                            child: Text(
+                              p.user.name.isNotEmpty
+                                  ? p.user.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            p.user.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),

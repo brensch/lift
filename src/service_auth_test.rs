@@ -30,29 +30,9 @@ pub async fn handle_test_login(
         return Err(Status::invalid_argument("username cannot contain spaces"));
     }
 
-    let user = match auth_state
+    let (user, token) = auth_state
         .central_db
-        .get_user_by_name(&username)
-        .await
-        .map_err(|e| Status::internal(e.to_string()))?
-    {
-        Some(existing) => existing,
-        None => auth_state
-            .central_db
-            .create_user(&username)
-            .await
-            .map_err(|e| {
-                if e.to_string().contains("already exists") {
-                    Status::already_exists("User already exists")
-                } else {
-                    Status::internal(e.to_string())
-                }
-            })?,
-    };
-
-    let token = auth_state
-        .central_db
-        .create_auth_session(&user.id)
+        .get_or_create_user_with_auth_session(&username)
         .await
         .map_err(|e| Status::internal(e.to_string()))?;
 

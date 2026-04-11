@@ -1,9 +1,13 @@
 use dashmap::DashMap;
-use schlift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, User, Workout};
+use schlift::workout::v1::{
+    CompletedSet, ExerciseGroup, ProposedSet, SessionSubscriptionEvent, User, Workout,
+};
 use std::collections::HashSet;
 use std::sync::Arc;
+use tokio::sync::broadcast;
 
 use crate::db::CentralDb;
+use crate::service_workout::active_from_get_workout_response;
 
 #[derive(Clone)]
 pub struct ActiveWorkout {
@@ -66,6 +70,8 @@ pub struct AppState {
     pub user_sessions: DashMap<String, String>,
     /// Cached user info: user_id -> User proto
     pub users: DashMap<String, User>,
+    /// Per-session stream broadcasters for multiplayer updates
+    session_streams: DashMap<String, broadcast::Sender<SessionSubscriptionEvent>>,
     /// Users we've already checked for crash recovery (avoids repeated DB lookups)
     checked_users: DashMap<String, ()>,
 }
@@ -77,8 +83,24 @@ impl AppState {
             sessions: DashMap::new(),
             user_sessions: DashMap::new(),
             users: DashMap::new(),
+            session_streams: DashMap::new(),
             checked_users: DashMap::new(),
         }
+    }
+
+    pub fn session_sender(&self, session_id: &str) -> broadcast::Sender<SessionSubscriptionEvent> {
+        self.session_streams
+            .entry(session_id.to_string())
+            .or_insert_with(|| {
+                let (tx, _rx) = broadcast::channel(128);
+                tx
+            })
+            .clone()
+    }
+
+    pub fn publish_session_event(&self, event: SessionSubscriptionEvent) {
+        let sender = self.session_sender(&event.session_id);
+        let _ = sender.send(event);
     }
 
     /// Lazy crash recovery: on first access per user, check their UserDb for
@@ -102,9 +124,12 @@ impl AppState {
             return;
         }
 
-        // Check CentralDb for un-ended workout
-        let active = match central_db.get_active_workout(user_id).await {
-            Ok(Some(w)) => w,
+        // Check SQLite current-state blob for an active workout
+        let active = match central_db.get_active_workout_current(user_id).await {
+            Ok(Some(resp)) => match active_from_get_workout_response(resp) {
+                Ok(active) => active,
+                Err(_) => return,
+            },
             Ok(None) => {
                 self.checked_users.insert(user_id.to_string(), ());
                 return;
@@ -112,25 +137,12 @@ impl AppState {
             Err(_) => return,
         };
 
-        let groups = central_db
-            .get_exercise_groups(user_id, &active.id)
-            .await
-            .unwrap_or_default();
-        let proposed = central_db
-            .get_proposed_sets(user_id, &active.id)
-            .await
-            .unwrap_or_default();
-        let completed = central_db
-            .get_completed_sets(user_id, &active.id)
-            .await
-            .unwrap_or_default();
-
         // Re-check workouts to avoid overwriting a workout that might have started
         // during the awaits above.
         use dashmap::mapref::entry::Entry;
         match self.workouts.entry(user_id.to_string()) {
             Entry::Vacant(v) => {
-                v.insert(ActiveWorkout::new(active, groups, proposed, completed));
+                v.insert(active);
             }
             Entry::Occupied(_) => {
                 // Someone else started a workout while we were fetching from DB
@@ -153,12 +165,7 @@ impl AppState {
             // Also sync the session_id into the recovered workout so
             // get_current_session can use the fast in-memory path.
             if let Some(mut active) = self.workouts.get_mut(user_id) {
-                if active.workout.session_id != session_id {
-                    active.workout.session_id = session_id.clone();
-                    let _ = central_db
-                        .update_workout_session_id(user_id, &active.workout.id, &session_id)
-                        .await;
-                }
+                active.workout.session_id = session_id.clone();
             }
         }
     }
@@ -174,6 +181,7 @@ impl AppState {
                 if members.is_empty() {
                     drop(members);
                     self.sessions.remove(&session_id);
+                    self.session_streams.remove(&session_id);
                 }
             }
         }

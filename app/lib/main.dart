@@ -104,11 +104,6 @@ class _SchliftAppState extends State<SchliftApp> {
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
     );
-    // After each set operation, immediately refresh the session view so the
-    // "who's up next" bar reflects the change without waiting for the next
-    // background poll tick.
-    _workoutProvider.onSessionRefreshNeeded = () =>
-        _multiplayerProvider.refreshNow();
     _themeProvider = ThemeProvider();
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(

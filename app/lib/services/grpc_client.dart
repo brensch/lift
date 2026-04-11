@@ -1,4 +1,5 @@
 import 'package:grpc/grpc.dart';
+import 'dart:async';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
@@ -23,6 +24,24 @@ class AuthInterceptor extends ClientInterceptor {
     return invoker(
       method,
       request,
+      options.mergedWith(CallOptions(metadata: metadata)),
+    );
+  }
+
+  @override
+  ResponseStream<R> interceptStreaming<Q, R>(
+    ClientMethod<Q, R> method,
+    Stream<Q> requests,
+    CallOptions options,
+    ClientStreamingInvoker<Q, R> invoker,
+  ) {
+    final metadata = Map<String, String>.from(options.metadata);
+    if (_token != null) {
+      metadata['x-session-token'] = _token!;
+    }
+    return invoker(
+      method,
+      requests,
       options.mergedWith(CallOptions(metadata: metadata)),
     );
   }
