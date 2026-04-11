@@ -104,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )))
         .into_router();
 
-    let app = grpc_router
+    let app = axum::Router::new()
         .route("/api/health", get(|| async { "ok" }))
         .route("/.well-known/assetlinks.json", get(assetlinks_handler))
         .route(
@@ -115,6 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "/apple-app-site-association",
             get(apple_app_site_association_handler),
         )
+        .fallback_service(grpc_router)
         .layer(cors);
 
     println!("Server listening on {} (gRPC-Web)", addr);
