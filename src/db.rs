@@ -532,19 +532,22 @@ impl CentralDb {
                         if samples.is_empty() {
                             continue;
                         }
-                        for sample in samples {
-                            sqlx::query(
-                            "INSERT INTO workout_heart_rate_samples (id, user_id, workout_id, sampled_at, bpm, availability, source)
-                             VALUES (?, ?, ?, ?, ?, ?, 'wear')",
-                        )
-                        .bind(Uuid::new_v4().to_string())
-                        .bind(&user_id)
-                        .bind(&workout_id)
-                        .bind(sample.sampled_at)
-                        .bind(sample.bpm)
-                        .bind(sample.availability)
-                        .execute(&mut *tx)
-                        .await?;
+                        // Batch INSERT: SQLite supports ~500 params per statement,
+                        // each row uses 7 params → chunks of 70 rows.
+                        for chunk in samples.chunks(70) {
+                            let mut qb: sqlx::QueryBuilder<Sqlite> = sqlx::QueryBuilder::new(
+                                "INSERT INTO workout_heart_rate_samples (id, user_id, workout_id, sampled_at, bpm, availability, source) ",
+                            );
+                            qb.push_values(chunk, |mut b, sample| {
+                                b.push_bind(Uuid::new_v4().to_string())
+                                    .push_bind(&user_id)
+                                    .push_bind(&workout_id)
+                                    .push_bind(sample.sampled_at)
+                                    .push_bind(sample.bpm)
+                                    .push_bind(sample.availability)
+                                    .push_bind("wear");
+                            });
+                            qb.build().execute(&mut *tx).await?;
                         }
                     }
                     WriteCommand::UpdateWorkoutSession(user_id, workout_id, session_id) => {
