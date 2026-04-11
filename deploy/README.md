@@ -77,4 +77,4 @@ A copyable example file lives at `deploy/schlift-runner.sudoers.example`.
 
 ## Downtime model
 
-This flow restarts a single `systemd` service in place and rolls back to the previous release if the new binary fails to start or fails the local health check. It is intentionally simple and SQLite-friendly. It does not provide true zero downtime.
+This flow restarts a single `systemd` service in place and rolls back to the previous release if the new binary fails to start or fails the local health check. By default the deploy script performs a local TCP readiness check against `127.0.0.1:50051`; set `HEALTHCHECK_MODE=http` and `HEALTHCHECK_URL=...` if you later add a dedicated HTTP health endpoint. It is intentionally simple and SQLite-friendly. It does not provide true zero downtime.

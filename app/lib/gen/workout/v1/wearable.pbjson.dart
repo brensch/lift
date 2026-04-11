@@ -86,6 +86,8 @@ const WearStatusCard$json = {
       '6': '.workout.v1.ProposedSet',
       '10': 'displaySet'
     },
+    {'1': 'current_group_set', '3': 7, '4': 1, '5': 5, '10': 'currentGroupSet'},
+    {'1': 'total_group_sets', '3': 8, '4': 1, '5': 5, '10': 'totalGroupSets'},
   ],
 };
 
@@ -95,7 +97,8 @@ final $typed_data.Uint8List wearStatusCardDescriptor = $convert.base64Decode(
     'VyGAIgASgJUgZoZWFkZXISHwoLc3RhdGVfbGFiZWwYAyABKAlSCnN0YXRlTGFiZWwSHQoKdGlt'
     'ZXJfdGV4dBgEIAEoCVIJdGltZXJUZXh0Eh8KC2lzX2NvbXBsZXRlGAUgASgIUgppc0NvbXBsZX'
     'RlEjgKC2Rpc3BsYXlfc2V0GAYgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNldFIKZGlzcGxh'
-    'eVNldA==');
+    'eVNldBIqChFjdXJyZW50X2dyb3VwX3NldBgHIAEoBVIPY3VycmVudEdyb3VwU2V0EigKEHRvdG'
+    'FsX2dyb3VwX3NldHMYCCABKAVSDnRvdGFsR3JvdXBTZXRz');
 
 @$core.Deprecated('Use wearActionDescriptor instead')
 const WearAction$json = {

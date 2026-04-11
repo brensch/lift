@@ -115,6 +115,11 @@ class HeartRateStreamer {
         batch.workoutID = workoutId
         batch.heartRateSamples = samples
 
-        connector?.sendSensorBatch(batch)
+        let enqueued = connector?.sendSensorBatch(batch) ?? false
+        guard !enqueued else { return }
+
+        lock.lock()
+        pendingSamples.insert(contentsOf: samples, at: 0)
+        lock.unlock()
     }
 }

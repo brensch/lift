@@ -60,21 +60,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Server listening on {} (gRPC h2c)", addr);
 
     tonic::transport::Server::builder()
-        .add_service(WorkoutServiceServer::new(ServerWorkoutService {
+        .accept_http1(true)
+        .add_service(tonic_web::enable(WorkoutServiceServer::new(
+            ServerWorkoutService {
+                db: server_db.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(UserServiceServer::new(ServerUserService {
             db: server_db.clone(),
-        }))
-        .add_service(UserServiceServer::new(ServerUserService {
+        })))
+        .add_service(tonic_web::enable(MultiplayerServiceServer::new(
+            ServerMultiplayerService {
+                db: server_db.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(AuthServiceServer::new(ServerAuthService {
             db: server_db.clone(),
-        }))
-        .add_service(MultiplayerServiceServer::new(ServerMultiplayerService {
-            db: server_db.clone(),
-        }))
-        .add_service(AuthServiceServer::new(ServerAuthService {
-            db: server_db.clone(),
-        }))
-        .add_service(SettingsServiceServer::new(ServerSettingsService {
-            db: server_db.clone(),
-        }))
+        })))
+        .add_service(tonic_web::enable(SettingsServiceServer::new(
+            ServerSettingsService {
+                db: server_db.clone(),
+            },
+        )))
         .serve(addr)
         .await?;
 

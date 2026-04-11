@@ -85,6 +85,7 @@ class WearableSnapshotBuilder {
         timerText: _fmt(elapsed),
         displaySet: proposed,
       );
+      _applyGroupProgress(youCard, proposed, proposedSets);
       final maxReps = proposed.isAmrap ? 30 : proposed.targetReps;
       for (var reps = 0; reps <= maxReps; reps++) {
         actions.add(
@@ -114,6 +115,7 @@ class WearableSnapshotBuilder {
           timerText: '-${_fmt(nowUnix - restUntil)}',
           displaySet: actionSet,
         );
+        _applyGroupProgress(youCard, actionSet, proposedSets);
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -132,6 +134,7 @@ class WearableSnapshotBuilder {
           timerText: _fmt(restSeconds),
           displaySet: actionSet,
         );
+        _applyGroupProgress(youCard, actionSet, proposedSets);
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -164,6 +167,7 @@ class WearableSnapshotBuilder {
         timerText: isYapping ? '-${_fmt(nowUnix - lastRestEnd)}' : '',
         displaySet: displaySet,
       );
+      _applyGroupProgress(youCard, displaySet, proposedSets);
       actions.add(
         WearAction(
           type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -199,6 +203,34 @@ class WearableSnapshotBuilder {
     }
 
     return snapshot;
+  }
+
+  static void _applyGroupProgress(
+    WearStatusCard card,
+    ProposedSet displaySet,
+    List<ProposedSet> proposedSets,
+  ) {
+    final progress = _groupProgressForDisplaySet(displaySet, proposedSets);
+    if (progress == null) return;
+    card
+      ..currentGroupSet = progress.$1
+      ..totalGroupSets = progress.$2;
+  }
+
+  static (int, int)? _groupProgressForDisplaySet(
+    ProposedSet displaySet,
+    List<ProposedSet> proposedSets,
+  ) {
+    final groupId = displaySet.exerciseGroupId;
+    if (groupId.isEmpty) return null;
+    final groupSets = proposedSets
+        .where((set) => !set.cancelled && set.exerciseGroupId == groupId)
+        .toList()
+      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    if (groupSets.isEmpty) return null;
+    final currentIndex = groupSets.indexWhere((set) => set.id == displaySet.id);
+    if (currentIndex < 0) return null;
+    return (currentIndex + 1, groupSets.length);
   }
 
   static WearStatusCard? _buildGroupCard(

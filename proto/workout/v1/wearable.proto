@@ -35,6 +35,8 @@ message WearStatusCard {
   string timer_text = 4; // optional
   bool is_complete = 5;
   ProposedSet display_set = 6; // optional
+  int32 current_group_set = 7; // optional, 1-based
+  int32 total_group_sets = 8; // optional
 }
 
 message WearAction {

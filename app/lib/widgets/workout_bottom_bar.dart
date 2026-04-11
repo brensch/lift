@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/participant_ticker.dart';
 import '../widgets/workout_modals.dart';
 import '../widgets/workout_status_box.dart';
 
@@ -70,6 +71,12 @@ class WorkoutBottomBar extends StatelessWidget {
         ? (wp.now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
         : 0;
     final elapsedText = _fmtElapsed(elapsedSeconds < 0 ? 0 : elapsedSeconds);
+    final latestHeartRate = wp.wearHeartRateSamples.isNotEmpty
+        ? wp.wearHeartRateSamples.last
+        : null;
+    final heartRateText = latestHeartRate != null && latestHeartRate.bpm > 0
+        ? '${latestHeartRate.bpm.round()}'
+        : '--';
 
     // Determine if we're on the workout page
     final currentUri = GoRouterState.of(context).uri.toString();
@@ -125,7 +132,7 @@ class WorkoutBottomBar extends StatelessWidget {
         actionButton = _BigButton(
           label: 'Start Set',
           onPressed: () => wp.startSet(actionSet.id),
-          secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip Warmup' : null,
+          secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
           onSecondary: wp.canSkipWarmup(actionSet.id)
               ? () => wp.skipWarmup(actionSet.id)
               : null,
@@ -144,7 +151,7 @@ class WorkoutBottomBar extends StatelessWidget {
             if (displaySet != null) wp.startSet(displaySet.id);
           },
           secondaryLabel: displaySet != null && wp.canSkipWarmup(displaySet.id)
-              ? 'Skip Warmup'
+              ? 'Skip'
               : null,
           onSecondary: displaySet != null && wp.canSkipWarmup(displaySet.id)
               ? () => wp.skipWarmup(displaySet!.id)
@@ -166,7 +173,7 @@ class WorkoutBottomBar extends StatelessWidget {
       actionButton = _BigButton(
         label: 'Start Set',
         onPressed: () => wp.startSet(actionSet.id),
-        secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip Warmup' : null,
+        secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
         onSecondary: wp.canSkipWarmup(actionSet.id)
             ? () => wp.skipWarmup(actionSet.id)
             : null,
@@ -231,24 +238,64 @@ class WorkoutBottomBar extends StatelessWidget {
                   children: [
                     Container(
                       height: 64,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      width: 84,
                       decoration: BoxDecoration(
                         color: colorScheme.surface.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: colorScheme.outline.withValues(alpha: 0.5),
                         ),
                       ),
-                      child: Center(
-                        child: Text(
-                          elapsedText,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
-                            color: colorScheme.onSurface,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.timer_outlined,
+                                size: 14,
+                                color: colorScheme.tertiary,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  elapsedText,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                    color: colorScheme.onSurface,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.favorite,
+                                size: 14,
+                                color: Color(0xFFE11D48),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                heartRateText,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
+                                  color: colorScheme.onSurface,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -270,108 +317,33 @@ class WorkoutBottomBar extends StatelessWidget {
     DateTime now,
   ) {
     if (status == null) return const SizedBox.shrink();
-    const purple = Color(0xFF9333EA);
-    final error = Theme.of(context).colorScheme.error;
-    final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+    final otherParticipants = status.participants
+        .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
+        .toList(growable: false);
 
-    final nextUpUserId = status.nextUpUserId;
-    ParticipantStatus? groupActive;
-    String groupState = '';
-    String? groupTimer;
-    Color? groupTimerColor;
-    ProposedSet? groupSet;
-    Color boxColor = purple;
-
-    // Find another participant who is actively lifting. Prefer the server's
-    // designated currentLifterId, but fall back to scanning all participants
-    // for an active set — this handles simultaneous lifts where
-    // currentLifterId == myUserId but someone else is also mid-set.
-    final currentLifterId = status.currentlyLiftingUserId;
-    final otherLifter =
-        currentLifterId.isNotEmpty && currentLifterId != myUserId
-        ? status.participants.cast<ParticipantStatus?>().firstWhere(
-            (p) => p!.user.id == currentLifterId,
-            orElse: () => null,
-          )
-        : status.participants.cast<ParticipantStatus?>().firstWhere(
-            (p) =>
-                p!.user.id != myUserId &&
-                p.completedSets.any((c) => c.endedAt == Int64.ZERO),
-            orElse: () => null,
-          );
-
-    if (otherLifter != null) {
-      final active = otherLifter.completedSets.cast<CompletedSet?>().firstWhere(
-        (c) => c!.endedAt == Int64.ZERO,
-        orElse: () => null,
-      );
-      final proposed = active == null
-          ? null
-          : otherLifter.proposedSets.cast<ProposedSet?>().firstWhere(
-              (s) => s!.id == active.proposedSetId,
-              orElse: () => null,
-            );
-      groupActive = otherLifter;
-      groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-      groupTimer = active != null
-          ? _fmt((nowUnix - active.startedAt.toInt()).toInt())
-          : null;
-      groupSet = proposed;
-    }
-
-    if (groupActive == null && nextUpUserId.isNotEmpty) {
-      final nextParticipant = status.participants
-          .cast<ParticipantStatus?>()
-          .firstWhere((p) => p!.user.id == nextUpUserId, orElse: () => null);
-      if (nextParticipant != null) {
-        groupActive = nextParticipant;
-        final nextRestUntil = status.nextUpRestUntil.toInt() > 0
-            ? status.nextUpRestUntil.toInt()
-            : nextParticipant.restUntil.toInt();
-        final remaining = nextRestUntil - nowUnix;
-        if (remaining > 0) {
-          groupState = 'Resting';
-          groupTimer = _fmt(remaining.toInt());
-        } else if (nextRestUntil > 0) {
-          groupState = 'Yapping';
-          groupTimer = '+${_fmt((nowUnix - nextRestUntil).toInt())}';
-          groupTimerColor = error;
-          boxColor = error;
-        } else {
-          groupState = 'Ready';
-          groupTimer = 'Ready';
-        }
-        if (nextParticipant.hasNextUpSet()) {
-          groupSet = nextParticipant.nextUpSet;
-        } else if (status.hasNextUpSet()) {
-          groupSet = status.nextUpSet;
-        }
-      }
-    }
-
-    if (groupActive == null && currentLifterId == myUserId) {
-      groupState = 'Watching';
-      boxColor = purple;
-    }
-
-    if (groupActive == null && groupState.isEmpty) {
+    if (otherParticipants.isEmpty) {
       return const SizedBox.shrink();
     }
-
-    final rawName = groupActive == null
-        ? 'You'
-        : groupActive.user.name.isNotEmpty
-        ? groupActive.user.name
-        : groupActive.user.id;
-    final sideLabel = _sideLabelName(rawName);
+    otherParticipants.sort((a, b) {
+      final aStatus = describeParticipantStatus(a, now: now);
+      final bStatus = describeParticipantStatus(b, now: now);
+      final priorityCompare = bStatus.sortPriority.compareTo(aStatus.sortPriority);
+      if (priorityCompare != 0) return priorityCompare;
+      return participantDisplayName(
+        a,
+      ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
+    });
+    final featured = otherParticipants.first;
+    final featuredStatus = describeParticipantStatus(featured, now: now);
+    final sideLabel = _sideLabelName(participantDisplayName(featured));
 
     return StatusBox(
       sideLabel: sideLabel,
-      stateLabel: groupState,
-      color: boxColor,
-      timerText: groupTimer,
-      timerColor: groupTimerColor,
-      set: groupSet,
+      stateLabel: featuredStatus.stateLabel,
+      color: featuredStatus.stateColor,
+      timerText: featuredStatus.timerText,
+      timerColor: featuredStatus.timerColor,
+      set: featuredStatus.proposedSet,
       sideLabelWidth: 44,
     );
   }
@@ -563,7 +535,7 @@ class _RepButtonsState extends State<_RepButtons> {
             child: TextButton(
               onPressed: widget.onSkipWarmup,
               child: Text(
-                'Skip Warmup',
+                'Skip',
                 style: TextStyle(fontSize: 13, color: colorScheme.tertiary),
               ),
             ),

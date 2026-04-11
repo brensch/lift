@@ -2,6 +2,8 @@ import Foundation
 import HealthKit
 
 class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
+    var onLatestHeartRateChanged: ((Double?) -> Void)?
+
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
@@ -47,6 +49,9 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
         self.session = nil
         self.builder = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.onLatestHeartRateChanged?(nil)
+        }
     }
 
     // MARK: - HKWorkoutSessionDelegate
@@ -65,5 +70,16 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
 
-    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {}
+    func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
+        guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate),
+              collectedTypes.contains(heartRateType),
+              let statistics = workoutBuilder.statistics(for: heartRateType),
+              let quantity = statistics.mostRecentQuantity() else {
+            return
+        }
+        let bpm = quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+        DispatchQueue.main.async { [weak self] in
+            self?.onLatestHeartRateChanged?(bpm)
+        }
+    }
 }

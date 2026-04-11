@@ -19,6 +19,7 @@ class MultiplayerProvider extends ChangeNotifier {
   Timer? _pollTimer;
   bool _disposed = false;
   bool _pollInFlight = false;
+  bool _syncEnabled = false;
 
   MultiplayerProvider(this._service);
 
@@ -28,7 +29,22 @@ class MultiplayerProvider extends ChangeNotifier {
   bool get isInSession => _sessionId != null;
   bool get isLoading => _isLoading;
 
+  void startSync() {
+    if (_disposed) return;
+    _syncEnabled = true;
+    _ensurePolling();
+  }
+
+  void stopSync({bool clearSession = true}) {
+    _syncEnabled = false;
+    _cancelPolling();
+    if (clearSession) {
+      _clearSession(notify: true);
+    }
+  }
+
   Future<void> checkForSession() async {
+    if (_disposed) return;
     try {
       final response = await _service.getCurrentSession();
       if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
@@ -49,6 +65,7 @@ class MultiplayerProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _sessionId = await _service.joinUser(userId);
+      _syncEnabled = true;
       await checkForSession();
       Fluttertoast.showToast(
         msg: "JOINED GROUP",
@@ -70,16 +87,24 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   Future<void> leaveSession() async {
-    _cancelPolling();
     try {
       await _service.leaveSession();
     } catch (_) {}
     _clearSession(notify: true);
+    if (_syncEnabled) {
+      _ensurePolling();
+    } else {
+      _cancelPolling();
+    }
   }
 
   void markLocalWorkoutFinished() {
-    _cancelPolling();
     _clearSession(notify: true);
+    if (_syncEnabled) {
+      _ensurePolling();
+    } else {
+      _cancelPolling();
+    }
   }
 
   Future<void> updateActiveWorkout(String workoutId) async {
@@ -91,8 +116,7 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void clear() {
-    _cancelPolling();
-    _clearSession(notify: true);
+    stopSync(clearSession: true);
   }
 
   void _applySnapshot({
@@ -108,8 +132,7 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void _ensurePolling() {
-    final sessionId = _sessionId;
-    if (sessionId == null || _disposed) return;
+    if (_disposed || !_syncEnabled) return;
     _pollTimer ??= Timer.periodic(_pollInterval, (_) {
       unawaited(_pollSession());
     });
@@ -118,11 +141,12 @@ class MultiplayerProvider extends ChangeNotifier {
 
   Future<void> _pollSession() async {
     if (_disposed || _pollInFlight) return;
-    final sessionId = _sessionId;
-    if (sessionId == null) return;
     _pollInFlight = true;
     try {
-      final response = await _service.getCurrentSession(sessionId: sessionId);
+      final sessionId = _sessionId;
+      final response = sessionId == null
+          ? await _service.getCurrentSession()
+          : await _service.getCurrentSession(sessionId: sessionId);
       if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
         _clearSession(notify: true);
         return;

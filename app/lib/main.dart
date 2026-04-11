@@ -81,6 +81,7 @@ class _SchliftAppState extends State<SchliftApp> {
   late final WearableSyncCoordinator _wearableSyncCoordinator;
   late final GoRouter _router;
   StreamSubscription? _linkSubscription;
+  bool _wasLoggedIn = false;
 
   @override
   void initState() {
@@ -113,30 +114,35 @@ class _SchliftAppState extends State<SchliftApp> {
       myUserId: () => _authProvider.userId ?? '',
     );
     unawaited(_wearableSyncCoordinator.init());
+    _workoutProvider.onSessionRefreshNeeded = () {
+      _multiplayerProvider.checkForSession();
+    };
 
     // Listen to auth changes: clear state on logout, load settings on login.
     // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
-      if (_authProvider.isLoggedIn) {
+      final isLoggedIn = _authProvider.isLoggedIn;
+      if (isLoggedIn && !_wasLoggedIn) {
         _settingsProvider.load();
-      } else {
+        _soundProvider.load();
+        final userId = _authProvider.userId;
+        if (userId != null) {
+          unawaited(_workoutProvider.loadActiveWorkout(userId));
+        }
+        _multiplayerProvider.startSync();
+      } else if (!isLoggedIn && _wasLoggedIn) {
         _settingsProvider.clear();
         unawaited(_soundProvider.reset());
         unawaited(_themeProvider.reset());
         _workoutProvider.clear();
-        _multiplayerProvider.clear();
+        _multiplayerProvider.stopSync(clearSession: true);
       }
+      _wasLoggedIn = isLoggedIn;
     });
 
-    // Load persisted state at app startup (already-logged-in session).
-    _authProvider.loadSession().then((_) {
-      if (_authProvider.isLoggedIn) {
-        _workoutProvider.loadActiveWorkout(_authProvider.userId!);
-        _multiplayerProvider.checkForSession();
-        _soundProvider.load();
-        _settingsProvider.load();
-      }
-    });
+    // Load persisted state at app startup. The auth listener above handles
+    // login-transition side effects after this notifies.
+    _authProvider.loadSession();
 
     _router = GoRouter(
       navigatorKey: ErrorModalService.rootNavigatorKey,

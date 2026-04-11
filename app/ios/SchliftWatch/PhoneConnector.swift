@@ -19,6 +19,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         heartRateStreamer.onLatestBpmChanged = { [weak self] bpm in
             self?.latestBpm = bpm
         }
+        workoutSessionManager.onLatestHeartRateChanged = { [weak self] bpm in
+            self?.latestBpm = bpm
+        }
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
@@ -81,12 +84,17 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         sendToPhone(path: WatchPaths.wearToPhoneEnvelope, data: data)
     }
 
-    func sendSensorBatch(_ batch: Workout_V1_WearSensorBatch) {
+    @discardableResult
+    func sendSensorBatch(_ batch: Workout_V1_WearSensorBatch) -> Bool {
         var envelope = Workout_V1_WearToPhoneEnvelope()
         envelope.payload = .sensorBatch(batch)
 
-        guard let data = try? envelope.serializedData() else { return }
-        sendToPhone(path: WatchPaths.wearToPhoneEnvelope, data: data)
+        guard let data = try? envelope.serializedData() else { return false }
+        return sendToPhone(
+            path: WatchPaths.wearToPhoneEnvelope,
+            data: data,
+            preferBackgroundDelivery: true
+        )
     }
 
     // MARK: - WCSessionDelegate
@@ -151,18 +159,37 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    private func sendToPhone(path: String, data: Data) {
-        guard WCSession.default.isReachable else {
-            print("SchliftWatch: Phone not reachable")
-            return
-        }
+    @discardableResult
+    private func sendToPhone(
+        path: String,
+        data: Data,
+        preferBackgroundDelivery: Bool = false
+    ) -> Bool {
+        let session = WCSession.default
         let message: [String: Any] = ["path": path, "data": data]
-        WCSession.default.sendMessage(message, replyHandler: nil) { error in
+
+        guard session.activationState == .activated else {
+            print("SchliftWatch: WCSession not activated for path \(path)")
+            return false
+        }
+
+        if preferBackgroundDelivery {
+            session.transferUserInfo(message)
+            return true
+        }
+
+        guard session.isReachable else {
+            print("SchliftWatch: Phone not reachable")
+            return false
+        }
+
+        session.sendMessage(message, replyHandler: nil) { error in
             print("SchliftWatch: Failed to send message: \(error)")
             DispatchQueue.main.async {
                 self.clearPendingAction()
             }
         }
+        return true
     }
 
     func setUIVisible(_ visible: Bool) {
