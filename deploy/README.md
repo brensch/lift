@@ -39,7 +39,7 @@ sudo ./deploy/setup-prod-env.sh
 Suggested runtime values:
 
 ```bash
-RUST_LOG=info
+RUST_LOG=warn
 WEBAUTHN_RP_ID=schlift.com
 WEBAUTHN_RP_ORIGIN=https://schlift.com
 APPLE_TEAM_ID=REPLACE_WITH_YOUR_APPLE_TEAM_ID
