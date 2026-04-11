@@ -387,13 +387,15 @@ fn proposed_sets_from_planned_group_sets(
 ) -> Vec<ProposedSet> {
     let mut order = start_order;
     let mut out = Vec::with_capacity(planned_sets.len());
+    let mut seen_ids = std::collections::HashSet::new();
     for s in planned_sets {
+        let id = if s.client_set_id.is_empty() || !seen_ids.insert(s.client_set_id.clone()) {
+            Uuid::new_v4().to_string()
+        } else {
+            s.client_set_id.clone()
+        };
         out.push(ProposedSet {
-            id: if s.client_set_id.is_empty() {
-                Uuid::new_v4().to_string()
-            } else {
-                s.client_set_id.clone()
-            },
+            id,
             workout_id: workout_id.to_string(),
             workout_order: order,
             exercise: s.exercise,

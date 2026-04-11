@@ -379,8 +379,8 @@ async fn run_user_simulation(
                     exercise_group_id: String::new(),
                     name: format!("Group {}", g_idx),
                     interleave_warmups: false,
-                    sets: vec![
-                        PlannedGroupSet {
+                    sets: (0..3)
+                        .map(|_| PlannedGroupSet {
                             exercise: Exercise::Squat as i32,
                             target_reps: 5,
                             target_weight: 100.0,
@@ -391,9 +391,8 @@ async fn run_user_simulation(
                             instruction: String::new(),
                             progression_hint: None,
                             client_set_id: uuid::Uuid::new_v4().to_string(),
-                        };
-                        3
-                    ],
+                        })
+                        .collect(),
                     rest_config: None,
                     delete_group_if_empty: false,
                     instruction: String::new(),
