@@ -5,29 +5,18 @@ use schlift::workout::v1::{
 };
 use std::net::SocketAddr;
 
-mod auth;
-mod db;
-mod multiplayer_current;
 mod program_state;
 mod progress;
 mod regimes;
-mod scheduler;
-mod scratch;
-mod service_auth;
-#[cfg(feature = "test-auth")]
-mod service_auth_test;
-mod service_group;
-mod service_settings;
-mod service_user;
-mod service_workout;
+mod server;
 mod state;
 mod weight_units;
-mod workout_events;
+mod workout;
 
-use scratch::db::ScratchDb;
-use scratch::services::{
-    ScratchAuthService, ScratchMultiplayerService, ScratchSettingsService, ScratchUserService,
-    ScratchWorkoutService,
+use server::db::ServerDb;
+use server::services::{
+    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
+    ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -62,27 +51,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }));
 
     let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
-    let scratch_db = ScratchDb::new_in_dir(data_dir).await?;
+    let server_db = ServerDb::new_in_dir(data_dir).await?;
 
     let addr: SocketAddr = "0.0.0.0:50051".parse()?;
 
     println!("Server listening on {} (gRPC h2c)", addr);
 
     tonic::transport::Server::builder()
-        .add_service(WorkoutServiceServer::new(ScratchWorkoutService {
-            db: scratch_db.clone(),
+        .add_service(WorkoutServiceServer::new(ServerWorkoutService {
+            db: server_db.clone(),
         }))
-        .add_service(UserServiceServer::new(ScratchUserService {
-            db: scratch_db.clone(),
+        .add_service(UserServiceServer::new(ServerUserService {
+            db: server_db.clone(),
         }))
-        .add_service(MultiplayerServiceServer::new(ScratchMultiplayerService {
-            db: scratch_db.clone(),
+        .add_service(MultiplayerServiceServer::new(ServerMultiplayerService {
+            db: server_db.clone(),
         }))
-        .add_service(AuthServiceServer::new(ScratchAuthService {
-            db: scratch_db.clone(),
+        .add_service(AuthServiceServer::new(ServerAuthService {
+            db: server_db.clone(),
         }))
-        .add_service(SettingsServiceServer::new(ScratchSettingsService {
-            db: scratch_db.clone(),
+        .add_service(SettingsServiceServer::new(ServerSettingsService {
+            db: server_db.clone(),
         }))
         .serve(addr)
         .await?;

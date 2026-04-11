@@ -1,7 +1,7 @@
 use clap::Parser;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Pool, Sqlite};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -449,9 +449,7 @@ async fn run_timed_mix(
     Ok(())
 }
 
-async fn open_pool(
-    path: &PathBuf,
-) -> Result<Pool<Sqlite>, Box<dyn std::error::Error + Send + Sync>> {
+async fn open_pool(path: &Path) -> Result<Pool<Sqlite>, Box<dyn std::error::Error + Send + Sync>> {
     let db_url = format!("sqlite://{}", path.display());
     let options = SqliteConnectOptions::from_str(&db_url)?
         .create_if_missing(true)

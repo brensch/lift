@@ -276,30 +276,6 @@ fn normalize_rest_config(rest_config: Option<RestConfig>) -> Option<RestConfig> 
     rest_config.filter(rest_config_has_values)
 }
 
-#[cfg(test)]
-fn is_default_rest_config(rc: &RestConfig) -> bool {
-    rc.rest_after_success == 180
-        && rc.rest_after_failure == 300
-        && (rc.rest_after_warmup == 10 || rc.rest_after_warmup == 0)
-}
-
-#[cfg(test)]
-fn normalize_exercise_configs(configs: &[ExerciseTypeConfig]) -> Vec<ExerciseTypeConfig> {
-    configs
-        .iter()
-        .map(|config| {
-            let mut normalized = config.clone();
-            normalized.rest_config = normalize_rest_config(normalized.rest_config);
-            if let Some(rc) = &normalized.rest_config {
-                if is_default_rest_config(rc) {
-                    normalized.rest_config = None;
-                }
-            }
-            normalized
-        })
-        .collect()
-}
-
 fn materialized_working_sets_for_config(
     group: &ExerciseGroup,
     config: &ExerciseTypeConfig,
@@ -335,20 +311,6 @@ fn materialized_working_sets_for_config(
         });
     }
     sets
-}
-
-pub(crate) fn materialize_group_working_sets(group: &mut ExerciseGroup) {
-    let current = group.clone();
-    let mut max_sets = 0usize;
-    for config in &mut group.exercise_configs {
-        if config.working_sets.is_empty() {
-            config.working_sets = materialized_working_sets_for_config(&current, config);
-        }
-        max_sets = max_sets.max(config.working_sets.len());
-    }
-    if max_sets > 0 {
-        group.sets = max_sets as i32;
-    }
 }
 
 fn compute_group_working_rounds_from_sets(sets: &[PlannedGroupSet]) -> i32 {
@@ -445,9 +407,9 @@ fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<Propose
 pub(crate) fn apply_replace_exercise_group_plan(
     workout_ref: &mut ActiveWorkout,
     req: &ReplaceExerciseGroupPlanRequest,
-) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), Status> {
+) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), Box<Status>> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Status::failed_precondition("Workout ID mismatch"));
+        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
     }
 
     let normalized_sets = normalize_group_plan_sets(&req.sets);
@@ -474,7 +436,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
             interleave_warmups: req.interleave_warmups,
             workout_order,
             exercise_configs: vec![],
-            rest_config: normalize_rest_config(req.rest_config.clone()),
+            rest_config: normalize_rest_config(req.rest_config),
             instruction: req.instruction.clone(),
             prescribed_by_regime: false,
         };
@@ -511,7 +473,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
                 interleave_warmups: req.interleave_warmups,
                 workout_order: workout_ref.exercise_groups.len() as i32,
                 exercise_configs: vec![],
-                rest_config: normalize_rest_config(req.rest_config.clone()),
+                rest_config: normalize_rest_config(req.rest_config),
                 instruction: req.instruction.clone(),
                 prescribed_by_regime: false,
             };
@@ -534,13 +496,13 @@ pub(crate) fn apply_replace_exercise_group_plan(
                 active_group_sets(workout_ref, &req.exercise_group_id),
             ));
         }
-        None => return Err(Status::not_found("Exercise group not found")),
+        None => return Err(Box::new(Status::not_found("Exercise group not found"))),
     };
 
     if workout_ref.exercise_groups[existing_idx].prescribed_by_regime {
-        return Err(Status::failed_precondition(
+        return Err(Box::new(Status::failed_precondition(
             "Regime-prescribed exercise groups cannot be modified",
-        ));
+        )));
     }
 
     if req.delete_group_if_empty && normalized_sets.is_empty() {
@@ -561,7 +523,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
         group.interleave_warmups = req.interleave_warmups;
         group.sets = compute_group_working_rounds_from_sets(&normalized_sets);
         group.exercise_configs.clear();
-        group.rest_config = normalize_rest_config(req.rest_config.clone());
+        group.rest_config = normalize_rest_config(req.rest_config);
         group.instruction = req.instruction.clone();
     }
 
@@ -623,9 +585,9 @@ pub(crate) fn apply_replace_exercise_group_plan(
 pub(crate) fn apply_reorder_exercise_groups(
     workout_ref: &mut ActiveWorkout,
     req: &ReorderExerciseGroupsRequest,
-) -> Result<(), Status> {
+) -> Result<(), Box<Status>> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(Status::failed_precondition("Workout ID mismatch"));
+        return Err(Box::new(Status::failed_precondition("Workout ID mismatch")));
     }
     for (idx, group_id) in req.exercise_group_ids.iter().enumerate() {
         if let Some(g) = workout_ref
@@ -638,154 +600,4 @@ pub(crate) fn apply_reorder_exercise_groups(
     }
     workout_ref.reindex_sets();
     Ok(())
-}
-
-#[cfg(test)]
-pub(super) fn apply_update_exercise_group(
-    workout_ref: &mut ActiveWorkout,
-    req: &UpdateExerciseGroupRequest,
-) -> Result<(ExerciseGroup, Vec<ProposedSet>), Status> {
-    let group = workout_ref
-        .exercise_groups
-        .iter_mut()
-        .find(|g| g.id == req.exercise_group_id)
-        .ok_or_else(|| Status::not_found("Exercise group not found"))?;
-
-    if group.prescribed_by_regime {
-        return Err(Status::failed_precondition(
-            "Regime-prescribed exercise groups cannot be modified",
-        ));
-    }
-
-    if !req.name.is_empty() {
-        group.name = req.name.clone();
-    }
-    group.sets = req.sets;
-    group.interleave_warmups = req.interleave_warmups;
-    group.exercise_configs = normalize_exercise_configs(&req.exercise_configs);
-    group.rest_config = normalize_rest_config(req.rest_config.clone());
-    materialize_group_working_sets(group);
-    let group = group.clone();
-
-    let completed_ids: std::collections::HashSet<String> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| !c.proposed_set_id.is_empty())
-        .map(|c| c.proposed_set_id.clone())
-        .collect();
-
-    let mut completed_group_sets: Vec<ProposedSet> = workout_ref
-        .proposed_sets
-        .iter()
-        .filter(|p| p.exercise_group_id == group.id && completed_ids.contains(&p.id))
-        .cloned()
-        .collect();
-    completed_group_sets.sort_by_key(|s| s.workout_order);
-
-    let generated = generate_sets_for_group(&req.workout_id, &group, 0);
-    let mut completed_slots_by_key: std::collections::HashMap<(i32, bool), usize> =
-        std::collections::HashMap::new();
-    for set in &completed_group_sets {
-        *completed_slots_by_key
-            .entry((set.exercise, set.warmup))
-            .or_insert(0) += 1;
-    }
-
-    // Cancel all pending sets in this group. Completed-associated proposed sets stay unchanged.
-    for set in workout_ref
-        .proposed_sets
-        .iter_mut()
-        .filter(|p| p.exercise_group_id == group.id)
-    {
-        if !completed_ids.contains(&set.id) {
-            set.cancelled = true;
-        }
-    }
-
-    // Generate only the remaining sets not already satisfied by completed-associated set slots.
-    let mut pending_generated = Vec::new();
-    for set in generated {
-        let key = (set.exercise, set.warmup);
-        if let Some(remaining) = completed_slots_by_key.get_mut(&key) {
-            if *remaining > 0 {
-                *remaining -= 1;
-                continue;
-            }
-        }
-        pending_generated.push(set);
-    }
-    workout_ref.proposed_sets.extend(pending_generated);
-    workout_ref.reindex_sets();
-
-    let updated_group = workout_ref
-        .exercise_groups
-        .iter()
-        .find(|g| g.id == req.exercise_group_id)
-        .cloned()
-        .ok_or_else(|| Status::not_found("Exercise group not found after update"))?;
-
-    // Pre-calculate last warmup workout_order for the group to avoid borrow issues
-    let last_warmup_order = workout_ref
-        .proposed_sets
-        .iter()
-        .filter(|p| p.exercise_group_id == updated_group.id && p.warmup && !p.cancelled)
-        .map(|p| p.workout_order)
-        .max();
-
-    // Update rest config for all proposed sets in this group (including already completed ones)
-    for set in workout_ref
-        .proposed_sets
-        .iter_mut()
-        .filter(|p| p.exercise_group_id == updated_group.id && !p.cancelled)
-    {
-        if let Some(config) = updated_group
-            .exercise_configs
-            .iter()
-            .find(|c| c.exercise == set.exercise)
-        {
-            let is_last_warmup = set.warmup && Some(set.workout_order) == last_warmup_order;
-
-            let (rest_s, rest_f) =
-                get_rest_for_config(&updated_group, config, set.warmup, is_last_warmup);
-            set.rest_after_success = rest_s;
-            set.rest_after_failure = rest_f;
-        }
-    }
-
-    // Recalculate rest_until for all completed sets in this group.
-    // Clone necessary data first to avoid borrow issues while iterating mutably.
-    let current_proposed = workout_ref.proposed_sets.clone();
-    let current_completed = workout_ref.completed_sets.clone();
-
-    for cs in workout_ref.completed_sets.iter_mut() {
-        if let Some(ps) = current_proposed
-            .iter()
-            .find(|p| p.id == cs.proposed_set_id && p.exercise_group_id == updated_group.id)
-        {
-            let is_final = is_final_set_in_exercise_group_after_completion(
-                &ps.id,
-                &current_proposed,
-                &current_completed,
-            );
-
-            let mut rest_seconds = if cs.actual_reps >= ps.target_reps {
-                ps.rest_after_success as i64
-            } else {
-                ps.rest_after_failure as i64
-            };
-            if is_final {
-                rest_seconds = END_OF_EXERCISE_GROUP_REST_SECONDS;
-            }
-            cs.rest_until = cs.ended_at + rest_seconds;
-        }
-    }
-
-    let updated_sets: Vec<ProposedSet> = workout_ref
-        .proposed_sets
-        .iter()
-        .filter(|p| p.exercise_group_id == updated_group.id && !p.cancelled)
-        .cloned()
-        .collect();
-
-    Ok((updated_group, updated_sets))
 }

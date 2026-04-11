@@ -230,16 +230,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     tokio::spawn(async move {
                         stats.active_users.fetch_add(1, Ordering::Relaxed);
-                        if let Err(e) = run_user_simulation(
-                            username.clone(),
+                        if let Err(e) = run_user_simulation(UserSimConfig {
+                            username: username.clone(),
                             group_index,
                             is_leader,
                             addr,
-                            stats.clone(),
-                            registry,
+                            stats: stats.clone(),
+                            session_registry: registry,
                             start_time,
-                            duration,
-                        )
+                            total_duration: duration,
+                        })
                         .await
                         {
                             eprintln!("ERROR: Simulation failed for {}: {}", username, e);
@@ -262,7 +262,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn run_user_simulation(
+struct UserSimConfig {
     username: String,
     group_index: usize,
     is_leader: bool,
@@ -271,7 +271,20 @@ async fn run_user_simulation(
     session_registry: Arc<SessionRegistry>,
     start_time: Instant,
     total_duration: Duration,
+}
+
+async fn run_user_simulation(
+    config: UserSimConfig,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let username = config.username;
+    let group_index = config.group_index;
+    let is_leader = config.is_leader;
+    let addr = config.addr;
+    let stats = config.stats;
+    let session_registry = config.session_registry;
+    let start_time = config.start_time;
+    let total_duration = config.total_duration;
+
     let channel = Endpoint::from_shared(addr)?
         .connect_timeout(Duration::from_secs(5))
         .connect()
@@ -410,16 +423,14 @@ async fn run_user_simulation(
     } else {
         Some(startup_session.session_id)
     };
-    let mut session_poll_task = if let Some(session_id) = current_session_id.clone() {
-        Some(spawn_session_poll(
+    let mut session_poll_task = current_session_id.clone().map(|session_id| {
+        spawn_session_poll(
             multiplayer_client.clone(),
             token.clone(),
             stats.clone(),
             session_id,
-        ))
-    } else {
-        None
-    };
+        )
+    });
 
     // Join session if not leader
     if !is_leader {
@@ -701,7 +712,7 @@ fn build_start_workout_groups(
                 prescribed_by_regime: proposed.prescribed_by_regime,
                 exercise_configs: proposed.exercise_configs.clone(),
                 instruction: proposed.explanation.clone(),
-                rest_config: proposed.rest_config.clone(),
+                rest_config: proposed.rest_config,
             });
         }
         if !groups.is_empty() {
