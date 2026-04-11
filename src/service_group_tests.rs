@@ -1597,3 +1597,183 @@ async fn full_workout_flow_cancel_warmup_delete_completed_and_verify_db_state() 
         "DB final state did not converge for warmup-cancel/delete-completed flow"
     );
 }
+
+/// Regression test for deadlock: DashMap sync locks held across .await points
+/// in append_workout_mutations would block tokio threads when multiplayer
+/// get_current_session polls concurrently. With 1-2 tokio worker threads
+/// (production OCI with 1 vCPU), this deadlocks the entire server.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_mutations_and_session_poll_does_not_deadlock() {
+    use schlift::workout::v1::workout_mutation;
+
+    let temp_dir = std::env::temp_dir().join(format!("schlift-test-{}", uuid::Uuid::new_v4()));
+    let central_db = CentralDb::new_in_dir(&temp_dir).await.expect("db");
+    let state = Arc::new(AppState::new());
+    let workout_service = Arc::new(MyWorkoutService::new(central_db.clone(), state.clone()));
+    let group_service = Arc::new(GroupService::new(central_db.clone(), state));
+
+    // Create two users
+    let user1 = central_db
+        .create_user_with_id("u1", "u1")
+        .await
+        .expect("user1");
+    let user2 = central_db
+        .create_user_with_id("u2", "u2")
+        .await
+        .expect("user2");
+    let token1 = central_db
+        .create_auth_session(&user1.id)
+        .await
+        .expect("token1");
+    let token2 = central_db
+        .create_auth_session(&user2.id)
+        .await
+        .expect("token2");
+
+    // Start workouts for both users
+    let start1 = WorkoutService::start_workout(
+        &*workout_service,
+        with_token(
+            StartWorkoutRequest {
+                name: "w1".to_string(),
+                exercise_groups: vec![single_exercise_group("g1", "Squat", 100.0, 3, 0)],
+                started_at: 0,
+            },
+            &token1,
+        ),
+    )
+    .await
+    .expect("start1")
+    .into_inner();
+
+    let _start2 = WorkoutService::start_workout(
+        &*workout_service,
+        with_token(
+            StartWorkoutRequest {
+                name: "w2".to_string(),
+                exercise_groups: vec![single_exercise_group("g2", "Bench", 150.0, 3, 0)],
+                started_at: 0,
+            },
+            &token2,
+        ),
+    )
+    .await
+    .expect("start2");
+
+    // Join session (user1 joins user2)
+    let _ = MultiplayerService::join_user(
+        &*group_service,
+        with_token(
+            JoinUserRequest {
+                user_id: user2.id.clone(),
+            },
+            &token1,
+        ),
+    )
+    .await
+    .expect("join");
+
+    // Get proposed set IDs for user1
+    let w1 = WorkoutService::get_workout(
+        &*workout_service,
+        with_token(
+            GetWorkoutRequest {
+                workout_id: start1.id.clone(),
+            },
+            &token1,
+        ),
+    )
+    .await
+    .expect("w1")
+    .into_inner();
+    let proposed_set_ids: Vec<String> = w1
+        .proposed_sets
+        .iter()
+        .filter(|s| !s.warmup && !s.cancelled)
+        .map(|s| s.id.clone())
+        .collect();
+    assert!(
+        proposed_set_ids.len() >= 3,
+        "Need at least 3 proposed sets"
+    );
+
+    // Fire off concurrent tasks:
+    // Task A: user1 sends mutations (start_set + complete_set via append_workout_mutations)
+    // Task B: user2 polls get_current_session in a tight loop
+    //
+    // With the old code (DashMap lock held across .await), this deadlocks
+    // within a few iterations because both tasks need the same DashMap shard.
+
+    let ws = workout_service.clone();
+    let gs = group_service.clone();
+    let t1 = token1.clone();
+    let t2 = token2.clone();
+    let w1_id = start1.id.clone();
+    let ps_ids = proposed_set_ids.clone();
+
+    let mutation_task = tokio::spawn(async move {
+        for ps_id in &ps_ids {
+            // Send start_set as a mutation batch
+            let start_mutation = schlift::workout::v1::WorkoutMutation {
+                event_id: uuid::Uuid::new_v4().to_string(),
+                client_created_at: 0,
+                mutation: Some(workout_mutation::Mutation::StartSet(StartSetRequest {
+                    workout_id: w1_id.clone(),
+                    proposed_set_id: ps_id.clone(),
+                    started_at: 0,
+                })),
+            };
+            let complete_mutation = schlift::workout::v1::WorkoutMutation {
+                event_id: uuid::Uuid::new_v4().to_string(),
+                client_created_at: 0,
+                mutation: Some(workout_mutation::Mutation::CompleteSet(
+                    CompleteSetRequest {
+                        workout_id: w1_id.clone(),
+                        proposed_set_id: ps_id.clone(),
+                        actual_reps: 5,
+                        actual_weight: 100.0,
+                        completed_at: 0,
+                    },
+                )),
+            };
+            WorkoutService::append_workout_mutations(
+                &*ws,
+                with_token(
+                    schlift::workout::v1::AppendWorkoutMutationsRequest {
+                        mutations: vec![start_mutation, complete_mutation],
+                    },
+                    &t1,
+                ),
+            )
+            .await
+            .expect("mutation should succeed");
+        }
+    });
+
+    let poll_task = tokio::spawn(async move {
+        // Poll aggressively — this is what the Flutter client does at 1s intervals
+        for _ in 0..20 {
+            let _ = MultiplayerService::get_current_session(
+                &*gs,
+                with_token(GetCurrentSessionRequest::default(), &t2),
+            )
+            .await;
+            tokio::task::yield_now().await;
+        }
+    });
+
+    // If this test deadlocks, the timeout will catch it.
+    let result = tokio::time::timeout(Duration::from_secs(10), async {
+        let (r1, r2) = tokio::join!(mutation_task, poll_task);
+        r1.expect("mutation task panicked");
+        r2.expect("poll task panicked");
+    })
+    .await;
+
+    assert!(
+        result.is_ok(),
+        "Deadlock detected: concurrent mutations + session polling timed out"
+    );
+
+    let _ = std::fs::remove_dir_all(&temp_dir);
+}

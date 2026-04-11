@@ -982,67 +982,91 @@ impl WorkoutService for MyWorkoutService {
                 return Err(Status::invalid_argument("mutation payload is required"));
             };
 
-            let mut workout_ref = self
-                .state
-                .workouts
-                .get_mut(&user_id)
-                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
-            if workout_ref.workout.id != workout_id {
-                return Err(Status::failed_precondition("Workout ID mismatch"));
-            }
+            // Clone workout and apply mutation while holding DashMap lock briefly.
+            // CRITICAL: DashMap uses parking_lot sync locks — holding them across
+            // .await deadlocks the tokio runtime when another task needs the same
+            // shard (e.g. multiplayer get_current_session polling).
+            let (trial, apply_err) = {
+                let workout_ref = self
+                    .state
+                    .workouts
+                    .get(&user_id)
+                    .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+                if workout_ref.workout.id != workout_id {
+                    return Err(Status::failed_precondition("Workout ID mismatch"));
+                }
 
-            let mut trial = workout_ref.clone();
-            let apply_result = match event_type {
-                WorkoutEventType::StartSet => {
-                    let decoded = StartSetRequest::decode(payload.as_slice()).map_err(|e| {
-                        Status::internal(format!("Could not decode start-set payload: {}", e))
-                    })?;
-                    apply_start_set_to_active(&mut trial, &decoded)
-                }
-                WorkoutEventType::CompleteSet => {
-                    let decoded = CompleteSetRequest::decode(payload.as_slice()).map_err(|e| {
-                        Status::internal(format!("Could not decode complete-set payload: {}", e))
-                    })?;
-                    apply_complete_set_to_active(&mut trial, &decoded)
-                }
-                WorkoutEventType::DeleteCompletedSet => {
-                    let decoded =
-                        DeleteCompletedSetRequest::decode(payload.as_slice()).map_err(|e| {
-                            Status::internal(format!("Could not decode delete-set payload: {}", e))
-                        })?;
-                    apply_delete_completed_set_to_active(&mut trial, &decoded)
-                }
-                WorkoutEventType::CancelProposedSet => {
-                    let decoded =
-                        CancelProposedSetRequest::decode(payload.as_slice()).map_err(|e| {
-                            Status::internal(format!("Could not decode cancel-set payload: {}", e))
-                        })?;
-                    apply_cancel_proposed_set_to_active(&mut trial, &decoded)
-                }
-                WorkoutEventType::ReplaceExerciseGroupPlan => {
-                    let decoded = ReplaceExerciseGroupPlanRequest::decode(payload.as_slice())
-                        .map_err(|e| {
-                            Status::internal(format!(
-                                "Could not decode replace-group payload: {}",
-                                e
-                            ))
-                        })?;
-                    apply_replace_exercise_group_plan(&mut trial, &decoded).map(|_| ())
-                }
-                WorkoutEventType::ReorderExerciseGroups => {
-                    let decoded = ReorderExerciseGroupsRequest::decode(payload.as_slice())
-                        .map_err(|e| {
-                            Status::internal(format!(
-                                "Could not decode reorder-groups payload: {}",
-                                e
-                            ))
-                        })?;
-                    apply_reorder_exercise_groups(&mut trial, &decoded)
-                }
-                _ => Err(Status::invalid_argument("unsupported mutation type")),
-            };
+                let mut trial = workout_ref.clone();
+                let apply_result = match event_type {
+                    WorkoutEventType::StartSet => {
+                        let decoded =
+                            StartSetRequest::decode(payload.as_slice()).map_err(|e| {
+                                Status::internal(format!(
+                                    "Could not decode start-set payload: {}",
+                                    e
+                                ))
+                            })?;
+                        apply_start_set_to_active(&mut trial, &decoded)
+                    }
+                    WorkoutEventType::CompleteSet => {
+                        let decoded =
+                            CompleteSetRequest::decode(payload.as_slice()).map_err(|e| {
+                                Status::internal(format!(
+                                    "Could not decode complete-set payload: {}",
+                                    e
+                                ))
+                            })?;
+                        apply_complete_set_to_active(&mut trial, &decoded)
+                    }
+                    WorkoutEventType::DeleteCompletedSet => {
+                        let decoded = DeleteCompletedSetRequest::decode(payload.as_slice())
+                            .map_err(|e| {
+                                Status::internal(format!(
+                                    "Could not decode delete-set payload: {}",
+                                    e
+                                ))
+                            })?;
+                        apply_delete_completed_set_to_active(&mut trial, &decoded)
+                    }
+                    WorkoutEventType::CancelProposedSet => {
+                        let decoded = CancelProposedSetRequest::decode(payload.as_slice())
+                            .map_err(|e| {
+                                Status::internal(format!(
+                                    "Could not decode cancel-set payload: {}",
+                                    e
+                                ))
+                            })?;
+                        apply_cancel_proposed_set_to_active(&mut trial, &decoded)
+                    }
+                    WorkoutEventType::ReplaceExerciseGroupPlan => {
+                        let decoded =
+                            ReplaceExerciseGroupPlanRequest::decode(payload.as_slice())
+                                .map_err(|e| {
+                                    Status::internal(format!(
+                                        "Could not decode replace-group payload: {}",
+                                        e
+                                    ))
+                                })?;
+                        apply_replace_exercise_group_plan(&mut trial, &decoded).map(|_| ())
+                    }
+                    WorkoutEventType::ReorderExerciseGroups => {
+                        let decoded =
+                            ReorderExerciseGroupsRequest::decode(payload.as_slice())
+                                .map_err(|e| {
+                                    Status::internal(format!(
+                                        "Could not decode reorder-groups payload: {}",
+                                        e
+                                    ))
+                                })?;
+                        apply_reorder_exercise_groups(&mut trial, &decoded)
+                    }
+                    _ => Err(Status::invalid_argument("unsupported mutation type")),
+                };
 
-            if let Err(status) = apply_result {
+                (trial, apply_result.err())
+            }; // DashMap lock released here — before any .await
+
+            if let Some(status) = apply_err {
                 if is_stale_local_mutation_error(&status) {
                     info!(
                         sync_event = "append_workout_mutations",
@@ -1060,6 +1084,7 @@ impl WorkoutService for MyWorkoutService {
                 return Err(status);
             }
 
+            // Persist event to DB — no DashMap lock held
             let inserted = self
                 .central_db
                 .append_workout_event(&WorkoutEventRecord {
@@ -1080,22 +1105,38 @@ impl WorkoutService for MyWorkoutService {
                 continue;
             }
 
-            *workout_ref = trial;
+            // Write updated state back — brief DashMap lock, no .await
+            if let Some(mut workout_ref) = self.state.workouts.get_mut(&user_id) {
+                *workout_ref = trial;
+            }
             applied_event_ids.push(mutation.event_id);
         }
 
-        let active = self
-            .state
-            .workouts
-            .get(&user_id)
-            .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+        // Clone workout data for DB flush — brief DashMap lock, then release
+        let (flush_workout, flush_groups, flush_proposed, flush_completed, log_workout_id, log_end_time) = {
+            let active = self
+                .state
+                .workouts
+                .get(&user_id)
+                .ok_or_else(|| Status::failed_precondition("No active workout"))?;
+            (
+                active.workout.clone(),
+                active.exercise_groups.clone(),
+                active.proposed_sets.clone(),
+                active.completed_sets.clone(),
+                active.workout.id.clone(),
+                active.workout.end_time,
+            )
+        }; // DashMap lock released here
+
+        // Flush to DB — no DashMap lock held
         self.central_db
             .flush_workout(
                 &user_id,
-                &active.workout,
-                &active.exercise_groups,
-                &active.proposed_sets,
-                &active.completed_sets,
+                &flush_workout,
+                &flush_groups,
+                &flush_proposed,
+                &flush_completed,
             )
             .await
             .map_err(|e| Status::internal(format!("Failed to persist workout state: {}", e)))?;
@@ -1104,11 +1145,11 @@ impl WorkoutService for MyWorkoutService {
             sync_event = "append_workout_mutations",
             phase = "applied",
             user_id = %user_id,
-            workout_id = %active.workout.id,
+            workout_id = %log_workout_id,
             mutation_count = batch_len,
             applied_count = applied_event_ids.len(),
             remaining_pending = batch_len.saturating_sub(applied_event_ids.len()),
-            end_time = active.workout.end_time
+            end_time = log_end_time
         );
 
         Ok(Response::new(AppendWorkoutMutationsResponse {
