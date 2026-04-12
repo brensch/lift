@@ -34,7 +34,6 @@
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
 		C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A421681FD4BE14DDF968D0D /* AppDelegate.swift */; };
-		C7DDABD8487D5ED6706AE62C /* HeartRateStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */; };
 		CCF04A21D61D51C1307C17D2 /* sound_crystal_shine.wav in Resources */ = {isa = PBXBuildFile; fileRef = FB4E2177508418730B143F90 /* sound_crystal_shine.wav */; };
 		D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
 		D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
@@ -83,7 +82,6 @@
 
 /* Begin PBXFileReference section */
 		024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_dojo_gong.wav; sourceTree = "<group>"; };
-		0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateStreamer.swift; sourceTree = "<group>"; };
 		11B240A653CCF4590B0EA9CC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		160F374E2E877285D06DBB04 /* sound_chord_strum.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_chord_strum.wav; sourceTree = "<group>"; };
 		1BA5CF54A368DD151691BD9F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -233,7 +231,6 @@
 			children = (
 				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
 				C791F424CC08582321BD3041 /* ContentView.swift */,
-				0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */,
 				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
 				F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */,
 				B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */,
@@ -481,7 +478,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
-				C7DDABD8487D5ED6706AE62C /* HeartRateStreamer.swift in Sources */,
 				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,
 				E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */,
 				51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */,
