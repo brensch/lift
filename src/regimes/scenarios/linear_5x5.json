@@ -755,7 +755,7 @@
               "weight": 70.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5\u00d75 Workout B"
         }
       }
@@ -1146,7 +1146,7 @@
               "weight": 145.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5\u00d75 Workout A"
         }
       }
@@ -1892,7 +1892,7 @@
               "weight": 155.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5\u00d75 Workout A"
         }
       }

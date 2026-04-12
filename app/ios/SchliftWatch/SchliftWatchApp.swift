@@ -6,8 +6,12 @@ struct SchliftWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(phoneConnector)
+            NavigationView {
+                ContentView()
+                    .navigationBarHidden(true)
+            }
+            .navigationViewStyle(.stack)
+            .environmentObject(phoneConnector)
         }
     }
 }

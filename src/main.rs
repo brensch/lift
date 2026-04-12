@@ -13,6 +13,9 @@ mod db;
 mod program_state;
 mod progress;
 mod regimes;
+#[cfg(test)]
+mod scenario_tests;
+mod schplanner;
 mod server;
 mod state;
 mod time;

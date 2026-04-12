@@ -137,6 +137,7 @@ struct ContentView: View {
                         .font(displayFontName(size: 34))
                         .foregroundColor(timerColor)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
@@ -144,7 +145,17 @@ struct ContentView: View {
                     .font(displayFontName(size: 19, weight: .medium))
                     .foregroundColor(stateAccentColor ?? .white)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity, alignment: .trailing)
+
+                if !liveYouTimerText.isEmpty {
+                    statLine(
+                        text: formatNowClock(now),
+                        systemImage: "clock",
+                        color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
+                        fontSize: 18
+                    )
+                }
 
                 statLine(
                     text: liveElapsedText,
@@ -317,6 +328,7 @@ struct ContentView: View {
                 .font(.custom(bodyFont, size: fontSize).weight(.medium))
                 .foregroundColor(color)
                 .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .frame(maxWidth: .infinity, alignment: .trailing)
 
             Image(systemName: systemImage)

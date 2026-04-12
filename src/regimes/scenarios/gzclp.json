@@ -843,7 +843,7 @@
               "weight": 45.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "GZCLP \u2014 T1 Stage 1 (5\u00d73)"
         }
       }
@@ -1274,7 +1274,7 @@
               "weight": 45.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "GZCLP \u2014 SQ 6\u00d72 / DL 5\u00d73"
         }
       }
@@ -2108,7 +2108,7 @@
               "weight": 45.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "GZCLP \u2014 T1 Stage 1 (5\u00d73)"
         }
       }

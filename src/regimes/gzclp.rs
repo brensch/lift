@@ -8,6 +8,7 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
     PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
+use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
 
 use super::{
@@ -15,6 +16,7 @@ use super::{
     ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
+use std::collections::HashMap;
 
 // ─── Stage prescriptions ──────────────────────────────────────────────────────
 
@@ -57,7 +59,7 @@ const KEY_SESSION_IDX: &str = "next_session_index";
 const T1_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
     min: 45.0,
     max: 1000.0,
-    step: 10.0,
+    step: 5.0,
 };
 const T2_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
     min: 45.0,
@@ -140,6 +142,23 @@ fn default_t2_weight(ex: Exercise) -> f32 {
         Exercise::OverheadPress => 65.0,
         Exercise::BarbellRow => 95.0,
         _ => 65.0,
+    }
+}
+
+fn exercise_from_slot_key(slot_key: &str) -> Option<Exercise> {
+    match slot_key {
+        "exercise_squat" => Some(Exercise::Squat),
+        "exercise_deadlift" => Some(Exercise::Deadlift),
+        "exercise_bench_press" => Some(Exercise::BenchPress),
+        "exercise_overhead_press" => Some(Exercise::OverheadPress),
+        "exercise_barbell_row" => Some(Exercise::BarbellRow),
+        "exercise_hip_thrust" => Some(Exercise::HipThrust),
+        "exercise_bulgarian_split_squat" => Some(Exercise::BulgarianSplitSquat),
+        "exercise_romanian_deadlift" => Some(Exercise::RomanianDeadlift),
+        "exercise_leg_curl" => Some(Exercise::LegCurl),
+        "exercise_glute_bridge" => Some(Exercise::GluteBridge),
+        "exercise_lunge" => Some(Exercise::Lunge),
+        _ => None,
     }
 }
 
@@ -646,7 +665,7 @@ impl WorkoutRegime for GzclpRegime {
                     set_f32(
                         &mut new_state,
                         t1_weight_key(ex),
-                        round_to_unit_increment(w * pct, unit, 10.0, 5.0),
+                        round_to_unit_increment(w * pct, unit, 5.0, 2.5),
                     );
                 }
                 for ex in [
@@ -664,6 +683,198 @@ impl WorkoutRegime for GzclpRegime {
                 Ok(new_state)
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
+        }
+    }
+
+    fn schplanner_transition_on_workout_started(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+    ) {
+        let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
+        let next = (get_int_or(state, KEY_SESSION_IDX, 0) + 1).rem_euclid(session_count(variant));
+        set_int(state, KEY_SESSION_IDX, next);
+    }
+
+    fn schplanner_apply_logged_results(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+        slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
+        slot_reasons: &mut HashMap<String, String>,
+    ) {
+        let unit = weight_unit_from_state(state);
+        for (slot_key, outcome) in slot_outcomes {
+            if !outcome.workout_ended {
+                continue;
+            }
+            let Some(exercise) = exercise_from_slot_key(slot_key) else {
+                continue;
+            };
+            match outcome.tier.as_str() {
+                "T1" => {
+                    let current =
+                        get_f32_or(state, t1_weight_key(exercise), default_t1_weight(exercise));
+                    let stage_key = t1_stage_key(exercise);
+                    let stage = stage_str_to_u8_t1(get_str_or(state, stage_key, "stage_1_5x3"));
+                    if outcome.all_sets_hit_target() {
+                        let next_weight = round_to_unit_increment(current + 10.0, unit, 5.0, 2.5);
+                        set_f32(state, t1_weight_key(exercise), next_weight);
+                        set_str(state, stage_key, "stage_1_5x3");
+                        slot_reasons.insert(
+                            slot_key.clone(),
+                            format!(
+                                "Schplanner marked {} T1 as a pass, so the next weight goes from {} {} to {} {} and the lift returns to Stage 1 (5×3).",
+                                exercise_display_name(exercise),
+                                current.round() as i32,
+                                unit.suffix(),
+                                next_weight.round() as i32,
+                                unit.suffix()
+                            ),
+                        );
+                    } else {
+                        match stage {
+                            1 => {
+                                set_str(state, stage_key, "stage_2_6x2");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner saw {} stall in T1, so it kept the weight at {} {} and moved the lift to Stage 2 (6×2).",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                            2 => {
+                                set_str(state, stage_key, "stage_3_10x1");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner saw another {} T1 stall, so it kept the weight at {} {} and moved the lift to Stage 3 (10×1).",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                            _ => {
+                                let reset = round_to_unit_increment(current * 0.9, unit, 5.0, 2.5);
+                                set_f32(state, t1_weight_key(exercise), reset);
+                                set_str(state, stage_key, "stage_1_5x3");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner reset {} T1 after a Stage 3 miss, dropping the weight from {} {} to {} {} and returning to Stage 1.",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix(),
+                                        reset.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                        }
+                    }
+                }
+                "T2" => {
+                    let current =
+                        get_f32_or(state, t2_weight_key(exercise), default_t2_weight(exercise));
+                    let stage_key = t2_stage_key(exercise);
+                    let stage = stage_str_to_u8_t2(get_str_or(state, stage_key, "stage_1_3x10"));
+                    if outcome.all_sets_hit_target() {
+                        let next_weight = round_to_unit_increment(current + 5.0, unit, 5.0, 2.5);
+                        set_f32(state, t2_weight_key(exercise), next_weight);
+                        set_str(state, stage_key, "stage_1_3x10");
+                        slot_reasons.insert(
+                            slot_key.clone(),
+                            format!(
+                                "Schplanner marked {} T2 as a pass, so the next weight goes from {} {} to {} {} and the lift returns to Stage 1 (3×10).",
+                                exercise_display_name(exercise),
+                                current.round() as i32,
+                                unit.suffix(),
+                                next_weight.round() as i32,
+                                unit.suffix()
+                            ),
+                        );
+                    } else {
+                        match stage {
+                            1 => {
+                                set_str(state, stage_key, "stage_2_3x8");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner moved {} T2 to Stage 2 (3×8) at the same {} {} after a stall.",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                            2 => {
+                                set_str(state, stage_key, "stage_3_3x6");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner moved {} T2 to Stage 3 (3×6) at the same {} {} after another stall.",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                            _ => {
+                                let reset = round_to_unit_increment(current * 0.9, unit, 5.0, 2.5);
+                                set_f32(state, t2_weight_key(exercise), reset);
+                                set_str(state, stage_key, "stage_1_3x10");
+                                slot_reasons.insert(
+                                    slot_key.clone(),
+                                    format!(
+                                        "Schplanner reset {} T2 after a Stage 3 miss, dropping the weight from {} {} to {} {} and returning to Stage 1.",
+                                        exercise_display_name(exercise),
+                                        current.round() as i32,
+                                        unit.suffix(),
+                                        reset.round() as i32,
+                                        unit.suffix()
+                                    ),
+                                );
+                            }
+                        }
+                    }
+                }
+                "T3" => {
+                    let current = get_f32_or(state, t3_weight_key(exercise), 10.0);
+                    if outcome.top_set_hit_threshold() {
+                        let next_weight = round_to_unit_increment(current + 5.0, unit, 5.0, 2.5);
+                        set_f32(state, t3_weight_key(exercise), next_weight);
+                        slot_reasons.insert(
+                            slot_key.clone(),
+                            format!(
+                                "Schplanner saw {} hit {} reps on the T3 AMRAP set, so it raised the next weight from {} {} to {} {}.",
+                                exercise_display_name(exercise),
+                                outcome.top_set_actual_reps,
+                                current.round() as i32,
+                                unit.suffix(),
+                                next_weight.round() as i32,
+                                unit.suffix()
+                            ),
+                        );
+                    } else {
+                        slot_reasons.insert(
+                            slot_key.clone(),
+                            format!(
+                                "Schplanner kept {} T3 at {} {} because the AMRAP set finished at {} reps and the add-weight mark is {}.",
+                                exercise_display_name(exercise),
+                                current.round() as i32,
+                                unit.suffix(),
+                                outcome.top_set_actual_reps,
+                                outcome.amrap_threshold()
+                            ),
+                        );
+                    }
+                }
+                _ => {}
+            }
         }
     }
 }

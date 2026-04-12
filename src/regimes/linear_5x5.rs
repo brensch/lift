@@ -5,7 +5,9 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
     PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
+use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
+use std::collections::HashMap;
 
 use super::{
     build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
@@ -24,7 +26,7 @@ const STANDARD_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
 const DEADLIFT_WEIGHT_BOUNDS: FloatFieldBounds = FloatFieldBounds {
     min: 45.0,
     max: 1000.0,
-    step: 10.0,
+    step: 5.0,
 };
 
 pub struct Linear5x5Regime;
@@ -76,12 +78,16 @@ fn default_weight(ex: Exercise) -> f32 {
     }
 }
 
-fn increments(ex: Exercise) -> (f32, f32) {
+fn progression_increments(ex: Exercise) -> (f32, f32) {
     match ex {
         Exercise::Deadlift => (DEADLIFT_INCREMENT, 5.0),
         Exercise::Squat => (LOWER_INCREMENT, 2.5),
         _ => (UPPER_INCREMENT, 2.5),
     }
+}
+
+fn rounding_steps(_ex: Exercise) -> (f32, f32) {
+    (5.0, 2.5)
 }
 
 const WORKOUT_A: &[Exercise] = &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
@@ -431,8 +437,8 @@ impl WorkoutRegime for Linear5x5Regime {
                     Exercise::Deadlift,
                 ] {
                     let current = get_f32_or(state, weight_key(*ex), default_weight(*ex));
-                    let (lb_step, kg_step) = increments(*ex);
-                    let deloaded = round_to_unit_increment(current * pct, unit, lb_step, kg_step)
+                    let (lb_round, kg_round) = rounding_steps(*ex);
+                    let deloaded = round_to_unit_increment(current * pct, unit, lb_round, kg_round)
                         .max(min_weight_lb(unit, 45.0, 20.0));
                     set_f32(&mut new_state, weight_key(*ex), deloaded);
                     set_int(&mut new_state, stall_key(*ex), 0);
@@ -440,6 +446,99 @@ impl WorkoutRegime for Linear5x5Regime {
                 Ok(new_state)
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
+        }
+    }
+
+    fn schplanner_transition_on_workout_started(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+    ) {
+        let next = if get_str_or(state, KEY_VARIANT, "A").eq_ignore_ascii_case("B") {
+            "A"
+        } else {
+            "B"
+        };
+        set_str(state, KEY_VARIANT, next);
+    }
+
+    fn schplanner_apply_logged_results(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+        slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
+        slot_reasons: &mut HashMap<String, String>,
+    ) {
+        let unit = weight_unit_from_state(state);
+        for exercise in [
+            Exercise::Squat,
+            Exercise::BenchPress,
+            Exercise::BarbellRow,
+            Exercise::OverheadPress,
+            Exercise::Deadlift,
+        ] {
+            let slot_key = super::progression_slot_key(exercise);
+            let Some(outcome) = slot_outcomes.get(&slot_key) else {
+                continue;
+            };
+            if !outcome.workout_ended {
+                continue;
+            }
+            let current_weight = get_f32_or(state, weight_key(exercise), default_weight(exercise));
+            let (lb_step, _kg_step) = progression_increments(exercise);
+            let (lb_round, kg_round) = rounding_steps(exercise);
+            if outcome.all_sets_hit_target() {
+                let next_weight =
+                    round_to_unit_increment(current_weight + lb_step, unit, lb_round, kg_round);
+                set_f32(state, weight_key(exercise), next_weight);
+                set_int(state, stall_key(exercise), 0);
+                slot_reasons.insert(
+                    slot_key,
+                    format!(
+                        "Schplanner saw {} hit all {} working sets at {} {}, so it moved the next target to {} {}.",
+                        exercise_display_name(exercise),
+                        outcome.planned_sets,
+                        current_weight.round() as i32,
+                        unit.suffix(),
+                        next_weight.round() as i32,
+                        unit.suffix()
+                    ),
+                );
+            } else {
+                let next_stall = get_int_or(state, stall_key(exercise), 0) + 1;
+                if next_stall >= 3 {
+                    let deloaded =
+                        round_to_unit_increment(current_weight * 0.9, unit, lb_round, kg_round)
+                            .max(min_weight_lb(unit, 45.0, 20.0));
+                    set_f32(state, weight_key(exercise), deloaded);
+                    set_int(state, stall_key(exercise), 0);
+                    slot_reasons.insert(
+                        slot_key,
+                        format!(
+                            "Schplanner logged a third miss for {} at {} {}, so it deloaded the next target to {} {}.",
+                            exercise_display_name(exercise),
+                            current_weight.round() as i32,
+                            unit.suffix(),
+                            deloaded.round() as i32,
+                            unit.suffix()
+                        ),
+                    );
+                } else {
+                    set_int(state, stall_key(exercise), next_stall);
+                    slot_reasons.insert(
+                        slot_key,
+                        format!(
+                            "Schplanner kept {} at {} {} after {} of {} sets hit target; stall count is now {}.",
+                            exercise_display_name(exercise),
+                            current_weight.round() as i32,
+                            unit.suffix(),
+                            outcome.successful_sets,
+                            outcome.planned_sets,
+                            next_stall
+                        ),
+                    );
+                }
+            }
         }
     }
 }

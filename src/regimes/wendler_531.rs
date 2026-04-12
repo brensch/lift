@@ -8,6 +8,7 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
     PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
+use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
@@ -537,6 +538,83 @@ impl WorkoutRegime for Wendler531Regime {
                 Ok(new_state)
             }
             _ => Err(format!("Unknown update_id: {}", update_id)),
+        }
+    }
+
+    fn schplanner_transition_on_workout_started(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+    ) {
+        let variant = get_str_or(state, KEY_VARIANT, "four_day");
+        let sessions = sessions_per_variant(variant).max(1);
+        let mut cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
+        let mut week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
+        let mut session = get_int_or(state, KEY_SESSION, 0).max(0) + 1;
+        if session >= sessions {
+            session = 0;
+            week += 1;
+            if week > 4 {
+                week = 1;
+                cycle += 1;
+            }
+        }
+        set_int(state, KEY_CYCLE, cycle);
+        set_int(state, KEY_WEEK, week);
+        set_int(state, KEY_SESSION, session);
+    }
+
+    fn schplanner_apply_logged_results(
+        &self,
+        state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+        _slot_outcomes: &std::collections::HashMap<String, SchplannerSlotOutcome>,
+        _slot_reasons: &mut std::collections::HashMap<String, String>,
+    ) {
+        if get_int_or(state, KEY_WEEK, 1) != 1 || get_int_or(state, KEY_SESSION, 0) != 0 {
+            return;
+        }
+        let unit = weight_unit_from_state(state);
+        for &exercise in WENDLER_LIFTS {
+            let current_tm = get_f32_or(state, tm_key(exercise), default_tm(exercise));
+            let bump = if matches!(exercise, Exercise::Squat | Exercise::Deadlift) {
+                10.0
+            } else {
+                5.0
+            };
+            let next_tm = if unit == crate::weight_units::AppWeightUnit::Kg {
+                current_tm + (bump / 2.20462)
+            } else {
+                current_tm + bump
+            };
+            set_f32(state, tm_key(exercise), next_tm);
+        }
+    }
+
+    fn schplanner_decorate_proposed_group(
+        &self,
+        group: &mut ProposedExerciseGroup,
+        state: &StatePayload,
+        slot_reasons: &std::collections::HashMap<String, String>,
+        started_workout_count: usize,
+    ) {
+        let cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
+        let week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
+        let week_def = &WEEKS[(week - 1) as usize];
+        if let Some(reason) = crate::schplanner::group_slot_keys(group)
+            .into_iter()
+            .find_map(|key| slot_reasons.get(&key).cloned())
+        {
+            group.explanation = reason;
+        } else if started_workout_count > 0 {
+            group.explanation = format!(
+                "{} Schplanner replayed {} started workout{} to place you at Cycle {}, {}.",
+                group.explanation,
+                started_workout_count,
+                if started_workout_count == 1 { "" } else { "s" },
+                cycle,
+                week_def.name
+            );
         }
     }
 }

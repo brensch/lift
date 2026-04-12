@@ -153,7 +153,7 @@
               "weight": 110.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5/5/5+), Bench Press"
         }
       },
@@ -244,7 +244,7 @@
               "weight": 160.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5/5/5+), Deadlift"
         }
       },
@@ -335,7 +335,7 @@
               "weight": 80.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 1 \u2014 Volume (5/5/5+), OHP"
         }
       },
@@ -426,7 +426,7 @@
               "weight": 140.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3/3/3+), Squat"
         }
       },
@@ -517,7 +517,7 @@
               "weight": 115.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3/3/3+), Bench Press"
         }
       },
@@ -608,7 +608,7 @@
               "weight": 175.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3/3/3+), Deadlift"
         }
       },
@@ -699,7 +699,7 @@
               "weight": 85.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 2 \u2014 Intensity (3/3/3+), OHP"
         }
       },
@@ -790,7 +790,7 @@
               "weight": 150.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (5/3/1+), Squat"
         }
       },
@@ -881,7 +881,7 @@
               "weight": 125.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (5/3/1+), Bench Press"
         }
       },
@@ -972,7 +972,7 @@
               "weight": 185.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (5/3/1+), Deadlift"
         }
       },
@@ -1063,7 +1063,7 @@
               "weight": 90.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 1, Week 3 \u2014 Peak (5/3/1+), OHP"
         }
       },
@@ -1518,7 +1518,7 @@
               "weight": 140.0
             }
           ],
-          "is_ready": false,
+          "is_ready": true,
           "suggested_name": "5/3/1 \u2014 Cycle 2, Week 1 \u2014 Volume (5/5/5+), Squat"
         }
       },

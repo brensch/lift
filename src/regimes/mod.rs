@@ -12,6 +12,8 @@ pub use linear_5x5::Linear5x5Regime;
 pub use wendler_531::Wendler531Regime;
 
 use crate::program_state::{PendingUpdateDef, ProposeResult, StatePayload};
+use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
+use std::collections::HashMap;
 
 pub fn exercise_display_name(exercise: Exercise) -> String {
     match exercise {
@@ -91,6 +93,46 @@ pub trait WorkoutRegime: Send + Sync {
         update_id: &str,
         field_values: &StatePayload,
     ) -> Result<StatePayload, String>;
+
+    fn schplanner_transition_on_workout_started(
+        &self,
+        _state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+    ) {
+    }
+
+    fn schplanner_apply_logged_results(
+        &self,
+        _state: &mut StatePayload,
+        _workout: &SchplannerWorkoutRecord,
+        _slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
+        _slot_reasons: &mut HashMap<String, String>,
+    ) {
+    }
+
+    fn schplanner_decorate_proposed_group(
+        &self,
+        group: &mut ProposedExerciseGroup,
+        _state: &StatePayload,
+        slot_reasons: &HashMap<String, String>,
+        started_workout_count: usize,
+    ) {
+        let mut reasons = Vec::new();
+        for key in crate::schplanner::group_slot_keys(group) {
+            if let Some(reason) = slot_reasons.get(&key) {
+                reasons.push(reason.clone());
+            }
+        }
+        if !reasons.is_empty() {
+            group.explanation = reasons.join(" ");
+        } else if group.explanation.is_empty() && started_workout_count > 0 {
+            group.explanation = format!(
+                "Schplanner derived this from {} started workout{} since your last program edit.",
+                started_workout_count,
+                if started_workout_count == 1 { "" } else { "s" }
+            );
+        }
+    }
 
     fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {
         let meta = self.catalog_meta();
