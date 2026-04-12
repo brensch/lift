@@ -12,10 +12,11 @@ use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
-    exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, WorkoutRegime,
+    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set, rest_cfg,
+    simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
+use std::collections::HashSet;
 
 pub struct Wendler531Regime;
 
@@ -216,6 +217,14 @@ fn coaching_notes_for_week(week: i64, week_def: &WeekDef) -> Vec<String> {
             "Push the last set for extra reps if you feel strong.".to_string(),
             "Log all reps accurately for best tracking.".to_string(),
         ]
+    }
+}
+
+fn recovery_seconds_for_week(week: i64) -> i64 {
+    match week {
+        4 => 24 * 3600,
+        3 => 72 * 3600,
+        _ => 48 * 3600,
     }
 }
 
@@ -451,16 +460,19 @@ impl WorkoutRegime for Wendler531Regime {
             });
         }
 
-        let display_variant = if variant == "four_day" {
-            "4-Day"
-        } else {
-            "3-Day"
-        };
         let lifts_display: Vec<String> = lifts.iter().map(|&e| exercise_display_name(e)).collect();
 
         let regime_context = RegimeContext {
-            regime_display_name: format!("Wendler 5/3/1 {} — Cycle {}", display_variant, cycle),
-            session_description: week_def.name.to_string(),
+            regime_display_name: "Wendler 5/3/1".to_string(),
+            session_description: format!(
+                "Cycle {} • {} • {}",
+                cycle,
+                week_def.name,
+                lifts.iter()
+                    .map(|&e| exercise_short_label(e))
+                    .collect::<Vec<_>>()
+                    .join("/")
+            ),
             next_session_preview: week_def.preview.to_string(),
             coaching_notes: coaching_notes_for_week(week, week_def),
         };
@@ -509,6 +521,40 @@ impl WorkoutRegime for Wendler531Regime {
                 enum_options: vec![],
             }],
         }]
+    }
+
+    fn derive_training_status(
+        &self,
+        state: &StatePayload,
+        history: &[SchplannerWorkoutRecord],
+        last_session_at: i64,
+        now_ts: i64,
+    ) -> schlift::workout::v1::TrainingStatus {
+        let variant = get_str_or(state, KEY_VARIANT, "four_day");
+        let week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
+        let target_sessions = sessions_per_variant(variant) as i32;
+        let next_session_at = if last_session_at == 0 {
+            now_ts
+        } else {
+            last_session_at + recovery_seconds_for_week(week)
+        };
+        let next_workout_slots = self.propose_from_state(state, last_session_at, now_ts);
+        let next_workout_slots = crate::schplanner::summarize_proposed_slot_targets(
+            &next_workout_slots.proposed_groups,
+        )
+        .into_keys()
+        .collect::<HashSet<_>>();
+        let target_slot_sets =
+            simulate_target_slot_sets(self, state, last_session_at, now_ts, target_sessions);
+        build_training_status(
+            history,
+            now_ts,
+            last_session_at,
+            next_session_at,
+            target_sessions,
+            &next_workout_slots,
+            target_slot_sets,
+        )
     }
 
     fn apply_pending_update_to_state(

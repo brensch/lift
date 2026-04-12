@@ -1302,26 +1302,140 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'gHIAEoCVILZXhwbGFuYXRpb24SMAoUcHJlc2NyaWJlZF9ieV9yZWdpbWUYCCABKAhSEnByZXNj'
     'cmliZWRCeVJlZ2ltZQ==');
 
-@$core.Deprecated('Use sessionReadinessDescriptor instead')
-const SessionReadiness$json = {
-  '1': 'SessionReadiness',
+@$core.Deprecated('Use slotTrainingStatusDescriptor instead')
+const SlotTrainingStatus$json = {
+  '1': 'SlotTrainingStatus',
   '2': [
-    {'1': 'next_session_at', '3': 1, '4': 1, '5': 3, '10': 'nextSessionAt'},
-    {'1': 'last_session_at', '3': 2, '4': 1, '5': 3, '10': 'lastSessionAt'},
-    {'1': 'readiness_label', '3': 3, '4': 1, '5': 9, '10': 'readinessLabel'},
-    {'1': 'readiness_detail', '3': 4, '4': 1, '5': 9, '10': 'readinessDetail'},
-    {'1': 'is_ready', '3': 5, '4': 1, '5': 8, '10': 'isReady'},
-    {'1': 'is_overdue', '3': 6, '4': 1, '5': 8, '10': 'isOverdue'},
+    {'1': 'slot_key', '3': 1, '4': 1, '5': 9, '10': 'slotKey'},
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'tier', '3': 3, '4': 1, '5': 9, '10': 'tier'},
+    {'1': 'last_trained_at', '3': 4, '4': 1, '5': 3, '10': 'lastTrainedAt'},
+    {
+      '1': 'days_since_last_trained',
+      '3': 5,
+      '4': 1,
+      '5': 5,
+      '10': 'daysSinceLastTrained'
+    },
+    {
+      '1': 'target_sets_per_7_days',
+      '3': 6,
+      '4': 1,
+      '5': 5,
+      '10': 'targetSetsPer7Days'
+    },
+    {
+      '1': 'completed_sets_per_7_days',
+      '3': 7,
+      '4': 1,
+      '5': 5,
+      '10': 'completedSetsPer7Days'
+    },
+    {
+      '1': 'remaining_sets_per_7_days',
+      '3': 8,
+      '4': 1,
+      '5': 5,
+      '10': 'remainingSetsPer7Days'
+    },
+    {
+      '1': 'appears_in_next_workout',
+      '3': 9,
+      '4': 1,
+      '5': 8,
+      '10': 'appearsInNextWorkout'
+    },
+    {'1': 'status_label', '3': 10, '4': 1, '5': 9, '10': 'statusLabel'},
   ],
 };
 
-/// Descriptor for `SessionReadiness`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sessionReadinessDescriptor = $convert.base64Decode(
-    'ChBTZXNzaW9uUmVhZGluZXNzEiYKD25leHRfc2Vzc2lvbl9hdBgBIAEoA1INbmV4dFNlc3Npb2'
-    '5BdBImCg9sYXN0X3Nlc3Npb25fYXQYAiABKANSDWxhc3RTZXNzaW9uQXQSJwoPcmVhZGluZXNz'
-    'X2xhYmVsGAMgASgJUg5yZWFkaW5lc3NMYWJlbBIpChByZWFkaW5lc3NfZGV0YWlsGAQgASgJUg'
-    '9yZWFkaW5lc3NEZXRhaWwSGQoIaXNfcmVhZHkYBSABKAhSB2lzUmVhZHkSHQoKaXNfb3ZlcmR1'
-    'ZRgGIAEoCFIJaXNPdmVyZHVl');
+/// Descriptor for `SlotTrainingStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List slotTrainingStatusDescriptor = $convert.base64Decode(
+    'ChJTbG90VHJhaW5pbmdTdGF0dXMSGQoIc2xvdF9rZXkYASABKAlSB3Nsb3RLZXkSFAoFbGFiZW'
+    'wYAiABKAlSBWxhYmVsEhIKBHRpZXIYAyABKAlSBHRpZXISJgoPbGFzdF90cmFpbmVkX2F0GAQg'
+    'ASgDUg1sYXN0VHJhaW5lZEF0EjUKF2RheXNfc2luY2VfbGFzdF90cmFpbmVkGAUgASgFUhRkYX'
+    'lzU2luY2VMYXN0VHJhaW5lZBIyChZ0YXJnZXRfc2V0c19wZXJfN19kYXlzGAYgASgFUhJ0YXJn'
+    'ZXRTZXRzUGVyN0RheXMSOAoZY29tcGxldGVkX3NldHNfcGVyXzdfZGF5cxgHIAEoBVIVY29tcG'
+    'xldGVkU2V0c1BlcjdEYXlzEjgKGXJlbWFpbmluZ19zZXRzX3Blcl83X2RheXMYCCABKAVSFXJl'
+    'bWFpbmluZ1NldHNQZXI3RGF5cxI1ChdhcHBlYXJzX2luX25leHRfd29ya291dBgJIAEoCFIUYX'
+    'BwZWFyc0luTmV4dFdvcmtvdXQSIQoMc3RhdHVzX2xhYmVsGAogASgJUgtzdGF0dXNMYWJlbA==');
+
+@$core.Deprecated('Use trainingStatusDescriptor instead')
+const TrainingStatus$json = {
+  '1': 'TrainingStatus',
+  '2': [
+    {'1': 'next_session_at', '3': 1, '4': 1, '5': 3, '10': 'nextSessionAt'},
+    {'1': 'last_session_at', '3': 2, '4': 1, '5': 3, '10': 'lastSessionAt'},
+    {'1': 'headline', '3': 3, '4': 1, '5': 9, '10': 'headline'},
+    {'1': 'detail', '3': 4, '4': 1, '5': 9, '10': 'detail'},
+    {'1': 'should_train_now', '3': 5, '4': 1, '5': 8, '10': 'shouldTrainNow'},
+    {
+      '1': 'target_sessions_per_7_days',
+      '3': 6,
+      '4': 1,
+      '5': 5,
+      '10': 'targetSessionsPer7Days'
+    },
+    {
+      '1': 'completed_sessions_per_7_days',
+      '3': 7,
+      '4': 1,
+      '5': 5,
+      '10': 'completedSessionsPer7Days'
+    },
+    {
+      '1': 'remaining_sessions_per_7_days',
+      '3': 8,
+      '4': 1,
+      '5': 5,
+      '10': 'remainingSessionsPer7Days'
+    },
+    {
+      '1': 'target_sets_per_7_days',
+      '3': 9,
+      '4': 1,
+      '5': 5,
+      '10': 'targetSetsPer7Days'
+    },
+    {
+      '1': 'completed_sets_per_7_days',
+      '3': 10,
+      '4': 1,
+      '5': 5,
+      '10': 'completedSetsPer7Days'
+    },
+    {
+      '1': 'remaining_sets_per_7_days',
+      '3': 11,
+      '4': 1,
+      '5': 5,
+      '10': 'remainingSetsPer7Days'
+    },
+    {
+      '1': 'slot_statuses',
+      '3': 12,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.SlotTrainingStatus',
+      '10': 'slotStatuses'
+    },
+  ],
+};
+
+/// Descriptor for `TrainingStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List trainingStatusDescriptor = $convert.base64Decode(
+    'Cg5UcmFpbmluZ1N0YXR1cxImCg9uZXh0X3Nlc3Npb25fYXQYASABKANSDW5leHRTZXNzaW9uQX'
+    'QSJgoPbGFzdF9zZXNzaW9uX2F0GAIgASgDUg1sYXN0U2Vzc2lvbkF0EhoKCGhlYWRsaW5lGAMg'
+    'ASgJUghoZWFkbGluZRIWCgZkZXRhaWwYBCABKAlSBmRldGFpbBIoChBzaG91bGRfdHJhaW5fbm'
+    '93GAUgASgIUg5zaG91bGRUcmFpbk5vdxI6Chp0YXJnZXRfc2Vzc2lvbnNfcGVyXzdfZGF5cxgG'
+    'IAEoBVIWdGFyZ2V0U2Vzc2lvbnNQZXI3RGF5cxJACh1jb21wbGV0ZWRfc2Vzc2lvbnNfcGVyXz'
+    'dfZGF5cxgHIAEoBVIZY29tcGxldGVkU2Vzc2lvbnNQZXI3RGF5cxJACh1yZW1haW5pbmdfc2Vz'
+    'c2lvbnNfcGVyXzdfZGF5cxgIIAEoBVIZcmVtYWluaW5nU2Vzc2lvbnNQZXI3RGF5cxIyChZ0YX'
+    'JnZXRfc2V0c19wZXJfN19kYXlzGAkgASgFUhJ0YXJnZXRTZXRzUGVyN0RheXMSOAoZY29tcGxl'
+    'dGVkX3NldHNfcGVyXzdfZGF5cxgKIAEoBVIVY29tcGxldGVkU2V0c1BlcjdEYXlzEjgKGXJlbW'
+    'FpbmluZ19zZXRzX3Blcl83X2RheXMYCyABKAVSFXJlbWFpbmluZ1NldHNQZXI3RGF5cxJDCg1z'
+    'bG90X3N0YXR1c2VzGAwgAygLMh4ud29ya291dC52MS5TbG90VHJhaW5pbmdTdGF0dXNSDHNsb3'
+    'RTdGF0dXNlcw==');
 
 @$core.Deprecated('Use regimeContextDescriptor instead')
 const RegimeContext$json = {
@@ -1389,12 +1503,12 @@ const GetProposedWorkoutScheduleResponse$json = {
       '10': 'regimeContext'
     },
     {
-      '1': 'session_readiness',
+      '1': 'training_status',
       '3': 5,
       '4': 1,
       '5': 11,
-      '6': '.workout.v1.SessionReadiness',
-      '10': 'sessionReadiness'
+      '6': '.workout.v1.TrainingStatus',
+      '10': 'trainingStatus'
     },
     {
       '1': 'suggested_workout_name',
@@ -1438,14 +1552,14 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $conv
     'ChFhY3RpdmVfd29ya291dF9pZBgCIAEoCVIPYWN0aXZlV29ya291dElkEkoKD3Byb3Bvc2VkX2'
     'dyb3VwcxgDIAMoCzIhLndvcmtvdXQudjEuUHJvcG9zZWRFeGVyY2lzZUdyb3VwUg5wcm9wb3Nl'
     'ZEdyb3VwcxJACg5yZWdpbWVfY29udGV4dBgEIAEoCzIZLndvcmtvdXQudjEuUmVnaW1lQ29udG'
-    'V4dFINcmVnaW1lQ29udGV4dBJJChFzZXNzaW9uX3JlYWRpbmVzcxgFIAEoCzIcLndvcmtvdXQu'
-    'djEuU2Vzc2lvblJlYWRpbmVzc1IQc2Vzc2lvblJlYWRpbmVzcxI0ChZzdWdnZXN0ZWRfd29ya2'
-    '91dF9uYW1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRJSChVwZW5kaW5nX3N0YXRlX3Vw'
-    'ZGF0ZXMYByADKAsyHi53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZVITcGVuZGluZ1N0YX'
-    'RlVXBkYXRlcxIqChFjYW5fc3RhcnRfd29ya291dBgIIAEoCFIPY2FuU3RhcnRXb3Jrb3V0Ei4K'
-    'BWRyYWZ0GAkgASgLMhgud29ya291dC52MS5Xb3Jrb3V0RHJhZnRSBWRyYWZ0Ek0KFXNhdmVkX2'
-    'V4ZXJjaXNlX2dyb3VwcxgKIAMoCzIZLndvcmtvdXQudjEuRXhlcmNpc2VHcm91cFITc2F2ZWRF'
-    'eGVyY2lzZUdyb3Vwcw==');
+    'V4dFINcmVnaW1lQ29udGV4dBJDCg90cmFpbmluZ19zdGF0dXMYBSABKAsyGi53b3Jrb3V0LnYx'
+    'LlRyYWluaW5nU3RhdHVzUg50cmFpbmluZ1N0YXR1cxI0ChZzdWdnZXN0ZWRfd29ya291dF9uYW'
+    '1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRJSChVwZW5kaW5nX3N0YXRlX3VwZGF0ZXMY'
+    'ByADKAsyHi53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZVITcGVuZGluZ1N0YXRlVXBkYX'
+    'RlcxIqChFjYW5fc3RhcnRfd29ya291dBgIIAEoCFIPY2FuU3RhcnRXb3Jrb3V0Ei4KBWRyYWZ0'
+    'GAkgASgLMhgud29ya291dC52MS5Xb3Jrb3V0RHJhZnRSBWRyYWZ0Ek0KFXNhdmVkX2V4ZXJjaX'
+    'NlX2dyb3VwcxgKIAMoCzIZLndvcmtvdXQudjEuRXhlcmNpc2VHcm91cFITc2F2ZWRFeGVyY2lz'
+    'ZUdyb3Vwcw==');
 
 @$core.Deprecated('Use saveProfileExerciseGroupRequestDescriptor instead')
 const SaveProfileExerciseGroupRequest$json = {

@@ -3594,64 +3594,265 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
   void clearPrescribedByRegime() => $_clearField(8);
 }
 
-class SessionReadiness extends $pb.GeneratedMessage {
-  factory SessionReadiness({
-    $fixnum.Int64? nextSessionAt,
-    $fixnum.Int64? lastSessionAt,
-    $core.String? readinessLabel,
-    $core.String? readinessDetail,
-    $core.bool? isReady,
-    $core.bool? isOverdue,
+class SlotTrainingStatus extends $pb.GeneratedMessage {
+  factory SlotTrainingStatus({
+    $core.String? slotKey,
+    $core.String? label,
+    $core.String? tier,
+    $fixnum.Int64? lastTrainedAt,
+    $core.int? daysSinceLastTrained,
+    $core.int? targetSetsPer7Days,
+    $core.int? completedSetsPer7Days,
+    $core.int? remainingSetsPer7Days,
+    $core.bool? appearsInNextWorkout,
+    $core.String? statusLabel,
   }) {
     final result = create();
-    if (nextSessionAt != null) result.nextSessionAt = nextSessionAt;
-    if (lastSessionAt != null) result.lastSessionAt = lastSessionAt;
-    if (readinessLabel != null) result.readinessLabel = readinessLabel;
-    if (readinessDetail != null) result.readinessDetail = readinessDetail;
-    if (isReady != null) result.isReady = isReady;
-    if (isOverdue != null) result.isOverdue = isOverdue;
+    if (slotKey != null) result.slotKey = slotKey;
+    if (label != null) result.label = label;
+    if (tier != null) result.tier = tier;
+    if (lastTrainedAt != null) result.lastTrainedAt = lastTrainedAt;
+    if (daysSinceLastTrained != null)
+      result.daysSinceLastTrained = daysSinceLastTrained;
+    if (targetSetsPer7Days != null)
+      result.targetSetsPer7Days = targetSetsPer7Days;
+    if (completedSetsPer7Days != null)
+      result.completedSetsPer7Days = completedSetsPer7Days;
+    if (remainingSetsPer7Days != null)
+      result.remainingSetsPer7Days = remainingSetsPer7Days;
+    if (appearsInNextWorkout != null)
+      result.appearsInNextWorkout = appearsInNextWorkout;
+    if (statusLabel != null) result.statusLabel = statusLabel;
     return result;
   }
 
-  SessionReadiness._();
+  SlotTrainingStatus._();
 
-  factory SessionReadiness.fromBuffer($core.List<$core.int> data,
+  factory SlotTrainingStatus.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory SessionReadiness.fromJson($core.String json,
+  factory SlotTrainingStatus.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SessionReadiness',
+      _omitMessageNames ? '' : 'SlotTrainingStatus',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'nextSessionAt')
-    ..aInt64(2, _omitFieldNames ? '' : 'lastSessionAt')
-    ..aOS(3, _omitFieldNames ? '' : 'readinessLabel')
-    ..aOS(4, _omitFieldNames ? '' : 'readinessDetail')
-    ..aOB(5, _omitFieldNames ? '' : 'isReady')
-    ..aOB(6, _omitFieldNames ? '' : 'isOverdue')
+    ..aOS(1, _omitFieldNames ? '' : 'slotKey')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..aOS(3, _omitFieldNames ? '' : 'tier')
+    ..aInt64(4, _omitFieldNames ? '' : 'lastTrainedAt')
+    ..aI(5, _omitFieldNames ? '' : 'daysSinceLastTrained')
+    ..aI(6, _omitFieldNames ? '' : 'targetSetsPer7Days',
+        protoName: 'target_sets_per_7_days')
+    ..aI(7, _omitFieldNames ? '' : 'completedSetsPer7Days',
+        protoName: 'completed_sets_per_7_days')
+    ..aI(8, _omitFieldNames ? '' : 'remainingSetsPer7Days',
+        protoName: 'remaining_sets_per_7_days')
+    ..aOB(9, _omitFieldNames ? '' : 'appearsInNextWorkout')
+    ..aOS(10, _omitFieldNames ? '' : 'statusLabel')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SessionReadiness clone() => deepCopy();
+  SlotTrainingStatus clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SessionReadiness copyWith(void Function(SessionReadiness) updates) =>
-      super.copyWith((message) => updates(message as SessionReadiness))
-          as SessionReadiness;
+  SlotTrainingStatus copyWith(void Function(SlotTrainingStatus) updates) =>
+      super.copyWith((message) => updates(message as SlotTrainingStatus))
+          as SlotTrainingStatus;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SessionReadiness create() => SessionReadiness._();
+  static SlotTrainingStatus create() => SlotTrainingStatus._();
   @$core.override
-  SessionReadiness createEmptyInstance() => create();
+  SlotTrainingStatus createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static SessionReadiness getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<SessionReadiness>(create);
-  static SessionReadiness? _defaultInstance;
+  static SlotTrainingStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SlotTrainingStatus>(create);
+  static SlotTrainingStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get slotKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set slotKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSlotKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSlotKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get tier => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set tier($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTier() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTier() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get lastTrainedAt => $_getI64(3);
+  @$pb.TagNumber(4)
+  set lastTrainedAt($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLastTrainedAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLastTrainedAt() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get daysSinceLastTrained => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set daysSinceLastTrained($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasDaysSinceLastTrained() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDaysSinceLastTrained() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get targetSetsPer7Days => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set targetSetsPer7Days($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTargetSetsPer7Days() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTargetSetsPer7Days() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get completedSetsPer7Days => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set completedSetsPer7Days($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasCompletedSetsPer7Days() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearCompletedSetsPer7Days() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get remainingSetsPer7Days => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set remainingSetsPer7Days($core.int value) => $_setSignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasRemainingSetsPer7Days() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearRemainingSetsPer7Days() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get appearsInNextWorkout => $_getBF(8);
+  @$pb.TagNumber(9)
+  set appearsInNextWorkout($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasAppearsInNextWorkout() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearAppearsInNextWorkout() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get statusLabel => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set statusLabel($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasStatusLabel() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearStatusLabel() => $_clearField(10);
+}
+
+class TrainingStatus extends $pb.GeneratedMessage {
+  factory TrainingStatus({
+    $fixnum.Int64? nextSessionAt,
+    $fixnum.Int64? lastSessionAt,
+    $core.String? headline,
+    $core.String? detail,
+    $core.bool? shouldTrainNow,
+    $core.int? targetSessionsPer7Days,
+    $core.int? completedSessionsPer7Days,
+    $core.int? remainingSessionsPer7Days,
+    $core.int? targetSetsPer7Days,
+    $core.int? completedSetsPer7Days,
+    $core.int? remainingSetsPer7Days,
+    $core.Iterable<SlotTrainingStatus>? slotStatuses,
+  }) {
+    final result = create();
+    if (nextSessionAt != null) result.nextSessionAt = nextSessionAt;
+    if (lastSessionAt != null) result.lastSessionAt = lastSessionAt;
+    if (headline != null) result.headline = headline;
+    if (detail != null) result.detail = detail;
+    if (shouldTrainNow != null) result.shouldTrainNow = shouldTrainNow;
+    if (targetSessionsPer7Days != null)
+      result.targetSessionsPer7Days = targetSessionsPer7Days;
+    if (completedSessionsPer7Days != null)
+      result.completedSessionsPer7Days = completedSessionsPer7Days;
+    if (remainingSessionsPer7Days != null)
+      result.remainingSessionsPer7Days = remainingSessionsPer7Days;
+    if (targetSetsPer7Days != null)
+      result.targetSetsPer7Days = targetSetsPer7Days;
+    if (completedSetsPer7Days != null)
+      result.completedSetsPer7Days = completedSetsPer7Days;
+    if (remainingSetsPer7Days != null)
+      result.remainingSetsPer7Days = remainingSetsPer7Days;
+    if (slotStatuses != null) result.slotStatuses.addAll(slotStatuses);
+    return result;
+  }
+
+  TrainingStatus._();
+
+  factory TrainingStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TrainingStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TrainingStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'nextSessionAt')
+    ..aInt64(2, _omitFieldNames ? '' : 'lastSessionAt')
+    ..aOS(3, _omitFieldNames ? '' : 'headline')
+    ..aOS(4, _omitFieldNames ? '' : 'detail')
+    ..aOB(5, _omitFieldNames ? '' : 'shouldTrainNow')
+    ..aI(6, _omitFieldNames ? '' : 'targetSessionsPer7Days',
+        protoName: 'target_sessions_per_7_days')
+    ..aI(7, _omitFieldNames ? '' : 'completedSessionsPer7Days',
+        protoName: 'completed_sessions_per_7_days')
+    ..aI(8, _omitFieldNames ? '' : 'remainingSessionsPer7Days',
+        protoName: 'remaining_sessions_per_7_days')
+    ..aI(9, _omitFieldNames ? '' : 'targetSetsPer7Days',
+        protoName: 'target_sets_per_7_days')
+    ..aI(10, _omitFieldNames ? '' : 'completedSetsPer7Days',
+        protoName: 'completed_sets_per_7_days')
+    ..aI(11, _omitFieldNames ? '' : 'remainingSetsPer7Days',
+        protoName: 'remaining_sets_per_7_days')
+    ..pPM<SlotTrainingStatus>(12, _omitFieldNames ? '' : 'slotStatuses',
+        subBuilder: SlotTrainingStatus.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingStatus copyWith(void Function(TrainingStatus) updates) =>
+      super.copyWith((message) => updates(message as TrainingStatus))
+          as TrainingStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TrainingStatus create() => TrainingStatus._();
+  @$core.override
+  TrainingStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TrainingStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TrainingStatus>(create);
+  static TrainingStatus? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get nextSessionAt => $_getI64(0);
@@ -3672,40 +3873,88 @@ class SessionReadiness extends $pb.GeneratedMessage {
   void clearLastSessionAt() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  $core.String get readinessLabel => $_getSZ(2);
+  $core.String get headline => $_getSZ(2);
   @$pb.TagNumber(3)
-  set readinessLabel($core.String value) => $_setString(2, value);
+  set headline($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
-  $core.bool hasReadinessLabel() => $_has(2);
+  $core.bool hasHeadline() => $_has(2);
   @$pb.TagNumber(3)
-  void clearReadinessLabel() => $_clearField(3);
+  void clearHeadline() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $core.String get readinessDetail => $_getSZ(3);
+  $core.String get detail => $_getSZ(3);
   @$pb.TagNumber(4)
-  set readinessDetail($core.String value) => $_setString(3, value);
+  set detail($core.String value) => $_setString(3, value);
   @$pb.TagNumber(4)
-  $core.bool hasReadinessDetail() => $_has(3);
+  $core.bool hasDetail() => $_has(3);
   @$pb.TagNumber(4)
-  void clearReadinessDetail() => $_clearField(4);
+  void clearDetail() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $core.bool get isReady => $_getBF(4);
+  $core.bool get shouldTrainNow => $_getBF(4);
   @$pb.TagNumber(5)
-  set isReady($core.bool value) => $_setBool(4, value);
+  set shouldTrainNow($core.bool value) => $_setBool(4, value);
   @$pb.TagNumber(5)
-  $core.bool hasIsReady() => $_has(4);
+  $core.bool hasShouldTrainNow() => $_has(4);
   @$pb.TagNumber(5)
-  void clearIsReady() => $_clearField(5);
+  void clearShouldTrainNow() => $_clearField(5);
 
   @$pb.TagNumber(6)
-  $core.bool get isOverdue => $_getBF(5);
+  $core.int get targetSessionsPer7Days => $_getIZ(5);
   @$pb.TagNumber(6)
-  set isOverdue($core.bool value) => $_setBool(5, value);
+  set targetSessionsPer7Days($core.int value) => $_setSignedInt32(5, value);
   @$pb.TagNumber(6)
-  $core.bool hasIsOverdue() => $_has(5);
+  $core.bool hasTargetSessionsPer7Days() => $_has(5);
   @$pb.TagNumber(6)
-  void clearIsOverdue() => $_clearField(6);
+  void clearTargetSessionsPer7Days() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get completedSessionsPer7Days => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set completedSessionsPer7Days($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasCompletedSessionsPer7Days() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearCompletedSessionsPer7Days() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get remainingSessionsPer7Days => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set remainingSessionsPer7Days($core.int value) => $_setSignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasRemainingSessionsPer7Days() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearRemainingSessionsPer7Days() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get targetSetsPer7Days => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set targetSetsPer7Days($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasTargetSetsPer7Days() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearTargetSetsPer7Days() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.int get completedSetsPer7Days => $_getIZ(9);
+  @$pb.TagNumber(10)
+  set completedSetsPer7Days($core.int value) => $_setSignedInt32(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasCompletedSetsPer7Days() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearCompletedSetsPer7Days() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.int get remainingSetsPer7Days => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set remainingSetsPer7Days($core.int value) => $_setSignedInt32(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasRemainingSetsPer7Days() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearRemainingSetsPer7Days() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $pb.PbList<SlotTrainingStatus> get slotStatuses => $_getList(11);
 }
 
 class RegimeContext extends $pb.GeneratedMessage {
@@ -3800,7 +4049,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     $core.String? activeWorkoutId,
     $core.Iterable<ProposedExerciseGroup>? proposedGroups,
     RegimeContext? regimeContext,
-    SessionReadiness? sessionReadiness,
+    TrainingStatus? trainingStatus,
     $core.String? suggestedWorkoutName,
     $core.Iterable<$1.PendingStateUpdate>? pendingStateUpdates,
     $core.bool? canStartWorkout,
@@ -3813,7 +4062,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (activeWorkoutId != null) result.activeWorkoutId = activeWorkoutId;
     if (proposedGroups != null) result.proposedGroups.addAll(proposedGroups);
     if (regimeContext != null) result.regimeContext = regimeContext;
-    if (sessionReadiness != null) result.sessionReadiness = sessionReadiness;
+    if (trainingStatus != null) result.trainingStatus = trainingStatus;
     if (suggestedWorkoutName != null)
       result.suggestedWorkoutName = suggestedWorkoutName;
     if (pendingStateUpdates != null)
@@ -3846,8 +4095,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
         subBuilder: ProposedExerciseGroup.create)
     ..aOM<RegimeContext>(4, _omitFieldNames ? '' : 'regimeContext',
         subBuilder: RegimeContext.create)
-    ..aOM<SessionReadiness>(5, _omitFieldNames ? '' : 'sessionReadiness',
-        subBuilder: SessionReadiness.create)
+    ..aOM<TrainingStatus>(5, _omitFieldNames ? '' : 'trainingStatus',
+        subBuilder: TrainingStatus.create)
     ..aOS(6, _omitFieldNames ? '' : 'suggestedWorkoutName')
     ..pPM<$1.PendingStateUpdate>(
         7, _omitFieldNames ? '' : 'pendingStateUpdates',
@@ -3909,15 +4158,15 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   RegimeContext ensureRegimeContext() => $_ensure(3);
 
   @$pb.TagNumber(5)
-  SessionReadiness get sessionReadiness => $_getN(4);
+  TrainingStatus get trainingStatus => $_getN(4);
   @$pb.TagNumber(5)
-  set sessionReadiness(SessionReadiness value) => $_setField(5, value);
+  set trainingStatus(TrainingStatus value) => $_setField(5, value);
   @$pb.TagNumber(5)
-  $core.bool hasSessionReadiness() => $_has(4);
+  $core.bool hasTrainingStatus() => $_has(4);
   @$pb.TagNumber(5)
-  void clearSessionReadiness() => $_clearField(5);
+  void clearTrainingStatus() => $_clearField(5);
   @$pb.TagNumber(5)
-  SessionReadiness ensureSessionReadiness() => $_ensure(4);
+  TrainingStatus ensureTrainingStatus() => $_ensure(4);
 
   @$pb.TagNumber(6)
   $core.String get suggestedWorkoutName => $_getSZ(5);

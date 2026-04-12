@@ -191,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ExerciseStatus>? _schedule;
   List<_HomeSelectableGroup>? _selectableGroups;
   RegimeContext? _regimeContext;
-  SessionReadiness? _sessionReadiness;
+  TrainingStatus? _trainingStatus;
   List<PendingStateUpdate> _pendingUpdates = [];
   String _suggestedWorkoutBaseName = '';
   bool _canStartWorkout = true;
@@ -275,8 +275,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _regimeContext = scheduleRes.hasRegimeContext()
             ? scheduleRes.regimeContext
             : null;
-        _sessionReadiness = scheduleRes.hasSessionReadiness()
-            ? scheduleRes.sessionReadiness
+        _trainingStatus = scheduleRes.hasTrainingStatus()
+            ? scheduleRes.trainingStatus
             : null;
         _pendingUpdates = scheduleRes.pendingStateUpdates;
         _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
@@ -824,12 +824,12 @@ class _HomeScreenState extends State<HomeScreen> {
             parent: ClampingScrollPhysics(),
           ),
           slivers: [
-            if (_sessionReadiness != null || _regimeContext != null)
+            if (_trainingStatus != null || _regimeContext != null)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 sliver: SliverToBoxAdapter(
                   child: _ReadinessBanner(
-                    sessionReadiness: _sessionReadiness,
+                    trainingStatus: _trainingStatus,
                     regimeContext: _regimeContext,
                   ),
                 ),
@@ -853,7 +853,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 20,
-                (_sessionReadiness != null || _regimeContext != null) ? 12 : 20,
+                (_trainingStatus != null || _regimeContext != null) ? 12 : 20,
                 20,
                 0,
               ),
@@ -1055,14 +1055,14 @@ class _HomeScreenState extends State<HomeScreen> {
 // ─── Readiness banner ─────────────────────────────────────────────────────────
 
 class _ReadinessBanner extends StatelessWidget {
-  final SessionReadiness? sessionReadiness;
+  final TrainingStatus? trainingStatus;
   final RegimeContext? regimeContext;
 
-  const _ReadinessBanner({this.sessionReadiness, this.regimeContext});
+  const _ReadinessBanner({this.trainingStatus, this.regimeContext});
 
   @override
   Widget build(BuildContext context) {
-    final sr = sessionReadiness;
+    final ts = trainingStatus;
     final rc = regimeContext;
 
     Color bannerColor;
@@ -1071,24 +1071,19 @@ class _ReadinessBanner extends StatelessWidget {
     IconData icon;
     String label;
 
-    if (sr != null && sr.readinessLabel.isNotEmpty) {
-      if (sr.isReady) {
+    if (ts != null && ts.headline.isNotEmpty) {
+      if (ts.shouldTrainNow) {
         bannerColor = const Color(0xFF1F6F43);
         textColor = Colors.white;
         accentColor = const Color(0xFFDDF5E6);
         icon = Icons.fitness_center_rounded;
-      } else if (sr.isOverdue) {
-        bannerColor = const Color(0xFF8C2F1E);
-        textColor = Colors.white;
-        accentColor = const Color(0xFFFFE1D8);
-        icon = Icons.warning_amber_rounded;
       } else {
         bannerColor = const Color(0xFF1E4F8C);
         textColor = Colors.white;
         accentColor = const Color(0xFFE0ECFF);
         icon = Icons.schedule_rounded;
       }
-      label = sr.readinessLabel;
+      label = ts.headline;
     } else {
       bannerColor = const Color(0xFF304255);
       textColor = Colors.white;
@@ -1110,58 +1105,27 @@ class _ReadinessBanner extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (rc != null && rc.regimeDisplayName.isNotEmpty) ...[
+            _ProgramChip(
+              label: rc.regimeDisplayName,
+              textColor: textColor,
+              accentColor: accentColor,
+              onTap: () => context.go('/training-program'),
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (label.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (rc != null && rc.regimeDisplayName.isNotEmpty) ...[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.menu_book_rounded,
-                        size: 14,
-                        color: accentColor,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        rc.regimeDisplayName,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.1,
-                          color: accentColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                if (label.isNotEmpty) ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 22, color: accentColor),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                            color: textColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else
-                  Text(
-                    'Training status',
+                Icon(icon, size: 22, color: accentColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -1169,34 +1133,154 @@ class _ReadinessBanner extends StatelessWidget {
                       color: textColor,
                     ),
                   ),
-                if (rc != null && rc.sessionDescription.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    rc.sessionDescription,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      height: 1.25,
-                      color: textColor.withValues(alpha: 0.92),
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          IconButton(
-            onPressed: () => context.go('/training-program'),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.14),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(40, 40),
-              padding: EdgeInsets.zero,
+          ] else
+            Text(
+              'Training status',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: textColor,
+              ),
             ),
-            icon: const Icon(Icons.info_outline_rounded, size: 20),
-            tooltip: 'Training cycle details',
-          ),
+          if (rc != null && rc.sessionDescription.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              rc.sessionDescription,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+                color: textColor.withValues(alpha: 0.92),
+              ),
+            ),
+          ],
+          if (ts != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'This week',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+                color: accentColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatusChip(
+                  label:
+                      '${ts.completedSessionsPer7Days}/${ts.targetSessionsPer7Days} sessions',
+                  textColor: textColor,
+                ),
+                _StatusChip(
+                  label: '${ts.completedSetsPer7Days}/${ts.targetSetsPer7Days} sets',
+                  textColor: textColor,
+                ),
+                if (ts.remainingSessionsPer7Days > 0)
+                  _StatusChip(
+                    label: '${ts.remainingSessionsPer7Days} sessions left',
+                    textColor: textColor,
+                  ),
+                if (ts.remainingSetsPer7Days > 0)
+                  _StatusChip(
+                    label: '${ts.remainingSetsPer7Days} sets left',
+                    textColor: textColor,
+                  ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color textColor;
+
+  const _StatusChip({required this.label, required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgramChip extends StatelessWidget {
+  final String label;
+  final Color textColor;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _ProgramChip({
+    required this.label,
+    required this.textColor,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.menu_book_rounded,
+                size: 12,
+                color: accentColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.arrow_outward_rounded,
+                size: 13,
+                color: accentColor,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -12,11 +12,12 @@ use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
 
 use super::{
-    exercise_display_name, progression_hint_for_set, rest_cfg, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, WorkoutRegime,
+    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set, rest_cfg,
+    simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 // ─── Stage prescriptions ──────────────────────────────────────────────────────
 
@@ -552,26 +553,32 @@ impl WorkoutRegime for GzclpRegime {
             });
         }
 
-        // Build T1 stage descriptions for regime context
-        let t1_stages: Vec<String> = [Exercise::Squat, Exercise::Deadlift]
-            .iter()
-            .map(|&ex| {
-                let stage = stage_str_to_u8_t1(get_str_or(state, t1_stage_key(ex), "stage_1_5x3"));
-                let (sets, reps) = t1_stage_prescription(stage);
-                format!(
-                    "T1 {}: Stage {} ({}×{})",
-                    exercise_display_name(ex),
-                    stage,
-                    sets,
-                    reps
-                )
-            })
-            .collect();
-
         let session_count = sessions.len();
         let regime_context = RegimeContext {
             regime_display_name: "GZCLP".to_string(),
-            session_description: t1_stages.join(" · "),
+            session_description: {
+                let t1 = tmpl
+                    .t1
+                    .iter()
+                    .map(|&ex| {
+                        let stage =
+                            stage_str_to_u8_t1(get_str_or(state, t1_stage_key(ex), "stage_1_5x3"));
+                        format!("{} S{}", exercise_short_label(ex), stage)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" / ");
+                let t2 = tmpl
+                    .t2
+                    .iter()
+                    .map(|&ex| {
+                        let stage =
+                            stage_str_to_u8_t2(get_str_or(state, t2_stage_key(ex), "stage_1_3x10"));
+                        format!("{} S{}", exercise_short_label(ex), stage)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" / ");
+                format!("Session {} • T1 {} • T2 {}", idx + 1, t1, t2)
+            },
             next_session_preview: format!(
                 "Session {} of {}. State machine updates after each session.",
                 idx + 1,
@@ -640,6 +647,39 @@ impl WorkoutRegime for GzclpRegime {
                 enum_options: vec![],
             }],
         }]
+    }
+
+    fn derive_training_status(
+        &self,
+        state: &StatePayload,
+        history: &[SchplannerWorkoutRecord],
+        last_session_at: i64,
+        now_ts: i64,
+    ) -> schlift::workout::v1::TrainingStatus {
+        let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
+        let target_sessions = if variant == "four_day" { 4 } else { 3 };
+        let next_session_at = if last_session_at == 0 {
+            now_ts
+        } else {
+            last_session_at + 24 * 3600
+        };
+        let next_workout_slots = self.propose_from_state(state, last_session_at, now_ts);
+        let next_workout_slots = crate::schplanner::summarize_proposed_slot_targets(
+            &next_workout_slots.proposed_groups,
+        )
+        .into_keys()
+        .collect::<HashSet<_>>();
+        let target_slot_sets =
+            simulate_target_slot_sets(self, state, last_session_at, now_ts, target_sessions);
+        build_training_status(
+            history,
+            now_ts,
+            last_session_at,
+            next_session_at,
+            target_sessions,
+            &next_workout_slots,
+            target_slot_sets,
+        )
     }
 
     fn apply_pending_update_to_state(
