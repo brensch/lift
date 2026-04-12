@@ -15,6 +15,7 @@
 		3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
 		3D1B69E6E6E41BC0CA2F07D6 /* sound_bell_high.wav in Resources */ = {isa = PBXBuildFile; fileRef = A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */; };
 		4BFA56509017551A55367603 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
+		51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */; };
 		5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9240986A58A7473DBCC0828C /* PhoneConnector.swift */; };
 		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
 		66BD0871C37660FA6096B4E3 /* sound_retro_arcade.wav in Resources */ = {isa = PBXBuildFile; fileRef = 640B490B81349149F2547907 /* sound_retro_arcade.wav */; };
@@ -110,6 +111,7 @@
 		A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_classic_beep.wav; sourceTree = "<group>"; };
 		A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_bell_high.wav; sourceTree = "<group>"; };
 		ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = auth.pb.swift; sourceTree = "<group>"; };
+		B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSensorBatchOutbox.swift; sourceTree = "<group>"; };
 		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B51B61E8EB9ED1721D316467 /* settings.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = settings.pb.swift; sourceTree = "<group>"; };
 		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 				0B551DD1BDDC9C23EC9664BB /* HeartRateStreamer.swift */,
 				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
 				F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */,
+				B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */,
 				68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */,
 				94944B13DDD876F1DF397D9D /* Fonts */,
 				F2578023A451A1B05FF76B68 /* Generated */,
@@ -481,6 +484,7 @@
 				C7DDABD8487D5ED6706AE62C /* HeartRateStreamer.swift in Sources */,
 				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,
 				E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */,
+				51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */,
 				96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */,
 				79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */,
 				FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */,

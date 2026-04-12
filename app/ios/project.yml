@@ -90,6 +90,9 @@ targets:
         excludes:
           - "Info.plist"
           - "*.entitlements"
+          - "Generated"
+      - path: SchliftWatch/Generated
+        buildPhase: sources
     entitlements:
       path: SchliftWatch/SchliftWatch.entitlements
     settings:
