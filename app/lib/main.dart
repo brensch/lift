@@ -35,6 +35,7 @@ import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
+import 'screens/maths_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
@@ -86,6 +87,15 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   StreamSubscription? _linkSubscription;
   bool _wasLoggedIn = false;
 
+  Future<void> _syncBodyWeightOnAppLoad() async {
+    final importedKg = await _authProvider.syncBodyWeightFromHealth(
+      requestPermissions: false,
+    );
+    if (importedKg != null) {
+      _workoutProvider.setBodyWeightKg(importedKg);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +136,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
       final isLoggedIn = _authProvider.isLoggedIn;
+      _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
       if (isLoggedIn && !_wasLoggedIn) {
         _settingsProvider.load();
         _soundProvider.load();
@@ -133,6 +144,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         if (userId != null) {
           unawaited(_workoutProvider.loadActiveWorkout(userId));
         }
+        unawaited(_syncBodyWeightOnAppLoad());
         _multiplayerProvider.startSync();
       } else if (!isLoggedIn && _wasLoggedIn) {
         _settingsProvider.clear();
@@ -246,6 +258,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/maths',
+              builder: (_, __) => const MathsScreen(),
             ),
           ],
         ),

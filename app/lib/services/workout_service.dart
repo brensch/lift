@@ -7,7 +7,9 @@ import 'grpc_client.dart';
 
 class WorkoutServiceWrapper {
   final GrpcClient _client;
-  static final _defaultCallOptions = CallOptions(timeout: Duration(seconds: 10));
+  static final _defaultCallOptions = CallOptions(
+    timeout: Duration(seconds: 10),
+  );
 
   WorkoutServiceWrapper(this._client);
 
@@ -191,5 +193,18 @@ class WorkoutServiceWrapper {
 
   Future<void> clearWorkoutDraft() async {
     await _client.workoutService.clearWorkoutDraft(ClearWorkoutDraftRequest());
+  }
+
+  Future<ExerciseGroup> saveProfileExerciseGroup(ExerciseGroup group) async {
+    final response = await _client.workoutService.saveProfileExerciseGroup(
+      SaveProfileExerciseGroupRequest()..group = group,
+    );
+    return response.group;
+  }
+
+  Future<void> deleteProfileExerciseGroup(String groupId) async {
+    await _client.workoutService.deleteProfileExerciseGroup(
+      DeleteProfileExerciseGroupRequest()..groupId = groupId,
+    );
   }
 }

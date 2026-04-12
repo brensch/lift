@@ -75,6 +75,11 @@ impl ServerWorkoutService {
                 .get_workout_draft(user_id)
                 .await
                 .map_err(internal_error)?,
+            saved_exercise_groups: self
+                .db
+                .list_profile_exercise_groups(user_id)
+                .await
+                .map_err(internal_error)?,
         };
         self.db
             .put_schedule_cache(user_id, &response)
@@ -862,6 +867,51 @@ impl WorkoutService for ServerWorkoutService {
             .await
             .map_err(internal_error)?;
         Ok(Response::new(ClearWorkoutDraftResponse {}))
+    }
+
+    async fn save_profile_exercise_group(
+        &self,
+        request: Request<SaveProfileExerciseGroupRequest>,
+    ) -> Result<Response<SaveProfileExerciseGroupResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "SaveProfileExerciseGroup", %user_id, "request");
+        let req = request.into_inner();
+        let group = req
+            .group
+            .ok_or_else(|| Status::invalid_argument("group is required"))?;
+        if group.name.trim().is_empty() {
+            return Err(Status::invalid_argument("group name is required"));
+        }
+        if group.exercise_configs.is_empty() {
+            return Err(Status::invalid_argument(
+                "profile exercise group must include at least one exercise config",
+            ));
+        }
+        let saved = self
+            .db
+            .save_profile_exercise_group(&user_id, &group)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(SaveProfileExerciseGroupResponse {
+            group: Some(saved),
+        }))
+    }
+
+    async fn delete_profile_exercise_group(
+        &self,
+        request: Request<DeleteProfileExerciseGroupRequest>,
+    ) -> Result<Response<DeleteProfileExerciseGroupResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "DeleteProfileExerciseGroup", %user_id, group_id = %req.group_id, "request");
+        if req.group_id.is_empty() {
+            return Err(Status::invalid_argument("group_id is required"));
+        }
+        self.db
+            .delete_profile_exercise_group(&user_id, &req.group_id)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(DeleteProfileExerciseGroupResponse {}))
     }
 
     async fn rehydrate_workout_from_events(

@@ -133,8 +133,8 @@ class MainLayout extends StatelessWidget {
                       ),
                       Divider(height: 32, color: colorScheme.outline),
                       _MenuButton(
-                        icon: Icons.fitness_center_outlined,
-                        label: 'Training Program',
+                        icon: Icons.psychology_outlined,
+                        label: 'Schplanner',
                         onTap: () => goToTopLevel('/training-program'),
                         isActive: currentPath == '/training-program',
                       ),

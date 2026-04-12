@@ -1,7 +1,7 @@
 name: schlift
 description: "Schlift workout tracker"
 publish_to: 'none'
-version: 0.7.22+29
+version: 0.7.23+30
 
 environment:
   sdk: ^3.11.0
@@ -31,6 +31,7 @@ dependencies:
   google_fonts: ^6.3.0
   url_launcher: ^6.3.2
   passkeys: ^2.8.2
+  credential_manager: ^2.0.8
 
 dev_dependencies:
   flutter_test:

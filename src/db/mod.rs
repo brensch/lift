@@ -181,6 +181,26 @@ CREATE TABLE IF NOT EXISTS workout_drafts_current (
     draft_blob BLOB NOT NULL,
     updated_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS profile_exercise_groups (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    sets INTEGER NOT NULL DEFAULT 0,
+    interleave_warmups INTEGER NOT NULL DEFAULT 0,
+    prescribed_by_regime INTEGER NOT NULL DEFAULT 0,
+    profile_order INTEGER NOT NULL DEFAULT 0,
+    instruction TEXT NOT NULL DEFAULT '',
+    rest_success INTEGER NOT NULL DEFAULT 0,
+    rest_failure INTEGER NOT NULL DEFAULT 0,
+    rest_warmup INTEGER NOT NULL DEFAULT 0,
+    rest_last_warmup INTEGER NOT NULL DEFAULT 0,
+    exercise_configs_blob BLOB,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_profile_exercise_groups_user_updated
+    ON profile_exercise_groups(user_id, updated_at DESC, created_at DESC);
 "#;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
