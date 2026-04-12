@@ -16,7 +16,7 @@ pub use wendler_531::Wendler531Regime;
 use crate::program_state::{PendingUpdateDef, ProposeResult, StatePayload};
 use crate::schplanner::{
     summarize_history_window, summarize_proposed_slot_targets, ProposedSlotTarget,
-    SchplannerSlotOutcome, SchplannerWorkoutRecord,
+    SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -96,6 +96,7 @@ pub trait WorkoutRegime: Send + Sync {
         state: &StatePayload,
         last_session_at: i64,
         now_ts: i64,
+        insights: &SchplannerInsights,
     ) -> ProposeResult;
 
     /// Return pending state updates (e.g. temporal deload recommendations).
@@ -214,6 +215,70 @@ pub fn catalog_regime_types() -> Vec<RegimeType> {
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+
+pub fn recent_performance_notes(
+    insights: &SchplannerInsights,
+    exercises: &[Exercise],
+    limit: usize,
+) -> Vec<String> {
+    let mut notes = Vec::new();
+    let mut seen = HashSet::new();
+
+    for &exercise in exercises {
+        if !seen.insert(exercise) {
+            continue;
+        }
+        let Some(insight) = insights.for_exercise(exercise) else {
+            continue;
+        };
+        let label = exercise_display_name(exercise);
+        if !insight.last_hit_target {
+            notes.push(format!(
+                "Last {} working set missed target reps ({} of {}). Build today around cleaner reps before chasing load.",
+                label,
+                insight.last_actual_reps,
+                insight.last_target_reps
+            ));
+        } else if insight.last_was_amrap && insight.last_actual_reps >= insight.last_target_reps + 2
+        {
+            notes.push(format!(
+                "Last {} top set beat the target cleanly ({} on a {}+ set). If warmups move well, you can press the work today.",
+                label,
+                insight.last_actual_reps,
+                insight.last_target_reps
+            ));
+        }
+
+        if insight.set_durations.sample_count >= 3
+            && insight.set_durations.max_secs as f32
+                > insight.set_durations.mean_secs + insight.set_durations.stddev_secs
+            && insight.set_durations.max_secs >= 45
+        {
+            notes.push(format!(
+                "{} has been taking longer to finish lately (last set {}s, recent average {:.0}s). Give the heavier work full setup time.",
+                label,
+                insight.set_durations.max_secs,
+                insight.set_durations.mean_secs
+            ));
+        }
+
+        if insight.rests.sample_count >= 3 && insight.rests.stddev_secs >= 30.0 {
+            notes.push(format!(
+                "{} rest has been inconsistent recently (average {:.0}s, variance about {:.0}s). Keep rest periods more repeatable today.",
+                label,
+                insight.rests.mean_secs,
+                insight.rests.stddev_secs
+            ));
+        }
+
+        if notes.len() >= limit {
+            break;
+        }
+    }
+
+    notes.truncate(limit);
+    notes
+}
 
 pub fn make_exercise_type_config_amrap(
     exercise: Exercise,
@@ -346,17 +411,11 @@ fn this_week_bounds(now_ts: i64) -> (i64, i64) {
         LocalResult::Single(dt) => dt.timestamp(),
         _ => now_ts,
     };
-    let end_ts = match Utc.with_ymd_and_hms(
-        end_date.year(),
-        end_date.month(),
-        end_date.day(),
-        0,
-        0,
-        0,
-    ) {
-        LocalResult::Single(dt) => dt.timestamp() - 1,
-        _ => now_ts,
-    };
+    let end_ts =
+        match Utc.with_ymd_and_hms(end_date.year(), end_date.month(), end_date.day(), 0, 0, 0) {
+            LocalResult::Single(dt) => dt.timestamp() - 1,
+            _ => now_ts,
+        };
     (start_ts, end_ts)
 }
 
@@ -371,7 +430,10 @@ pub fn build_training_status(
 ) -> TrainingStatus {
     let (window_start, window_end) = this_week_bounds(now_ts);
     let window = summarize_history_window(history, window_start, window_end);
-    let target_sets_per_7_days = target_slot_sets.values().map(|slot| slot.set_count).sum::<i32>();
+    let target_sets_per_7_days = target_slot_sets
+        .values()
+        .map(|slot| slot.set_count)
+        .sum::<i32>();
     let remaining_sessions_per_7_days =
         (target_sessions_per_7_days - window.completed_sessions).max(0);
     let remaining_sets_per_7_days = (target_sets_per_7_days - window.completed_sets).max(0);
@@ -382,7 +444,10 @@ pub fn build_training_status(
     } else if should_train_now {
         "Schlift today".to_string()
     } else {
-        format!("Next Schlift {}", format_time_until(next_session_at, now_ts))
+        format!(
+            "Next Schlift {}",
+            format_time_until(next_session_at, now_ts)
+        )
     };
 
     let mut slot_statuses = target_slot_sets
@@ -452,15 +517,19 @@ pub fn simulate_target_slot_sets(
 ) -> HashMap<String, ProposedSlotTarget> {
     let mut sim_state = state.clone();
     let mut combined = HashMap::<String, ProposedSlotTarget>::new();
+    let empty_insights = SchplannerInsights::default();
     for idx in 0..session_count.max(0) {
-        let proposal = regime.propose_from_state(&sim_state, last_session_at, now_ts);
+        let proposal =
+            regime.propose_from_state(&sim_state, last_session_at, now_ts, &empty_insights);
         for (slot_key, target) in summarize_proposed_slot_targets(&proposal.proposed_groups) {
-            let entry = combined.entry(slot_key.clone()).or_insert_with(|| ProposedSlotTarget {
-                slot_key,
-                exercise: target.exercise,
-                tier: target.tier.clone(),
-                set_count: 0,
-            });
+            let entry = combined
+                .entry(slot_key.clone())
+                .or_insert_with(|| ProposedSlotTarget {
+                    slot_key,
+                    exercise: target.exercise,
+                    tier: target.tier.clone(),
+                    set_count: 0,
+                });
             entry.set_count += target.set_count;
         }
         if idx + 1 < session_count {
