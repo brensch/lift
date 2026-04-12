@@ -697,6 +697,40 @@ public final class WorkoutOuterClass {
      * @return The createdAt.
      */
     long getCreatedAt();
+
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @return The profileEmoji.
+     */
+    java.lang.String getProfileEmoji();
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @return The bytes for profileEmoji.
+     */
+    com.google.protobuf.ByteString
+        getProfileEmojiBytes();
+
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @return The profileColorHex.
+     */
+    java.lang.String getProfileColorHex();
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @return The bytes for profileColorHex.
+     */
+    com.google.protobuf.ByteString
+        getProfileColorHexBytes();
+
+    /**
+     * <pre>
+     * 0 = not set
+     * </pre>
+     *
+     * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+     * @return The bodyWeightKg.
+     */
+    float getBodyWeightKg();
   }
   /**
    * Protobuf type {@code workout.v1.User}
@@ -709,6 +743,8 @@ public final class WorkoutOuterClass {
     private User() {
       id_ = "";
       name_ = "";
+      profileEmoji_ = "";
+      profileColorHex_ = "";
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -840,6 +876,138 @@ public final class WorkoutOuterClass {
     private void clearCreatedAt() {
       
       createdAt_ = 0L;
+    }
+
+    public static final int PROFILE_EMOJI_FIELD_NUMBER = 4;
+    private java.lang.String profileEmoji_;
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @return The profileEmoji.
+     */
+    @java.lang.Override
+    public java.lang.String getProfileEmoji() {
+      return profileEmoji_;
+    }
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @return The bytes for profileEmoji.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProfileEmojiBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(profileEmoji_);
+    }
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @param value The profileEmoji to set.
+     */
+    private void setProfileEmoji(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      profileEmoji_ = value;
+    }
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     */
+    private void clearProfileEmoji() {
+      
+      profileEmoji_ = getDefaultInstance().getProfileEmoji();
+    }
+    /**
+     * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+     * @param value The bytes for profileEmoji to set.
+     */
+    private void setProfileEmojiBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      profileEmoji_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROFILE_COLOR_HEX_FIELD_NUMBER = 5;
+    private java.lang.String profileColorHex_;
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @return The profileColorHex.
+     */
+    @java.lang.Override
+    public java.lang.String getProfileColorHex() {
+      return profileColorHex_;
+    }
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @return The bytes for profileColorHex.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProfileColorHexBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(profileColorHex_);
+    }
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @param value The profileColorHex to set.
+     */
+    private void setProfileColorHex(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      profileColorHex_ = value;
+    }
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     */
+    private void clearProfileColorHex() {
+      
+      profileColorHex_ = getDefaultInstance().getProfileColorHex();
+    }
+    /**
+     * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+     * @param value The bytes for profileColorHex to set.
+     */
+    private void setProfileColorHexBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      profileColorHex_ = value.toStringUtf8();
+      
+    }
+
+    public static final int BODY_WEIGHT_KG_FIELD_NUMBER = 6;
+    private float bodyWeightKg_;
+    /**
+     * <pre>
+     * 0 = not set
+     * </pre>
+     *
+     * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+     * @return The bodyWeightKg.
+     */
+    @java.lang.Override
+    public float getBodyWeightKg() {
+      return bodyWeightKg_;
+    }
+    /**
+     * <pre>
+     * 0 = not set
+     * </pre>
+     *
+     * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+     * @param value The bodyWeightKg to set.
+     */
+    private void setBodyWeightKg(float value) {
+      
+      bodyWeightKg_ = value;
+    }
+    /**
+     * <pre>
+     * 0 = not set
+     * </pre>
+     *
+     * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+     */
+    private void clearBodyWeightKg() {
+      
+      bodyWeightKg_ = 0F;
     }
 
     public static workout.v1.WorkoutOuterClass.User parseFrom(
@@ -1075,6 +1243,144 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+       * @return The profileEmoji.
+       */
+      @java.lang.Override
+      public java.lang.String getProfileEmoji() {
+        return instance.getProfileEmoji();
+      }
+      /**
+       * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+       * @return The bytes for profileEmoji.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProfileEmojiBytes() {
+        return instance.getProfileEmojiBytes();
+      }
+      /**
+       * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+       * @param value The profileEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileEmoji(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProfileEmoji(value);
+        return this;
+      }
+      /**
+       * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProfileEmoji() {
+        copyOnWrite();
+        instance.clearProfileEmoji();
+        return this;
+      }
+      /**
+       * <code>string profile_emoji = 4 [json_name = "profileEmoji"];</code>
+       * @param value The bytes for profileEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileEmojiBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProfileEmojiBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+       * @return The profileColorHex.
+       */
+      @java.lang.Override
+      public java.lang.String getProfileColorHex() {
+        return instance.getProfileColorHex();
+      }
+      /**
+       * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+       * @return The bytes for profileColorHex.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProfileColorHexBytes() {
+        return instance.getProfileColorHexBytes();
+      }
+      /**
+       * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+       * @param value The profileColorHex to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileColorHex(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProfileColorHex(value);
+        return this;
+      }
+      /**
+       * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProfileColorHex() {
+        copyOnWrite();
+        instance.clearProfileColorHex();
+        return this;
+      }
+      /**
+       * <code>string profile_color_hex = 5 [json_name = "profileColorHex"];</code>
+       * @param value The bytes for profileColorHex to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileColorHexBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProfileColorHexBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * 0 = not set
+       * </pre>
+       *
+       * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+       * @return The bodyWeightKg.
+       */
+      @java.lang.Override
+      public float getBodyWeightKg() {
+        return instance.getBodyWeightKg();
+      }
+      /**
+       * <pre>
+       * 0 = not set
+       * </pre>
+       *
+       * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+       * @param value The bodyWeightKg to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBodyWeightKg(float value) {
+        copyOnWrite();
+        instance.setBodyWeightKg(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * 0 = not set
+       * </pre>
+       *
+       * <code>float body_weight_kg = 6 [json_name = "bodyWeightKg"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBodyWeightKg() {
+        copyOnWrite();
+        instance.clearBodyWeightKg();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.User)
     }
     @java.lang.Override
@@ -1094,10 +1400,13 @@ public final class WorkoutOuterClass {
               "id_",
               "name_",
               "createdAt_",
+              "profileEmoji_",
+              "profileColorHex_",
+              "bodyWeightKg_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0002";
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0002\u0004\u0208\u0005\u0208\u0006\u0001";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -26655,6 +26964,20 @@ public final class WorkoutOuterClass {
      * @return The draft.
      */
     workout.v1.WorkoutOuterClass.WorkoutDraft getDraft();
+
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> 
+        getSavedExerciseGroupsList();
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index);
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    int getSavedExerciseGroupsCount();
   }
   /**
    * Protobuf type {@code workout.v1.GetProposedWorkoutScheduleResponse}
@@ -26670,6 +26993,7 @@ public final class WorkoutOuterClass {
       proposedGroups_ = emptyProtobufList();
       suggestedWorkoutName_ = "";
       pendingStateUpdates_ = emptyProtobufList();
+      savedExerciseGroups_ = emptyProtobufList();
     }
     public static final int EXERCISE_STATUSES_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseStatus> exerciseStatuses_;
@@ -27285,6 +27609,100 @@ public final class WorkoutOuterClass {
      */
     private void clearDraft() {  draft_ = null;
       
+    }
+
+    public static final int SAVED_EXERCISE_GROUPS_FIELD_NUMBER = 10;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> savedExerciseGroups_;
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getSavedExerciseGroupsList() {
+      return savedExerciseGroups_;
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder> 
+        getSavedExerciseGroupsOrBuilderList() {
+      return savedExerciseGroups_;
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public int getSavedExerciseGroupsCount() {
+      return savedExerciseGroups_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index) {
+      return savedExerciseGroups_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder getSavedExerciseGroupsOrBuilder(
+        int index) {
+      return savedExerciseGroups_.get(index);
+    }
+    private void ensureSavedExerciseGroupsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> tmp = savedExerciseGroups_;
+      if (!tmp.isModifiable()) {
+        savedExerciseGroups_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void setSavedExerciseGroups(
+        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureSavedExerciseGroupsIsMutable();
+      savedExerciseGroups_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void addSavedExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureSavedExerciseGroupsIsMutable();
+      savedExerciseGroups_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void addSavedExerciseGroups(
+        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  ensureSavedExerciseGroupsIsMutable();
+      savedExerciseGroups_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void addAllSavedExerciseGroups(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
+      ensureSavedExerciseGroupsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, savedExerciseGroups_);
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void clearSavedExerciseGroups() {
+      savedExerciseGroups_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     */
+    private void removeSavedExerciseGroups(int index) {
+      ensureSavedExerciseGroupsIsMutable();
+      savedExerciseGroups_.remove(index);
     }
 
     public static workout.v1.WorkoutOuterClass.GetProposedWorkoutScheduleResponse parseFrom(
@@ -28035,6 +28453,108 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getSavedExerciseGroupsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getSavedExerciseGroupsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public int getSavedExerciseGroupsCount() {
+        return instance.getSavedExerciseGroupsCount();
+      }/**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index) {
+        return instance.getSavedExerciseGroups(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder setSavedExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.setSavedExerciseGroups(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder setSavedExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSavedExerciseGroups(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder addSavedExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.addSavedExerciseGroups(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder addSavedExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.addSavedExerciseGroups(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder addSavedExerciseGroups(
+          workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSavedExerciseGroups(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder addSavedExerciseGroups(
+          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSavedExerciseGroups(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder addAllSavedExerciseGroups(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
+        copyOnWrite();
+        instance.addAllSavedExerciseGroups(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder clearSavedExerciseGroups() {
+        copyOnWrite();
+        instance.clearSavedExerciseGroups();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       */
+      public Builder removeSavedExerciseGroups(int index) {
+        copyOnWrite();
+        instance.removeSavedExerciseGroups(index);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetProposedWorkoutScheduleResponse)
     }
     @java.lang.Override
@@ -28063,10 +28583,12 @@ public final class WorkoutOuterClass {
               workout.v1.Settings.PendingStateUpdate.class,
               "canStartWorkout_",
               "draft_",
+              "savedExerciseGroups_",
+              workout.v1.WorkoutOuterClass.ExerciseGroup.class,
             };
             java.lang.String info =
-                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0003\u0000\u0001\u001b\u0002\u0208\u0003\u001b" +
-                "\u0004\t\u0005\t\u0006\u0208\u0007\u001b\b\u0007\t\t";
+                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0004\u0000\u0001\u001b\u0002\u0208\u0003\u001b" +
+                "\u0004\t\u0005\t\u0006\u0208\u0007\u001b\b\u0007\t\t\n\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -28117,6 +28639,1052 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<GetProposedWorkoutScheduleResponse> PARSER;
 
     public static com.google.protobuf.Parser<GetProposedWorkoutScheduleResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SaveProfileExerciseGroupRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SaveProfileExerciseGroupRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     * @return Whether the group field is set.
+     */
+    boolean hasGroup();
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     * @return The group.
+     */
+    workout.v1.WorkoutOuterClass.ExerciseGroup getGroup();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SaveProfileExerciseGroupRequest}
+   */
+  public  static final class SaveProfileExerciseGroupRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          SaveProfileExerciseGroupRequest, SaveProfileExerciseGroupRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SaveProfileExerciseGroupRequest)
+      SaveProfileExerciseGroupRequestOrBuilder {
+    private SaveProfileExerciseGroupRequest() {
+    }
+    public static final int GROUP_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.ExerciseGroup group_;
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.Override
+    public boolean hasGroup() {
+      return group_ != null;
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseGroup getGroup() {
+      return group_ == null ? workout.v1.WorkoutOuterClass.ExerciseGroup.getDefaultInstance() : group_;
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    private void setGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  group_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  if (group_ != null &&
+          group_ != workout.v1.WorkoutOuterClass.ExerciseGroup.getDefaultInstance()) {
+        group_ =
+          workout.v1.WorkoutOuterClass.ExerciseGroup.newBuilder(group_).mergeFrom(value).buildPartial();
+      } else {
+        group_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    private void clearGroup() {  group_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SaveProfileExerciseGroupRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SaveProfileExerciseGroupRequest)
+        workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      @java.lang.Override
+      public boolean hasGroup() {
+        return instance.hasGroup();
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseGroup getGroup() {
+        return instance.getGroup();
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder setGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.setGroup(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder setGroup(
+          workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.setGroup(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder mergeGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.mergeGroup(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder clearGroup() {  copyOnWrite();
+        instance.clearGroup();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SaveProfileExerciseGroupRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "group_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\t";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SaveProfileExerciseGroupRequest)
+    private static final workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest DEFAULT_INSTANCE;
+    static {
+      SaveProfileExerciseGroupRequest defaultInstance = new SaveProfileExerciseGroupRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SaveProfileExerciseGroupRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SaveProfileExerciseGroupRequest> PARSER;
+
+    public static com.google.protobuf.Parser<SaveProfileExerciseGroupRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SaveProfileExerciseGroupResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SaveProfileExerciseGroupResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     * @return Whether the group field is set.
+     */
+    boolean hasGroup();
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     * @return The group.
+     */
+    workout.v1.WorkoutOuterClass.ExerciseGroup getGroup();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SaveProfileExerciseGroupResponse}
+   */
+  public  static final class SaveProfileExerciseGroupResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          SaveProfileExerciseGroupResponse, SaveProfileExerciseGroupResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SaveProfileExerciseGroupResponse)
+      SaveProfileExerciseGroupResponseOrBuilder {
+    private SaveProfileExerciseGroupResponse() {
+    }
+    public static final int GROUP_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.ExerciseGroup group_;
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.Override
+    public boolean hasGroup() {
+      return group_ != null;
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseGroup getGroup() {
+      return group_ == null ? workout.v1.WorkoutOuterClass.ExerciseGroup.getDefaultInstance() : group_;
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    private void setGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  group_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+      value.getClass();
+  if (group_ != null &&
+          group_ != workout.v1.WorkoutOuterClass.ExerciseGroup.getDefaultInstance()) {
+        group_ =
+          workout.v1.WorkoutOuterClass.ExerciseGroup.newBuilder(group_).mergeFrom(value).buildPartial();
+      } else {
+        group_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+     */
+    private void clearGroup() {  group_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SaveProfileExerciseGroupResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SaveProfileExerciseGroupResponse)
+        workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      @java.lang.Override
+      public boolean hasGroup() {
+        return instance.hasGroup();
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseGroup getGroup() {
+        return instance.getGroup();
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder setGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.setGroup(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder setGroup(
+          workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
+        copyOnWrite();
+        instance.setGroup(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder mergeGroup(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
+        copyOnWrite();
+        instance.mergeGroup(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ExerciseGroup group = 1 [json_name = "group"];</code>
+       */
+      public Builder clearGroup() {  copyOnWrite();
+        instance.clearGroup();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SaveProfileExerciseGroupResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "group_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\t";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SaveProfileExerciseGroupResponse)
+    private static final workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse DEFAULT_INSTANCE;
+    static {
+      SaveProfileExerciseGroupResponse defaultInstance = new SaveProfileExerciseGroupResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SaveProfileExerciseGroupResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SaveProfileExerciseGroupResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SaveProfileExerciseGroupResponse> PARSER;
+
+    public static com.google.protobuf.Parser<SaveProfileExerciseGroupResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface DeleteProfileExerciseGroupRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.DeleteProfileExerciseGroupRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @return The groupId.
+     */
+    java.lang.String getGroupId();
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @return The bytes for groupId.
+     */
+    com.google.protobuf.ByteString
+        getGroupIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.DeleteProfileExerciseGroupRequest}
+   */
+  public  static final class DeleteProfileExerciseGroupRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          DeleteProfileExerciseGroupRequest, DeleteProfileExerciseGroupRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.DeleteProfileExerciseGroupRequest)
+      DeleteProfileExerciseGroupRequestOrBuilder {
+    private DeleteProfileExerciseGroupRequest() {
+      groupId_ = "";
+    }
+    public static final int GROUP_ID_FIELD_NUMBER = 1;
+    private java.lang.String groupId_;
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @return The groupId.
+     */
+    @java.lang.Override
+    public java.lang.String getGroupId() {
+      return groupId_;
+    }
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @return The bytes for groupId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getGroupIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(groupId_);
+    }
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @param value The groupId to set.
+     */
+    private void setGroupId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      groupId_ = value;
+    }
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     */
+    private void clearGroupId() {
+      
+      groupId_ = getDefaultInstance().getGroupId();
+    }
+    /**
+     * <code>string group_id = 1 [json_name = "groupId"];</code>
+     * @param value The bytes for groupId to set.
+     */
+    private void setGroupIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      groupId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.DeleteProfileExerciseGroupRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.DeleteProfileExerciseGroupRequest)
+        workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string group_id = 1 [json_name = "groupId"];</code>
+       * @return The groupId.
+       */
+      @java.lang.Override
+      public java.lang.String getGroupId() {
+        return instance.getGroupId();
+      }
+      /**
+       * <code>string group_id = 1 [json_name = "groupId"];</code>
+       * @return The bytes for groupId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getGroupIdBytes() {
+        return instance.getGroupIdBytes();
+      }
+      /**
+       * <code>string group_id = 1 [json_name = "groupId"];</code>
+       * @param value The groupId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGroupId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setGroupId(value);
+        return this;
+      }
+      /**
+       * <code>string group_id = 1 [json_name = "groupId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearGroupId() {
+        copyOnWrite();
+        instance.clearGroupId();
+        return this;
+      }
+      /**
+       * <code>string group_id = 1 [json_name = "groupId"];</code>
+       * @param value The bytes for groupId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGroupIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setGroupIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.DeleteProfileExerciseGroupRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "groupId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.DeleteProfileExerciseGroupRequest)
+    private static final workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest DEFAULT_INSTANCE;
+    static {
+      DeleteProfileExerciseGroupRequest defaultInstance = new DeleteProfileExerciseGroupRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        DeleteProfileExerciseGroupRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<DeleteProfileExerciseGroupRequest> PARSER;
+
+    public static com.google.protobuf.Parser<DeleteProfileExerciseGroupRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface DeleteProfileExerciseGroupResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.DeleteProfileExerciseGroupResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.DeleteProfileExerciseGroupResponse}
+   */
+  public  static final class DeleteProfileExerciseGroupResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          DeleteProfileExerciseGroupResponse, DeleteProfileExerciseGroupResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.DeleteProfileExerciseGroupResponse)
+      DeleteProfileExerciseGroupResponseOrBuilder {
+    private DeleteProfileExerciseGroupResponse() {
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.DeleteProfileExerciseGroupResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.DeleteProfileExerciseGroupResponse)
+        workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.DeleteProfileExerciseGroupResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.DeleteProfileExerciseGroupResponse)
+    private static final workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse DEFAULT_INSTANCE;
+    static {
+      DeleteProfileExerciseGroupResponse defaultInstance = new DeleteProfileExerciseGroupResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        DeleteProfileExerciseGroupResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.DeleteProfileExerciseGroupResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<DeleteProfileExerciseGroupResponse> PARSER;
+
+    public static com.google.protobuf.Parser<DeleteProfileExerciseGroupResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -39276,6 +40844,785 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<GetUserResponse> PARSER;
 
     public static com.google.protobuf.Parser<GetUserResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface UpdateMyProfileRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.UpdateMyProfileRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @return The profileEmoji.
+     */
+    java.lang.String getProfileEmoji();
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @return The bytes for profileEmoji.
+     */
+    com.google.protobuf.ByteString
+        getProfileEmojiBytes();
+
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @return The profileColorHex.
+     */
+    java.lang.String getProfileColorHex();
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @return The bytes for profileColorHex.
+     */
+    com.google.protobuf.ByteString
+        getProfileColorHexBytes();
+
+    /**
+     * <pre>
+     * 0 = unchanged
+     * </pre>
+     *
+     * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+     * @return The bodyWeightKg.
+     */
+    float getBodyWeightKg();
+  }
+  /**
+   * Protobuf type {@code workout.v1.UpdateMyProfileRequest}
+   */
+  public  static final class UpdateMyProfileRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          UpdateMyProfileRequest, UpdateMyProfileRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.UpdateMyProfileRequest)
+      UpdateMyProfileRequestOrBuilder {
+    private UpdateMyProfileRequest() {
+      profileEmoji_ = "";
+      profileColorHex_ = "";
+    }
+    public static final int PROFILE_EMOJI_FIELD_NUMBER = 1;
+    private java.lang.String profileEmoji_;
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @return The profileEmoji.
+     */
+    @java.lang.Override
+    public java.lang.String getProfileEmoji() {
+      return profileEmoji_;
+    }
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @return The bytes for profileEmoji.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProfileEmojiBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(profileEmoji_);
+    }
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @param value The profileEmoji to set.
+     */
+    private void setProfileEmoji(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      profileEmoji_ = value;
+    }
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     */
+    private void clearProfileEmoji() {
+      
+      profileEmoji_ = getDefaultInstance().getProfileEmoji();
+    }
+    /**
+     * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+     * @param value The bytes for profileEmoji to set.
+     */
+    private void setProfileEmojiBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      profileEmoji_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROFILE_COLOR_HEX_FIELD_NUMBER = 2;
+    private java.lang.String profileColorHex_;
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @return The profileColorHex.
+     */
+    @java.lang.Override
+    public java.lang.String getProfileColorHex() {
+      return profileColorHex_;
+    }
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @return The bytes for profileColorHex.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProfileColorHexBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(profileColorHex_);
+    }
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @param value The profileColorHex to set.
+     */
+    private void setProfileColorHex(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      profileColorHex_ = value;
+    }
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     */
+    private void clearProfileColorHex() {
+      
+      profileColorHex_ = getDefaultInstance().getProfileColorHex();
+    }
+    /**
+     * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+     * @param value The bytes for profileColorHex to set.
+     */
+    private void setProfileColorHexBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      profileColorHex_ = value.toStringUtf8();
+      
+    }
+
+    public static final int BODY_WEIGHT_KG_FIELD_NUMBER = 3;
+    private float bodyWeightKg_;
+    /**
+     * <pre>
+     * 0 = unchanged
+     * </pre>
+     *
+     * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+     * @return The bodyWeightKg.
+     */
+    @java.lang.Override
+    public float getBodyWeightKg() {
+      return bodyWeightKg_;
+    }
+    /**
+     * <pre>
+     * 0 = unchanged
+     * </pre>
+     *
+     * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+     * @param value The bodyWeightKg to set.
+     */
+    private void setBodyWeightKg(float value) {
+      
+      bodyWeightKg_ = value;
+    }
+    /**
+     * <pre>
+     * 0 = unchanged
+     * </pre>
+     *
+     * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+     */
+    private void clearBodyWeightKg() {
+      
+      bodyWeightKg_ = 0F;
+    }
+
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.UpdateMyProfileRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.UpdateMyProfileRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.UpdateMyProfileRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.UpdateMyProfileRequest)
+        workout.v1.WorkoutOuterClass.UpdateMyProfileRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.UpdateMyProfileRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+       * @return The profileEmoji.
+       */
+      @java.lang.Override
+      public java.lang.String getProfileEmoji() {
+        return instance.getProfileEmoji();
+      }
+      /**
+       * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+       * @return The bytes for profileEmoji.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProfileEmojiBytes() {
+        return instance.getProfileEmojiBytes();
+      }
+      /**
+       * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+       * @param value The profileEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileEmoji(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProfileEmoji(value);
+        return this;
+      }
+      /**
+       * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProfileEmoji() {
+        copyOnWrite();
+        instance.clearProfileEmoji();
+        return this;
+      }
+      /**
+       * <code>string profile_emoji = 1 [json_name = "profileEmoji"];</code>
+       * @param value The bytes for profileEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileEmojiBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProfileEmojiBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+       * @return The profileColorHex.
+       */
+      @java.lang.Override
+      public java.lang.String getProfileColorHex() {
+        return instance.getProfileColorHex();
+      }
+      /**
+       * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+       * @return The bytes for profileColorHex.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProfileColorHexBytes() {
+        return instance.getProfileColorHexBytes();
+      }
+      /**
+       * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+       * @param value The profileColorHex to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileColorHex(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProfileColorHex(value);
+        return this;
+      }
+      /**
+       * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProfileColorHex() {
+        copyOnWrite();
+        instance.clearProfileColorHex();
+        return this;
+      }
+      /**
+       * <code>string profile_color_hex = 2 [json_name = "profileColorHex"];</code>
+       * @param value The bytes for profileColorHex to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProfileColorHexBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProfileColorHexBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * 0 = unchanged
+       * </pre>
+       *
+       * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+       * @return The bodyWeightKg.
+       */
+      @java.lang.Override
+      public float getBodyWeightKg() {
+        return instance.getBodyWeightKg();
+      }
+      /**
+       * <pre>
+       * 0 = unchanged
+       * </pre>
+       *
+       * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+       * @param value The bodyWeightKg to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBodyWeightKg(float value) {
+        copyOnWrite();
+        instance.setBodyWeightKg(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * 0 = unchanged
+       * </pre>
+       *
+       * <code>float body_weight_kg = 3 [json_name = "bodyWeightKg"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBodyWeightKg() {
+        copyOnWrite();
+        instance.clearBodyWeightKg();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.UpdateMyProfileRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.UpdateMyProfileRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "profileEmoji_",
+              "profileColorHex_",
+              "bodyWeightKg_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0001";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.UpdateMyProfileRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.UpdateMyProfileRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.UpdateMyProfileRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.UpdateMyProfileRequest)
+    private static final workout.v1.WorkoutOuterClass.UpdateMyProfileRequest DEFAULT_INSTANCE;
+    static {
+      UpdateMyProfileRequest defaultInstance = new UpdateMyProfileRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        UpdateMyProfileRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<UpdateMyProfileRequest> PARSER;
+
+    public static com.google.protobuf.Parser<UpdateMyProfileRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface UpdateMyProfileResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.UpdateMyProfileResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     * @return Whether the user field is set.
+     */
+    boolean hasUser();
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     * @return The user.
+     */
+    workout.v1.WorkoutOuterClass.User getUser();
+  }
+  /**
+   * Protobuf type {@code workout.v1.UpdateMyProfileResponse}
+   */
+  public  static final class UpdateMyProfileResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          UpdateMyProfileResponse, UpdateMyProfileResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.UpdateMyProfileResponse)
+      UpdateMyProfileResponseOrBuilder {
+    private UpdateMyProfileResponse() {
+    }
+    public static final int USER_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.User user_;
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.Override
+    public boolean hasUser() {
+      return user_ != null;
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.User getUser() {
+      return user_ == null ? workout.v1.WorkoutOuterClass.User.getDefaultInstance() : user_;
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    private void setUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  user_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  if (user_ != null &&
+          user_ != workout.v1.WorkoutOuterClass.User.getDefaultInstance()) {
+        user_ =
+          workout.v1.WorkoutOuterClass.User.newBuilder(user_).mergeFrom(value).buildPartial();
+      } else {
+        user_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    private void clearUser() {  user_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.UpdateMyProfileResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.UpdateMyProfileResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.UpdateMyProfileResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.UpdateMyProfileResponse)
+        workout.v1.WorkoutOuterClass.UpdateMyProfileResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.UpdateMyProfileResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      @java.lang.Override
+      public boolean hasUser() {
+        return instance.hasUser();
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.User getUser() {
+        return instance.getUser();
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder setUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.setUser(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder setUser(
+          workout.v1.WorkoutOuterClass.User.Builder builderForValue) {
+        copyOnWrite();
+        instance.setUser(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder mergeUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.mergeUser(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder clearUser() {  copyOnWrite();
+        instance.clearUser();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.UpdateMyProfileResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.UpdateMyProfileResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "user_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\t";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.UpdateMyProfileResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.UpdateMyProfileResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.UpdateMyProfileResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.UpdateMyProfileResponse)
+    private static final workout.v1.WorkoutOuterClass.UpdateMyProfileResponse DEFAULT_INSTANCE;
+    static {
+      UpdateMyProfileResponse defaultInstance = new UpdateMyProfileResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        UpdateMyProfileResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.UpdateMyProfileResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<UpdateMyProfileResponse> PARSER;
+
+    public static com.google.protobuf.Parser<UpdateMyProfileResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

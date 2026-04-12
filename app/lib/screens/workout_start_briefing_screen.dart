@@ -10,7 +10,7 @@ import '../providers/settings_provider.dart';
 class WorkoutStartBriefingScreen extends StatefulWidget {
   final String workoutName;
   final RegimeContext? regimeContext;
-  final List<ProposedExerciseGroup> selectedGroups;
+  final List<ExerciseGroup> selectedGroups;
   final Future<void> Function() onStartWorkout;
 
   const WorkoutStartBriefingScreen({
@@ -26,7 +26,8 @@ class WorkoutStartBriefingScreen extends StatefulWidget {
       _WorkoutStartBriefingScreenState();
 }
 
-class _WorkoutStartBriefingScreenState extends State<WorkoutStartBriefingScreen> {
+class _WorkoutStartBriefingScreenState
+    extends State<WorkoutStartBriefingScreen> {
   bool _starting = false;
 
   Future<void> _handleStart() async {
@@ -239,7 +240,7 @@ class _NoteRow extends StatelessWidget {
 }
 
 class _GroupWeightCard extends StatelessWidget {
-  final ProposedExerciseGroup group;
+  final ExerciseGroup group;
   final WeightUnit unit;
 
   const _GroupWeightCard({required this.group, required this.unit});
@@ -264,7 +265,8 @@ class _GroupWeightCard extends StatelessWidget {
     if (sets.isEmpty) return 'No working sets planned.';
     return sets
         .map(
-          (set) => '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} x '
+          (set) =>
+              '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} x '
               '${set.isAmrap ? '${set.targetReps}+' : set.targetReps}',
         )
         .join('  •  ');
@@ -331,10 +333,10 @@ class _GroupWeightCard extends StatelessWidget {
             group.name,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-          if (group.explanation.isNotEmpty) ...[
+          if (group.instruction.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              group.explanation,
+              group.instruction,
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,

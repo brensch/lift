@@ -1420,6 +1420,14 @@ const GetProposedWorkoutScheduleResponse$json = {
       '6': '.workout.v1.WorkoutDraft',
       '10': 'draft'
     },
+    {
+      '1': 'saved_exercise_groups',
+      '3': 10,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseGroup',
+      '10': 'savedExerciseGroups'
+    },
   ],
 };
 
@@ -1435,7 +1443,74 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $conv
     '91dF9uYW1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRJSChVwZW5kaW5nX3N0YXRlX3Vw'
     'ZGF0ZXMYByADKAsyHi53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZVITcGVuZGluZ1N0YX'
     'RlVXBkYXRlcxIqChFjYW5fc3RhcnRfd29ya291dBgIIAEoCFIPY2FuU3RhcnRXb3Jrb3V0Ei4K'
-    'BWRyYWZ0GAkgASgLMhgud29ya291dC52MS5Xb3Jrb3V0RHJhZnRSBWRyYWZ0');
+    'BWRyYWZ0GAkgASgLMhgud29ya291dC52MS5Xb3Jrb3V0RHJhZnRSBWRyYWZ0Ek0KFXNhdmVkX2'
+    'V4ZXJjaXNlX2dyb3VwcxgKIAMoCzIZLndvcmtvdXQudjEuRXhlcmNpc2VHcm91cFITc2F2ZWRF'
+    'eGVyY2lzZUdyb3Vwcw==');
+
+@$core.Deprecated('Use saveProfileExerciseGroupRequestDescriptor instead')
+const SaveProfileExerciseGroupRequest$json = {
+  '1': 'SaveProfileExerciseGroupRequest',
+  '2': [
+    {
+      '1': 'group',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ExerciseGroup',
+      '10': 'group'
+    },
+  ],
+};
+
+/// Descriptor for `SaveProfileExerciseGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List saveProfileExerciseGroupRequestDescriptor =
+    $convert.base64Decode(
+        'Ch9TYXZlUHJvZmlsZUV4ZXJjaXNlR3JvdXBSZXF1ZXN0Ei8KBWdyb3VwGAEgASgLMhkud29ya2'
+        '91dC52MS5FeGVyY2lzZUdyb3VwUgVncm91cA==');
+
+@$core.Deprecated('Use saveProfileExerciseGroupResponseDescriptor instead')
+const SaveProfileExerciseGroupResponse$json = {
+  '1': 'SaveProfileExerciseGroupResponse',
+  '2': [
+    {
+      '1': 'group',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ExerciseGroup',
+      '10': 'group'
+    },
+  ],
+};
+
+/// Descriptor for `SaveProfileExerciseGroupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List saveProfileExerciseGroupResponseDescriptor =
+    $convert.base64Decode(
+        'CiBTYXZlUHJvZmlsZUV4ZXJjaXNlR3JvdXBSZXNwb25zZRIvCgVncm91cBgBIAEoCzIZLndvcm'
+        'tvdXQudjEuRXhlcmNpc2VHcm91cFIFZ3JvdXA=');
+
+@$core.Deprecated('Use deleteProfileExerciseGroupRequestDescriptor instead')
+const DeleteProfileExerciseGroupRequest$json = {
+  '1': 'DeleteProfileExerciseGroupRequest',
+  '2': [
+    {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
+  ],
+};
+
+/// Descriptor for `DeleteProfileExerciseGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteProfileExerciseGroupRequestDescriptor =
+    $convert.base64Decode(
+        'CiFEZWxldGVQcm9maWxlRXhlcmNpc2VHcm91cFJlcXVlc3QSGQoIZ3JvdXBfaWQYASABKAlSB2'
+        'dyb3VwSWQ=');
+
+@$core.Deprecated('Use deleteProfileExerciseGroupResponseDescriptor instead')
+const DeleteProfileExerciseGroupResponse$json = {
+  '1': 'DeleteProfileExerciseGroupResponse',
+};
+
+/// Descriptor for `DeleteProfileExerciseGroupResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteProfileExerciseGroupResponseDescriptor =
+    $convert.base64Decode('CiJEZWxldGVQcm9maWxlRXhlcmNpc2VHcm91cFJlc3BvbnNl');
 
 @$core.Deprecated('Use workoutDraftDescriptor instead')
 const WorkoutDraft$json = {

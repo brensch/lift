@@ -271,7 +271,7 @@ class StatusSetWeightInfo extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               child: Ink(
                 decoration: BoxDecoration(
-                  color: textColor.withValues(alpha: 0.08),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: secondaryTextColor.withValues(alpha: 0.85),
