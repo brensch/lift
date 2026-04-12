@@ -7,21 +7,23 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     @Published private(set) var isActionPending = false
 
     private var heartbeatTimer: Timer?
-    private let heartRateStreamer = HeartRateStreamer()
     private let workoutSessionManager = WorkoutSessionManager()
     private let sensorBatchOutbox = WatchSensorBatchOutbox()
     private var lastSnapshotReceivedUptime: TimeInterval = 0
     private var lastSnapshotEmittedAtMs: Int64 = 0
     private var pendingActionTimeout: DispatchWorkItem?
     private var lastSnapshotKey: String?
+    private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
+    private let hrLock = NSLock()
+    private var pendingHRWorkoutID: String = ""
 
     override init() {
         super.init()
-        heartRateStreamer.onLatestBpmChanged = { [weak self] bpm in
-            self?.latestBpm = bpm
-        }
         workoutSessionManager.onLatestHeartRateChanged = { [weak self] bpm in
             self?.latestBpm = bpm
+        }
+        workoutSessionManager.onHeartRateSample = { [weak self] sample in
+            self?.bufferAndFlushHRSample(sample)
         }
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -242,16 +244,45 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         lastSnapshotKey = snapshotKey
     }
 
+    private func bufferAndFlushHRSample(_ sample: Workout_V1_HeartRateSample) {
+        hrLock.lock()
+        let workoutID = pendingHRWorkoutID
+        pendingHRSamples.append(sample)
+        let samples = pendingHRSamples
+        pendingHRSamples.removeAll()
+        hrLock.unlock()
+
+        guard !workoutID.isEmpty else { return }
+
+        var batch = Workout_V1_WearSensorBatch()
+        batch.batchID = UUID().uuidString
+        batch.workoutID = workoutID
+        batch.sentAt = Int64(Date().timeIntervalSince1970 * 1000)
+        batch.heartRateSamples = samples
+
+        let enqueued = enqueueSensorBatch(batch)
+        if !enqueued {
+            hrLock.lock()
+            pendingHRSamples.insert(contentsOf: samples, at: 0)
+            hrLock.unlock()
+        }
+    }
+
     private func manageCompanionSession(for snapshot: Workout_V1_WearWorkoutSnapshot) {
         let hasEndWorkoutAction = snapshot.actions.contains { $0.type == .endWorkout }
         let activeWorkout = !snapshot.workoutID.isEmpty &&
             (snapshot.state != .allDone || hasEndWorkoutAction)
         if activeWorkout {
+            hrLock.lock()
+            pendingHRWorkoutID = snapshot.workoutID
+            hrLock.unlock()
             workoutSessionManager.ensureSessionActive()
-            heartRateStreamer.start(workoutId: snapshot.workoutID, connector: self)
             flushPendingSensorBatches()
         } else {
-            heartRateStreamer.stop()
+            hrLock.lock()
+            pendingHRWorkoutID = ""
+            pendingHRSamples.removeAll()
+            hrLock.unlock()
             workoutSessionManager.endSessionIfActive()
         }
     }

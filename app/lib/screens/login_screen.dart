@@ -49,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen>
   ];
   int _exampleIndex = 0;
   Timer? _exampleTimer;
-  bool _isUsernameFocused = false;
 
   @override
   void initState() {
@@ -60,12 +59,6 @@ class _LoginScreenState extends State<LoginScreen>
         context.read<AuthProvider>().clearError();
         setState(() {});
       }
-    });
-
-    _usernameFocusNode.addListener(() {
-      setState(() {
-        _isUsernameFocused = _usernameFocusNode.hasFocus;
-      });
     });
 
     _exampleTimer = Timer.periodic(const Duration(seconds: 3), (timer) {

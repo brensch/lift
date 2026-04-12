@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:developer' as developer;
 import 'dart:convert';
 
 enum LogLevel { debug, info, warn, error }
@@ -56,15 +57,30 @@ class AppLogger {
     }).toList();
   }
 
-  void _add(LogLevel level, String tag, String message,
-      [Map<String, dynamic>? fields]) {
-    _entries.addLast(LogEntry(
+  void _add(
+    LogLevel level,
+    String tag,
+    String message, [
+    Map<String, dynamic>? fields,
+  ]) {
+    final entry = LogEntry(
       timestamp: DateTime.now(),
       level: level,
       tag: tag,
       message: message,
       fields: fields,
-    ));
+    );
+    _entries.addLast(entry);
+    developer.log(
+      entry.toStructuredString(),
+      name: 'Schlift/$tag',
+      level: switch (level) {
+        LogLevel.debug => 500,
+        LogLevel.info => 800,
+        LogLevel.warn => 900,
+        LogLevel.error => 1000,
+      },
+    );
     while (_entries.length > maxEntries) {
       _entries.removeFirst();
     }
