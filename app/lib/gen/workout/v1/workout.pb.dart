@@ -27,11 +27,15 @@ class User extends $pb.GeneratedMessage {
     $core.String? id,
     $core.String? name,
     $fixnum.Int64? createdAt,
+    $core.String? profileEmoji,
+    $core.String? profileColorHex,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (name != null) result.name = name;
     if (createdAt != null) result.createdAt = createdAt;
+    if (profileEmoji != null) result.profileEmoji = profileEmoji;
+    if (profileColorHex != null) result.profileColorHex = profileColorHex;
     return result;
   }
 
@@ -51,6 +55,8 @@ class User extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..aInt64(3, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(4, _omitFieldNames ? '' : 'profileEmoji')
+    ..aOS(5, _omitFieldNames ? '' : 'profileColorHex')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -97,6 +103,24 @@ class User extends $pb.GeneratedMessage {
   $core.bool hasCreatedAt() => $_has(2);
   @$pb.TagNumber(3)
   void clearCreatedAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get profileEmoji => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set profileEmoji($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasProfileEmoji() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearProfileEmoji() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get profileColorHex => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set profileColorHex($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasProfileColorHex() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearProfileColorHex() => $_clearField(5);
 }
 
 class Workout extends $pb.GeneratedMessage {
@@ -5783,6 +5807,130 @@ class GetUserResponse extends $pb.GeneratedMessage {
   static GetUserResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetUserResponse>(create);
   static GetUserResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  User get user => $_getN(0);
+  @$pb.TagNumber(1)
+  set user(User value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUser() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUser() => $_clearField(1);
+  @$pb.TagNumber(1)
+  User ensureUser() => $_ensure(0);
+}
+
+class UpdateMyProfileRequest extends $pb.GeneratedMessage {
+  factory UpdateMyProfileRequest({
+    $core.String? profileEmoji,
+    $core.String? profileColorHex,
+  }) {
+    final result = create();
+    if (profileEmoji != null) result.profileEmoji = profileEmoji;
+    if (profileColorHex != null) result.profileColorHex = profileColorHex;
+    return result;
+  }
+
+  UpdateMyProfileRequest._();
+
+  factory UpdateMyProfileRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateMyProfileRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateMyProfileRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'profileEmoji')
+    ..aOS(2, _omitFieldNames ? '' : 'profileColorHex')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateMyProfileRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateMyProfileRequest copyWith(
+          void Function(UpdateMyProfileRequest) updates) =>
+      super.copyWith((message) => updates(message as UpdateMyProfileRequest))
+          as UpdateMyProfileRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateMyProfileRequest create() => UpdateMyProfileRequest._();
+  @$core.override
+  UpdateMyProfileRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UpdateMyProfileRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateMyProfileRequest>(create);
+  static UpdateMyProfileRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get profileEmoji => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set profileEmoji($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProfileEmoji() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProfileEmoji() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get profileColorHex => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set profileColorHex($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProfileColorHex() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProfileColorHex() => $_clearField(2);
+}
+
+class UpdateMyProfileResponse extends $pb.GeneratedMessage {
+  factory UpdateMyProfileResponse({
+    User? user,
+  }) {
+    final result = create();
+    if (user != null) result.user = user;
+    return result;
+  }
+
+  UpdateMyProfileResponse._();
+
+  factory UpdateMyProfileResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UpdateMyProfileResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateMyProfileResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<User>(1, _omitFieldNames ? '' : 'user', subBuilder: User.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateMyProfileResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UpdateMyProfileResponse copyWith(
+          void Function(UpdateMyProfileResponse) updates) =>
+      super.copyWith((message) => updates(message as UpdateMyProfileResponse))
+          as UpdateMyProfileResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateMyProfileResponse create() => UpdateMyProfileResponse._();
+  @$core.override
+  UpdateMyProfileResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UpdateMyProfileResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateMyProfileResponse>(create);
+  static UpdateMyProfileResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   User get user => $_getN(0);

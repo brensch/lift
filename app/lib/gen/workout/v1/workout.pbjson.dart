@@ -125,13 +125,16 @@ const User$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'created_at', '3': 3, '4': 1, '5': 3, '10': 'createdAt'},
+    {'1': 'profile_emoji', '3': 4, '4': 1, '5': 9, '10': 'profileEmoji'},
+    {'1': 'profile_color_hex', '3': 5, '4': 1, '5': 9, '10': 'profileColorHex'},
   ],
 };
 
 /// Descriptor for `User`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List userDescriptor = $convert.base64Decode(
     'CgRVc2VyEg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEh0KCmNyZWF0ZWRfYX'
-    'QYAyABKANSCWNyZWF0ZWRBdA==');
+    'QYAyABKANSCWNyZWF0ZWRBdBIjCg1wcm9maWxlX2Vtb2ppGAQgASgJUgxwcm9maWxlRW1vamkS'
+    'KgoRcHJvZmlsZV9jb2xvcl9oZXgYBSABKAlSD3Byb2ZpbGVDb2xvckhleA==');
 
 @$core.Deprecated('Use workoutDescriptor instead')
 const Workout$json = {
@@ -2060,3 +2063,39 @@ const GetUserResponse$json = {
 final $typed_data.Uint8List getUserResponseDescriptor = $convert.base64Decode(
     'Cg9HZXRVc2VyUmVzcG9uc2USJAoEdXNlchgBIAEoCzIQLndvcmtvdXQudjEuVXNlclIEdXNlcg'
     '==');
+
+@$core.Deprecated('Use updateMyProfileRequestDescriptor instead')
+const UpdateMyProfileRequest$json = {
+  '1': 'UpdateMyProfileRequest',
+  '2': [
+    {'1': 'profile_emoji', '3': 1, '4': 1, '5': 9, '10': 'profileEmoji'},
+    {'1': 'profile_color_hex', '3': 2, '4': 1, '5': 9, '10': 'profileColorHex'},
+  ],
+};
+
+/// Descriptor for `UpdateMyProfileRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateMyProfileRequestDescriptor =
+    $convert.base64Decode(
+        'ChZVcGRhdGVNeVByb2ZpbGVSZXF1ZXN0EiMKDXByb2ZpbGVfZW1vamkYASABKAlSDHByb2ZpbG'
+        'VFbW9qaRIqChFwcm9maWxlX2NvbG9yX2hleBgCIAEoCVIPcHJvZmlsZUNvbG9ySGV4');
+
+@$core.Deprecated('Use updateMyProfileResponseDescriptor instead')
+const UpdateMyProfileResponse$json = {
+  '1': 'UpdateMyProfileResponse',
+  '2': [
+    {
+      '1': 'user',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.User',
+      '10': 'user'
+    },
+  ],
+};
+
+/// Descriptor for `UpdateMyProfileResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateMyProfileResponseDescriptor =
+    $convert.base64Decode(
+        'ChdVcGRhdGVNeVByb2ZpbGVSZXNwb25zZRIkCgR1c2VyGAEgASgLMhAud29ya291dC52MS5Vc2'
+        'VyUgR1c2Vy');

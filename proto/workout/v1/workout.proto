@@ -27,6 +27,8 @@ message User {
   string id = 1;
   string name = 2;
   int64 created_at = 3; // Unix timestamp
+  string profile_emoji = 4;
+  string profile_color_hex = 5;
 }
 
 message Workout {
@@ -618,9 +620,20 @@ message GetUserResponse {
   User user = 1;
 }
 
+message UpdateMyProfileRequest {
+  string profile_emoji = 1;
+  string profile_color_hex = 2;
+}
+
+message UpdateMyProfileResponse {
+  User user = 1;
+}
+
 service UserService {
   // Create a new user
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   // Get user by ID
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // Update the authenticated user's profile metadata.
+  rpc UpdateMyProfile(UpdateMyProfileRequest) returns (UpdateMyProfileResponse);
 }

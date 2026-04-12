@@ -23,6 +23,10 @@ import '../logic/utils.dart';
 import '../services/app_logger.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
+  static const int _defaultSuccessRestSeconds = 180;
+  static const int _defaultFailureRestSeconds = 300;
+  static const int _defaultWarmupRestSeconds = 30;
+
   static const int _maxWearHeartRateSamplesInMemory = 50000;
   static const _localWorkoutCacheKey =
       'workout_provider.local_workout_state.v1';
@@ -98,10 +102,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
               : null);
     final success = (rc != null && rc.restAfterSuccess > 0)
         ? rc.restAfterSuccess
-        : 180;
+        : _defaultSuccessRestSeconds;
     if (!warmup) return success;
     if (lastWarmup) return success;
-    return (rc != null && rc.restAfterWarmup > 0) ? rc.restAfterWarmup : 10;
+    return (rc != null && rc.restAfterWarmup > 0)
+        ? rc.restAfterWarmup
+        : _defaultWarmupRestSeconds;
   }
 
   int _effectiveRestFailure({
@@ -117,17 +123,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
               : null);
     final failure = (rc != null && rc.restAfterFailure > 0)
         ? rc.restAfterFailure
-        : 300;
+        : _defaultFailureRestSeconds;
     if (!warmup) return failure;
     if (lastWarmup) {
       final success = (rc != null && rc.restAfterSuccess > 0)
           ? rc.restAfterSuccess
-          : 180;
+          : _defaultSuccessRestSeconds;
       return success;
     }
     final warm = (rc != null && rc.restAfterWarmup > 0)
         ? rc.restAfterWarmup
-        : 10;
+        : _defaultWarmupRestSeconds;
     return warm;
   }
 
@@ -314,6 +320,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final out = <ProposedSet>[];
     var order = startOrder;
     for (final set in sets) {
+      if (set.restAfterSuccess <= 0 || set.restAfterFailure <= 0) {
+        throw StateError(
+          'Workout plan sets must include explicit rest values.',
+        );
+      }
       out.add(
         ProposedSet()
           ..id = set.clientSetId.isNotEmpty ? set.clientSetId : _uuid.v4()
@@ -324,14 +335,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..targetWeight = set.targetWeight
           ..warmup = set.warmup
           ..exerciseGroupId = groupId
-          ..restAfterSuccess = set.restAfterSuccess > 0
-              ? set.restAfterSuccess
-              : (set.warmup ? 10 : 180)
-          ..restAfterFailure = set.restAfterFailure > 0
-              ? set.restAfterFailure
-              : (set.warmup
-                    ? (set.restAfterSuccess > 0 ? set.restAfterSuccess : 10)
-                    : 300)
+          ..restAfterSuccess = set.restAfterSuccess
+          ..restAfterFailure = set.restAfterFailure
           ..cancelled = false
           ..isAmrap = set.isAmrap
           ..instruction = set.instruction

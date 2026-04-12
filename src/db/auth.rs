@@ -3,6 +3,33 @@ use super::*;
 impl ServerDb {
     // ── Auth ──
 
+    fn default_profile_emoji() -> &'static str {
+        "💪"
+    }
+
+    fn default_profile_color_hex() -> &'static str {
+        "#6B7280"
+    }
+
+    fn normalize_profile_emoji(value: &str) -> String {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            Self::default_profile_emoji().to_string()
+        } else {
+            trimmed.chars().take(8).collect()
+        }
+    }
+
+    fn normalize_profile_color_hex(value: &str) -> String {
+        let trimmed = value.trim();
+        let hex = trimmed.strip_prefix('#').unwrap_or(trimmed);
+        if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            format!("#{}", hex.to_ascii_uppercase())
+        } else {
+            Self::default_profile_color_hex().to_string()
+        }
+    }
+
     pub async fn create_user_with_id(
         &self,
         user_id: &str,
@@ -12,6 +39,8 @@ impl ServerDb {
             id: user_id.to_string(),
             name: username.trim().to_string(),
             created_at: now_unix(),
+            profile_emoji: Self::default_profile_emoji().to_string(),
+            profile_color_hex: Self::default_profile_color_hex().to_string(),
         };
         let normalized = username.trim().to_lowercase();
         sqlx::query("INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)")
@@ -41,6 +70,8 @@ impl ServerDb {
                     id: Uuid::new_v4().to_string(),
                     name: username.trim().to_string(),
                     created_at: now_unix(),
+                    profile_emoji: Self::default_profile_emoji().to_string(),
+                    profile_color_hex: Self::default_profile_color_hex().to_string(),
                 };
                 sqlx::query(
                     "INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)",
@@ -107,7 +138,33 @@ impl ServerDb {
         }
     }
 
-    pub async fn get_user_by_name(&self, username: &str) -> DbResult<Option<schlift::workout::v1::User>> {
+    pub async fn update_user_profile(
+        &self,
+        user_id: &str,
+        profile_emoji: &str,
+        profile_color_hex: &str,
+    ) -> DbResult<Option<schlift::workout::v1::User>> {
+        let existing = self.get_user(user_id).await?;
+        let Some(mut user) = existing else {
+            return Ok(None);
+        };
+
+        user.profile_emoji = Self::normalize_profile_emoji(profile_emoji);
+        user.profile_color_hex = Self::normalize_profile_color_hex(profile_color_hex);
+
+        sqlx::query("UPDATE users_current SET user_blob = ? WHERE user_id = ?")
+            .bind(user.encode_to_vec())
+            .bind(user_id)
+            .execute(&self.write_pool)
+            .await?;
+
+        Ok(Some(user))
+    }
+
+    pub async fn get_user_by_name(
+        &self,
+        username: &str,
+    ) -> DbResult<Option<schlift::workout::v1::User>> {
         let normalized = username.trim().to_lowercase();
         let blob: Option<Vec<u8>> =
             sqlx::query_scalar("SELECT user_blob FROM users_current WHERE username_ci = ?")
@@ -159,7 +216,11 @@ impl ServerDb {
         Ok(())
     }
 
-    pub async fn update_credential_json(&self, credential_id: &str, new_json: &str) -> DbResult<()> {
+    pub async fn update_credential_json(
+        &self,
+        credential_id: &str,
+        new_json: &str,
+    ) -> DbResult<()> {
         sqlx::query("UPDATE passkey_credentials SET credential_json = ? WHERE credential_id = ?")
             .bind(new_json)
             .bind(credential_id)
@@ -169,12 +230,11 @@ impl ServerDb {
     }
 
     pub async fn get_credentials_for_user(&self, user_id: &str) -> DbResult<Vec<String>> {
-        let rows = sqlx::query_scalar(
-            "SELECT credential_json FROM passkey_credentials WHERE user_id = ?",
-        )
-        .bind(user_id)
-        .fetch_all(&self.read_pool)
-        .await?;
+        let rows =
+            sqlx::query_scalar("SELECT credential_json FROM passkey_credentials WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_all(&self.read_pool)
+                .await?;
         Ok(rows)
     }
 

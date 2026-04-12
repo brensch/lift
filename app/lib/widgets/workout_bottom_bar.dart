@@ -7,6 +7,7 @@ import '../gen/workout/v1/group.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import '../logic/user_profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/participant_ticker.dart';
 import '../widgets/workout_modals.dart';
@@ -17,8 +18,6 @@ String _fmt(int seconds) {
   final s = seconds.abs() % 60;
   return '$m:${s.toString().padLeft(2, '0')}';
 }
-
-const _activeSetPink = Color(0xFFEC4899);
 
 String _fmtElapsed(int totalSeconds) {
   final hours = totalSeconds ~/ 3600;
@@ -106,7 +105,7 @@ class WorkoutBottomBar extends StatelessWidget {
       final elapsedSecs = activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0;
 
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
-      stateColor = _activeSetPink;
+      stateColor = AppTheme.workoutLiftingFg;
       timerText = _fmt(elapsedSecs);
       timerColor = colorScheme.tertiary;
       displaySet = proposed;
@@ -122,9 +121,9 @@ class WorkoutBottomBar extends StatelessWidget {
           restUntil > 0 && restUntil <= nowUnix && nextSet != null;
       if (hasExpiredRest) {
         stateLabel = 'Yapping';
-        stateColor = colorScheme.error;
+        stateColor = AppTheme.workoutYappingFg;
         timerText = '-${_fmt(nowUnix - restUntil)}';
-        timerColor = colorScheme.error;
+        timerColor = AppTheme.workoutYappingFg;
         final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
             ? stateSnapshot!.displaySet
             : nextSet;
@@ -139,7 +138,7 @@ class WorkoutBottomBar extends StatelessWidget {
         );
       } else {
         stateLabel = 'Resting';
-        stateColor = const Color(0xFF3B82F6);
+        stateColor = AppTheme.workoutRestingFg;
         timerText = _fmt(restSeconds);
         timerColor = null; // default
         displaySet = stateSnapshot?.hasDisplaySet() == true
@@ -162,9 +161,9 @@ class WorkoutBottomBar extends StatelessWidget {
       final isYapping =
           nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
       stateLabel = isYapping ? 'Yapping' : 'Next up';
-      stateColor = isYapping ? colorScheme.error : colorScheme.tertiary;
+      stateColor = isYapping ? AppTheme.workoutYappingFg : colorScheme.tertiary;
       timerText = isYapping ? '-${_fmt(nowUnix - lastRestEnd)}' : null;
-      timerColor = isYapping ? colorScheme.error : null;
+      timerColor = isYapping ? AppTheme.workoutYappingFg : null;
       displaySet = stateSnapshot?.hasDisplaySet() == true
           ? stateSnapshot!.displaySet
           : nextSet;
@@ -222,8 +221,10 @@ class WorkoutBottomBar extends StatelessWidget {
                 // Row 2: Current user status box
                 StatusBox(
                   sideLabel: 'YOU',
+                  sideBadge: auth.profileEmoji,
                   stateLabel: stateLabel,
                   color: stateColor,
+                  sideColor: profileColorFromHex(auth.profileColorHex),
                   timerText: timerText,
                   timerColor: timerColor,
                   set: displaySet,
@@ -327,7 +328,9 @@ class WorkoutBottomBar extends StatelessWidget {
     otherParticipants.sort((a, b) {
       final aStatus = describeParticipantStatus(a, now: now);
       final bStatus = describeParticipantStatus(b, now: now);
-      final priorityCompare = bStatus.sortPriority.compareTo(aStatus.sortPriority);
+      final priorityCompare = bStatus.sortPriority.compareTo(
+        aStatus.sortPriority,
+      );
       if (priorityCompare != 0) return priorityCompare;
       return participantDisplayName(
         a,
@@ -339,11 +342,15 @@ class WorkoutBottomBar extends StatelessWidget {
 
     return StatusBox(
       sideLabel: sideLabel,
+      sideBadge: participantProfileEmoji(featured),
+      header: participantDisplayName(featured),
       stateLabel: featuredStatus.stateLabel,
       color: featuredStatus.stateColor,
+      sideColor: participantProfileColor(featured),
       timerText: featuredStatus.timerText,
       timerColor: featuredStatus.timerColor,
       set: featuredStatus.proposedSet,
+      showHeader: true,
       sideLabelWidth: 44,
     );
   }

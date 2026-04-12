@@ -323,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const setupSecondsPerExercise = 75;
     const transitionSecondsPerGroup = 90;
     const defaultWorkingRest = 180;
-    const defaultWarmupRest = 45;
+    const defaultWarmupRest = 30;
 
     int totalSeconds = 0;
 

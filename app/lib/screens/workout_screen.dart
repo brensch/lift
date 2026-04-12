@@ -688,7 +688,7 @@ class _CurrentExerciseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: activeSet != null
-              ? const Color(0xFFEC4899).withValues(alpha: 0.35)
+              ? AppTheme.workoutLiftingFg.withValues(alpha: 0.35)
               : colorScheme.outline.withValues(alpha: 0.3),
           width: 1.5,
         ),
@@ -786,14 +786,14 @@ class _CurrentExerciseCard extends StatelessWidget {
                     : displaySet.warmup
                     ? AppTheme.warmupFg
                     : (activeSet != null
-                          ? const Color(0xFFEC4899)
+                          ? AppTheme.workoutLiftingFg
                           : colorScheme.onSurface),
                 background: displaySet == null
                     ? AppTheme.successBg
                     : displaySet.warmup
                     ? AppTheme.warmupLight
                     : (activeSet != null
-                          ? const Color(0x1AEC4899)
+                          ? AppTheme.workoutLiftingBg
                           : colorScheme.surfaceContainerHighest.withValues(
                               alpha: 0.45,
                             )),
@@ -968,9 +968,9 @@ class _CurrentSetChip extends StatelessWidget {
           : colorScheme.outline.withValues(alpha: 0.22);
       mainText = '$weight · $targetText';
     } else if (isActive) {
-      bg = const Color(0x1AEC4899);
-      fg = const Color(0xFFEC4899);
-      borderColor = const Color(0xFFEC4899).withValues(alpha: 0.4);
+      bg = AppTheme.workoutLiftingBg;
+      fg = AppTheme.workoutLiftingFg;
+      borderColor = AppTheme.workoutLiftingFg.withValues(alpha: 0.4);
       mainText = '$weight · $targetText';
     } else {
       bg = colorScheme.surfaceContainerLowest;

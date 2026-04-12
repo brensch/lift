@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/user_profile.dart';
+import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/top_level_back_scope.dart';
 
@@ -12,6 +14,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+    final auth = context.watch<AuthProvider>();
     final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
         ? 'Kilograms (🌍)'
         : 'Pounds (🦅)';
@@ -30,6 +33,21 @@ class SettingsScreen extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            _SettingsTile(
+              icon: Icons.mood_outlined,
+              label: 'Profile marker',
+              subtitle: '${auth.profileEmoji} · ${auth.username ?? 'You'}',
+              trailing: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: profileColorFromHex(auth.profileColorHex),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              onTap: () => context.push('/settings/profile-marker'),
+            ),
+            const SizedBox(height: 8),
             _SettingsTile(
               icon: Icons.scale_outlined,
               label: 'Weight unit',
@@ -118,12 +136,14 @@ class _SettingsTile extends StatelessWidget {
   final String label;
   final String subtitle;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _SettingsTile({
     required this.icon,
     required this.label,
     required this.subtitle,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -166,6 +186,7 @@ class _SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
               Icon(
                 Icons.chevron_right,
                 color: colorScheme.onSurface.withValues(alpha: 0.4),

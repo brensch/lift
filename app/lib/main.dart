@@ -35,6 +35,7 @@ import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
+import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
 import 'screens/regime_settings_screen.dart';
@@ -237,6 +238,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/settings',
               builder: (_, __) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/profile-marker',
+              builder: (_, __) => const ProfileMarkerScreen(),
             ),
             GoRoute(
               path: '/settings/plate-colors',

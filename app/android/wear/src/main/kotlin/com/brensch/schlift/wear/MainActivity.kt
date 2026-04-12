@@ -87,12 +87,12 @@ private val WearDisplayFontFamily = FontFamily(
 )
 
 // Match mobile app workout state accents:
-// Lifting/Warmup pink: 0xFFEC4899
+// Lifting/Warmup green: 0xFF16A34A
 // Resting blue: 0xFF3B82F6
-// Yapping orange: 0xFFF97316
-private val MobileLiftingPink = Color(0xFFEC4899)
+// Yapping pink: 0xFFEC4899
+private val MobileLiftingGreen = Color(0xFF16A34A)
 private val MobileRestingBlue = Color(0xFF3B82F6)
-private val MobileYappingOrange = Color(0xFFF97316)
+private val MobileYappingPink = Color(0xFFEC4899)
 private const val SchliftWearTag = "SchliftWear"
 
 class MainActivity : ComponentActivity() {
@@ -1074,7 +1074,7 @@ private fun formatSetsLeft(card: Wearable.WearStatusCard): String {
     val current = card.currentGroupSet
     val total = card.totalGroupSets
     if (current <= 0 || total <= 0) return ""
-    val remaining = (total - current).coerceAtLeast(0)
+    val remaining = (total - current + 1).coerceAtLeast(0)
     return if (remaining == 1) "1 set left" else "$remaining sets left"
 }
 
@@ -1159,9 +1159,9 @@ private fun formatElapsedDurationNoSeconds(totalSeconds: Int): String {
 
 private fun watchStateAccentColor(stateLabel: String?): Color? {
     return when (stateLabel) {
-        "Lifting", "Warmup" -> MobileLiftingPink
+        "Lifting", "Warmup" -> MobileLiftingGreen
         "Resting" -> MobileRestingBlue
-        "Yapping" -> MobileYappingOrange
+        "Yapping" -> MobileYappingPink
         else -> null
     }
 }

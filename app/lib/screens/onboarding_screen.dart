@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:math';
 
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/user_profile.dart';
+import '../logic/whimsical_emojis.dart';
 import '../logic/weight_units.dart';
+import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/grpc_client.dart';
+import '../services/user_service.dart';
 import 'regime_info_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -15,11 +21,19 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  static const int _emojiWindowSize = 18;
   int _step = 0;
   RegimeType? _selectedRegimeType;
   final Map<String, TextEditingController> _controllers = {};
   bool _isSaving = false;
   bool _initialized = false;
+  bool _profileLoaded = false;
+  bool _profileTouched = false;
+  String _selectedEmoji = defaultProfileEmoji;
+  String _selectedColorHex = defaultProfileColorHex;
+  List<String> _emojiChoices = whimsicalEmojiCatalog
+      .take(_emojiWindowSize)
+      .toList();
 
   void _goToStep(int nextStep) {
     if (_step == nextStep) return;
@@ -35,8 +49,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _initFromCatalog(SettingsProvider provider) {
-    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty)
+    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) {
       return;
+    }
     final first = provider.trainingPrograms.first;
     _selectedRegimeType = first.regimeType;
     _seedFromSchema(first.stateSchema.fields);
@@ -107,12 +122,67 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
+  void _refreshEmojiChoices() {
+    final pool = <String>{...whimsicalEmojiCatalog, _selectedEmoji}.toList();
+    pool.shuffle(Random());
+    setState(() {
+      _emojiChoices = pool.take(_emojiWindowSize).toList();
+      if (!_emojiChoices.contains(_selectedEmoji)) {
+        _emojiChoices = [
+          _selectedEmoji,
+          ..._emojiChoices.take(_emojiWindowSize - 1),
+        ];
+      }
+    });
+  }
+
+  Future<void> _loadProfile() async {
+    if (_profileLoaded) return;
+    final auth = context.read<AuthProvider>();
+    final userId = auth.userId;
+    if (userId == null || userId.isEmpty) {
+      _profileLoaded = true;
+      return;
+    }
+    _profileLoaded = true;
+    try {
+      final user = await UserServiceWrapper(
+        context.read<GrpcClient>(),
+      ).getUser(userId);
+      if (!mounted || user == null || _profileTouched) return;
+      setState(() {
+        _selectedEmoji = normalizedProfileEmoji(user.profileEmoji);
+        _selectedColorHex = normalizedProfileColorHex(user.profileColorHex);
+        if (!_emojiChoices.contains(_selectedEmoji)) {
+          _emojiChoices = [
+            _selectedEmoji,
+            ..._emojiChoices.take(_emojiWindowSize - 1),
+          ];
+        }
+      });
+    } catch (_) {
+      // Keep onboarding defaults if the profile fetch fails.
+    }
+  }
+
   Future<void> _save(
     SettingsProvider provider,
     TrainingProgramDefinition program,
   ) async {
     setState(() => _isSaving = true);
     try {
+      final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
+          .updateMyProfile(
+            profileEmoji: _selectedEmoji,
+            profileColorHex: _selectedColorHex,
+          );
+      if (mounted) {
+        context.read<AuthProvider>().setProfile(
+          profileEmoji: updatedUser.profileEmoji,
+          profileColorHex: updatedUser.profileColorHex,
+        );
+      }
+
       final onboardingFields = program.stateSchema.fields
           .where((f) => f.onboardingField)
           .toList();
@@ -144,6 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<SettingsProvider>();
     _initFromCatalog(provider);
+    _loadProfile();
 
     if (!provider.loaded ||
         provider.trainingPrograms.isEmpty ||
@@ -157,7 +228,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final cs = Theme.of(context).colorScheme;
     final progressAlignment = switch (_step) {
       0 => Alignment.centerLeft,
-      1 => Alignment.center,
+      1 => const Alignment(-0.333, 0),
+      2 => const Alignment(0.333, 0),
       _ => Alignment.centerRight,
     };
 
@@ -178,12 +250,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     builder: (context, constraints) {
                       final totalWidth = constraints.maxWidth;
                       const gap = 8.0;
-                      final segmentWidth = (totalWidth - (gap * 2)) / 3;
+                      final segmentWidth = (totalWidth - (gap * 3)) / 4;
                       return Stack(
                         children: [
                           Row(
                             children: [
-                              for (var i = 0; i < 3; i++) ...[
+                              for (var i = 0; i < 4; i++) ...[
                                 if (i > 0) const SizedBox(width: gap),
                                 Container(
                                   width: segmentWidth,
@@ -230,13 +302,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: KeyedSubtree(
                     key: ValueKey(_step),
                     child: _step == 0
+                        ? _MarkerStep(
+                            selectedEmoji: _selectedEmoji,
+                            selectedColorHex: _selectedColorHex,
+                            emojiChoices: _emojiChoices,
+                            onSelectEmoji: (emoji) => setState(() {
+                              _profileTouched = true;
+                              _selectedEmoji = emoji;
+                            }),
+                            onSelectColor: (hex) => setState(() {
+                              _profileTouched = true;
+                              _selectedColorHex = hex;
+                            }),
+                            onRefreshEmojis: _refreshEmojiChoices,
+                            onNext: () => _goToStep(1),
+                          )
+                        : _step == 1
                         ? _UnitStep(
                             selectedUnit: provider.weightUnit,
                             onSelect: (unit) =>
                                 _selectWeightUnit(provider, unit),
-                            onNext: () => _goToStep(1),
+                            onBack: () => _goToStep(0),
+                            onNext: () => _goToStep(2),
                           )
-                        : _step == 1
+                        : _step == 2
                         ? _ProgramStep(
                             programs: programs,
                             selectedType: selected.regimeType,
@@ -247,13 +336,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     RegimeInfoScreen(regimeType: p.regimeType),
                               ),
                             ),
-                            onBack: () => _goToStep(0),
-                            onNext: () => _goToStep(2),
+                            onBack: () => _goToStep(1),
+                            onNext: () => _goToStep(3),
                           )
                         : _ConfigStep(
                             program: selected,
                             controllers: _controllers,
-                            onBack: () => _goToStep(1),
+                            onBack: () => _goToStep(2),
                             onSave: _isSaving
                                 ? null
                                 : () => _save(provider, selected),
@@ -273,11 +362,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class _UnitStep extends StatelessWidget {
   final WeightUnit selectedUnit;
   final Future<void> Function(WeightUnit unit) onSelect;
+  final VoidCallback onBack;
   final VoidCallback onNext;
 
   const _UnitStep({
     required this.selectedUnit,
     required this.onSelect,
+    required this.onBack,
     required this.onNext,
   });
 
@@ -315,7 +406,8 @@ class _UnitStep extends StatelessWidget {
           const SizedBox(height: 20),
           _UnitCard(
             title: 'Pounds',
-            subtitle: 'Best for making you think you lift more because the number is larger.',
+            subtitle:
+                'Best for making you think you lift more because the number is larger.',
             badge: '🦅',
             selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
@@ -329,16 +421,32 @@ class _UnitStep extends StatelessWidget {
             onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),
           ),
           const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton(
-              onPressed: onNext,
-              child: const Text(
-                'NEXT',
-                style: TextStyle(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: onBack,
+                    child: const Text('BACK'),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: onNext,
+                    child: const Text(
+                      'NEXT',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -561,6 +669,284 @@ class _ConfigStep extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MarkerStep extends StatelessWidget {
+  final String selectedEmoji;
+  final String selectedColorHex;
+  final List<String> emojiChoices;
+  final ValueChanged<String> onSelectEmoji;
+  final ValueChanged<String> onSelectColor;
+  final VoidCallback onRefreshEmojis;
+  final VoidCallback onNext;
+
+  const _MarkerStep({
+    required this.selectedEmoji,
+    required this.selectedColorHex,
+    required this.emojiChoices,
+    required this.onSelectEmoji,
+    required this.onSelectColor,
+    required this.onRefreshEmojis,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PICK YOUR MARKER',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Choose your colour and creature',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'In group workouts this becomes your side stripe and emoji badge.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _ProfilePreviewCard(emoji: selectedEmoji, colorHex: selectedColorHex),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Text(
+                'WHIMSICAL EMOJIS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: cs.tertiary,
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: onRefreshEmojis,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: emojiChoices
+                        .map(
+                          (emoji) => _EmojiChoiceChip(
+                            emoji: emoji,
+                            selected: emoji == selectedEmoji,
+                            onTap: () => onSelectEmoji(emoji),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'COLOUR',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: profileColorHexOptions
+                        .map(
+                          (hex) => _ColorChoiceDot(
+                            hex: hex,
+                            selected: hex == selectedColorHex,
+                            onTap: () => onSelectColor(hex),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: onNext,
+              child: const Text(
+                'NEXT',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfilePreviewCard extends StatelessWidget {
+  final String emoji;
+  final String colorHex;
+
+  const _ProfilePreviewCard({required this.emoji, required this.colorHex});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final accent = profileColorFromHex(colorHex);
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 88,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(16),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(emoji, style: const TextStyle(fontSize: 28)),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Group workout preview',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Your emoji replaces the vertical name and your colour owns the sidebar.',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmojiChoiceChip extends StatelessWidget {
+  final String emoji;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _EmojiChoiceChip({
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 52,
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? cs.primary.withValues(alpha: 0.12)
+              : cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(emoji, style: const TextStyle(fontSize: 26)),
+      ),
+    );
+  }
+}
+
+class _ColorChoiceDot extends StatelessWidget {
+  final String hex;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ColorChoiceDot({
+    required this.hex,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = profileColorFromHex(hex);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          border: Border.all(
+            color: selected ? cs.onSurface : color.withValues(alpha: 0.6),
+            width: selected ? 3 : 1.5,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+      ),
     );
   }
 }
@@ -865,10 +1251,7 @@ class _UnitCard extends StatelessWidget {
               child: Text(
                 badge,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 32,
-                  height: 1.0,
-                ),
+                style: TextStyle(fontSize: 32, height: 1.0),
               ),
             ),
             const SizedBox(width: 14),

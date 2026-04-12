@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../services/health_service.dart';
+import '../theme/app_theme.dart';
 
 class HeartRateChart extends StatefulWidget {
   final List<HeartRateSample> heartRateSamples;
@@ -639,22 +640,22 @@ class _HeartRateChartState extends State<HeartRateChart> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Wrap(
                                 spacing: 10,
                                 runSpacing: 4,
                                 children: [
                                   _HeartRateLegendItem(
                                     label: 'Lift',
-                                    color: Color(0xFFEC4899),
+                                    color: AppTheme.workoutLiftingFg,
                                   ),
                                   _HeartRateLegendItem(
                                     label: 'Rest',
-                                    color: Color(0xFF3B82F6),
+                                    color: AppTheme.workoutRestingFg,
                                   ),
                                   _HeartRateLegendItem(
                                     label: 'Yap',
-                                    color: Color(0xFFF97316),
+                                    color: AppTheme.workoutYappingFg,
                                   ),
                                 ],
                               ),
@@ -757,9 +758,9 @@ class _HeartRateChartState extends State<HeartRateChart> {
       }
     }
 
-    const liftColor = Color(0xFFEC4899);
-    const restColor = Color(0xFF3B82F6);
-    const yapColor = Color(0xFFF97316);
+    final liftColor = AppTheme.workoutLiftingFg;
+    final restColor = AppTheme.workoutRestingFg;
+    final yapColor = AppTheme.workoutYappingFg;
     final activeLiftStartSec = _activeLiftStartSec(startMs);
 
     for (var i = 0; i < deduped.length; i++) {
@@ -834,8 +835,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
     double toSecFromUnix(int unixSeconds) =>
         ((unixSeconds * 1000) - startMs) / 1000.0;
 
-    const liftColor = Color(0xFFEC4899);
-    const yapColor = Color(0xFFF97316);
+    final liftColor = AppTheme.workoutLiftingFg;
+    final yapColor = AppTheme.workoutYappingFg;
 
     final completedWithEnd = completedSets
         .where((c) => c.endedAt != Int64.ZERO)

@@ -35,6 +35,7 @@ class MainLayout extends StatelessWidget {
 
     bool isSettingsSection(String path) =>
         path == '/settings' ||
+        path == '/settings/profile-marker' ||
         path == '/passkeys' ||
         path == '/passkeys/add' ||
         path == '/sound-settings' ||
