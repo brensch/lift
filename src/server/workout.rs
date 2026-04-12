@@ -8,6 +8,43 @@ pub struct ServerWorkoutService {
 }
 
 impl ServerWorkoutService {
+    async fn load_schplanner_history(
+        &self,
+        user_id: &str,
+        started_since: i64,
+    ) -> Result<Vec<SchplannerWorkoutRecord>, Status> {
+        let workouts = self
+            .db
+            .list_workouts_started_since(user_id, started_since)
+            .await
+            .map_err(internal_error)?;
+        let mut history = Vec::with_capacity(workouts.len());
+        for workout in workouts {
+            let exercise_groups = self
+                .db
+                .get_exercise_groups(&workout.id)
+                .await
+                .map_err(internal_error)?;
+            let proposed_sets = self
+                .db
+                .get_proposed_sets(&workout.id)
+                .await
+                .map_err(internal_error)?;
+            let completed_sets = self
+                .db
+                .get_completed_sets(&workout.id)
+                .await
+                .map_err(internal_error)?;
+            history.push(SchplannerWorkoutRecord {
+                workout,
+                exercise_groups,
+                proposed_sets,
+                completed_sets,
+            });
+        }
+        Ok(history)
+    }
+
     async fn generate_schedule(
         &self,
         user_id: &str,
@@ -39,9 +76,21 @@ impl ServerWorkoutService {
         let regime = get_regime(regime_type);
         let payload = payload_from_proto(&state.fields);
         let now = if at_time > 0 { at_time } else { now_unix() };
-        let proposal = regime.propose_from_state(&payload, 0, now);
+        let history = self
+            .load_schplanner_history(user_id, state.updated_at)
+            .await?;
+        let derivation = derive_state(regime.as_ref(), &payload, &history);
+        let mut proposal =
+            regime.propose_from_state(&derivation.effective_state, derivation.last_session_at, now);
+        decorate_proposed_groups(
+            regime.as_ref(),
+            &mut proposal.proposed_groups,
+            &derivation.effective_state,
+            &derivation.slot_reasons,
+            derivation.started_workout_count,
+        );
         let pending_updates = regime
-            .pending_updates_for_state(&payload, 0, now)
+            .pending_updates_for_state(&derivation.effective_state, derivation.last_session_at, now)
             .into_iter()
             .map(pending_update_to_proto)
             .collect::<Vec<_>>();

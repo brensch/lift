@@ -15,6 +15,7 @@ import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
 import '../logic/exercises.dart';
 import '../logic/exercise_groups.dart';
+import '../logic/warmup.dart';
 import '../logic/weight_units.dart';
 import '../logic/utils.dart';
 import '../widgets/workout_modals.dart';
@@ -928,7 +929,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       const SizedBox(height: 18),
-                      const _SectionHeader(title: 'Not today but in your plan'),
+                      const _SectionHeader(title: 'Not today but in your schplan'),
                       if (otherGroupIndices.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         _GroupGrid(
@@ -1318,43 +1319,44 @@ class _GroupChip extends StatelessWidget {
     );
   }
 
-  String _setPlanSummary() {
-    if (group.exerciseConfigs.isEmpty) return 'Set plan';
-    final allWorking = group.exerciseConfigs
-        .expand(_workingSetsForConfig)
-        .toList(growable: false);
-    if (allWorking.isEmpty) return 'Set plan';
-
-    final amrapCount = allWorking.where((s) => s.isAmrap).length;
-    final warmupsIncluded = group.exerciseConfigs
-        .where((c) => c.includeWarmup)
-        .length;
-
-    if (group.exerciseConfigs.length == 1) {
-      final pattern = allWorking
-          .map((s) => s.isAmrap ? '${s.targetReps}+' : '${s.targetReps}')
-          .join(' / ');
-      final uniqueWeights = allWorking
-          .map((s) => s.targetWeight)
-          .toSet()
-          .length;
-      final weightText = uniqueWeights > 1 ? 'ramped weights' : 'fixed weight';
-      final warmupText = warmupsIncluded > 0 ? ' • warmups' : '';
-      return '$pattern • ${allWorking.length} working sets • $weightText$warmupText';
-    }
-
-    final repSet = allWorking.map((s) => s.targetReps).toSet().toList()..sort();
-    final repText = repSet.length <= 3
-        ? repSet.join('/')
-        : '${repSet.first}-${repSet.last} reps';
-    final amrapText = amrapCount > 0 ? ' • $amrapCount AMRAP' : '';
-    final warmupText = warmupsIncluded > 0 ? ' • $warmupsIncluded warmups' : '';
-    return '${group.exerciseConfigs.length} exercises • ${allWorking.length} working sets • $repText reps$amrapText$warmupText';
-  }
-
   String _formatSetLine(WorkingSetSpec set, WeightUnit unit) {
     final reps = set.isAmrap ? '${set.targetReps}+' : '${set.targetReps}';
     return '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} x $reps';
+  }
+
+  List<_SetLine> _warmupLinesForConfig(
+    ExerciseTypeConfig cfg,
+    WeightUnit unit,
+  ) {
+    if (!cfg.includeWarmup) return const [];
+    final workingSets = _workingSetsForConfig(cfg);
+    if (workingSets.isEmpty) return const [];
+    final workingWeight = workingSets.first.targetWeight.toDouble();
+    final defs = generateWarmupDefs(workingWeight);
+    return [
+      for (int i = 0; i < defs.length; i++)
+        (
+          index: i + 1,
+          text:
+              '${formatWeight(defs[i].weight, unit, includeUnit: true)} x ${defs[i].reps}',
+          note: i == defs.length - 1 ? 'Last warmup before work sets.' : '',
+        ),
+    ];
+  }
+
+  List<_SetLine> _workingLinesForConfig(
+    ExerciseTypeConfig cfg,
+    WeightUnit unit,
+  ) {
+    final workingSets = _workingSetsForConfig(cfg);
+    return [
+      for (int i = 0; i < workingSets.length; i++)
+        (
+          index: i + 1,
+          text: _formatSetLine(workingSets[i], unit),
+          note: workingSets[i].instruction,
+        ),
+    ];
   }
 
   double? _maxWorkingWeight() {
@@ -1429,68 +1431,53 @@ class _GroupChip extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.75,
-          minChildSize: 0.45,
-          maxChildSize: 0.92,
-          builder: (context, controller) => ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            children: [
-              Text(
-                group.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  height: 1.05,
-                ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 28,
+                offset: const Offset(0, -8),
               ),
-              if (group.explanation.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  group.explanation,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: colorScheme.onSurface.withValues(alpha: 0.72),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Text(
-                _setPlanSummary(),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  height: 1.35,
-                  color: colorScheme.onSurface.withValues(alpha: 0.78),
-                ),
-              ),
-              const SizedBox(height: 18),
-              for (final cfg in group.exerciseConfigs)
-                _ExerciseConfigDetailsCard(
-                  title: exerciseNames[cfg.exercise] ?? 'Exercise',
-                  setLines: [
-                    for (int i = 0; i < _workingSetsForConfig(cfg).length; i++)
-                      (
-                        index: i + 1,
-                        text: _formatSetLine(
-                          _workingSetsForConfig(cfg)[i],
-                          unit,
-                        ),
-                        note: _workingSetsForConfig(cfg)[i].instruction,
-                      ),
-                  ],
-                  meta: [
-                    if (cfg.includeWarmup) 'Warmups included',
-                    if (cfg.hasRestConfig())
-                      'Rest ${cfg.restConfig.restAfterSuccess}s',
-                  ],
-                ),
             ],
+          ),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.75,
+            minChildSize: 0.45,
+            maxChildSize: 0.92,
+            builder: (context, controller) => ListView(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              children: [
+                for (int i = 0; i < group.exerciseConfigs.length; i++)
+                  _ExerciseConfigDetailsCard(
+                    title:
+                        exerciseNames[group.exerciseConfigs[i].exercise] ??
+                        'Exercise',
+                    explanation: i == 0 ? group.explanation : '',
+                    warmupLines: _warmupLinesForConfig(
+                      group.exerciseConfigs[i],
+                      unit,
+                    ),
+                    workingSetLines: _workingLinesForConfig(
+                      group.exerciseConfigs[i],
+                      unit,
+                    ),
+                    meta: [
+                      if (group.exerciseConfigs[i].hasRestConfig())
+                        'Rest ${group.exerciseConfigs[i].restConfig.restAfterSuccess}s',
+                      if (group.exerciseConfigs[i].lastSetAmrap)
+                        'Last set AMRAP',
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1638,108 +1625,171 @@ typedef _SetLine = ({int index, String text, String note});
 
 class _ExerciseConfigDetailsCard extends StatelessWidget {
   final String title;
-  final List<_SetLine> setLines;
+  final String explanation;
+  final List<_SetLine> warmupLines;
+  final List<_SetLine> workingSetLines;
   final List<String> meta;
 
   const _ExerciseConfigDetailsCard({
     required this.title,
-    required this.setLines,
+    required this.explanation,
+    required this.warmupLines,
+    required this.workingSetLines,
     required this.meta,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.18)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 10),
-          for (final set in setLines) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    child: Text(
-                      '${set.index}.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      set.text,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
+          if (explanation.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              explanation,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: colorScheme.onSurface.withValues(alpha: 0.76),
               ),
             ),
-            if (set.note.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 24, bottom: 6),
-                child: Text(
-                  set.note,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.3,
-                    color: colorScheme.onSurface.withValues(alpha: 0.62),
-                  ),
-                ),
-              ),
           ],
+          const SizedBox(height: 12),
+          if (warmupLines.isNotEmpty) ...[
+            _DetailsSection(
+              title: 'Warmups',
+              tint: colorScheme.tertiary,
+              icon: Icons.whatshot_outlined,
+              setLines: warmupLines,
+            ),
+            const SizedBox(height: 10),
+          ],
+          _DetailsSection(
+            title: 'Working sets',
+            tint: colorScheme.primary,
+            icon: Icons.fitness_center_rounded,
+            setLines: workingSetLines,
+          ),
           if (meta.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final item in meta)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.45,
-                      ),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      item,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: colorScheme.onSurface.withValues(alpha: 0.72),
-                      ),
+                  Text(
+                    item,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface.withValues(alpha: 0.62),
                     ),
                   ),
               ],
             ),
           ],
+          const SizedBox(height: 6),
+          Divider(
+            height: 18,
+            thickness: 1,
+            color: colorScheme.outline.withValues(alpha: 0.12),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _DetailsSection extends StatelessWidget {
+  final String title;
+  final Color tint;
+  final IconData icon;
+  final List<_SetLine> setLines;
+
+  const _DetailsSection({
+    required this.title,
+    required this.tint,
+    required this.icon,
+    required this.setLines,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 15, color: tint),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: colorScheme.onSurface.withValues(alpha: 0.72),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (final set in setLines) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '${set.index}.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface.withValues(alpha: 0.46),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        set.text,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (set.note.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          set.note,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.3,
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.62,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

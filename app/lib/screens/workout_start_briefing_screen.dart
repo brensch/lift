@@ -272,7 +272,25 @@ class _GroupWeightCard extends StatelessWidget {
         .join('  •  ');
   }
 
-  String _progressionReason(ExerciseTypeConfig config) {
+  bool get _isRecommendedSchplan => group.id.startsWith('recommended:');
+
+  bool get _isPlanLaterPick => group.id.startsWith('planLater:');
+
+  bool get _isSavedUserGroup => group.id.startsWith('saved:');
+
+  String _schplannerReason(ExerciseTypeConfig config) {
+    if (_isSavedUserGroup) {
+      return 'User defined workout, schplanner not involved.';
+    }
+
+    if (_isPlanLaterPick) {
+      return 'Not following the recommended schplan here. User picked this though.';
+    }
+
+    if (_isRecommendedSchplan) {
+      return 'Weights picked from recommended schplan.';
+    }
+
     final hints = _workingSets(config)
         .where((set) => set.hasProgressionHint())
         .map((set) => set.progressionHint)
@@ -284,7 +302,7 @@ class _GroupWeightCard extends StatelessWidget {
         parts.add('${hint.tier.toUpperCase()} slot');
       }
       if (hint.hasRule()) {
-        parts.add(_progressionRuleLabel(hint.rule));
+        parts.add(_schplannerRuleLabel(hint.rule));
       }
       if (hint.amrapSuccessThreshold > 0) {
         parts.add('AMRAP target ${hint.amrapSuccessThreshold}+');
@@ -366,7 +384,7 @@ class _GroupWeightCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              _progressionReason(config),
+              _schplannerReason(config),
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -392,7 +410,7 @@ class _GroupWeightCard extends StatelessWidget {
   }
 }
 
-String _progressionRuleLabel(ProgressionRule rule) {
+String _schplannerRuleLabel(ProgressionRule rule) {
   switch (rule) {
     case ProgressionRule.PROGRESSION_RULE_UNSPECIFIED:
       return 'regime progression';
