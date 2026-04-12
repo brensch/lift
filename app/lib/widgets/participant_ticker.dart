@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/user_profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/workout_status_box.dart';
 
@@ -17,6 +18,14 @@ String participantDisplayName(ParticipantStatus participant) {
   final id = participant.user.id.trim();
   if (id.isNotEmpty) return id;
   return 'Unknown';
+}
+
+String participantProfileEmoji(ParticipantStatus participant) {
+  return normalizedProfileEmoji(participant.user.profileEmoji);
+}
+
+Color participantProfileColor(ParticipantStatus participant) {
+  return profileColorFromHex(participant.user.profileColorHex);
 }
 
 ParticipantVisualStatus describeParticipantStatus(
@@ -46,11 +55,12 @@ ParticipantVisualStatus describeParticipantStatus(
       (ps) => ps!.id == activeSet?.proposedSetId,
       orElse: () => null,
     );
-    final elapsed =
-        activeSet != null ? nowUnix - activeSet.startedAt.toInt() : 0;
+    final elapsed = activeSet != null
+        ? nowUnix - activeSet.startedAt.toInt()
+        : 0;
     return ParticipantVisualStatus(
       stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
-      stateColor: AppTheme.activeFg,
+      stateColor: AppTheme.workoutLiftingFg,
       proposedSet: proposed,
       timerText: _fmt(elapsed),
       sortPriority: 4,
@@ -61,7 +71,7 @@ ParticipantVisualStatus describeParticipantStatus(
     final remaining = restUntil - nowUnix;
     return ParticipantVisualStatus(
       stateLabel: 'Resting',
-      stateColor: const Color(0xFF3B82F6),
+      stateColor: AppTheme.workoutRestingFg,
       proposedSet: nextSet,
       timerText: _fmt(remaining),
       sortPriority: 2,
@@ -72,10 +82,10 @@ ParticipantVisualStatus describeParticipantStatus(
     final elapsed = nowUnix - restUntil;
     return ParticipantVisualStatus(
       stateLabel: 'Yapping',
-      stateColor: AppTheme.destructive,
+      stateColor: AppTheme.workoutYappingFg,
       proposedSet: nextSet,
       timerText: '+${_fmt(elapsed)}',
-      timerColor: AppTheme.destructive,
+      timerColor: AppTheme.workoutYappingFg,
       sortPriority: 3,
     );
   }
@@ -117,14 +127,16 @@ class ParticipantCard extends StatelessWidget {
     final displayName = participantDisplayName(participant);
     final box = StatusBox(
       sideLabel: displayName,
+      sideBadge: participantProfileEmoji(participant),
       header: displayName,
       stateLabel: status.stateLabel,
       color: status.stateColor,
+      sideColor: participantProfileColor(participant),
       timerText: status.timerText,
       timerColor: status.timerColor,
       set: status.proposedSet,
       isComplete: status.isComplete,
-      showHeader: false,
+      showHeader: true,
     );
 
     if (onTap == null) return box;

@@ -104,6 +104,12 @@ class AppTheme {
   static const activeBg = Color(0x1AF97316); // orange-500 @ 10%
   static const activeFg = Color(0xFFEA580C); // orange-600
   static const destructive = Color(0xFFDC2626); // red-600
+  static const workoutLiftingBg = successBg;
+  static const workoutLiftingFg = successFg;
+  static const workoutRestingBg = Color(0x1A3B82F6);
+  static const workoutRestingFg = Color(0xFF3B82F6);
+  static const workoutYappingBg = Color(0x1AEC4899);
+  static const workoutYappingFg = Color(0xFFEC4899);
 
   // ─── Light theme ───────────────────────────────────────────────────
   static final light = ThemeData(

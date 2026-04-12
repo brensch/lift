@@ -20,4 +20,17 @@ class UserServiceWrapper {
     );
     return response.hasUser() ? response.user : null;
   }
+
+  Future<User> updateMyProfile({
+    required String profileEmoji,
+    required String profileColorHex,
+  }) async {
+    final response = await _client.userService.updateMyProfile(
+      UpdateMyProfileRequest(
+        profileEmoji: profileEmoji,
+        profileColorHex: profileColorHex,
+      ),
+    );
+    return response.user;
+  }
 }

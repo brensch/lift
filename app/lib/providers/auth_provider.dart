@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../logic/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/grpc_client.dart';
+import '../services/user_service.dart';
 import '../logic/utils.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -19,6 +21,8 @@ class AuthProvider extends ChangeNotifier {
   String? _userId;
   String? _username;
   String? _sessionToken;
+  String _profileEmoji = defaultProfileEmoji;
+  String _profileColorHex = defaultProfileColorHex;
   bool _needsPasskeyNotice = false;
   bool _isLoading = false;
   String? _error;
@@ -32,6 +36,8 @@ class AuthProvider extends ChangeNotifier {
   String? get userId => _userId;
   String? get username => _username;
   String? get sessionToken => _sessionToken;
+  String get profileEmoji => _profileEmoji;
+  String get profileColorHex => _profileColorHex;
   bool get needsPasskeyNotice => _needsPasskeyNotice;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -47,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
         prefs.getString(_passkeyNoticePendingUserIdKey) == _userId;
     if (_sessionToken != null) {
       _grpcClient.setToken(_sessionToken);
+      await refreshProfile(notify: false);
     }
     notifyListeners();
   }
@@ -108,6 +115,8 @@ class AuthProvider extends ChangeNotifier {
     _sessionToken = null;
     _userId = null;
     _username = null;
+    _profileEmoji = defaultProfileEmoji;
+    _profileColorHex = defaultProfileColorHex;
     _needsPasskeyNotice = false;
     _grpcClient.setToken(null);
 
@@ -122,6 +131,8 @@ class AuthProvider extends ChangeNotifier {
     _sessionToken = null;
     _userId = null;
     _username = null;
+    _profileEmoji = defaultProfileEmoji;
+    _profileColorHex = defaultProfileColorHex;
     _needsPasskeyNotice = false;
     _grpcClient.setToken(null);
     _isLoading = false;
@@ -151,6 +162,34 @@ class AuthProvider extends ChangeNotifier {
     if (needsPasskeyNotice) {
       await prefs.setString(_passkeyNoticePendingUserIdKey, response.userId);
     }
+    await refreshProfile(notify: false);
+  }
+
+  Future<void> refreshProfile({bool notify = true}) async {
+    final userId = _userId;
+    if (userId == null || userId.isEmpty || _sessionToken == null) {
+      return;
+    }
+    try {
+      final user = await UserServiceWrapper(_grpcClient).getUser(userId);
+      if (user == null) return;
+      _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
+      _profileColorHex = normalizedProfileColorHex(user.profileColorHex);
+      if (notify) {
+        notifyListeners();
+      }
+    } catch (_) {
+      // Keep cached profile if refresh fails.
+    }
+  }
+
+  void setProfile({
+    required String profileEmoji,
+    required String profileColorHex,
+  }) {
+    _profileEmoji = normalizedProfileEmoji(profileEmoji);
+    _profileColorHex = normalizedProfileColorHex(profileColorHex);
+    notifyListeners();
   }
 
   Future<void> acknowledgePasskeyNotice() async {

@@ -219,31 +219,33 @@ impl AuthService for ServerAuthService {
             .map_err(internal_error)?;
         let passkeys = rows
             .into_iter()
-            .map(|(credential_id, created_at, credential_json, created_at_ip)| {
-                let value: serde_json::Value =
-                    serde_json::from_str(&credential_json).unwrap_or(serde_json::Value::Null);
-                let name = value
-                    .get("cred_name")
-                    .and_then(|n| n.as_str())
-                    .map(str::to_string);
-                let transports = value
-                    .get("transports")
-                    .and_then(|t| t.as_array())
-                    .map(|items| {
-                        items
-                            .iter()
-                            .filter_map(|item| item.as_str().map(str::to_string))
-                            .collect()
-                    })
-                    .unwrap_or_default();
-                PasskeyInfo {
-                    credential_id,
-                    name,
-                    created_at,
-                    created_at_ip,
-                    transports,
-                }
-            })
+            .map(
+                |(credential_id, created_at, credential_json, created_at_ip)| {
+                    let value: serde_json::Value =
+                        serde_json::from_str(&credential_json).unwrap_or(serde_json::Value::Null);
+                    let name = value
+                        .get("cred_name")
+                        .and_then(|n| n.as_str())
+                        .map(str::to_string);
+                    let transports = value
+                        .get("transports")
+                        .and_then(|t| t.as_array())
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(|item| item.as_str().map(str::to_string))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    PasskeyInfo {
+                        credential_id,
+                        name,
+                        created_at,
+                        created_at_ip,
+                        transports,
+                    }
+                },
+            )
             .collect();
         Ok(Response::new(ListPasskeysResponse { passkeys }))
     }

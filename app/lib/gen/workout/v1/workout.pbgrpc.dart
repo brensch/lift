@@ -621,6 +621,14 @@ class UserServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getUser, request, options: options);
   }
 
+  /// Update the authenticated user's profile metadata.
+  $grpc.ResponseFuture<$0.UpdateMyProfileResponse> updateMyProfile(
+    $0.UpdateMyProfileRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$updateMyProfile, request, options: options);
+  }
+
   // method descriptors
 
   static final _$createUser =
@@ -633,6 +641,11 @@ class UserServiceClient extends $grpc.Client {
           '/workout.v1.UserService/GetUser',
           ($0.GetUserRequest value) => value.writeToBuffer(),
           $0.GetUserResponse.fromBuffer);
+  static final _$updateMyProfile =
+      $grpc.ClientMethod<$0.UpdateMyProfileRequest, $0.UpdateMyProfileResponse>(
+          '/workout.v1.UserService/UpdateMyProfile',
+          ($0.UpdateMyProfileRequest value) => value.writeToBuffer(),
+          $0.UpdateMyProfileResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.UserService')
@@ -654,6 +667,15 @@ abstract class UserServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.GetUserRequest.fromBuffer(value),
         ($0.GetUserResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.UpdateMyProfileRequest,
+            $0.UpdateMyProfileResponse>(
+        'UpdateMyProfile',
+        updateMyProfile_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.UpdateMyProfileRequest.fromBuffer(value),
+        ($0.UpdateMyProfileResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CreateUserResponse> createUser_Pre($grpc.ServiceCall $call,
@@ -671,4 +693,13 @@ abstract class UserServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetUserResponse> getUser(
       $grpc.ServiceCall call, $0.GetUserRequest request);
+
+  $async.Future<$0.UpdateMyProfileResponse> updateMyProfile_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.UpdateMyProfileRequest> $request) async {
+    return updateMyProfile($call, await $request);
+  }
+
+  $async.Future<$0.UpdateMyProfileResponse> updateMyProfile(
+      $grpc.ServiceCall call, $0.UpdateMyProfileRequest request);
 }

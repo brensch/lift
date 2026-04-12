@@ -8,8 +8,10 @@ import 'plate_visualization.dart';
 
 class StatusBox extends StatelessWidget {
   final String sideLabel;
+  final String? sideBadge;
   final String? header;
   final Color color;
+  final Color? sideColor;
   final Widget? child;
   final String? stateLabel;
   final String? timerText;
@@ -22,8 +24,10 @@ class StatusBox extends StatelessWidget {
   const StatusBox({
     super.key,
     required this.sideLabel,
+    this.sideBadge,
     this.header,
     required this.color,
+    this.sideColor,
     this.child,
     this.stateLabel,
     this.timerText,
@@ -37,12 +41,17 @@ class StatusBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = set != null ? (exerciseNames[set!.exercise] ?? '?') : null;
+    final sidebarColor = sideColor ?? color;
     final contentColor =
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
         ? Colors.white
         : Colors.black;
     final accentColor = contentColor.withValues(alpha: 0.82);
     final dividerColor = contentColor.withValues(alpha: 0.22);
+    final sidebarContentColor =
+        ThemeData.estimateBrightnessForColor(sidebarColor) == Brightness.dark
+        ? Colors.white
+        : Colors.black;
     final effectiveTimerColor =
         timerColor != null &&
             (timerColor!.toARGB32() == color.toARGB32() ||
@@ -56,137 +65,148 @@ class StatusBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: dividerColor),
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: sideLabelWidth,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Text(
-                    sideLabel,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2.0,
-                      color: accentColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: sideLabelWidth,
+                color: sidebarColor,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: sideBadge != null
+                      ? Text(
+                          sideBadge!,
+                          style: const TextStyle(fontSize: 24, height: 1),
+                        )
+                      : RotatedBox(
+                          quarterTurns: 3,
+                          child: Text(
+                            sideLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2.0,
+                              color: sidebarContentColor.withValues(
+                                alpha: 0.82,
+                              ),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                          ),
+                        ),
                 ),
               ),
-            ),
-            Container(width: 1, color: dividerColor),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (header != null && showHeader) ...[
-                      Text(
-                        header!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: accentColor,
-                          letterSpacing: -0.2,
+              Container(width: 1, color: dividerColor),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (header != null && showHeader) ...[
+                        Text(
+                          header!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: accentColor,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (name != null) ...[
+                                  Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1.1,
+                                      color: contentColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                ],
+                                if (set != null) ...[
+                                  StatusSetWeightInfo(
+                                    set: set!,
+                                    textColor: contentColor,
+                                    secondaryTextColor: accentColor,
+                                  ),
+                                ] else if (isComplete) ...[
+                                  Text(
+                                    'All sets complete',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      fontFamily: 'monospace',
+                                      color: contentColor,
+                                    ),
+                                  ),
+                                ] else if (child != null) ...[
+                                  child!,
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              if (name != null) ...[
+                              if (stateLabel != null) ...[
                                 Text(
-                                  name,
+                                  stateLabel!,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w900,
                                     height: 1.1,
-                                    color: contentColor,
+                                    color: accentColor,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                               ],
-                              if (set != null) ...[
-                                StatusSetWeightInfo(
-                                  set: set!,
-                                  textColor: contentColor,
-                                  secondaryTextColor: accentColor,
-                                ),
-                              ] else if (isComplete) ...[
+                              if (timerText != null)
                                 Text(
-                                  'All sets complete',
+                                  timerText!,
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.w900,
                                     fontFamily: 'monospace',
-                                    color: contentColor,
+                                    letterSpacing: -1.5,
+                                    height: 1.0,
+                                    color: effectiveTimerColor,
                                   ),
                                 ),
-                              ] else if (child != null) ...[
-                                child!,
-                              ],
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (stateLabel != null) ...[
-                              Text(
-                                stateLabel!,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: accentColor,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                            ],
-                            if (timerText != null)
-                              Text(
-                                timerText!,
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'monospace',
-                                  letterSpacing: -1.5,
-                                  height: 1.0,
-                                  color: effectiveTimerColor,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

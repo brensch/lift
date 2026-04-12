@@ -19,8 +19,8 @@ mod time;
 mod weight_units;
 mod workout;
 
-use db::ServerDb;
 use auth::AuthState;
+use db::ServerDb;
 use server::{
     ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
     ServerWorkoutService,
@@ -83,9 +83,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 db: server_db.clone(),
             },
         )))
-        .add_service(tonic_web::enable(UserServiceServer::new(ServerUserService {
-            db: server_db.clone(),
-        })))
+        .add_service(tonic_web::enable(UserServiceServer::new(
+            ServerUserService {
+                db: server_db.clone(),
+            },
+        )))
         .add_service(tonic_web::enable(MultiplayerServiceServer::new(
             ServerMultiplayerService {
                 db: server_db.clone(),

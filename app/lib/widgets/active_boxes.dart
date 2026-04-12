@@ -281,13 +281,11 @@ class RestingBox extends StatelessWidget {
     this.onSkipWarmup,
   });
 
-  static const _blue = Color(0xFF3B82F6);
-
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: _AccentBox(
-        accentColor: _blue,
+        accentColor: AppTheme.workoutRestingFg,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -298,13 +296,13 @@ class RestingBox extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Your next set',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
-                          color: _blue,
+                          color: AppTheme.workoutRestingFg,
                         ),
                       ),
                       if (nextSet != null) ...[
@@ -354,13 +352,11 @@ class ChatTimeBox extends StatelessWidget {
     this.onSkipWarmup,
   });
 
-  static const _orange = Color(0xFFF97316);
-
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: _AccentBox(
-        accentColor: _orange,
+        accentColor: AppTheme.workoutYappingFg,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -371,13 +367,13 @@ class ChatTimeBox extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Your next set',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
-                          color: _orange,
+                          color: AppTheme.workoutYappingFg,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -387,12 +383,12 @@ class ChatTimeBox extends StatelessWidget {
                 ),
                 Text(
                   _fmt(elapsedSeconds),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
                     fontFamily: 'monospace',
                     letterSpacing: -2,
-                    color: _orange,
+                    color: AppTheme.workoutYappingFg,
                   ),
                 ),
               ],
@@ -467,9 +463,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
         : 0;
     final name = exerciseNames[widget.proposedSet.exercise] ?? '?';
     final isWarmup = widget.proposedSet.warmup;
-    final accentColor = isWarmup
-        ? const Color(0xFF3B82F6)
-        : colorScheme.primary;
+    final accentColor = AppTheme.workoutLiftingFg;
 
     return IntrinsicHeight(
       child: _AccentBox(

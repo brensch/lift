@@ -1,5 +1,9 @@
 use super::*;
 
+const DEFAULT_SUCCESS_REST_SECONDS: i32 = 180;
+const DEFAULT_FAILURE_REST_SECONDS: i32 = 300;
+const DEFAULT_WARMUP_REST_SECONDS: i32 = 30;
+
 fn round_to_2_5(weight: f32) -> f32 {
     (weight / 2.5).round() * 2.5
 }
@@ -232,7 +236,7 @@ fn get_rest_for_config(
                 None
             }
         })
-        .unwrap_or(180);
+        .unwrap_or(DEFAULT_SUCCESS_REST_SECONDS);
 
     let failure_rest = rc
         .and_then(|c| {
@@ -242,7 +246,7 @@ fn get_rest_for_config(
                 None
             }
         })
-        .unwrap_or(300);
+        .unwrap_or(DEFAULT_FAILURE_REST_SECONDS);
 
     if warmup {
         if last_warmup {
@@ -257,7 +261,7 @@ fn get_rest_for_config(
                         None
                     }
                 })
-                .unwrap_or(10);
+                .unwrap_or(DEFAULT_WARMUP_REST_SECONDS);
             (r, r)
         }
     } else {
@@ -321,24 +325,17 @@ fn compute_group_working_rounds_from_sets(sets: &[PlannedGroupSet]) -> i32 {
     counts.values().copied().max().unwrap_or(0).max(1)
 }
 
-fn normalize_group_plan_sets(req_sets: &[PlannedGroupSet]) -> Vec<PlannedGroupSet> {
-    req_sets
-        .iter()
-        .map(|s| {
-            let mut set = s.clone();
-            if set.rest_after_success <= 0 {
-                set.rest_after_success = if set.warmup { 10 } else { 180 };
-            }
-            if set.rest_after_failure <= 0 {
-                set.rest_after_failure = if set.warmup {
-                    set.rest_after_success
-                } else {
-                    300
-                };
-            }
-            set
-        })
-        .collect()
+fn validated_group_plan_sets(
+    req_sets: &[PlannedGroupSet],
+) -> Result<Vec<PlannedGroupSet>, WorkoutError> {
+    for set in req_sets {
+        if set.rest_after_success <= 0 || set.rest_after_failure <= 0 {
+            return Err(WorkoutError::failed_precondition(
+                "Workout plan sets must include explicit rest values",
+            ));
+        }
+    }
+    Ok(req_sets.to_vec())
 }
 
 fn proposed_sets_from_planned_group_sets(
@@ -365,24 +362,8 @@ fn proposed_sets_from_planned_group_sets(
             target_weight: s.target_weight,
             warmup: s.warmup,
             exercise_group_id: group_id.to_string(),
-            rest_after_success: if s.rest_after_success > 0 {
-                s.rest_after_success
-            } else if s.warmup {
-                10
-            } else {
-                180
-            },
-            rest_after_failure: if s.rest_after_failure > 0 {
-                s.rest_after_failure
-            } else if s.warmup {
-                if s.rest_after_success > 0 {
-                    s.rest_after_success
-                } else {
-                    10
-                }
-            } else {
-                300
-            },
+            rest_after_success: s.rest_after_success,
+            rest_after_failure: s.rest_after_failure,
             cancelled: false,
             is_amrap: s.is_amrap,
             instruction: s.instruction.clone(),
@@ -412,7 +393,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
 
-    let normalized_sets = normalize_group_plan_sets(&req.sets);
+    let normalized_sets = validated_group_plan_sets(&req.sets)?;
     let completed_ids: std::collections::HashSet<String> = workout_ref
         .completed_sets
         .iter()

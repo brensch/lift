@@ -20,7 +20,10 @@ pub(super) async fn authed_user_id<T>(
         .await
         .map_err(internal_error)?
         .ok_or_else(|| {
-            tracing::warn!(rpc_auth = "invalid_token", "auth failed: invalid session token");
+            tracing::warn!(
+                rpc_auth = "invalid_token",
+                "auth failed: invalid session token"
+            );
             Status::unauthenticated("Invalid session token")
         })
 }

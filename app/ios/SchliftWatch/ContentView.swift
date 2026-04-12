@@ -1,9 +1,9 @@
 import SwiftUI
 
 // Match mobile app workout state accents:
-private let mobileLiftingPink = Color(red: 0xEC/255, green: 0x48/255, blue: 0x99/255) // #EC4899
+private let mobileLiftingGreen = Color(red: 0x16/255, green: 0xA3/255, blue: 0x4A/255) // #16A34A
 private let mobileRestingBlue = Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255) // #3B82F6
-private let mobileYappingOrange = Color(red: 0xF9/255, green: 0x73/255, blue: 0x16/255) // #F97316
+private let mobileYappingPink = Color(red: 0xEC/255, green: 0x48/255, blue: 0x99/255) // #EC4899
 
 // Custom fonts — registered via Info.plist UIAppFonts
 private let bodyFont = "Manrope-Variable"
@@ -401,7 +401,7 @@ private func formatGroupProgress(_ card: Workout_V1_WearStatusCard) -> String {
 
 private func formatSetsLeft(_ card: Workout_V1_WearStatusCard) -> String {
     guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
-    let remaining = max(0, Int(card.totalGroupSets - card.currentGroupSet))
+    let remaining = max(0, Int(card.totalGroupSets - card.currentGroupSet + 1))
     return remaining == 1 ? "1 set left" : "\(remaining) sets left"
 }
 
@@ -473,11 +473,11 @@ private func formatElapsedDurationNoSeconds(_ totalSeconds: Int) -> String {
 private func watchStateAccentColor(_ stateLabel: String) -> Color? {
     switch stateLabel {
     case "Lifting", "Warmup":
-        return mobileLiftingPink
+        return mobileLiftingGreen
     case "Resting":
         return mobileRestingBlue
     case "Yapping":
-        return mobileYappingOrange
+        return mobileYappingPink
     default:
         return nil
     }
