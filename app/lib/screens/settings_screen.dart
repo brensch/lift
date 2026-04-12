@@ -64,6 +64,13 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'Notification debugging',
               onTap: () => context.push('/debug-notifications'),
             ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.article_outlined,
+              label: 'App Logs',
+              subtitle: 'View and share diagnostic logs',
+              onTap: () => context.push('/debug-logs'),
+            ),
           ],
         ),
       ),

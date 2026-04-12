@@ -12,11 +12,17 @@ pub(super) async fn authed_user_id<T>(
         .metadata()
         .get("x-session-token")
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
+        .ok_or_else(|| {
+            tracing::warn!(rpc_auth = "missing_token", "auth failed: no session token");
+            Status::unauthenticated("Missing session token")
+        })?;
     db.validate_auth_session(token)
         .await
         .map_err(internal_error)?
-        .ok_or_else(|| Status::unauthenticated("Invalid session token"))
+        .ok_or_else(|| {
+            tracing::warn!(rpc_auth = "invalid_token", "auth failed: invalid session token");
+            Status::unauthenticated("Invalid session token")
+        })
 }
 
 pub(super) fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {

@@ -18,6 +18,7 @@ run-dev:
 run-backend:
 	@pkill -f "[/]target/debug/schlift" || true
 	@pkill -f "[/]target/release/schlift" || true
+	RUST_LOG=info \
 	WEBAUTHN_RP_ID=schlift.com \
 	WEBAUTHN_RP_ORIGIN=https://schlift.com \
 	TEST_AUTH_ENABLED=1 \
@@ -29,6 +30,7 @@ run-backend:
 run-backend-release:
 	@pkill -f "[/]target/debug/schlift" || true
 	@pkill -f "[/]target/release/schlift" || true
+	RUST_LOG=info \
 	WEBAUTHN_RP_ID=schlift.com \
 	WEBAUTHN_RP_ORIGIN=https://schlift.com \
 	TEST_AUTH_ENABLED=1 \
@@ -271,7 +273,7 @@ stop-app:
 run-backend-scratch:
 	@pkill -f "[/]target/release/schlift" || true
 	@rm -f data/scratch.sqlite data/scratch.sqlite-wal data/scratch.sqlite-shm
-	TEST_AUTH_ENABLED=1 cargo run --release --bin schlift --features test-auth
+	RUST_LOG=info TEST_AUTH_ENABLED=1 cargo run --release --bin schlift --features test-auth
 
 load-test:
 	cargo run --release --example load_simulation -- --duration 3000

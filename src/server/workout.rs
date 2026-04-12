@@ -137,6 +137,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<StartWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "StartWorkout", %user_id, group_count = req.exercise_groups.len(), "request");
         let session_id = self
             .db
             .get_current_session_id_for_user(&user_id)
@@ -197,6 +198,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<EndWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "EndWorkout", %user_id, workout_id = %req.workout_id, "request");
         let ended_at = if req.ended_at > 0 {
             req.ended_at
         } else {
@@ -232,6 +234,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<GetWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "GetWorkout", %user_id, workout_id = %req.workout_id, "request");
         let workout = self
             .db
             .load_workout_full(&user_id, &req.workout_id)
@@ -246,6 +249,7 @@ impl WorkoutService for ServerWorkoutService {
         request: Request<GetActiveWorkoutRequest>,
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "GetActiveWorkout", %user_id, "request");
         let workout = if let Some((workout_id, _)) = self
             .db
             .get_active_workout_id(&user_id)
@@ -267,6 +271,7 @@ impl WorkoutService for ServerWorkoutService {
         request: Request<ListWorkoutsRequest>,
     ) -> Result<Response<ListWorkoutsResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "ListWorkouts", %user_id, "request");
         let workouts = self
             .db
             .list_workouts(&user_id)
@@ -283,6 +288,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<StartSetResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "StartSet", %user_id, workout_id = %req.workout_id, proposed_set_id = %req.proposed_set_id, "request");
         if req.workout_id.is_empty() || req.proposed_set_id.is_empty() {
             return Err(Status::invalid_argument(
                 "workout_id and proposed_set_id are required",
@@ -367,6 +373,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<CompleteSetResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "CompleteSet", %user_id, workout_id = %req.workout_id, proposed_set_id = %req.proposed_set_id, actual_reps = req.actual_reps, actual_weight = req.actual_weight, "request");
 
         let proposed = self
             .db
@@ -491,6 +498,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<DeleteCompletedSetResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "DeleteCompletedSet", %user_id, workout_id = %req.workout_id, "request");
 
         self.db
             .delete_completed_set(&req.completed_set_id, &req.workout_id)
@@ -518,6 +526,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<CancelProposedSetResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "CancelProposedSet", %user_id, workout_id = %req.workout_id, "request");
 
         self.db
             .cancel_proposed_set(&req.proposed_set_id, &req.workout_id)
@@ -547,6 +556,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<ReplaceExerciseGroupPlanResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "ReplaceExerciseGroupPlan", %user_id, workout_id = %req.workout_id, "request");
 
         // Load full workout into ActiveWorkout
         let resp = self
@@ -599,6 +609,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<ReorderExerciseGroupsResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "ReorderExerciseGroups", %user_id, workout_id = %req.workout_id, "request");
 
         let resp = self
             .db
@@ -662,6 +673,7 @@ impl WorkoutService for ServerWorkoutService {
             Some(Mutation::ReorderExerciseGroups(m)) => m.workout_id.clone(),
             None => return Err(Status::invalid_argument("mutation payload missing")),
         };
+        info!(rpc = "AppendWorkoutMutations", %user_id, %workout_id, mutation_count = req.mutations.len(), "request");
 
         // For batch mutations, load full state and use reducers (same as before)
         let resp = self
@@ -782,6 +794,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<AppendWorkoutHeartRateResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "AppendWorkoutHeartRate", %user_id, workout_id = %req.workout_id, sample_count = req.samples.len(), "request");
         self.db
             .insert_heart_rate_samples(&user_id, &req.workout_id, &req.samples)
             .await
@@ -797,6 +810,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<GetWorkoutHeartRateResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "GetWorkoutHeartRate", %user_id, workout_id = %req.workout_id, "request");
         let samples = self
             .db
             .get_workout_heart_rate(&user_id, &req.workout_id)
@@ -813,6 +827,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "GetProposedWorkoutSchedule", %user_id, "request");
         let response = self.generate_schedule(&user_id, req.at_time).await?;
         Ok(Response::new(response))
     }
@@ -822,6 +837,7 @@ impl WorkoutService for ServerWorkoutService {
         request: Request<SaveWorkoutDraftRequest>,
     ) -> Result<Response<SaveWorkoutDraftResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "SaveWorkoutDraft", %user_id, "request");
         let req = request.into_inner();
         let draft = req
             .draft
@@ -840,6 +856,7 @@ impl WorkoutService for ServerWorkoutService {
         request: Request<ClearWorkoutDraftRequest>,
     ) -> Result<Response<ClearWorkoutDraftResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "ClearWorkoutDraft", %user_id, "request");
         self.db
             .clear_workout_draft(&user_id)
             .await

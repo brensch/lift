@@ -22,6 +22,7 @@ use schlift::workout::v1::workout_service_server::WorkoutService;
 use schlift::workout::v1::*;
 use std::pin::Pin;
 use tonic::{Request, Response, Status};
+use tracing::info;
 use uuid::Uuid;
 
 mod auth;

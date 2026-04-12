@@ -19,6 +19,7 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<AuthResponse>, Status> {
         let req = request.into_inner();
         let username = req.username.trim();
+        info!(rpc = "TestLogin", %username, "request");
         if username.is_empty() {
             return Err(Status::invalid_argument("username is required"));
         }
@@ -43,6 +44,7 @@ impl AuthService for ServerAuthService {
             .get("x-session-token")
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
+        info!(rpc = "Logout", "request");
         self.db
             .delete_auth_session(token)
             .await
@@ -56,6 +58,7 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<RegisterStartResponse>, Status> {
         let req = request.into_inner();
         let username = req.username.trim().to_string();
+        info!(rpc = "RegisterStart", %username, "request");
         if username.is_empty() {
             return Err(Status::invalid_argument("username is required"));
         }
@@ -90,6 +93,7 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<AuthResponse>, Status> {
         let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
         let req = request.into_inner();
+        info!(rpc = "RegisterFinish", user_id = %req.user_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         let username = self
@@ -113,6 +117,7 @@ impl AuthService for ServerAuthService {
         request: Request<LoginStartRequest>,
     ) -> Result<Response<LoginStartResponse>, Status> {
         let req = request.into_inner();
+        info!(rpc = "LoginStart", "request");
         let (challenge_id, options) = match req.username.as_deref() {
             Some(username) if !username.trim().is_empty() => self
                 .auth_state
@@ -137,6 +142,7 @@ impl AuthService for ServerAuthService {
         request: Request<LoginFinishRequest>,
     ) -> Result<Response<AuthResponse>, Status> {
         let req = request.into_inner();
+        info!(rpc = "LoginFinish", challenge_id = %req.challenge_id, "request");
         let credential: PublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         let (token, user_id, username) = self
@@ -155,6 +161,7 @@ impl AuthService for ServerAuthService {
         request: Request<AddPasskeyStartRequest>,
     ) -> Result<Response<AddPasskeyStartResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "AddPasskeyStart", %user_id, "request");
         let user = self
             .db
             .get_user(&user_id)
@@ -175,6 +182,7 @@ impl AuthService for ServerAuthService {
         request: Request<AddPasskeyFinishRequest>,
     ) -> Result<Response<AddPasskeyFinishResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "AddPasskeyFinish", %user_id, "request");
         let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
         let req = request.into_inner();
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
@@ -190,6 +198,7 @@ impl AuthService for ServerAuthService {
         request: Request<DeletePasskeyRequest>,
     ) -> Result<Response<DeletePasskeyResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "DeletePasskey", %user_id, "request");
         let req = request.into_inner();
         self.db
             .delete_credential(&user_id, &req.credential_id)
@@ -202,6 +211,7 @@ impl AuthService for ServerAuthService {
         request: Request<ListPasskeysRequest>,
     ) -> Result<Response<ListPasskeysResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "ListPasskeys", %user_id, "request");
         let rows = self
             .db
             .list_passkey_metadata(&user_id)
@@ -242,6 +252,7 @@ impl AuthService for ServerAuthService {
         request: Request<DeleteAccountRequest>,
     ) -> Result<Response<DeleteAccountResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "DeleteAccount", %user_id, "request");
         self.db
             .delete_user_account_and_data(&user_id)
             .await

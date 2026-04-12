@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
+import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -19,6 +20,7 @@ import '../services/health_service.dart' show HealthService, HealthWriteResult;
 import '../services/error_modal_service.dart';
 import '../logic/exercises.dart';
 import '../logic/utils.dart';
+import '../services/app_logger.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const int _maxWearHeartRateSamplesInMemory = 50000;
@@ -907,6 +909,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     ErrorModalService.showError(message.toUpperCase());
   }
 
+  static bool _isTransientError(Object e) {
+    if (e is GrpcError) {
+      return e.code == StatusCode.deadlineExceeded ||
+          e.code == StatusCode.unavailable;
+    }
+    return false;
+  }
+
   // Loading state
   bool get isLoading => _isLoading;
   String? get lastLoadError => _lastLoadError;
@@ -1158,6 +1168,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _lastLoadError = null;
     _lastLoadWasUnauthorized = false;
     notifyListeners();
+    AppLogger.instance.info('Workout', 'loadActiveWorkout', {'userId': userId});
     try {
       final active = await _service.getActiveWorkout();
       if (active != null) {
@@ -1189,7 +1200,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       _lastLoadWasUnauthorized = isUnauthenticatedError(e);
       _lastLoadError = cleanErrorMessage(e);
-      _handleError(e);
+      // Don't show a modal for transient network errors (timeout, unavailable).
+      // The error is still stored in _lastLoadError so the UI can show an
+      // inline retry prompt instead of a blocking dialog.
+      if (!_isTransientError(e)) {
+        _handleError(e);
+      } else {
+        AppLogger.instance.warn('Workout', 'loadActiveWorkout transient error', {
+          'error': _lastLoadError ?? e.toString(),
+        });
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

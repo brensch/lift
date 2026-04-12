@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart' as app_links;
 
+import 'services/app_logger.dart';
 import 'services/notification_service.dart';
 import 'services/grpc_client.dart';
 import 'services/auth_service.dart';
@@ -29,6 +30,7 @@ import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
+import 'screens/debug_logs_screen.dart';
 import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
@@ -68,7 +70,7 @@ class SchliftApp extends StatefulWidget {
   State<SchliftApp> createState() => _SchliftAppState();
 }
 
-class _SchliftAppState extends State<SchliftApp> {
+class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   late final GrpcClient _grpcClient;
   late final AuthService _authService;
   late final AuthProvider _authProvider;
@@ -86,6 +88,7 @@ class _SchliftAppState extends State<SchliftApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _grpcClient = GrpcClient(host: serverHost, port: serverPort);
     _authService = AuthService(grpcClient: _grpcClient);
@@ -228,6 +231,10 @@ class _SchliftAppState extends State<SchliftApp> {
               builder: (_, __) => const DebugNotificationsScreen(),
             ),
             GoRoute(
+              path: '/debug-logs',
+              builder: (_, __) => const DebugLogsScreen(),
+            ),
+            GoRoute(
               path: '/settings',
               builder: (_, __) => const SettingsScreen(),
             ),
@@ -281,7 +288,19 @@ class _SchliftAppState extends State<SchliftApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    AppLogger.instance.info('App', 'lifecycle', {'state': state.name});
+    if (state == AppLifecycleState.resumed) {
+      // Force a fresh HTTP/2 connection on resume. Mobile networks silently
+      // kill idle connections; without this, every gRPC call hangs until it
+      // hits the deadline.
+      _grpcClient.resetChannel();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
     unawaited(_wearableSyncCoordinator.dispose());
     _grpcClient.shutdown();

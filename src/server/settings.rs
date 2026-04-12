@@ -14,6 +14,7 @@ impl SettingsService for ServerSettingsService {
         request: Request<UpdateSettingRequest>,
     ) -> Result<Response<UpdateSettingResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "UpdateSetting", %user_id, "request");
         let req = request.into_inner();
         let setting = req
             .setting
@@ -32,6 +33,7 @@ impl SettingsService for ServerSettingsService {
         request: Request<GetSettingsRequest>,
     ) -> Result<Response<GetSettingsResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "GetSettings", %user_id, "request");
         let settings = self
             .db
             .get_settings(&user_id)
@@ -44,6 +46,7 @@ impl SettingsService for ServerSettingsService {
         &self,
         _request: Request<GetTrainingProgramCatalogRequest>,
     ) -> Result<Response<GetTrainingProgramCatalogResponse>, Status> {
+        info!(rpc = "GetTrainingProgramCatalog", "request");
         let mut programs = catalog_regime_types()
             .into_iter()
             .map(|rt| get_regime(rt).training_program_definition(rt))
@@ -59,6 +62,7 @@ impl SettingsService for ServerSettingsService {
         request: Request<GetActiveTrainingProgramStateRequest>,
     ) -> Result<Response<GetActiveTrainingProgramStateResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "GetActiveTrainingProgramState", %user_id, "request");
         if let Some(state) = self
             .db
             .get_program_state(&user_id)
@@ -92,6 +96,7 @@ impl SettingsService for ServerSettingsService {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
         let regime_type = RegimeType::try_from(req.regime_type).unwrap_or(RegimeType::Linear5x5);
+        info!(rpc = "SetActiveTrainingProgramState", %user_id, ?regime_type, "request");
         let regime = get_regime(regime_type);
         let payload = payload_from_proto(&req.fields);
         let state = TrainingProgramState {
@@ -133,6 +138,7 @@ impl SettingsService for ServerSettingsService {
     ) -> Result<Response<ApplyPendingStateUpdateResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "ApplyPendingStateUpdate", %user_id, update_id = %req.update_id, "request");
         let current = self
             .db
             .get_program_state(&user_id)
