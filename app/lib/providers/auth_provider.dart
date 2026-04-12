@@ -4,7 +4,9 @@ import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/app_logger.dart';
 import '../services/grpc_client.dart';
+import '../services/health_service.dart';
 import '../services/user_service.dart';
 import '../logic/utils.dart';
 
@@ -26,6 +28,7 @@ class AuthProvider extends ChangeNotifier {
   double _bodyWeightKg = 0;
   bool _needsPasskeyNotice = false;
   bool _isLoading = false;
+  bool _bodyWeightHealthSyncInFlight = false;
   String? _error;
 
   AuthProvider({
@@ -209,6 +212,45 @@ class AuthProvider extends ChangeNotifier {
   void setBodyWeight(double kg) {
     _bodyWeightKg = kg;
     notifyListeners();
+  }
+
+  Future<double?> syncBodyWeightFromHealth({
+    bool requestPermissions = false,
+  }) async {
+    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
+    _bodyWeightHealthSyncInFlight = true;
+    try {
+      final importedKg = await HealthService.readLatestBodyWeightKg(
+        requestPermissions: requestPermissions,
+      );
+      if (importedKg == null || importedKg <= 0) return null;
+
+      final changed = (_bodyWeightKg - importedKg).abs() >= 0.05;
+      if (!changed) {
+        AppLogger.instance.info('Auth', 'bodyweight sync skipped', {
+          'reason': 'unchanged',
+          'bodyWeightKg': importedKg,
+        });
+        return importedKg;
+      }
+
+      final user = await UserServiceWrapper(
+        _grpcClient,
+      ).updateMyBodyWeight(bodyWeightKg: importedKg);
+      _bodyWeightKg = user.bodyWeightKg.toDouble();
+      AppLogger.instance.info('Auth', 'bodyweight sync applied', {
+        'bodyWeightKg': _bodyWeightKg,
+      });
+      notifyListeners();
+      return _bodyWeightKg;
+    } catch (e) {
+      AppLogger.instance.warn('Auth', 'bodyweight sync failed', {
+        'error': e.toString(),
+      });
+      return null;
+    } finally {
+      _bodyWeightHealthSyncInFlight = false;
+    }
   }
 
   Future<void> acknowledgePasskeyNotice() async {

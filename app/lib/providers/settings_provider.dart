@@ -278,9 +278,12 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   static bool isWeightField(TrainingProgramStateFieldSchema field) {
-    final haystack = '${field.section} ${field.label} ${field.helpText}'
-        .toLowerCase();
-    return haystack.contains('weight') || haystack.contains('training max');
+    final key = field.key.toLowerCase();
+    final label = field.label.toLowerCase();
+    return key.contains('weight') ||
+        key.contains('training_max') ||
+        label.contains('weight') ||
+        label.contains('training max');
   }
 
   static double displayStepForField(
