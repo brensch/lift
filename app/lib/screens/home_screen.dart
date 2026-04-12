@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -15,12 +14,169 @@ import '../services/grpc_client.dart';
 import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
 import '../logic/exercises.dart';
+import '../logic/exercise_groups.dart';
 import '../logic/weight_units.dart';
 import '../logic/utils.dart';
+import '../widgets/workout_modals.dart';
 import 'package:uuid/uuid.dart';
 import 'workout_start_briefing_screen.dart';
 
 const _uuid = Uuid();
+
+enum _HomeGroupSection { recommended, saved, planLater }
+
+class _HomeSelectableGroup {
+  final String selectionKey;
+  final _HomeGroupSection section;
+  final String? templateId;
+  final String name;
+  final int sets;
+  final bool interleaveWarmups;
+  final List<ExerciseTypeConfig> exerciseConfigs;
+  final RestConfig? restConfig;
+  final String explanation;
+  final bool prescribedByRegime;
+  final bool useScheduleWeights;
+
+  const _HomeSelectableGroup({
+    required this.selectionKey,
+    required this.section,
+    required this.templateId,
+    required this.name,
+    required this.sets,
+    required this.interleaveWarmups,
+    required this.exerciseConfigs,
+    required this.restConfig,
+    required this.explanation,
+    required this.prescribedByRegime,
+    required this.useScheduleWeights,
+  });
+
+  factory _HomeSelectableGroup.fromProposed(
+    ProposedExerciseGroup group, {
+    required int index,
+  }) {
+    final isRecommended = group.tags.contains('recommended');
+    return _HomeSelectableGroup(
+      selectionKey:
+          '${isRecommended ? 'recommended' : 'planLater'}:${group.name}:$index',
+      section: isRecommended
+          ? _HomeGroupSection.recommended
+          : _HomeGroupSection.planLater,
+      templateId: null,
+      name: group.name,
+      sets: group.sets,
+      interleaveWarmups: group.interleaveWarmups,
+      exerciseConfigs: group.exerciseConfigs.map((c) => c.deepCopy()).toList(),
+      restConfig: group.hasRestConfig() ? group.restConfig.deepCopy() : null,
+      explanation: group.explanation,
+      prescribedByRegime: group.prescribedByRegime,
+      useScheduleWeights: true,
+    );
+  }
+
+  factory _HomeSelectableGroup.fromSaved(ExerciseGroup group) {
+    return _HomeSelectableGroup(
+      selectionKey: 'saved:${group.id}',
+      section: _HomeGroupSection.saved,
+      templateId: group.id,
+      name: group.name,
+      sets: group.sets,
+      interleaveWarmups: group.interleaveWarmups,
+      exerciseConfigs: group.exerciseConfigs.map((c) => c.deepCopy()).toList(),
+      restConfig: group.hasRestConfig() ? group.restConfig.deepCopy() : null,
+      explanation: group.instruction,
+      prescribedByRegime: group.prescribedByRegime,
+      useScheduleWeights: false,
+    );
+  }
+
+  bool matchesDraftGroup(ExerciseGroup group) {
+    if (section == _HomeGroupSection.saved && templateId != null) {
+      return group.id == templateId || group.name == name;
+    }
+    return group.name == name;
+  }
+
+  ExerciseGroup toWorkoutGroup({
+    required int workoutOrder,
+    required Map<int, ExerciseStatus> statusMap,
+    required bool forWorkoutStart,
+  }) {
+    final configs = exerciseConfigs.map((c) {
+      final status = statusMap[c.exercise.value];
+      final startWeight = useScheduleWeights
+          ? (status?.targetWeight ?? c.startWeight)
+          : c.startWeight;
+      final endWeight = (useScheduleWeights && c.endWeight == c.startWeight)
+          ? startWeight
+          : c.endWeight;
+      final cfg = ExerciseTypeConfig()
+        ..exercise = c.exercise
+        ..startWeight = startWeight
+        ..endWeight = endWeight
+        ..reps = c.reps
+        ..includeWarmup = c.includeWarmup
+        ..lastSetAmrap = c.lastSetAmrap;
+      cfg.workingSets.addAll(
+        c.workingSets.map((ws) {
+          final set = WorkingSetSpec()
+            ..targetWeight = ws.targetWeight
+            ..targetReps = ws.targetReps
+            ..isAmrap = ws.isAmrap
+            ..instruction = ws.instruction;
+          if (ws.hasProgressionHint()) {
+            set.progressionHint = ws.progressionHint.deepCopy();
+          }
+          return set;
+        }),
+      );
+      if (c.hasRestConfig()) {
+        cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
+      }
+      return cfg;
+    }).toList();
+
+    final group = ExerciseGroup()
+      ..id = forWorkoutStart ? _uuid.v4() : (templateId ?? selectionKey)
+      ..name = name
+      ..sets = sets
+      ..interleaveWarmups = interleaveWarmups
+      ..workoutOrder = workoutOrder
+      ..prescribedByRegime = prescribedByRegime
+      ..instruction = explanation
+      ..exerciseConfigs.addAll(configs);
+    if (restConfig != null) {
+      group.restConfig = RestConfig()..mergeFromMessage(restConfig!);
+    }
+    return group;
+  }
+
+  _HomeSelectableGroup copyWith({
+    String? name,
+    int? sets,
+    bool? interleaveWarmups,
+    List<ExerciseTypeConfig>? exerciseConfigs,
+    RestConfig? restConfig,
+    String? explanation,
+  }) {
+    return _HomeSelectableGroup(
+      selectionKey: selectionKey,
+      section: section,
+      templateId: templateId,
+      name: name ?? this.name,
+      sets: sets ?? this.sets,
+      interleaveWarmups: interleaveWarmups ?? this.interleaveWarmups,
+      exerciseConfigs:
+          exerciseConfigs ??
+          this.exerciseConfigs.map((c) => c.deepCopy()).toList(),
+      restConfig: restConfig ?? this.restConfig?.deepCopy(),
+      explanation: explanation ?? this.explanation,
+      prescribedByRegime: prescribedByRegime,
+      useScheduleWeights: useScheduleWeights,
+    );
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,16 +187,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _draftSaveDebounce = Duration(milliseconds: 400);
-  late final String _recommendedSchplannerWisdom =
-      _kSchplannerRecommendedWisdom[Random().nextInt(
-        _kSchplannerRecommendedWisdom.length,
-      )];
-  late final String _disapprovedSchplannerWisdom =
-      _kSchplannerDisapprovedWisdom[Random().nextInt(
-        _kSchplannerDisapprovedWisdom.length,
-      )];
   List<ExerciseStatus>? _schedule;
-  List<ProposedExerciseGroup>? _proposedGroups;
+  List<_HomeSelectableGroup>? _selectableGroups;
   RegimeContext? _regimeContext;
   SessionReadiness? _sessionReadiness;
   List<PendingStateUpdate> _pendingUpdates = [];
@@ -91,26 +239,38 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       final schedule = scheduleRes.exerciseStatuses;
-      final proposedGroups = scheduleRes.proposedGroups;
+      final selectableGroups = <_HomeSelectableGroup>[
+        for (int i = 0; i < scheduleRes.proposedGroups.length; i++)
+          _HomeSelectableGroup.fromProposed(
+            scheduleRes.proposedGroups[i],
+            index: i,
+          ),
+        for (final group in scheduleRes.savedExerciseGroups)
+          _HomeSelectableGroup.fromSaved(group),
+      ];
 
       // Auto-select all groups tagged "recommended" on each load/refresh.
       final autoSelected = <int>{};
-      for (int i = 0; i < proposedGroups.length; i++) {
-        if (proposedGroups[i].tags.contains('recommended')) autoSelected.add(i);
+      for (int i = 0; i < selectableGroups.length; i++) {
+        if (selectableGroups[i].section == _HomeGroupSection.recommended) {
+          autoSelected.add(i);
+        }
       }
 
       final draft = scheduleRes.hasDraft() ? scheduleRes.draft : null;
       final selectedFromDraft = <int>{};
       if (draft != null && draft.exerciseGroups.isNotEmpty) {
         for (final group in draft.exerciseGroups) {
-          final idx = proposedGroups.indexWhere((p) => p.name == group.name);
+          final idx = selectableGroups.indexWhere(
+            (candidate) => candidate.matchesDraftGroup(group),
+          );
           if (idx != -1) selectedFromDraft.add(idx);
         }
       }
 
       setState(() {
         _schedule = schedule;
-        _proposedGroups = proposedGroups;
+        _selectableGroups = selectableGroups;
         _regimeContext = scheduleRes.hasRegimeContext()
             ? scheduleRes.regimeContext
             : null;
@@ -141,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
           _isRefreshing = false;
         });
-        if (refreshOnly && (_schedule != null || _proposedGroups != null)) {
+        if (refreshOnly && (_schedule != null || _selectableGroups != null)) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Refresh failed: ${cleanErrorMessage(e)}')),
           );
@@ -151,10 +311,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startWorkout() async {
-    if (_selectedGroupIndices.isEmpty || _proposedGroups == null) return;
+    if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
 
     final selectedGroups = (_selectedGroupIndices.toList()..sort())
-        .map((idx) => _proposedGroups![idx])
+        .map(
+          (idx) => _selectableGroups![idx].toWorkoutGroup(
+            workoutOrder: idx,
+            statusMap: _statusMap(),
+            forWorkoutStart: false,
+          ),
+        )
         .toList(growable: false);
 
     final workoutName = await _resolveLatestWorkoutName();
@@ -173,14 +339,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _performWorkoutStart() async {
-    if (_selectedGroupIndices.isEmpty || _proposedGroups == null) return;
+    if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
 
     if (mounted) {
       setState(() => _isStarting = true);
     }
 
     try {
-      final exerciseGroups = _buildExerciseGroupsFromSelection();
+      final exerciseGroups = _buildExerciseGroupsFromSelection(
+        forWorkoutStart: true,
+      );
       final grpc = context.read<GrpcClient>();
       final wearableBridge = context.read<WearableBridgeService>();
       final mp = context.read<MultiplayerProvider>();
@@ -234,63 +402,32 @@ class _HomeScreenState extends State<HomeScreen> {
     _queueDraftSave();
   }
 
-  List<ExerciseGroup> _buildExerciseGroupsFromSelection() {
-    final exerciseGroups = <ExerciseGroup>[];
-    int groupOrder = 0;
-
+  Map<int, ExerciseStatus> _statusMap() {
     final statusMap = <int, ExerciseStatus>{};
     if (_schedule != null) {
       for (final s in _schedule!) {
         statusMap[s.exercise.value] = s;
       }
     }
+    return statusMap;
+  }
+
+  List<ExerciseGroup> _buildExerciseGroupsFromSelection({
+    required bool forWorkoutStart,
+  }) {
+    final exerciseGroups = <ExerciseGroup>[];
+    int groupOrder = 0;
+    final statusMap = _statusMap();
 
     for (final idx in _selectedGroupIndices.toList()..sort()) {
-      final proposed = _proposedGroups![idx];
-      final groupId = _uuid.v4();
-
-      final configs = proposed.exerciseConfigs.map((c) {
-        final status = statusMap[c.exercise.value];
-        final startWeight = status?.targetWeight ?? c.startWeight;
-        final endWeight = c.endWeight != c.startWeight
-            ? c.endWeight
-            : startWeight;
-        final cfg = ExerciseTypeConfig()
-          ..exercise = c.exercise
-          ..startWeight = startWeight
-          ..endWeight = endWeight
-          ..reps = c.reps
-          ..includeWarmup = c.includeWarmup
-          ..lastSetAmrap = c.lastSetAmrap;
-        cfg.workingSets.addAll(
-          c.workingSets.map(
-            (ws) => WorkingSetSpec()
-              ..targetWeight = ws.targetWeight
-              ..targetReps = ws.targetReps
-              ..isAmrap = ws.isAmrap
-              ..instruction = ws.instruction
-              ..progressionHint = ws.progressionHint.deepCopy(),
-          ),
-        );
-        if (c.hasRestConfig()) {
-          cfg.restConfig = RestConfig()..mergeFromMessage(c.restConfig);
-        }
-        return cfg;
-      }).toList();
-
-      final group = ExerciseGroup()
-        ..id = groupId
-        ..name = proposed.name
-        ..sets = proposed.sets
-        ..interleaveWarmups = proposed.interleaveWarmups
-        ..workoutOrder = groupOrder++
-        ..prescribedByRegime = proposed.prescribedByRegime
-        ..exerciseConfigs.addAll(configs)
-        ..instruction = proposed.explanation;
-      if (proposed.hasRestConfig()) {
-        group.restConfig = RestConfig()..mergeFromMessage(proposed.restConfig);
-      }
-      exerciseGroups.add(group);
+      final selected = _selectableGroups![idx];
+      exerciseGroups.add(
+        selected.toWorkoutGroup(
+          workoutOrder: groupOrder++,
+          statusMap: statusMap,
+          forWorkoutStart: forWorkoutStart,
+        ),
+      );
     }
     return exerciseGroups;
   }
@@ -310,7 +447,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final workoutService = WorkoutServiceWrapper(grpc);
     try {
       final draft = WorkoutDraft()
-        ..exerciseGroups.addAll(_buildExerciseGroupsFromSelection())
+        ..exerciseGroups.addAll(
+          _buildExerciseGroupsFromSelection(forWorkoutStart: false),
+        )
         ..updatedAt = Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000);
       await workoutService.saveWorkoutDraft(draft);
     } catch (e) {
@@ -319,23 +458,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<int> _buildVisibleGroupIndices() {
-    final groups = _proposedGroups;
+    final groups = _selectableGroups;
     if (groups == null) return [];
-    const recommendedTag = 'recommended';
     final recommended = <int>[];
+    final saved = <int>[];
     final rest = <int>[];
     for (int i = 0; i < groups.length; i++) {
-      if (groups[i].tags.contains(recommendedTag)) {
+      if (groups[i].section == _HomeGroupSection.recommended) {
         recommended.add(i);
+      } else if (groups[i].section == _HomeGroupSection.saved) {
+        saved.add(i);
       } else {
         rest.add(i);
       }
     }
-    return [...recommended, ...rest];
+    return [...recommended, ...saved, ...rest];
   }
 
   int _estimatedWorkoutMinutes() {
-    if (_proposedGroups == null || _selectedGroupIndices.isEmpty) return 0;
+    if (_selectableGroups == null || _selectedGroupIndices.isEmpty) return 0;
 
     const workingSetSeconds = 45;
     const warmupSetSeconds = 30;
@@ -347,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
     int totalSeconds = 0;
 
     for (final idx in _selectedGroupIndices.toList()..sort()) {
-      final group = _proposedGroups![idx];
+      final group = _selectableGroups![idx];
       totalSeconds += transitionSecondsPerGroup;
 
       for (final cfg in group.exerciseConfigs) {
@@ -359,7 +500,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final warmupSets = cfg.includeWarmup ? 2 : 0;
         final restConfig = cfg.hasRestConfig()
             ? cfg.restConfig
-            : (group.hasRestConfig() ? group.restConfig : null);
+            : group.restConfig;
         final workingRest = restConfig?.restAfterSuccess ?? defaultWorkingRest;
         final warmupRest = restConfig?.restAfterWarmup ?? defaultWarmupRest;
 
@@ -425,6 +566,208 @@ class _HomeScreenState extends State<HomeScreen> {
     return "$dateStr - $baseName";
   }
 
+  Future<void> _showAddSavedGroupDialog() async {
+    final exerciseStatuses = _schedule ?? const <ExerciseStatus>[];
+    await showAddExerciseDialog(
+      context,
+      exerciseStatuses: exerciseStatuses,
+      onAdd:
+          (name, sets, interleaveWarmups, exerciseConfigs, restConfig) async {
+            final finalName = name.trim().isNotEmpty
+                ? name.trim()
+                : exerciseConfigs
+                      .map((c) => exerciseNames[c.exercise] ?? 'Exercise')
+                      .join(' / ');
+            final group = ExerciseGroup()
+              ..name = finalName
+              ..sets = sets
+              ..interleaveWarmups = interleaveWarmups
+              ..exerciseConfigs.addAll(exerciseConfigs)
+              ..instruction = '';
+            group.restConfig = restConfig;
+
+            try {
+              final saved = await WorkoutServiceWrapper(
+                context.read<GrpcClient>(),
+              ).saveProfileExerciseGroup(group);
+              if (!mounted) return;
+              setState(() {
+                _selectableGroups = [
+                  ...?_selectableGroups,
+                  _HomeSelectableGroup.fromSaved(saved),
+                ];
+                _selectedGroupIndices = {
+                  ..._selectedGroupIndices,
+                  (_selectableGroups?.length ?? 1) - 1,
+                };
+              });
+              _queueDraftSave();
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Failed to save group: ${cleanErrorMessage(e)}',
+                  ),
+                ),
+              );
+            }
+          },
+    );
+  }
+
+  Future<void> _editGroup(int index) async {
+    final groups = _selectableGroups;
+    if (groups == null || index < 0 || index >= groups.length) return;
+    final target = groups[index];
+    final backingGroup = target.toWorkoutGroup(
+      workoutOrder: index,
+      statusMap: _statusMap(),
+      forWorkoutStart: false,
+    );
+
+    await showEditExerciseDialog(
+      context,
+      group: ExerciseGroupData(
+        exercise: target.exerciseConfigs.isNotEmpty
+            ? target.exerciseConfigs.first.exercise
+            : Exercise.EXERCISE_UNSPECIFIED,
+        sets: const [],
+        group: backingGroup,
+        exercises: target.exerciseConfigs
+            .map((cfg) => cfg.exercise)
+            .toSet()
+            .toList(),
+      ),
+      groupIndex: index,
+      exerciseStatuses: _schedule ?? const <ExerciseStatus>[],
+      isSetDone: (_) => false,
+      onSave:
+          (
+            groupIndex, {
+            required int sets,
+            required bool interleaveWarmups,
+            required List<ExerciseTypeConfig> exerciseConfigs,
+            RestConfig? restConfig,
+          }) async {
+            final original = _selectableGroups![groupIndex];
+            final updated = original.copyWith(
+              sets: sets,
+              interleaveWarmups: interleaveWarmups,
+              exerciseConfigs: exerciseConfigs,
+              restConfig: restConfig ?? RestConfig(),
+            );
+
+            if (original.section == _HomeGroupSection.saved) {
+              final saveGroup = ExerciseGroup()
+                ..id = original.templateId ?? ''
+                ..name = updated.name
+                ..sets = updated.sets
+                ..interleaveWarmups = updated.interleaveWarmups
+                ..instruction = updated.explanation
+                ..exerciseConfigs.addAll(
+                  updated.exerciseConfigs.map((c) => c.deepCopy()),
+                );
+              if (updated.restConfig != null) {
+                saveGroup.restConfig = updated.restConfig!.deepCopy();
+              }
+
+              try {
+                final saved = await WorkoutServiceWrapper(
+                  context.read<GrpcClient>(),
+                ).saveProfileExerciseGroup(saveGroup);
+                if (!mounted) return;
+                setState(() {
+                  _selectableGroups![groupIndex] =
+                      _HomeSelectableGroup.fromSaved(saved);
+                });
+                _queueDraftSave();
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to save group changes: ${cleanErrorMessage(e)}',
+                    ),
+                  ),
+                );
+              }
+            } else {
+              if (!mounted) return;
+              setState(() {
+                _selectableGroups![groupIndex] = updated;
+              });
+              _queueDraftSave();
+            }
+          },
+    );
+  }
+
+  Future<void> _deleteSavedGroup(int index) async {
+    final groups = _selectableGroups;
+    if (groups == null || index < 0 || index >= groups.length) return;
+    final target = groups[index];
+    if (target.section != _HomeGroupSection.saved ||
+        target.templateId == null) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: Text(
+            'Delete ${target.name}?',
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          content: const Text(
+            'This will remove the saved group from your profile.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await WorkoutServiceWrapper(
+        context.read<GrpcClient>(),
+      ).deleteProfileExerciseGroup(target.templateId!);
+      if (!mounted) return;
+      setState(() {
+        _selectableGroups!.removeAt(index);
+        _selectedGroupIndices = _selectedGroupIndices
+            .where((selected) => selected != index)
+            .map((selected) => selected > index ? selected - 1 : selected)
+            .toSet();
+      });
+      _queueDraftSave();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to delete saved group: ${cleanErrorMessage(e)}',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -448,10 +791,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final visibleGroupIndices = _buildVisibleGroupIndices();
     final recommendedGroupIndices = visibleGroupIndices
-        .where((index) => _proposedGroups![index].tags.contains('recommended'))
+        .where(
+          (index) =>
+              _selectableGroups![index].section ==
+              _HomeGroupSection.recommended,
+        )
+        .toList(growable: false);
+    final savedGroupIndices = visibleGroupIndices
+        .where(
+          (index) =>
+              _selectableGroups![index].section == _HomeGroupSection.saved,
+        )
         .toList(growable: false);
     final otherGroupIndices = visibleGroupIndices
-        .where((index) => !_proposedGroups![index].tags.contains('recommended'))
+        .where(
+          (index) =>
+              _selectableGroups![index].section == _HomeGroupSection.planLater,
+        )
         .toList(growable: false);
 
     final workoutPanelColor = colorScheme.brightness == Brightness.dark
@@ -503,33 +859,18 @@ class _HomeScreenState extends State<HomeScreen> {
               sliver: SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _recommendedSchplannerWisdom,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.1,
-                            color: colorScheme.onSurface.withValues(
-                              alpha: 0.78,
+                  child: _SectionHeader(
+                    title: 'Schplanner recommends',
+                    trailing: _isRefreshing
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.tertiary,
                             ),
-                          ),
-                        ),
-                      ),
-                      if (_isRefreshing) ...[
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colorScheme.tertiary,
-                          ),
-                        ),
-                      ],
-                    ],
+                          )
+                        : null,
                   ),
                 ),
               ),
@@ -545,32 +886,66 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (recommendedGroupIndices.isNotEmpty)
                         _GroupGrid(
                           indices: recommendedGroupIndices,
-                          proposedGroups: _proposedGroups!,
+                          groups: _selectableGroups!,
                           selectedIndices: _selectedGroupIndices,
                           onToggle: _toggleGroup,
+                          onEdit: _editGroup,
                         ),
-                      if (otherGroupIndices.isNotEmpty) ...[
-                        if (recommendedGroupIndices.isNotEmpty)
-                          const SizedBox(height: 18),
-                        Text(
-                          _disapprovedSchplannerWisdom,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.1,
-                            color: colorScheme.onSurface.withValues(
-                              alpha: 0.78,
-                            ),
+                      if (recommendedGroupIndices.isEmpty)
+                        const _EmptySectionText(
+                          text: 'Nothing is recommended right now.',
+                        ),
+                      const SizedBox(height: 18),
+                      _SectionHeader(
+                        title: 'Your saved ones',
+                        trailing: IconButton(
+                          onPressed: _showAddSavedGroupDialog,
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(32, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            padding: EdgeInsets.zero,
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 20),
+                          tooltip: 'Save a workout group',
+                        ),
+                      ),
+                      if (savedGroupIndices.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        _GroupGrid(
+                          indices: savedGroupIndices,
+                          groups: _selectableGroups!,
+                          selectedIndices: _selectedGroupIndices,
+                          onToggle: _toggleGroup,
+                          onEdit: _editGroup,
+                          onDelete: _deleteSavedGroup,
+                        ),
+                      ] else
+                        const Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: _EmptySectionText(
+                            text:
+                                'Save a group here to reuse it whenever you want.',
                           ),
                         ),
+                      const SizedBox(height: 18),
+                      const _SectionHeader(title: 'Not today but in your plan'),
+                      if (otherGroupIndices.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         _GroupGrid(
                           indices: otherGroupIndices,
-                          proposedGroups: _proposedGroups!,
+                          groups: _selectableGroups!,
                           selectedIndices: _selectedGroupIndices,
                           onToggle: _toggleGroup,
+                          onEdit: _editGroup,
                         ),
-                      ],
+                      ] else
+                        const Padding(
+                          padding: EdgeInsets.only(top: 10),
+                          child: _EmptySectionText(
+                            text:
+                                'Everything in your plan is already recommended today.',
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -677,36 +1052,6 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ─── Readiness banner ─────────────────────────────────────────────────────────
-
-const _kSchplannerRecommendedWisdom = [
-  'The schplanner recommends this with bureaucratic confidence.',
-  'The schplanner approved these movements after a brief and joyless review.',
-  'The schplanner has decided this is the amount of ambition you can be trusted with.',
-  'The schplanner examined the evidence and reluctantly endorsed this plan.',
-  'The schplanner recommends these selections and will not be taking questions.',
-  'The schplanner has signed off on this sensible little arrangement.',
-  'The schplanner recommends this because apparently you have suffered enough.',
-  'The schplanner reviewed your situation and prescribed this exact inconvenience.',
-  'The schplanner recommends these exercises in the same tone it uses for tax forms.',
-  'The schplanner has determined this is the correct kind of hardship.',
-  'The schplanner recommends this outcome and considers the matter tediously resolved.',
-  'The schplanner has allowed these choices to proceed under supervision.',
-];
-
-const _kSchplannerDisapprovedWisdom = [
-  'The schplanner does not recommend these, but here they are anyway.',
-  'These are some things the schplanner would prefer you did not do.',
-  'The schplanner did not choose these exercises and would like that understood.',
-  'Here are the alternatives the schplanner declined to endorse.',
-  'The schplanner does not think you should do these, which is awkward for everyone.',
-  'These are other things the schplanner specifically did not recommend.',
-  'The schplanner reviewed these options and quietly decided against them.',
-  'Here are the exercises the schplanner left outside the circle of approval.',
-  'The schplanner does not support these selections, though it knew this might happen.',
-  'These are the movements the schplanner would rather not see you pursue today.',
-  'The schplanner did not approve these options, but apparently boundaries are flexible.',
-  'Here are some additional exercises the schplanner does not consider advisable.',
-];
 
 class _ReadinessBanner extends StatelessWidget {
   final SessionReadiness? sessionReadiness;
@@ -858,17 +1203,68 @@ class _ReadinessBanner extends StatelessWidget {
 
 // ─── Variable-column grid of group chips ───────────────────────────────────────────
 
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const _SectionHeader({required this.title, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.1,
+              color: colorScheme.onSurface.withValues(alpha: 0.78),
+            ),
+          ),
+        ),
+        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+      ],
+    );
+  }
+}
+
+class _EmptySectionText extends StatelessWidget {
+  final String text;
+
+  const _EmptySectionText({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 13,
+        height: 1.35,
+        color: colorScheme.onSurface.withValues(alpha: 0.62),
+      ),
+    );
+  }
+}
+
 class _GroupGrid extends StatelessWidget {
   final List<int> indices;
-  final List<ProposedExerciseGroup> proposedGroups;
+  final List<_HomeSelectableGroup> groups;
   final Set<int> selectedIndices;
   final void Function(int) onToggle;
+  final void Function(int) onEdit;
+  final void Function(int)? onDelete;
 
   const _GroupGrid({
     required this.indices,
-    required this.proposedGroups,
+    required this.groups,
     required this.selectedIndices,
     required this.onToggle,
+    required this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -877,9 +1273,11 @@ class _GroupGrid extends StatelessWidget {
       children: [
         for (int i = 0; i < indices.length; i++) ...[
           _GroupChip(
-            group: proposedGroups[indices[i]],
+            group: groups[indices[i]],
             isSelected: selectedIndices.contains(indices[i]),
             onTap: () => onToggle(indices[i]),
+            onEdit: () => onEdit(indices[i]),
+            onDelete: onDelete == null ? null : () => onDelete!(indices[i]),
           ),
           if (i < indices.length - 1) const SizedBox(height: 8),
         ],
@@ -891,14 +1289,18 @@ class _GroupGrid extends StatelessWidget {
 // ─── Group chip ───────────────────────────────────────────────────────────────
 
 class _GroupChip extends StatelessWidget {
-  final ProposedExerciseGroup group;
+  final _HomeSelectableGroup group;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _GroupChip({
     required this.group,
     required this.isSelected,
     required this.onTap,
+    required this.onEdit,
+    this.onDelete,
   });
 
   List<WorkingSetSpec> _workingSetsForConfig(ExerciseTypeConfig cfg) {
@@ -974,7 +1376,7 @@ class _GroupChip extends StatelessWidget {
 
   int _exerciseCount() => group.exerciseConfigs.length;
 
-  bool get _isRecommended => group.tags.contains('recommended');
+  bool get _isRecommended => group.section == _HomeGroupSection.recommended;
 
   Widget _chip(BuildContext context, String text) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -1176,6 +1578,37 @@ class _GroupChip extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: onEdit,
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(28, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                    ),
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 17,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                    tooltip: 'Edit group',
+                  ),
+                  if (onDelete != null)
+                    IconButton(
+                      onPressed: onDelete,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(28, 28),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                      ),
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 17,
+                        color: colorScheme.error.withValues(alpha: 0.85),
+                      ),
+                      tooltip: 'Delete saved group',
+                    ),
                   IconButton(
                     onPressed: () => _showDetails(context),
                     style: IconButton.styleFrom(

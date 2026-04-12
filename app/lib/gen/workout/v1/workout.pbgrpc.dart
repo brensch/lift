@@ -170,6 +170,24 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$clearWorkoutDraft, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.SaveProfileExerciseGroupResponse>
+      saveProfileExerciseGroup(
+    $0.SaveProfileExerciseGroupRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveProfileExerciseGroup, request,
+        options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DeleteProfileExerciseGroupResponse>
+      deleteProfileExerciseGroup(
+    $0.DeleteProfileExerciseGroupRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$deleteProfileExerciseGroup, request,
+        options: options);
+  }
+
   // method descriptors
 
   static final _$startWorkout =
@@ -265,6 +283,18 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/ClearWorkoutDraft',
       ($0.ClearWorkoutDraftRequest value) => value.writeToBuffer(),
       $0.ClearWorkoutDraftResponse.fromBuffer);
+  static final _$saveProfileExerciseGroup = $grpc.ClientMethod<
+          $0.SaveProfileExerciseGroupRequest,
+          $0.SaveProfileExerciseGroupResponse>(
+      '/workout.v1.WorkoutService/SaveProfileExerciseGroup',
+      ($0.SaveProfileExerciseGroupRequest value) => value.writeToBuffer(),
+      $0.SaveProfileExerciseGroupResponse.fromBuffer);
+  static final _$deleteProfileExerciseGroup = $grpc.ClientMethod<
+          $0.DeleteProfileExerciseGroupRequest,
+          $0.DeleteProfileExerciseGroupResponse>(
+      '/workout.v1.WorkoutService/DeleteProfileExerciseGroup',
+      ($0.DeleteProfileExerciseGroupRequest value) => value.writeToBuffer(),
+      $0.DeleteProfileExerciseGroupResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.WorkoutService')
@@ -430,6 +460,25 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.ClearWorkoutDraftRequest.fromBuffer(value),
         ($0.ClearWorkoutDraftResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SaveProfileExerciseGroupRequest,
+            $0.SaveProfileExerciseGroupResponse>(
+        'SaveProfileExerciseGroup',
+        saveProfileExerciseGroup_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SaveProfileExerciseGroupRequest.fromBuffer(value),
+        ($0.SaveProfileExerciseGroupResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteProfileExerciseGroupRequest,
+            $0.DeleteProfileExerciseGroupResponse>(
+        'DeleteProfileExerciseGroup',
+        deleteProfileExerciseGroup_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DeleteProfileExerciseGroupRequest.fromBuffer(value),
+        ($0.DeleteProfileExerciseGroupResponse value) =>
+            value.writeToBuffer()));
   }
 
   $async.Future<$0.StartWorkoutResponse> startWorkout_Pre(
@@ -591,6 +640,25 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.ClearWorkoutDraftResponse> clearWorkoutDraft(
       $grpc.ServiceCall call, $0.ClearWorkoutDraftRequest request);
+
+  $async.Future<$0.SaveProfileExerciseGroupResponse>
+      saveProfileExerciseGroup_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.SaveProfileExerciseGroupRequest> $request) async {
+    return saveProfileExerciseGroup($call, await $request);
+  }
+
+  $async.Future<$0.SaveProfileExerciseGroupResponse> saveProfileExerciseGroup(
+      $grpc.ServiceCall call, $0.SaveProfileExerciseGroupRequest request);
+
+  $async.Future<$0.DeleteProfileExerciseGroupResponse>
+      deleteProfileExerciseGroup_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.DeleteProfileExerciseGroupRequest> $request) async {
+    return deleteProfileExerciseGroup($call, await $request);
+  }
+
+  $async.Future<$0.DeleteProfileExerciseGroupResponse>
+      deleteProfileExerciseGroup(
+          $grpc.ServiceCall call, $0.DeleteProfileExerciseGroupRequest request);
 }
 
 @$pb.GrpcServiceName('workout.v1.UserService')

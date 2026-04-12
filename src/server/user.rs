@@ -52,7 +52,12 @@ impl UserService for ServerUserService {
 
         let user = self
             .db
-            .update_user_profile(&user_id, &req.profile_emoji, &req.profile_color_hex, req.body_weight_kg)
+            .update_user_profile(
+                &user_id,
+                &req.profile_emoji,
+                &req.profile_color_hex,
+                req.body_weight_kg,
+            )
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("User not found"))?;

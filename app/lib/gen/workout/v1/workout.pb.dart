@@ -3805,6 +3805,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     $core.Iterable<$1.PendingStateUpdate>? pendingStateUpdates,
     $core.bool? canStartWorkout,
     WorkoutDraft? draft,
+    $core.Iterable<ExerciseGroup>? savedExerciseGroups,
   }) {
     final result = create();
     if (exerciseStatuses != null)
@@ -3819,6 +3820,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
       result.pendingStateUpdates.addAll(pendingStateUpdates);
     if (canStartWorkout != null) result.canStartWorkout = canStartWorkout;
     if (draft != null) result.draft = draft;
+    if (savedExerciseGroups != null)
+      result.savedExerciseGroups.addAll(savedExerciseGroups);
     return result;
   }
 
@@ -3852,6 +3855,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     ..aOB(8, _omitFieldNames ? '' : 'canStartWorkout')
     ..aOM<WorkoutDraft>(9, _omitFieldNames ? '' : 'draft',
         subBuilder: WorkoutDraft.create)
+    ..pPM<ExerciseGroup>(10, _omitFieldNames ? '' : 'savedExerciseGroups',
+        subBuilder: ExerciseGroup.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3947,6 +3952,234 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   void clearDraft() => $_clearField(9);
   @$pb.TagNumber(9)
   WorkoutDraft ensureDraft() => $_ensure(8);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<ExerciseGroup> get savedExerciseGroups => $_getList(9);
+}
+
+class SaveProfileExerciseGroupRequest extends $pb.GeneratedMessage {
+  factory SaveProfileExerciseGroupRequest({
+    ExerciseGroup? group,
+  }) {
+    final result = create();
+    if (group != null) result.group = group;
+    return result;
+  }
+
+  SaveProfileExerciseGroupRequest._();
+
+  factory SaveProfileExerciseGroupRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveProfileExerciseGroupRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveProfileExerciseGroupRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<ExerciseGroup>(1, _omitFieldNames ? '' : 'group',
+        subBuilder: ExerciseGroup.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveProfileExerciseGroupRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveProfileExerciseGroupRequest copyWith(
+          void Function(SaveProfileExerciseGroupRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SaveProfileExerciseGroupRequest))
+          as SaveProfileExerciseGroupRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveProfileExerciseGroupRequest create() =>
+      SaveProfileExerciseGroupRequest._();
+  @$core.override
+  SaveProfileExerciseGroupRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveProfileExerciseGroupRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveProfileExerciseGroupRequest>(
+          create);
+  static SaveProfileExerciseGroupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ExerciseGroup get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(ExerciseGroup value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ExerciseGroup ensureGroup() => $_ensure(0);
+}
+
+class SaveProfileExerciseGroupResponse extends $pb.GeneratedMessage {
+  factory SaveProfileExerciseGroupResponse({
+    ExerciseGroup? group,
+  }) {
+    final result = create();
+    if (group != null) result.group = group;
+    return result;
+  }
+
+  SaveProfileExerciseGroupResponse._();
+
+  factory SaveProfileExerciseGroupResponse.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SaveProfileExerciseGroupResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SaveProfileExerciseGroupResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<ExerciseGroup>(1, _omitFieldNames ? '' : 'group',
+        subBuilder: ExerciseGroup.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveProfileExerciseGroupResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SaveProfileExerciseGroupResponse copyWith(
+          void Function(SaveProfileExerciseGroupResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as SaveProfileExerciseGroupResponse))
+          as SaveProfileExerciseGroupResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SaveProfileExerciseGroupResponse create() =>
+      SaveProfileExerciseGroupResponse._();
+  @$core.override
+  SaveProfileExerciseGroupResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SaveProfileExerciseGroupResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SaveProfileExerciseGroupResponse>(
+          create);
+  static SaveProfileExerciseGroupResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ExerciseGroup get group => $_getN(0);
+  @$pb.TagNumber(1)
+  set group(ExerciseGroup value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasGroup() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroup() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ExerciseGroup ensureGroup() => $_ensure(0);
+}
+
+class DeleteProfileExerciseGroupRequest extends $pb.GeneratedMessage {
+  factory DeleteProfileExerciseGroupRequest({
+    $core.String? groupId,
+  }) {
+    final result = create();
+    if (groupId != null) result.groupId = groupId;
+    return result;
+  }
+
+  DeleteProfileExerciseGroupRequest._();
+
+  factory DeleteProfileExerciseGroupRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteProfileExerciseGroupRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteProfileExerciseGroupRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'groupId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteProfileExerciseGroupRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteProfileExerciseGroupRequest copyWith(
+          void Function(DeleteProfileExerciseGroupRequest) updates) =>
+      super.copyWith((message) =>
+              updates(message as DeleteProfileExerciseGroupRequest))
+          as DeleteProfileExerciseGroupRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteProfileExerciseGroupRequest create() =>
+      DeleteProfileExerciseGroupRequest._();
+  @$core.override
+  DeleteProfileExerciseGroupRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteProfileExerciseGroupRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteProfileExerciseGroupRequest>(
+          create);
+  static DeleteProfileExerciseGroupRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get groupId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set groupId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasGroupId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroupId() => $_clearField(1);
+}
+
+class DeleteProfileExerciseGroupResponse extends $pb.GeneratedMessage {
+  factory DeleteProfileExerciseGroupResponse() => create();
+
+  DeleteProfileExerciseGroupResponse._();
+
+  factory DeleteProfileExerciseGroupResponse.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteProfileExerciseGroupResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteProfileExerciseGroupResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteProfileExerciseGroupResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteProfileExerciseGroupResponse copyWith(
+          void Function(DeleteProfileExerciseGroupResponse) updates) =>
+      super.copyWith((message) =>
+              updates(message as DeleteProfileExerciseGroupResponse))
+          as DeleteProfileExerciseGroupResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteProfileExerciseGroupResponse create() =>
+      DeleteProfileExerciseGroupResponse._();
+  @$core.override
+  DeleteProfileExerciseGroupResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteProfileExerciseGroupResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteProfileExerciseGroupResponse>(
+          create);
+  static DeleteProfileExerciseGroupResponse? _defaultInstance;
 }
 
 class WorkoutDraft extends $pb.GeneratedMessage {

@@ -443,7 +443,23 @@ message GetProposedWorkoutScheduleResponse {
 
   WorkoutDraft draft = 9;
 
+  repeated ExerciseGroup saved_exercise_groups = 10;
+
 }
+
+message SaveProfileExerciseGroupRequest {
+  ExerciseGroup group = 1;
+}
+
+message SaveProfileExerciseGroupResponse {
+  ExerciseGroup group = 1;
+}
+
+message DeleteProfileExerciseGroupRequest {
+  string group_id = 1;
+}
+
+message DeleteProfileExerciseGroupResponse {}
 
 message WorkoutDraft {
   string name = 1;
@@ -603,6 +619,8 @@ service WorkoutService {
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);
   rpc SaveWorkoutDraft(SaveWorkoutDraftRequest) returns (SaveWorkoutDraftResponse);
   rpc ClearWorkoutDraft(ClearWorkoutDraftRequest) returns (ClearWorkoutDraftResponse);
+  rpc SaveProfileExerciseGroup(SaveProfileExerciseGroupRequest) returns (SaveProfileExerciseGroupResponse);
+  rpc DeleteProfileExerciseGroup(DeleteProfileExerciseGroupRequest) returns (DeleteProfileExerciseGroupResponse);
 }
 
 message CreateUserRequest {
