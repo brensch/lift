@@ -57,6 +57,27 @@ pub struct SchplannerDerivation {
     pub last_session_at: i64,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct SchplannerWindowSlotSummary {
+    pub completed_sets: i32,
+    pub last_trained_at: i64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct SchplannerWindowSummary {
+    pub completed_sessions: i32,
+    pub completed_sets: i32,
+    pub slots: HashMap<String, SchplannerWindowSlotSummary>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ProposedSlotTarget {
+    pub slot_key: String,
+    pub exercise: Exercise,
+    pub tier: String,
+    pub set_count: i32,
+}
+
 pub fn derive_state(
     regime: &dyn WorkoutRegime,
     base_state: &StatePayload,
@@ -117,6 +138,124 @@ pub fn decorate_proposed_groups(
             started_workout_count,
         );
     }
+}
+
+pub fn summarize_history_window(
+    history: &[SchplannerWorkoutRecord],
+    window_start: i64,
+    window_end: i64,
+) -> SchplannerWindowSummary {
+    let mut summary = SchplannerWindowSummary::default();
+
+    for workout in history {
+        let session_at = if workout.workout.end_time > 0 {
+            workout.workout.end_time
+        } else {
+            workout.workout.start_time
+        };
+        if session_at < window_start || session_at > window_end {
+            continue;
+        }
+        summary.completed_sessions += 1;
+
+        let completed_by_proposed = workout
+            .completed_sets
+            .iter()
+            .filter(|set| set.ended_at > 0)
+            .map(|set| (set.proposed_set_id.as_str(), set))
+            .collect::<HashMap<_, _>>();
+
+        for set in workout
+            .proposed_sets
+            .iter()
+            .filter(|set| !set.warmup && !set.cancelled)
+        {
+            let Some(hint) = set.progression_hint.as_ref() else {
+                continue;
+            };
+            if !hint.counts_toward_program || !completed_by_proposed.contains_key(set.id.as_str()) {
+                continue;
+            }
+            summary.completed_sets += 1;
+            let entry = summary
+                .slots
+                .entry(hint.slot_key.clone())
+                .or_insert_with(|| SchplannerWindowSlotSummary {
+                    completed_sets: 0,
+                    last_trained_at: 0,
+                });
+            entry.completed_sets += 1;
+            entry.last_trained_at = entry.last_trained_at.max(session_at);
+        }
+    }
+
+    for workout in history {
+        let session_at = if workout.workout.end_time > 0 {
+            workout.workout.end_time
+        } else {
+            workout.workout.start_time
+        };
+        let completed_by_proposed = workout
+            .completed_sets
+            .iter()
+            .filter(|set| set.ended_at > 0)
+            .map(|set| set.proposed_set_id.as_str())
+            .collect::<Vec<_>>();
+        if completed_by_proposed.is_empty() {
+            continue;
+        }
+        for set in workout
+            .proposed_sets
+            .iter()
+            .filter(|set| !set.warmup && !set.cancelled)
+        {
+            let Some(hint) = set.progression_hint.as_ref() else {
+                continue;
+            };
+            if !hint.counts_toward_program || !completed_by_proposed.contains(&set.id.as_str()) {
+                continue;
+            }
+            let entry = summary
+                .slots
+                .entry(hint.slot_key.clone())
+                .or_insert_with(|| SchplannerWindowSlotSummary {
+                    completed_sets: 0,
+                    last_trained_at: 0,
+                });
+            entry.last_trained_at = entry.last_trained_at.max(session_at);
+        }
+    }
+
+    summary
+}
+
+pub fn summarize_proposed_slot_targets(groups: &[ProposedExerciseGroup]) -> HashMap<String, ProposedSlotTarget> {
+    let mut targets = HashMap::new();
+    for group in groups {
+        for config in &group.exercise_configs {
+            for set in config.working_sets.iter().filter(|set| {
+                set.progression_hint
+                    .as_ref()
+                    .map(|hint| hint.counts_toward_program)
+                    .unwrap_or(false)
+            }) {
+                let Some(hint) = set.progression_hint.as_ref() else {
+                    continue;
+                };
+                let entry = targets
+                    .entry(hint.slot_key.clone())
+                    .or_insert_with(|| ProposedSlotTarget {
+                        slot_key: hint.slot_key.clone(),
+                        exercise: Exercise::try_from(config.exercise)
+                            .unwrap_or(Exercise::Unspecified),
+                        tier: hint.tier.clone(),
+                        set_count: 0,
+                    });
+                entry.set_count += 1;
+            }
+        }
+    }
+    targets
 }
 
 pub fn group_slot_keys(group: &ProposedExerciseGroup) -> Vec<String> {

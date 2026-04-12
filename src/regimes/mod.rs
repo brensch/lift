@@ -2,9 +2,11 @@ pub mod gzclp;
 pub mod linear_5x5;
 pub mod wendler_531;
 
+use chrono::{Datelike, LocalResult, TimeZone, Utc};
 use schlift::workout::v1::{
     Exercise, ProgressionHint, ProgressionRule, ProposedExerciseGroup, RegimeType, RestConfig,
-    TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink, WorkingSetSpec,
+    SlotTrainingStatus, TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink,
+    TrainingStatus, WorkingSetSpec, Workout,
 };
 
 pub use gzclp::GzclpRegime;
@@ -12,8 +14,11 @@ pub use linear_5x5::Linear5x5Regime;
 pub use wendler_531::Wendler531Regime;
 
 use crate::program_state::{PendingUpdateDef, ProposeResult, StatePayload};
-use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
-use std::collections::HashMap;
+use crate::schplanner::{
+    summarize_history_window, summarize_proposed_slot_targets, ProposedSlotTarget,
+    SchplannerSlotOutcome, SchplannerWorkoutRecord,
+};
+use std::collections::{HashMap, HashSet};
 
 pub fn exercise_display_name(exercise: Exercise) -> String {
     match exercise {
@@ -29,6 +34,23 @@ pub fn exercise_display_name(exercise: Exercise) -> String {
         Exercise::Lunge => "Lunge".to_string(),
         Exercise::LegCurl => "Leg Curl".to_string(),
         _ => "Unknown".to_string(),
+    }
+}
+
+pub fn exercise_short_label(exercise: Exercise) -> &'static str {
+    match exercise {
+        Exercise::Squat => "SQ",
+        Exercise::BenchPress => "BP",
+        Exercise::Deadlift => "DL",
+        Exercise::OverheadPress => "OHP",
+        Exercise::BarbellRow => "BBR",
+        Exercise::HipThrust => "HT",
+        Exercise::BulgarianSplitSquat => "BSS",
+        Exercise::RomanianDeadlift => "RDL",
+        Exercise::GluteBridge => "GB",
+        Exercise::Lunge => "Lunge",
+        Exercise::LegCurl => "LC",
+        _ => "Unknown",
     }
 }
 
@@ -84,6 +106,14 @@ pub trait WorkoutRegime: Send + Sync {
         last_session_at: i64,
         now_ts: i64,
     ) -> Vec<PendingUpdateDef>;
+
+    fn derive_training_status(
+        &self,
+        state: &StatePayload,
+        history: &[SchplannerWorkoutRecord],
+        last_session_at: i64,
+        now_ts: i64,
+    ) -> TrainingStatus;
 
     /// Apply a pending update's resolved field values to state.
     /// Returns the new state or an error string if validation fails.
@@ -247,6 +277,198 @@ pub fn progression_hint_for_set(
         amrap_success_threshold,
         counts_toward_program,
     }
+}
+
+pub fn fake_started_workout(at_time: i64) -> SchplannerWorkoutRecord {
+    SchplannerWorkoutRecord {
+        workout: Workout {
+            id: String::new(),
+            name: String::new(),
+            start_time: at_time,
+            end_time: 0,
+            session_id: String::new(),
+        },
+        exercise_groups: Vec::new(),
+        proposed_sets: Vec::new(),
+        completed_sets: Vec::new(),
+    }
+}
+
+pub fn slot_status_label(
+    now_ts: i64,
+    next_session_at: i64,
+    last_trained_at: i64,
+    remaining_sets: i32,
+    appears_next: bool,
+) -> String {
+    if appears_next && now_ts >= next_session_at {
+        "Up next".to_string()
+    } else if appears_next {
+        "Scheduled next".to_string()
+    } else if last_trained_at == 0 {
+        "Untrained".to_string()
+    } else if remaining_sets > 0 {
+        format!("{} sets left", remaining_sets)
+    } else {
+        "On track".to_string()
+    }
+}
+
+pub fn format_time_until(target_ts: i64, now_ts: i64) -> String {
+    let delta = target_ts - now_ts;
+    if delta <= 0 {
+        return "now".to_string();
+    }
+    let hours = (delta + 3599) / 3600;
+    if hours < 24 {
+        format!("in {}h", hours)
+    } else {
+        let days = (hours + 23) / 24;
+        format!("in {} day{}", days, if days == 1 { "" } else { "s" })
+    }
+}
+
+fn this_week_bounds(now_ts: i64) -> (i64, i64) {
+    let Some(now_dt) = Utc.timestamp_opt(now_ts, 0).single() else {
+        return (now_ts, now_ts);
+    };
+    let days_since_sunday = i64::from(now_dt.weekday().num_days_from_sunday());
+    let start_date = now_dt.date_naive() - chrono::Duration::days(days_since_sunday);
+    let end_date = start_date + chrono::Duration::days(7);
+    let start_ts = match Utc.with_ymd_and_hms(
+        start_date.year(),
+        start_date.month(),
+        start_date.day(),
+        0,
+        0,
+        0,
+    ) {
+        LocalResult::Single(dt) => dt.timestamp(),
+        _ => now_ts,
+    };
+    let end_ts = match Utc.with_ymd_and_hms(
+        end_date.year(),
+        end_date.month(),
+        end_date.day(),
+        0,
+        0,
+        0,
+    ) {
+        LocalResult::Single(dt) => dt.timestamp() - 1,
+        _ => now_ts,
+    };
+    (start_ts, end_ts)
+}
+
+pub fn build_training_status(
+    history: &[SchplannerWorkoutRecord],
+    now_ts: i64,
+    last_session_at: i64,
+    next_session_at: i64,
+    target_sessions_per_7_days: i32,
+    next_workout_slots: &HashSet<String>,
+    target_slot_sets: HashMap<String, ProposedSlotTarget>,
+) -> TrainingStatus {
+    let (window_start, window_end) = this_week_bounds(now_ts);
+    let window = summarize_history_window(history, window_start, window_end);
+    let target_sets_per_7_days = target_slot_sets.values().map(|slot| slot.set_count).sum::<i32>();
+    let remaining_sessions_per_7_days =
+        (target_sessions_per_7_days - window.completed_sessions).max(0);
+    let remaining_sets_per_7_days = (target_sets_per_7_days - window.completed_sets).max(0);
+    let should_train_now = now_ts >= next_session_at;
+
+    let headline = if last_session_at == 0 {
+        "First Schlift ready".to_string()
+    } else if should_train_now {
+        "Schlift today".to_string()
+    } else {
+        format!("Next Schlift {}", format_time_until(next_session_at, now_ts))
+    };
+
+    let mut slot_statuses = target_slot_sets
+        .into_iter()
+        .map(|(slot_key, target)| {
+            let completed = window
+                .slots
+                .get(&slot_key)
+                .map(|slot| slot.completed_sets)
+                .unwrap_or(0);
+            let last_trained_at = window
+                .slots
+                .get(&slot_key)
+                .map(|slot| slot.last_trained_at)
+                .unwrap_or(0);
+            let remaining = (target.set_count - completed).max(0);
+            let days_since = if last_trained_at > 0 {
+                ((now_ts - last_trained_at).max(0) / (24 * 3600)) as i32
+            } else {
+                0
+            };
+            let appears_next = next_workout_slots.contains(&slot_key);
+            SlotTrainingStatus {
+                slot_key: target.slot_key.clone(),
+                label: exercise_display_name(target.exercise),
+                tier: target.tier.clone(),
+                last_trained_at,
+                days_since_last_trained: days_since,
+                target_sets_per_7_days: target.set_count,
+                completed_sets_per_7_days: completed,
+                remaining_sets_per_7_days: remaining,
+                appears_in_next_workout: appears_next,
+                status_label: slot_status_label(
+                    now_ts,
+                    next_session_at,
+                    last_trained_at,
+                    remaining,
+                    appears_next,
+                ),
+            }
+        })
+        .collect::<Vec<_>>();
+    slot_statuses.sort_by(|a, b| a.label.cmp(&b.label));
+
+    TrainingStatus {
+        next_session_at,
+        last_session_at,
+        headline,
+        detail: String::new(),
+        should_train_now,
+        target_sessions_per_7_days,
+        completed_sessions_per_7_days: window.completed_sessions,
+        remaining_sessions_per_7_days,
+        target_sets_per_7_days,
+        completed_sets_per_7_days: window.completed_sets,
+        remaining_sets_per_7_days,
+        slot_statuses,
+    }
+}
+
+pub fn simulate_target_slot_sets(
+    regime: &dyn WorkoutRegime,
+    state: &StatePayload,
+    last_session_at: i64,
+    now_ts: i64,
+    session_count: i32,
+) -> HashMap<String, ProposedSlotTarget> {
+    let mut sim_state = state.clone();
+    let mut combined = HashMap::<String, ProposedSlotTarget>::new();
+    for idx in 0..session_count.max(0) {
+        let proposal = regime.propose_from_state(&sim_state, last_session_at, now_ts);
+        for (slot_key, target) in summarize_proposed_slot_targets(&proposal.proposed_groups) {
+            let entry = combined.entry(slot_key.clone()).or_insert_with(|| ProposedSlotTarget {
+                slot_key,
+                exercise: target.exercise,
+                tier: target.tier.clone(),
+                set_count: 0,
+            });
+            entry.set_count += target.set_count;
+        }
+        if idx + 1 < session_count {
+            let fake = fake_started_workout(now_ts + i64::from(idx) * 3600);
+            regime.schplanner_transition_on_workout_started(&mut sim_state, &fake);
+        }
+    }
+    combined
 }
 
 /// Build a RestConfig with just success/failure values (warmup fields = 0 = system default).

@@ -405,13 +405,32 @@ message ProposedExerciseGroup {
 
 
 
-message SessionReadiness {
-  int64 next_session_at = 1;    // Unix timestamp for recommended next workout
+message SlotTrainingStatus {
+  string slot_key = 1;
+  string label = 2;
+  string tier = 3;
+  int64 last_trained_at = 4;
+  int32 days_since_last_trained = 5;
+  int32 target_sets_per_7_days = 6;
+  int32 completed_sets_per_7_days = 7;
+  int32 remaining_sets_per_7_days = 8;
+  bool appears_in_next_workout = 9;
+  string status_label = 10;
+}
+
+message TrainingStatus {
+  int64 next_session_at = 1;    // Unix timestamp for the regime-recommended next workout
   int64 last_session_at = 2;    // When the last workout ended (0 if never)
-  string readiness_label = 3;   // e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-  string readiness_detail = 4;  // e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
-  bool is_ready = 5;            // true if now >= next_session_at
-  bool is_overdue = 6;          // true if overdue by more than 24h
+  string headline = 3;          // e.g. "Train today", "Next lift window in 14h"
+  string detail = 4;            // e.g. "1 of 3 sessions done in the last 7 days"
+  bool should_train_now = 5;    // true if now >= next_session_at
+  int32 target_sessions_per_7_days = 6;
+  int32 completed_sessions_per_7_days = 7;
+  int32 remaining_sessions_per_7_days = 8;
+  int32 target_sets_per_7_days = 9;
+  int32 completed_sets_per_7_days = 10;
+  int32 remaining_sets_per_7_days = 11;
+  repeated SlotTrainingStatus slot_statuses = 12;
 }
 
 message RegimeContext {
@@ -431,7 +450,7 @@ message GetProposedWorkoutScheduleResponse {
 
   RegimeContext regime_context = 4;
 
-  SessionReadiness session_readiness = 5;
+  TrainingStatus training_status = 5;
 
   string suggested_workout_name = 6; // regime-generated name, e.g. "5/3/1 — Cycle 2, Week 3 Peak"
 

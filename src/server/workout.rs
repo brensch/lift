@@ -94,6 +94,12 @@ impl ServerWorkoutService {
             .into_iter()
             .map(pending_update_to_proto)
             .collect::<Vec<_>>();
+        let training_status = regime.derive_training_status(
+            &derivation.effective_state,
+            &history,
+            derivation.last_session_at,
+            now,
+        );
 
         let active_workout_id = self
             .db
@@ -108,14 +114,7 @@ impl ServerWorkoutService {
             active_workout_id,
             proposed_groups: proposal.proposed_groups,
             regime_context: Some(proposal.regime_context),
-            session_readiness: Some(SessionReadiness {
-                next_session_at: 0,
-                last_session_at: 0,
-                readiness_label: "Ready".to_string(),
-                readiness_detail: String::new(),
-                is_ready: true,
-                is_overdue: false,
-            }),
+            training_status: Some(training_status),
             suggested_workout_name: proposal.suggested_workout_name,
             pending_state_updates: pending_updates.clone(),
             can_start_workout: pending_updates.is_empty(),

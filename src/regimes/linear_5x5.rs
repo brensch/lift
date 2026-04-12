@@ -10,10 +10,12 @@ use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_fr
 use std::collections::HashMap;
 
 use super::{
-    build_single_group_amrap, exercise_display_name, rest_cfg, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
+    build_single_group_amrap, build_training_status, exercise_display_name, exercise_short_label,
+    rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta,
+    SingleGroupOptions, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
+use std::collections::HashSet;
 
 const UPPER_INCREMENT: f32 = 5.0;
 const LOWER_INCREMENT: f32 = 5.0;
@@ -92,6 +94,14 @@ fn rounding_steps(_ex: Exercise) -> (f32, f32) {
 
 const WORKOUT_A: &[Exercise] = &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
 const WORKOUT_B: &[Exercise] = &[Exercise::Squat, Exercise::OverheadPress, Exercise::Deadlift];
+
+fn workout_variant_exercises(variant: &str) -> &'static [Exercise] {
+    if variant.eq_ignore_ascii_case("B") {
+        WORKOUT_B
+    } else {
+        WORKOUT_A
+    }
+}
 
 impl WorkoutRegime for Linear5x5Regime {
     fn display_name(&self) -> &'static str {
@@ -355,11 +365,35 @@ impl WorkoutRegime for Linear5x5Regime {
         }
 
         let regime_context = RegimeContext {
-            regime_display_name: format!("Stronglifts 5x5 — Workout {}", next_variant_label),
-            session_description: format!(
-                "Workout {} — Linear progression (StrongLifts-style A/B split)",
-                next_variant_label
-            ),
+            regime_display_name: "Stronglifts 5x5".to_string(),
+            session_description: {
+                let lifts = workout_variant_exercises(next_variant_label)
+                    .iter()
+                    .map(|&ex| exercise_short_label(ex))
+                    .collect::<Vec<_>>()
+                    .join("/");
+                let stall_notes = workout_variant_exercises(next_variant_label)
+                    .iter()
+                    .filter_map(|&ex| {
+                        let stalls = get_int_or(state, stall_key(ex), 0);
+                        if stalls > 0 {
+                            Some(format!("stalled {}", exercise_short_label(ex).to_ascii_lowercase()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                if stall_notes.is_empty() {
+                    format!("Workout {} • {}", next_variant_label, lifts)
+                } else {
+                    format!(
+                        "Workout {} • {} • {}",
+                        next_variant_label,
+                        lifts,
+                        stall_notes.join(" • ")
+                    )
+                }
+            },
             next_session_preview: format!(
                 "Next: Workout {}. Alternate A/B each session; add weight after successful lifts.",
                 other_variant
@@ -409,6 +443,36 @@ impl WorkoutRegime for Linear5x5Regime {
                 enum_options: vec![],
             }],
         }]
+    }
+
+    fn derive_training_status(
+        &self,
+        state: &StatePayload,
+        history: &[SchplannerWorkoutRecord],
+        last_session_at: i64,
+        now_ts: i64,
+    ) -> schlift::workout::v1::TrainingStatus {
+        let next_session_at = if last_session_at == 0 {
+            now_ts
+        } else {
+            last_session_at + 24 * 3600
+        };
+        let next_workout_slots = self.propose_from_state(state, last_session_at, now_ts);
+        let next_workout_slots = crate::schplanner::summarize_proposed_slot_targets(
+            &next_workout_slots.proposed_groups,
+        )
+        .into_keys()
+        .collect::<HashSet<_>>();
+        let target_slot_sets = simulate_target_slot_sets(self, state, last_session_at, now_ts, 3);
+        build_training_status(
+            history,
+            now_ts,
+            last_session_at,
+            next_session_at,
+            3,
+            &next_workout_slots,
+            target_slot_sets,
+        )
     }
 
     fn apply_pending_update_to_state(

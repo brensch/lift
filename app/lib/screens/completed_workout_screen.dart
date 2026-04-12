@@ -130,14 +130,14 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   ) async {
     try {
       final scheduleRes = await service.getProposedWorkoutSchedule(userId);
-      if (!scheduleRes.hasSessionReadiness()) return;
-      final sr = scheduleRes.sessionReadiness;
-      if (sr.nextSessionAt.toInt() <= 0) return;
+      if (!scheduleRes.hasTrainingStatus()) return;
+      final ts = scheduleRes.trainingStatus;
+      if (ts.nextSessionAt.toInt() <= 0) return;
       final regimeName = scheduleRes.hasRegimeContext()
           ? scheduleRes.regimeContext.regimeDisplayName
           : 'your';
       await NotificationService.scheduleNextWorkout(
-        nextSessionAtUnix: sr.nextSessionAt.toInt(),
+        nextSessionAtUnix: ts.nextSessionAt.toInt(),
         regimeName: regimeName.isNotEmpty ? regimeName : 'your',
       );
     } catch (_) {
