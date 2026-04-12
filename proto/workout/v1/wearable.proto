@@ -112,19 +112,14 @@ message HeartRateSample {
 }
 
 message WearSensorBatch {
-  string workout_id = 1;
-  repeated HeartRateSample heart_rate_samples = 2;
+  string batch_id = 1; // client-generated UUID for durable dedupe
+  string workout_id = 2;
+  int64 sent_at = 3; // Unix milliseconds
+  repeated HeartRateSample heart_rate_samples = 4;
 }
 
-message PhoneToWearEnvelope {
-  oneof payload {
-    WearWorkoutSnapshot snapshot = 1;
-  }
-}
-
-message WearToPhoneEnvelope {
-  oneof payload {
-    WearIntent intent = 1;
-    WearSensorBatch sensor_batch = 2;
-  }
+message WearSensorBatchAck {
+  string batch_id = 1;
+  string workout_id = 2;
+  int64 received_at = 3; // Unix milliseconds on phone receipt
 }

@@ -19,8 +19,10 @@ class WearableSyncCoordinator {
 
   /// Intents that arrived before the workout was loaded.
   final List<WearIntent> _pendingIntents = [];
+  final Set<String> _handledIntentIds = <String>{};
   bool _workoutEverLoaded = false;
   String? _lastPublishedSnapshotKey;
+  String? _lastWorkoutId;
 
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
@@ -52,6 +54,11 @@ class WearableSyncCoordinator {
   }
 
   void _onWorkoutChanged() {
+    final workoutId = _workoutProvider.activeWorkout?.id;
+    if (_lastWorkoutId != workoutId) {
+      _handledIntentIds.clear();
+      _lastWorkoutId = workoutId;
+    }
     if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
       _workoutEverLoaded = true;
       _replayPendingIntents();
@@ -80,6 +87,8 @@ class WearableSyncCoordinator {
   Future<void> _executeIntent(WearIntent intent) async {
     final workoutId = _workoutProvider.activeWorkout?.id;
     if (workoutId == null) return;
+    if (intent.intentId.isEmpty) return;
+    if (!_handledIntentIds.add(intent.intentId)) return;
 
     if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
       await _workoutProvider.startSet(intent.startSet.setId);

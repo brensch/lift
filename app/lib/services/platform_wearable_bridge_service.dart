@@ -19,17 +19,13 @@ class PlatformWearableBridgeService implements WearableBridgeService {
   Stream<WearIntent> get intentStream => _intentEvents
       .receiveBroadcastStream()
       .map((event) => event as Uint8List)
-      .map((bytes) => WearToPhoneEnvelope.fromBuffer(bytes))
-      .where((envelope) => envelope.hasIntent())
-      .map((envelope) => envelope.intent);
+      .map(WearIntent.fromBuffer);
 
   @override
   Stream<WearSensorBatch> get sensorBatchStream => _sensorEvents
       .receiveBroadcastStream()
       .map((event) => event as Uint8List)
-      .map((bytes) => WearToPhoneEnvelope.fromBuffer(bytes))
-      .where((envelope) => envelope.hasSensorBatch())
-      .map((envelope) => envelope.sensorBatch);
+      .map(WearSensorBatch.fromBuffer);
 
   @override
   Future<void> init() async {}
@@ -39,9 +35,8 @@ class PlatformWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {
-    final envelope = PhoneToWearEnvelope()..snapshot = snapshot;
     await _methods.invokeMethod<void>('publishSnapshot', {
-      'payload': envelope.writeToBuffer(),
+      'payload': snapshot.writeToBuffer(),
     });
   }
 
@@ -65,7 +60,9 @@ class PlatformWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<WatchClockSync?> getWatchClockSync() async {
-    final result = await _methods.invokeMapMethod<String, dynamic>('getWatchClockSync');
+    final result = await _methods.invokeMapMethod<String, dynamic>(
+      'getWatchClockSync',
+    );
     if (result == null) return null;
     final watchTimeMs = (result['watchTimeMs'] as num?)?.toInt();
     final sentAtMs = (result['sentAtMs'] as num?)?.toInt();

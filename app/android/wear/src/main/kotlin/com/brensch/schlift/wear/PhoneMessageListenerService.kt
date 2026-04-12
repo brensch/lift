@@ -36,38 +36,46 @@ class PhoneMessageListenerService : WearableListenerService() {
             }
             return
         }
-        if (messageEvent.path != WearTransport.PHONE_TO_WEAR_PATH) {
+        if (messageEvent.path == WearTransport.PHONE_TO_WEAR_SENSOR_BATCH_ACK_PATH) {
+            runCatching {
+                val ack = Wearable.WearSensorBatchAck.parseFrom(messageEvent.data)
+                WearSensorBatchOutbox.acknowledge(this, ack)
+            }.onFailure {
+                Log.e("SchliftWear", "Failed to parse sensor batch ack", it)
+            }
+            return
+        }
+        if (messageEvent.path != WearTransport.PHONE_TO_WEAR_SNAPSHOT_PATH) {
             super.onMessageReceived(messageEvent)
             return
         }
 
         runCatching {
-            val envelope = Wearable.PhoneToWearEnvelope.parseFrom(messageEvent.data)
-            if (envelope.hasSnapshot()) {
-                val snapshot = envelope.snapshot
-                Log.d(
-                    "SchliftWear",
-                    "Parsed phone snapshot workoutId=${snapshot.workoutId} state=${snapshot.state} actions=${snapshot.actionsList.size}",
-                )
-                WearDataRepository.updateSnapshot(envelope.snapshot)
-                val hasEndWorkoutAction = snapshot.actionsList.any {
-                    it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
-                }
-                val activeWorkout = snapshot.workoutId.isNotBlank() &&
-                    (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
-                if (activeWorkout) {
-                    WorkoutForegroundService.startOrUpdate(
-                        this,
-                        workoutLabel = "Workout in progress",
-                        stateLabel = snapshot.youCard.stateLabel,
-                        workoutId = snapshot.workoutId,
-                        activeWorkout = true,
-                    )
-                } else {
-                    WorkoutForegroundService.stop(this)
-                }
+            val snapshot = Wearable.WearWorkoutSnapshot.parseFrom(messageEvent.data)
+            Log.d(
+                "SchliftWear",
+                "Parsed phone snapshot workoutId=${snapshot.workoutId} state=${snapshot.state} actions=${snapshot.actionsList.size}",
+            )
+            WearDataRepository.updateSnapshot(snapshot)
+            val hasEndWorkoutAction = snapshot.actionsList.any {
+                it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
             }
+            val activeWorkout = snapshot.workoutId.isNotBlank() &&
+                (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
+            if (activeWorkout) {
+                WorkoutForegroundService.startOrUpdate(
+                    this,
+                    workoutLabel = "Workout in progress",
+                    stateLabel = snapshot.youCard.stateLabel,
+                    workoutId = snapshot.workoutId,
+                    activeWorkout = true,
+                    allowStartForeground = false,
+                )
+            } else {
+                WorkoutForegroundService.stop(this)
+            }
+            WearSensorBatchOutbox.flush(this)
         }
-            .onFailure { Log.e("SchliftWear", "Failed to parse phone message envelope", it) }
+            .onFailure { Log.e("SchliftWear", "Failed to parse phone snapshot", it) }
     }
 }

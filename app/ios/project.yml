@@ -31,7 +31,7 @@ targets:
         excludes:
           - "Info.plist"
           - "*.entitlements"
-      # Generated proto files shared with watch — Runner needs them to parse envelopes
+      # Generated proto files shared with watch transport messages
       - path: SchliftWatch/Generated
         buildPhase: sources
     entitlements:

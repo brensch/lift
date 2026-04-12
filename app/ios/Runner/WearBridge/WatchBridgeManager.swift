@@ -9,10 +9,12 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     static let shared = WatchBridgeManager()
 
     private static let watchUiHeartbeatTtlMs: Int64 = 8_000
-    private static let phoneToWearEnvelopePath = "/schlift/phone/envelope"
+    private static let phoneToWearSnapshotPath = "/schlift/phone/snapshot"
     private static let phoneToWearLaunchPath = "/schlift/phone/launch"
     private static let phoneToWearClockSyncPath = "/schlift/phone/clock_sync"
-    private static let wearToPhoneEnvelopePath = "/schlift/wear/envelope"
+    private static let phoneToWearSensorBatchAckPath = "/schlift/phone/sensor_batch_ack"
+    private static let wearToPhoneIntentPath = "/schlift/wear/intent"
+    private static let wearToPhoneSensorBatchPath = "/schlift/wear/sensor_batch"
     private static let wearToPhoneUiHeartbeatPath = "/schlift/wear/ui_heartbeat"
     private static let wearToPhoneClockSyncPath = "/schlift/wear/clock_sync"
 
@@ -60,7 +62,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         guard WCSession.default.isPaired else { return }
 
         let message: [String: Any] = [
-            "path": WatchBridgeManager.phoneToWearEnvelopePath,
+            "path": WatchBridgeManager.phoneToWearSnapshotPath,
             "data": bytes.data,
         ]
 
@@ -177,6 +179,10 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         replyHandler([:])
     }
 
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        handleIncomingMessage(userInfo)
+    }
+
     // MARK: - Private
 
     private func handleIncomingMessage(_ message: [String: Any]) {
@@ -201,24 +207,51 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             return
         }
 
-        guard path == WatchBridgeManager.wearToPhoneEnvelopePath else { return }
         guard let data = message["data"] as? Data else { return }
 
-        // Parse the envelope to determine if it's an intent or sensor batch.
-        // We send the raw bytes to Flutter (same as Android) — Flutter handles deserialization.
-        // But we need to peek to route to the correct EventChannel.
-        do {
-            let envelope = try Workout_V1_WearToPhoneEnvelope(serializedData: data)
-            switch envelope.payload {
-            case .intent:
+        if path == WatchBridgeManager.wearToPhoneIntentPath {
+            do {
+                _ = try Workout_V1_WearIntent(serializedData: data)
                 emitIntent(data)
-            case .sensorBatch:
-                emitSensor(data)
-            case .none:
-                break
+            } catch {
+                print("SchliftWearBridge: Failed to parse wear intent: \(error)")
             }
-        } catch {
-            print("SchliftWearBridge: Failed to parse wear envelope: \(error)")
+            return
+        }
+
+        if path == WatchBridgeManager.wearToPhoneSensorBatchPath {
+            do {
+                let batch = try Workout_V1_WearSensorBatch(serializedData: data)
+                emitSensor(data)
+                sendSensorBatchAck(batch)
+            } catch {
+                print("SchliftWearBridge: Failed to parse wear sensor batch: \(error)")
+            }
+        }
+    }
+
+    private func sendSensorBatchAck(_ batch: Workout_V1_WearSensorBatch) {
+        guard !batch.batchID.isEmpty else { return }
+        var ack = Workout_V1_WearSensorBatchAck()
+        ack.batchID = batch.batchID
+        ack.workoutID = batch.workoutID
+        ack.receivedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        guard let data = try? ack.serializedData() else { return }
+
+        let message: [String: Any] = [
+            "path": WatchBridgeManager.phoneToWearSensorBatchAckPath,
+            "data": data,
+        ]
+
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired else { return }
+
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil) { error in
+                print("SchliftWearBridge: Failed sensor batch ack id=\(batch.batchID): \(error)")
+            }
+        } else {
+            session.transferUserInfo(message)
         }
     }
 

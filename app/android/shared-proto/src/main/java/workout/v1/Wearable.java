@@ -7297,28 +7297,58 @@ public final class Wearable {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The batchId.
+     */
+    java.lang.String getBatchId();
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The bytes for batchId.
+     */
+    com.google.protobuf.ByteString
+        getBatchIdBytes();
+
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @return The workoutId.
      */
     java.lang.String getWorkoutId();
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @return The bytes for workoutId.
      */
     com.google.protobuf.ByteString
         getWorkoutIdBytes();
 
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <pre>
+     * Unix milliseconds
+     * </pre>
+     *
+     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+     * @return The sentAt.
+     */
+    long getSentAt();
+
+    /**
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     java.util.List<workout.v1.Wearable.HeartRateSample> 
         getHeartRateSamplesList();
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     workout.v1.Wearable.HeartRateSample getHeartRateSamples(int index);
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     int getHeartRateSamplesCount();
   }
@@ -7331,13 +7361,81 @@ public final class Wearable {
       // @@protoc_insertion_point(message_implements:workout.v1.WearSensorBatch)
       WearSensorBatchOrBuilder {
     private WearSensorBatch() {
+      batchId_ = "";
       workoutId_ = "";
       heartRateSamples_ = emptyProtobufList();
     }
-    public static final int WORKOUT_ID_FIELD_NUMBER = 1;
+    public static final int BATCH_ID_FIELD_NUMBER = 1;
+    private java.lang.String batchId_;
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The batchId.
+     */
+    @java.lang.Override
+    public java.lang.String getBatchId() {
+      return batchId_;
+    }
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The bytes for batchId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getBatchIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(batchId_);
+    }
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @param value The batchId to set.
+     */
+    private void setBatchId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      batchId_ = value;
+    }
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     */
+    private void clearBatchId() {
+      
+      batchId_ = getDefaultInstance().getBatchId();
+    }
+    /**
+     * <pre>
+     * client-generated UUID for durable dedupe
+     * </pre>
+     *
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @param value The bytes for batchId to set.
+     */
+    private void setBatchIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      batchId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int WORKOUT_ID_FIELD_NUMBER = 2;
     private java.lang.String workoutId_;
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @return The workoutId.
      */
     @java.lang.Override
@@ -7345,7 +7443,7 @@ public final class Wearable {
       return workoutId_;
     }
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @return The bytes for workoutId.
      */
     @java.lang.Override
@@ -7354,7 +7452,7 @@ public final class Wearable {
       return com.google.protobuf.ByteString.copyFromUtf8(workoutId_);
     }
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @param value The workoutId to set.
      */
     private void setWorkoutId(
@@ -7364,14 +7462,14 @@ public final class Wearable {
       workoutId_ = value;
     }
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      */
     private void clearWorkoutId() {
       
       workoutId_ = getDefaultInstance().getWorkoutId();
     }
     /**
-     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
      * @param value The bytes for workoutId to set.
      */
     private void setWorkoutIdBytes(
@@ -7381,38 +7479,76 @@ public final class Wearable {
       
     }
 
-    public static final int HEART_RATE_SAMPLES_FIELD_NUMBER = 2;
+    public static final int SENT_AT_FIELD_NUMBER = 3;
+    private long sentAt_;
+    /**
+     * <pre>
+     * Unix milliseconds
+     * </pre>
+     *
+     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+     * @return The sentAt.
+     */
+    @java.lang.Override
+    public long getSentAt() {
+      return sentAt_;
+    }
+    /**
+     * <pre>
+     * Unix milliseconds
+     * </pre>
+     *
+     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+     * @param value The sentAt to set.
+     */
+    private void setSentAt(long value) {
+      
+      sentAt_ = value;
+    }
+    /**
+     * <pre>
+     * Unix milliseconds
+     * </pre>
+     *
+     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+     */
+    private void clearSentAt() {
+      
+      sentAt_ = 0L;
+    }
+
+    public static final int HEART_RATE_SAMPLES_FIELD_NUMBER = 4;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.Wearable.HeartRateSample> heartRateSamples_;
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     @java.lang.Override
     public java.util.List<workout.v1.Wearable.HeartRateSample> getHeartRateSamplesList() {
       return heartRateSamples_;
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     public java.util.List<? extends workout.v1.Wearable.HeartRateSampleOrBuilder> 
         getHeartRateSamplesOrBuilderList() {
       return heartRateSamples_;
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     @java.lang.Override
     public int getHeartRateSamplesCount() {
       return heartRateSamples_.size();
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     @java.lang.Override
     public workout.v1.Wearable.HeartRateSample getHeartRateSamples(int index) {
       return heartRateSamples_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     public workout.v1.Wearable.HeartRateSampleOrBuilder getHeartRateSamplesOrBuilder(
         int index) {
@@ -7427,7 +7563,7 @@ public final class Wearable {
     }
 
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void setHeartRateSamples(
         int index, workout.v1.Wearable.HeartRateSample value) {
@@ -7436,7 +7572,7 @@ public final class Wearable {
       heartRateSamples_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void addHeartRateSamples(workout.v1.Wearable.HeartRateSample value) {
       value.getClass();
@@ -7444,7 +7580,7 @@ public final class Wearable {
       heartRateSamples_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void addHeartRateSamples(
         int index, workout.v1.Wearable.HeartRateSample value) {
@@ -7453,7 +7589,7 @@ public final class Wearable {
       heartRateSamples_.add(index, value);
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void addAllHeartRateSamples(
         java.lang.Iterable<? extends workout.v1.Wearable.HeartRateSample> values) {
@@ -7462,13 +7598,13 @@ public final class Wearable {
           values, heartRateSamples_);
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void clearHeartRateSamples() {
       heartRateSamples_ = emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+     * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     private void removeHeartRateSamples(int index) {
       ensureHeartRateSamplesIsMutable();
@@ -7571,7 +7707,76 @@ public final class Wearable {
 
 
       /**
-       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * <pre>
+       * client-generated UUID for durable dedupe
+       * </pre>
+       *
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return The batchId.
+       */
+      @java.lang.Override
+      public java.lang.String getBatchId() {
+        return instance.getBatchId();
+      }
+      /**
+       * <pre>
+       * client-generated UUID for durable dedupe
+       * </pre>
+       *
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return The bytes for batchId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getBatchIdBytes() {
+        return instance.getBatchIdBytes();
+      }
+      /**
+       * <pre>
+       * client-generated UUID for durable dedupe
+       * </pre>
+       *
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @param value The batchId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBatchId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setBatchId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * client-generated UUID for durable dedupe
+       * </pre>
+       *
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBatchId() {
+        copyOnWrite();
+        instance.clearBatchId();
+        return this;
+      }
+      /**
+       * <pre>
+       * client-generated UUID for durable dedupe
+       * </pre>
+       *
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @param value The bytes for batchId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBatchIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setBatchIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
        * @return The workoutId.
        */
       @java.lang.Override
@@ -7579,7 +7784,7 @@ public final class Wearable {
         return instance.getWorkoutId();
       }
       /**
-       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
        * @return The bytes for workoutId.
        */
       @java.lang.Override
@@ -7588,7 +7793,7 @@ public final class Wearable {
         return instance.getWorkoutIdBytes();
       }
       /**
-       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
        * @param value The workoutId to set.
        * @return This builder for chaining.
        */
@@ -7599,7 +7804,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
        * @return This builder for chaining.
        */
       public Builder clearWorkoutId() {
@@ -7608,7 +7813,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
        * @param value The bytes for workoutId to set.
        * @return This builder for chaining.
        */
@@ -7620,7 +7825,47 @@ public final class Wearable {
       }
 
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <pre>
+       * Unix milliseconds
+       * </pre>
+       *
+       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+       * @return The sentAt.
+       */
+      @java.lang.Override
+      public long getSentAt() {
+        return instance.getSentAt();
+      }
+      /**
+       * <pre>
+       * Unix milliseconds
+       * </pre>
+       *
+       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+       * @param value The sentAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSentAt(long value) {
+        copyOnWrite();
+        instance.setSentAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Unix milliseconds
+       * </pre>
+       *
+       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSentAt() {
+        copyOnWrite();
+        instance.clearSentAt();
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       @java.lang.Override
       public java.util.List<workout.v1.Wearable.HeartRateSample> getHeartRateSamplesList() {
@@ -7628,20 +7873,20 @@ public final class Wearable {
             instance.getHeartRateSamplesList());
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       @java.lang.Override
       public int getHeartRateSamplesCount() {
         return instance.getHeartRateSamplesCount();
       }/**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       @java.lang.Override
       public workout.v1.Wearable.HeartRateSample getHeartRateSamples(int index) {
         return instance.getHeartRateSamples(index);
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder setHeartRateSamples(
           int index, workout.v1.Wearable.HeartRateSample value) {
@@ -7650,7 +7895,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder setHeartRateSamples(
           int index, workout.v1.Wearable.HeartRateSample.Builder builderForValue) {
@@ -7660,7 +7905,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder addHeartRateSamples(workout.v1.Wearable.HeartRateSample value) {
         copyOnWrite();
@@ -7668,7 +7913,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder addHeartRateSamples(
           int index, workout.v1.Wearable.HeartRateSample value) {
@@ -7677,7 +7922,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder addHeartRateSamples(
           workout.v1.Wearable.HeartRateSample.Builder builderForValue) {
@@ -7686,7 +7931,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder addHeartRateSamples(
           int index, workout.v1.Wearable.HeartRateSample.Builder builderForValue) {
@@ -7696,7 +7941,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder addAllHeartRateSamples(
           java.lang.Iterable<? extends workout.v1.Wearable.HeartRateSample> values) {
@@ -7705,7 +7950,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder clearHeartRateSamples() {
         copyOnWrite();
@@ -7713,7 +7958,7 @@ public final class Wearable {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 2 [json_name = "heartRateSamples"];</code>
+       * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       public Builder removeHeartRateSamples(int index) {
         copyOnWrite();
@@ -7737,13 +7982,15 @@ public final class Wearable {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
+              "batchId_",
               "workoutId_",
+              "sentAt_",
               "heartRateSamples_",
               workout.v1.Wearable.HeartRateSample.class,
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u0208\u0002\u001b" +
-                "";
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0002\u0004\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -7798,191 +8045,255 @@ public final class Wearable {
     }
   }
 
-  public interface PhoneToWearEnvelopeOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.PhoneToWearEnvelope)
+  public interface WearSensorBatchAckOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearSensorBatchAck)
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
-     * @return Whether the snapshot field is set.
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The batchId.
      */
-    boolean hasSnapshot();
+    java.lang.String getBatchId();
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
-     * @return The snapshot.
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The bytes for batchId.
      */
-    workout.v1.Wearable.WearWorkoutSnapshot getSnapshot();
+    com.google.protobuf.ByteString
+        getBatchIdBytes();
 
-    public workout.v1.Wearable.PhoneToWearEnvelope.PayloadCase getPayloadCase();
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    java.lang.String getWorkoutId();
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    com.google.protobuf.ByteString
+        getWorkoutIdBytes();
+
+    /**
+     * <pre>
+     * Unix milliseconds on phone receipt
+     * </pre>
+     *
+     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+     * @return The receivedAt.
+     */
+    long getReceivedAt();
   }
   /**
-   * Protobuf type {@code workout.v1.PhoneToWearEnvelope}
+   * Protobuf type {@code workout.v1.WearSensorBatchAck}
    */
-  public  static final class PhoneToWearEnvelope extends
+  public  static final class WearSensorBatchAck extends
       com.google.protobuf.GeneratedMessageLite<
-          PhoneToWearEnvelope, PhoneToWearEnvelope.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.PhoneToWearEnvelope)
-      PhoneToWearEnvelopeOrBuilder {
-    private PhoneToWearEnvelope() {
+          WearSensorBatchAck, WearSensorBatchAck.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearSensorBatchAck)
+      WearSensorBatchAckOrBuilder {
+    private WearSensorBatchAck() {
+      batchId_ = "";
+      workoutId_ = "";
     }
-    private int payloadCase_ = 0;
-    private java.lang.Object payload_;
-    public enum PayloadCase {
-      SNAPSHOT(1),
-      PAYLOAD_NOT_SET(0);
-      private final int value;
-      private PayloadCase(int value) {
-        this.value = value;
-      }
-      /**
-       * @deprecated Use {@link #forNumber(int)} instead.
-       */
-      @java.lang.Deprecated
-      public static PayloadCase valueOf(int value) {
-        return forNumber(value);
-      }
-
-      public static PayloadCase forNumber(int value) {
-        switch (value) {
-          case 1: return SNAPSHOT;
-          case 0: return PAYLOAD_NOT_SET;
-          default: return null;
-        }
-      }
-      public int getNumber() {
-        return this.value;
-      }
-    };
-
-    @java.lang.Override
-    public PayloadCase
-    getPayloadCase() {
-      return PayloadCase.forNumber(
-          payloadCase_);
-    }
-
-    private void clearPayload() {
-      payloadCase_ = 0;
-      payload_ = null;
-    }
-
-    public static final int SNAPSHOT_FIELD_NUMBER = 1;
+    public static final int BATCH_ID_FIELD_NUMBER = 1;
+    private java.lang.String batchId_;
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The batchId.
      */
     @java.lang.Override
-    public boolean hasSnapshot() {
-      return payloadCase_ == 1;
+    public java.lang.String getBatchId() {
+      return batchId_;
     }
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @return The bytes for batchId.
      */
     @java.lang.Override
-    public workout.v1.Wearable.WearWorkoutSnapshot getSnapshot() {
-      if (payloadCase_ == 1) {
-         return (workout.v1.Wearable.WearWorkoutSnapshot) payload_;
-      }
-      return workout.v1.Wearable.WearWorkoutSnapshot.getDefaultInstance();
+    public com.google.protobuf.ByteString
+        getBatchIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(batchId_);
     }
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @param value The batchId to set.
      */
-    private void setSnapshot(workout.v1.Wearable.WearWorkoutSnapshot value) {
-      value.getClass();
-  payload_ = value;
-      payloadCase_ = 1;
+    private void setBatchId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      batchId_ = value;
     }
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
      */
-    private void mergeSnapshot(workout.v1.Wearable.WearWorkoutSnapshot value) {
-      value.getClass();
-  if (payloadCase_ == 1 &&
-          payload_ != workout.v1.Wearable.WearWorkoutSnapshot.getDefaultInstance()) {
-        payload_ = workout.v1.Wearable.WearWorkoutSnapshot.newBuilder((workout.v1.Wearable.WearWorkoutSnapshot) payload_)
-            .mergeFrom(value).buildPartial();
-      } else {
-        payload_ = value;
-      }
-      payloadCase_ = 1;
+    private void clearBatchId() {
+      
+      batchId_ = getDefaultInstance().getBatchId();
     }
     /**
-     * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+     * <code>string batch_id = 1 [json_name = "batchId"];</code>
+     * @param value The bytes for batchId to set.
      */
-    private void clearSnapshot() {
-      if (payloadCase_ == 1) {
-        payloadCase_ = 0;
-        payload_ = null;
-      }
+    private void setBatchIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      batchId_ = value.toStringUtf8();
+      
     }
 
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static final int WORKOUT_ID_FIELD_NUMBER = 2;
+    private java.lang.String workoutId_;
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getWorkoutId() {
+      return workoutId_;
+    }
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(workoutId_);
+    }
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @param value The workoutId to set.
+     */
+    private void setWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      workoutId_ = value;
+    }
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     */
+    private void clearWorkoutId() {
+      
+      workoutId_ = getDefaultInstance().getWorkoutId();
+    }
+    /**
+     * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+     * @param value The bytes for workoutId to set.
+     */
+    private void setWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      workoutId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int RECEIVED_AT_FIELD_NUMBER = 3;
+    private long receivedAt_;
+    /**
+     * <pre>
+     * Unix milliseconds on phone receipt
+     * </pre>
+     *
+     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+     * @return The receivedAt.
+     */
+    @java.lang.Override
+    public long getReceivedAt() {
+      return receivedAt_;
+    }
+    /**
+     * <pre>
+     * Unix milliseconds on phone receipt
+     * </pre>
+     *
+     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+     * @param value The receivedAt to set.
+     */
+    private void setReceivedAt(long value) {
+      
+      receivedAt_ = value;
+    }
+    /**
+     * <pre>
+     * Unix milliseconds on phone receipt
+     * </pre>
+     *
+     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+     */
+    private void clearReceivedAt() {
+      
+      receivedAt_ = 0L;
+    }
+
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(byte[] data)
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(java.io.InputStream input)
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.Wearable.WearSensorBatchAck parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseDelimitedFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Wearable.PhoneToWearEnvelope parseFrom(
+    public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -7993,85 +8304,163 @@ public final class Wearable {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.Wearable.PhoneToWearEnvelope prototype) {
+    public static Builder newBuilder(workout.v1.Wearable.WearSensorBatchAck prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.PhoneToWearEnvelope}
+     * Protobuf type {@code workout.v1.WearSensorBatchAck}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Wearable.PhoneToWearEnvelope, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.PhoneToWearEnvelope)
-        workout.v1.Wearable.PhoneToWearEnvelopeOrBuilder {
-      // Construct using workout.v1.Wearable.PhoneToWearEnvelope.newBuilder()
+          workout.v1.Wearable.WearSensorBatchAck, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearSensorBatchAck)
+        workout.v1.Wearable.WearSensorBatchAckOrBuilder {
+      // Construct using workout.v1.Wearable.WearSensorBatchAck.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
 
-      @java.lang.Override
-      public PayloadCase
-          getPayloadCase() {
-        return instance.getPayloadCase();
-      }
-
-      public Builder clearPayload() {
-        copyOnWrite();
-        instance.clearPayload();
-        return this;
-      }
-
 
       /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return The batchId.
        */
       @java.lang.Override
-      public boolean hasSnapshot() {
-        return instance.hasSnapshot();
+      public java.lang.String getBatchId() {
+        return instance.getBatchId();
       }
       /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return The bytes for batchId.
        */
       @java.lang.Override
-      public workout.v1.Wearable.WearWorkoutSnapshot getSnapshot() {
-        return instance.getSnapshot();
+      public com.google.protobuf.ByteString
+          getBatchIdBytes() {
+        return instance.getBatchIdBytes();
       }
       /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @param value The batchId to set.
+       * @return This builder for chaining.
        */
-      public Builder setSnapshot(workout.v1.Wearable.WearWorkoutSnapshot value) {
+      public Builder setBatchId(
+          java.lang.String value) {
         copyOnWrite();
-        instance.setSnapshot(value);
+        instance.setBatchId(value);
         return this;
       }
       /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @return This builder for chaining.
        */
-      public Builder setSnapshot(
-          workout.v1.Wearable.WearWorkoutSnapshot.Builder builderForValue) {
+      public Builder clearBatchId() {
         copyOnWrite();
-        instance.setSnapshot(builderForValue.build());
+        instance.clearBatchId();
         return this;
       }
       /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
+       * <code>string batch_id = 1 [json_name = "batchId"];</code>
+       * @param value The bytes for batchId to set.
+       * @return This builder for chaining.
        */
-      public Builder mergeSnapshot(workout.v1.Wearable.WearWorkoutSnapshot value) {
+      public Builder setBatchIdBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.mergeSnapshot(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearWorkoutSnapshot snapshot = 1 [json_name = "snapshot"];</code>
-       */
-      public Builder clearSnapshot() {
-        copyOnWrite();
-        instance.clearSnapshot();
+        instance.setBatchIdBytes(value);
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.PhoneToWearEnvelope)
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+       * @return The workoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getWorkoutId() {
+        return instance.getWorkoutId();
+      }
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+       * @return The bytes for workoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getWorkoutIdBytes() {
+        return instance.getWorkoutIdBytes();
+      }
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+       * @param value The workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWorkoutId() {
+        copyOnWrite();
+        instance.clearWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string workout_id = 2 [json_name = "workoutId"];</code>
+       * @param value The bytes for workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setWorkoutIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Unix milliseconds on phone receipt
+       * </pre>
+       *
+       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+       * @return The receivedAt.
+       */
+      @java.lang.Override
+      public long getReceivedAt() {
+        return instance.getReceivedAt();
+      }
+      /**
+       * <pre>
+       * Unix milliseconds on phone receipt
+       * </pre>
+       *
+       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+       * @param value The receivedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReceivedAt(long value) {
+        copyOnWrite();
+        instance.setReceivedAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Unix milliseconds on phone receipt
+       * </pre>
+       *
+       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearReceivedAt() {
+        copyOnWrite();
+        instance.clearReceivedAt();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearSensorBatchAck)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -8080,19 +8469,20 @@ public final class Wearable {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Wearable.PhoneToWearEnvelope();
+          return new workout.v1.Wearable.WearSensorBatchAck();
         }
         case NEW_BUILDER: {
           return new Builder();
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "payload_",
-              "payloadCase_",
-              workout.v1.Wearable.WearWorkoutSnapshot.class,
+              "batchId_",
+              "workoutId_",
+              "receivedAt_",
             };
             java.lang.String info =
-                "\u0000\u0001\u0001\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001<\u0000";
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0002";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -8100,13 +8490,13 @@ public final class Wearable {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Wearable.PhoneToWearEnvelope> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.Wearable.WearSensorBatchAck> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.Wearable.PhoneToWearEnvelope.class) {
+            synchronized (workout.v1.Wearable.WearSensorBatchAck.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.Wearable.PhoneToWearEnvelope>(
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearSensorBatchAck>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -8125,486 +8515,24 @@ public final class Wearable {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.PhoneToWearEnvelope)
-    private static final workout.v1.Wearable.PhoneToWearEnvelope DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.WearSensorBatchAck)
+    private static final workout.v1.Wearable.WearSensorBatchAck DEFAULT_INSTANCE;
     static {
-      PhoneToWearEnvelope defaultInstance = new PhoneToWearEnvelope();
+      WearSensorBatchAck defaultInstance = new WearSensorBatchAck();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        PhoneToWearEnvelope.class, defaultInstance);
+        WearSensorBatchAck.class, defaultInstance);
     }
 
-    public static workout.v1.Wearable.PhoneToWearEnvelope getDefaultInstance() {
+    public static workout.v1.Wearable.WearSensorBatchAck getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<PhoneToWearEnvelope> PARSER;
+    private static volatile com.google.protobuf.Parser<WearSensorBatchAck> PARSER;
 
-    public static com.google.protobuf.Parser<PhoneToWearEnvelope> parser() {
-      return DEFAULT_INSTANCE.getParserForType();
-    }
-  }
-
-  public interface WearToPhoneEnvelopeOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.WearToPhoneEnvelope)
-      com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     * @return Whether the intent field is set.
-     */
-    boolean hasIntent();
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     * @return The intent.
-     */
-    workout.v1.Wearable.WearIntent getIntent();
-
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     * @return Whether the sensorBatch field is set.
-     */
-    boolean hasSensorBatch();
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     * @return The sensorBatch.
-     */
-    workout.v1.Wearable.WearSensorBatch getSensorBatch();
-
-    public workout.v1.Wearable.WearToPhoneEnvelope.PayloadCase getPayloadCase();
-  }
-  /**
-   * Protobuf type {@code workout.v1.WearToPhoneEnvelope}
-   */
-  public  static final class WearToPhoneEnvelope extends
-      com.google.protobuf.GeneratedMessageLite<
-          WearToPhoneEnvelope, WearToPhoneEnvelope.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.WearToPhoneEnvelope)
-      WearToPhoneEnvelopeOrBuilder {
-    private WearToPhoneEnvelope() {
-    }
-    private int payloadCase_ = 0;
-    private java.lang.Object payload_;
-    public enum PayloadCase {
-      INTENT(1),
-      SENSOR_BATCH(2),
-      PAYLOAD_NOT_SET(0);
-      private final int value;
-      private PayloadCase(int value) {
-        this.value = value;
-      }
-      /**
-       * @deprecated Use {@link #forNumber(int)} instead.
-       */
-      @java.lang.Deprecated
-      public static PayloadCase valueOf(int value) {
-        return forNumber(value);
-      }
-
-      public static PayloadCase forNumber(int value) {
-        switch (value) {
-          case 1: return INTENT;
-          case 2: return SENSOR_BATCH;
-          case 0: return PAYLOAD_NOT_SET;
-          default: return null;
-        }
-      }
-      public int getNumber() {
-        return this.value;
-      }
-    };
-
-    @java.lang.Override
-    public PayloadCase
-    getPayloadCase() {
-      return PayloadCase.forNumber(
-          payloadCase_);
-    }
-
-    private void clearPayload() {
-      payloadCase_ = 0;
-      payload_ = null;
-    }
-
-    public static final int INTENT_FIELD_NUMBER = 1;
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     */
-    @java.lang.Override
-    public boolean hasIntent() {
-      return payloadCase_ == 1;
-    }
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.Wearable.WearIntent getIntent() {
-      if (payloadCase_ == 1) {
-         return (workout.v1.Wearable.WearIntent) payload_;
-      }
-      return workout.v1.Wearable.WearIntent.getDefaultInstance();
-    }
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     */
-    private void setIntent(workout.v1.Wearable.WearIntent value) {
-      value.getClass();
-  payload_ = value;
-      payloadCase_ = 1;
-    }
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     */
-    private void mergeIntent(workout.v1.Wearable.WearIntent value) {
-      value.getClass();
-  if (payloadCase_ == 1 &&
-          payload_ != workout.v1.Wearable.WearIntent.getDefaultInstance()) {
-        payload_ = workout.v1.Wearable.WearIntent.newBuilder((workout.v1.Wearable.WearIntent) payload_)
-            .mergeFrom(value).buildPartial();
-      } else {
-        payload_ = value;
-      }
-      payloadCase_ = 1;
-    }
-    /**
-     * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-     */
-    private void clearIntent() {
-      if (payloadCase_ == 1) {
-        payloadCase_ = 0;
-        payload_ = null;
-      }
-    }
-
-    public static final int SENSOR_BATCH_FIELD_NUMBER = 2;
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     */
-    @java.lang.Override
-    public boolean hasSensorBatch() {
-      return payloadCase_ == 2;
-    }
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.Wearable.WearSensorBatch getSensorBatch() {
-      if (payloadCase_ == 2) {
-         return (workout.v1.Wearable.WearSensorBatch) payload_;
-      }
-      return workout.v1.Wearable.WearSensorBatch.getDefaultInstance();
-    }
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     */
-    private void setSensorBatch(workout.v1.Wearable.WearSensorBatch value) {
-      value.getClass();
-  payload_ = value;
-      payloadCase_ = 2;
-    }
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     */
-    private void mergeSensorBatch(workout.v1.Wearable.WearSensorBatch value) {
-      value.getClass();
-  if (payloadCase_ == 2 &&
-          payload_ != workout.v1.Wearable.WearSensorBatch.getDefaultInstance()) {
-        payload_ = workout.v1.Wearable.WearSensorBatch.newBuilder((workout.v1.Wearable.WearSensorBatch) payload_)
-            .mergeFrom(value).buildPartial();
-      } else {
-        payload_ = value;
-      }
-      payloadCase_ = 2;
-    }
-    /**
-     * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-     */
-    private void clearSensorBatch() {
-      if (payloadCase_ == 2) {
-        payloadCase_ = 0;
-        payload_ = null;
-      }
-    }
-
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.Wearable.WearToPhoneEnvelope parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-
-    public static Builder newBuilder() {
-      return (Builder) DEFAULT_INSTANCE.createBuilder();
-    }
-    public static Builder newBuilder(workout.v1.Wearable.WearToPhoneEnvelope prototype) {
-      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
-    }
-
-    /**
-     * Protobuf type {@code workout.v1.WearToPhoneEnvelope}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Wearable.WearToPhoneEnvelope, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.WearToPhoneEnvelope)
-        workout.v1.Wearable.WearToPhoneEnvelopeOrBuilder {
-      // Construct using workout.v1.Wearable.WearToPhoneEnvelope.newBuilder()
-      private Builder() {
-        super(DEFAULT_INSTANCE);
-      }
-
-      @java.lang.Override
-      public PayloadCase
-          getPayloadCase() {
-        return instance.getPayloadCase();
-      }
-
-      public Builder clearPayload() {
-        copyOnWrite();
-        instance.clearPayload();
-        return this;
-      }
-
-
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      @java.lang.Override
-      public boolean hasIntent() {
-        return instance.hasIntent();
-      }
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.Wearable.WearIntent getIntent() {
-        return instance.getIntent();
-      }
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      public Builder setIntent(workout.v1.Wearable.WearIntent value) {
-        copyOnWrite();
-        instance.setIntent(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      public Builder setIntent(
-          workout.v1.Wearable.WearIntent.Builder builderForValue) {
-        copyOnWrite();
-        instance.setIntent(builderForValue.build());
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      public Builder mergeIntent(workout.v1.Wearable.WearIntent value) {
-        copyOnWrite();
-        instance.mergeIntent(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearIntent intent = 1 [json_name = "intent"];</code>
-       */
-      public Builder clearIntent() {
-        copyOnWrite();
-        instance.clearIntent();
-        return this;
-      }
-
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      @java.lang.Override
-      public boolean hasSensorBatch() {
-        return instance.hasSensorBatch();
-      }
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.Wearable.WearSensorBatch getSensorBatch() {
-        return instance.getSensorBatch();
-      }
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      public Builder setSensorBatch(workout.v1.Wearable.WearSensorBatch value) {
-        copyOnWrite();
-        instance.setSensorBatch(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      public Builder setSensorBatch(
-          workout.v1.Wearable.WearSensorBatch.Builder builderForValue) {
-        copyOnWrite();
-        instance.setSensorBatch(builderForValue.build());
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      public Builder mergeSensorBatch(workout.v1.Wearable.WearSensorBatch value) {
-        copyOnWrite();
-        instance.mergeSensorBatch(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.WearSensorBatch sensor_batch = 2 [json_name = "sensorBatch"];</code>
-       */
-      public Builder clearSensorBatch() {
-        copyOnWrite();
-        instance.clearSensorBatch();
-        return this;
-      }
-
-      // @@protoc_insertion_point(builder_scope:workout.v1.WearToPhoneEnvelope)
-    }
-    @java.lang.Override
-    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
-    protected final java.lang.Object dynamicMethod(
-        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
-        java.lang.Object arg0, java.lang.Object arg1) {
-      switch (method) {
-        case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Wearable.WearToPhoneEnvelope();
-        }
-        case NEW_BUILDER: {
-          return new Builder();
-        }
-        case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "payload_",
-              "payloadCase_",
-              workout.v1.Wearable.WearIntent.class,
-              workout.v1.Wearable.WearSensorBatch.class,
-            };
-            java.lang.String info =
-                "\u0000\u0002\u0001\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001<\u0000\u0002<" +
-                "\u0000";
-            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
-        }
-        // fall through
-        case GET_DEFAULT_INSTANCE: {
-          return DEFAULT_INSTANCE;
-        }
-        case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Wearable.WearToPhoneEnvelope> parser = PARSER;
-          if (parser == null) {
-            synchronized (workout.v1.Wearable.WearToPhoneEnvelope.class) {
-              parser = PARSER;
-              if (parser == null) {
-                parser =
-                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearToPhoneEnvelope>(
-                        DEFAULT_INSTANCE);
-                PARSER = parser;
-              }
-            }
-          }
-          return parser;
-      }
-      case GET_MEMOIZED_IS_INITIALIZED: {
-        return (byte) 1;
-      }
-      case SET_MEMOIZED_IS_INITIALIZED: {
-        return null;
-      }
-      }
-      throw new UnsupportedOperationException();
-    }
-
-
-    // @@protoc_insertion_point(class_scope:workout.v1.WearToPhoneEnvelope)
-    private static final workout.v1.Wearable.WearToPhoneEnvelope DEFAULT_INSTANCE;
-    static {
-      WearToPhoneEnvelope defaultInstance = new WearToPhoneEnvelope();
-      // New instances are implicitly immutable so no need to make
-      // immutable.
-      DEFAULT_INSTANCE = defaultInstance;
-      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        WearToPhoneEnvelope.class, defaultInstance);
-    }
-
-    public static workout.v1.Wearable.WearToPhoneEnvelope getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static volatile com.google.protobuf.Parser<WearToPhoneEnvelope> PARSER;
-
-    public static com.google.protobuf.Parser<WearToPhoneEnvelope> parser() {
+    public static com.google.protobuf.Parser<WearSensorBatchAck> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

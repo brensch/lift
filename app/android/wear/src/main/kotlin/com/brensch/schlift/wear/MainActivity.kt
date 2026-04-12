@@ -426,16 +426,12 @@ class MainActivity : ComponentActivity() {
             .setSentAt(System.currentTimeMillis() / 1000)
             .build()
 
-        val envelope = Wearable.WearToPhoneEnvelope.newBuilder()
-            .setIntent(intent)
-            .build()
-
         scope.launch {
             runCatching {
                 val sent = WearTransport.sendToPhone(
                     this@MainActivity,
-                    WearTransport.WEAR_TO_PHONE_PATH,
-                    envelope.toByteArray(),
+                    WearTransport.WEAR_TO_PHONE_INTENT_PATH,
+                    intent.toByteArray(),
                 )
                 if (sent == 0) {
                     throw IllegalStateException("No connected phone node")
