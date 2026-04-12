@@ -372,10 +372,12 @@ final $typed_data.Uint8List heartRateSampleDescriptor = $convert.base64Decode(
 const WearSensorBatch$json = {
   '1': 'WearSensorBatch',
   '2': [
-    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'batch_id', '3': 1, '4': 1, '5': 9, '10': 'batchId'},
+    {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'sent_at', '3': 3, '4': 1, '5': 3, '10': 'sentAt'},
     {
       '1': 'heart_rate_samples',
-      '3': 2,
+      '3': 4,
       '4': 3,
       '5': 11,
       '6': '.workout.v1.HeartRateSample',
@@ -386,64 +388,22 @@ const WearSensorBatch$json = {
 
 /// Descriptor for `WearSensorBatch`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wearSensorBatchDescriptor = $convert.base64Decode(
-    'Cg9XZWFyU2Vuc29yQmF0Y2gSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEkkKEmhlYX'
-    'J0X3JhdGVfc2FtcGxlcxgCIAMoCzIbLndvcmtvdXQudjEuSGVhcnRSYXRlU2FtcGxlUhBoZWFy'
-    'dFJhdGVTYW1wbGVz');
+    'Cg9XZWFyU2Vuc29yQmF0Y2gSGQoIYmF0Y2hfaWQYASABKAlSB2JhdGNoSWQSHQoKd29ya291dF'
+    '9pZBgCIAEoCVIJd29ya291dElkEhcKB3NlbnRfYXQYAyABKANSBnNlbnRBdBJJChJoZWFydF9y'
+    'YXRlX3NhbXBsZXMYBCADKAsyGy53b3Jrb3V0LnYxLkhlYXJ0UmF0ZVNhbXBsZVIQaGVhcnRSYX'
+    'RlU2FtcGxlcw==');
 
-@$core.Deprecated('Use phoneToWearEnvelopeDescriptor instead')
-const PhoneToWearEnvelope$json = {
-  '1': 'PhoneToWearEnvelope',
+@$core.Deprecated('Use wearSensorBatchAckDescriptor instead')
+const WearSensorBatchAck$json = {
+  '1': 'WearSensorBatchAck',
   '2': [
-    {
-      '1': 'snapshot',
-      '3': 1,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.WearWorkoutSnapshot',
-      '9': 0,
-      '10': 'snapshot'
-    },
-  ],
-  '8': [
-    {'1': 'payload'},
+    {'1': 'batch_id', '3': 1, '4': 1, '5': 9, '10': 'batchId'},
+    {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'received_at', '3': 3, '4': 1, '5': 3, '10': 'receivedAt'},
   ],
 };
 
-/// Descriptor for `PhoneToWearEnvelope`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List phoneToWearEnvelopeDescriptor = $convert.base64Decode(
-    'ChNQaG9uZVRvV2VhckVudmVsb3BlEj0KCHNuYXBzaG90GAEgASgLMh8ud29ya291dC52MS5XZW'
-    'FyV29ya291dFNuYXBzaG90SABSCHNuYXBzaG90QgkKB3BheWxvYWQ=');
-
-@$core.Deprecated('Use wearToPhoneEnvelopeDescriptor instead')
-const WearToPhoneEnvelope$json = {
-  '1': 'WearToPhoneEnvelope',
-  '2': [
-    {
-      '1': 'intent',
-      '3': 1,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.WearIntent',
-      '9': 0,
-      '10': 'intent'
-    },
-    {
-      '1': 'sensor_batch',
-      '3': 2,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.WearSensorBatch',
-      '9': 0,
-      '10': 'sensorBatch'
-    },
-  ],
-  '8': [
-    {'1': 'payload'},
-  ],
-};
-
-/// Descriptor for `WearToPhoneEnvelope`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List wearToPhoneEnvelopeDescriptor = $convert.base64Decode(
-    'ChNXZWFyVG9QaG9uZUVudmVsb3BlEjAKBmludGVudBgBIAEoCzIWLndvcmtvdXQudjEuV2Vhck'
-    'ludGVudEgAUgZpbnRlbnQSQAoMc2Vuc29yX2JhdGNoGAIgASgLMhsud29ya291dC52MS5XZWFy'
-    'U2Vuc29yQmF0Y2hIAFILc2Vuc29yQmF0Y2hCCQoHcGF5bG9hZA==');
+/// Descriptor for `WearSensorBatchAck`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearSensorBatchAckDescriptor = $convert.base64Decode(
+    'ChJXZWFyU2Vuc29yQmF0Y2hBY2sSGQoIYmF0Y2hfaWQYASABKAlSB2JhdGNoSWQSHQoKd29ya2'
+    '91dF9pZBgCIAEoCVIJd29ya291dElkEh8KC3JlY2VpdmVkX2F0GAMgASgDUgpyZWNlaXZlZEF0');

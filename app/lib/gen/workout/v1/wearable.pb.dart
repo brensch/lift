@@ -1067,11 +1067,15 @@ class HeartRateSample extends $pb.GeneratedMessage {
 
 class WearSensorBatch extends $pb.GeneratedMessage {
   factory WearSensorBatch({
+    $core.String? batchId,
     $core.String? workoutId,
+    $fixnum.Int64? sentAt,
     $core.Iterable<HeartRateSample>? heartRateSamples,
   }) {
     final result = create();
+    if (batchId != null) result.batchId = batchId;
     if (workoutId != null) result.workoutId = workoutId;
+    if (sentAt != null) result.sentAt = sentAt;
     if (heartRateSamples != null)
       result.heartRateSamples.addAll(heartRateSamples);
     return result;
@@ -1090,8 +1094,10 @@ class WearSensorBatch extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'WearSensorBatch',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
-    ..pPM<HeartRateSample>(2, _omitFieldNames ? '' : 'heartRateSamples',
+    ..aOS(1, _omitFieldNames ? '' : 'batchId')
+    ..aOS(2, _omitFieldNames ? '' : 'workoutId')
+    ..aInt64(3, _omitFieldNames ? '' : 'sentAt')
+    ..pPM<HeartRateSample>(4, _omitFieldNames ? '' : 'heartRateSamples',
         subBuilder: HeartRateSample.create)
     ..hasRequiredFields = false;
 
@@ -1115,176 +1121,112 @@ class WearSensorBatch extends $pb.GeneratedMessage {
   static WearSensorBatch? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get workoutId => $_getSZ(0);
+  $core.String get batchId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set workoutId($core.String value) => $_setString(0, value);
+  set batchId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasWorkoutId() => $_has(0);
+  $core.bool hasBatchId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearWorkoutId() => $_clearField(1);
+  void clearBatchId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $pb.PbList<HeartRateSample> get heartRateSamples => $_getList(1);
+  $core.String get workoutId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set workoutId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkoutId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkoutId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get sentAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set sentAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSentAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSentAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<HeartRateSample> get heartRateSamples => $_getList(3);
 }
 
-enum PhoneToWearEnvelope_Payload { snapshot, notSet }
-
-class PhoneToWearEnvelope extends $pb.GeneratedMessage {
-  factory PhoneToWearEnvelope({
-    WearWorkoutSnapshot? snapshot,
+class WearSensorBatchAck extends $pb.GeneratedMessage {
+  factory WearSensorBatchAck({
+    $core.String? batchId,
+    $core.String? workoutId,
+    $fixnum.Int64? receivedAt,
   }) {
     final result = create();
-    if (snapshot != null) result.snapshot = snapshot;
+    if (batchId != null) result.batchId = batchId;
+    if (workoutId != null) result.workoutId = workoutId;
+    if (receivedAt != null) result.receivedAt = receivedAt;
     return result;
   }
 
-  PhoneToWearEnvelope._();
+  WearSensorBatchAck._();
 
-  factory PhoneToWearEnvelope.fromBuffer($core.List<$core.int> data,
+  factory WearSensorBatchAck.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory PhoneToWearEnvelope.fromJson($core.String json,
+  factory WearSensorBatchAck.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
-  static const $core.Map<$core.int, PhoneToWearEnvelope_Payload>
-      _PhoneToWearEnvelope_PayloadByTag = {
-    1: PhoneToWearEnvelope_Payload.snapshot,
-    0: PhoneToWearEnvelope_Payload.notSet
-  };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'PhoneToWearEnvelope',
+      _omitMessageNames ? '' : 'WearSensorBatchAck',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1])
-    ..aOM<WearWorkoutSnapshot>(1, _omitFieldNames ? '' : 'snapshot',
-        subBuilder: WearWorkoutSnapshot.create)
+    ..aOS(1, _omitFieldNames ? '' : 'batchId')
+    ..aOS(2, _omitFieldNames ? '' : 'workoutId')
+    ..aInt64(3, _omitFieldNames ? '' : 'receivedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PhoneToWearEnvelope clone() => deepCopy();
+  WearSensorBatchAck clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PhoneToWearEnvelope copyWith(void Function(PhoneToWearEnvelope) updates) =>
-      super.copyWith((message) => updates(message as PhoneToWearEnvelope))
-          as PhoneToWearEnvelope;
+  WearSensorBatchAck copyWith(void Function(WearSensorBatchAck) updates) =>
+      super.copyWith((message) => updates(message as WearSensorBatchAck))
+          as WearSensorBatchAck;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static PhoneToWearEnvelope create() => PhoneToWearEnvelope._();
+  static WearSensorBatchAck create() => WearSensorBatchAck._();
   @$core.override
-  PhoneToWearEnvelope createEmptyInstance() => create();
+  WearSensorBatchAck createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static PhoneToWearEnvelope getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<PhoneToWearEnvelope>(create);
-  static PhoneToWearEnvelope? _defaultInstance;
+  static WearSensorBatchAck getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearSensorBatchAck>(create);
+  static WearSensorBatchAck? _defaultInstance;
 
   @$pb.TagNumber(1)
-  PhoneToWearEnvelope_Payload whichPayload() =>
-      _PhoneToWearEnvelope_PayloadByTag[$_whichOneof(0)]!;
+  $core.String get batchId => $_getSZ(0);
   @$pb.TagNumber(1)
-  void clearPayload() => $_clearField($_whichOneof(0));
-
+  set batchId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
-  WearWorkoutSnapshot get snapshot => $_getN(0);
+  $core.bool hasBatchId() => $_has(0);
   @$pb.TagNumber(1)
-  set snapshot(WearWorkoutSnapshot value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSnapshot() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSnapshot() => $_clearField(1);
-  @$pb.TagNumber(1)
-  WearWorkoutSnapshot ensureSnapshot() => $_ensure(0);
-}
-
-enum WearToPhoneEnvelope_Payload { intent, sensorBatch, notSet }
-
-class WearToPhoneEnvelope extends $pb.GeneratedMessage {
-  factory WearToPhoneEnvelope({
-    WearIntent? intent,
-    WearSensorBatch? sensorBatch,
-  }) {
-    final result = create();
-    if (intent != null) result.intent = intent;
-    if (sensorBatch != null) result.sensorBatch = sensorBatch;
-    return result;
-  }
-
-  WearToPhoneEnvelope._();
-
-  factory WearToPhoneEnvelope.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory WearToPhoneEnvelope.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static const $core.Map<$core.int, WearToPhoneEnvelope_Payload>
-      _WearToPhoneEnvelope_PayloadByTag = {
-    1: WearToPhoneEnvelope_Payload.intent,
-    2: WearToPhoneEnvelope_Payload.sensorBatch,
-    0: WearToPhoneEnvelope_Payload.notSet
-  };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'WearToPhoneEnvelope',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..oo(0, [1, 2])
-    ..aOM<WearIntent>(1, _omitFieldNames ? '' : 'intent',
-        subBuilder: WearIntent.create)
-    ..aOM<WearSensorBatch>(2, _omitFieldNames ? '' : 'sensorBatch',
-        subBuilder: WearSensorBatch.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  WearToPhoneEnvelope clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  WearToPhoneEnvelope copyWith(void Function(WearToPhoneEnvelope) updates) =>
-      super.copyWith((message) => updates(message as WearToPhoneEnvelope))
-          as WearToPhoneEnvelope;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static WearToPhoneEnvelope create() => WearToPhoneEnvelope._();
-  @$core.override
-  WearToPhoneEnvelope createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static WearToPhoneEnvelope getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<WearToPhoneEnvelope>(create);
-  static WearToPhoneEnvelope? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  WearToPhoneEnvelope_Payload whichPayload() =>
-      _WearToPhoneEnvelope_PayloadByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
-  void clearPayload() => $_clearField($_whichOneof(0));
-
-  @$pb.TagNumber(1)
-  WearIntent get intent => $_getN(0);
-  @$pb.TagNumber(1)
-  set intent(WearIntent value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasIntent() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearIntent() => $_clearField(1);
-  @$pb.TagNumber(1)
-  WearIntent ensureIntent() => $_ensure(0);
+  void clearBatchId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  WearSensorBatch get sensorBatch => $_getN(1);
+  $core.String get workoutId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set sensorBatch(WearSensorBatch value) => $_setField(2, value);
+  set workoutId($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
-  $core.bool hasSensorBatch() => $_has(1);
+  $core.bool hasWorkoutId() => $_has(1);
   @$pb.TagNumber(2)
-  void clearSensorBatch() => $_clearField(2);
-  @$pb.TagNumber(2)
-  WearSensorBatch ensureSensorBatch() => $_ensure(1);
+  void clearWorkoutId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get receivedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set receivedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasReceivedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReceivedAt() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

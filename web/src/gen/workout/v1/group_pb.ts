@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/group.proto.
  */
 export const file_workout_v1_group: GenFile = /*@__PURE__*/
-  fileDesc("ChZ3b3Jrb3V0L3YxL2dyb3VwLnByb3RvEgp3b3Jrb3V0LnYxIiIKD0pvaW5Vc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIiYKEEpvaW5Vc2VyUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCSIVChNMZWF2ZVNlc3Npb25SZXF1ZXN0IhYKFExlYXZlU2Vzc2lvblJlc3BvbnNlIkMKHEdldFBhcnRpY2lwYW50V29ya291dFJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRISCgp3b3Jrb3V0X2lkGAIgASgJIi4KGEdldEN1cnJlbnRTZXNzaW9uUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJImIKGUdldEN1cnJlbnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIxCg5zZXNzaW9uX3N0YXR1cxgCIAEoCzIZLndvcmtvdXQudjEuU2Vzc2lvblN0YXR1cyIwChpVcGRhdGVBY3RpdmVXb3Jrb3V0UmVxdWVzdBISCgp3b3Jrb3V0X2lkGAEgASgJIh0KG1VwZGF0ZUFjdGl2ZVdvcmtvdXRSZXNwb25zZSLeAQoNU2Vzc2lvblN0YXR1cxISCgpzZXNzaW9uX2lkGAEgASgJEjMKDHBhcnRpY2lwYW50cxgCIAMoCzIdLndvcmtvdXQudjEuUGFydGljaXBhbnRTdGF0dXMSFwoPbmV4dF91cF91c2VyX2lkGAMgASgJEiwKC25leHRfdXBfc2V0GAQgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIaChJuZXh0X3VwX3Jlc3RfdW50aWwYBSABKAMSIQoZY3VycmVudGx5X2xpZnRpbmdfdXNlcl9pZBgGIAEoCSLrAgoRUGFydGljaXBhbnRTdGF0dXMSHgoEdXNlchgBIAEoCzIQLndvcmtvdXQudjEuVXNlchIZChFhY3RpdmVfd29ya291dF9pZBgCIAEoCRIrCg5hY3RpdmVfd29ya291dBgDIAEoCzITLndvcmtvdXQudjEuV29ya291dBIyCg9leGVyY2lzZV9ncm91cHMYBCADKAsyGS53b3Jrb3V0LnYxLkV4ZXJjaXNlR3JvdXASLgoNcHJvcG9zZWRfc2V0cxgFIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXQSMAoOY29tcGxldGVkX3NldHMYBiADKAsyGC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldBIsCgtuZXh0X3VwX3NldBgHIAEoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXQSEgoKcmVzdF91bnRpbBgIIAEoAxIWCg5oYXNfYWN0aXZlX3NldBgJIAEoCDLaAwoSTXVsdGlwbGF5ZXJTZXJ2aWNlEkUKCEpvaW5Vc2VyEhsud29ya291dC52MS5Kb2luVXNlclJlcXVlc3QaHC53b3Jrb3V0LnYxLkpvaW5Vc2VyUmVzcG9uc2USUQoMTGVhdmVTZXNzaW9uEh8ud29ya291dC52MS5MZWF2ZVNlc3Npb25SZXF1ZXN0GiAud29ya291dC52MS5MZWF2ZVNlc3Npb25SZXNwb25zZRJgChVHZXRQYXJ0aWNpcGFudFdvcmtvdXQSKC53b3Jrb3V0LnYxLkdldFBhcnRpY2lwYW50V29ya291dFJlcXVlc3QaHS53b3Jrb3V0LnYxLlBhcnRpY2lwYW50U3RhdHVzEmAKEUdldEN1cnJlbnRTZXNzaW9uEiQud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlcXVlc3QaJS53b3Jrb3V0LnYxLkdldEN1cnJlbnRTZXNzaW9uUmVzcG9uc2USZgoTVXBkYXRlQWN0aXZlV29ya291dBImLndvcmtvdXQudjEuVXBkYXRlQWN0aXZlV29ya291dFJlcXVlc3QaJy53b3Jrb3V0LnYxLlVwZGF0ZUFjdGl2ZVdvcmtvdXRSZXNwb25zZWIGcHJvdG8z", [file_workout_v1_workout]);
+  fileDesc("ChZ3b3Jrb3V0L3YxL2dyb3VwLnByb3RvEgp3b3Jrb3V0LnYxIiIKD0pvaW5Vc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIiYKEEpvaW5Vc2VyUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCSIVChNMZWF2ZVNlc3Npb25SZXF1ZXN0IhYKFExlYXZlU2Vzc2lvblJlc3BvbnNlIkMKHEdldFBhcnRpY2lwYW50V29ya291dFJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRISCgp3b3Jrb3V0X2lkGAIgASgJIi4KGEdldEN1cnJlbnRTZXNzaW9uUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJImIKGUdldEN1cnJlbnRTZXNzaW9uUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCRIxCg5zZXNzaW9uX3N0YXR1cxgCIAEoCzIZLndvcmtvdXQudjEuU2Vzc2lvblN0YXR1cyItChdTdWJzY3JpYmVTZXNzaW9uUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJInIKGFNlc3Npb25TdWJzY3JpcHRpb25FdmVudBISCgpzZXNzaW9uX2lkGAEgASgJEg8KB3ZlcnNpb24YAiABKAMSMQoOc2Vzc2lvbl9zdGF0dXMYAyABKAsyGS53b3Jrb3V0LnYxLlNlc3Npb25TdGF0dXMiMAoaVXBkYXRlQWN0aXZlV29ya291dFJlcXVlc3QSEgoKd29ya291dF9pZBgBIAEoCSIdChtVcGRhdGVBY3RpdmVXb3Jrb3V0UmVzcG9uc2Ui3gEKDVNlc3Npb25TdGF0dXMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIzCgxwYXJ0aWNpcGFudHMYAiADKAsyHS53b3Jrb3V0LnYxLlBhcnRpY2lwYW50U3RhdHVzEhcKD25leHRfdXBfdXNlcl9pZBgDIAEoCRIsCgtuZXh0X3VwX3NldBgEIAEoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXQSGgoSbmV4dF91cF9yZXN0X3VudGlsGAUgASgDEiEKGWN1cnJlbnRseV9saWZ0aW5nX3VzZXJfaWQYBiABKAki6wIKEVBhcnRpY2lwYW50U3RhdHVzEh4KBHVzZXIYASABKAsyEC53b3Jrb3V0LnYxLlVzZXISGQoRYWN0aXZlX3dvcmtvdXRfaWQYAiABKAkSKwoOYWN0aXZlX3dvcmtvdXQYAyABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXQSMgoPZXhlcmNpc2VfZ3JvdXBzGAQgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwEi4KDXByb3Bvc2VkX3NldHMYBSADKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0EjAKDmNvbXBsZXRlZF9zZXRzGAYgAygLMhgud29ya291dC52MS5Db21wbGV0ZWRTZXQSLAoLbmV4dF91cF9zZXQYByABKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0EhIKCnJlc3RfdW50aWwYCCABKAMSFgoOaGFzX2FjdGl2ZV9zZXQYCSABKAgyuwQKEk11bHRpcGxheWVyU2VydmljZRJFCghKb2luVXNlchIbLndvcmtvdXQudjEuSm9pblVzZXJSZXF1ZXN0Ghwud29ya291dC52MS5Kb2luVXNlclJlc3BvbnNlElEKDExlYXZlU2Vzc2lvbhIfLndvcmtvdXQudjEuTGVhdmVTZXNzaW9uUmVxdWVzdBogLndvcmtvdXQudjEuTGVhdmVTZXNzaW9uUmVzcG9uc2USYAoVR2V0UGFydGljaXBhbnRXb3Jrb3V0Eigud29ya291dC52MS5HZXRQYXJ0aWNpcGFudFdvcmtvdXRSZXF1ZXN0Gh0ud29ya291dC52MS5QYXJ0aWNpcGFudFN0YXR1cxJgChFHZXRDdXJyZW50U2Vzc2lvbhIkLndvcmtvdXQudjEuR2V0Q3VycmVudFNlc3Npb25SZXF1ZXN0GiUud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlc3BvbnNlEl8KEFN1YnNjcmliZVNlc3Npb24SIy53b3Jrb3V0LnYxLlN1YnNjcmliZVNlc3Npb25SZXF1ZXN0GiQud29ya291dC52MS5TZXNzaW9uU3Vic2NyaXB0aW9uRXZlbnQwARJmChNVcGRhdGVBY3RpdmVXb3Jrb3V0EiYud29ya291dC52MS5VcGRhdGVBY3RpdmVXb3Jrb3V0UmVxdWVzdBonLndvcmtvdXQudjEuVXBkYXRlQWN0aXZlV29ya291dFJlc3BvbnNlYgZwcm90bzM", [file_workout_v1_workout]);
 
 /**
  * @generated from message workout.v1.JoinUserRequest
@@ -142,6 +142,52 @@ export const GetCurrentSessionResponseSchema: GenMessage<GetCurrentSessionRespon
   messageDesc(file_workout_v1_group, 6);
 
 /**
+ * @generated from message workout.v1.SubscribeSessionRequest
+ */
+export type SubscribeSessionRequest = Message<"workout.v1.SubscribeSessionRequest"> & {
+  /**
+   * Optional: if omitted, subscribes to caller's current session.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message workout.v1.SubscribeSessionRequest.
+ * Use `create(SubscribeSessionRequestSchema)` to create a new message.
+ */
+export const SubscribeSessionRequestSchema: GenMessage<SubscribeSessionRequest> = /*@__PURE__*/
+  messageDesc(file_workout_v1_group, 7);
+
+/**
+ * @generated from message workout.v1.SessionSubscriptionEvent
+ */
+export type SessionSubscriptionEvent = Message<"workout.v1.SessionSubscriptionEvent"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: int64 version = 2;
+   */
+  version: bigint;
+
+  /**
+   * @generated from field: workout.v1.SessionStatus session_status = 3;
+   */
+  sessionStatus?: SessionStatus;
+};
+
+/**
+ * Describes the message workout.v1.SessionSubscriptionEvent.
+ * Use `create(SessionSubscriptionEventSchema)` to create a new message.
+ */
+export const SessionSubscriptionEventSchema: GenMessage<SessionSubscriptionEvent> = /*@__PURE__*/
+  messageDesc(file_workout_v1_group, 8);
+
+/**
  * @generated from message workout.v1.UpdateActiveWorkoutRequest
  */
 export type UpdateActiveWorkoutRequest = Message<"workout.v1.UpdateActiveWorkoutRequest"> & {
@@ -156,7 +202,7 @@ export type UpdateActiveWorkoutRequest = Message<"workout.v1.UpdateActiveWorkout
  * Use `create(UpdateActiveWorkoutRequestSchema)` to create a new message.
  */
 export const UpdateActiveWorkoutRequestSchema: GenMessage<UpdateActiveWorkoutRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 7);
+  messageDesc(file_workout_v1_group, 9);
 
 /**
  * @generated from message workout.v1.UpdateActiveWorkoutResponse
@@ -169,7 +215,7 @@ export type UpdateActiveWorkoutResponse = Message<"workout.v1.UpdateActiveWorkou
  * Use `create(UpdateActiveWorkoutResponseSchema)` to create a new message.
  */
 export const UpdateActiveWorkoutResponseSchema: GenMessage<UpdateActiveWorkoutResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 8);
+  messageDesc(file_workout_v1_group, 10);
 
 /**
  * @generated from message workout.v1.SessionStatus
@@ -211,7 +257,7 @@ export type SessionStatus = Message<"workout.v1.SessionStatus"> & {
  * Use `create(SessionStatusSchema)` to create a new message.
  */
 export const SessionStatusSchema: GenMessage<SessionStatus> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 9);
+  messageDesc(file_workout_v1_group, 11);
 
 /**
  * @generated from message workout.v1.ParticipantStatus
@@ -268,7 +314,7 @@ export type ParticipantStatus = Message<"workout.v1.ParticipantStatus"> & {
  * Use `create(ParticipantStatusSchema)` to create a new message.
  */
 export const ParticipantStatusSchema: GenMessage<ParticipantStatus> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 10);
+  messageDesc(file_workout_v1_group, 12);
 
 /**
  * @generated from service workout.v1.MultiplayerService
@@ -313,6 +359,17 @@ export const MultiplayerService: GenService<{
     methodKind: "unary";
     input: typeof GetCurrentSessionRequestSchema;
     output: typeof GetCurrentSessionResponseSchema;
+  },
+  /**
+   * Subscribe to live updates for a current multiplayer session.
+   * The server always emits a full snapshot immediately after subscribe.
+   *
+   * @generated from rpc workout.v1.MultiplayerService.SubscribeSession
+   */
+  subscribeSession: {
+    methodKind: "server_streaming";
+    input: typeof SubscribeSessionRequestSchema;
+    output: typeof SessionSubscriptionEventSchema;
   },
   /**
    * Update the active workout for the current user's session

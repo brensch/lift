@@ -9,6 +9,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var heartbeatTimer: Timer?
     private let heartRateStreamer = HeartRateStreamer()
     private let workoutSessionManager = WorkoutSessionManager()
+    private let sensorBatchOutbox = WatchSensorBatchOutbox()
     private var lastSnapshotReceivedUptime: TimeInterval = 0
     private var lastSnapshotEmittedAtMs: Int64 = 0
     private var pendingActionTimeout: DispatchWorkItem?
@@ -75,26 +76,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
-        var envelope = Workout_V1_WearToPhoneEnvelope()
-        envelope.payload = .intent(intent)
-
-        guard let data = try? envelope.serializedData() else { return }
+        guard let data = try? intent.serializedData() else { return }
         guard WCSession.default.isReachable else { return }
         beginPendingAction()
-        sendToPhone(path: WatchPaths.wearToPhoneEnvelope, data: data)
-    }
-
-    @discardableResult
-    func sendSensorBatch(_ batch: Workout_V1_WearSensorBatch) -> Bool {
-        var envelope = Workout_V1_WearToPhoneEnvelope()
-        envelope.payload = .sensorBatch(batch)
-
-        guard let data = try? envelope.serializedData() else { return false }
-        return sendToPhone(
-            path: WatchPaths.wearToPhoneEnvelope,
-            data: data,
-            preferBackgroundDelivery: true
-        )
+        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
 
     // MARK: - WCSessionDelegate
@@ -105,6 +90,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
         if activationState == .activated, !session.receivedApplicationContext.isEmpty {
             handleIncomingMessage(session.receivedApplicationContext)
+        }
+        if activationState == .activated {
+            flushPendingSensorBatches()
         }
     }
 
@@ -148,13 +136,47 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
-        if path == WatchPaths.phoneToWearEnvelope {
+        if path == WatchPaths.phoneToWearSensorBatchAck {
+            guard let data = message["data"] as? Data,
+                  let ack = try? Workout_V1_WearSensorBatchAck(serializedBytes: data) else {
+                return
+            }
+            sensorBatchOutbox.acknowledge(ack)
+            return
+        }
+
+        if path == WatchPaths.phoneToWearSnapshot {
             guard let data = message["data"] as? Data else { return }
-            guard let envelope = try? Workout_V1_PhoneToWearEnvelope(serializedBytes: data) else { return }
-            if case .snapshot(let snap) = envelope.payload {
-                DispatchQueue.main.async {
-                    self.handleSnapshot(snap)
-                }
+            guard let snapshot = try? Workout_V1_WearWorkoutSnapshot(serializedBytes: data) else { return }
+            DispatchQueue.main.async {
+                self.handleSnapshot(snapshot)
+            }
+        }
+    }
+
+    @discardableResult
+    func enqueueSensorBatch(_ batch: Workout_V1_WearSensorBatch) -> Bool {
+        let enqueued = sensorBatchOutbox.enqueue(batch)
+        guard enqueued else { return false }
+        flushPendingSensorBatches()
+        return true
+    }
+
+    func flushPendingSensorBatches() {
+        let batches = sensorBatchOutbox.pendingBatches()
+        guard !batches.isEmpty else { return }
+        for batch in batches {
+            guard let data = try? batch.serializedData() else {
+                sensorBatchOutbox.remove(batchID: batch.batchID)
+                continue
+            }
+            let sent = sendToPhone(
+                path: WatchPaths.wearToPhoneSensorBatch,
+                data: data,
+                preferBackgroundDelivery: true
+            )
+            if !sent {
+                return
             }
         }
     }
@@ -227,6 +249,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         if activeWorkout {
             workoutSessionManager.ensureSessionActive()
             heartRateStreamer.start(workoutId: snapshot.workoutID, connector: self)
+            flushPendingSensorBatches()
         } else {
             heartRateStreamer.stop()
             workoutSessionManager.endSessionIfActive()
@@ -285,10 +308,12 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 }
 
 enum WatchPaths {
-    static let phoneToWearEnvelope = "/schlift/phone/envelope"
+    static let phoneToWearSnapshot = "/schlift/phone/snapshot"
     static let phoneToWearLaunch = "/schlift/phone/launch"
     static let phoneToWearClockSync = "/schlift/phone/clock_sync"
-    static let wearToPhoneEnvelope = "/schlift/wear/envelope"
+    static let phoneToWearSensorBatchAck = "/schlift/phone/sensor_batch_ack"
+    static let wearToPhoneIntent = "/schlift/wear/intent"
+    static let wearToPhoneSensorBatch = "/schlift/wear/sensor_batch"
     static let wearToPhoneHeartbeat = "/schlift/wear/ui_heartbeat"
     static let wearToPhoneClockSync = "/schlift/wear/clock_sync"
 }

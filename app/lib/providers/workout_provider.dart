@@ -56,6 +56,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedExerciseGroup> _proposedGroups = [];
   RegimeContext? _regimeContext;
   final List<HeartRateSample> _wearHeartRateSamples = [];
+  final Set<String> _wearHeartRateBatchIds = <String>{};
   final Set<int> _wearHeartRateSampleTimestamps = <int>{};
   final List<WorkoutHeartRatePoint> _pendingWearHeartRateUploads = [];
   DateTime? _lastWearHeartRateUploadAt;
@@ -1092,6 +1093,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _resetWearHeartRateBuffer() {
     _wearHeartRateSamples.clear();
+    _wearHeartRateBatchIds.clear();
     _wearHeartRateSampleTimestamps.clear();
     _pendingWearHeartRateUploads.clear();
     _lastWearHeartRateUploadAt = null;
@@ -1206,9 +1208,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (!_isTransientError(e)) {
         _handleError(e);
       } else {
-        AppLogger.instance.warn('Workout', 'loadActiveWorkout transient error', {
-          'error': _lastLoadError ?? e.toString(),
-        });
+        AppLogger.instance.warn(
+          'Workout',
+          'loadActiveWorkout transient error',
+          {'error': _lastLoadError ?? e.toString()},
+        );
       }
     } finally {
       _isLoading = false;
@@ -1807,6 +1811,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void ingestWearHeartRateBatch(WearSensorBatch batch) {
     if (_activeWorkout == null) return;
     if (batch.workoutId != _activeWorkout!.id) return;
+    if (batch.batchId.isEmpty) return;
+    if (!_wearHeartRateBatchIds.add(batch.batchId)) return;
 
     var insertedAny = false;
     var needsSort = false;

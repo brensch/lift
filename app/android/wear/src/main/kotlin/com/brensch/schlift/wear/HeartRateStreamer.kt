@@ -16,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.UUID
 import workout.v1.Wearable
 
 class HeartRateStreamer(private val context: Context) : SensorEventListener {
@@ -98,25 +99,19 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
         }
 
         val batch = Wearable.WearSensorBatch.newBuilder()
+            .setBatchId(UUID.randomUUID().toString())
             .setWorkoutId(activeWorkoutId)
+            .setSentAt(System.currentTimeMillis())
             .addAllHeartRateSamples(samples)
             .build()
 
-        val envelope = Wearable.WearToPhoneEnvelope.newBuilder()
-            .setSensorBatch(batch)
-            .build()
-
-        scope.launch {
-            runCatching {
-                WearTransport.sendToPhone(
-                    context,
-                    WearTransport.WEAR_TO_PHONE_PATH,
-                    envelope.toByteArray(),
-                )
+        val enqueued = WearSensorBatchOutbox.enqueue(context, batch)
+        if (!enqueued) {
+            synchronized(pendingLock) {
+                pendingSamples.addAll(0, samples)
             }
-                .onFailure {
-                    Log.e("SchliftWear", "Failed to send HR batch", it)
-                }
+            return
         }
+        WearSensorBatchOutbox.flush(context)
     }
 }

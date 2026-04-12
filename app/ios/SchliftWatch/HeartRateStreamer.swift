@@ -112,10 +112,12 @@ class HeartRateStreamer {
         lock.unlock()
 
         var batch = Workout_V1_WearSensorBatch()
+        batch.batchID = UUID().uuidString
         batch.workoutID = workoutId
+        batch.sentAt = Int64(Date().timeIntervalSince1970 * 1000)
         batch.heartRateSamples = samples
 
-        let enqueued = connector?.sendSensorBatch(batch) ?? false
+        let enqueued = connector?.enqueueSensorBatch(batch) ?? false
         guard !enqueued else { return }
 
         lock.lock()

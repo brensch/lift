@@ -20,10 +20,12 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 object WearBridgeManager {
-    const val PHONE_TO_WEAR_PATH = "/schlift/phone/envelope"
+    const val PHONE_TO_WEAR_SNAPSHOT_PATH = "/schlift/phone/snapshot"
     const val PHONE_TO_WEAR_LAUNCH_PATH = "/schlift/phone/launch"
     const val PHONE_TO_WEAR_CLOCK_SYNC_PATH = "/schlift/phone/clock_sync"
-    const val WEAR_TO_PHONE_PATH = "/schlift/wear/envelope"
+    const val PHONE_TO_WEAR_SENSOR_BATCH_ACK_PATH = "/schlift/phone/sensor_batch_ack"
+    const val WEAR_TO_PHONE_INTENT_PATH = "/schlift/wear/intent"
+    const val WEAR_TO_PHONE_SENSOR_BATCH_PATH = "/schlift/wear/sensor_batch"
     const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/schlift/wear/ui_heartbeat"
     const val WEAR_TO_PHONE_CLOCK_SYNC_PATH = "/schlift/wear/clock_sync"
     const val WEAR_APP_CAPABILITY = "lift_wear_companion"
@@ -59,7 +61,7 @@ object WearBridgeManager {
             val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrDefault(emptyList())
             Log.d("SchliftWearBridge", "Publishing snapshot to ${nodes.size} node(s)")
             for (node in nodes) {
-                runCatching { messageClient.sendMessage(node.id, PHONE_TO_WEAR_PATH, bytes).await() }
+                runCatching { messageClient.sendMessage(node.id, PHONE_TO_WEAR_SNAPSHOT_PATH, bytes).await() }
                     .onFailure { Log.e("SchliftWearBridge", "Failed snapshot send to node=${node.id}", it) }
             }
         }
@@ -126,7 +128,7 @@ object WearBridgeManager {
         return (System.currentTimeMillis() - lastSeen) <= WATCH_UI_HEARTBEAT_TTL_MS
     }
 
-    fun onWearEnvelopeReceived(path: String, bytes: ByteArray) {
+    fun onWearMessageReceived(context: Context, sourceNodeId: String, path: String, bytes: ByteArray) {
         if (path == WEAR_TO_PHONE_UI_HEARTBEAT_PATH) {
             lastWatchUiHeartbeatAtMs.set(System.currentTimeMillis())
             return
@@ -143,20 +145,42 @@ object WearBridgeManager {
             }
             return
         }
-        if (path != WEAR_TO_PHONE_PATH) return
+        when (path) {
+            WEAR_TO_PHONE_INTENT_PATH -> runCatching {
+                workout.v1.Wearable.WearIntent.parseFrom(bytes)
+                emitIntent(bytes)
+                Log.d("SchliftWearBridge", "Received wear intent bytes=${bytes.size}")
+            }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear intent", it) }
 
-        runCatching {
-            val envelope = workout.v1.Wearable.WearToPhoneEnvelope.parseFrom(bytes)
-            when {
-                envelope.hasIntent() -> emitIntent(bytes)
-                envelope.hasSensorBatch() -> emitSensor(bytes)
-            }
-            Log.d(
-                "SchliftWearBridge",
-                "Received wear envelope payload=intent:${envelope.hasIntent()} sensor:${envelope.hasSensorBatch()}",
-            )
+            WEAR_TO_PHONE_SENSOR_BATCH_PATH -> runCatching {
+                val batch = workout.v1.Wearable.WearSensorBatch.parseFrom(bytes)
+                emitSensor(bytes)
+                sendSensorBatchAck(context, sourceNodeId, batch)
+                Log.d("SchliftWearBridge", "Received wear sensor batch id=${batch.batchId} bytes=${bytes.size}")
+            }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear sensor batch", it) }
         }
-            .onFailure { Log.e("SchliftWearBridge", "Failed to parse wear envelope", it) }
+    }
+
+    private fun sendSensorBatchAck(
+        context: Context,
+        sourceNodeId: String,
+        batch: workout.v1.Wearable.WearSensorBatch,
+    ) {
+        if (batch.batchId.isBlank()) return
+        val ack = workout.v1.Wearable.WearSensorBatchAck.newBuilder()
+            .setBatchId(batch.batchId)
+            .setWorkoutId(batch.workoutId)
+            .setReceivedAt(System.currentTimeMillis())
+            .build()
+        scope.launch {
+            runCatching {
+                Wearable.getMessageClient(context)
+                    .sendMessage(sourceNodeId, PHONE_TO_WEAR_SENSOR_BATCH_ACK_PATH, ack.toByteArray())
+                    .await()
+            }.onFailure {
+                Log.e("SchliftWearBridge", "Failed sensor batch ack id=${batch.batchId}", it)
+            }
+        }
     }
 
     private fun emitIntent(bytes: ByteArray) {

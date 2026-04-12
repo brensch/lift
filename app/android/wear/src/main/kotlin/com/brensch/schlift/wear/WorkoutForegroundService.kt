@@ -23,6 +23,7 @@ class WorkoutForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        running = true
         heartRateStreamer = HeartRateStreamer(applicationContext)
         exerciseSessionManager = WearExerciseSessionManager(applicationContext)
     }
@@ -53,6 +54,7 @@ class WorkoutForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        running = false
         stopWorkoutTracking()
         super.onDestroy()
     }
@@ -134,6 +136,8 @@ class WorkoutForegroundService : Service() {
         private const val ACTION_START = "com.brensch.schlift.wear.action.START_WORKOUT_FOREGROUND"
         private const val ACTION_UPDATE = "com.brensch.schlift.wear.action.UPDATE_WORKOUT_FOREGROUND"
         private const val ACTION_STOP = "com.brensch.schlift.wear.action.STOP_WORKOUT_FOREGROUND"
+        @Volatile
+        private var running = false
 
         fun startOrUpdate(
             context: Context,
@@ -141,15 +145,23 @@ class WorkoutForegroundService : Service() {
             stateLabel: String,
             workoutId: String,
             activeWorkout: Boolean,
+            allowStartForeground: Boolean = true,
         ) {
             val intent = Intent(context, WorkoutForegroundService::class.java).apply {
-                action = if (activeWorkout) ACTION_START else ACTION_UPDATE
+                action = if (activeWorkout && !running) ACTION_START else ACTION_UPDATE
                 putExtra(EXTRA_WORKOUT_LABEL, workoutLabel)
                 putExtra(EXTRA_STATE_LABEL, stateLabel)
                 putExtra(EXTRA_WORKOUT_ID, workoutId)
                 putExtra(EXTRA_ACTIVE_WORKOUT, activeWorkout)
             }
-            if (activeWorkout) {
+            if (activeWorkout && !running) {
+                if (!allowStartForeground) {
+                    Log.i(
+                        "SchliftWear",
+                        "Skipping background health FGS start for workoutId=$workoutId",
+                    )
+                    return
+                }
                 context.startForegroundService(intent)
             } else {
                 context.startService(intent)
