@@ -87,6 +87,15 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   StreamSubscription? _linkSubscription;
   bool _wasLoggedIn = false;
 
+  Future<void> _syncBodyWeightOnAppLoad() async {
+    final importedKg = await _authProvider.syncBodyWeightFromHealth(
+      requestPermissions: false,
+    );
+    if (importedKg != null) {
+      _workoutProvider.setBodyWeightKg(importedKg);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +144,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         if (userId != null) {
           unawaited(_workoutProvider.loadActiveWorkout(userId));
         }
+        unawaited(_syncBodyWeightOnAppLoad());
         _multiplayerProvider.startSync();
       } else if (!isLoggedIn && _wasLoggedIn) {
         _settingsProvider.clear();

@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import 'app_logger.dart';
 
 enum HealthWriteResult { success, permissionDenied, error }
 
@@ -32,6 +33,96 @@ class HealthService {
 
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
+
+  static Future<double?> readLatestBodyWeightKg({
+    bool requestPermissions = false,
+  }) async {
+    try {
+      AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
+        'phase': 'start',
+        'requestPermissions': requestPermissions,
+        'platform': Platform.isAndroid
+            ? 'android'
+            : Platform.isIOS
+            ? 'ios'
+            : 'other',
+      });
+      final health = Health();
+      await health.configure();
+
+      const type = HealthDataType.WEIGHT;
+      if (!health.isDataTypeAvailable(type)) {
+        AppLogger.instance.warn('Health', 'weight unavailable');
+        return null;
+      }
+
+      final permissions = [HealthDataAccess.READ];
+      final hasPerms = await health.hasPermissions([
+        type,
+      ], permissions: permissions);
+      AppLogger.instance.info('Health', 'weight permissions', {
+        'hasPerms': hasPerms,
+      });
+      if (hasPerms != true) {
+        if (!requestPermissions) return null;
+        if (_healthPermissionRequestInFlight) return null;
+        _healthPermissionRequestInFlight = true;
+        final granted = await health.requestAuthorization([
+          type,
+        ], permissions: permissions);
+        _healthPermissionRequestInFlight = false;
+        AppLogger.instance.info('Health', 'weight permission request', {
+          'granted': granted,
+        });
+        if (!granted) return null;
+      }
+
+      final now = DateTime.now();
+      final recentPoints = await health.getHealthDataFromTypes(
+        types: [type],
+        startTime: now.subtract(const Duration(days: 30)),
+        endTime: now,
+      );
+      double? weightKg = _latestNumericValueForType(recentPoints, type);
+      AppLogger.instance.info('Health', 'weight recent read', {
+        'points': recentPoints.length,
+        'weightKg': weightKg,
+      });
+
+      if (weightKg == null && Platform.isAndroid) {
+        try {
+          final historicalPoints = await health.getHealthDataFromTypes(
+            types: [type],
+            startTime: now.subtract(const Duration(days: 365)),
+            endTime: now,
+          );
+          weightKg = _latestNumericValueForType(historicalPoints, type);
+          AppLogger.instance.info('Health', 'weight historical read', {
+            'points': historicalPoints.length,
+            'weightKg': weightKg,
+          });
+        } catch (e) {
+          debugPrint('Health: extended WEIGHT read failed: $e');
+          AppLogger.instance.warn('Health', 'weight historical read failed', {
+            'error': e.toString(),
+          });
+        }
+      }
+
+      AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
+        'phase': 'done',
+        'weightKg': weightKg,
+      });
+      return weightKg != null && weightKg > 0 ? weightKg : null;
+    } catch (e, st) {
+      _healthPermissionRequestInFlight = false;
+      debugPrint('Health: readLatestBodyWeightKg failed: $e\n$st');
+      AppLogger.instance.error('Health', 'readLatestBodyWeightKg failed', {
+        'error': e.toString(),
+      });
+      return null;
+    }
+  }
 
   static int estimateCalories({
     required double durationMinutes,

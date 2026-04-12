@@ -152,8 +152,12 @@ impl ServerDb {
             return Ok(None);
         };
 
-        user.profile_emoji = Self::normalize_profile_emoji(profile_emoji);
-        user.profile_color_hex = Self::normalize_profile_color_hex(profile_color_hex);
+        if !profile_emoji.trim().is_empty() {
+            user.profile_emoji = Self::normalize_profile_emoji(profile_emoji);
+        }
+        if !profile_color_hex.trim().is_empty() {
+            user.profile_color_hex = Self::normalize_profile_color_hex(profile_color_hex);
+        }
         if body_weight_kg > 0.0 {
             user.body_weight_kg = body_weight_kg;
         }

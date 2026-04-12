@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../logic/utils.dart';
 import 'package:uuid/uuid.dart';
+import 'workout_start_briefing_screen.dart';
 
 const _uuid = Uuid();
 
@@ -29,11 +31,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static const _draftSaveDebounce = Duration(milliseconds: 400);
+  late final String _recommendedSchplannerWisdom =
+      _kSchplannerRecommendedWisdom[Random().nextInt(
+        _kSchplannerRecommendedWisdom.length,
+      )];
+  late final String _disapprovedSchplannerWisdom =
+      _kSchplannerDisapprovedWisdom[Random().nextInt(
+        _kSchplannerDisapprovedWisdom.length,
+      )];
   List<ExerciseStatus>? _schedule;
   List<ProposedExerciseGroup>? _proposedGroups;
   RegimeContext? _regimeContext;
   SessionReadiness? _sessionReadiness;
   List<PendingStateUpdate> _pendingUpdates = [];
+  String _suggestedWorkoutBaseName = '';
   bool _canStartWorkout = true;
   Set<int> _selectedGroupIndices = {};
   bool _isLoading = true;
@@ -41,21 +52,16 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isStarting = false;
   String? _error;
   Timer? _draftSaveTimer;
-  late final TextEditingController _nameController = TextEditingController(
-    text: _getDefaultWorkoutName(),
-  );
 
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(_queueDraftSave);
     _loadData();
   }
 
   @override
   void dispose() {
     _draftSaveTimer?.cancel();
-    _nameController.dispose();
     super.dispose();
   }
 
@@ -93,9 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
         if (proposedGroups[i].tags.contains('recommended')) autoSelected.add(i);
       }
 
-      final suggestedName = scheduleRes.suggestedWorkoutName.isNotEmpty
-          ? scheduleRes.suggestedWorkoutName
-          : null;
       final draft = scheduleRes.hasDraft() ? scheduleRes.draft : null;
       final selectedFromDraft = <int>{};
       if (draft != null && draft.exerciseGroups.isNotEmpty) {
@@ -115,13 +118,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ? scheduleRes.sessionReadiness
             : null;
         _pendingUpdates = scheduleRes.pendingStateUpdates;
+        _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
         _canStartWorkout = scheduleRes.canStartWorkout;
         _selectedGroupIndices = selectedFromDraft.isNotEmpty
             ? selectedFromDraft
             : autoSelected;
-        _nameController.text = draft != null && draft.name.isNotEmpty
-            ? draft.name
-            : (suggestedName ?? _getDefaultWorkoutName());
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -152,25 +153,41 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _startWorkout() async {
     if (_selectedGroupIndices.isEmpty || _proposedGroups == null) return;
 
-    setState(() => _isStarting = true);
+    final selectedGroups = (_selectedGroupIndices.toList()..sort())
+        .map((idx) => _proposedGroups![idx])
+        .toList(growable: false);
+
+    final workoutName = await _resolveLatestWorkoutName();
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => WorkoutStartBriefingScreen(
+          workoutName: workoutName,
+          regimeContext: _regimeContext,
+          selectedGroups: selectedGroups,
+          onStartWorkout: _performWorkoutStart,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performWorkoutStart() async {
+    if (_selectedGroupIndices.isEmpty || _proposedGroups == null) return;
+
+    if (mounted) {
+      setState(() => _isStarting = true);
+    }
 
     try {
       final exerciseGroups = _buildExerciseGroupsFromSelection();
       final grpc = context.read<GrpcClient>();
       final wearableBridge = context.read<WearableBridgeService>();
       final mp = context.read<MultiplayerProvider>();
-
-      final now = DateTime.now();
-      final dateStr =
-          "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
-
-      final baseName = _nameController.text.trim().isEmpty
-          ? _getDefaultWorkoutName()
-          : _nameController.text.trim();
-
-      final workoutName = "$dateStr - $baseName";
-
       final workoutProvider = context.read<WorkoutProvider>();
+
+      final workoutName = await _resolveLatestWorkoutName();
+
       final workoutId = await workoutProvider.startWorkout(
         workoutName,
         exerciseGroups,
@@ -190,8 +207,11 @@ class _HomeScreenState extends State<HomeScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
       }
+      rethrow;
     } finally {
-      if (mounted) setState(() => _isStarting = false);
+      if (mounted) {
+        setState(() => _isStarting = false);
+      }
     }
   }
 
@@ -290,7 +310,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final workoutService = WorkoutServiceWrapper(grpc);
     try {
       final draft = WorkoutDraft()
-        ..name = _nameController.text.trim()
         ..exerciseGroups.addAll(_buildExerciseGroupsFromSelection())
         ..updatedAt = Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000);
       await workoutService.saveWorkoutDraft(draft);
@@ -364,6 +383,48 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${hours}h ${rem}m';
   }
 
+  String _currentWorkoutBaseName() {
+    final regimeSuggested = _regimeContext?.regimeDisplayName.trim() ?? '';
+    final scheduleSuggested = _suggestedWorkoutBaseName.trim();
+    if (scheduleSuggested.isNotEmpty) return scheduleSuggested;
+    if (regimeSuggested.isNotEmpty) return regimeSuggested;
+    return _getDefaultWorkoutName();
+  }
+
+  Future<String> _resolveLatestWorkoutName() async {
+    final auth = context.read<AuthProvider>();
+    final fallbackBaseName = _currentWorkoutBaseName();
+    if (auth.userId == null) {
+      return _buildWorkoutName(fallbackBaseName);
+    }
+
+    try {
+      final grpc = context.read<GrpcClient>();
+      final scheduleRes = await WorkoutServiceWrapper(
+        grpc,
+      ).getProposedWorkoutSchedule(auth.userId!);
+      final latestBaseName = scheduleRes.suggestedWorkoutName.trim().isNotEmpty
+          ? scheduleRes.suggestedWorkoutName.trim()
+          : (scheduleRes.hasRegimeContext() &&
+                    scheduleRes.regimeContext.regimeDisplayName
+                        .trim()
+                        .isNotEmpty
+                ? scheduleRes.regimeContext.regimeDisplayName.trim()
+                : fallbackBaseName);
+      return _buildWorkoutName(latestBaseName);
+    } catch (e) {
+      debugPrint('Failed to refresh workout name before start: $e');
+      return _buildWorkoutName(fallbackBaseName);
+    }
+  }
+
+  String _buildWorkoutName(String baseName) {
+    final now = DateTime.now();
+    final dateStr =
+        "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
+    return "$dateStr - $baseName";
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -386,6 +447,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final visibleGroupIndices = _buildVisibleGroupIndices();
+    final recommendedGroupIndices = visibleGroupIndices
+        .where((index) => _proposedGroups![index].tags.contains('recommended'))
+        .toList(growable: false);
+    final otherGroupIndices = visibleGroupIndices
+        .where((index) => !_proposedGroups![index].tags.contains('recommended'))
+        .toList(growable: false);
 
     final workoutPanelColor = colorScheme.brightness == Brightness.dark
         ? const Color(0xFF222222)
@@ -438,13 +505,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     children: [
-                      Text(
-                        'Select exercise groups',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          color: colorScheme.tertiary,
+                      Expanded(
+                        child: Text(
+                          _recommendedSchplannerWisdom,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.1,
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.78,
+                            ),
+                          ),
                         ),
                       ),
                       if (_isRefreshing) ...[
@@ -468,11 +539,39 @@ class _HomeScreenState extends State<HomeScreen> {
               sliver: SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: _GroupGrid(
-                    indices: visibleGroupIndices,
-                    proposedGroups: _proposedGroups!,
-                    selectedIndices: _selectedGroupIndices,
-                    onToggle: _toggleGroup,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (recommendedGroupIndices.isNotEmpty)
+                        _GroupGrid(
+                          indices: recommendedGroupIndices,
+                          proposedGroups: _proposedGroups!,
+                          selectedIndices: _selectedGroupIndices,
+                          onToggle: _toggleGroup,
+                        ),
+                      if (otherGroupIndices.isNotEmpty) ...[
+                        if (recommendedGroupIndices.isNotEmpty)
+                          const SizedBox(height: 18),
+                        Text(
+                          _disapprovedSchplannerWisdom,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.1,
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.78,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _GroupGrid(
+                          indices: otherGroupIndices,
+                          proposedGroups: _proposedGroups!,
+                          selectedIndices: _selectedGroupIndices,
+                          onToggle: _toggleGroup,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -533,51 +632,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-
-            const SizedBox(height: 14),
-
-            // Workout name field
-            TextField(
-              controller: _nameController,
-              textCapitalization: TextCapitalization.words,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Name This Workout (Optional)',
-                hintStyle: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface.withValues(alpha: 0.28),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 13,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: colorScheme.outline.withValues(alpha: 0.5),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: colorScheme.outline.withValues(alpha: 0.5),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: colorScheme.primary,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-            ),
-
             const SizedBox(height: 12),
 
             // Start button
@@ -623,6 +677,36 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ─── Readiness banner ─────────────────────────────────────────────────────────
+
+const _kSchplannerRecommendedWisdom = [
+  'The schplanner recommends this with bureaucratic confidence.',
+  'The schplanner approved these movements after a brief and joyless review.',
+  'The schplanner has decided this is the amount of ambition you can be trusted with.',
+  'The schplanner examined the evidence and reluctantly endorsed this plan.',
+  'The schplanner recommends these selections and will not be taking questions.',
+  'The schplanner has signed off on this sensible little arrangement.',
+  'The schplanner recommends this because apparently you have suffered enough.',
+  'The schplanner reviewed your situation and prescribed this exact inconvenience.',
+  'The schplanner recommends these exercises in the same tone it uses for tax forms.',
+  'The schplanner has determined this is the correct kind of hardship.',
+  'The schplanner recommends this outcome and considers the matter tediously resolved.',
+  'The schplanner has allowed these choices to proceed under supervision.',
+];
+
+const _kSchplannerDisapprovedWisdom = [
+  'The schplanner does not recommend these, but here they are anyway.',
+  'These are some things the schplanner would prefer you did not do.',
+  'The schplanner did not choose these exercises and would like that understood.',
+  'Here are the alternatives the schplanner declined to endorse.',
+  'The schplanner does not think you should do these, which is awkward for everyone.',
+  'These are other things the schplanner specifically did not recommend.',
+  'The schplanner reviewed these options and quietly decided against them.',
+  'Here are the exercises the schplanner left outside the circle of approval.',
+  'The schplanner does not support these selections, though it knew this might happen.',
+  'These are the movements the schplanner would rather not see you pursue today.',
+  'The schplanner did not approve these options, but apparently boundaries are flexible.',
+  'Here are some additional exercises the schplanner does not consider advisable.',
+];
 
 class _ReadinessBanner extends StatelessWidget {
   final SessionReadiness? sessionReadiness;
@@ -710,7 +794,7 @@ class _ReadinessBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                 ],
-                if (label.isNotEmpty)
+                if (label.isNotEmpty) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -728,8 +812,8 @@ class _ReadinessBanner extends StatelessWidget {
                         ),
                       ),
                     ],
-                  )
-                else
+                  ),
+                ] else
                   Text(
                     'Training status',
                     style: TextStyle(

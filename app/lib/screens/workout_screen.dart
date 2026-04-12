@@ -24,9 +24,6 @@ class WorkoutScreen extends StatefulWidget {
 }
 
 class _WorkoutScreenState extends State<WorkoutScreen> {
-  String? _dismissedWorkoutInfoId;
-  String? _promptedWorkoutInfoId;
-
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
@@ -40,7 +37,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final groups = wp.exerciseGroups;
     final activeSetId = wp.activeSetId;
     final isEnded = wp.isWorkoutEnded;
-    final regimeContext = wp.regimeContext;
     final focusedGroup = _focusedGroup(wp, groups);
     final remainingGroups = groups
         .where((group) => !_isGroupCompleted(group, wp.completedSets))
@@ -70,20 +66,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final logCompletedSets = sessionLedgerCompleted;
 
     final workout = wp.workout!;
-    final hasWorkoutInfo =
-        (regimeContext?.sessionDescription.isNotEmpty ?? false) ||
-        (regimeContext?.coachingNotes.isNotEmpty ?? false);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (!hasWorkoutInfo) return;
-      if (_promptedWorkoutInfoId == workout.id) return;
-      _promptedWorkoutInfoId = workout.id;
-      if (_dismissedWorkoutInfoId != workout.id) {
-        _showWorkoutInfoDialog(workout.name, regimeContext);
-      }
-    });
-
     return ListView(
       physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.zero,
@@ -121,26 +103,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             ),
                           ),
                         ),
-                        if (hasWorkoutInfo &&
-                            _dismissedWorkoutInfoId == workout.id) ...[
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _showWorkoutInfoDialog(
-                              workout.name,
-                              regimeContext,
-                            ),
-                            style: IconButton.styleFrom(
-                              minimumSize: const Size(28, 28),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: EdgeInsets.zero,
-                            ),
-                            icon: Icon(
-                              Icons.info_outline_rounded,
-                              size: 18,
-                              color: colorScheme.tertiary,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -548,86 +510,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  Future<void> _showWorkoutInfoDialog(
-    String workoutName,
-    RegimeContext? regimeContext,
-  ) async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final colorScheme = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          title: Text(
-            workoutName,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (regimeContext != null &&
-                    regimeContext.sessionDescription.isNotEmpty)
-                  Text(
-                    regimeContext.sessionDescription,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                if (regimeContext != null &&
-                    regimeContext.sessionDescription.isNotEmpty &&
-                    regimeContext.coachingNotes.isNotEmpty)
-                  const SizedBox(height: 10),
-                if (regimeContext != null &&
-                    regimeContext.coachingNotes.isNotEmpty)
-                  ...regimeContext.coachingNotes.map(
-                    (note) => Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '· ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.tertiary,
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              note,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colorScheme.tertiary.withValues(
-                                  alpha: 0.9,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Continue'),
-            ),
-          ],
-        );
-      },
-    );
-    if (!mounted) return;
-    setState(() {
-      _dismissedWorkoutInfoId = context.read<WorkoutProvider>().workout?.id;
-    });
-  }
 }
 
 class _CurrentExerciseCard extends StatelessWidget {

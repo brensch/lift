@@ -107,7 +107,7 @@ class WorkoutBottomBar extends StatelessWidget {
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       stateColor = AppTheme.workoutLiftingFg;
       timerText = _fmt(elapsedSecs);
-      timerColor = colorScheme.tertiary;
+      timerColor = null;
       displaySet = proposed;
       actionButton = _RepButtons(
         targetReps: proposed.targetReps,
