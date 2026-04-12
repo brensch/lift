@@ -18,7 +18,7 @@ mkdir -p "${INSTALL_ROOT}/shared"
 
 if [[ "${WRITE_ENV}" == "1" ]]; then
 cat > "${ENV_PATH}" <<'EOF'
-RUST_LOG=warn
+RUST_LOG=info
 WEBAUTHN_RP_ID=schlift.com
 WEBAUTHN_RP_ORIGIN=https://schlift.com
 WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:oX5Jnmwq_UQ8_8dpupoKwQlGNOmMSUbcVSLLHh-lwsg,android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:kEDowpBvMt8rjVsbNoz919m3GjRFguoj8v4WJu0FYwA

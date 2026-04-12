@@ -5,6 +5,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../gen/workout/v1/group.pb.dart';
 import '../logic/utils.dart';
+import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';
 import '../services/multiplayer_service.dart';
 
@@ -31,11 +32,13 @@ class MultiplayerProvider extends ChangeNotifier {
 
   void startSync() {
     if (_disposed) return;
+    AppLogger.instance.info('Multiplayer', 'startSync');
     _syncEnabled = true;
     _ensurePolling();
   }
 
   void stopSync({bool clearSession = true}) {
+    AppLogger.instance.info('Multiplayer', 'stopSync', {'clearSession': clearSession});
     _syncEnabled = false;
     _cancelPolling();
     if (clearSession) {
@@ -76,7 +79,7 @@ class MultiplayerProvider extends ChangeNotifier {
       );
       return null;
     } catch (e) {
-      debugPrint('Error joining session: $e');
+      AppLogger.instance.error('Multiplayer', 'joinSession failed', {'error': e.toString()});
       final cleanError = cleanErrorMessage(e);
       ErrorModalService.showError(cleanError.toUpperCase());
       return cleanError;
@@ -111,7 +114,7 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       await _service.updateActiveWorkout(workoutId);
     } catch (e) {
-      debugPrint('Error updating active workout: $e');
+      AppLogger.instance.warn('Multiplayer', 'updateActiveWorkout failed', {'error': e.toString()});
     }
   }
 
@@ -157,7 +160,9 @@ class MultiplayerProvider extends ChangeNotifier {
         notify: true,
       );
     } catch (e) {
-      debugPrint('Error polling session: $e');
+      AppLogger.instance.warn('Multiplayer', 'poll error', {
+        'error': e.toString(),
+      });
     } finally {
       _pollInFlight = false;
     }

@@ -1,3 +1,5 @@
+import 'package:grpc/grpc.dart';
+
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
@@ -5,7 +7,7 @@ import 'grpc_client.dart';
 
 class WorkoutServiceWrapper {
   final GrpcClient _client;
-  static const Duration _startupTimeout = Duration(seconds: 10);
+  static final _defaultCallOptions = CallOptions(timeout: Duration(seconds: 10));
 
   WorkoutServiceWrapper(this._client);
 
@@ -21,23 +23,17 @@ class WorkoutServiceWrapper {
   }
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) async {
-    return await _client.workoutService
-        .getWorkout(GetWorkoutRequest()..workoutId = workoutId)
-        .timeout(
-          _startupTimeout,
-          onTimeout: () =>
-              throw Exception('Timed out loading workout details.'),
-        );
+    return await _client.workoutService.getWorkout(
+      GetWorkoutRequest()..workoutId = workoutId,
+      options: _defaultCallOptions,
+    );
   }
 
   Future<Workout?> getActiveWorkout() async {
-    final response = await _client.workoutService
-        .getActiveWorkout(GetActiveWorkoutRequest())
-        .timeout(
-          _startupTimeout,
-          onTimeout: () =>
-              throw Exception('Timed out checking for an active workout.'),
-        );
+    final response = await _client.workoutService.getActiveWorkout(
+      GetActiveWorkoutRequest(),
+      options: _defaultCallOptions,
+    );
     return response.hasWorkout() ? response.workout : null;
   }
 
@@ -180,15 +176,10 @@ class WorkoutServiceWrapper {
   Future<GetProposedWorkoutScheduleResponse> getProposedWorkoutSchedule(
     String userId,
   ) async {
-    return await _client.workoutService
-        .getProposedWorkoutSchedule(
-          GetProposedWorkoutScheduleRequest()..userId = userId,
-        )
-        .timeout(
-          _startupTimeout,
-          onTimeout: () =>
-              throw Exception('Timed out loading your workout plan.'),
-        );
+    return await _client.workoutService.getProposedWorkoutSchedule(
+      GetProposedWorkoutScheduleRequest()..userId = userId,
+      options: _defaultCallOptions,
+    );
   }
 
   Future<WorkoutDraft> saveWorkoutDraft(WorkoutDraft draft) async {

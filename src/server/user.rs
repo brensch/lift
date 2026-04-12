@@ -15,6 +15,7 @@ impl UserService for ServerUserService {
     ) -> Result<Response<CreateUserResponse>, Status> {
         let req = request.into_inner();
         let name = req.name.trim();
+        info!(rpc = "CreateUser", %name, "request");
         if name.is_empty() {
             return Err(Status::invalid_argument("name is required"));
         }
@@ -31,6 +32,7 @@ impl UserService for ServerUserService {
         request: Request<GetUserRequest>,
     ) -> Result<Response<GetUserResponse>, Status> {
         let req = request.into_inner();
+        info!(rpc = "GetUser", user_id = %req.user_id, "request");
         let user = self
             .db
             .get_user(&req.user_id)

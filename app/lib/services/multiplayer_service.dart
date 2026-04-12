@@ -1,21 +1,32 @@
+import 'package:grpc/grpc.dart';
+
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/group.pbgrpc.dart';
 import 'grpc_client.dart';
 
 class MultiplayerServiceWrapper {
   final GrpcClient _client;
-  static const Duration _sessionTimeout = Duration(seconds: 10);
+  /// Poll calls use a shorter deadline so a stale connection fails fast
+  /// and the next poll can try on a fresh connection.
+  static final _pollCallOptions = CallOptions(timeout: Duration(seconds: 5));
+  static final _defaultCallOptions = CallOptions(timeout: Duration(seconds: 10));
 
   MultiplayerServiceWrapper(this._client);
 
   Future<String> joinUser(String userId) async {
     final req = JoinUserRequest()..userId = userId;
-    final response = await _client.multiplayerService.joinUser(req);
+    final response = await _client.multiplayerService.joinUser(
+      req,
+      options: _defaultCallOptions,
+    );
     return response.sessionId;
   }
 
   Future<void> leaveSession() async {
-    await _client.multiplayerService.leaveSession(LeaveSessionRequest());
+    await _client.multiplayerService.leaveSession(
+      LeaveSessionRequest(),
+      options: _defaultCallOptions,
+    );
   }
 
   Future<GetCurrentSessionResponse> getCurrentSession({
@@ -23,12 +34,10 @@ class MultiplayerServiceWrapper {
   }) async {
     final req = GetCurrentSessionRequest();
     if (sessionId != null) req.sessionId = sessionId;
-    return await _client.multiplayerService
-        .getCurrentSession(req)
-        .timeout(
-          _sessionTimeout,
-          onTimeout: () => throw Exception('Timed out loading group session.'),
-        );
+    return await _client.multiplayerService.getCurrentSession(
+      req,
+      options: _pollCallOptions,
+    );
   }
 
   Stream<SessionSubscriptionEvent> subscribeSession({String? sessionId}) {

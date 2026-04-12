@@ -19,6 +19,7 @@ impl MultiplayerService for ServerMultiplayerService {
         let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
         let target_id = req.user_id;
+        info!(rpc = "JoinUser", %caller_id, %target_id, "request");
         if target_id.is_empty() || target_id == caller_id {
             return Err(Status::invalid_argument("target user_id is required"));
         }
@@ -69,6 +70,7 @@ impl MultiplayerService for ServerMultiplayerService {
         request: Request<LeaveSessionRequest>,
     ) -> Result<Response<LeaveSessionResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "LeaveSession", %user_id, "request");
         if let Some(session_id) = self
             .db
             .get_current_session_id_for_user(&user_id)
@@ -93,6 +95,7 @@ impl MultiplayerService for ServerMultiplayerService {
     ) -> Result<Response<ParticipantStatus>, Status> {
         let _caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        info!(rpc = "GetParticipantWorkout", user_id = %req.user_id, "request");
         let user = self
             .db
             .get_user(&req.user_id)
@@ -133,6 +136,7 @@ impl MultiplayerService for ServerMultiplayerService {
         } else {
             req.session_id
         };
+        info!(rpc = "GetCurrentSession", %caller_id, %session_id, "request");
         if session_id.is_empty() {
             return Ok(Response::new(GetCurrentSessionResponse {
                 session_id,
@@ -172,6 +176,7 @@ impl MultiplayerService for ServerMultiplayerService {
         request: Request<UpdateActiveWorkoutRequest>,
     ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "UpdateActiveWorkout", %user_id, "request");
         if let Some(session_id) = self
             .db
             .get_current_session_id_for_user(&user_id)
