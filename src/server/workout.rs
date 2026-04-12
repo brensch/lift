@@ -80,8 +80,13 @@ impl ServerWorkoutService {
             .load_schplanner_history(user_id, state.updated_at)
             .await?;
         let derivation = derive_state(regime.as_ref(), &payload, &history);
-        let mut proposal =
-            regime.propose_from_state(&derivation.effective_state, derivation.last_session_at, now);
+        let insights = summarize_recent_insights(&history);
+        let mut proposal = regime.propose_from_state(
+            &derivation.effective_state,
+            derivation.last_session_at,
+            now,
+            &insights,
+        );
         decorate_proposed_groups(
             regime.as_ref(),
             &mut proposal.proposed_groups,

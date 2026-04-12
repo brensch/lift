@@ -5,14 +5,14 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
     PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
-use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
+use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 use std::collections::HashMap;
 
 use super::{
     build_single_group_amrap, build_training_status, exercise_display_name, exercise_short_label,
-    rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta,
-    SingleGroupOptions, WorkoutRegime,
+    recent_performance_notes, rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 use std::collections::HashSet;
@@ -294,6 +294,7 @@ impl WorkoutRegime for Linear5x5Regime {
         state: &StatePayload,
         _last_session_at: i64,
         _now_ts: i64,
+        insights: &SchplannerInsights,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_VARIANT, "A");
         let exercises = if variant.eq_ignore_ascii_case("B") {
@@ -364,6 +365,16 @@ impl WorkoutRegime for Linear5x5Regime {
             ));
         }
 
+        let mut coaching_notes = recent_performance_notes(insights, exercises, 3);
+        if coaching_notes.len() < 3 {
+            coaching_notes.push("Focus on form before chasing weight.".to_string());
+        }
+        if coaching_notes.len() < 3 {
+            coaching_notes.push(
+                "If a set feels like a 9/10 effort, consider deloading proactively.".to_string(),
+            );
+        }
+
         let regime_context = RegimeContext {
             regime_display_name: "Stronglifts 5x5".to_string(),
             session_description: {
@@ -377,7 +388,10 @@ impl WorkoutRegime for Linear5x5Regime {
                     .filter_map(|&ex| {
                         let stalls = get_int_or(state, stall_key(ex), 0);
                         if stalls > 0 {
-                            Some(format!("stalled {}", exercise_short_label(ex).to_ascii_lowercase()))
+                            Some(format!(
+                                "stalled {}",
+                                exercise_short_label(ex).to_ascii_lowercase()
+                            ))
                         } else {
                             None
                         }
@@ -398,10 +412,7 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Next: Workout {}. Alternate A/B each session; add weight after successful lifts.",
                 other_variant
             ),
-            coaching_notes: vec![
-                "Focus on form before chasing weight.".to_string(),
-                "If a set feels like a 9/10 effort, consider deloading proactively.".to_string(),
-            ],
+            coaching_notes,
         };
 
         ProposeResult {
@@ -457,12 +468,16 @@ impl WorkoutRegime for Linear5x5Regime {
         } else {
             last_session_at + 24 * 3600
         };
-        let next_workout_slots = self.propose_from_state(state, last_session_at, now_ts);
-        let next_workout_slots = crate::schplanner::summarize_proposed_slot_targets(
-            &next_workout_slots.proposed_groups,
-        )
-        .into_keys()
-        .collect::<HashSet<_>>();
+        let next_workout_slots = self.propose_from_state(
+            state,
+            last_session_at,
+            now_ts,
+            &SchplannerInsights::default(),
+        );
+        let next_workout_slots =
+            crate::schplanner::summarize_proposed_slot_targets(&next_workout_slots.proposed_groups)
+                .into_keys()
+                .collect::<HashSet<_>>();
         let target_slot_sets = simulate_target_slot_sets(self, state, last_session_at, now_ts, 3);
         build_training_status(
             history,

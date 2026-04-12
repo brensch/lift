@@ -8,12 +8,13 @@ use crate::program_state::{
     set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
     PendingUpdateFieldDef, ProposeResult, StatePayload,
 };
-use crate::schplanner::{SchplannerSlotOutcome, SchplannerWorkoutRecord};
+use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
 
 use super::{
-    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set, rest_cfg,
-    simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
+    recent_performance_notes, rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta,
+    ProgramCatalogMeta, WorkoutRegime,
 };
 use schlift::workout::v1::StateFieldKind;
 use std::collections::HashMap;
@@ -381,6 +382,7 @@ impl WorkoutRegime for GzclpRegime {
         state: &StatePayload,
         _last_session_at: i64,
         _now_ts: i64,
+        insights: &SchplannerInsights,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
         let sessions = sessions_for_variant(variant);
@@ -554,6 +556,32 @@ impl WorkoutRegime for GzclpRegime {
         }
 
         let session_count = sessions.len();
+        let note_exercises = tmpl
+            .t1
+            .iter()
+            .chain(tmpl.t2.iter())
+            .copied()
+            .collect::<Vec<_>>();
+        let mut coaching_notes = recent_performance_notes(insights, &note_exercises, 3);
+        if coaching_notes.len() < 4 {
+            coaching_notes
+                .push("T1: heavy, low reps — treat every rep as a max-effort lift.".to_string());
+        }
+        if coaching_notes.len() < 4 {
+            coaching_notes.push("T1 last set (stages 1+2): AMRAP — push for max reps.".to_string());
+        }
+        if coaching_notes.len() < 4 {
+            coaching_notes
+                .push("T2: moderate weight, controlled tempo — build volume.".to_string());
+        }
+        if coaching_notes.len() < 4 {
+            coaching_notes.push(
+                "T3: light accessories — metabolic stress. Add weight only at 25+ AMRAP reps."
+                    .to_string(),
+            );
+        }
+        coaching_notes.truncate(4);
+
         let regime_context = RegimeContext {
             regime_display_name: "GZCLP".to_string(),
             session_description: {
@@ -584,13 +612,7 @@ impl WorkoutRegime for GzclpRegime {
                 idx + 1,
                 session_count
             ),
-            coaching_notes: vec![
-                "T1: heavy, low reps — treat every rep as a max-effort lift.".to_string(),
-                "T1 last set (stages 1+2): AMRAP — push for max reps.".to_string(),
-                "T2: moderate weight, controlled tempo — build volume.".to_string(),
-                "T3: light accessories — metabolic stress. Add weight only at 25+ AMRAP reps."
-                    .to_string(),
-            ],
+            coaching_notes,
         };
 
         ProposeResult {
@@ -663,12 +685,16 @@ impl WorkoutRegime for GzclpRegime {
         } else {
             last_session_at + 24 * 3600
         };
-        let next_workout_slots = self.propose_from_state(state, last_session_at, now_ts);
-        let next_workout_slots = crate::schplanner::summarize_proposed_slot_targets(
-            &next_workout_slots.proposed_groups,
-        )
-        .into_keys()
-        .collect::<HashSet<_>>();
+        let next_workout_slots = self.propose_from_state(
+            state,
+            last_session_at,
+            now_ts,
+            &SchplannerInsights::default(),
+        );
+        let next_workout_slots =
+            crate::schplanner::summarize_proposed_slot_targets(&next_workout_slots.proposed_groups)
+                .into_keys()
+                .collect::<HashSet<_>>();
         let target_slot_sets =
             simulate_target_slot_sets(self, state, last_session_at, now_ts, target_sessions);
         build_training_status(

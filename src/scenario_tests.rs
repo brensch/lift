@@ -2,7 +2,7 @@
 mod scenario_tests {
     use crate::program_state::{set_f32, set_int, set_str, FieldVal, ProposeResult, StatePayload};
     use crate::regimes::get_regime;
-    use crate::schplanner::{derive_state, SchplannerWorkoutRecord};
+    use crate::schplanner::{derive_state, SchplannerInsights, SchplannerWorkoutRecord};
     use crate::workout::generate_sets_for_group;
     use chrono::{DateTime, Utc};
     use schlift::workout::v1::{
@@ -288,6 +288,7 @@ mod scenario_tests {
                     &derivation.effective_state,
                     derivation.last_session_at,
                     parse_ts(&checkpoint.at),
+                    &SchplannerInsights::default(),
                 );
                 let expect = normalize_proposal(&proposal);
                 if std::env::var("LIFT_SNAPSHOT_PROPOSED").ok().as_deref() == Some("1") {
@@ -310,6 +311,7 @@ mod scenario_tests {
                     &derivation.effective_state,
                     derivation.last_session_at,
                     parse_ts(&workout.start.as_ref().unwrap().at),
+                    &SchplannerInsights::default(),
                 );
                 history.push(build_workout_record(idx, workout, &proposal));
             }

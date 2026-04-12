@@ -90,7 +90,7 @@ class _WorkoutStartBriefingScreenState
             if (regimeContext != null &&
                 regimeContext.sessionDescription.isNotEmpty) ...[
               const SizedBox(height: 18),
-              _BriefingCard(
+              _BriefingSection(
                 title: 'Today\'s brief',
                 child: Text(
                   regimeContext.sessionDescription,
@@ -105,9 +105,10 @@ class _WorkoutStartBriefingScreenState
             if (regimeContext != null &&
                 regimeContext.coachingNotes.isNotEmpty) ...[
               const SizedBox(height: 14),
-              _BriefingCard(
+              _BriefingSection(
                 title: 'Coaching notes',
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final note in regimeContext.coachingNotes)
                       _NoteRow(note: note),
@@ -118,7 +119,7 @@ class _WorkoutStartBriefingScreenState
             if (regimeContext != null &&
                 regimeContext.nextSessionPreview.isNotEmpty) ...[
               const SizedBox(height: 14),
-              _BriefingCard(
+              _BriefingSection(
                 title: 'What follows',
                 child: Text(
                   regimeContext.nextSessionPreview,
@@ -131,9 +132,10 @@ class _WorkoutStartBriefingScreenState
               ),
             ],
             const SizedBox(height: 14),
-            _BriefingCard(
+            _BriefingSection(
               title: 'Weights and why',
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final group in widget.selectedGroups)
                     _GroupWeightCard(group: group, unit: unit),
@@ -166,38 +168,30 @@ class _WorkoutStartBriefingScreenState
   }
 }
 
-class _BriefingCard extends StatelessWidget {
+class _BriefingSection extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _BriefingCard({required this.title, required this.child});
+  const _BriefingSection({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: colorScheme.tertiary,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.4,
+            color: colorScheme.tertiary,
           ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        child,
+      ],
     );
   }
 }
@@ -336,25 +330,21 @@ class _GroupWeightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             group.name,
+            textAlign: TextAlign.left,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
           if (group.instruction.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               group.instruction,
+              textAlign: TextAlign.left,
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -366,6 +356,7 @@ class _GroupWeightCard extends StatelessWidget {
           for (final config in group.exerciseConfigs) ...[
             Text(
               exerciseNames[config.exercise] ?? 'Exercise',
+              textAlign: TextAlign.left,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -375,6 +366,7 @@ class _GroupWeightCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               _exerciseSummary(config),
+              textAlign: TextAlign.left,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -385,6 +377,7 @@ class _GroupWeightCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               _schplannerReason(config),
+              textAlign: TextAlign.left,
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -395,6 +388,7 @@ class _GroupWeightCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 _instructionReason(config),
+                textAlign: TextAlign.left,
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.35,

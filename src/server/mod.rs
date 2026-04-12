@@ -2,7 +2,9 @@ use crate::db::ServerDb;
 use crate::program_state::{payload_from_proto, payload_to_proto, pending_update_to_proto};
 use crate::progress::compute_next_up_set;
 use crate::regimes::{catalog_regime_types, get_regime};
-use crate::schplanner::{decorate_proposed_groups, derive_state, SchplannerWorkoutRecord};
+use crate::schplanner::{
+    decorate_proposed_groups, derive_state, summarize_recent_insights, SchplannerWorkoutRecord,
+};
 use crate::state::ActiveWorkout;
 use crate::time::now_unix;
 use crate::workout::{
