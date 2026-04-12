@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import 'app_logger.dart';
 
 enum HealthWriteResult { success, permissionDenied, error }
 
@@ -23,9 +24,116 @@ class HeartRateZoneProfile {
 }
 
 class HealthService {
-  static const _kcalPerMinute = 5.0;
+  // MET value for traditional strength training from the 2011 Compendium of
+  // Physical Activities (Ainsworth et al., Med Sci Sports Exerc 43(8):1575-81).
+  // MET formula: calories = MET × 3.5 × body_weight_kg × duration_min / 200
+  static const _strengthTrainingMet = 3.5;
+  // Fallback flat rate when bodyweight is unknown (conservative estimate).
+  static const _fallbackKcalPerMin = 5.0;
+
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
+
+  static Future<double?> readLatestBodyWeightKg({
+    bool requestPermissions = false,
+  }) async {
+    try {
+      AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
+        'phase': 'start',
+        'requestPermissions': requestPermissions,
+        'platform': Platform.isAndroid
+            ? 'android'
+            : Platform.isIOS
+            ? 'ios'
+            : 'other',
+      });
+      final health = Health();
+      await health.configure();
+
+      const type = HealthDataType.WEIGHT;
+      if (!health.isDataTypeAvailable(type)) {
+        AppLogger.instance.warn('Health', 'weight unavailable');
+        return null;
+      }
+
+      final permissions = [HealthDataAccess.READ];
+      final hasPerms = await health.hasPermissions([
+        type,
+      ], permissions: permissions);
+      AppLogger.instance.info('Health', 'weight permissions', {
+        'hasPerms': hasPerms,
+      });
+      if (hasPerms != true) {
+        if (!requestPermissions) return null;
+        if (_healthPermissionRequestInFlight) return null;
+        _healthPermissionRequestInFlight = true;
+        final granted = await health.requestAuthorization([
+          type,
+        ], permissions: permissions);
+        _healthPermissionRequestInFlight = false;
+        AppLogger.instance.info('Health', 'weight permission request', {
+          'granted': granted,
+        });
+        if (!granted) return null;
+      }
+
+      final now = DateTime.now();
+      final recentPoints = await health.getHealthDataFromTypes(
+        types: [type],
+        startTime: now.subtract(const Duration(days: 30)),
+        endTime: now,
+      );
+      double? weightKg = _latestNumericValueForType(recentPoints, type);
+      AppLogger.instance.info('Health', 'weight recent read', {
+        'points': recentPoints.length,
+        'weightKg': weightKg,
+      });
+
+      if (weightKg == null && Platform.isAndroid) {
+        try {
+          final historicalPoints = await health.getHealthDataFromTypes(
+            types: [type],
+            startTime: now.subtract(const Duration(days: 365)),
+            endTime: now,
+          );
+          weightKg = _latestNumericValueForType(historicalPoints, type);
+          AppLogger.instance.info('Health', 'weight historical read', {
+            'points': historicalPoints.length,
+            'weightKg': weightKg,
+          });
+        } catch (e) {
+          debugPrint('Health: extended WEIGHT read failed: $e');
+          AppLogger.instance.warn('Health', 'weight historical read failed', {
+            'error': e.toString(),
+          });
+        }
+      }
+
+      AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
+        'phase': 'done',
+        'weightKg': weightKg,
+      });
+      return weightKg != null && weightKg > 0 ? weightKg : null;
+    } catch (e, st) {
+      _healthPermissionRequestInFlight = false;
+      debugPrint('Health: readLatestBodyWeightKg failed: $e\n$st');
+      AppLogger.instance.error('Health', 'readLatestBodyWeightKg failed', {
+        'error': e.toString(),
+      });
+      return null;
+    }
+  }
+
+  static int estimateCalories({
+    required double durationMinutes,
+    required double bodyWeightKg,
+  }) {
+    if (bodyWeightKg > 0) {
+      return (_strengthTrainingMet * 3.5 * bodyWeightKg * durationMinutes / 200)
+          .round();
+    }
+    return (durationMinutes * _fallbackKcalPerMin).round();
+  }
 
   static Future<HealthWriteResult> writeCompletedWorkout({
     required DateTime startTime,
@@ -33,6 +141,7 @@ class HealthService {
     required String title,
     required double totalVolumeKg,
     required int workingSets,
+    required double bodyWeightKg,
   }) async {
     debugPrint('Health: writeCompletedWorkout called');
 
@@ -66,7 +175,10 @@ class HealthService {
     }
 
     final durationMinutes = endTime.difference(startTime).inSeconds / 60.0;
-    final calories = (durationMinutes * _kcalPerMinute).round();
+    final calories = estimateCalories(
+      durationMinutes: durationMinutes,
+      bodyWeightKg: bodyWeightKg,
+    );
 
     debugPrint(
       'Health: writing workout "$title", ${durationMinutes.toStringAsFixed(1)} min, $calories kcal',

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math';
 
 import '../gen/workout/v1/settings.pb.dart';
@@ -10,8 +12,12 @@ import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
+import '../services/app_logger.dart';
+import '../services/health_service.dart';
 import '../services/user_service.dart';
 import 'regime_info_screen.dart';
+
+enum _ExperienceLevel { cute, beginner, intermediate, expert }
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -25,19 +31,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   RegimeType? _selectedRegimeType;
   final Map<String, TextEditingController> _controllers = {};
+  late final TextEditingController _bodyWeightController;
   bool _isSaving = false;
   bool _initialized = false;
   bool _profileLoaded = false;
   bool _profileTouched = false;
-  String _selectedEmoji = defaultProfileEmoji;
-  String _selectedColorHex = defaultProfileColorHex;
-  List<String> _emojiChoices = whimsicalEmojiCatalog
-      .take(_emojiWindowSize)
-      .toList();
+  bool _syncingBodyWeightText = false;
+  bool _isImportingBodyWeight = false;
+  late String _selectedEmoji;
+  late String _selectedColorHex;
+  String _bodyWeightHint =
+      'We use your bodyweight to estimate calories burned for each workout.';
+  _ExperienceLevel _experienceLevel = _ExperienceLevel.intermediate;
+  late List<String> _emojiChoices;
+
+  @override
+  void initState() {
+    super.initState();
+    _bodyWeightController = TextEditingController();
+    _bodyWeightController.addListener(_onBodyWeightChanged);
+    final rng = Random();
+    final shuffled = [...whimsicalEmojiCatalog]..shuffle(rng);
+    _emojiChoices = shuffled.take(_emojiWindowSize).toList();
+    _selectedEmoji = _emojiChoices[rng.nextInt(_emojiWindowSize)];
+    _selectedColorHex =
+        profileColorHexOptions[rng.nextInt(profileColorHexOptions.length)];
+  }
 
   void _goToStep(int nextStep) {
     if (_step == nextStep) return;
     setState(() => _step = nextStep);
+    if (nextStep == 3) {
+      unawaited(_prepareConfigStep());
+    }
   }
 
   @override
@@ -45,6 +71,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _bodyWeightController
+      ..removeListener(_onBodyWeightChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -107,6 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
       }
     });
+    _applyRecommendedWeights(context.read<SettingsProvider>(), p);
   }
 
   Future<void> _selectWeightUnit(
@@ -114,11 +144,199 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     WeightUnit unit,
   ) async {
     await provider.updateWeightUnit(unit);
+    final currentKg = _parsedBodyWeightKg(provider);
+    if (currentKg != null && currentKg > 0) {
+      _setBodyWeightText(currentKg, unit);
+    }
     final selectedProgram = _selectedRegimeType == null
         ? null
         : provider.trainingProgramFor(_selectedRegimeType!);
     if (selectedProgram != null) {
       _seedFromSchema(selectedProgram.stateSchema.fields);
+      _applyRecommendedWeights(provider, selectedProgram);
+    }
+  }
+
+  void _onBodyWeightChanged() {
+    if (_syncingBodyWeightText || !mounted) return;
+    final provider = context.read<SettingsProvider>();
+    final program = _selectedRegimeType == null
+        ? null
+        : provider.trainingProgramFor(_selectedRegimeType!);
+    if (program != null) {
+      _applyRecommendedWeights(provider, program);
+    }
+  }
+
+  double? _parsedBodyWeightKg(SettingsProvider provider) {
+    final raw = double.tryParse(_bodyWeightController.text.trim());
+    if (raw == null || raw <= 0) return null;
+    return isMetricUnit(provider.weightUnit) ? raw : poundsToKilograms(raw);
+  }
+
+  void _setBodyWeightText(double kg, WeightUnit unit) {
+    final display = isMetricUnit(unit) ? kg : kilogramsToPounds(kg);
+    final text = display % 1 == 0
+        ? display.toStringAsFixed(0)
+        : display.toStringAsFixed(1);
+    _syncingBodyWeightText = true;
+    _bodyWeightController.text = text;
+    _syncingBodyWeightText = false;
+  }
+
+  Future<void> _prepareConfigStep() async {
+    final provider = context.read<SettingsProvider>();
+    final program = _selectedRegimeType == null
+        ? null
+        : provider.trainingProgramFor(_selectedRegimeType!);
+    if (program == null) return;
+
+    AppLogger.instance.info('Onboarding', 'bodyweight import', {
+      'phase': 'start',
+    });
+    final auth = context.read<AuthProvider>();
+    if (mounted) {
+      setState(() {
+        _isImportingBodyWeight = true;
+        _bodyWeightHint = Platform.isAndroid
+            ? 'Checking Health Connect for your latest bodyweight...'
+            : 'Checking Apple Health for your latest bodyweight...';
+      });
+    }
+    final importedKg = await HealthService.readLatestBodyWeightKg(
+      requestPermissions: true,
+    );
+    if (!mounted) return;
+    if (importedKg != null && importedKg > 0) {
+      _setBodyWeightText(importedKg, provider.weightUnit);
+      AppLogger.instance.info('Onboarding', 'bodyweight import', {
+        'source': Platform.isAndroid ? 'health_connect' : 'apple_health',
+        'bodyWeightKg': importedKg,
+      });
+      setState(() {
+        _bodyWeightHint = Platform.isAndroid
+            ? 'Pulled from Health Connect. You can edit it before you start. We use bodyweight to estimate calories burned.'
+            : 'Pulled from Apple Health. You can edit it before you start. We use bodyweight to estimate calories burned.';
+      });
+    } else if (auth.bodyWeightKg > 0) {
+      _setBodyWeightText(auth.bodyWeightKg, provider.weightUnit);
+      AppLogger.instance.info('Onboarding', 'bodyweight import', {
+        'source': 'profile',
+        'bodyWeightKg': auth.bodyWeightKg,
+      });
+      setState(() {
+        _bodyWeightHint =
+            'Using the bodyweight saved on your profile. We use it to estimate calories burned.';
+      });
+    } else {
+      AppLogger.instance.warn('Onboarding', 'bodyweight import empty');
+      setState(() {
+        _bodyWeightHint =
+            'Enter your bodyweight to personalize starting weights and estimate calories burned.';
+      });
+    }
+    if (mounted) {
+      setState(() => _isImportingBodyWeight = false);
+    }
+
+    _applyRecommendedWeights(provider, program);
+  }
+
+  double _experienceMultiplier(_ExperienceLevel level) {
+    switch (level) {
+      case _ExperienceLevel.cute:
+        return 0.40;
+      case _ExperienceLevel.beginner:
+        return 0.85;
+      case _ExperienceLevel.intermediate:
+        return 1.0;
+      case _ExperienceLevel.expert:
+        return 1.15;
+    }
+  }
+
+  double? _ratioForFieldKey(String key) {
+    switch (key) {
+      case 'squat_weight':
+      case 'squat_t1_weight':
+        return 0.95;
+      case 'bench_press_weight':
+      case 'bench_press_t2_weight':
+        return 0.70;
+      case 'barbell_row_weight':
+      case 'barbell_row_t2_weight':
+        return 0.75;
+      case 'overhead_press_weight':
+      case 'overhead_press_t2_weight':
+        return 0.50;
+      case 'deadlift_weight':
+      case 'deadlift_t1_weight':
+        return 1.15;
+      case 'squat_tm':
+        return 1.10;
+      case 'bench_press_tm':
+        return 0.80;
+      case 'deadlift_tm':
+        return 1.35;
+      case 'overhead_press_tm':
+        return 0.55;
+      default:
+        return null;
+    }
+  }
+
+  String _formattedRecommendedValue(
+    TrainingProgramStateFieldSchema field,
+    SettingsProvider provider,
+    double bodyWeightKg,
+  ) {
+    final bodyWeightLb = kilogramsToPounds(bodyWeightKg);
+    final baseRatio = _ratioForFieldKey(field.key);
+    if (baseRatio == null) {
+      return _defaultTextForField(field);
+    }
+
+    final targetPounds =
+        (bodyWeightLb * baseRatio * _experienceMultiplier(_experienceLevel))
+            .clamp(field.minValue, field.maxValue)
+            .toDouble();
+    final snappedPounds = snapPoundsForUnit(
+      targetPounds,
+      provider.weightUnit,
+      poundStep: field.step,
+      kilogramStep: SettingsProvider.displayStepForField(
+        field,
+        provider.weightUnit,
+      ),
+    );
+    final display = displayWeightFromPounds(snappedPounds, provider.weightUnit);
+    return display % 1 == 0
+        ? display.toStringAsFixed(0)
+        : display.toStringAsFixed(1);
+  }
+
+  void _applyRecommendedWeights(
+    SettingsProvider provider,
+    TrainingProgramDefinition program,
+  ) {
+    final bodyWeightKg = _parsedBodyWeightKg(provider);
+    if (bodyWeightKg == null || bodyWeightKg <= 0) return;
+
+    final onboardingFields = program.stateSchema.fields
+        .where((f) => f.onboardingField)
+        .toList();
+    for (final field in onboardingFields) {
+      if (!SettingsProvider.isWeightField(field)) continue;
+      final controller = _controllers[field.key];
+      if (controller == null) continue;
+      final recommended = _formattedRecommendedValue(
+        field,
+        provider,
+        bodyWeightKg,
+      );
+      if (controller.text != recommended) {
+        controller.text = recommended;
+      }
     }
   }
 
@@ -150,8 +368,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         context.read<GrpcClient>(),
       ).getUser(userId);
       if (!mounted || user == null || _profileTouched) return;
+      // Only apply the server profile if the user previously saved a custom
+      // one (i.e. the emoji differs from the server-side new-account default).
+      // If it's still the default "💪" they haven't customised yet, keep the
+      // random pick we already chose so the page feels fresh each sign-up.
+      const serverDefaultEmoji = '💪';
+      final emoji = normalizedProfileEmoji(user.profileEmoji);
+      if (emoji == serverDefaultEmoji) return;
       setState(() {
-        _selectedEmoji = normalizedProfileEmoji(user.profileEmoji);
+        _selectedEmoji = emoji;
         _selectedColorHex = normalizedProfileColorHex(user.profileColorHex);
         if (!_emojiChoices.contains(_selectedEmoji)) {
           _emojiChoices = [
@@ -171,15 +396,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ) async {
     setState(() => _isSaving = true);
     try {
+      final bodyWeightKg = _parsedBodyWeightKg(provider);
       final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
           .updateMyProfile(
             profileEmoji: _selectedEmoji,
             profileColorHex: _selectedColorHex,
+            bodyWeightKg: bodyWeightKg,
           );
       if (mounted) {
         context.read<AuthProvider>().setProfile(
           profileEmoji: updatedUser.profileEmoji,
           profileColorHex: updatedUser.profileColorHex,
+          bodyWeightKg: updatedUser.bodyWeightKg.toDouble(),
         );
       }
 
@@ -342,6 +570,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         : _ConfigStep(
                             program: selected,
                             controllers: _controllers,
+                            bodyWeightController: _bodyWeightController,
+                            weightUnit: provider.weightUnit,
+                            experienceLevel: _experienceLevel,
+                            bodyWeightHint: _bodyWeightHint,
+                            isImportingBodyWeight: _isImportingBodyWeight,
+                            onSelectExperience: (level) {
+                              setState(() => _experienceLevel = level);
+                              _applyRecommendedWeights(provider, selected);
+                            },
                             onBack: () => _goToStep(2),
                             onSave: _isSaving
                                 ? null
@@ -556,6 +793,12 @@ class _ProgramStep extends StatelessWidget {
 class _ConfigStep extends StatelessWidget {
   final TrainingProgramDefinition program;
   final Map<String, TextEditingController> controllers;
+  final TextEditingController bodyWeightController;
+  final WeightUnit weightUnit;
+  final _ExperienceLevel experienceLevel;
+  final String bodyWeightHint;
+  final bool isImportingBodyWeight;
+  final ValueChanged<_ExperienceLevel> onSelectExperience;
   final VoidCallback onBack;
   final VoidCallback? onSave;
   final bool isSaving;
@@ -563,6 +806,12 @@ class _ConfigStep extends StatelessWidget {
   const _ConfigStep({
     required this.program,
     required this.controllers,
+    required this.bodyWeightController,
+    required this.weightUnit,
+    required this.experienceLevel,
+    required this.bodyWeightHint,
+    required this.isImportingBodyWeight,
+    required this.onSelectExperience,
     required this.onBack,
     required this.onSave,
     required this.isSaving,
@@ -592,7 +841,7 @@ class _ConfigStep extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Set your starting weights',
+                'Choose starting weights',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
@@ -613,6 +862,27 @@ class _ConfigStep extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
+              _BodyWeightInlineField(
+                controller: bodyWeightController,
+                weightUnit: weightUnit,
+                hintText: bodyWeightHint,
+                isImporting: isImportingBodyWeight,
+              ),
+              const SizedBox(height: 16),
+              _ExperienceSelector(
+                selected: experienceLevel,
+                onSelect: onSelectExperience,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'These defaults are calculated from your bodyweight and self proclaimed muscle size.',
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: cs.onSurface.withValues(alpha: 0.62),
+                ),
+              ),
+              const SizedBox(height: 18),
               for (final f in onboardingFields)
                 if (controllers.containsKey(f.key))
                   Padding(
@@ -620,6 +890,7 @@ class _ConfigStep extends StatelessWidget {
                     child: _StateFieldInput(
                       field: f,
                       controller: controllers[f.key]!,
+                      weightUnit: weightUnit,
                     ),
                   ),
             ],
@@ -951,12 +1222,236 @@ class _ColorChoiceDot extends StatelessWidget {
   }
 }
 
+class _BodyWeightInlineField extends StatelessWidget {
+  final TextEditingController controller;
+  final WeightUnit weightUnit;
+  final String hintText;
+  final bool isImporting;
+
+  const _BodyWeightInlineField({
+    required this.controller,
+    required this.weightUnit,
+    required this.hintText,
+    required this.isImporting,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Bodyweight',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 8),
+            if (isImporting)
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Weight',
+            suffixText: weightUnitSuffix(weightUnit),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          hintText,
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.35,
+            color: cs.onSurface.withValues(alpha: 0.62),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ExperienceSelector extends StatelessWidget {
+  final _ExperienceLevel selected;
+  final ValueChanged<_ExperienceLevel> onSelect;
+
+  const _ExperienceSelector({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final items = [
+      (_ExperienceLevel.cute, 'Cute'),
+      (_ExperienceLevel.beginner, 'Some'),
+      (_ExperienceLevel.intermediate, 'More'),
+      (_ExperienceLevel.expert, 'Lots'),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Muscles',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (final item in items) ...[
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: item.$1 == _ExperienceLevel.expert ? 0 : 8,
+                  ),
+                  child: ChoiceChip(
+                    label: SizedBox(
+                      width: double.infinity,
+                      child: Text(item.$2, textAlign: TextAlign.center),
+                    ),
+                    selected: selected == item.$1,
+                    selectedColor: cs.primary.withValues(alpha: 0.14),
+                    showCheckmark: false,
+                    onSelected: (_) => onSelect(item.$1),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StepperField extends StatefulWidget {
+  final TextEditingController controller;
+  final double step;
+  final double min;
+  final double? max;
+  final String? suffixText;
+
+  const _StepperField({
+    required this.controller,
+    required this.step,
+    required this.min,
+    this.max,
+    this.suffixText,
+  });
+
+  @override
+  State<_StepperField> createState() => _StepperFieldState();
+}
+
+class _StepperFieldState extends State<_StepperField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() => setState(() {});
+
+  void _bump(double delta) {
+    final current =
+        double.tryParse(widget.controller.text.trim()) ?? widget.min;
+    final decimals = widget.step % 1 == 0 ? 0 : 2;
+    final next = (current + delta).clamp(
+      widget.min,
+      widget.max ?? double.infinity,
+    );
+    widget.controller.text = next.toStringAsFixed(decimals);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        _StepperButton(icon: Icons.remove, onTap: () => _bump(-widget.step)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: widget.controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.right,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              suffixText: widget.suffixText,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: cs.outline.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _StepperButton(icon: Icons.add, onTap: () => _bump(widget.step)),
+      ],
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _StepperButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
+        ),
+        child: Icon(icon, size: 18),
+      ),
+    );
+  }
+}
+
 /// Renders a single state field input: enum → choice chips, numeric → text field.
 class _StateFieldInput extends StatefulWidget {
   final TrainingProgramStateFieldSchema field;
   final TextEditingController controller;
+  final WeightUnit weightUnit;
 
-  const _StateFieldInput({required this.field, required this.controller});
+  const _StateFieldInput({
+    required this.field,
+    required this.controller,
+    required this.weightUnit,
+  });
 
   @override
   State<_StateFieldInput> createState() => _StateFieldInputState();
@@ -1018,9 +1513,12 @@ class _StateFieldInputState extends State<_StateFieldInput> {
     final isNumeric =
         f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
         f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
-    final unit = context.watch<SettingsProvider>().weightUnit;
+    final unit = widget.weightUnit;
     final isWeightField = SettingsProvider.isWeightField(f);
     final suffix = isWeightField ? weightUnitSuffixPlural(unit) : null;
+    final step = isWeightField
+        ? _barbellIncrement(unit)
+        : (f.step > 0 ? f.step : 1.0);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1053,36 +1551,44 @@ class _StateFieldInputState extends State<_StateFieldInput> {
         ),
         const SizedBox(width: 10),
         SizedBox(
-          width: 136,
-          child: TextField(
-            controller: widget.controller,
-            keyboardType: isNumeric
-                ? const TextInputType.numberWithOptions(decimal: true)
-                : TextInputType.text,
-            textAlign: TextAlign.right,
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              suffixText: suffix,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: cs.outline.withValues(alpha: 0.5),
+          width: 224,
+          child: isNumeric
+              ? _StepperField(
+                  controller: widget.controller,
+                  step: step,
+                  min: f.minValue,
+                  max: f.maxValue > f.minValue ? f.maxValue : null,
+                  suffixText: suffix,
+                )
+              : TextField(
+                  controller: widget.controller,
+                  keyboardType: TextInputType.text,
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    suffixText: suffix,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: cs.outline.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
       ],
     );
   }
 }
+
+double _barbellIncrement(WeightUnit unit) => standardPlates(unit).last * 2;
 
 class _ProgramCard extends StatelessWidget {
   final TrainingProgramDefinition program;

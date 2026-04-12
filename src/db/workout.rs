@@ -4,6 +4,30 @@ use crate::db::codec::{decode_exercise_configs, encode_exercise_configs};
 impl ServerDb {
     // ── Workout CRUD (real tables) ──
 
+    fn exercise_group_from_row(r: &sqlx::sqlite::SqliteRow) -> ExerciseGroup {
+        let configs_blob: Option<Vec<u8>> = r.get("exercise_configs_blob");
+        let exercise_configs = configs_blob
+            .map(|b| decode_exercise_configs(&b))
+            .unwrap_or_default();
+        ExerciseGroup {
+            id: r.get("id"),
+            workout_id: r.get("workout_id"),
+            name: r.get("name"),
+            sets: r.get("sets"),
+            interleave_warmups: r.get::<i32, _>("interleave_warmups") != 0,
+            workout_order: r.get("workout_order"),
+            exercise_configs,
+            rest_config: Some(RestConfig {
+                rest_after_success: r.get("rest_success"),
+                rest_after_failure: r.get("rest_failure"),
+                rest_after_warmup: r.get("rest_warmup"),
+                rest_after_last_warmup: r.get("rest_last_warmup"),
+            }),
+            instruction: r.get("instruction"),
+            prescribed_by_regime: r.get::<i32, _>("prescribed_by_regime") != 0,
+        }
+    }
+
     /// Insert a new workout with its groups and proposed sets in one transaction.
     pub async fn insert_workout(
         &self,
@@ -339,31 +363,141 @@ impl ServerDb {
         .bind(workout_id)
         .fetch_all(&self.read_pool)
         .await?;
-        let mut groups = Vec::with_capacity(rows.len());
-        for r in rows {
-            let configs_blob: Option<Vec<u8>> = r.get("exercise_configs_blob");
-            let exercise_configs = configs_blob
-                .map(|b| decode_exercise_configs(&b))
-                .unwrap_or_default();
-            groups.push(ExerciseGroup {
-                id: r.get("id"),
-                workout_id: r.get("workout_id"),
-                name: r.get("name"),
-                sets: r.get("sets"),
-                interleave_warmups: r.get::<i32, _>("interleave_warmups") != 0,
-                workout_order: r.get("workout_order"),
-                exercise_configs,
-                rest_config: Some(RestConfig {
-                    rest_after_success: r.get("rest_success"),
-                    rest_after_failure: r.get("rest_failure"),
-                    rest_after_warmup: r.get("rest_warmup"),
-                    rest_after_last_warmup: r.get("rest_last_warmup"),
-                }),
-                instruction: r.get("instruction"),
-                prescribed_by_regime: r.get::<i32, _>("prescribed_by_regime") != 0,
-            });
-        }
-        Ok(groups)
+        Ok(rows
+            .into_iter()
+            .map(|r| Self::exercise_group_from_row(&r))
+            .collect())
+    }
+
+    pub async fn list_profile_exercise_groups(
+        &self,
+        user_id: &str,
+    ) -> DbResult<Vec<ExerciseGroup>> {
+        let rows = sqlx::query(
+            "SELECT id,
+                    '' AS workout_id,
+                    name,
+                    sets,
+                    interleave_warmups,
+                    prescribed_by_regime,
+                    profile_order AS workout_order,
+                    instruction,
+                    rest_success,
+                    rest_failure,
+                    rest_warmup,
+                    rest_last_warmup,
+                    exercise_configs_blob
+             FROM profile_exercise_groups
+             WHERE user_id = ?
+             ORDER BY profile_order ASC, updated_at DESC, created_at DESC, name ASC",
+        )
+        .bind(user_id)
+        .fetch_all(&self.read_pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| Self::exercise_group_from_row(&r))
+            .collect())
+    }
+
+    pub async fn save_profile_exercise_group(
+        &self,
+        user_id: &str,
+        group: &ExerciseGroup,
+    ) -> DbResult<ExerciseGroup> {
+        let mut tx = self.write_pool.begin().await?;
+        let now = now_unix();
+        let group_id = if group.id.is_empty() {
+            Uuid::new_v4().to_string()
+        } else {
+            group.id.clone()
+        };
+        let rest = group.rest_config.as_ref();
+        let configs_blob = if group.exercise_configs.is_empty() {
+            None
+        } else {
+            Some(encode_exercise_configs(&group.exercise_configs))
+        };
+        let existing_order: Option<i32> = sqlx::query_scalar(
+            "SELECT profile_order FROM profile_exercise_groups WHERE user_id = ? AND id = ?",
+        )
+        .bind(user_id)
+        .bind(&group_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let next_order: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(MAX(profile_order), -1) + 1 FROM profile_exercise_groups WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        let profile_order =
+            existing_order.unwrap_or_else(|| group.workout_order.max(next_order as i32));
+
+        sqlx::query(
+            "INSERT INTO profile_exercise_groups (
+                id, user_id, name, sets, interleave_warmups, prescribed_by_regime, profile_order,
+                instruction, rest_success, rest_failure, rest_warmup, rest_last_warmup,
+                exercise_configs_blob, created_at, updated_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                sets = excluded.sets,
+                interleave_warmups = excluded.interleave_warmups,
+                prescribed_by_regime = excluded.prescribed_by_regime,
+                instruction = excluded.instruction,
+                rest_success = excluded.rest_success,
+                rest_failure = excluded.rest_failure,
+                rest_warmup = excluded.rest_warmup,
+                rest_last_warmup = excluded.rest_last_warmup,
+                exercise_configs_blob = excluded.exercise_configs_blob,
+                updated_at = excluded.updated_at",
+        )
+        .bind(&group_id)
+        .bind(user_id)
+        .bind(&group.name)
+        .bind(group.sets)
+        .bind(group.interleave_warmups as i32)
+        .bind(group.prescribed_by_regime as i32)
+        .bind(profile_order)
+        .bind(&group.instruction)
+        .bind(rest.map(|r| r.rest_after_success).unwrap_or(0))
+        .bind(rest.map(|r| r.rest_after_failure).unwrap_or(0))
+        .bind(rest.map(|r| r.rest_after_warmup).unwrap_or(0))
+        .bind(rest.map(|r| r.rest_after_last_warmup).unwrap_or(0))
+        .bind(configs_blob)
+        .bind(now)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(ExerciseGroup {
+            id: group_id,
+            workout_id: String::new(),
+            name: group.name.clone(),
+            sets: group.sets,
+            interleave_warmups: group.interleave_warmups,
+            workout_order: profile_order,
+            exercise_configs: group.exercise_configs.clone(),
+            rest_config: group.rest_config.clone(),
+            instruction: group.instruction.clone(),
+            prescribed_by_regime: group.prescribed_by_regime,
+        })
+    }
+
+    pub async fn delete_profile_exercise_group(
+        &self,
+        user_id: &str,
+        group_id: &str,
+    ) -> DbResult<()> {
+        sqlx::query("DELETE FROM profile_exercise_groups WHERE user_id = ? AND id = ?")
+            .bind(user_id)
+            .bind(group_id)
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
     }
 
     /// Load proposed sets for a workout.

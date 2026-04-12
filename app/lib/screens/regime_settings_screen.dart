@@ -30,8 +30,9 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
   }
 
   void _ensureInitialized(SettingsProvider provider) {
-    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty)
+    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) {
       return;
+    }
 
     final currentState = provider.programState;
     final programs = provider.trainingPrograms;
@@ -243,7 +244,7 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
               icon: const Icon(Icons.arrow_back),
               onPressed: () => context.go('/'),
             ),
-            title: const Text('Training Program'),
+            title: const Text('Schplanner'),
           ),
           body: const Center(child: CircularProgressIndicator()),
         ),
@@ -263,7 +264,7 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text('Training Program'),
+          title: const Text('Schplanner'),
           centerTitle: false,
           actions: hasUnsavedChanges
               ? [
@@ -302,6 +303,11 @@ class _RegimeSettingsScreenState extends State<RegimeSettingsScreen> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           children: [
+            Text(
+              "Hello I am schplanner. My job is to schplan your workouts. I'll automatically progress your weight according to what i read about how to do it on the internet. My methods have cited sources and i don't use AI, just actual science and an algorithm.",
+              style: TextStyle(fontSize: 14, height: 1.45, color: cs.tertiary),
+            ),
+            const SizedBox(height: 20),
             _SectionTitle('PROGRAM'),
             const SizedBox(height: 10),
             ...programs.map((program) {

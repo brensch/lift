@@ -4,7 +4,9 @@ import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/app_logger.dart';
 import '../services/grpc_client.dart';
+import '../services/health_service.dart';
 import '../services/user_service.dart';
 import '../logic/utils.dart';
 
@@ -23,8 +25,10 @@ class AuthProvider extends ChangeNotifier {
   String? _sessionToken;
   String _profileEmoji = defaultProfileEmoji;
   String _profileColorHex = defaultProfileColorHex;
+  double _bodyWeightKg = 0;
   bool _needsPasskeyNotice = false;
   bool _isLoading = false;
+  bool _bodyWeightHealthSyncInFlight = false;
   String? _error;
 
   AuthProvider({
@@ -38,6 +42,7 @@ class AuthProvider extends ChangeNotifier {
   String? get sessionToken => _sessionToken;
   String get profileEmoji => _profileEmoji;
   String get profileColorHex => _profileColorHex;
+  double get bodyWeightKg => _bodyWeightKg;
   bool get needsPasskeyNotice => _needsPasskeyNotice;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -59,6 +64,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> passkeyRegister(String username) async {
+    if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -67,7 +73,9 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.passkeyRegister(username);
       await _saveSession(response, needsPasskeyNotice: true);
     } catch (e) {
-      _error = _formatError(e);
+      if (e is! PasskeyAuthCancelledException) {
+        _error = _formatError(e);
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -75,6 +83,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> testLogin(String username) async {
+    if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -91,6 +100,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> passkeyLogin() async {
+    if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -99,7 +109,11 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.passkeyLogin();
       await _saveSession(response);
     } catch (e) {
-      _error = _formatError(e);
+      // Cancellation is user-initiated (or the OS dismissed the sheet) — clear
+      // silently so the button just becomes tappable again without an error.
+      if (e is! PasskeyAuthCancelledException) {
+        _error = _formatError(e);
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -175,6 +189,7 @@ class AuthProvider extends ChangeNotifier {
       if (user == null) return;
       _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
       _profileColorHex = normalizedProfileColorHex(user.profileColorHex);
+      _bodyWeightKg = user.bodyWeightKg.toDouble();
       if (notify) {
         notifyListeners();
       }
@@ -186,10 +201,56 @@ class AuthProvider extends ChangeNotifier {
   void setProfile({
     required String profileEmoji,
     required String profileColorHex,
+    double? bodyWeightKg,
   }) {
     _profileEmoji = normalizedProfileEmoji(profileEmoji);
     _profileColorHex = normalizedProfileColorHex(profileColorHex);
+    if (bodyWeightKg != null && bodyWeightKg > 0) _bodyWeightKg = bodyWeightKg;
     notifyListeners();
+  }
+
+  void setBodyWeight(double kg) {
+    _bodyWeightKg = kg;
+    notifyListeners();
+  }
+
+  Future<double?> syncBodyWeightFromHealth({
+    bool requestPermissions = false,
+  }) async {
+    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
+    _bodyWeightHealthSyncInFlight = true;
+    try {
+      final importedKg = await HealthService.readLatestBodyWeightKg(
+        requestPermissions: requestPermissions,
+      );
+      if (importedKg == null || importedKg <= 0) return null;
+
+      final changed = (_bodyWeightKg - importedKg).abs() >= 0.05;
+      if (!changed) {
+        AppLogger.instance.info('Auth', 'bodyweight sync skipped', {
+          'reason': 'unchanged',
+          'bodyWeightKg': importedKg,
+        });
+        return importedKg;
+      }
+
+      final user = await UserServiceWrapper(
+        _grpcClient,
+      ).updateMyBodyWeight(bodyWeightKg: importedKg);
+      _bodyWeightKg = user.bodyWeightKg.toDouble();
+      AppLogger.instance.info('Auth', 'bodyweight sync applied', {
+        'bodyWeightKg': _bodyWeightKg,
+      });
+      notifyListeners();
+      return _bodyWeightKg;
+    } catch (e) {
+      AppLogger.instance.warn('Auth', 'bodyweight sync failed', {
+        'error': e.toString(),
+      });
+      return null;
+    } finally {
+      _bodyWeightHealthSyncInFlight = false;
+    }
   }
 
   Future<void> acknowledgePasskeyNotice() async {

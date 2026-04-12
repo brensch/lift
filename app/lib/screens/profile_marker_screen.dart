@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../logic/user_profile.dart';
@@ -9,7 +8,6 @@ import '../logic/whimsical_emojis.dart';
 import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
-import '../widgets/top_level_back_scope.dart';
 
 class ProfileMarkerScreen extends StatefulWidget {
   const ProfileMarkerScreen({super.key});
@@ -20,6 +18,8 @@ class ProfileMarkerScreen extends StatefulWidget {
 
 class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
   static const int _emojiWindowSize = 18;
+  late String _savedEmoji;
+  late String _savedColorHex;
   late String _selectedEmoji;
   late String _selectedColorHex;
   late List<String> _emojiChoices;
@@ -29,11 +29,16 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
   void initState() {
     super.initState();
     final auth = context.read<AuthProvider>();
-    _selectedEmoji = auth.profileEmoji;
-    _selectedColorHex = auth.profileColorHex;
+    _savedEmoji = auth.profileEmoji;
+    _savedColorHex = auth.profileColorHex;
+    _selectedEmoji = _savedEmoji;
+    _selectedColorHex = _savedColorHex;
     _emojiChoices = whimsicalEmojiCatalog.take(_emojiWindowSize).toList();
     _ensureSelectedEmojiVisible();
   }
+
+  bool get _hasUnsavedChanges =>
+      _selectedEmoji != _savedEmoji || _selectedColorHex != _savedColorHex;
 
   void _ensureSelectedEmojiVisible() {
     if (_emojiChoices.contains(_selectedEmoji)) return;
@@ -53,6 +58,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
   }
 
   Future<void> _save() async {
+    if (_isSaving || !_hasUnsavedChanges) return;
     setState(() => _isSaving = true);
     try {
       final user = await UserServiceWrapper(context.read<GrpcClient>())
@@ -65,7 +71,13 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
         profileEmoji: user.profileEmoji,
         profileColorHex: user.profileColorHex,
       );
-      context.pop();
+      setState(() {
+        _savedEmoji = user.profileEmoji;
+        _savedColorHex = user.profileColorHex;
+        _selectedEmoji = user.profileEmoji;
+        _selectedColorHex = user.profileColorHex;
+        _ensureSelectedEmojiVisible();
+      });
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -74,147 +86,141 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
-          ),
-          title: const Text(
-            'Profile Marker',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                  children: [
-                    Text(
-                      'GROUP LOOK',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.4,
-                        color: cs.tertiary,
+        title: const Text(
+          'Profile Marker',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                children: [
+                  Text(
+                    'GROUP LOOK',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pick your colour and emoji',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This controls the badge and side stripe used for you in group workouts.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: cs.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _ProfilePreviewCard(
+                    emoji: _selectedEmoji,
+                    colorHex: _selectedColorHex,
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Text(
+                        'EMOJIS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          color: cs.tertiary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Pick your colour and emoji',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: _refreshEmojiChoices,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('Refresh'),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'This controls the badge and side stripe used for you in group workouts.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: cs.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _ProfilePreviewCard(
-                      emoji: _selectedEmoji,
-                      colorHex: _selectedColorHex,
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Text(
-                          'EMOJIS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            color: cs.tertiary,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _emojiChoices
+                        .map(
+                          (emoji) => _EmojiChoiceChip(
+                            emoji: emoji,
+                            selected: emoji == _selectedEmoji,
+                            onTap: () => setState(() => _selectedEmoji = emoji),
                           ),
-                        ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: _refreshEmojiChoices,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Refresh'),
-                        ),
-                      ],
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'COLOURS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: cs.tertiary,
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: _emojiChoices
-                          .map(
-                            (emoji) => _EmojiChoiceChip(
-                              emoji: emoji,
-                              selected: emoji == _selectedEmoji,
-                              onTap: () =>
-                                  setState(() => _selectedEmoji = emoji),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'COLOURS',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                        color: cs.tertiary,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: profileColorHexOptions
-                          .map(
-                            (hex) => _ColorChoiceDot(
-                              hex: hex,
-                              selected: hex == _selectedColorHex,
-                              onTap: () =>
-                                  setState(() => _selectedColorHex = hex),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: profileColorHexOptions
+                        .map(
+                          (hex) => _ColorChoiceDot(
+                            hex: hex,
+                            selected: hex == _selectedColorHex,
+                            onTap: () =>
+                                setState(() => _selectedColorHex = hex),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                border: Border(
+                  top: BorderSide(color: cs.outline.withValues(alpha: 0.15)),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  border: Border(
-                    top: BorderSide(color: cs.outline.withValues(alpha: 0.15)),
-                  ),
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _save,
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text(
-                            'SAVE',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                  ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  onPressed: (!_isSaving && _hasUnsavedChanges) ? _save : null,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'SAVE',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
