@@ -23,9 +23,26 @@ class HeartRateZoneProfile {
 }
 
 class HealthService {
-  static const _kcalPerMinute = 5.0;
+  // MET value for traditional strength training from the 2011 Compendium of
+  // Physical Activities (Ainsworth et al., Med Sci Sports Exerc 43(8):1575-81).
+  // MET formula: calories = MET × 3.5 × body_weight_kg × duration_min / 200
+  static const _strengthTrainingMet = 3.5;
+  // Fallback flat rate when bodyweight is unknown (conservative estimate).
+  static const _fallbackKcalPerMin = 5.0;
+
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
+
+  static int estimateCalories({
+    required double durationMinutes,
+    required double bodyWeightKg,
+  }) {
+    if (bodyWeightKg > 0) {
+      return (_strengthTrainingMet * 3.5 * bodyWeightKg * durationMinutes / 200)
+          .round();
+    }
+    return (durationMinutes * _fallbackKcalPerMin).round();
+  }
 
   static Future<HealthWriteResult> writeCompletedWorkout({
     required DateTime startTime,
@@ -33,6 +50,7 @@ class HealthService {
     required String title,
     required double totalVolumeKg,
     required int workingSets,
+    required double bodyWeightKg,
   }) async {
     debugPrint('Health: writeCompletedWorkout called');
 
@@ -66,7 +84,10 @@ class HealthService {
     }
 
     final durationMinutes = endTime.difference(startTime).inSeconds / 60.0;
-    final calories = (durationMinutes * _kcalPerMinute).round();
+    final calories = estimateCalories(
+      durationMinutes: durationMinutes,
+      bodyWeightKg: bodyWeightKg,
+    );
 
     debugPrint(
       'Health: writing workout "$title", ${durationMinutes.toStringAsFixed(1)} min, $calories kcal',

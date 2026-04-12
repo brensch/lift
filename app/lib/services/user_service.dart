@@ -24,12 +24,21 @@ class UserServiceWrapper {
   Future<User> updateMyProfile({
     required String profileEmoji,
     required String profileColorHex,
+    double? bodyWeightKg,
   }) async {
     final response = await _client.userService.updateMyProfile(
       UpdateMyProfileRequest(
         profileEmoji: profileEmoji,
         profileColorHex: profileColorHex,
+        bodyWeightKg: bodyWeightKg != null && bodyWeightKg > 0 ? bodyWeightKg.toDouble() : null,
       ),
+    );
+    return response.user;
+  }
+
+  Future<User> updateMyBodyWeight({required double bodyWeightKg}) async {
+    final response = await _client.userService.updateMyProfile(
+      UpdateMyProfileRequest(bodyWeightKg: bodyWeightKg),
     );
     return response.user;
   }

@@ -29,6 +29,7 @@ class User extends $pb.GeneratedMessage {
     $fixnum.Int64? createdAt,
     $core.String? profileEmoji,
     $core.String? profileColorHex,
+    $core.double? bodyWeightKg,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -36,6 +37,7 @@ class User extends $pb.GeneratedMessage {
     if (createdAt != null) result.createdAt = createdAt;
     if (profileEmoji != null) result.profileEmoji = profileEmoji;
     if (profileColorHex != null) result.profileColorHex = profileColorHex;
+    if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
     return result;
   }
 
@@ -57,6 +59,8 @@ class User extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'createdAt')
     ..aOS(4, _omitFieldNames ? '' : 'profileEmoji')
     ..aOS(5, _omitFieldNames ? '' : 'profileColorHex')
+    ..aD(6, _omitFieldNames ? '' : 'bodyWeightKg',
+        fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -121,6 +125,15 @@ class User extends $pb.GeneratedMessage {
   $core.bool hasProfileColorHex() => $_has(4);
   @$pb.TagNumber(5)
   void clearProfileColorHex() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.double get bodyWeightKg => $_getN(5);
+  @$pb.TagNumber(6)
+  set bodyWeightKg($core.double value) => $_setFloat(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasBodyWeightKg() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBodyWeightKg() => $_clearField(6);
 }
 
 class Workout extends $pb.GeneratedMessage {
@@ -5824,10 +5837,12 @@ class UpdateMyProfileRequest extends $pb.GeneratedMessage {
   factory UpdateMyProfileRequest({
     $core.String? profileEmoji,
     $core.String? profileColorHex,
+    $core.double? bodyWeightKg,
   }) {
     final result = create();
     if (profileEmoji != null) result.profileEmoji = profileEmoji;
     if (profileColorHex != null) result.profileColorHex = profileColorHex;
+    if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
     return result;
   }
 
@@ -5846,6 +5861,8 @@ class UpdateMyProfileRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'profileEmoji')
     ..aOS(2, _omitFieldNames ? '' : 'profileColorHex')
+    ..aD(3, _omitFieldNames ? '' : 'bodyWeightKg',
+        fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5885,6 +5902,15 @@ class UpdateMyProfileRequest extends $pb.GeneratedMessage {
   $core.bool hasProfileColorHex() => $_has(1);
   @$pb.TagNumber(2)
   void clearProfileColorHex() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get bodyWeightKg => $_getN(2);
+  @$pb.TagNumber(3)
+  set bodyWeightKg($core.double value) => $_setFloat(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBodyWeightKg() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBodyWeightKg() => $_clearField(3);
 }
 
 class UpdateMyProfileResponse extends $pb.GeneratedMessage {

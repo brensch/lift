@@ -35,6 +35,7 @@ import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
+import 'screens/maths_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
@@ -126,6 +127,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
       final isLoggedIn = _authProvider.isLoggedIn;
+      _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
       if (isLoggedIn && !_wasLoggedIn) {
         _settingsProvider.load();
         _soundProvider.load();
@@ -246,6 +248,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/maths',
+              builder: (_, __) => const MathsScreen(),
             ),
           ],
         ),

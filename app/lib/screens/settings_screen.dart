@@ -6,6 +6,8 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/grpc_client.dart';
+import '../services/user_service.dart';
 import '../widgets/top_level_back_scope.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -18,6 +20,11 @@ class SettingsScreen extends StatelessWidget {
     final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
         ? 'Kilograms (🌍)'
         : 'Pounds (🦅)';
+    final bodyWeightLabel = auth.bodyWeightKg > 0
+        ? settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
+            ? '${auth.bodyWeightKg.toStringAsFixed(1)} kg'
+            : '${(auth.bodyWeightKg * 2.20462).toStringAsFixed(1)} lb'
+        : 'Not set';
     return TopLevelBackScope(
       child: Scaffold(
         appBar: AppBar(
@@ -46,6 +53,13 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               onTap: () => context.push('/settings/profile-marker'),
+            ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.monitor_weight_outlined,
+              label: 'Body weight',
+              subtitle: bodyWeightLabel,
+              onTap: () => _showBodyWeightPicker(context, auth, settings),
             ),
             const SizedBox(height: 8),
             _SettingsTile(
@@ -89,10 +103,111 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'View and share diagnostic logs',
               onTap: () => context.push('/debug-logs'),
             ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.functions_outlined,
+              label: 'Maths',
+              subtitle: 'How calories are calculated',
+              onTap: () => context.push('/settings/maths'),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _showBodyWeightPicker(
+    BuildContext context,
+    AuthProvider auth,
+    SettingsProvider settings,
+  ) async {
+    final isKg = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG;
+    final currentDisplayValue = auth.bodyWeightKg > 0
+        ? isKg
+            ? auth.bodyWeightKg
+            : auth.bodyWeightKg * 2.20462
+        : null;
+
+    final controller = TextEditingController(
+      text: currentDisplayValue != null
+          ? currentDisplayValue.toStringAsFixed(1)
+          : '',
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Body weight',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Used to estimate calories burned. Stored on your profile.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                suffixText: isKg ? 'kg' : 'lb',
+                border: const OutlineInputBorder(),
+                labelText: 'Weight',
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: () async {
+                  final raw = double.tryParse(controller.text.trim());
+                  if (raw == null || raw <= 0) {
+                    Navigator.of(ctx).pop();
+                    return;
+                  }
+                  final kg = isKg ? raw : raw / 2.20462;
+                  Navigator.of(ctx).pop();
+                  try {
+                    final user = await UserServiceWrapper(
+                      context.read<GrpcClient>(),
+                    ).updateMyBodyWeight(bodyWeightKg: kg);
+                    if (context.mounted) {
+                      context.read<AuthProvider>().setBodyWeight(
+                        user.bodyWeightKg.toDouble(),
+                      );
+                    }
+                  } catch (e) {
+                    debugPrint('Body weight save failed: $e');
+                  }
+                },
+                child: const Text(
+                  'SAVE',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
   }
 
   Future<void> _showWeightUnitPicker(

@@ -39,10 +39,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final SettingsProvider _settingsProvider;
   SoundProvider? _soundProvider;
   final _uuid = const Uuid();
+  double _bodyWeightKg = 0;
 
   /// Called after each set mutation so the multiplayer session view can
   /// refresh immediately instead of waiting for the next background tick.
   VoidCallback? onSessionRefreshNeeded;
+
+  void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   // Loading state
   bool _isLoading = false;
@@ -1764,6 +1767,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         title: title,
         totalVolumeKg: totalVolumeKg,
         workingSets: workingSets,
+        bodyWeightKg: _bodyWeightKg,
       );
 
       if (result == HealthWriteResult.success) {

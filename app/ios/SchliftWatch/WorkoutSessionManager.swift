@@ -3,6 +3,7 @@ import HealthKit
 
 class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     var onLatestHeartRateChanged: ((Double?) -> Void)?
+    var onHeartRateSample: ((Workout_V1_HeartRateSample) -> Void)?
 
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -78,6 +79,21 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             return
         }
         let bpm = quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
+
+        let sampleTimestamp: Int64
+        if let interval = statistics.mostRecentQuantityDateInterval() {
+            sampleTimestamp = Int64(interval.start.timeIntervalSince1970 * 1000)
+        } else {
+            sampleTimestamp = Int64(Date().timeIntervalSince1970 * 1000)
+        }
+
+        var hrSample = Workout_V1_HeartRateSample()
+        hrSample.sampledAt = sampleTimestamp
+        hrSample.bpm = Float(bpm)
+        hrSample.availability = .available
+
+        onHeartRateSample?(hrSample)
+
         DispatchQueue.main.async { [weak self] in
             self?.onLatestHeartRateChanged?(bpm)
         }

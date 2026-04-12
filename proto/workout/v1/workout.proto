@@ -29,6 +29,7 @@ message User {
   int64 created_at = 3; // Unix timestamp
   string profile_emoji = 4;
   string profile_color_hex = 5;
+  float body_weight_kg = 6; // 0 = not set
 }
 
 message Workout {
@@ -623,6 +624,7 @@ message GetUserResponse {
 message UpdateMyProfileRequest {
   string profile_emoji = 1;
   string profile_color_hex = 2;
+  float body_weight_kg = 3; // 0 = unchanged
 }
 
 message UpdateMyProfileResponse {

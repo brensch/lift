@@ -41,6 +41,7 @@ impl ServerDb {
             created_at: now_unix(),
             profile_emoji: Self::default_profile_emoji().to_string(),
             profile_color_hex: Self::default_profile_color_hex().to_string(),
+            body_weight_kg: 0.0,
         };
         let normalized = username.trim().to_lowercase();
         sqlx::query("INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)")
@@ -72,6 +73,7 @@ impl ServerDb {
                     created_at: now_unix(),
                     profile_emoji: Self::default_profile_emoji().to_string(),
                     profile_color_hex: Self::default_profile_color_hex().to_string(),
+                    body_weight_kg: 0.0,
                 };
                 sqlx::query(
                     "INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)",
@@ -143,6 +145,7 @@ impl ServerDb {
         user_id: &str,
         profile_emoji: &str,
         profile_color_hex: &str,
+        body_weight_kg: f32,
     ) -> DbResult<Option<schlift::workout::v1::User>> {
         let existing = self.get_user(user_id).await?;
         let Some(mut user) = existing else {
@@ -151,6 +154,9 @@ impl ServerDb {
 
         user.profile_emoji = Self::normalize_profile_emoji(profile_emoji);
         user.profile_color_hex = Self::normalize_profile_color_hex(profile_color_hex);
+        if body_weight_kg > 0.0 {
+            user.body_weight_kg = body_weight_kg;
+        }
 
         sqlx::query("UPDATE users_current SET user_blob = ? WHERE user_id = ?")
             .bind(user.encode_to_vec())
