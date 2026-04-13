@@ -5,7 +5,6 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_theme.dart';
 
 class SetLog extends StatelessWidget {
   final List<ProposedSet> proposedSets;
@@ -13,6 +12,7 @@ class SetLog extends StatelessWidget {
   final void Function(String completedSetId)? onDelete;
   final String? deletableWorkoutId;
   final Map<String, String>? workoutOwnerLabels;
+  final Map<String, String>? workoutOwnerEmojis;
 
   const SetLog({
     super.key,
@@ -21,13 +21,14 @@ class SetLog extends StatelessWidget {
     this.onDelete,
     this.deletableWorkoutId,
     this.workoutOwnerLabels,
+    this.workoutOwnerEmojis,
   });
 
-  // Layout constants — keep these in sync so dot and connector line up.
-  static const double _timeWidth = 36;
-  static const double _gap1 = 6;
-  static const double _dotSize = 6;
-  static const double _dotCenterX = _timeWidth + _gap1 + _dotSize / 2; // 45
+  static const double _timeWidth = 48;
+  static const double _typeWidth = 30;
+  static const double _ownerWidth = 28;
+  static const double _durationWidth = 52;
+  static const double _deleteWidth = 28;
 
   @override
   Widget build(BuildContext context) {
@@ -40,40 +41,31 @@ class SetLog extends StatelessWidget {
 
     if (done.isEmpty) return const SizedBox.shrink();
 
-    final lineColor = colorScheme.outline.withValues(alpha: 0.25);
-
-    final List<Widget> items = [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          'COMPLETED SETS',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-            color: colorScheme.tertiary,
-          ),
-        ),
-      ),
-    ];
-
-    for (int i = 0; i < done.length; i++) {
-      items.add(_buildRow(context, done[i], proposedById, colorScheme));
-
-      // Connecting line segment between rows
-      if (i < done.length - 1) {
-        items.add(
-          Padding(
-            padding: const EdgeInsets.only(left: _dotCenterX - 0.5),
-            child: Container(width: 1, height: 7, color: lineColor),
-          ),
-        );
-      }
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: items,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            'COMPLETED SETS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
+            ),
+          ),
+        ),
+        for (int i = 0; i < done.length; i++) ...[
+          if (i > 0)
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: colorScheme.outline.withValues(alpha: 0.08),
+            ),
+          _buildRow(context, done[i], proposedById, colorScheme),
+        ],
+      ],
     );
   }
 
@@ -85,36 +77,15 @@ class SetLog extends StatelessWidget {
   ) {
     final proposed = proposedById[completed.proposedSetId];
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final shortName = proposed != null
-        ? (shortNames[proposed.exercise] ?? '?')
+    final exerciseName = proposed != null
+        ? (exerciseNames[proposed.exercise] ?? '?')
         : '?';
     final isWarmup = proposed?.warmup ?? false;
-    final hitTarget = proposed != null
-        ? completed.actualReps >= proposed.targetReps
-        : true;
 
     final String weightStr = formatWeight(
       completed.actualWeight.toDouble(),
       unit,
     );
-
-    Color dotColor;
-    Color statusColor;
-    String statusText;
-
-    if (isWarmup) {
-      dotColor = AppTheme.warmupFg.withValues(alpha: 0.5);
-      statusColor = AppTheme.warmupFg;
-      statusText = 'W';
-    } else if (hitTarget) {
-      dotColor = AppTheme.successFg;
-      statusColor = AppTheme.successFg;
-      statusText = '✓';
-    } else {
-      dotColor = AppTheme.warningFg;
-      statusColor = AppTheme.warningFg;
-      statusText = '${completed.actualReps}';
-    }
 
     final finishTime = DateTime.fromMillisecondsSinceEpoch(
       completed.endedAt.toInt() * 1000,
@@ -131,110 +102,78 @@ class SetLog extends StatelessWidget {
         onDelete != null &&
         (deletableWorkoutId == null ||
             completed.workoutId == deletableWorkoutId);
-    final ownerLabel = workoutOwnerLabels?[completed.workoutId];
+    final ownerEmoji = workoutOwnerEmojis?[completed.workoutId] ?? '';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Time
-        SizedBox(
-          width: _timeWidth,
-          child: Text(
-            timeStr,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.tertiary,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: _timeWidth,
+            child: Text(
+              timeStr,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.tertiary,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: _gap1),
-
-        // Dot
-        Container(
-          width: _dotSize,
-          height: _dotSize,
-          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-
-        // Content
-        Expanded(
-          child: Row(
-            children: [
-              Text(
-                shortName,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                  color: isWarmup
-                      ? colorScheme.tertiary
-                      : colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                '${completed.actualReps}×$weightStr',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                statusText,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: statusColor,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                durationStr,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: colorScheme.tertiary.withValues(alpha: 0.7),
-                ),
-              ),
-              if (ownerLabel != null && ownerLabel.isNotEmpty) ...[
-                const SizedBox(width: 6),
-                _ownerBadge(context, ownerLabel, colorScheme),
-              ],
-              if (canDelete) ...[
-                const SizedBox(width: 4),
-                _deleteButton(context, completed, colorScheme),
-              ],
-            ],
+          SizedBox(
+            width: _typeWidth,
+            child: Text(
+              isWarmup ? '🔥' : '🏋️',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _ownerBadge(
-    BuildContext context,
-    String label,
-    ColorScheme colorScheme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.4,
-          color: colorScheme.onPrimaryContainer,
-        ),
+          SizedBox(
+            width: _ownerWidth,
+            child: Text(
+              ownerEmoji,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  '$exerciseName  ${completed.actualReps}×$weightStr',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: _durationWidth,
+            child: Text(
+              durationStr,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.tertiary.withValues(alpha: 0.78),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: _deleteWidth,
+            child: Center(
+              child: canDelete
+                  ? _deleteButton(context, completed, colorScheme)
+                  : const SizedBox(width: 18, height: 18),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -244,7 +183,8 @@ class SetLog extends StatelessWidget {
     CompletedSet completed,
     ColorScheme colorScheme,
   ) {
-    return GestureDetector(
+    return InkResponse(
+      radius: 18,
       onTap: () async {
         final weight = completed.actualWeight.toDouble();
         final weightText = formatWeight(
@@ -257,13 +197,10 @@ class SetLog extends StatelessWidget {
         );
         if (confirmed == true) onDelete!(completed.id);
       },
-      child: Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: Icon(
-          Icons.close_rounded,
-          size: 14,
-          color: colorScheme.outline.withValues(alpha: 0.5),
-        ),
+      child: Icon(
+        Icons.delete_outline_rounded,
+        size: 18,
+        color: colorScheme.outline.withValues(alpha: 0.62),
       ),
     );
   }

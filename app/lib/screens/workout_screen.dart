@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/exercises.dart';
+import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
+import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -28,6 +30,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
+    final auth = context.watch<AuthProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
     if (wp.workout == null) {
@@ -47,8 +50,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
     final workoutOwnerLabels = <String, String>{};
+    final workoutOwnerEmojis = <String, String>{};
     if (wp.workout != null) {
       workoutOwnerLabels[wp.workout!.id] = 'You';
+      workoutOwnerEmojis[wp.workout!.id] = normalizedProfileEmoji(
+        auth.profileEmoji,
+      );
     }
     if (mp.isInSession && mp.sessionStatus != null) {
       for (final participant in mp.participants) {
@@ -59,6 +66,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ? participant.user.name
               : participant.user.id;
           workoutOwnerLabels[participant.activeWorkoutId] = rawName;
+          workoutOwnerEmojis[participant.activeWorkoutId] =
+              normalizedProfileEmoji(participant.user.profileEmoji);
         }
       }
     }
@@ -160,7 +169,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   completedSets: wp.completedSets,
                   activeSetId: activeSetId,
                   onEdit: () => _editCurrentGroup(context, wp, focusedGroup),
-                  onInfo: () => _showGroupDetails(context, focusedGroup),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -232,7 +240,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         group: group,
                         groupIndex: idx,
                         onDelete: () => _confirmDeleteGroup(context, wp, group),
-                        onInfo: () => _showGroupDetails(context, group),
                         onEdit: () => _editCurrentGroup(context, wp, group),
                       ),
                     );
@@ -349,6 +356,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
             deletableWorkoutId: wp.workout?.id,
             workoutOwnerLabels: workoutOwnerLabels,
+            workoutOwnerEmojis: workoutOwnerEmojis,
           ),
         ),
 
@@ -463,18 +471,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  void _showGroupDetails(BuildContext context, ExerciseGroupData group) {
-    final rawGroup = group.group;
-    if (rawGroup == null) return;
-    showExerciseGroupDetailsSheet(
-      context,
-      title: rawGroup.name,
-      explanation: rawGroup.instruction,
-      exerciseConfigs: rawGroup.exerciseConfigs,
-      fallbackSets: rawGroup.sets,
-    );
-  }
-
   void _editCurrentGroup(
     BuildContext context,
     WorkoutProvider wp,
@@ -516,14 +512,12 @@ class _CurrentExerciseCard extends StatelessWidget {
   final List<CompletedSet> completedSets;
   final String? activeSetId;
   final VoidCallback onEdit;
-  final VoidCallback onInfo;
 
   const _CurrentExerciseCard({
     required this.group,
     required this.completedSets,
     required this.activeSetId,
     required this.onEdit,
-    required this.onInfo,
   });
 
   @override
@@ -531,6 +525,7 @@ class _CurrentExerciseCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final title =
         group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
+    final explanation = group.group?.instruction.trim() ?? '';
 
     final activeSet = group.sets.cast<ProposedSet?>().firstWhere(
       (set) => set?.id == activeSetId,
@@ -588,23 +583,21 @@ class _CurrentExerciseCard extends StatelessWidget {
                       color: colorScheme.onSurface.withValues(alpha: 0.65),
                     ),
                   ),
-                  IconButton(
-                    onPressed: onInfo,
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(36, 36),
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    icon: Icon(
-                      Icons.info_outline_rounded,
-                      size: 20,
-                      color: colorScheme.onSurface.withValues(alpha: 0.65),
-                    ),
-                  ),
                 ],
               ),
             ],
           ),
+          if (explanation.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              explanation,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: colorScheme.onSurface.withValues(alpha: 0.74),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           if (group.sets.any((set) => set.warmup)) ...[
             _SetProgressSection(
@@ -760,14 +753,12 @@ class _RemainingExerciseCard extends StatelessWidget {
   final ExerciseGroupData group;
   final int groupIndex;
   final VoidCallback onDelete;
-  final VoidCallback onInfo;
   final VoidCallback onEdit;
 
   const _RemainingExerciseCard({
     required this.group,
     required this.groupIndex,
     required this.onDelete,
-    required this.onInfo,
     required this.onEdit,
   });
 
@@ -839,8 +830,6 @@ class _RemainingExerciseCard extends StatelessWidget {
               ),
             ),
           ),
-          iconButton(icon: Icons.info_outline_rounded, onPressed: onInfo),
-          const SizedBox(width: 6),
           Expanded(
             child: Text(
               title,
