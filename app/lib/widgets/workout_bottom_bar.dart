@@ -1265,15 +1265,6 @@ class _RepButtonsState extends State<_RepButtons> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              widget.isAmrap ? 'AMRAP' : 'good/${widget.targetReps}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.tertiary,
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: SizedBox(
                 height: 64,
