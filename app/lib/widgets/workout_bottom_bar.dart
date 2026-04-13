@@ -40,6 +40,45 @@ bool _isRestingState(int state) =>
 bool _isReadyState(int state) =>
     state == WorkoutState.WORKOUT_STATE_READY.value;
 
+int _compareParticipantsByNextWorkout(
+  ParticipantStatus a,
+  ParticipantStatus b, {
+  required int nowUnix,
+}) {
+  final aHasActiveSet =
+      a.hasActiveSet ||
+      a.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
+  final bHasActiveSet =
+      b.hasActiveSet ||
+      b.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
+
+  if (aHasActiveSet != bHasActiveSet) {
+    return aHasActiveSet ? -1 : 1;
+  }
+
+  final aScheduled = participantScheduledStartUnix(a, nowUnix: nowUnix);
+  final bScheduled = participantScheduledStartUnix(b, nowUnix: nowUnix);
+  if (aScheduled != null && bScheduled != null && aScheduled != bScheduled) {
+    return aScheduled.compareTo(bScheduled);
+  }
+  if (aScheduled != null && bScheduled == null) return -1;
+  if (aScheduled == null && bScheduled != null) return 1;
+
+  final nameCompare = participantDisplayName(
+    a,
+  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
+  if (nameCompare != 0) return nameCompare;
+  return a.user.id.compareTo(b.user.id);
+}
+
+int _compareParticipantsStable(ParticipantStatus a, ParticipantStatus b) {
+  final nameCompare = participantDisplayName(
+    a,
+  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
+  if (nameCompare != 0) return nameCompare;
+  return a.user.id.compareTo(b.user.id);
+}
+
 /// Returns the userId of whoever is "next to lift" across all session members.
 /// Tiebreak: earliest scheduledStart, then lexicographic userId.
 String? _computeNextToLiftUserId({
@@ -192,6 +231,190 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
     });
   }
 
+  Future<void> _showAllParticipantsSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Consumer3<WorkoutProvider, MultiplayerProvider, AuthProvider>(
+          builder: (context, wp, mp, auth, _) {
+            final colorScheme = Theme.of(sheetContext).colorScheme;
+            final stateSnapshot = wp.stateSnapshot;
+            final stateValue =
+                stateSnapshot?.state.value ??
+                WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
+            final nextSet = wp.nextPendingSet;
+            final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
+            final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
+            final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
+            final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
+            final restSeconds = restUntil > 0
+                ? (restUntil - nowUnix).clamp(0, 1 << 30)
+                : 0;
+
+            String stateLabel;
+            Color stateColor;
+            String? timerText;
+            Color? timerColor;
+            ProposedSet? displaySet;
+
+            if (_isAllDoneState(stateValue)) {
+              stateLabel = 'All sets complete';
+              stateColor = AppTheme.successFg;
+              displaySet = null;
+            } else if (_isLiftingState(stateValue)) {
+              final proposed = stateSnapshot?.hasDisplaySet() == true
+                  ? stateSnapshot!.displaySet
+                  : null;
+              stateLabel = proposed?.warmup == true ? 'Warmup' : 'Lifting';
+              stateColor = AppTheme.workoutLiftingFg;
+              timerText = _fmt(
+                activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0,
+              );
+              displaySet = proposed;
+            } else if (_isRestingState(stateValue)) {
+              final hasExpiredRest =
+                  restUntil > 0 && restUntil <= nowUnix && nextSet != null;
+              if (hasExpiredRest) {
+                stateLabel = 'Yapping';
+                stateColor = AppTheme.workoutYappingFg;
+                timerText = _fmt(nowUnix - restUntil);
+                timerColor = AppTheme.workoutYappingFg;
+                displaySet = stateSnapshot?.hasDisplaySet() == true
+                    ? stateSnapshot!.displaySet
+                    : nextSet;
+              } else {
+                stateLabel = 'Resting';
+                stateColor = AppTheme.workoutRestingFg;
+                timerText = _fmt(restSeconds);
+                displaySet = stateSnapshot?.hasDisplaySet() == true
+                    ? stateSnapshot!.displaySet
+                    : nextSet;
+              }
+            } else if (_isReadyState(stateValue) || nextSet != null) {
+              final isYapping =
+                  nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
+              stateLabel = isYapping ? 'Yapping' : 'Next up';
+              stateColor = isYapping
+                  ? AppTheme.workoutYappingFg
+                  : colorScheme.tertiary;
+              timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
+              timerColor = isYapping ? AppTheme.workoutYappingFg : null;
+              displaySet = stateSnapshot?.hasDisplaySet() == true
+                  ? stateSnapshot!.displaySet
+                  : nextSet;
+            } else {
+              stateLabel = 'Workout';
+              stateColor = colorScheme.tertiary;
+              displaySet = null;
+            }
+
+            final others =
+                mp.participants
+                    .where(
+                      (p) => p.user.id.isNotEmpty && p.user.id != auth.userId,
+                    )
+                    .toList()
+                  ..sort(_compareParticipantsStable);
+
+            final nextToLiftUserId = _computeNextToLiftUserId(
+              myUserId: auth.userId,
+              others: others,
+              nowUnix: nowUnix,
+              stateValue: stateValue,
+              restUntil: restUntil,
+              lastRestEnd: lastRestEnd,
+              nextSet: nextSet,
+            );
+            final iAmNextToLift = nextToLiftUserId == auth.userId;
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.82,
+              minChildSize: 0.45,
+              maxChildSize: 0.94,
+              expand: false,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondary,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                          children: [
+                            _HorizontalShaker(
+                              active: iAmNextToLift,
+                              child: StatusBox(
+                                sideLabel: 'YOU',
+                                sideBadge: normalizedProfileEmoji(
+                                  auth.profileEmoji,
+                                ),
+                                header: 'You',
+                                showHeader: true,
+                                headerTrailing: iAmNextToLift
+                                    ? const _RainbowShimmerText(
+                                        text: 'next to schlift',
+                                      )
+                                    : null,
+                                stateLabel: stateLabel,
+                                color: stateColor,
+                                sideColor: profileColorFromHex(
+                                  auth.profileColorHex,
+                                ),
+                                timerText: timerText,
+                                timerColor: timerColor,
+                                set: displaySet,
+                                isComplete: _isAllDoneState(stateValue),
+                                sideLabelWidth: 44,
+                              ),
+                            ),
+                            if (others.isNotEmpty) const SizedBox(height: 8),
+                            for (var i = 0; i < others.length; i++) ...[
+                              _SessionMemberCard(
+                                name: participantDisplayName(others[i]),
+                                emoji: participantProfileEmoji(others[i]),
+                                profileColor: participantProfileColor(
+                                  others[i],
+                                ),
+                                status: describeParticipantStatus(
+                                  others[i],
+                                  now: wp.now,
+                                ),
+                                isNextToLift:
+                                    nextToLiftUserId == others[i].user.id,
+                                onTap: () => showParticipantWorkoutModal(
+                                  sheetContext,
+                                  others[i],
+                                ),
+                              ),
+                              if (i < others.length - 1)
+                                const SizedBox(height: 8),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
@@ -327,13 +550,24 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
     }
 
     // ── Session state ─────────────────────────────────────────────────────────
-    // Stable sort by user.id so cards don't jump around as workout states change.
     final others =
         mp.participants
             .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
             .toList()
-          ..sort((a, b) => a.user.id.compareTo(b.user.id));
+          ..sort(_compareParticipantsStable);
     final inSession = others.isNotEmpty;
+    final visibleOthers = others.length > 4
+        ? (List<ParticipantStatus>.from(others)..sort(
+                (a, b) =>
+                    _compareParticipantsByNextWorkout(a, b, nowUnix: nowUnix),
+              ))
+              .take(4)
+              .toList(growable: false)
+        : others;
+    final hiddenOtherCount = (others.length - visibleOthers.length).clamp(
+      0,
+      1 << 30,
+    );
 
     final nextToLiftUserId = inSession
         ? _computeNextToLiftUserId(
@@ -441,7 +675,16 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              for (final p in others) ...[
+                              if (hiddenOtherCount > 0) ...[
+                                _MoreParticipantsCard(
+                                  hiddenCount: hiddenOtherCount,
+                                  onTap: isOnWorkoutPage
+                                      ? _showAllParticipantsSheet
+                                      : () => context.go('/'),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                              for (final p in visibleOthers) ...[
                                 _SessionMemberCard(
                                   name: participantDisplayName(p),
                                   emoji: participantProfileEmoji(p),
@@ -500,7 +743,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                           header: inSession ? 'You' : null,
                           showHeader: inSession,
                           headerTrailing: iAmNextToLift
-                              ? const _RainbowShimmerText(text: 'next to schlift')
+                              ? const _RainbowShimmerText(
+                                  text: 'next to schlift',
+                                )
                               : null,
                           stateLabel: stateLabel,
                           color: stateColor,
@@ -604,6 +849,65 @@ class _SessionMemberCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: shaking,
+      ),
+    );
+  }
+}
+
+class _MoreParticipantsCard extends StatelessWidget {
+  final int hiddenCount;
+  final VoidCallback? onTap;
+
+  const _MoreParticipantsCard({required this.hiddenCount, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.expand_less_rounded,
+              color: colorScheme.onSurface,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$hiddenCount more',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return content;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: content,
       ),
     );
   }
