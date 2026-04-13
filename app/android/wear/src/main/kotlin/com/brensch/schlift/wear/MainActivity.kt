@@ -154,6 +154,18 @@ class MainActivity : ComponentActivity() {
         )
         lifecycle.addObserver(ambientObserver)
 
+        // When a snapshot with an active workout arrives, ensure the foreground
+        // service and HR session are started. This handles the case where the
+        // watch app opens while a workout is already in progress on the phone.
+        scope.launch {
+            WearDataRepository.snapshot.collect { snapshot ->
+                if (snapshot == null) return@collect
+                if (snapshot.workoutId.isBlank()) return@collect
+                if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return@collect
+                ensureCompanionSessionIfNeeded()
+            }
+        }
+
         setContent {
             WearApp(
                 onAction = { action -> sendAction(action) },
