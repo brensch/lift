@@ -185,6 +185,7 @@ class WorkoutBottomBar extends StatelessWidget {
     ParticipantStatus? featuredOther;
     ParticipantVisualStatus? featuredOtherStatus;
     bool iAmHoldup = false;
+    bool everyoneIsLiftingRightNow = false;
 
     if (inSession) {
       String? bestUserId;
@@ -250,6 +251,21 @@ class WorkoutBottomBar extends StatelessWidget {
         featuredOther = null;
         featuredOtherStatus = null;
       }
+
+      final others = mp.participants
+          .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
+          .toList();
+      bool participantIsActivelyLifting(ParticipantStatus participant) {
+        final activeSet = participant.completedSets
+            .cast<CompletedSet?>()
+            .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
+        return participant.hasActiveSet || activeSet != null;
+      }
+
+      everyoneIsLiftingRightNow =
+          _isLiftingState(stateValue) &&
+          others.isNotEmpty &&
+          others.every(participantIsActivelyLifting);
     }
 
     return GestureDetector(
@@ -285,6 +301,7 @@ class WorkoutBottomBar extends StatelessWidget {
                   _buildSessionFeatureBox(
                     context,
                     iAmHoldup: iAmHoldup,
+                    everyoneIsLiftingRightNow: everyoneIsLiftingRightNow,
                     featured: featuredOther,
                     featuredStatus: featuredOtherStatus,
                     auth: auth,
@@ -391,6 +408,7 @@ class WorkoutBottomBar extends StatelessWidget {
   Widget _buildSessionFeatureBox(
     BuildContext context, {
     required bool iAmHoldup,
+    required bool everyoneIsLiftingRightNow,
     required ParticipantStatus? featured,
     required ParticipantVisualStatus? featuredStatus,
     required AuthProvider auth,
@@ -415,6 +433,24 @@ class WorkoutBottomBar extends StatelessWidget {
             letterSpacing: -1,
             height: 1.0,
             color: textColor,
+          ),
+        ),
+      );
+    }
+    if (everyoneIsLiftingRightNow) {
+      return const StatusBox(
+        sideLabel: 'NEXT',
+        color: AppTheme.successFg,
+        sideColor: AppTheme.successFg,
+        sideLabelWidth: 44,
+        child: Text(
+          "Everyone's lifting right now!",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+            height: 1.0,
+            color: Colors.white,
           ),
         ),
       );

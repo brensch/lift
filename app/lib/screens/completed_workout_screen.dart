@@ -8,6 +8,7 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercises.dart';
+import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
@@ -217,6 +218,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final ownCompletedSets = _completedSets
         .where((c) => c.workoutId == workout.id)
         .toList();
+    final auth = context.watch<AuthProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
     final summary = WorkoutSummaryData.fromWorkout(
       workout: workout,
@@ -353,6 +355,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             SetLog(
               proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
+              workoutOwnerEmojis: {
+                workout.id: normalizedProfileEmoji(auth.profileEmoji),
+              },
             ),
           ],
         ),
