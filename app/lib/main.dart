@@ -61,6 +61,9 @@ final String serverBaseUrl = serverPort == 443
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await NotificationService.init();
   runApp(const SchliftApp());
 }
