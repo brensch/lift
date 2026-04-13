@@ -620,6 +620,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_wasResting && !isCurrentlyResting) {
       await NotificationService.cancelRest();
       _soundProvider?.playCurrentSound();
+      unawaited(NotificationService.playRestCompletionHaptic());
     }
     _wasResting = isCurrentlyResting;
   }
@@ -1263,10 +1264,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> startWorkout(
-    String name,
-    List<ExerciseGroup> groups,
-  ) async {
+  Future<String?> startWorkout(String name, List<ExerciseGroup> groups) async {
     try {
       await NotificationService.cancelAll();
       _wasResting = false;

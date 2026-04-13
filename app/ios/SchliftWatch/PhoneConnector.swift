@@ -1,4 +1,5 @@
 import Foundation
+import WatchKit
 import WatchConnectivity
 
 class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
@@ -233,9 +234,13 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
+        let previousSnapshot = self.snapshot
         lastSnapshotReceivedUptime = ProcessInfo.processInfo.systemUptime
         lastSnapshotEmittedAtMs = snapshot.emittedAt
         let snapshotKey = meaningfulSnapshotKey(snapshot)
+        if shouldPlayRestCompletionHaptic(previous: previousSnapshot, current: snapshot) {
+            playRestCompletionHaptic()
+        }
         self.snapshot = snapshot
         manageCompanionSession(for: snapshot)
         if lastSnapshotKey != snapshotKey {
@@ -329,6 +334,39 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private func stopHeartbeat() {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
+    }
+
+    private func shouldPlayRestCompletionHaptic(
+        previous: Workout_V1_WearWorkoutSnapshot?,
+        current: Workout_V1_WearWorkoutSnapshot
+    ) -> Bool {
+        guard let previous else { return false }
+        let previousRestUntil = previous.restUntil
+        guard previousRestUntil > 0 else { return false }
+        let previousWasActiveCountdown =
+            previous.state == .resting &&
+            previous.youCard.stateLabel == "Resting"
+        guard previousWasActiveCountdown else { return false }
+        guard current.youCard.stateLabel == "Yapping" else { return false }
+
+        let currentRestEnd: Int64
+        if current.lastRestEnd > 0 {
+            currentRestEnd = current.lastRestEnd
+        } else if current.restUntil > 0 {
+            currentRestEnd = current.restUntil
+        } else {
+            currentRestEnd = 0
+        }
+        return currentRestEnd == previousRestUntil
+    }
+
+    private func playRestCompletionHaptic() {
+        let device = WKInterfaceDevice.current()
+        for index in 0..<5 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Double(index) * 0.3)) {
+                device.play(.notification)
+            }
+        }
     }
 
     private func sendHeartbeat() {

@@ -56,7 +56,7 @@ class PhoneMessageListenerService : WearableListenerService() {
                 "SchliftWear",
                 "Parsed phone snapshot workoutId=${snapshot.workoutId} state=${snapshot.state} actions=${snapshot.actionsList.size}",
             )
-            WearDataRepository.updateSnapshot(snapshot)
+            WearDataRepository.updateSnapshot(this, snapshot)
             val hasEndWorkoutAction = snapshot.actionsList.any {
                 it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
             }
