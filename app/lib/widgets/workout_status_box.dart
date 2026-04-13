@@ -49,7 +49,6 @@ class StatusBox extends StatelessWidget {
         ? Colors.white
         : Colors.black;
     final accentColor = contentColor.withValues(alpha: 0.82);
-    final dividerColor = contentColor.withValues(alpha: 0.22);
     final sidebarContentColor =
         ThemeData.estimateBrightnessForColor(sidebarColor) == Brightness.dark
         ? Colors.white
@@ -65,7 +64,6 @@ class StatusBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: dividerColor),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -102,118 +100,124 @@ class StatusBox extends StatelessWidget {
                         ),
                 ),
               ),
-              Container(width: 1, color: dividerColor),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(12),
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (header != null && showHeader) ...[
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (header != null && showHeader) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  header!,
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                    color: accentColor,
+                                    letterSpacing: -0.3,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (headerTrailing != null) ...[
+                                const SizedBox(width: 8),
+                                headerTrailing!,
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Expanded(
-                              child: Text(
-                                header!,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w900,
-                                  color: accentColor,
-                                  letterSpacing: -0.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (name != null) ...[
+                                    Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.1,
+                                        color: contentColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                  ],
+                                  if (set != null) ...[
+                                    StatusSetWeightInfo(
+                                      set: set!,
+                                      textColor: contentColor,
+                                      secondaryTextColor: accentColor,
+                                    ),
+                                  ] else if (isComplete) ...[
+                                    Text(
+                                      'All sets complete',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                        fontFamily: 'monospace',
+                                        color: contentColor,
+                                      ),
+                                    ),
+                                  ] else if (child != null) ...[
+                                    child!,
+                                  ],
+                                ],
                               ),
                             ),
-                            if (headerTrailing != null) ...[
-                              const SizedBox(width: 8),
-                              headerTrailing!,
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                if (name != null) ...[
+                                if (stateLabel != null) ...[
                                   Text(
-                                    name,
+                                    stateLabel!,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w900,
                                       height: 1.1,
-                                      color: contentColor,
+                                      color: accentColor,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                 ],
-                                if (set != null) ...[
-                                  StatusSetWeightInfo(
-                                    set: set!,
-                                    textColor: contentColor,
-                                    secondaryTextColor: accentColor,
-                                  ),
-                                ] else if (isComplete) ...[
+                                if (timerText != null)
                                   Text(
-                                    'All sets complete',
+                                    timerText!,
                                     style: TextStyle(
-                                      fontSize: 15,
+                                      fontSize: 32,
                                       fontWeight: FontWeight.w900,
                                       fontFamily: 'monospace',
-                                      color: contentColor,
+                                      letterSpacing: -1.5,
+                                      height: 1.0,
+                                      color: effectiveTimerColor,
                                     ),
                                   ),
-                                ] else if (child != null) ...[
-                                  child!,
-                                ],
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (stateLabel != null) ...[
-                                Text(
-                                  stateLabel!,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1.1,
-                                    color: accentColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                              ],
-                              if (timerText != null)
-                                Text(
-                                  timerText!,
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w900,
-                                    fontFamily: 'monospace',
-                                    letterSpacing: -1.5,
-                                    height: 1.0,
-                                    color: effectiveTimerColor,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
