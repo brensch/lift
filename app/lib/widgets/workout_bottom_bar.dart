@@ -104,6 +104,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
   // before it is fully hidden behind it.  Should match (or slightly exceed)
   // the StatusBox border-radius so the cards visually tuck under the corner.
   static const double _overlap = 16.0;
+  static const double _currentUserTopInset = 4.0;
   static const double _handleSlotHeight = 24.0;
   static const double _handleThickness = 4.0;
 
@@ -120,6 +121,8 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
       (_panelHeight - _collapsedPeekHeight).clamp(1.0, double.infinity);
 
   double get _handleToCardGap => (_handleSlotHeight - _handleThickness) / 2;
+  // Preserve the original collapsed resting position for the handle, but
+  // fully hide the participant layer at the exact collapsed endpoint.
   double get _collapsedPeekHeight => _handleToCardGap;
 
   @override
@@ -416,7 +419,13 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                             child: Align(
                               alignment: Alignment.topCenter,
                               heightFactor: heightFactor,
-                              child: child,
+                              child: IgnorePointer(
+                                ignoring: _animation.value <= 0.001,
+                                child: Opacity(
+                                  opacity: _animation.value <= 0.001 ? 0 : 1,
+                                  child: child,
+                                ),
+                              ),
                             ),
                           );
                         },
@@ -426,7 +435,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                             20,
                             0,
                             20,
-                            _overlap,
+                            _overlap - _currentUserTopInset,
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -453,19 +462,6 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 ),
                                 const SizedBox(height: 8),
                               ],
-                              Center(
-                                child: Container(
-                                  width: 28,
-                                  height: 3,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.onSecondary.withValues(
-                                      alpha: 0.18,
-                                    ),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
                             ],
                           ),
                         ),
@@ -485,7 +481,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   );
                 },
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, inSession ? 4 : 20, 20, 20),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    inSession ? _currentUserTopInset : 20,
+                    20,
+                    20,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
