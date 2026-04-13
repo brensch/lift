@@ -393,6 +393,8 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 ),
                                 isNextToLift:
                                     nextToLiftUserId == others[i].user.id,
+                                shakeActive:
+                                    nextToLiftUserId == others[i].user.id,
                                 onTap: () => showParticipantWorkoutModal(
                                   sheetContext,
                                   others[i],
@@ -694,6 +696,8 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                     now: wp.now,
                                   ),
                                   isNextToLift:
+                                      nextToLiftUserId == p.user.id,
+                                  shakeActive:
                                       !_isDraggingPanel &&
                                       nextToLiftUserId == p.user.id,
                                   onTap: isOnWorkoutPage
@@ -809,6 +813,7 @@ class _SessionMemberCard extends StatelessWidget {
   final Color profileColor;
   final ParticipantVisualStatus status;
   final bool isNextToLift;
+  final bool shakeActive;
   final VoidCallback? onTap;
 
   const _SessionMemberCard({
@@ -817,6 +822,7 @@ class _SessionMemberCard extends StatelessWidget {
     required this.profileColor,
     required this.status,
     required this.isNextToLift,
+    required this.shakeActive,
     this.onTap,
   });
 
@@ -840,7 +846,7 @@ class _SessionMemberCard extends StatelessWidget {
       sideLabelWidth: 44,
     );
 
-    final shaking = _HorizontalShaker(active: isNextToLift, child: card);
+    final shaking = _HorizontalShaker(active: shakeActive, child: card);
 
     if (onTap == null) return shaking;
     return Material(
