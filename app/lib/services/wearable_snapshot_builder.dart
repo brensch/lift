@@ -112,7 +112,7 @@ class WearableSnapshotBuilder {
         youCard = WearStatusCard(
           sideLabel: 'YOU',
           stateLabel: 'Yapping',
-          timerText: '-${_fmt(nowUnix - restUntil)}',
+          timerText: _fmt(nowUnix - restUntil),
           displaySet: actionSet,
         );
         _applyGroupProgress(youCard, actionSet, proposedSets);
@@ -164,7 +164,7 @@ class WearableSnapshotBuilder {
       youCard = WearStatusCard(
         sideLabel: 'YOU',
         stateLabel: isYapping ? 'Yapping' : 'Next up',
-        timerText: isYapping ? '-${_fmt(nowUnix - lastRestEnd)}' : '',
+        timerText: isYapping ? _fmt(nowUnix - lastRestEnd) : '',
         displaySet: displaySet,
       );
       _applyGroupProgress(youCard, displaySet, proposedSets);

@@ -441,7 +441,7 @@ private func deriveYouTimerText(
         let restUntilMs = snapshot.restUntil * 1000
         if snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs {
             let elapsedSeconds = Int(max(0, (currentApiNowMs - restUntilMs) / 1000))
-            return "-\(formatDuration(elapsedSeconds))"
+            return formatDuration(elapsedSeconds)
         }
         let remainingSeconds = Int(max(0, (restUntilMs - currentApiNowMs) / 1000))
         return formatDuration(remainingSeconds)
@@ -450,7 +450,7 @@ private func deriveYouTimerText(
             return snapshot.youCard.timerText
         }
         let elapsedSeconds = Int(max(0, (currentApiNowMs - (snapshot.lastRestEnd * 1000)) / 1000))
-        return "-\(formatDuration(elapsedSeconds))"
+        return formatDuration(elapsedSeconds)
     default:
         return snapshot.youCard.timerText
     }

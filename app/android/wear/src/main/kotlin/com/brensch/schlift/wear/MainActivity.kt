@@ -1110,7 +1110,7 @@ private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
             when {
                 restUntil <= 0L -> snapshot.youCard.timerText
                 snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs ->
-                    "-${formatDuration(((currentApiNowMs - restUntilMs).coerceAtLeast(0L) / 1000L).toInt())}"
+                    formatDuration(((currentApiNowMs - restUntilMs).coerceAtLeast(0L) / 1000L).toInt())
                 else ->
                     formatDuration(((restUntilMs - currentApiNowMs).coerceAtLeast(0L) / 1000L).toInt())
             }
@@ -1121,7 +1121,7 @@ private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
             if (snapshot.youCard.stateLabel != "Yapping" || lastRestEnd <= 0L) {
                 snapshot.youCard.timerText
             } else {
-                "-${formatDuration(((currentApiNowMs - (lastRestEnd * 1000L)).coerceAtLeast(0L) / 1000L).toInt())}"
+                formatDuration(((currentApiNowMs - (lastRestEnd * 1000L)).coerceAtLeast(0L) / 1000L).toInt())
             }
         }
 
