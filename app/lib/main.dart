@@ -134,6 +134,16 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _workoutProvider.onSessionRefreshNeeded = () {
       _multiplayerProvider.checkForSession();
     };
+    _workoutProvider.onWorkoutEnded = (workoutId) {
+      final navigator = ErrorModalService.rootNavigatorKey.currentState;
+      navigator?.push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
+        ),
+      );
+      unawaited(_settingsProvider.refreshActiveTrainingProgramState());
+    };
 
     // Listen to auth changes: clear state on logout, load settings on login.
     // This covers mid-session signups/logins (not just app startup).

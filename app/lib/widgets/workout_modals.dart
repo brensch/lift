@@ -32,7 +32,7 @@ Future<void> endWorkout(BuildContext context) async {
     );
     unawaited(navigator.push(completedRoute));
 
-    await wp.endWorkout();
+    await wp.endWorkout(fireEndedCallback: false);
     final endedWorkout = wp.workout;
     final endSucceeded =
         endedWorkout != null &&
