@@ -28,6 +28,7 @@ object WearBridgeManager {
     const val WEAR_TO_PHONE_SENSOR_BATCH_PATH = "/schlift/wear/sensor_batch"
     const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/schlift/wear/ui_heartbeat"
     const val WEAR_TO_PHONE_CLOCK_SYNC_PATH = "/schlift/wear/clock_sync"
+    const val WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH = "/schlift/wear/snapshot_request"
     const val WEAR_APP_CAPABILITY = "lift_wear_companion"
     private const val WATCH_UI_HEARTBEAT_TTL_MS = 8_000L
 
@@ -39,6 +40,7 @@ object WearBridgeManager {
     private val pendingSensorPayloads = ConcurrentLinkedQueue<ByteArray>()
     private val lastWatchUiHeartbeatAtMs = AtomicLong(0L)
     private val pendingClockSyncs = ConcurrentHashMap<String, CompletableDeferred<Long>>()
+    private val lastSnapshotBytes = AtomicReference<ByteArray?>(null)
 
     fun setIntentSink(sink: EventChannel.EventSink?) {
         intentSinkRef.set(sink)
@@ -55,6 +57,7 @@ object WearBridgeManager {
     }
 
     fun publishSnapshot(context: Context, bytes: ByteArray) {
+        lastSnapshotBytes.set(bytes)
         scope.launch {
             val nodeClient = Wearable.getNodeClient(context)
             val messageClient = Wearable.getMessageClient(context)
@@ -131,6 +134,17 @@ object WearBridgeManager {
     fun onWearMessageReceived(context: Context, sourceNodeId: String, path: String, bytes: ByteArray) {
         if (path == WEAR_TO_PHONE_UI_HEARTBEAT_PATH) {
             lastWatchUiHeartbeatAtMs.set(System.currentTimeMillis())
+            return
+        }
+        if (path == WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH) {
+            val snapshotBytes = lastSnapshotBytes.get() ?: return
+            scope.launch {
+                runCatching {
+                    Wearable.getMessageClient(context)
+                        .sendMessage(sourceNodeId, PHONE_TO_WEAR_SNAPSHOT_PATH, snapshotBytes)
+                        .await()
+                }.onFailure { Log.e("SchliftWearBridge", "Failed snapshot reply to node=$sourceNodeId", it) }
+            }
             return
         }
         if (path == WEAR_TO_PHONE_CLOCK_SYNC_PATH) {

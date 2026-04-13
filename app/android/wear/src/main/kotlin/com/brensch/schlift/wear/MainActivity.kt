@@ -173,6 +173,17 @@ class MainActivity : ComponentActivity() {
         logLifecycleEvent("onResume")
         startUiHeartbeat()
         maybeRequestRuntimePermissions()
+        scope.launch {
+            runCatching {
+                WearTransport.sendToPhone(
+                    this@MainActivity,
+                    WearTransport.WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH,
+                    ByteArray(0),
+                )
+            }.onFailure {
+                Log.d(SchliftWearTag, "Snapshot request not delivered", it)
+            }
+        }
     }
 
     override fun onPause() {
@@ -230,6 +241,17 @@ class MainActivity : ComponentActivity() {
                     )
                 }.onFailure {
                     Log.d(SchliftWearTag, "UI heartbeat not delivered", it)
+                }
+                if (WearDataRepository.snapshot.value == null) {
+                    runCatching {
+                        WearTransport.sendToPhone(
+                            this@MainActivity,
+                            WearTransport.WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH,
+                            ByteArray(0),
+                        )
+                    }.onFailure {
+                        Log.d(SchliftWearTag, "Snapshot request not delivered", it)
+                    }
                 }
                 delay(3000)
             }

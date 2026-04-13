@@ -15,6 +15,7 @@ object WearTransport {
     const val WEAR_TO_PHONE_SENSOR_BATCH_PATH = "/schlift/wear/sensor_batch"
     const val WEAR_TO_PHONE_UI_HEARTBEAT_PATH = "/schlift/wear/ui_heartbeat"
     const val WEAR_TO_PHONE_CLOCK_SYNC_PATH = "/schlift/wear/clock_sync"
+    const val WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH = "/schlift/wear/snapshot_request"
 
     suspend fun sendToPhone(context: Context, path: String, payload: ByteArray): Int {
         val nodeClient = Wearable.getNodeClient(context)
