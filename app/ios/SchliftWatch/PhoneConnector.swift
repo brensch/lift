@@ -243,7 +243,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
         self.snapshot = snapshot
         manageCompanionSession(for: snapshot)
-        if lastSnapshotKey != snapshotKey {
+        if isActionPending || lastSnapshotKey != snapshotKey {
             clearPendingAction()
         }
         lastSnapshotKey = snapshotKey
