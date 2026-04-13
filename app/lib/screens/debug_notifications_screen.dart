@@ -69,160 +69,190 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final hr60s = wp.wearHeartRateSamples
-        .where((s) => s.sampledAt.toInt() >= nowMs - 60000)
-        .toList()
-      ..sort((a, b) => b.sampledAt.compareTo(a.sampledAt));
-    final bpmValues = hr60s.map((s) => s.bpm).toList();
-    final latest = hr60s.isNotEmpty ? hr60s.first : null;
-    final minBpm = bpmValues.isEmpty
-        ? null
-        : bpmValues.reduce((a, b) => a < b ? a : b);
-    final maxBpm = bpmValues.isEmpty
-        ? null
-        : bpmValues.reduce((a, b) => a > b ? a : b);
-    final avgBpm = bpmValues.isEmpty
-        ? null
-        : bpmValues.reduce((a, b) => a + b) / bpmValues.length;
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: wp.clock,
+      builder: (context, now, _) {
+        final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+        final nowMs = now.millisecondsSinceEpoch;
+        final hr60s =
+            wp.wearHeartRateSamples
+                .where((s) => s.sampledAt.toInt() >= nowMs - 60000)
+                .toList()
+              ..sort((a, b) => b.sampledAt.compareTo(a.sampledAt));
+        final bpmValues = hr60s.map((s) => s.bpm).toList();
+        final latest = hr60s.isNotEmpty ? hr60s.first : null;
+        final minBpm = bpmValues.isEmpty
+            ? null
+            : bpmValues.reduce((a, b) => a < b ? a : b);
+        final maxBpm = bpmValues.isEmpty
+            ? null
+            : bpmValues.reduce((a, b) => a > b ? a : b);
+        final avgBpm = bpmValues.isEmpty
+            ? null
+            : bpmValues.reduce((a, b) => a + b) / bpmValues.length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Debug: Notifications'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _section('Bottom Bar State', [
-            _row('state', () {
-              final snapshot = wp.stateSnapshot;
-              final state = snapshot?.state;
-              final nextSet = wp.nextPendingSet;
-              if (state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
-                return 'All done';
-              }
-              if (state == WorkoutState.WORKOUT_STATE_LIFTING) return 'Lifting';
-              if (state == WorkoutState.WORKOUT_STATE_RESTING) {
-                final restUntil = snapshot?.restUntil.toInt() ?? 0;
-                if (restUntil > 0 && restUntil < nowUnix && nextSet != null) {
-                  return 'Yapping (+${nowUnix - restUntil}s)';
-                }
-                return 'Resting (${wp.restSecondsRemaining}s)';
-              }
-              final lastRestEnd = snapshot?.lastRestEnd.toInt() ?? 0;
-              if ((state == WorkoutState.WORKOUT_STATE_READY ||
-                      nextSet != null) &&
-                  nextSet != null &&
-                  lastRestEnd > 0 &&
-                  lastRestEnd <= nowUnix) {
-                return 'Yapping (+${nowUnix - lastRestEnd}s)';
-              }
-              if (state == WorkoutState.WORKOUT_STATE_READY ||
-                  nextSet != null) {
-                return 'Next up';
-              }
-              return 'Idle';
-            }()),
-            _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
-            _row('now (unix)', '$nowUnix'),
-          ], colorScheme),
-          const SizedBox(height: 16),
-          _section('Watch Clock Sync', [
-            _row(
-              'delta',
-              _watchClockSync == null
-                  ? 'unavailable'
-                  : '${_watchClockSync!.deltaMs}ms',
-            ),
-            _row(
-              'rtt',
-              _watchClockSync == null
-                  ? 'unavailable'
-                  : '${_watchClockSync!.roundTripMs}ms',
-            ),
-            _row(
-              'watchTime',
-              _watchClockSync == null
-                  ? 'unavailable'
-                  : _fmtTime(DateTime.fromMillisecondsSinceEpoch(_watchClockSync!.watchTimeMs)),
-            ),
-            _row(
-              'phoneMidpoint',
-              _watchClockSync == null
-                  ? 'unavailable'
-                  : _fmtTime(
-                      DateTime.fromMillisecondsSinceEpoch(
-                        _watchClockSync!.estimatedPhoneMidpointMs,
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Debug: Notifications'),
+            actions: [
+              IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+            ],
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _section('Bottom Bar State', [
+                _row('state', () {
+                  final snapshot = wp.stateSnapshot;
+                  final state = snapshot?.state;
+                  final nextSet = wp.nextPendingSet;
+                  if (state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
+                    return 'All done';
+                  }
+                  if (state == WorkoutState.WORKOUT_STATE_LIFTING) {
+                    return 'Lifting';
+                  }
+                  if (state == WorkoutState.WORKOUT_STATE_RESTING) {
+                    final restUntil = snapshot?.restUntil.toInt() ?? 0;
+                    if (restUntil > 0 &&
+                        restUntil < nowUnix &&
+                        nextSet != null) {
+                      return 'Yapping (+${nowUnix - restUntil}s)';
+                    }
+                    return 'Resting (${wp.restSecondsRemaining}s)';
+                  }
+                  final lastRestEnd = snapshot?.lastRestEnd.toInt() ?? 0;
+                  if ((state == WorkoutState.WORKOUT_STATE_READY ||
+                          nextSet != null) &&
+                      nextSet != null &&
+                      lastRestEnd > 0 &&
+                      lastRestEnd <= nowUnix) {
+                    return 'Yapping (+${nowUnix - lastRestEnd}s)';
+                  }
+                  if (state == WorkoutState.WORKOUT_STATE_READY ||
+                      nextSet != null) {
+                    return 'Next up';
+                  }
+                  return 'Idle';
+                }()),
+                _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
+                _row('now (unix)', '$nowUnix'),
+              ], colorScheme),
+              const SizedBox(height: 16),
+              _section('Watch Clock Sync', [
+                _row(
+                  'delta',
+                  _watchClockSync == null
+                      ? 'unavailable'
+                      : '${_watchClockSync!.deltaMs}ms',
+                ),
+                _row(
+                  'rtt',
+                  _watchClockSync == null
+                      ? 'unavailable'
+                      : '${_watchClockSync!.roundTripMs}ms',
+                ),
+                _row(
+                  'watchTime',
+                  _watchClockSync == null
+                      ? 'unavailable'
+                      : _fmtTime(
+                          DateTime.fromMillisecondsSinceEpoch(
+                            _watchClockSync!.watchTimeMs,
+                          ),
+                        ),
+                ),
+                _row(
+                  'phoneMidpoint',
+                  _watchClockSync == null
+                      ? 'unavailable'
+                      : _fmtTime(
+                          DateTime.fromMillisecondsSinceEpoch(
+                            _watchClockSync!.estimatedPhoneMidpointMs,
+                          ),
+                        ),
+                ),
+              ], colorScheme),
+              const SizedBox(height: 16),
+              _section('Wear Heart Rate (Last 60s)', [
+                _row('sampleCount', '${hr60s.length}'),
+                _row(
+                  'latestBpm',
+                  latest != null ? latest.bpm.toStringAsFixed(1) : 'n/a',
+                ),
+                _row(
+                  'minBpm',
+                  minBpm != null ? minBpm.toStringAsFixed(1) : 'n/a',
+                ),
+                _row(
+                  'maxBpm',
+                  maxBpm != null ? maxBpm.toStringAsFixed(1) : 'n/a',
+                ),
+                _row(
+                  'avgBpm',
+                  avgBpm != null ? avgBpm.toStringAsFixed(1) : 'n/a',
+                ),
+                const Divider(height: 1),
+                _hrTable(hr60s, nowMs),
+              ], colorScheme),
+              const SizedBox(height: 16),
+              _section('Pending OS Notifications (${_pending.length})', [
+                if (_pending.isEmpty) ...[
+                  _row('', 'None'),
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'NOTE: "None" here means no future notifications are scheduled. '
+                      'If a notification fires now, it was likely already in the OS '
+                      'delivery pipeline or was just moved from "Pending" to "Active".',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey,
                       ),
                     ),
-            ),
-          ], colorScheme),
-          const SizedBox(height: 16),
-          _section('Wear Heart Rate (Last 60s)', [
-            _row('sampleCount', '${hr60s.length}'),
-            _row('latestBpm', latest != null ? latest.bpm.toStringAsFixed(1) : 'n/a'),
-            _row('minBpm', minBpm != null ? minBpm.toStringAsFixed(1) : 'n/a'),
-            _row('maxBpm', maxBpm != null ? maxBpm.toStringAsFixed(1) : 'n/a'),
-            _row('avgBpm', avgBpm != null ? avgBpm.toStringAsFixed(1) : 'n/a'),
-            const Divider(height: 1),
-            _hrTable(hr60s, nowMs),
-          ], colorScheme),
-          const SizedBox(height: 16),
-          _section('Pending OS Notifications (${_pending.length})', [
-            if (_pending.isEmpty) ...[
-              _row('', 'None'),
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: Text(
-                  'NOTE: "None" here means no future notifications are scheduled. '
-                  'If a notification fires now, it was likely already in the OS '
-                  'delivery pipeline or was just moved from "Pending" to "Active".',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey,
                   ),
-                ),
+                ] else
+                  for (final n in _pending)
+                    _row('id=${n.id}', () {
+                      final scheduledUnix = int.tryParse(n.payload ?? '');
+                      if (scheduledUnix != null) {
+                        final diff = scheduledUnix - nowUnix;
+                        final timeStr = diff > 0
+                            ? '${diff}s from now'
+                            : '${-diff}s ago';
+                        return '${n.title} — fires $timeStr (unix=$scheduledUnix)';
+                      }
+                      return '${n.title}: ${n.body}';
+                    }()),
+              ], colorScheme),
+              const SizedBox(height: 16),
+              _section(
+                'Active (Delivered) Notifications (${_active.length})',
+                [
+                  if (_active.isEmpty)
+                    _row('', 'None')
+                  else
+                    for (final n in _active)
+                      _row('id=${n.id}', '${n.title}: ${n.body}'),
+                ],
+                colorScheme,
               ),
-            ] else
-              for (final n in _pending)
-                _row('id=${n.id}', () {
-                  final scheduledUnix = int.tryParse(n.payload ?? '');
-                  if (scheduledUnix != null) {
-                    final diff = scheduledUnix - nowUnix;
-                    final timeStr = diff > 0
-                        ? '${diff}s from now'
-                        : '${-diff}s ago';
-                    return '${n.title} — fires $timeStr (unix=$scheduledUnix)';
-                  }
-                  return '${n.title}: ${n.body}';
-                }()),
-          ], colorScheme),
-          const SizedBox(height: 16),
-          _section('Active (Delivered) Notifications (${_active.length})', [
-            if (_active.isEmpty)
-              _row('', 'None')
-            else
-              for (final n in _active)
-                _row('id=${n.id}', '${n.title}: ${n.body}'),
-          ], colorScheme),
-          const SizedBox(height: 16),
-          _section('Completed Sets (${wp.completedSets.length})', [
-            for (final c in wp.completedSets.reversed) ...[
-              _row(
-                'set ${c.proposedSetId.substring(0, 8)}...',
-                'restUntil=${c.restUntil.toInt()} '
-                    '(${c.restUntil.toInt() > nowUnix ? "${c.restUntil.toInt() - nowUnix}s left" : "expired"}) '
-                    'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
-              ),
+              const SizedBox(height: 16),
+              _section('Completed Sets (${wp.completedSets.length})', [
+                for (final c in wp.completedSets.reversed) ...[
+                  _row(
+                    'set ${c.proposedSetId.substring(0, 8)}...',
+                    'restUntil=${c.restUntil.toInt()} '
+                        '(${c.restUntil.toInt() > nowUnix ? "${c.restUntil.toInt() - nowUnix}s left" : "expired"}) '
+                        'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
+                  ),
+                ],
+              ], colorScheme),
             ],
-          ], colorScheme),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -291,9 +321,12 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
             const Divider(height: 1),
             for (final s in samples.take(120))
               _tableRow(
-                time: _fmtTime(DateTime.fromMillisecondsSinceEpoch(s.sampledAt.toInt())),
-                ageSec:
-                    ((nowMs - s.sampledAt.toInt()) / 1000).clamp(0, 9999).toStringAsFixed(1),
+                time: _fmtTime(
+                  DateTime.fromMillisecondsSinceEpoch(s.sampledAt.toInt()),
+                ),
+                ageSec: ((nowMs - s.sampledAt.toInt()) / 1000)
+                    .clamp(0, 9999)
+                    .toStringAsFixed(1),
                 bpm: s.bpm.toStringAsFixed(1),
                 availability: s.availability.value.toString(),
               ),
@@ -358,10 +391,22 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          SizedBox(width: 90, child: Text(time, style: const TextStyle(fontSize: 12))),
-          SizedBox(width: 70, child: Text(ageSec, style: const TextStyle(fontSize: 12))),
-          SizedBox(width: 70, child: Text(bpm, style: const TextStyle(fontSize: 12))),
-          SizedBox(width: 100, child: Text(availability, style: const TextStyle(fontSize: 12))),
+          SizedBox(
+            width: 90,
+            child: Text(time, style: const TextStyle(fontSize: 12)),
+          ),
+          SizedBox(
+            width: 70,
+            child: Text(ageSec, style: const TextStyle(fontSize: 12)),
+          ),
+          SizedBox(
+            width: 70,
+            child: Text(bpm, style: const TextStyle(fontSize: 12)),
+          ),
+          SizedBox(
+            width: 100,
+            child: Text(availability, style: const TextStyle(fontSize: 12)),
+          ),
         ],
       ),
     );

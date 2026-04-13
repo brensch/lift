@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
@@ -78,6 +79,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Timer? _timer;
   DateTime _now = DateTime.now();
+  late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
+  final List<ExerciseGroupData> _exerciseGroupsCache = [];
+  late final UnmodifiableListView<HeartRateSample> _wearHeartRateSamplesView =
+      UnmodifiableListView(_wearHeartRateSamples);
 
   WorkoutProvider(this._service, this._settingsProvider) {
     WidgetsBinding.instance.addObserver(this);
@@ -90,6 +95,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (next != null) {
       startSet(next.id);
     }
+  }
+
+  void _setNow(DateTime value) {
+    _now = value;
+    _clock.value = value;
   }
 
   int _effectiveRestSuccess({
@@ -593,7 +603,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _now = DateTime.now();
+      _setNow(DateTime.now());
       unawaited(_hydrateWearHeartRateFromApi());
       notifyListeners();
     }
@@ -734,6 +744,44 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _sortState();
     _backendNextUpSet = _computeNextUpSet();
     _applyStateSnapshot(_computeStateSnapshot());
+    _rebuildExerciseGroupsCache();
+  }
+
+  void _rebuildExerciseGroupsCache() {
+    _exerciseGroupsCache.clear();
+    if (_activeExerciseGroups.isEmpty) {
+      _exerciseGroupsCache.addAll(groupSetsByExercise(_activeProposedSets));
+      return;
+    }
+
+    for (final group in _activeExerciseGroups) {
+      final sets = _activeProposedSets
+          .where((s) => s.exerciseGroupId == group.id && !s.cancelled)
+          .toList();
+      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+
+      final exercise = group.exerciseConfigs.isNotEmpty
+          ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
+                Exercise.EXERCISE_UNSPECIFIED
+          : (sets.isNotEmpty
+                ? sets.first.exercise
+                : Exercise.EXERCISE_UNSPECIFIED);
+
+      final exercises = <Exercise>[];
+      for (final config in group.exerciseConfigs) {
+        final ex = Exercise.valueOf(config.exercise.value);
+        if (ex != null && !exercises.contains(ex)) exercises.add(ex);
+      }
+
+      _exerciseGroupsCache.add(
+        ExerciseGroupData(
+          exercise: exercise,
+          sets: sets,
+          group: group,
+          exercises: exercises,
+        ),
+      );
+    }
   }
 
   void _applyWorkoutResponse(GetWorkoutResponse response) {
@@ -949,43 +997,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get isWorkoutEnded =>
       _activeWorkout != null && _activeWorkout!.endTime != Int64.ZERO;
   DateTime get now => _now;
-  List<HeartRateSample> get wearHeartRateSamples =>
-      List.unmodifiable(_wearHeartRateSamples);
+  ValueNotifier<DateTime> get clock => _clock;
+  List<HeartRateSample> get wearHeartRateSamples => _wearHeartRateSamplesView;
 
-  List<ExerciseGroupData> get exerciseGroups {
-    if (_activeExerciseGroups.isEmpty) {
-      return groupSetsByExercise(_activeProposedSets);
-    }
-
-    return _activeExerciseGroups.map((group) {
-      final sets = _activeProposedSets
-          .where((s) => s.exerciseGroupId == group.id && !s.cancelled)
-          .toList();
-      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-
-      // Get primary exercise from configs, fallback to first set
-      final exercise = group.exerciseConfigs.isNotEmpty
-          ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
-                Exercise.EXERCISE_UNSPECIFIED
-          : (sets.isNotEmpty
-                ? sets.first.exercise
-                : Exercise.EXERCISE_UNSPECIFIED);
-
-      // Get all exercises in group
-      final exercises = <Exercise>[];
-      for (final config in group.exerciseConfigs) {
-        final ex = Exercise.valueOf(config.exercise.value);
-        if (ex != null && !exercises.contains(ex)) exercises.add(ex);
-      }
-
-      return ExerciseGroupData(
-        exercise: exercise,
-        sets: sets,
-        group: group,
-        exercises: exercises,
-      );
-    }).toList();
-  }
+  List<ExerciseGroupData> get exerciseGroups => _exerciseGroupsCache;
 
   String _nextSetBody() {
     final next = nextPendingSet;
@@ -1088,10 +1103,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _now = DateTime.now();
+      _setNow(DateTime.now());
       unawaited(_checkRestSound());
       unawaited(_flushPendingWearHeartRateUploads());
-      notifyListeners();
     });
   }
 
@@ -1914,6 +1928,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
     _mutationFlushTimer?.cancel();
+    _clock.dispose();
     super.dispose();
   }
 }

@@ -240,174 +240,189 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
       builder: (sheetContext) {
         return Consumer3<WorkoutProvider, MultiplayerProvider, AuthProvider>(
           builder: (context, wp, mp, auth, _) {
-            final colorScheme = Theme.of(sheetContext).colorScheme;
-            final stateSnapshot = wp.stateSnapshot;
-            final stateValue =
-                stateSnapshot?.state.value ??
-                WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-            final nextSet = wp.nextPendingSet;
-            final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
-            final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
-            final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
-            final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
-            final restSeconds = restUntil > 0
-                ? (restUntil - nowUnix).clamp(0, 1 << 30)
-                : 0;
+            return ValueListenableBuilder<DateTime>(
+              valueListenable: wp.clock,
+              builder: (context, now, _) {
+                final colorScheme = Theme.of(sheetContext).colorScheme;
+                final stateSnapshot = wp.stateSnapshot;
+                final stateValue =
+                    stateSnapshot?.state.value ??
+                    WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
+                final nextSet = wp.nextPendingSet;
+                final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+                final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
+                final activeStartedAt =
+                    stateSnapshot?.activeStartedAt.toInt() ?? 0;
+                final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
+                final restSeconds = restUntil > 0
+                    ? (restUntil - nowUnix).clamp(0, 1 << 30)
+                    : 0;
 
-            String stateLabel;
-            Color stateColor;
-            String? timerText;
-            Color? timerColor;
-            ProposedSet? displaySet;
+                String stateLabel;
+                Color stateColor;
+                String? timerText;
+                Color? timerColor;
+                ProposedSet? displaySet;
 
-            if (_isAllDoneState(stateValue)) {
-              stateLabel = 'All sets complete';
-              stateColor = AppTheme.successFg;
-              displaySet = null;
-            } else if (_isLiftingState(stateValue)) {
-              final proposed = stateSnapshot?.hasDisplaySet() == true
-                  ? stateSnapshot!.displaySet
-                  : null;
-              stateLabel = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-              stateColor = AppTheme.workoutLiftingFg;
-              timerText = _fmt(
-                activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0,
-              );
-              displaySet = proposed;
-            } else if (_isRestingState(stateValue)) {
-              final hasExpiredRest =
-                  restUntil > 0 && restUntil <= nowUnix && nextSet != null;
-              if (hasExpiredRest) {
-                stateLabel = 'Yapping';
-                stateColor = AppTheme.workoutYappingFg;
-                timerText = _fmt(nowUnix - restUntil);
-                timerColor = AppTheme.workoutYappingFg;
-                displaySet = stateSnapshot?.hasDisplaySet() == true
-                    ? stateSnapshot!.displaySet
-                    : nextSet;
-              } else {
-                stateLabel = 'Resting';
-                stateColor = AppTheme.workoutRestingFg;
-                timerText = _fmt(restSeconds);
-                displaySet = stateSnapshot?.hasDisplaySet() == true
-                    ? stateSnapshot!.displaySet
-                    : nextSet;
-              }
-            } else if (_isReadyState(stateValue) || nextSet != null) {
-              final isYapping =
-                  nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
-              stateLabel = isYapping ? 'Yapping' : 'Next up';
-              stateColor = isYapping
-                  ? AppTheme.workoutYappingFg
-                  : colorScheme.tertiary;
-              timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
-              timerColor = isYapping ? AppTheme.workoutYappingFg : null;
-              displaySet = stateSnapshot?.hasDisplaySet() == true
-                  ? stateSnapshot!.displaySet
-                  : nextSet;
-            } else {
-              stateLabel = 'Workout';
-              stateColor = colorScheme.tertiary;
-              displaySet = null;
-            }
+                if (_isAllDoneState(stateValue)) {
+                  stateLabel = 'All sets complete';
+                  stateColor = AppTheme.successFg;
+                  displaySet = null;
+                } else if (_isLiftingState(stateValue)) {
+                  final proposed = stateSnapshot?.hasDisplaySet() == true
+                      ? stateSnapshot!.displaySet
+                      : null;
+                  stateLabel = proposed?.warmup == true ? 'Warmup' : 'Lifting';
+                  stateColor = AppTheme.workoutLiftingFg;
+                  timerText = _fmt(
+                    activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0,
+                  );
+                  displaySet = proposed;
+                } else if (_isRestingState(stateValue)) {
+                  final hasExpiredRest =
+                      restUntil > 0 && restUntil <= nowUnix && nextSet != null;
+                  if (hasExpiredRest) {
+                    stateLabel = 'Yapping';
+                    stateColor = AppTheme.workoutYappingFg;
+                    timerText = _fmt(nowUnix - restUntil);
+                    timerColor = AppTheme.workoutYappingFg;
+                    displaySet = stateSnapshot?.hasDisplaySet() == true
+                        ? stateSnapshot!.displaySet
+                        : nextSet;
+                  } else {
+                    stateLabel = 'Resting';
+                    stateColor = AppTheme.workoutRestingFg;
+                    timerText = _fmt(restSeconds);
+                    displaySet = stateSnapshot?.hasDisplaySet() == true
+                        ? stateSnapshot!.displaySet
+                        : nextSet;
+                  }
+                } else if (_isReadyState(stateValue) || nextSet != null) {
+                  final isYapping =
+                      nextSet != null &&
+                      lastRestEnd > 0 &&
+                      lastRestEnd <= nowUnix;
+                  stateLabel = isYapping ? 'Yapping' : 'Next up';
+                  stateColor = isYapping
+                      ? AppTheme.workoutYappingFg
+                      : colorScheme.tertiary;
+                  timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
+                  timerColor = isYapping ? AppTheme.workoutYappingFg : null;
+                  displaySet = stateSnapshot?.hasDisplaySet() == true
+                      ? stateSnapshot!.displaySet
+                      : nextSet;
+                } else {
+                  stateLabel = 'Workout';
+                  stateColor = colorScheme.tertiary;
+                  displaySet = null;
+                }
 
-            final others =
-                mp.participants
-                    .where(
-                      (p) => p.user.id.isNotEmpty && p.user.id != auth.userId,
-                    )
-                    .toList()
-                  ..sort(_compareParticipantsStable);
+                final others =
+                    mp.participants
+                        .where(
+                          (p) =>
+                              p.user.id.isNotEmpty && p.user.id != auth.userId,
+                        )
+                        .toList()
+                      ..sort(_compareParticipantsStable);
 
-            final nextToLiftUserId = _computeNextToLiftUserId(
-              myUserId: auth.userId,
-              others: others,
-              nowUnix: nowUnix,
-              stateValue: stateValue,
-              restUntil: restUntil,
-              lastRestEnd: lastRestEnd,
-              nextSet: nextSet,
-            );
-            final iAmNextToLift = nextToLiftUserId == auth.userId;
+                final nextToLiftUserId = _computeNextToLiftUserId(
+                  myUserId: auth.userId,
+                  others: others,
+                  nowUnix: nowUnix,
+                  stateValue: stateValue,
+                  restUntil: restUntil,
+                  lastRestEnd: lastRestEnd,
+                  nextSet: nextSet,
+                );
+                final iAmNextToLift = nextToLiftUserId == auth.userId;
 
-            return DraggableScrollableSheet(
-              initialChildSize: 0.82,
-              minChildSize: 0.45,
-              maxChildSize: 0.94,
-              expand: false,
-              builder: (context, scrollController) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondary,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    border: Border.all(
-                      color: colorScheme.outline.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ListView(
-                          controller: scrollController,
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                          children: [
-                            _HorizontalShaker(
-                              active: iAmNextToLift,
-                              child: StatusBox(
-                                sideLabel: 'YOU',
-                                sideBadge: normalizedProfileEmoji(
-                                  auth.profileEmoji,
-                                ),
-                                header: 'You',
-                                showHeader: true,
-                                headerTrailing: iAmNextToLift
-                                    ? const _RainbowShimmerText(
-                                        text: 'next to schlift',
-                                      )
-                                    : null,
-                                stateLabel: stateLabel,
-                                color: stateColor,
-                                sideColor: profileColorFromHex(
-                                  auth.profileColorHex,
-                                ),
-                                timerText: timerText,
-                                timerColor: timerColor,
-                                set: displaySet,
-                                isComplete: _isAllDoneState(stateValue),
-                                sideLabelWidth: 44,
-                              ),
-                            ),
-                            if (others.isNotEmpty) const SizedBox(height: 8),
-                            for (var i = 0; i < others.length; i++) ...[
-                              _SessionMemberCard(
-                                name: participantDisplayName(others[i]),
-                                emoji: participantProfileEmoji(others[i]),
-                                profileColor: participantProfileColor(
-                                  others[i],
-                                ),
-                                status: describeParticipantStatus(
-                                  others[i],
-                                  now: wp.now,
-                                ),
-                                isNextToLift:
-                                    nextToLiftUserId == others[i].user.id,
-                                shakeActive:
-                                    nextToLiftUserId == others[i].user.id,
-                                onTap: () => showParticipantWorkoutModal(
-                                  sheetContext,
-                                  others[i],
-                                ),
-                              ),
-                              if (i < others.length - 1)
-                                const SizedBox(height: 8),
-                            ],
-                          ],
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.82,
+                  minChildSize: 0.45,
+                  maxChildSize: 0.94,
+                  expand: false,
+                  builder: (context, scrollController) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondary,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(28),
+                        ),
+                        border: Border.all(
+                          color: colorScheme.outline.withValues(alpha: 0.5),
                         ),
                       ),
-                    ],
-                  ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ListView(
+                              controller: scrollController,
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                20,
+                                20,
+                                24,
+                              ),
+                              children: [
+                                _HorizontalShaker(
+                                  active: iAmNextToLift,
+                                  child: StatusBox(
+                                    sideLabel: 'YOU',
+                                    sideBadge: normalizedProfileEmoji(
+                                      auth.profileEmoji,
+                                    ),
+                                    header: 'You',
+                                    showHeader: true,
+                                    headerTrailing: iAmNextToLift
+                                        ? const _RainbowShimmerText(
+                                            text: 'next to schlift',
+                                          )
+                                        : null,
+                                    stateLabel: stateLabel,
+                                    color: stateColor,
+                                    sideColor: profileColorFromHex(
+                                      auth.profileColorHex,
+                                    ),
+                                    timerText: timerText,
+                                    timerColor: timerColor,
+                                    set: displaySet,
+                                    isComplete: _isAllDoneState(stateValue),
+                                    sideLabelWidth: 44,
+                                  ),
+                                ),
+                                if (others.isNotEmpty)
+                                  const SizedBox(height: 8),
+                                for (var i = 0; i < others.length; i++) ...[
+                                  _SessionMemberCard(
+                                    name: participantDisplayName(others[i]),
+                                    emoji: participantProfileEmoji(others[i]),
+                                    profileColor: participantProfileColor(
+                                      others[i],
+                                    ),
+                                    status: describeParticipantStatus(
+                                      others[i],
+                                      now: now,
+                                    ),
+                                    isNextToLift:
+                                        nextToLiftUserId == others[i].user.id,
+                                    shakeActive:
+                                        nextToLiftUserId == others[i].user.id,
+                                    onTap: () => showParticipantWorkoutModal(
+                                      sheetContext,
+                                      others[i],
+                                    ),
+                                  ),
+                                  if (i < others.length - 1)
+                                    const SizedBox(height: 8),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -425,362 +440,390 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
     final colorScheme = Theme.of(context).colorScheme;
 
     if (!wp.hasActiveWorkout) return const SizedBox.shrink();
-
-    final stateSnapshot = wp.stateSnapshot;
-    final stateValue =
-        stateSnapshot?.state.value ??
-        WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-    final nextSet = wp.nextPendingSet;
-    final nowUnix = wp.now.millisecondsSinceEpoch ~/ 1000;
-    final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
-    final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
-    final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
-    final restSeconds = restUntil > 0
-        ? (restUntil - nowUnix).clamp(0, 1 << 30)
-        : 0;
-    final workout = wp.activeWorkout;
-    final elapsedSeconds = workout != null && workout.startTime != Int64.ZERO
-        ? (wp.now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
-        : 0;
-    final elapsedText = _fmtElapsed(elapsedSeconds < 0 ? 0 : elapsedSeconds);
-    final latestHeartRate = wp.wearHeartRateSamples.isNotEmpty
-        ? wp.wearHeartRateSamples.last
-        : null;
-    final heartRateText = latestHeartRate != null && latestHeartRate.bpm > 0
-        ? '${latestHeartRate.bpm.round()}'
-        : '--';
-
-    final currentUri = GoRouterState.of(context).uri.toString();
-    final isOnWorkoutPage = currentUri == '/';
-
-    // ── Current-user state ────────────────────────────────────────────────────
-    String stateLabel;
-    Color stateColor;
-    String? timerText;
-    Color? timerColor;
-    ProposedSet? displaySet;
-    Widget actionButton = const SizedBox.shrink();
-
-    if (_isAllDoneState(stateValue)) {
-      stateLabel = 'All sets complete';
-      stateColor = AppTheme.successFg;
-      displaySet = null;
-      actionButton = _BigButton(
-        label: 'End Workout',
-        onPressed: () => endWorkout(context),
-      );
-    } else if (_isLiftingState(stateValue)) {
-      final proposed = stateSnapshot?.hasDisplaySet() == true
-          ? stateSnapshot!.displaySet
-          : null;
-      if (proposed == null) return const SizedBox.shrink();
-      final elapsedSecs = activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0;
-      stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
-      stateColor = AppTheme.workoutLiftingFg;
-      timerText = _fmt(elapsedSecs);
-      displaySet = proposed;
-      actionButton = _RepButtons(
-        targetReps: proposed.targetReps,
-        isAmrap: proposed.isAmrap,
-        onComplete: (reps) =>
-            wp.completeSet(proposed.id, reps, proposed.targetWeight.toDouble()),
-        onSkipWarmup: null,
-      );
-    } else if (_isRestingState(stateValue)) {
-      final hasExpiredRest =
-          restUntil > 0 && restUntil <= nowUnix && nextSet != null;
-      if (hasExpiredRest) {
-        stateLabel = 'Yapping';
-        stateColor = AppTheme.workoutYappingFg;
-        timerText = _fmt(nowUnix - restUntil);
-        timerColor = AppTheme.workoutYappingFg;
-        final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
-            ? stateSnapshot!.displaySet
-            : nextSet;
-        displaySet = actionSet;
-        actionButton = _BigButton(
-          label: 'Start Set',
-          onPressed: () => wp.startSet(actionSet.id),
-          secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
-          onSecondary: wp.canSkipWarmup(actionSet.id)
-              ? () => wp.skipWarmup(actionSet.id)
-              : null,
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: wp.clock,
+      builder: (context, now, _) {
+        final stateSnapshot = wp.stateSnapshot;
+        final stateValue =
+            stateSnapshot?.state.value ??
+            WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
+        final nextSet = wp.nextPendingSet;
+        final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
+        final restUntil = stateSnapshot?.restUntil.toInt() ?? 0;
+        final activeStartedAt = stateSnapshot?.activeStartedAt.toInt() ?? 0;
+        final lastRestEnd = stateSnapshot?.lastRestEnd.toInt() ?? 0;
+        final restSeconds = restUntil > 0
+            ? (restUntil - nowUnix).clamp(0, 1 << 30)
+            : 0;
+        final workout = wp.activeWorkout;
+        final elapsedSeconds =
+            workout != null && workout.startTime != Int64.ZERO
+            ? (now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
+            : 0;
+        final elapsedText = _fmtElapsed(
+          elapsedSeconds < 0 ? 0 : elapsedSeconds,
         );
-      } else {
-        stateLabel = 'Resting';
-        stateColor = AppTheme.workoutRestingFg;
-        timerText = _fmt(restSeconds);
-        final restingSet = stateSnapshot?.hasDisplaySet() == true
-            ? stateSnapshot!.displaySet
-            : nextSet;
-        displaySet = restingSet;
-        actionButton = _BigButton(
-          label: 'Start Early',
-          onPressed: () {
-            if (restingSet != null) wp.startSet(restingSet.id);
-          },
-          secondaryLabel: restingSet != null && wp.canSkipWarmup(restingSet.id)
-              ? 'Skip'
-              : null,
-          onSecondary: restingSet != null && wp.canSkipWarmup(restingSet.id)
-              ? () => wp.skipWarmup(restingSet.id)
-              : null,
-        );
-      }
-    } else if (_isReadyState(stateValue) || nextSet != null) {
-      final isYapping =
-          nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
-      stateLabel = isYapping ? 'Yapping' : 'Next up';
-      stateColor = isYapping ? AppTheme.workoutYappingFg : colorScheme.tertiary;
-      timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
-      timerColor = isYapping ? AppTheme.workoutYappingFg : null;
-      displaySet = stateSnapshot?.hasDisplaySet() == true
-          ? stateSnapshot!.displaySet
-          : nextSet;
-      if (displaySet == null) return const SizedBox.shrink();
-      final ProposedSet actionSet = displaySet;
-      actionButton = _BigButton(
-        label: 'Start Set',
-        onPressed: () => wp.startSet(actionSet.id),
-        secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
-        onSecondary: wp.canSkipWarmup(actionSet.id)
-            ? () => wp.skipWarmup(actionSet.id)
-            : null,
-      );
-    } else {
-      return const SizedBox.shrink();
-    }
+        final latestHeartRate = wp.wearHeartRateSamples.isNotEmpty
+            ? wp.wearHeartRateSamples.last
+            : null;
+        final heartRateText = latestHeartRate != null && latestHeartRate.bpm > 0
+            ? '${latestHeartRate.bpm.round()}'
+            : '--';
 
-    // ── Session state ─────────────────────────────────────────────────────────
-    final others =
-        mp.participants
-            .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
-            .toList()
-          ..sort(_compareParticipantsStable);
-    final inSession = others.isNotEmpty;
-    final visibleOthers = others.length > 4
-        ? (List<ParticipantStatus>.from(others)..sort(
-                (a, b) =>
-                    _compareParticipantsByNextWorkout(a, b, nowUnix: nowUnix),
-              ))
-              .take(4)
-              .toList(growable: false)
-        : others;
-    final hiddenOtherCount = (others.length - visibleOthers.length).clamp(
-      0,
-      1 << 30,
-    );
+        final currentUri = GoRouterState.of(context).uri.toString();
+        final isOnWorkoutPage = currentUri == '/';
 
-    final nextToLiftUserId = inSession
-        ? _computeNextToLiftUserId(
-            myUserId: auth.userId,
-            others: others,
-            nowUnix: nowUnix,
-            stateValue: stateValue,
-            restUntil: restUntil,
-            lastRestEnd: lastRestEnd,
-            nextSet: nextSet,
-          )
-        : null;
+        // ── Current-user state ────────────────────────────────────────────────────
+        String stateLabel;
+        Color stateColor;
+        String? timerText;
+        Color? timerColor;
+        ProposedSet? displaySet;
+        Widget actionButton = const SizedBox.shrink();
 
-    final iAmNextToLift = inSession && nextToLiftUserId == auth.userId;
-
-    // Remeasure the panel height so drag stays pixel-accurate.
-    if (inSession) _measurePanel();
-
-    return GestureDetector(
-      // Tapping anywhere on the bar navigates to workout page when elsewhere.
-      onTap: !isOnWorkoutPage ? () => context.go('/') : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.secondary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border(
-            top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            left: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
-            right: BorderSide(
-              color: colorScheme.outline.withValues(alpha: 0.5),
+        if (_isAllDoneState(stateValue)) {
+          stateLabel = 'All sets complete';
+          stateColor = AppTheme.successFg;
+          displaySet = null;
+          actionButton = _BigButton(
+            label: 'End Workout',
+            onPressed: () => endWorkout(context),
+          );
+        } else if (_isLiftingState(stateValue)) {
+          final proposed = stateSnapshot?.hasDisplaySet() == true
+              ? stateSnapshot!.displaySet
+              : null;
+          if (proposed == null) return const SizedBox.shrink();
+          final elapsedSecs = activeStartedAt > 0
+              ? (nowUnix - activeStartedAt)
+              : 0;
+          stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
+          stateColor = AppTheme.workoutLiftingFg;
+          timerText = _fmt(elapsedSecs);
+          displaySet = proposed;
+          actionButton = _RepButtons(
+            targetReps: proposed.targetReps,
+            isAmrap: proposed.isAmrap,
+            onComplete: (reps) => wp.completeSet(
+              proposed.id,
+              reps,
+              proposed.targetWeight.toDouble(),
             ),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (inSession)
-                GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onVerticalDragUpdate: _onDragUpdate,
-                  onVerticalDragEnd: _onDragEnd,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: isOnWorkoutPage
-                            ? _toggle
-                            : () => context.go('/'),
-                        child: SizedBox(
-                          height: _handleSlotHeight,
-                          child: AnimatedBuilder(
-                            animation: _animation,
-                            builder: (_, __) => Center(
-                              child: _DragHandle(
-                                isExpanded: _animation.value >= 0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+            onSkipWarmup: null,
+          );
+        } else if (_isRestingState(stateValue)) {
+          final hasExpiredRest =
+              restUntil > 0 && restUntil <= nowUnix && nextSet != null;
+          if (hasExpiredRest) {
+            stateLabel = 'Yapping';
+            stateColor = AppTheme.workoutYappingFg;
+            timerText = _fmt(nowUnix - restUntil);
+            timerColor = AppTheme.workoutYappingFg;
+            final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
+                ? stateSnapshot!.displaySet
+                : nextSet;
+            displaySet = actionSet;
+            actionButton = _BigButton(
+              label: 'Start Set',
+              onPressed: () => wp.startSet(actionSet.id),
+              secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
+              onSecondary: wp.canSkipWarmup(actionSet.id)
+                  ? () => wp.skipWarmup(actionSet.id)
+                  : null,
+            );
+          } else {
+            stateLabel = 'Resting';
+            stateColor = AppTheme.workoutRestingFg;
+            timerText = _fmt(restSeconds);
+            final restingSet = stateSnapshot?.hasDisplaySet() == true
+                ? stateSnapshot!.displaySet
+                : nextSet;
+            displaySet = restingSet;
+            actionButton = _BigButton(
+              label: 'Start Early',
+              onPressed: () {
+                if (restingSet != null) wp.startSet(restingSet.id);
+              },
+              secondaryLabel:
+                  restingSet != null && wp.canSkipWarmup(restingSet.id)
+                  ? 'Skip'
+                  : null,
+              onSecondary: restingSet != null && wp.canSkipWarmup(restingSet.id)
+                  ? () => wp.skipWarmup(restingSet.id)
+                  : null,
+            );
+          }
+        } else if (_isReadyState(stateValue) || nextSet != null) {
+          final isYapping =
+              nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
+          stateLabel = isYapping ? 'Yapping' : 'Next up';
+          stateColor = isYapping
+              ? AppTheme.workoutYappingFg
+              : colorScheme.tertiary;
+          timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
+          timerColor = isYapping ? AppTheme.workoutYappingFg : null;
+          displaySet = stateSnapshot?.hasDisplaySet() == true
+              ? stateSnapshot!.displaySet
+              : nextSet;
+          if (displaySet == null) return const SizedBox.shrink();
+          final ProposedSet actionSet = displaySet;
+          actionButton = _BigButton(
+            label: 'Start Set',
+            onPressed: () => wp.startSet(actionSet.id),
+            secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
+            onSecondary: wp.canSkipWarmup(actionSet.id)
+                ? () => wp.skipWarmup(actionSet.id)
+                : null,
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
 
-                      // Other participants panel — follows the finger in real time.
-                      // ClipRect+Align lays out the child at its natural size (so the
-                      // GlobalKey always reports the true height) but clips it to the
-                      // animated fraction of that height.
-                      AnimatedBuilder(
-                        animation: _animation,
-                        builder: (context, child) {
-                          final collapsedFactor =
-                              (_collapsedPeekHeight / _panelHeight).clamp(
-                                0.0,
-                                1.0,
-                              );
-                          final heightFactor =
-                              collapsedFactor +
-                              ((1 - collapsedFactor) * _animation.value);
-                          return ClipRect(
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              heightFactor: heightFactor,
-                              child: IgnorePointer(
-                                ignoring: _animation.value <= 0.001,
-                                child: Opacity(
-                                  opacity: _animation.value <= 0.001 ? 0 : 1,
-                                  child: child,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Padding(
-                          key: _panelKey,
-                          padding: const EdgeInsets.fromLTRB(
-                            20,
-                            0,
-                            20,
-                            _overlap - _currentUserTopInset,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (hiddenOtherCount > 0) ...[
-                                _MoreParticipantsCard(
-                                  hiddenCount: hiddenOtherCount,
-                                  onTap: isOnWorkoutPage
-                                      ? _showAllParticipantsSheet
-                                      : () => context.go('/'),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                              for (final p in visibleOthers) ...[
-                                _SessionMemberCard(
-                                  name: participantDisplayName(p),
-                                  emoji: participantProfileEmoji(p),
-                                  profileColor: participantProfileColor(p),
-                                  status: describeParticipantStatus(
-                                    p,
-                                    now: wp.now,
-                                  ),
-                                  isNextToLift:
-                                      nextToLiftUserId == p.user.id,
-                                  shakeActive:
-                                      !_isDraggingPanel &&
-                                      nextToLiftUserId == p.user.id,
-                                  onTap: isOnWorkoutPage
-                                      ? () => showParticipantWorkoutModal(
-                                          context,
-                                          p,
-                                        )
-                                      : () => context.go('/'),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+        // ── Session state ─────────────────────────────────────────────────────────
+        final others =
+            mp.participants
+                .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
+                .toList()
+              ..sort(_compareParticipantsStable);
+        final inSession = others.isNotEmpty;
+        final visibleOthers = others.length > 4
+            ? (List<ParticipantStatus>.from(others)..sort(
+                    (a, b) => _compareParticipantsByNextWorkout(
+                      a,
+                      b,
+                      nowUnix: nowUnix,
+                    ),
+                  ))
+                  .take(4)
+                  .toList(growable: false)
+            : others;
+        final hiddenOtherCount = (others.length - visibleOthers.length).clamp(
+          0,
+          1 << 30,
+        );
+
+        final nextToLiftUserId = inSession
+            ? _computeNextToLiftUserId(
+                myUserId: auth.userId,
+                others: others,
+                nowUnix: nowUnix,
+                stateValue: stateValue,
+                restUntil: restUntil,
+                lastRestEnd: lastRestEnd,
+                nextSet: nextSet,
+              )
+            : null;
+
+        final iAmNextToLift = inSession && nextToLiftUserId == auth.userId;
+
+        // Remeasure the panel height so drag stays pixel-accurate.
+        if (inSession) _measurePanel();
+
+        return GestureDetector(
+          // Tapping anywhere on the bar navigates to workout page when elsewhere.
+          onTap: !isOnWorkoutPage ? () => context.go('/') : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.secondary,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+              border: Border(
+                top: BorderSide(
+                  color: colorScheme.outline.withValues(alpha: 0.5),
                 ),
-
-              // ── Current-user action bar — always visible ──────────────────
-              AnimatedBuilder(
-                animation: _animation,
-                builder: (context, child) {
-                  final overlap = inSession ? _overlap : 0.0;
-                  return Transform.translate(
-                    offset: Offset(0, -overlap),
-                    child: child,
-                  );
-                },
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    inSession ? _currentUserTopInset : 20,
-                    20,
-                    20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _HorizontalShaker(
-                        active: iAmNextToLift && !_isDraggingPanel,
-                        child: StatusBox(
-                          sideLabel: 'YOU',
-                          sideBadge: auth.profileEmoji,
-                          // In multiplayer show 'You' header so the rainbow
-                          // "next to lift" label has a home.
-                          header: inSession ? 'You' : null,
-                          showHeader: inSession,
-                          headerTrailing: iAmNextToLift
-                              ? const _RainbowShimmerText(
-                                  text: 'next to schlift',
-                                )
-                              : null,
-                          stateLabel: stateLabel,
-                          color: stateColor,
-                          sideColor: profileColorFromHex(auth.profileColorHex),
-                          timerText: timerText,
-                          timerColor: timerColor,
-                          set: displaySet,
-                          isComplete: _isAllDoneState(stateValue),
-                          sideLabelWidth: 44,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _TimerHeartBox(
-                            elapsedText: elapsedText,
-                            heartRateText: heartRateText,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(child: actionButton),
-                        ],
-                      ),
-                    ],
-                  ),
+                left: BorderSide(
+                  color: colorScheme.outline.withValues(alpha: 0.5),
+                ),
+                right: BorderSide(
+                  color: colorScheme.outline.withValues(alpha: 0.5),
                 ),
               ),
-            ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (inSession)
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onVerticalDragUpdate: _onDragUpdate,
+                      onVerticalDragEnd: _onDragEnd,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: isOnWorkoutPage
+                                ? _toggle
+                                : () => context.go('/'),
+                            child: SizedBox(
+                              height: _handleSlotHeight,
+                              child: AnimatedBuilder(
+                                animation: _animation,
+                                builder: (_, __) => Center(
+                                  child: _DragHandle(
+                                    isExpanded: _animation.value >= 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Other participants panel — follows the finger in real time.
+                          // ClipRect+Align lays out the child at its natural size (so the
+                          // GlobalKey always reports the true height) but clips it to the
+                          // animated fraction of that height.
+                          AnimatedBuilder(
+                            animation: _animation,
+                            builder: (context, child) {
+                              final collapsedFactor =
+                                  (_collapsedPeekHeight / _panelHeight).clamp(
+                                    0.0,
+                                    1.0,
+                                  );
+                              final heightFactor =
+                                  collapsedFactor +
+                                  ((1 - collapsedFactor) * _animation.value);
+                              return ClipRect(
+                                child: Align(
+                                  alignment: Alignment.topCenter,
+                                  heightFactor: heightFactor,
+                                  child: IgnorePointer(
+                                    ignoring: _animation.value <= 0.001,
+                                    child: Opacity(
+                                      opacity: _animation.value <= 0.001
+                                          ? 0
+                                          : 1,
+                                      child: child,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              key: _panelKey,
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                0,
+                                20,
+                                _overlap - _currentUserTopInset,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (hiddenOtherCount > 0) ...[
+                                    _MoreParticipantsCard(
+                                      hiddenCount: hiddenOtherCount,
+                                      onTap: isOnWorkoutPage
+                                          ? _showAllParticipantsSheet
+                                          : () => context.go('/'),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                  for (final p in visibleOthers) ...[
+                                    _SessionMemberCard(
+                                      name: participantDisplayName(p),
+                                      emoji: participantProfileEmoji(p),
+                                      profileColor: participantProfileColor(p),
+                                      status: describeParticipantStatus(
+                                        p,
+                                        now: now,
+                                      ),
+                                      isNextToLift:
+                                          nextToLiftUserId == p.user.id,
+                                      shakeActive:
+                                          !_isDraggingPanel &&
+                                          nextToLiftUserId == p.user.id,
+                                      onTap: isOnWorkoutPage
+                                          ? () => showParticipantWorkoutModal(
+                                              context,
+                                              p,
+                                            )
+                                          : () => context.go('/'),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // ── Current-user action bar — always visible ──────────────────
+                  AnimatedBuilder(
+                    animation: _animation,
+                    builder: (context, child) {
+                      final overlap = inSession ? _overlap : 0.0;
+                      return Transform.translate(
+                        offset: Offset(0, -overlap),
+                        child: child,
+                      );
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        inSession ? _currentUserTopInset : 20,
+                        20,
+                        20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _HorizontalShaker(
+                            active: iAmNextToLift && !_isDraggingPanel,
+                            child: StatusBox(
+                              sideLabel: 'YOU',
+                              sideBadge: auth.profileEmoji,
+                              // In multiplayer show 'You' header so the rainbow
+                              // "next to lift" label has a home.
+                              header: inSession ? 'You' : null,
+                              showHeader: inSession,
+                              headerTrailing: iAmNextToLift
+                                  ? const _RainbowShimmerText(
+                                      text: 'next to schlift',
+                                    )
+                                  : null,
+                              stateLabel: stateLabel,
+                              color: stateColor,
+                              sideColor: profileColorFromHex(
+                                auth.profileColorHex,
+                              ),
+                              timerText: timerText,
+                              timerColor: timerColor,
+                              set: displaySet,
+                              isComplete: _isAllDoneState(stateValue),
+                              sideLabelWidth: 44,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _TimerHeartBox(
+                                elapsedText: elapsedText,
+                                heartRateText: heartRateText,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(child: actionButton),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
