@@ -9,6 +9,11 @@ import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';
 import '../services/multiplayer_service.dart';
 
+/// Tracks the caller's current multiplayer session.
+///
+/// Membership invariant lives on the server in `user_current_session`. This provider
+/// simply reflects what `GetCurrentSession` returns — there's no client-side pending
+/// state because the server knows the caller is in a group the moment they join.
 class MultiplayerProvider extends ChangeNotifier {
   final MultiplayerServiceWrapper _service;
 
@@ -16,6 +21,7 @@ class MultiplayerProvider extends ChangeNotifier {
 
   String? _sessionId;
   SessionStatus? _sessionStatus;
+  String? _myInviteToken;
   bool _isLoading = false;
   Timer? _pollTimer;
   bool _disposed = false;
@@ -27,13 +33,15 @@ class MultiplayerProvider extends ChangeNotifier {
   String? get sessionId => _sessionId;
   SessionStatus? get sessionStatus => _sessionStatus;
   List<ParticipantStatus> get participants => sessionStatus?.participants ?? [];
-  bool get isInSession => _sessionId != null;
+  bool get isInSession => sessionId != null;
   bool get isLoading => _isLoading;
+  String? get myInviteToken => _myInviteToken;
 
   void startSync() {
     if (_disposed) return;
     AppLogger.instance.info('Multiplayer', 'startSync');
     _syncEnabled = true;
+    unawaited(_ensureInviteToken());
     _ensurePolling();
   }
 
@@ -63,11 +71,46 @@ class MultiplayerProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<String?> joinSession(String userId, {String? workoutId}) async {
+  /// Lazily load the caller's invite token (stable across calls unless rotated).
+  Future<String?> _ensureInviteToken() async {
+    if (_myInviteToken != null) return _myInviteToken;
+    try {
+      final token = await _service.getMyInviteToken();
+      _myInviteToken = token;
+      if (!_disposed) notifyListeners();
+      return token;
+    } catch (e) {
+      AppLogger.instance.warn('Multiplayer', 'getMyInviteToken failed', {'error': e.toString()});
+      return null;
+    }
+  }
+
+  Future<String?> refreshInviteToken() => _ensureInviteToken();
+
+  Future<String?> rotateInviteToken() async {
+    try {
+      final token = await _service.rotateInviteToken();
+      _myInviteToken = token;
+      if (!_disposed) notifyListeners();
+      return token;
+    } catch (e) {
+      AppLogger.instance.warn('Multiplayer', 'rotateInviteToken failed', {'error': e.toString()});
+      return null;
+    }
+  }
+
+  /// Accepts either a raw invite token or a share URL containing `?join=<token>`.
+  Future<String?> joinViaInvite(String tokenOrUrl) async {
+    final token = _extractToken(tokenOrUrl);
+    if (token.isEmpty) {
+      final msg = 'INVALID INVITE CODE';
+      ErrorModalService.showError(msg);
+      return msg;
+    }
     _isLoading = true;
     notifyListeners();
     try {
-      _sessionId = await _service.joinUser(userId);
+      await _service.joinViaInvite(token);
       _syncEnabled = true;
       await checkForSession();
       Fluttertoast.showToast(
@@ -79,7 +122,7 @@ class MultiplayerProvider extends ChangeNotifier {
       );
       return null;
     } catch (e) {
-      AppLogger.instance.error('Multiplayer', 'joinSession failed', {'error': e.toString()});
+      AppLogger.instance.error('Multiplayer', 'joinViaInvite failed', {'error': e.toString()});
       final cleanError = cleanErrorMessage(e);
       ErrorModalService.showError(cleanError.toUpperCase());
       return cleanError;
@@ -89,24 +132,31 @@ class MultiplayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> leaveSession() async {
+  Future<void> leaveCurrentSession() async {
     try {
-      await _service.leaveSession();
-    } catch (_) {}
-    _clearSession(notify: true);
-    if (_syncEnabled) {
-      _ensurePolling();
-    } else {
-      _cancelPolling();
+      await _service.leaveCurrentSession();
+    } catch (e) {
+      AppLogger.instance.warn('Multiplayer', 'leaveCurrentSession failed', {'error': e.toString()});
     }
+    _clearSession(notify: true);
+  }
+
+  String _extractToken(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return '';
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.queryParameters['join'] != null) {
+      return uri.queryParameters['join']!.trim();
+    }
+    return trimmed;
   }
 
   void markLocalWorkoutFinished() {
-    _clearSession(notify: true);
+    // The server clears user_current_session on EndWorkout, so our next poll
+    // will come back empty and _clearSession is called. Nothing to do here
+    // beyond ensuring a poll happens soon.
     if (_syncEnabled) {
       _ensurePolling();
-    } else {
-      _cancelPolling();
     }
   }
 
@@ -146,10 +196,7 @@ class MultiplayerProvider extends ChangeNotifier {
     if (_disposed || _pollInFlight) return;
     _pollInFlight = true;
     try {
-      final sessionId = _sessionId;
-      final response = sessionId == null
-          ? await _service.getCurrentSession()
-          : await _service.getCurrentSession(sessionId: sessionId);
+      final response = await _service.getCurrentSession();
       if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
         _clearSession(notify: true);
         return;

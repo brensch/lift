@@ -152,10 +152,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   ) async {
     List<String> names = [];
     try {
-      final sessionResponse = await service.getCurrentSession(
-        sessionId: sessionId,
-      );
-      final participants = sessionResponse.sessionStatus.participants;
+      final sessionResponse = await service.getSessionParticipants(sessionId);
+      final participants = sessionResponse.participants;
       final seen = <String>{};
       for (final participant in participants) {
         final user = participant.user;

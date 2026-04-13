@@ -13,37 +13,52 @@ class MultiplayerServiceWrapper {
 
   MultiplayerServiceWrapper(this._client);
 
-  Future<String> joinUser(String userId) async {
-    final req = JoinUserRequest()..userId = userId;
-    final response = await _client.multiplayerService.joinUser(
+  Future<String> joinViaInvite(String inviteToken) async {
+    final req = JoinViaInviteRequest()..inviteToken = inviteToken;
+    final response = await _client.multiplayerService.joinViaInvite(
       req,
       options: _defaultCallOptions,
     );
     return response.sessionId;
   }
 
-  Future<void> leaveSession() async {
-    await _client.multiplayerService.leaveSession(
-      LeaveSessionRequest(),
+  Future<String> getMyInviteToken() async {
+    final response = await _client.multiplayerService.getMyInviteToken(
+      GetMyInviteTokenRequest(),
       options: _defaultCallOptions,
     );
+    return response.inviteToken;
   }
 
-  Future<GetCurrentSessionResponse> getCurrentSession({
-    String? sessionId,
-  }) async {
-    final req = GetCurrentSessionRequest();
-    if (sessionId != null) req.sessionId = sessionId;
+  Future<String> rotateInviteToken() async {
+    final response = await _client.multiplayerService.rotateInviteToken(
+      RotateInviteTokenRequest(),
+      options: _defaultCallOptions,
+    );
+    return response.inviteToken;
+  }
+
+  Future<GetCurrentSessionResponse> getCurrentSession() async {
     return await _client.multiplayerService.getCurrentSession(
-      req,
+      GetCurrentSessionRequest(),
       options: _pollCallOptions,
     );
   }
 
-  Stream<SessionSubscriptionEvent> subscribeSession({String? sessionId}) {
-    final req = SubscribeSessionRequest();
-    if (sessionId != null) req.sessionId = sessionId;
-    return _client.multiplayerService.subscribeSession(req);
+  Future<GetSessionParticipantsResponse> getSessionParticipants(
+    String sessionId,
+  ) async {
+    return await _client.multiplayerService.getSessionParticipants(
+      GetSessionParticipantsRequest()..sessionId = sessionId,
+      options: _defaultCallOptions,
+    );
+  }
+
+  Future<void> leaveCurrentSession() async {
+    await _client.multiplayerService.leaveCurrentSession(
+      LeaveCurrentSessionRequest(),
+      options: _defaultCallOptions,
+    );
   }
 
   Future<void> updateActiveWorkout(String workoutId) async {

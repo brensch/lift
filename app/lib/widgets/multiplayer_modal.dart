@@ -6,8 +6,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../providers/multiplayer_provider.dart';
-import '../providers/workout_provider.dart';
 import 'participant_ticker.dart';
+
+String _shareUrl(String inviteToken) => 'https://schlift.com/?join=$inviteToken';
 
 class MultiplayerModal extends StatefulWidget {
   const MultiplayerModal({super.key});
@@ -27,53 +28,27 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
   }
 
   void _handleScan(BarcodeCapture capture) {
-    final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
-      if (barcode.rawValue != null) {
-        final url = Uri.tryParse(barcode.rawValue!);
-        if (url != null) {
-          final joinId = url.queryParameters['join'];
-          if (joinId != null) {
-            _joinSession(joinId);
-            return;
-          }
-        }
-      }
+    for (final barcode in capture.barcodes) {
+      final raw = barcode.rawValue;
+      if (raw == null || raw.isEmpty) continue;
+      _joinViaInvite(raw);
+      return;
     }
   }
 
-  Future<void> _joinSession(String sessionIdOrUrl) async {
+  Future<void> _joinViaInvite(String tokenOrUrl) async {
     if (!mounted) return;
-
-    String sessionId = sessionIdOrUrl.trim();
-    // If it's a URL, try to extract the join parameter
-    final uri = Uri.tryParse(sessionId);
-    if (uri != null && uri.queryParameters.containsKey('join')) {
-      sessionId = uri.queryParameters['join']!;
-    }
-
     setState(() => _isScanning = false);
-
     final mp = context.read<MultiplayerProvider>();
-    final wp = context.read<WorkoutProvider>();
-    final workoutId = wp.hasActiveWorkout ? wp.workout?.id : null;
-
-    final error = await mp.joinSession(sessionId, workoutId: workoutId);
+    final error = await mp.joinViaInvite(tokenOrUrl);
     if (error == null && mounted) {
       Navigator.pop(context);
     }
   }
 
-  Future<void> _leaveSession() async {
-    final mp = context.read<MultiplayerProvider>();
-    await mp.leaveSession();
-  }
-
-  Future<void> _shareSession(String joinId) async {
+  Future<void> _shareInvite(String inviteToken) async {
     try {
-      await Share.share(
-        'Join my workout on Schlift: https://schlift.com/?join=$joinId',
-      );
+      await Share.share('Join my workout on Schlift: ${_shareUrl(inviteToken)}');
     } catch (e) {
       debugPrint('Error sharing: $e');
       if (mounted) {
@@ -88,14 +63,22 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     }
   }
 
-  Future<void> _copyLink(String joinId) async {
-    await Clipboard.setData(
-      ClipboardData(text: 'https://schlift.com/?join=$joinId'),
-    );
+  Future<void> _copyInviteLink(String inviteToken) async {
+    await Clipboard.setData(ClipboardData(text: _shareUrl(inviteToken)));
     if (mounted) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Link copied to clipboard')));
+    }
+  }
+
+  Future<void> _rotateInvite() async {
+    final mp = context.read<MultiplayerProvider>();
+    await mp.rotateInviteToken();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invite code rotated — old QR no longer works')),
+      );
     }
   }
 
@@ -105,7 +88,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final auth = context.watch<AuthProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final sessionId = mp.sessionId;
-    final userId = auth.userId ?? '';
+    final inviteToken = mp.myInviteToken;
     final username = auth.username?.trim();
 
     final modalSurface = colorScheme.brightness == Brightness.dark
@@ -167,78 +150,94 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 ],
               )
             else ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-                child: Center(
-                  child: QrImageView(
-                    data: 'https://schlift.com/?join=$userId',
-                    version: QrVersions.auto,
-                    size: 200.0,
+              if (inviteToken == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colorScheme.outline),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Your join code',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                userId,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 10,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: OutlinedButton.icon(
-                        onPressed: () => setState(() => _isScanning = true),
-                        icon: const Icon(Icons.qr_code_scanner, size: 18),
-                        label: const Text('Scan'),
-                      ),
+                  child: Center(
+                    child: QrImageView(
+                      data: _shareUrl(inviteToken),
+                      version: QrVersions.auto,
+                      size: 200.0,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _copyLink(userId),
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('Copy'),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Your invite code',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  inviteToken,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    color: colorScheme.tertiary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => setState(() => _isScanning = true),
+                          icon: const Icon(Icons.qr_code_scanner, size: 18),
+                          label: const Text('Scan'),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: FilledButton.icon(
-                        onPressed: () => _shareSession(userId),
-                        icon: const Icon(Icons.share, size: 16),
-                        label: const Text('Share'),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _copyInviteLink(inviteToken),
+                          icon: const Icon(Icons.copy, size: 16),
+                          label: const Text('Copy'),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: FilledButton.icon(
+                          onPressed: () => _shareInvite(inviteToken),
+                          icon: const Icon(Icons.share, size: 16),
+                          label: const Text('Share'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _rotateInvite,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Rotate code'),
                   ),
-                ],
-              ),
+                ),
+              ],
               const SizedBox(height: 24),
               if (sessionId != null) ...[
                 Text(
@@ -350,20 +349,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 44,
-                  child: OutlinedButton(
-                    onPressed: _leaveSession,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colorScheme.error,
-                      side: BorderSide(
-                        color: colorScheme.error.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: const Text('Leave Session'),
-                  ),
-                ),
               ] else ...[
                 const SizedBox(height: 16),
                 Row(
@@ -389,7 +374,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     FilledButton(
                       onPressed: () {
                         if (_idController.text.isNotEmpty) {
-                          _joinSession(_idController.text.trim());
+                          _joinViaInvite(_idController.text.trim());
                         }
                       },
                       child: const Text('Join'),

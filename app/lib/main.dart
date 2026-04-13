@@ -285,26 +285,19 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   Future<void> _checkClipboardForJoin() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text != null && data!.text!.startsWith('schlift-join:')) {
-      final joinId = data.text!.replaceFirst('schlift-join:', '');
+      final joinToken = data.text!.replaceFirst('schlift-join:', '');
       // Clear clipboard so we don't keep joining
       await Clipboard.setData(const ClipboardData(text: ''));
-      _joinById(joinId);
+      if (joinToken.isNotEmpty && _authProvider.isLoggedIn) {
+        _multiplayerProvider.joinViaInvite(joinToken);
+      }
     }
   }
 
   void _handleDeepLink(Uri uri) {
-    final joinId = uri.queryParameters['join'];
-    if (joinId != null) {
-      _joinById(joinId);
-    }
-  }
-
-  void _joinById(String joinId) {
-    if (_authProvider.isLoggedIn) {
-      final workoutId = _workoutProvider.hasActiveWorkout
-          ? _workoutProvider.workout?.id
-          : null;
-      _multiplayerProvider.joinSession(joinId, workoutId: workoutId);
+    final joinToken = uri.queryParameters['join'];
+    if (joinToken != null && joinToken.isNotEmpty && _authProvider.isLoggedIn) {
+      _multiplayerProvider.joinViaInvite(joinToken);
     }
   }
 

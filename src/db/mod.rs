@@ -24,7 +24,8 @@ const SERVER_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users_current (
     user_id TEXT PRIMARY KEY,
     user_blob BLOB NOT NULL,
-    username_ci TEXT NOT NULL UNIQUE
+    username_ci TEXT NOT NULL UNIQUE,
+    invite_token TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS auth_sessions (
@@ -107,10 +108,16 @@ CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed ON completed_sets(propose
 
 CREATE TABLE IF NOT EXISTS active_workout_current (
     user_id TEXT PRIMARY KEY,
-    workout_id TEXT NOT NULL,
-    session_id TEXT NOT NULL DEFAULT ''
+    workout_id TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_active_workout_current_session ON active_workout_current(session_id);
+
+CREATE TABLE IF NOT EXISTS user_current_session (
+    user_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    joined_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_user_current_session_session
+    ON user_current_session(session_id);
 
 CREATE TABLE IF NOT EXISTS workout_events (
     event_id TEXT PRIMARY KEY,
@@ -134,17 +141,13 @@ CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
 CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
     ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
 
-CREATE TABLE IF NOT EXISTS session_memberships (
-    membership_id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    joined_at INTEGER NOT NULL,
-    left_at INTEGER NOT NULL DEFAULT 0
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_session_memberships_active
-    ON session_memberships(session_id, left_at, joined_at DESC);
-CREATE INDEX IF NOT EXISTS idx_session_memberships_user_active
-    ON session_memberships(user_id, left_at, joined_at DESC);
+CREATE INDEX IF NOT EXISTS idx_workouts_session ON workouts(session_id)
+    WHERE session_id != '';
 
 CREATE TABLE IF NOT EXISTS session_participants_current (
     session_id TEXT NOT NULL,

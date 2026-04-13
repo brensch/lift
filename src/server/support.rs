@@ -77,22 +77,27 @@ pub(super) fn build_participant_status(
     }
 }
 
+/// Write an updated participant snapshot for `user_id` into session `session_id`.
+/// If `workout_id` is provided, the snapshot reflects that specific workout (used after
+/// StartSet/CompleteSet/EndWorkout where the caller already knows the workout). Otherwise
+/// the caller's active workout (if any) is used.
 pub(super) async fn refresh_participant_for_user(
     db: &ServerDb,
     user_id: &str,
     session_id: &str,
+    workout_id: Option<&str>,
 ) -> Result<(), Status> {
     let user = db
         .get_user(user_id)
         .await
         .map_err(internal_error)?
         .ok_or_else(|| Status::not_found("User not found"))?;
-    let active = if let Some((workout_id, _)) = db
-        .get_active_workout_id(user_id)
-        .await
-        .map_err(internal_error)?
-    {
-        db.load_workout_full(user_id, &workout_id)
+    let resolved_workout_id = match workout_id {
+        Some(id) => Some(id.to_string()),
+        None => db.get_active_workout_id(user_id).await.map_err(internal_error)?,
+    };
+    let active = if let Some(id) = resolved_workout_id.as_deref() {
+        db.load_workout_full(user_id, id)
             .await
             .map_err(internal_error)?
     } else {

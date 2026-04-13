@@ -509,7 +509,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           },
     );
   }
-
 }
 
 class _CurrentExerciseCard extends StatelessWidget {
@@ -530,8 +529,6 @@ class _CurrentExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final unit = context.watch<SettingsProvider>().weightUnit;
-    final stats = _CurrentExerciseStats.fromGroup(group, completedSets);
     final title =
         group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
 
@@ -539,28 +536,6 @@ class _CurrentExerciseCard extends StatelessWidget {
       (set) => set?.id == activeSetId,
       orElse: () => null,
     );
-    final displaySet =
-        activeSet ??
-        group.sets.cast<ProposedSet?>().firstWhere(
-          (set) => !completedSets.any(
-            (completed) =>
-                completed.proposedSetId == set?.id &&
-                completed.endedAt != Int64.ZERO,
-          ),
-          orElse: () => null,
-        );
-    final currentWeight = displaySet == null
-        ? null
-        : formatWeight(
-            displaySet.targetWeight.toDouble(),
-            unit,
-            includeUnit: true,
-          );
-    final currentReps = displaySet == null
-        ? null
-        : (displaySet.isAmrap
-              ? '${displaySet.targetReps}+'
-              : '${displaySet.targetReps}');
 
     return Container(
       width: double.infinity,
@@ -630,58 +605,6 @@ class _CurrentExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _CurrentSummaryChip(
-                label: 'Warmups',
-                value: '${stats.completedWarmupSets}/${stats.totalWarmupSets}',
-                tint: AppTheme.warmupFg,
-                background: AppTheme.warmupLight,
-              ),
-              _CurrentSummaryChip(
-                label: 'Sets',
-                value:
-                    '${stats.completedWorkingSets}/${stats.totalWorkingSets}',
-                tint:
-                    stats.completedWorkingSets == stats.totalWorkingSets &&
-                        stats.totalWorkingSets > 0
-                    ? AppTheme.successFg
-                    : colorScheme.onSurface,
-                background:
-                    stats.completedWorkingSets == stats.totalWorkingSets &&
-                        stats.totalWorkingSets > 0
-                    ? AppTheme.successBg
-                    : colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.45,
-                      ),
-              ),
-              _CurrentSummaryChip(
-                label: 'Current',
-                value: currentWeight != null && currentReps != null
-                    ? '$currentWeight x $currentReps'
-                    : '--',
-                tint: displaySet == null
-                    ? AppTheme.successFg
-                    : displaySet.warmup
-                    ? AppTheme.warmupFg
-                    : (activeSet != null
-                          ? AppTheme.workoutLiftingFg
-                          : colorScheme.onSurface),
-                background: displaySet == null
-                    ? AppTheme.successBg
-                    : displaySet.warmup
-                    ? AppTheme.warmupLight
-                    : (activeSet != null
-                          ? AppTheme.workoutLiftingBg
-                          : colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.45,
-                            )),
-              ),
-            ],
-          ),
           const SizedBox(height: 16),
           if (group.sets.any((set) => set.warmup)) ...[
             _SetProgressSection(
@@ -745,57 +668,6 @@ class _SetProgressSection extends StatelessWidget {
         const SizedBox(height: 6),
         Wrap(spacing: 8, runSpacing: 8, children: children),
       ],
-    );
-  }
-}
-
-class _CurrentSummaryChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color tint;
-  final Color background;
-
-  const _CurrentSummaryChip({
-    required this.label,
-    required this.value,
-    required this.tint,
-    required this.background,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tint.withValues(alpha: 0.22)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: tint.withValues(alpha: 0.8),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.4,
-              color: tint,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -880,42 +752,6 @@ class _CurrentSetChip extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
       ),
-    );
-  }
-}
-
-class _CurrentExerciseStats {
-  final int completedWarmupSets;
-  final int totalWarmupSets;
-  final int completedWorkingSets;
-  final int totalWorkingSets;
-
-  const _CurrentExerciseStats({
-    required this.completedWarmupSets,
-    required this.totalWarmupSets,
-    required this.completedWorkingSets,
-    required this.totalWorkingSets,
-  });
-
-  factory _CurrentExerciseStats.fromGroup(
-    ExerciseGroupData group,
-    List<CompletedSet> completedSets,
-  ) {
-    final workingSets = group.sets.where((s) => !s.warmup).toList();
-    final warmupSets = group.sets.where((s) => s.warmup).toList();
-
-    bool isDone(ProposedSet set) => completedSets.any(
-      (c) => c.proposedSetId == set.id && c.endedAt != Int64.ZERO,
-    );
-
-    final completedWorkingSets = workingSets.where(isDone).length;
-    final completedWarmupSets = warmupSets.where(isDone).length;
-
-    return _CurrentExerciseStats(
-      completedWarmupSets: completedWarmupSets,
-      totalWarmupSets: warmupSets.length,
-      completedWorkingSets: completedWorkingSets,
-      totalWorkingSets: workingSets.length,
     );
   }
 }

@@ -8,7 +8,8 @@ use schlift::workout::v1::{
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
     ExerciseTypeConfig, GetActiveTrainingProgramStateRequest, GetActiveWorkoutRequest,
     GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, GetSettingsRequest,
-    GetTrainingProgramCatalogRequest, GetWorkoutRequest, JoinUserRequest, StartSetRequest,
+    GetMyInviteTokenRequest, GetTrainingProgramCatalogRequest, GetWorkoutRequest,
+    JoinViaInviteRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint,
     WorkoutMutation,
 };
@@ -304,15 +305,22 @@ async fn run_user_simulation(
     let user_id = login_resp.user_id.clone();
     let token: MetadataValue<_> = login_resp.session_token.parse()?;
 
-    if is_leader {
-        session_registry
-            .leader_ids
-            .insert(group_index, user_id.clone());
-    }
-
     let mut workout_client = WorkoutServiceClient::new(channel.clone());
     let mut multiplayer_client = MultiplayerServiceClient::new(channel.clone());
     let mut settings_client = SettingsServiceClient::new(channel.clone());
+
+    if is_leader {
+        let mut req = Request::new(GetMyInviteTokenRequest {});
+        req.metadata_mut().insert("x-session-token", token.clone());
+        let invite_token = multiplayer_client
+            .get_my_invite_token(req)
+            .await?
+            .into_inner()
+            .invite_token;
+        session_registry
+            .leader_ids
+            .insert(group_index, invite_token);
+    }
 
     // Real app startup runs these branches concurrently after session restore.
     let settings_branch = {
@@ -406,9 +414,7 @@ async fn run_user_simulation(
                 &stats,
                 "GetCurrentSession",
                 |c, req| Box::pin(c.get_current_session(req)),
-                GetCurrentSessionRequest {
-                    session_id: String::new(),
-                },
+                GetCurrentSessionRequest {},
             )
             .await
         })
@@ -423,32 +429,27 @@ async fn run_user_simulation(
     } else {
         Some(startup_session.session_id)
     };
-    let mut session_poll_task = current_session_id.clone().map(|session_id| {
-        spawn_session_poll(
-            multiplayer_client.clone(),
-            token.clone(),
-            stats.clone(),
-            session_id,
-        )
+    let mut session_poll_task = current_session_id.clone().map(|_session_id| {
+        spawn_session_poll(multiplayer_client.clone(), token.clone(), stats.clone())
     });
 
     // Join session if not leader
     if !is_leader {
-        let mut leader_id = None;
+        let mut leader_invite: Option<String> = None;
         for _ in 0..30 {
-            if let Some(id) = session_registry.leader_ids.get(&group_index) {
-                leader_id = Some(id.clone());
+            if let Some(t) = session_registry.leader_ids.get(&group_index) {
+                leader_invite = Some(t.clone());
                 break;
             }
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
-        if let Some(lid) = leader_id {
-            let mut req = Request::new(JoinUserRequest { user_id: lid });
+        if let Some(invite_token) = leader_invite {
+            let mut req = Request::new(JoinViaInviteRequest { invite_token });
             req.metadata_mut().insert("x-session-token", token.clone());
             let req_start = Instant::now();
-            let res = multiplayer_client.join_user(req).await;
-            stats.record("JoinUser", req_start.elapsed(), res.is_err());
+            let res = multiplayer_client.join_via_invite(req).await;
+            stats.record("JoinViaInvite", req_start.elapsed(), res.is_err());
             res?;
 
             let joined_session = timed_call(
@@ -457,9 +458,7 @@ async fn run_user_simulation(
                 &stats,
                 "GetCurrentSession",
                 |c, req| Box::pin(c.get_current_session(req)),
-                GetCurrentSessionRequest {
-                    session_id: String::new(),
-                },
+                GetCurrentSessionRequest {},
             )
             .await?;
             if !joined_session.session_id.is_empty() && session_poll_task.is_none() {
@@ -468,7 +467,6 @@ async fn run_user_simulation(
                     multiplayer_client.clone(),
                     token.clone(),
                     stats.clone(),
-                    joined_session.session_id,
                 ));
             }
         }
@@ -660,9 +658,7 @@ async fn run_user_simulation(
                     &stats,
                     "GetCurrentSession",
                     |c, req| Box::pin(c.get_current_session(req)),
-                    GetCurrentSessionRequest {
-                        session_id: ended_workout.session_id.clone(),
-                    },
+                    GetCurrentSessionRequest {},
                 )
                 .await?;
             }
@@ -770,14 +766,11 @@ fn spawn_session_poll(
     mut multiplayer_client: MultiplayerServiceClient<Channel>,
     token: MetadataValue<tonic::metadata::Ascii>,
     stats: Arc<GlobalStats>,
-    session_id: String,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         loop {
             let req_start = Instant::now();
-            let mut req = Request::new(GetCurrentSessionRequest {
-                session_id: session_id.clone(),
-            });
+            let mut req = Request::new(GetCurrentSessionRequest {});
             req.metadata_mut().insert("x-session-token", token.clone());
             let res = multiplayer_client.get_current_session(req).await;
             stats.record("GetCurrentSession", req_start.elapsed(), res.is_err());

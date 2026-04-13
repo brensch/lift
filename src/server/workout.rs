@@ -111,7 +111,6 @@ impl ServerWorkoutService {
             .get_active_workout_id(user_id)
             .await
             .map_err(internal_error)?
-            .map(|(id, _)| id)
             .unwrap_or_default();
 
         let response = GetProposedWorkoutScheduleResponse {
@@ -175,14 +174,13 @@ impl ServerWorkoutService {
         Ok((proposed_sets, completed_sets, next_up, snapshot))
     }
 
-    /// Get session_id for a user (from active_workout_current or session membership).
+    /// Read the caller's current session id (the single source of truth for group membership).
     async fn get_session_id_for_user(&self, user_id: &str) -> Result<String, Status> {
         Ok(self
             .db
-            .get_active_workout_id(user_id)
+            .get_user_current_session(user_id)
             .await
             .map_err(internal_error)?
-            .map(|(_, sid)| sid)
             .unwrap_or_default())
     }
 }
@@ -195,13 +193,10 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<StartWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
-        info!(rpc = "StartWorkout", %user_id, group_count = req.exercise_groups.len(), "request");
-        let session_id = self
-            .db
-            .get_current_session_id_for_user(&user_id)
-            .await
-            .map_err(internal_error)?
-            .unwrap_or_default();
+        // Session attachment is decided by the invariant: whatever session the user is
+        // currently in (via user_current_session) is stamped onto the new workout row.
+        let session_id = self.get_session_id_for_user(&user_id).await?;
+        info!(rpc = "StartWorkout", %user_id, group_count = req.exercise_groups.len(), %session_id, "request");
         let workout_id = Uuid::new_v4().to_string();
         let started_at = if req.started_at > 0 {
             req.started_at
@@ -245,7 +240,8 @@ impl WorkoutService for ServerWorkoutService {
         let response = start_workout_response_from_active(&active);
 
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&workout_id))
+                .await?;
         }
         Ok(Response::new(response))
     }
@@ -263,7 +259,8 @@ impl WorkoutService for ServerWorkoutService {
             now_unix()
         };
 
-        // Get session_id before ending
+        // Capture session before ending: once end_workout deletes active_workout_current,
+        // the session link is no longer reachable via get_active_workout_id.
         let session_id = self.get_session_id_for_user(&user_id).await?;
 
         self.db
@@ -279,7 +276,17 @@ impl WorkoutService for ServerWorkoutService {
             .ok_or_else(|| Status::not_found("Workout not found"))?;
 
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            // Refresh with the finished workout so peers still in the session see the
+            // completed participant snapshot instead of a cleared one…
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
+            // …then drop the caller out of the group. Their last blob remains in
+            // session_participants_current so peers still polling the session still see
+            // them. A subsequent StartWorkout will be solo unless they rejoin.
+            self.db
+                .clear_user_current_session(&user_id)
+                .await
+                .map_err(internal_error)?;
         }
         Ok(Response::new(EndWorkoutResponse {
             workout: Some(workout),
@@ -308,7 +315,7 @@ impl WorkoutService for ServerWorkoutService {
     ) -> Result<Response<GetActiveWorkoutResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "GetActiveWorkout", %user_id, "request");
-        let workout = if let Some((workout_id, _)) = self
+        let workout = if let Some(workout_id) = self
             .db
             .get_active_workout_id(&user_id)
             .await
@@ -415,7 +422,7 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
         }
 
         Ok(Response::new(StartSetResponse {
@@ -508,7 +515,7 @@ impl WorkoutService for ServerWorkoutService {
 
             let session_id = self.get_session_id_for_user(&user_id).await?;
             if !session_id.is_empty() {
-                refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+                refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
             }
 
             Ok(Response::new(CompleteSetResponse {
@@ -539,7 +546,7 @@ impl WorkoutService for ServerWorkoutService {
 
             let session_id = self.get_session_id_for_user(&user_id).await?;
             if !session_id.is_empty() {
-                refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+                refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
             }
 
             Ok(Response::new(CompleteSetResponse {
@@ -569,7 +576,7 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
         }
 
         Ok(Response::new(DeleteCompletedSetResponse {
@@ -597,7 +604,7 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
         }
 
         Ok(Response::new(CancelProposedSetResponse {
@@ -650,7 +657,7 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
         }
 
         Ok(Response::new(ReplaceExerciseGroupPlanResponse {
@@ -700,7 +707,7 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
         }
 
         Ok(Response::new(ReorderExerciseGroupsResponse {
@@ -835,7 +842,13 @@ impl WorkoutService for ServerWorkoutService {
         let response = get_workout_response_from_active(&active);
 
         if !active.workout.session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &active.workout.session_id).await?;
+            refresh_participant_for_user(
+                &self.db,
+                &user_id,
+                &active.workout.session_id,
+                Some(&workout_id),
+            )
+            .await?;
         }
 
         Ok(Response::new(AppendWorkoutMutationsResponse {

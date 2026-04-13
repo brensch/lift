@@ -15,47 +15,94 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
-@$core.Deprecated('Use joinUserRequestDescriptor instead')
-const JoinUserRequest$json = {
-  '1': 'JoinUserRequest',
+@$core.Deprecated('Use joinViaInviteRequestDescriptor instead')
+const JoinViaInviteRequest$json = {
+  '1': 'JoinViaInviteRequest',
   '2': [
-    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'invite_token', '3': 1, '4': 1, '5': 9, '10': 'inviteToken'},
   ],
 };
 
-/// Descriptor for `JoinUserRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinUserRequestDescriptor = $convert
-    .base64Decode('Cg9Kb2luVXNlclJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklk');
+/// Descriptor for `JoinViaInviteRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinViaInviteRequestDescriptor = $convert.base64Decode(
+    'ChRKb2luVmlhSW52aXRlUmVxdWVzdBIhCgxpbnZpdGVfdG9rZW4YASABKAlSC2ludml0ZVRva2'
+    'Vu');
 
-@$core.Deprecated('Use joinUserResponseDescriptor instead')
-const JoinUserResponse$json = {
-  '1': 'JoinUserResponse',
+@$core.Deprecated('Use joinViaInviteResponseDescriptor instead')
+const JoinViaInviteResponse$json = {
+  '1': 'JoinViaInviteResponse',
   '2': [
     {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
   ],
 };
 
-/// Descriptor for `JoinUserResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinUserResponseDescriptor = $convert.base64Decode(
-    'ChBKb2luVXNlclJlc3BvbnNlEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZA==');
+/// Descriptor for `JoinViaInviteResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinViaInviteResponseDescriptor = $convert.base64Decode(
+    'ChVKb2luVmlhSW52aXRlUmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbklk');
 
-@$core.Deprecated('Use leaveSessionRequestDescriptor instead')
-const LeaveSessionRequest$json = {
-  '1': 'LeaveSessionRequest',
+@$core.Deprecated('Use getMyInviteTokenRequestDescriptor instead')
+const GetMyInviteTokenRequest$json = {
+  '1': 'GetMyInviteTokenRequest',
 };
 
-/// Descriptor for `LeaveSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List leaveSessionRequestDescriptor =
-    $convert.base64Decode('ChNMZWF2ZVNlc3Npb25SZXF1ZXN0');
+/// Descriptor for `GetMyInviteTokenRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMyInviteTokenRequestDescriptor =
+    $convert.base64Decode('ChdHZXRNeUludml0ZVRva2VuUmVxdWVzdA==');
 
-@$core.Deprecated('Use leaveSessionResponseDescriptor instead')
-const LeaveSessionResponse$json = {
-  '1': 'LeaveSessionResponse',
+@$core.Deprecated('Use getMyInviteTokenResponseDescriptor instead')
+const GetMyInviteTokenResponse$json = {
+  '1': 'GetMyInviteTokenResponse',
+  '2': [
+    {'1': 'invite_token', '3': 1, '4': 1, '5': 9, '10': 'inviteToken'},
+  ],
 };
 
-/// Descriptor for `LeaveSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List leaveSessionResponseDescriptor =
-    $convert.base64Decode('ChRMZWF2ZVNlc3Npb25SZXNwb25zZQ==');
+/// Descriptor for `GetMyInviteTokenResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMyInviteTokenResponseDescriptor =
+    $convert.base64Decode(
+        'ChhHZXRNeUludml0ZVRva2VuUmVzcG9uc2USIQoMaW52aXRlX3Rva2VuGAEgASgJUgtpbnZpdG'
+        'VUb2tlbg==');
+
+@$core.Deprecated('Use rotateInviteTokenRequestDescriptor instead')
+const RotateInviteTokenRequest$json = {
+  '1': 'RotateInviteTokenRequest',
+};
+
+/// Descriptor for `RotateInviteTokenRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rotateInviteTokenRequestDescriptor =
+    $convert.base64Decode('ChhSb3RhdGVJbnZpdGVUb2tlblJlcXVlc3Q=');
+
+@$core.Deprecated('Use rotateInviteTokenResponseDescriptor instead')
+const RotateInviteTokenResponse$json = {
+  '1': 'RotateInviteTokenResponse',
+  '2': [
+    {'1': 'invite_token', '3': 1, '4': 1, '5': 9, '10': 'inviteToken'},
+  ],
+};
+
+/// Descriptor for `RotateInviteTokenResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rotateInviteTokenResponseDescriptor =
+    $convert.base64Decode(
+        'ChlSb3RhdGVJbnZpdGVUb2tlblJlc3BvbnNlEiEKDGludml0ZV90b2tlbhgBIAEoCVILaW52aX'
+        'RlVG9rZW4=');
+
+@$core.Deprecated('Use leaveCurrentSessionRequestDescriptor instead')
+const LeaveCurrentSessionRequest$json = {
+  '1': 'LeaveCurrentSessionRequest',
+};
+
+/// Descriptor for `LeaveCurrentSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List leaveCurrentSessionRequestDescriptor =
+    $convert.base64Decode('ChpMZWF2ZUN1cnJlbnRTZXNzaW9uUmVxdWVzdA==');
+
+@$core.Deprecated('Use leaveCurrentSessionResponseDescriptor instead')
+const LeaveCurrentSessionResponse$json = {
+  '1': 'LeaveCurrentSessionResponse',
+};
+
+/// Descriptor for `LeaveCurrentSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List leaveCurrentSessionResponseDescriptor =
+    $convert.base64Decode('ChtMZWF2ZUN1cnJlbnRTZXNzaW9uUmVzcG9uc2U=');
 
 @$core.Deprecated('Use getParticipantWorkoutRequestDescriptor instead')
 const GetParticipantWorkoutRequest$json = {
@@ -75,16 +122,48 @@ final $typed_data.Uint8List getParticipantWorkoutRequestDescriptor =
 @$core.Deprecated('Use getCurrentSessionRequestDescriptor instead')
 const GetCurrentSessionRequest$json = {
   '1': 'GetCurrentSessionRequest',
+};
+
+/// Descriptor for `GetCurrentSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCurrentSessionRequestDescriptor =
+    $convert.base64Decode('ChhHZXRDdXJyZW50U2Vzc2lvblJlcXVlc3Q=');
+
+@$core.Deprecated('Use getSessionParticipantsRequestDescriptor instead')
+const GetSessionParticipantsRequest$json = {
+  '1': 'GetSessionParticipantsRequest',
   '2': [
     {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
   ],
 };
 
-/// Descriptor for `GetCurrentSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getCurrentSessionRequestDescriptor =
+/// Descriptor for `GetSessionParticipantsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSessionParticipantsRequestDescriptor =
     $convert.base64Decode(
-        'ChhHZXRDdXJyZW50U2Vzc2lvblJlcXVlc3QSHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2Vzc2lvbk'
-        'lk');
+        'Ch1HZXRTZXNzaW9uUGFydGljaXBhbnRzUmVxdWVzdBIdCgpzZXNzaW9uX2lkGAEgASgJUglzZX'
+        'NzaW9uSWQ=');
+
+@$core.Deprecated('Use getSessionParticipantsResponseDescriptor instead')
+const GetSessionParticipantsResponse$json = {
+  '1': 'GetSessionParticipantsResponse',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {
+      '1': 'participants',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ParticipantStatus',
+      '10': 'participants'
+    },
+  ],
+};
+
+/// Descriptor for `GetSessionParticipantsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSessionParticipantsResponseDescriptor =
+    $convert.base64Decode(
+        'Ch5HZXRTZXNzaW9uUGFydGljaXBhbnRzUmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2'
+        'Vzc2lvbklkEkEKDHBhcnRpY2lwYW50cxgCIAMoCzIdLndvcmtvdXQudjEuUGFydGljaXBhbnRT'
+        'dGF0dXNSDHBhcnRpY2lwYW50cw==');
 
 @$core.Deprecated('Use getCurrentSessionResponseDescriptor instead')
 const GetCurrentSessionResponse$json = {

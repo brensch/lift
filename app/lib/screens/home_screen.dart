@@ -9,7 +9,6 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
-import '../providers/multiplayer_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
@@ -352,7 +351,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       final grpc = context.read<GrpcClient>();
       final wearableBridge = context.read<WearableBridgeService>();
-      final mp = context.read<MultiplayerProvider>();
       final workoutProvider = context.read<WorkoutProvider>();
 
       final workoutName = await _resolveLatestWorkoutName();
@@ -365,9 +363,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (workoutId != null && mounted) {
         await WorkoutServiceWrapper(grpc).clearWorkoutDraft();
         unawaited(_attemptAutoLaunchWatchApp(wearableBridge));
-        if (mp.isInSession) {
-          await mp.updateActiveWorkout(workoutId);
-        }
       }
     } catch (e) {
       debugPrint('Error starting workout: $e');

@@ -181,6 +181,77 @@ class WorkoutBottomBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final inSession = mp.participants.isNotEmpty;
+    ParticipantStatus? featuredOther;
+    ParticipantVisualStatus? featuredOtherStatus;
+    bool iAmHoldup = false;
+
+    if (inSession) {
+      String? bestUserId;
+      int? bestScheduledStart;
+      bool bestIsMe = false;
+
+      bool considerCandidate(String userId, int scheduledStart) {
+        final currentBestUserId = bestUserId;
+        final currentBestScheduledStart = bestScheduledStart;
+        if (currentBestUserId == null || currentBestScheduledStart == null) {
+          return true;
+        }
+        if (scheduledStart != currentBestScheduledStart) {
+          return scheduledStart < currentBestScheduledStart;
+        }
+        return userId.compareTo(currentBestUserId) < 0;
+      }
+
+      for (final p in mp.participants) {
+        if (p.user.id.isEmpty || p.user.id == auth.userId) continue;
+        final scheduledStart = participantScheduledStartUnix(
+          p,
+          nowUnix: nowUnix,
+        );
+        if (scheduledStart == null) continue;
+        if (considerCandidate(p.user.id, scheduledStart)) {
+          bestUserId = p.user.id;
+          bestScheduledStart = scheduledStart;
+          bestIsMe = false;
+          featuredOther = p;
+          featuredOtherStatus = describeParticipantStatus(p, now: wp.now);
+        }
+      }
+
+      final myUserId = auth.userId;
+      final myScheduledStart =
+          !_isLiftingState(stateValue) &&
+              !_isAllDoneState(stateValue) &&
+              nextSet != null
+          ? (restUntil > 0
+                ? restUntil
+                : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
+          : null;
+      if (myUserId != null &&
+          myUserId.isNotEmpty &&
+          myScheduledStart != null &&
+          considerCandidate(myUserId, myScheduledStart)) {
+        bestUserId = myUserId;
+        bestScheduledStart = myScheduledStart;
+        bestIsMe = true;
+      }
+
+      iAmHoldup = bestIsMe;
+      if (iAmHoldup) {
+        featuredOther = null;
+        featuredOtherStatus = null;
+      } else if (featuredOther != null && featuredOtherStatus == null) {
+        featuredOtherStatus = describeParticipantStatus(
+          featuredOther,
+          now: wp.now,
+        );
+      } else if (bestUserId == null) {
+        featuredOther = null;
+        featuredOtherStatus = null;
+      }
+    }
+
     return GestureDetector(
       onTap: !isOnWorkoutPage
           ? () {
@@ -207,15 +278,21 @@ class WorkoutBottomBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Row 1: Group status box
-                if (mp.participants.isNotEmpty) ...[
-                  _buildGroupStatusBox(
+                // Row 1: "Next to Schlift" label + featured group member box
+                if (inSession) ...[
+                  _SectionLabel(text: 'NEXT TO SCHLIFT'),
+                  const SizedBox(height: 4),
+                  _buildSessionFeatureBox(
                     context,
-                    mp.sessionStatus,
-                    auth.userId,
-                    wp.now,
+                    iAmHoldup: iAmHoldup,
+                    featured: featuredOther,
+                    featuredStatus: featuredOtherStatus,
+                    auth: auth,
+                    myStateColor: stateColor,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  _SectionLabel(text: 'YOU'),
+                  const SizedBox(height: 4),
                 ],
 
                 // Row 2: Current user status box
@@ -311,56 +388,101 @@ class WorkoutBottomBar extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupStatusBox(
-    BuildContext context,
-    SessionStatus? status,
-    String? myUserId,
-    DateTime now,
-  ) {
-    if (status == null) return const SizedBox.shrink();
-    final otherParticipants = status.participants
-        .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
-        .toList(growable: false);
-
-    if (otherParticipants.isEmpty) {
+  Widget _buildSessionFeatureBox(
+    BuildContext context, {
+    required bool iAmHoldup,
+    required ParticipantStatus? featured,
+    required ParticipantVisualStatus? featuredStatus,
+    required AuthProvider auth,
+    required Color myStateColor,
+  }) {
+    if (iAmHoldup) {
+      final textColor =
+          ThemeData.estimateBrightnessForColor(myStateColor) == Brightness.dark
+          ? Colors.white
+          : Colors.black;
+      return StatusBox(
+        sideLabel: 'YOU',
+        sideBadge: auth.profileEmoji,
+        color: myStateColor,
+        sideColor: profileColorFromHex(auth.profileColorHex),
+        sideLabelWidth: 44,
+        child: Text(
+          "You're next!",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+            height: 1.0,
+            color: textColor,
+          ),
+        ),
+      );
+    }
+    if (featured == null || featuredStatus == null) {
       return const SizedBox.shrink();
     }
-    otherParticipants.sort((a, b) {
-      final aStatus = describeParticipantStatus(a, now: now);
-      final bStatus = describeParticipantStatus(b, now: now);
-      final priorityCompare = bStatus.sortPriority.compareTo(
-        aStatus.sortPriority,
-      );
-      if (priorityCompare != 0) return priorityCompare;
-      return participantDisplayName(
-        a,
-      ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
-    });
-    final featured = otherParticipants.first;
-    final featuredStatus = describeParticipantStatus(featured, now: now);
-    final sideLabel = _sideLabelName(participantDisplayName(featured));
-
-    return StatusBox(
-      sideLabel: sideLabel,
+    final box = StatusBox(
+      sideLabel: 'NEXT',
       sideBadge: participantProfileEmoji(featured),
-      header: participantDisplayName(featured),
       stateLabel: featuredStatus.stateLabel,
       color: featuredStatus.stateColor,
       sideColor: participantProfileColor(featured),
       timerText: featuredStatus.timerText,
       timerColor: featuredStatus.timerColor,
       set: featuredStatus.proposedSet,
-      showHeader: true,
       sideLabelWidth: 44,
+    );
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showNextUpPopup(context, featured),
+        child: box,
+      ),
+    );
+  }
+
+  void _showNextUpPopup(BuildContext context, ParticipantStatus participant) {
+    final name = participantDisplayName(participant);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(
+          '$name is up next',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 }
 
-String _sideLabelName(String name) {
-  final trimmed = name.trim();
-  if (trimmed.isEmpty) return 'GROUP';
-  if (trimmed.length <= 10) return trimmed.toUpperCase();
-  return '${trimmed.substring(0, 9).toUpperCase()}…';
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+          color: colorScheme.onSecondary.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Big full-width action button ────────────────────────────────────
