@@ -46,6 +46,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// refresh immediately instead of waiting for the next background tick.
   VoidCallback? onSessionRefreshNeeded;
 
+  /// Called after endWorkout() completes successfully, with the finished
+  /// workout's id. Used by the app shell to navigate to the summary screen
+  /// when the workout is ended from a source that can't navigate itself
+  /// (e.g. the watch).
+  void Function(String workoutId)? onWorkoutEnded;
+
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   // Loading state
@@ -1722,7 +1728,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Ends the workout on the server and returns immediately.
   /// Health write happens in the background — check [lastHealthResult] after.
-  Future<void> endWorkout() async {
+  ///
+  /// [fireEndedCallback] controls whether [onWorkoutEnded] is called after
+  /// completion. Pass false when the caller (e.g. the phone UI) will handle
+  /// navigation itself.
+  Future<void> endWorkout({bool fireEndedCallback = true}) async {
     if (_activeWorkout == null) return;
     try {
       await _flushPendingWearHeartRateUploads(force: true);
@@ -1737,6 +1747,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // Fire-and-forget: never blocks workout completion
       _writeToHealthPlatform(ended);
+
+      if (fireEndedCallback) {
+        onWorkoutEnded?.call(ended.id);
+      }
     } catch (e) {
       _handleError(e);
     }
