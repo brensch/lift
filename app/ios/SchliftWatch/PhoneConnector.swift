@@ -96,6 +96,16 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
         if activationState == .activated {
             flushPendingSensorBatches()
+            requestSnapshotFromPhone()
+        }
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        guard session.isReachable else { return }
+        DispatchQueue.main.async {
+            if self.snapshot == nil {
+                self.requestSnapshotFromPhone()
+            }
         }
     }
 
@@ -220,6 +230,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     func setUIVisible(_ visible: Bool) {
         if visible {
             startHeartbeat()
+            if snapshot == nil {
+                requestSnapshotFromPhone()
+            }
         } else {
             stopHeartbeat()
         }
@@ -373,6 +386,15 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         guard WCSession.default.isReachable else { return }
         let message: [String: Any] = ["path": WatchPaths.wearToPhoneHeartbeat]
         WCSession.default.sendMessage(message, replyHandler: nil) { _ in }
+        if snapshot == nil {
+            requestSnapshotFromPhone()
+        }
+    }
+
+    private func requestSnapshotFromPhone() {
+        guard WCSession.default.isReachable else { return }
+        let message: [String: Any] = ["path": WatchPaths.wearToPhoneSnapshotRequest]
+        WCSession.default.sendMessage(message, replyHandler: nil) { _ in }
     }
 }
 
@@ -385,4 +407,5 @@ enum WatchPaths {
     static let wearToPhoneSensorBatch = "/schlift/wear/sensor_batch"
     static let wearToPhoneHeartbeat = "/schlift/wear/ui_heartbeat"
     static let wearToPhoneClockSync = "/schlift/wear/clock_sync"
+    static let wearToPhoneSnapshotRequest = "/schlift/wear/snapshot_request"
 }

@@ -17,6 +17,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private static let wearToPhoneSensorBatchPath = "/schlift/wear/sensor_batch"
     private static let wearToPhoneUiHeartbeatPath = "/schlift/wear/ui_heartbeat"
     private static let wearToPhoneClockSyncPath = "/schlift/wear/clock_sync"
+    private static let wearToPhoneSnapshotRequestPath = "/schlift/wear/snapshot_request"
 
     private var intentSink: FlutterEventSink?
     private var sensorSink: FlutterEventSink?
@@ -24,6 +25,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private var pendingSensorPayloads: [Data] = []
     private var pendingClockSyncs: [String: (Int64) -> Void] = [:]
     private var lastWatchUiHeartbeatAtMs: Int64 = 0
+    private var lastSnapshotBytes: Data?
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
     private override init() {
@@ -61,9 +63,12 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         guard WCSession.default.activationState == .activated else { return }
         guard WCSession.default.isPaired else { return }
 
+        let data = bytes.data
+        queue.async { self.lastSnapshotBytes = data }
+
         let message: [String: Any] = [
             "path": WatchBridgeManager.phoneToWearSnapshotPath,
-            "data": bytes.data,
+            "data": data,
         ]
 
         do {
@@ -190,6 +195,22 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
         if path == WatchBridgeManager.wearToPhoneUiHeartbeatPath {
             lastWatchUiHeartbeatAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+            return
+        }
+
+        if path == WatchBridgeManager.wearToPhoneSnapshotRequestPath {
+            queue.async {
+                guard let bytes = self.lastSnapshotBytes else { return }
+                let replyMessage: [String: Any] = [
+                    "path": WatchBridgeManager.phoneToWearSnapshotPath,
+                    "data": bytes,
+                ]
+                let session = WCSession.default
+                guard session.activationState == .activated, session.isPaired, session.isReachable else { return }
+                session.sendMessage(replyMessage, replyHandler: nil) { error in
+                    print("SchliftWearBridge: Failed to send snapshot on request: \(error)")
+                }
+            }
             return
         }
 
