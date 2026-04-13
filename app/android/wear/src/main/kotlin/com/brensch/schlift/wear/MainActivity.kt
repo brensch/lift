@@ -549,16 +549,7 @@ private fun WearApp(
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
     var pendingActionKey by remember(data.workoutId) { mutableStateOf<String?>(null) }
     var pendingActionStartedAtMs by remember(data.workoutId) { mutableLongStateOf(0L) }
-    LaunchedEffect(
-        data.state,
-        data.activeStartedAt,
-        data.restUntil,
-        data.lastRestEnd,
-        data.actionsList.size,
-        currentSet?.id,
-        currentSet?.targetReps,
-        currentSet?.targetWeight,
-    ) {
+    LaunchedEffect(data.emittedAt) {
         pendingActionKey = null
         pendingActionStartedAtMs = 0L
     }
@@ -711,21 +702,11 @@ private fun WearApp(
                     ),
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 10.dp, end = 6.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        if (isActionPending) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.width(26.dp).height(26.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(start = 10.dp, end = 6.dp),
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.Start,
@@ -778,8 +759,6 @@ private fun WearApp(
                                         }
                                     }
                                 }
-                            }
-                        }
                     }
                 }
             } else {
@@ -809,17 +788,6 @@ private fun WearApp(
                         contentColor = buttonContentColor,
                     ),
                     ) {
-                        if (isActionPending) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.width(26.dp).height(26.dp),
-                                    strokeWidth = 2.dp,
-                                )
-                            }
-                        } else {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -929,11 +897,10 @@ private fun WearApp(
                                     }
                                 }
                             }
-                        }
-                    }
                 }
             }
         }
+    }
     }
 }
 

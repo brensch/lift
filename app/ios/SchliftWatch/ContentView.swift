@@ -181,50 +181,42 @@ struct ContentView: View {
                         connector.sendIntent(action: action)
                     }
                 }) {
-                    ZStack {
-                        if connector.isActionPending {
-                            ProgressView()
-                                .tint(buttonContentColor)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                        } else {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(startButtonTitle)
-                                    .font(displayFontName(size: 18))
-                                    .foregroundColor(buttonContentColor)
-                                    .watchAutoShrink(lines: 2)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(startButtonTitle)
+                            .font(displayFontName(size: 18))
+                            .foregroundColor(buttonContentColor)
+                            .watchAutoShrink(lines: 2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Spacer().frame(height: 8)
+                        Spacer().frame(height: 8)
 
-                                Text(repsWeightText)
-                                    .font(displayFontName(size: 24))
-                                    .foregroundColor(buttonContentColor)
+                        Text(repsWeightText)
+                            .font(displayFontName(size: 24))
+                            .foregroundColor(buttonContentColor)
+                            .watchAutoShrink()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if !groupProgressText.isEmpty {
+                            Spacer().frame(height: 6)
+                            Text(groupProgressText)
+                                .font(displayFontName(size: 16, weight: .medium))
+                                .foregroundColor(buttonContentColor.opacity(0.9))
+                                .watchAutoShrink()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if !setsLeftText.isEmpty {
+                                Text(setsLeftText)
+                                    .font(.custom(bodyFont, size: 12).weight(.medium))
+                                    .foregroundColor(buttonContentColor.opacity(0.72))
                                     .watchAutoShrink()
                                     .frame(maxWidth: .infinity, alignment: .leading)
-
-                                if !groupProgressText.isEmpty {
-                                    Spacer().frame(height: 6)
-                                    Text(groupProgressText)
-                                        .font(displayFontName(size: 16, weight: .medium))
-                                        .foregroundColor(buttonContentColor.opacity(0.9))
-                                        .watchAutoShrink()
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    if !setsLeftText.isEmpty {
-                                        Text(setsLeftText)
-                                            .font(.custom(bodyFont, size: 12).weight(.medium))
-                                            .foregroundColor(buttonContentColor.opacity(0.72))
-                                            .watchAutoShrink()
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
                             }
-                            .padding(.leading, 10)
-                            .padding(.trailing, 6)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
+                    .padding(.leading, 10)
+                    .padding(.trailing, 6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
                 .background(buttonBackgroundColor)
@@ -240,70 +232,62 @@ struct ContentView: View {
                         connector.sendIntent(action: action)
                     }
                 }) {
-                    ZStack {
-                        if connector.isActionPending {
-                            ProgressView()
-                                .tint(buttonContentColor)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                        } else {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(completeButtonText)
-                                    .font(displayFontName(size: 18))
-                                    .foregroundColor(buttonContentColor)
-                                    .watchAutoShrink(lines: 2)
-                                    .multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(completeButtonText)
+                            .font(displayFontName(size: 18))
+                            .foregroundColor(buttonContentColor)
+                            .watchAutoShrink(lines: 2)
+                            .multilineTextAlignment(.leading)
 
-                                Spacer().frame(height: 6)
+                        Spacer().frame(height: 6)
 
-                                HStack(alignment: .center, spacing: 0) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(buttonContentColor.opacity(0.45), lineWidth: 1)
-                                            .frame(width: 40, height: 94)
-
-                                        Text("\(selectedReps)")
-                                            .font(displayFontName(size: 40))
-                                            .foregroundColor(buttonContentColor)
-                                            .watchAutoShrink()
-                                    }
+                        HStack(alignment: .center, spacing: 0) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(buttonContentColor.opacity(0.45), lineWidth: 1)
                                     .frame(width: 40, height: 94)
-                                    .focusable()
-                                    .digitalCrownRotation(
-                                        detent: $selectedReps,
-                                        from: 0,
-                                        through: repOptionMax,
-                                        by: 1,
-                                        sensitivity: .medium
-                                    )
 
-                                    Text(weightOnlyText)
-                                        .font(displayFontName(size: 28))
-                                        .foregroundColor(buttonContentColor)
-                                        .watchAutoShrink()
-                                }
+                                Text("\(selectedReps)")
+                                    .font(displayFontName(size: 40))
+                                    .foregroundColor(buttonContentColor)
+                                    .watchAutoShrink()
+                            }
+                            .frame(width: 40, height: 94)
+                            .focusable()
+                            .digitalCrownRotation(
+                                detent: $selectedReps,
+                                from: 0,
+                                through: repOptionMax,
+                                by: 1,
+                                sensitivity: .medium
+                            )
+
+                            Text(weightOnlyText)
+                                .font(displayFontName(size: 28))
+                                .foregroundColor(buttonContentColor)
+                                .watchAutoShrink()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if !groupProgressText.isEmpty {
+                            Spacer().frame(height: 6)
+                            Text(groupProgressText)
+                                .font(displayFontName(size: 16, weight: .medium))
+                                .foregroundColor(buttonContentColor.opacity(0.9))
+                                .watchAutoShrink()
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                                if !groupProgressText.isEmpty {
-                                    Spacer().frame(height: 6)
-                                    Text(groupProgressText)
-                                        .font(displayFontName(size: 16, weight: .medium))
-                                        .foregroundColor(buttonContentColor.opacity(0.9))
-                                        .watchAutoShrink()
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    if !setsLeftText.isEmpty {
-                                        Text(setsLeftText)
-                                            .font(.custom(bodyFont, size: 12).weight(.medium))
-                                            .foregroundColor(buttonContentColor.opacity(0.72))
-                                            .watchAutoShrink()
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
+                            if !setsLeftText.isEmpty {
+                                Text(setsLeftText)
+                                    .font(.custom(bodyFont, size: 12).weight(.medium))
+                                    .foregroundColor(buttonContentColor.opacity(0.72))
+                                    .watchAutoShrink()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .padding(.leading, 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
+                    .padding(.leading, 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
                 .background(buttonBackgroundColor)
