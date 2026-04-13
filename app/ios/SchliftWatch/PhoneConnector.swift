@@ -13,6 +13,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var lastSnapshotReceivedUptime: TimeInterval = 0
     private var lastSnapshotEmittedAtMs: Int64 = 0
     private var pendingActionTimeout: DispatchWorkItem?
+    private var restExpiryRequest: DispatchWorkItem?
     private var lastSnapshotKey: String?
     private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     private let hrLock = NSLock()
@@ -36,6 +37,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     deinit {
         heartbeatTimer?.invalidate()
         pendingActionTimeout?.cancel()
+        restExpiryRequest?.cancel()
     }
 
     // MARK: - Send intent to phone
@@ -260,6 +262,24 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             clearPendingAction()
         }
         lastSnapshotKey = snapshotKey
+        scheduleRestExpiryRequest(for: snapshot)
+    }
+
+    // Schedule a snapshot request to fire exactly when the rest timer expires so the
+    // button re-enables at the precise phase boundary rather than waiting up to 3 s
+    // for the next heartbeat.
+    private func scheduleRestExpiryRequest(for snapshot: Workout_V1_WearWorkoutSnapshot) {
+        restExpiryRequest?.cancel()
+        restExpiryRequest = nil
+        guard snapshot.state == .resting, snapshot.restUntil > 0 else { return }
+        let nowMs = synchronizedNowMs()
+        let restUntilMs = snapshot.restUntil * 1000
+        let delayMs = max(0, restUntilMs - nowMs)
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.requestSnapshotFromPhone()
+        }
+        restExpiryRequest = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(delayMs)), execute: workItem)
     }
 
     private func bufferAndFlushHRSample(_ sample: Workout_V1_HeartRateSample) {
