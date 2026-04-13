@@ -139,6 +139,8 @@ class WorkoutForegroundService : Service() {
         @Volatile
         private var running = false
 
+        fun isRunning() = running
+
         fun startOrUpdate(
             context: Context,
             workoutLabel: String,
