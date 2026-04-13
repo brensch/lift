@@ -60,12 +60,11 @@ impl ServerDb {
 
         // Set active workout pointer
         sqlx::query(
-            "INSERT INTO active_workout_current (user_id, workout_id, session_id) VALUES (?, ?, ?)
-             ON CONFLICT(user_id) DO UPDATE SET workout_id = excluded.workout_id, session_id = excluded.session_id",
+            "INSERT INTO active_workout_current (user_id, workout_id) VALUES (?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET workout_id = excluded.workout_id",
         )
         .bind(user_id)
         .bind(&workout.id)
-        .bind(&workout.session_id)
         .execute(&mut *tx)
         .await?;
 
@@ -226,26 +225,21 @@ impl ServerDb {
         Ok(())
     }
 
-    /// Update workout session_id (when joining a multiplayer session).
+    /// Stamp a session_id onto an existing workout row (used when the user joins a group
+    /// mid-workout — we backfill the historical marker so the workout remembers which
+    /// session it was attached to).
     pub async fn update_workout_session_id(
         &self,
         user_id: &str,
         workout_id: &str,
         session_id: &str,
     ) -> DbResult<()> {
-        let mut tx = self.write_pool.begin().await?;
         sqlx::query("UPDATE workouts SET session_id = ? WHERE id = ? AND user_id = ?")
             .bind(session_id)
             .bind(workout_id)
             .bind(user_id)
-            .execute(&mut *tx)
+            .execute(&self.write_pool)
             .await?;
-        sqlx::query("UPDATE active_workout_current SET session_id = ? WHERE user_id = ?")
-            .bind(session_id)
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        tx.commit().await?;
         Ok(())
     }
 
@@ -323,14 +317,13 @@ impl ServerDb {
 
     // ── Workout Reads ──
 
-    /// Get active workout_id for a user.
-    pub async fn get_active_workout_id(&self, user_id: &str) -> DbResult<Option<(String, String)>> {
-        let row: Option<(String, String)> = sqlx::query_as(
-            "SELECT workout_id, session_id FROM active_workout_current WHERE user_id = ?",
-        )
-        .bind(user_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
+    /// Get the user's active workout id, if any.
+    pub async fn get_active_workout_id(&self, user_id: &str) -> DbResult<Option<String>> {
+        let row: Option<String> =
+            sqlx::query_scalar("SELECT workout_id FROM active_workout_current WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
         Ok(row)
     }
 

@@ -44,12 +44,16 @@ impl ServerDb {
             body_weight_kg: 0.0,
         };
         let normalized = username.trim().to_lowercase();
-        sqlx::query("INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)")
-            .bind(&user.id)
-            .bind(user.encode_to_vec())
-            .bind(&normalized)
-            .execute(&self.write_pool)
-            .await?;
+        let invite_token = Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO users_current (user_id, user_blob, username_ci, invite_token) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&user.id)
+        .bind(user.encode_to_vec())
+        .bind(&normalized)
+        .bind(&invite_token)
+        .execute(&self.write_pool)
+        .await?;
         Ok(user)
     }
 
@@ -75,12 +79,14 @@ impl ServerDb {
                     profile_color_hex: Self::default_profile_color_hex().to_string(),
                     body_weight_kg: 0.0,
                 };
+                let invite_token = Uuid::new_v4().to_string();
                 sqlx::query(
-                    "INSERT INTO users_current (user_id, user_blob, username_ci) VALUES (?, ?, ?)",
+                    "INSERT INTO users_current (user_id, user_blob, username_ci, invite_token) VALUES (?, ?, ?, ?)",
                 )
                 .bind(&user.id)
                 .bind(user.encode_to_vec())
                 .bind(&normalized)
+                .bind(&invite_token)
                 .execute(&mut *tx)
                 .await?;
                 user
@@ -275,7 +281,7 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM session_memberships WHERE user_id = ?")
+        sqlx::query("DELETE FROM user_current_session WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;

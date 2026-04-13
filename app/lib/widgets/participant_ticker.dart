@@ -107,6 +107,29 @@ ParticipantVisualStatus describeParticipantStatus(
   );
 }
 
+int? participantScheduledStartUnix(
+  ParticipantStatus participant, {
+  required int nowUnix,
+}) {
+  if (participant.hasActiveWorkout() &&
+      participant.activeWorkout.endTime != Int64.ZERO) {
+    return null;
+  }
+
+  final activeSet = participant.completedSets.cast<CompletedSet?>().firstWhere(
+    (c) => c!.endedAt == Int64.ZERO,
+    orElse: () => null,
+  );
+  if (participant.hasActiveSet ||
+      activeSet != null ||
+      !participant.hasNextUpSet()) {
+    return null;
+  }
+
+  final restUntil = participant.restUntil.toInt();
+  return restUntil > 0 ? restUntil : nowUnix;
+}
+
 /// Card showing a participant's current workout state.
 /// Shows: name, state label, exercise/weight info, timer.
 class ParticipantCard extends StatelessWidget {

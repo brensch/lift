@@ -17,11 +17,10 @@ class WorkoutServiceWrapper {
     String name,
     List<ExerciseGroup> exerciseGroups,
   ) async {
-    return await _client.workoutService.startWorkout(
-      StartWorkoutRequest()
-        ..name = name
-        ..exerciseGroups.addAll(exerciseGroups),
-    );
+    final req = StartWorkoutRequest()
+      ..name = name
+      ..exerciseGroups.addAll(exerciseGroups);
+    return await _client.workoutService.startWorkout(req);
   }
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) async {

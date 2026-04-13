@@ -1263,7 +1263,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> startWorkout(String name, List<ExerciseGroup> groups) async {
+  Future<String?> startWorkout(
+    String name,
+    List<ExerciseGroup> groups,
+  ) async {
     try {
       await NotificationService.cancelAll();
       _wasResting = false;

@@ -64,11 +64,22 @@ impl UserService for ServerUserService {
 
         if let Some(session_id) = self
             .db
-            .get_current_session_id_for_user(&user_id)
+            .get_user_current_session(&user_id)
             .await
             .map_err(internal_error)?
         {
-            refresh_participant_for_user(&self.db, &user_id, &session_id).await?;
+            let active_workout_id = self
+                .db
+                .get_active_workout_id(&user_id)
+                .await
+                .map_err(internal_error)?;
+            refresh_participant_for_user(
+                &self.db,
+                &user_id,
+                &session_id,
+                active_workout_id.as_deref(),
+            )
+            .await?;
         }
 
         Ok(Response::new(UpdateMyProfileResponse { user: Some(user) }))

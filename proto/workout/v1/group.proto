@@ -5,46 +5,77 @@ package workout.v1;
 import "workout/v1/workout.proto";
 
 service MultiplayerService {
-  // Join a session by providing the user ID of someone already in (or starting) that session.
-  // If the target user is not in a session, a new session is created for both.
-  rpc JoinUser(JoinUserRequest) returns (JoinUserResponse);
-  
-  rpc LeaveSession(LeaveSessionRequest) returns (LeaveSessionResponse);
-  
+  // Join the group identified by an opaque per-user invite token (the value encoded in
+  // the target user's QR code). Resolves the token to the target user, then places both
+  // the caller and target into the same session (reusing the target's current session if
+  // present, otherwise creating a new one). Overwrites the caller's current session.
+  rpc JoinViaInvite(JoinViaInviteRequest) returns (JoinViaInviteResponse);
+
+  // Fetch the caller's invite token so the client can render it into a QR code. If the
+  // caller has none yet, one is generated.
+  rpc GetMyInviteToken(GetMyInviteTokenRequest) returns (GetMyInviteTokenResponse);
+
+  // Rotate the caller's invite token (invalidates any previously-shared QR code).
+  rpc RotateInviteToken(RotateInviteTokenRequest) returns (RotateInviteTokenResponse);
+
   // Get a specific participant's workout progress
   rpc GetParticipantWorkout(GetParticipantWorkoutRequest) returns (ParticipantStatus);
 
-  // Consolidated call: Get the current active session and its status for the user,
-  // OR get a specific session's status if session_id is provided.
+  // Get the caller's current group session. Reads user_current_session — membership is
+  // independent of whether the caller has an active workout.
   rpc GetCurrentSession(GetCurrentSessionRequest) returns (GetCurrentSessionResponse);
+
+  // Manually leave the caller's current session. Keeps the caller's last participant blob
+  // so peers in the session still see their historical state.
+  rpc LeaveCurrentSession(LeaveCurrentSessionRequest) returns (LeaveCurrentSessionResponse);
+
+  // Fetch every participant snapshot ever recorded for a specific session.
+  // Used for historical views (e.g. "who was in this past workout's session").
+  rpc GetSessionParticipants(GetSessionParticipantsRequest) returns (GetSessionParticipantsResponse);
 
   // Subscribe to live updates for a current multiplayer session.
   // The server always emits a full snapshot immediately after subscribe.
   rpc SubscribeSession(SubscribeSessionRequest) returns (stream SessionSubscriptionEvent);
 
-  // Update the active workout for the current user's session
+  // Refresh the caller's participant snapshot in the session cache.
   rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
 }
 
-message JoinUserRequest {
-  string user_id = 1; // The ID of the user whose QR code was scanned
+message JoinViaInviteRequest {
+  string invite_token = 1; // Opaque token from the target user's QR code
 }
 
-message JoinUserResponse {
+message JoinViaInviteResponse {
   string session_id = 1;
 }
 
-message LeaveSessionRequest {}
+message GetMyInviteTokenRequest {}
+message GetMyInviteTokenResponse {
+  string invite_token = 1;
+}
 
-message LeaveSessionResponse {}
+message RotateInviteTokenRequest {}
+message RotateInviteTokenResponse {
+  string invite_token = 1;
+}
+
+message LeaveCurrentSessionRequest {}
+message LeaveCurrentSessionResponse {}
 
 message GetParticipantWorkoutRequest {
   string user_id = 1;
   string workout_id = 2;
 }
 
-message GetCurrentSessionRequest {
-  string session_id = 1; // Optional: If provided, gets status of this specific session.
+message GetCurrentSessionRequest {}
+
+message GetSessionParticipantsRequest {
+  string session_id = 1;
+}
+
+message GetSessionParticipantsResponse {
+  string session_id = 1;
+  repeated ParticipantStatus participants = 2;
 }
 
 message GetCurrentSessionResponse {
