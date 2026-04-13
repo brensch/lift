@@ -500,7 +500,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                           header: inSession ? 'You' : null,
                           showHeader: inSession,
                           headerTrailing: iAmNextToLift
-                              ? const _RainbowShimmerText(text: 'next to lift')
+                              ? const _RainbowShimmerText(text: 'next to schlift')
                               : null,
                           stateLabel: stateLabel,
                           color: stateColor,
@@ -583,7 +583,7 @@ class _SessionMemberCard extends StatelessWidget {
       header: name,
       showHeader: true,
       headerTrailing: isNextToLift
-          ? const _RainbowShimmerText(text: 'next to lift')
+          ? const _RainbowShimmerText(text: 'next to schlift')
           : null,
       stateLabel: status.stateLabel,
       color: status.stateColor,
