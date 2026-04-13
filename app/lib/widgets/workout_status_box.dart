@@ -19,6 +19,7 @@ class StatusBox extends StatelessWidget {
   final ProposedSet? set;
   final bool isComplete;
   final bool showHeader;
+  final Widget? headerTrailing;
   final double sideLabelWidth;
 
   const StatusBox({
@@ -35,6 +36,7 @@ class StatusBox extends StatelessWidget {
     this.set,
     this.isComplete = false,
     this.showHeader = false,
+    this.headerTrailing,
     this.sideLabelWidth = 32,
   });
 
@@ -112,16 +114,26 @@ class StatusBox extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (header != null && showHeader) ...[
-                        Text(
-                          header!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: accentColor,
-                            letterSpacing: -0.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                header!,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  color: accentColor,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (headerTrailing != null) ...[
+                              const SizedBox(width: 8),
+                              headerTrailing!,
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
                       ],

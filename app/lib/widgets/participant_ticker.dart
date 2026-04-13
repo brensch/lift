@@ -4,7 +4,6 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/user_profile.dart';
 import '../theme/app_theme.dart';
-import '../widgets/workout_status_box.dart';
 
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -84,7 +83,7 @@ ParticipantVisualStatus describeParticipantStatus(
       stateLabel: 'Yapping',
       stateColor: AppTheme.workoutYappingFg,
       proposedSet: nextSet,
-      timerText: '+${_fmt(elapsed)}',
+      timerText: _fmt(elapsed),
       timerColor: AppTheme.workoutYappingFg,
       sortPriority: 3,
     );
@@ -128,51 +127,6 @@ int? participantScheduledStartUnix(
 
   final restUntil = participant.restUntil.toInt();
   return restUntil > 0 ? restUntil : nowUnix;
-}
-
-/// Card showing a participant's current workout state.
-/// Shows: name, state label, exercise/weight info, timer.
-class ParticipantCard extends StatelessWidget {
-  final ParticipantStatus participant;
-  final bool isNextUp;
-  final VoidCallback? onTap;
-
-  const ParticipantCard({
-    super.key,
-    required this.participant,
-    this.isNextUp = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final status = describeParticipantStatus(participant);
-    final displayName = participantDisplayName(participant);
-    final box = StatusBox(
-      sideLabel: displayName,
-      sideBadge: participantProfileEmoji(participant),
-      header: displayName,
-      stateLabel: status.stateLabel,
-      color: status.stateColor,
-      sideColor: participantProfileColor(participant),
-      timerText: status.timerText,
-      timerColor: status.timerColor,
-      set: status.proposedSet,
-      isComplete: status.isComplete,
-      showHeader: true,
-    );
-
-    if (onTap == null) return box;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: box,
-      ),
-    );
-  }
 }
 
 class ParticipantVisualStatus {

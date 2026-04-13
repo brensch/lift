@@ -45,12 +45,15 @@ class MultiplayerProvider extends ChangeNotifier {
     _ensurePolling();
   }
 
-  void stopSync({bool clearSession = true}) {
+  void stopSync({bool clearSession = true, bool clearInviteToken = false}) {
     AppLogger.instance.info('Multiplayer', 'stopSync', {'clearSession': clearSession});
     _syncEnabled = false;
     _cancelPolling();
     if (clearSession) {
       _clearSession(notify: true);
+    }
+    if (clearInviteToken) {
+      _myInviteToken = null;
     }
   }
 
@@ -169,7 +172,7 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void clear() {
-    stopSync(clearSession: true);
+    stopSync(clearSession: true, clearInviteToken: true);
   }
 
   void _applySnapshot({

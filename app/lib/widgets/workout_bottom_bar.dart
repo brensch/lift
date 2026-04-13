@@ -13,6 +13,8 @@ import '../widgets/participant_ticker.dart';
 import '../widgets/workout_modals.dart';
 import '../widgets/workout_status_box.dart';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
   final s = seconds.abs() % 60;
@@ -38,8 +40,154 @@ bool _isRestingState(int state) =>
 bool _isReadyState(int state) =>
     state == WorkoutState.WORKOUT_STATE_READY.value;
 
-class WorkoutBottomBar extends StatelessWidget {
+/// Returns the userId of whoever is "next to lift" across all session members.
+/// Tiebreak: earliest scheduledStart, then lexicographic userId.
+String? _computeNextToLiftUserId({
+  required String? myUserId,
+  required List<ParticipantStatus> others,
+  required int nowUnix,
+  required int stateValue,
+  required int restUntil,
+  required int lastRestEnd,
+  required ProposedSet? nextSet,
+}) {
+  String? bestId;
+  int? bestStart;
+
+  bool isCandidate(String uid, int start) {
+    final b = bestId;
+    final bs = bestStart;
+    if (b == null || bs == null) return true;
+    if (start != bs) return start < bs;
+    return uid.compareTo(b) < 0;
+  }
+
+  for (final p in others) {
+    final start = participantScheduledStartUnix(p, nowUnix: nowUnix);
+    if (start == null) continue;
+    if (isCandidate(p.user.id, start)) {
+      bestId = p.user.id;
+      bestStart = start;
+    }
+  }
+
+  if (myUserId != null && myUserId.isNotEmpty) {
+    final myStart =
+        !_isLiftingState(stateValue) &&
+            !_isAllDoneState(stateValue) &&
+            nextSet != null
+        ? (restUntil > 0
+              ? restUntil
+              : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
+        : null;
+    if (myStart != null && isCandidate(myUserId, myStart)) {
+      bestId = myUserId;
+      bestStart = myStart;
+    }
+  }
+
+  return bestId;
+}
+
+// ─── WorkoutBottomBar ─────────────────────────────────────────────────────────
+
+class WorkoutBottomBar extends StatefulWidget {
   const WorkoutBottomBar({super.key});
+
+  @override
+  State<WorkoutBottomBar> createState() => _WorkoutBottomBarState();
+}
+
+class _WorkoutBottomBarState extends State<WorkoutBottomBar>
+    with SingleTickerProviderStateMixin {
+  // How many pixels the participant panel slides into the current-user card
+  // before it is fully hidden behind it.  Should match (or slightly exceed)
+  // the StatusBox border-radius so the cards visually tuck under the corner.
+  static const double _overlap = 16.0;
+  static const double _handleSlotHeight = 24.0;
+  static const double _handleThickness = 4.0;
+
+  // 1.0 = fully expanded, 0.0 = collapsed.  Starts expanded.
+  late final AnimationController _animation;
+
+  // Used to measure the natural height of the panel content so drag
+  // movement maps pixel-for-pixel to the animation value.
+  final _panelKey = GlobalKey();
+  double _panelHeight = 200.0; // fallback until measured
+  bool _isDraggingPanel = false;
+
+  double get _panelDragRange =>
+      (_panelHeight - _collapsedPeekHeight).clamp(1.0, double.infinity);
+
+  double get _handleToCardGap => (_handleSlotHeight - _handleThickness) / 2;
+  double get _collapsedPeekHeight => _handleToCardGap;
+
+  @override
+  void initState() {
+    super.initState();
+    _animation = AnimationController(vsync: this, value: 1.0);
+  }
+
+  @override
+  void dispose() {
+    _animation.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    final target = _animation.value >= 0.5 ? 0.0 : 1.0;
+    _animation.animateTo(
+      target,
+      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (!_isDraggingPanel) {
+      setState(() {
+        _isDraggingPanel = true;
+      });
+    }
+    // Dragging DOWN (positive dy) collapses; UP (negative dy) expands.
+    final delta = -(d.primaryDelta ?? d.delta.dy) / _panelDragRange;
+    _animation.value = (_animation.value + delta).clamp(0.0, 1.0);
+  }
+
+  void _onDragEnd(DragEndDetails d) {
+    if (_isDraggingPanel) {
+      setState(() {
+        _isDraggingPanel = false;
+      });
+    }
+    final vel = d.primaryVelocity ?? 0;
+    final double target;
+    if (vel > 300) {
+      target = 0.0;
+    } else if (vel < -300) {
+      target = 1.0;
+    } else {
+      target = _animation.value >= 0.5 ? 1.0 : 0.0;
+    }
+    _animation.animateTo(
+      target,
+      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  // Remeasure the panel's natural height every frame while it is rendered.
+  // ClipRect+Align still lays out the child at full size, so the GlobalKey
+  // always reports the natural (uncollapsed) height.
+  void _measurePanel() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = _panelKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box != null && box.size.height > 0) {
+        _panelHeight = box.size.height;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +196,7 @@ class WorkoutBottomBar extends StatelessWidget {
     final auth = context.read<AuthProvider>();
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Show bottom bar if there's an active workout, even if we are viewing history
-    if (!wp.hasActiveWorkout) {
-      return const SizedBox.shrink();
-    }
+    if (!wp.hasActiveWorkout) return const SizedBox.shrink();
 
     final stateSnapshot = wp.stateSnapshot;
     final stateValue =
@@ -77,16 +222,15 @@ class WorkoutBottomBar extends StatelessWidget {
         ? '${latestHeartRate.bpm.round()}'
         : '--';
 
-    // Determine if we're on the workout page
     final currentUri = GoRouterState.of(context).uri.toString();
     final isOnWorkoutPage = currentUri == '/';
 
-    // Figure out state info
+    // ── Current-user state ────────────────────────────────────────────────────
     String stateLabel;
     Color stateColor;
     String? timerText;
     Color? timerColor;
-    ProposedSet? displaySet; // the set to show weight info for
+    ProposedSet? displaySet;
     Widget actionButton = const SizedBox.shrink();
 
     if (_isAllDoneState(stateValue)) {
@@ -103,11 +247,9 @@ class WorkoutBottomBar extends StatelessWidget {
           : null;
       if (proposed == null) return const SizedBox.shrink();
       final elapsedSecs = activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0;
-
       stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       stateColor = AppTheme.workoutLiftingFg;
       timerText = _fmt(elapsedSecs);
-      timerColor = null;
       displaySet = proposed;
       actionButton = _RepButtons(
         targetReps: proposed.targetReps,
@@ -122,7 +264,7 @@ class WorkoutBottomBar extends StatelessWidget {
       if (hasExpiredRest) {
         stateLabel = 'Yapping';
         stateColor = AppTheme.workoutYappingFg;
-        timerText = '-${_fmt(nowUnix - restUntil)}';
+        timerText = _fmt(nowUnix - restUntil);
         timerColor = AppTheme.workoutYappingFg;
         final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
             ? stateSnapshot!.displaySet
@@ -140,20 +282,20 @@ class WorkoutBottomBar extends StatelessWidget {
         stateLabel = 'Resting';
         stateColor = AppTheme.workoutRestingFg;
         timerText = _fmt(restSeconds);
-        timerColor = null; // default
-        displaySet = stateSnapshot?.hasDisplaySet() == true
+        final restingSet = stateSnapshot?.hasDisplaySet() == true
             ? stateSnapshot!.displaySet
             : nextSet;
+        displaySet = restingSet;
         actionButton = _BigButton(
           label: 'Start Early',
           onPressed: () {
-            if (displaySet != null) wp.startSet(displaySet.id);
+            if (restingSet != null) wp.startSet(restingSet.id);
           },
-          secondaryLabel: displaySet != null && wp.canSkipWarmup(displaySet.id)
+          secondaryLabel: restingSet != null && wp.canSkipWarmup(restingSet.id)
               ? 'Skip'
               : null,
-          onSecondary: displaySet != null && wp.canSkipWarmup(displaySet.id)
-              ? () => wp.skipWarmup(displaySet!.id)
+          onSecondary: restingSet != null && wp.canSkipWarmup(restingSet.id)
+              ? () => wp.skipWarmup(restingSet.id)
               : null,
         );
       }
@@ -162,7 +304,7 @@ class WorkoutBottomBar extends StatelessWidget {
           nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
       stateLabel = isYapping ? 'Yapping' : 'Next up';
       stateColor = isYapping ? AppTheme.workoutYappingFg : colorScheme.tertiary;
-      timerText = isYapping ? '-${_fmt(nowUnix - lastRestEnd)}' : null;
+      timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
       timerColor = isYapping ? AppTheme.workoutYappingFg : null;
       displaySet = stateSnapshot?.hasDisplaySet() == true
           ? stateSnapshot!.displaySet
@@ -181,99 +323,35 @@ class WorkoutBottomBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final inSession = mp.participants.isNotEmpty;
-    ParticipantStatus? featuredOther;
-    ParticipantVisualStatus? featuredOtherStatus;
-    bool iAmHoldup = false;
-    bool everyoneIsLiftingRightNow = false;
+    // ── Session state ─────────────────────────────────────────────────────────
+    // Stable sort by user.id so cards don't jump around as workout states change.
+    final others =
+        mp.participants
+            .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
+            .toList()
+          ..sort((a, b) => a.user.id.compareTo(b.user.id));
+    final inSession = others.isNotEmpty;
 
-    if (inSession) {
-      String? bestUserId;
-      int? bestScheduledStart;
-      bool bestIsMe = false;
+    final nextToLiftUserId = inSession
+        ? _computeNextToLiftUserId(
+            myUserId: auth.userId,
+            others: others,
+            nowUnix: nowUnix,
+            stateValue: stateValue,
+            restUntil: restUntil,
+            lastRestEnd: lastRestEnd,
+            nextSet: nextSet,
+          )
+        : null;
 
-      bool considerCandidate(String userId, int scheduledStart) {
-        final currentBestUserId = bestUserId;
-        final currentBestScheduledStart = bestScheduledStart;
-        if (currentBestUserId == null || currentBestScheduledStart == null) {
-          return true;
-        }
-        if (scheduledStart != currentBestScheduledStart) {
-          return scheduledStart < currentBestScheduledStart;
-        }
-        return userId.compareTo(currentBestUserId) < 0;
-      }
+    final iAmNextToLift = inSession && nextToLiftUserId == auth.userId;
 
-      for (final p in mp.participants) {
-        if (p.user.id.isEmpty || p.user.id == auth.userId) continue;
-        final scheduledStart = participantScheduledStartUnix(
-          p,
-          nowUnix: nowUnix,
-        );
-        if (scheduledStart == null) continue;
-        if (considerCandidate(p.user.id, scheduledStart)) {
-          bestUserId = p.user.id;
-          bestScheduledStart = scheduledStart;
-          bestIsMe = false;
-          featuredOther = p;
-          featuredOtherStatus = describeParticipantStatus(p, now: wp.now);
-        }
-      }
-
-      final myUserId = auth.userId;
-      final myScheduledStart =
-          !_isLiftingState(stateValue) &&
-              !_isAllDoneState(stateValue) &&
-              nextSet != null
-          ? (restUntil > 0
-                ? restUntil
-                : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
-          : null;
-      if (myUserId != null &&
-          myUserId.isNotEmpty &&
-          myScheduledStart != null &&
-          considerCandidate(myUserId, myScheduledStart)) {
-        bestUserId = myUserId;
-        bestScheduledStart = myScheduledStart;
-        bestIsMe = true;
-      }
-
-      iAmHoldup = bestIsMe;
-      if (iAmHoldup) {
-        featuredOther = null;
-        featuredOtherStatus = null;
-      } else if (featuredOther != null && featuredOtherStatus == null) {
-        featuredOtherStatus = describeParticipantStatus(
-          featuredOther,
-          now: wp.now,
-        );
-      } else if (bestUserId == null) {
-        featuredOther = null;
-        featuredOtherStatus = null;
-      }
-
-      final others = mp.participants
-          .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
-          .toList();
-      bool participantIsActivelyLifting(ParticipantStatus participant) {
-        final activeSet = participant.completedSets
-            .cast<CompletedSet?>()
-            .firstWhere((c) => c!.endedAt == Int64.ZERO, orElse: () => null);
-        return participant.hasActiveSet || activeSet != null;
-      }
-
-      everyoneIsLiftingRightNow =
-          _isLiftingState(stateValue) &&
-          others.isNotEmpty &&
-          others.every(participantIsActivelyLifting);
-    }
+    // Remeasure the panel height so drag stays pixel-accurate.
+    if (inSession) _measurePanel();
 
     return GestureDetector(
-      onTap: !isOnWorkoutPage
-          ? () {
-              context.go('/');
-            }
-          : null,
+      // Tapping anywhere on the bar navigates to workout page when elsewhere.
+      onTap: !isOnWorkoutPage ? () => context.go('/') : null,
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.secondary,
@@ -288,210 +366,447 @@ class WorkoutBottomBar extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Row 1: "Next to Schlift" label + featured group member box
-                if (inSession) ...[
-                  _SectionLabel(text: 'NEXT TO SCHLIFT'),
-                  const SizedBox(height: 4),
-                  _buildSessionFeatureBox(
-                    context,
-                    iAmHoldup: iAmHoldup,
-                    everyoneIsLiftingRightNow: everyoneIsLiftingRightNow,
-                    featured: featuredOther,
-                    featuredStatus: featuredOtherStatus,
-                    auth: auth,
-                    myStateColor: stateColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _SectionLabel(text: 'YOU'),
-                  const SizedBox(height: 4),
-                ],
-
-                // Row 2: Current user status box
-                StatusBox(
-                  sideLabel: 'YOU',
-                  sideBadge: auth.profileEmoji,
-                  stateLabel: stateLabel,
-                  color: stateColor,
-                  sideColor: profileColorFromHex(auth.profileColorHex),
-                  timerText: timerText,
-                  timerColor: timerColor,
-                  set: displaySet,
-                  isComplete: _isAllDoneState(stateValue),
-                  sideLabelWidth: 44,
-                ),
-
-                // Row 3: action + total time on one line
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      height: 64,
-                      width: 84,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: colorScheme.outline.withValues(alpha: 0.5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (inSession)
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onVerticalDragUpdate: _onDragUpdate,
+                  onVerticalDragEnd: _onDragEnd,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: isOnWorkoutPage
+                            ? _toggle
+                            : () => context.go('/'),
+                        child: SizedBox(
+                          height: _handleSlotHeight,
+                          child: AnimatedBuilder(
+                            animation: _animation,
+                            builder: (_, __) => Center(
+                              child: _DragHandle(
+                                isExpanded: _animation.value >= 0.5,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+
+                      // Other participants panel — follows the finger in real time.
+                      // ClipRect+Align lays out the child at its natural size (so the
+                      // GlobalKey always reports the true height) but clips it to the
+                      // animated fraction of that height.
+                      AnimatedBuilder(
+                        animation: _animation,
+                        builder: (context, child) {
+                          final collapsedFactor =
+                              (_collapsedPeekHeight / _panelHeight).clamp(
+                                0.0,
+                                1.0,
+                              );
+                          final heightFactor =
+                              collapsedFactor +
+                              ((1 - collapsedFactor) * _animation.value);
+                          return ClipRect(
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              heightFactor: heightFactor,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          key: _panelKey,
+                          padding: const EdgeInsets.fromLTRB(
+                            20,
+                            0,
+                            20,
+                            _overlap,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Icon(
-                                Icons.timer_outlined,
-                                size: 14,
-                                color: colorScheme.tertiary,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  elapsedText,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900,
-                                    fontFamily: 'monospace',
-                                    color: colorScheme.onSurface,
-                                    height: 1.0,
+                              for (final p in others) ...[
+                                _SessionMemberCard(
+                                  name: participantDisplayName(p),
+                                  emoji: participantProfileEmoji(p),
+                                  profileColor: participantProfileColor(p),
+                                  status: describeParticipantStatus(
+                                    p,
+                                    now: wp.now,
+                                  ),
+                                  isNextToLift:
+                                      !_isDraggingPanel &&
+                                      nextToLiftUserId == p.user.id,
+                                  onTap: isOnWorkoutPage
+                                      ? () => showParticipantWorkoutModal(
+                                          context,
+                                          p,
+                                        )
+                                      : () => context.go('/'),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                              Center(
+                                child: Container(
+                                  width: 28,
+                                  height: 3,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.onSecondary.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    borderRadius: BorderRadius.circular(999),
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 10),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.favorite,
-                                size: 14,
-                                color: Color(0xFFE11D48),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                heartRateText,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'monospace',
-                                  color: colorScheme.onSurface,
-                                  height: 1.0,
-                                ),
-                              ),
-                            ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // ── Current-user action bar — always visible ──────────────────
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  final overlap = inSession ? _overlap : 0.0;
+                  return Transform.translate(
+                    offset: Offset(0, -overlap),
+                    child: child,
+                  );
+                },
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, inSession ? 4 : 20, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _HorizontalShaker(
+                        active: iAmNextToLift && !_isDraggingPanel,
+                        child: StatusBox(
+                          sideLabel: 'YOU',
+                          sideBadge: auth.profileEmoji,
+                          // In multiplayer show 'You' header so the rainbow
+                          // "next to lift" label has a home.
+                          header: inSession ? 'You' : null,
+                          showHeader: inSession,
+                          headerTrailing: iAmNextToLift
+                              ? const _RainbowShimmerText(text: 'next to lift')
+                              : null,
+                          stateLabel: stateLabel,
+                          color: stateColor,
+                          sideColor: profileColorFromHex(auth.profileColorHex),
+                          timerText: timerText,
+                          timerColor: timerColor,
+                          set: displaySet,
+                          isComplete: _isAllDoneState(stateValue),
+                          sideLabelWidth: 44,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _TimerHeartBox(
+                            elapsedText: elapsedText,
+                            heartRateText: heartRateText,
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(child: actionButton),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(child: actionButton),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildSessionFeatureBox(
-    BuildContext context, {
-    required bool iAmHoldup,
-    required bool everyoneIsLiftingRightNow,
-    required ParticipantStatus? featured,
-    required ParticipantVisualStatus? featuredStatus,
-    required AuthProvider auth,
-    required Color myStateColor,
-  }) {
-    if (iAmHoldup) {
-      final textColor =
-          ThemeData.estimateBrightnessForColor(myStateColor) == Brightness.dark
-          ? Colors.white
-          : Colors.black;
-      return StatusBox(
-        sideLabel: 'YOU',
-        sideBadge: auth.profileEmoji,
-        color: myStateColor,
-        sideColor: profileColorFromHex(auth.profileColorHex),
-        sideLabelWidth: 44,
-        child: Text(
-          "You're next!",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
-            height: 1.0,
-            color: textColor,
-          ),
-        ),
-      );
-    }
-    if (everyoneIsLiftingRightNow) {
-      return const StatusBox(
-        sideLabel: 'NEXT',
-        color: AppTheme.successFg,
-        sideColor: AppTheme.successFg,
-        sideLabelWidth: 44,
-        child: Text(
-          "Everyone's lifting right now!",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
-            height: 1.0,
-            color: Colors.white,
-          ),
-        ),
-      );
-    }
-    if (featured == null || featuredStatus == null) {
-      return const SizedBox.shrink();
-    }
-    final box = StatusBox(
-      sideLabel: 'NEXT',
-      sideBadge: participantProfileEmoji(featured),
-      stateLabel: featuredStatus.stateLabel,
-      color: featuredStatus.stateColor,
-      sideColor: participantProfileColor(featured),
-      timerText: featuredStatus.timerText,
-      timerColor: featuredStatus.timerColor,
-      set: featuredStatus.proposedSet,
+// ─── Drag handle ──────────────────────────────────────────────────────────────
+
+class _DragHandle extends StatelessWidget {
+  final bool isExpanded;
+  const _DragHandle({required this.isExpanded});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 36,
+      height: _WorkoutBottomBarState._handleThickness,
+      decoration: BoxDecoration(
+        color: colorScheme.onSecondary.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+}
+
+// ─── Session member card ──────────────────────────────────────────────────────
+
+class _SessionMemberCard extends StatelessWidget {
+  final String name;
+  final String? emoji;
+  final Color profileColor;
+  final ParticipantVisualStatus status;
+  final bool isNextToLift;
+  final VoidCallback? onTap;
+
+  const _SessionMemberCard({
+    required this.name,
+    this.emoji,
+    required this.profileColor,
+    required this.status,
+    required this.isNextToLift,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final card = StatusBox(
+      sideLabel: name,
+      sideBadge: emoji,
+      header: name,
+      showHeader: true,
+      headerTrailing: isNextToLift
+          ? const _RainbowShimmerText(text: 'next to lift')
+          : null,
+      stateLabel: status.stateLabel,
+      color: status.stateColor,
+      sideColor: profileColor,
+      timerText: status.timerText,
+      timerColor: status.timerColor,
+      set: status.proposedSet,
+      isComplete: status.isComplete,
       sideLabelWidth: 44,
     );
+
+    final shaking = _HorizontalShaker(active: isNextToLift, child: card);
+
+    if (onTap == null) return shaking;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showNextUpPopup(context, featured),
-        child: box,
+        onTap: onTap,
+        child: shaking,
       ),
     );
   }
+}
 
-  void _showNextUpPopup(BuildContext context, ParticipantStatus participant) {
-    final name = participantDisplayName(participant);
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: Text(
-          '$name is up next',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+// ─── Rainbow shimmer text ─────────────────────────────────────────────────────
+
+class _RainbowShimmerText extends StatefulWidget {
+  final String text;
+  const _RainbowShimmerText({required this.text});
+
+  @override
+  State<_RainbowShimmerText> createState() => _RainbowShimmerTextState();
+}
+
+class _RainbowShimmerTextState extends State<_RainbowShimmerText>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        return ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: const [
+              Colors.red,
+              Colors.orange,
+              Colors.yellow,
+              Colors.green,
+              Colors.blue,
+              Colors.purple,
+              Colors.red,
+            ],
+            stops: const [0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0],
+            begin: Alignment(-2.0 + 4 * t, 0),
+            end: Alignment(0.0 + 4 * t, 0),
+            tileMode: TileMode.repeated,
+          ).createShader(bounds),
+          blendMode: BlendMode.srcIn,
+          child: child!,
+        );
+      },
+      child: Text(
+        widget.text,
+        style: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.3,
+          color: Colors.white, // overridden by ShaderMask
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+      ),
+    );
+  }
+}
+
+// ─── Horizontal shake wrapper ─────────────────────────────────────────────────
+
+class _HorizontalShaker extends StatefulWidget {
+  final Widget child;
+  final bool active;
+  const _HorizontalShaker({required this.child, required this.active});
+
+  @override
+  State<_HorizontalShaker> createState() => _HorizontalShakerState();
+}
+
+class _HorizontalShakerState extends State<_HorizontalShaker>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  bool _cycling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _animation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 6.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 6.0, end: -6.0), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -6.0, end: 6.0), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 6.0, end: 0.0), weight: 1),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    if (widget.active) _startCycle();
+  }
+
+  @override
+  void didUpdateWidget(_HorizontalShaker old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active) _startCycle();
+  }
+
+  Future<void> _startCycle() async {
+    if (_cycling) return;
+    _cycling = true;
+    while (mounted && widget.active) {
+      await Future.delayed(const Duration(seconds: 4));
+      if (mounted && widget.active) await _controller.forward(from: 0);
+    }
+    _cycling = false;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.active) return widget.child;
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (_, child) => Transform.translate(
+        offset: Offset(_animation.value, 0),
+        child: child,
+      ),
+      child: widget.child,
+    );
+  }
+}
+
+// ─── Timer + heart rate box ───────────────────────────────────────────────────
+
+class _TimerHeartBox extends StatelessWidget {
+  final String elapsedText;
+  final String heartRateText;
+  const _TimerHeartBox({
+    required this.elapsedText,
+    required this.heartRateText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 64,
+      width: 84,
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.timer_outlined, size: 14, color: colorScheme.tertiary),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  elapsedText,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                    color: colorScheme.onSurface,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.favorite, size: 14, color: Color(0xFFE11D48)),
+              const SizedBox(width: 4),
+              Text(
+                heartRateText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                  color: colorScheme.onSurface,
+                  height: 1.0,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -499,29 +814,7 @@ class WorkoutBottomBar extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.5,
-          color: colorScheme.onSecondary.withValues(alpha: 0.7),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Big full-width action button ────────────────────────────────────
+// ─── Big full-width action button ─────────────────────────────────────────────
 
 class _BigButton extends StatelessWidget {
   final String label;
@@ -579,7 +872,7 @@ class _BigButton extends StatelessWidget {
   }
 }
 
-// ─── Rep picker + complete button (for active set) ───────────────────
+// ─── Rep picker + complete button ─────────────────────────────────────────────
 
 class _RepButtons extends StatefulWidget {
   final int targetReps;
@@ -633,7 +926,6 @@ class _RepButtonsState extends State<_RepButtons> {
       children: [
         Row(
           children: [
-            // Number scroll wheel
             Container(
               height: 64,
               width: 64,
@@ -677,7 +969,6 @@ class _RepButtonsState extends State<_RepButtons> {
               ),
             ),
             const SizedBox(width: 12),
-            // Complete set button
             Expanded(
               child: SizedBox(
                 height: 64,

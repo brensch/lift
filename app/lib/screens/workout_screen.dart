@@ -13,7 +13,6 @@ import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
-import '../widgets/participant_ticker.dart';
 import '../widgets/set_log.dart';
 import '../widgets/workout_modals.dart';
 import '../widgets/heart_rate_chart.dart';
@@ -45,8 +44,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         .where((group) => !_isGroupCompleted(group, wp.completedSets))
         .toList(growable: false);
 
-    final nextUpUserId = mp.sessionStatus?.nextUpUserId ?? '';
-    final otherParticipants = mp.participants;
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
     final workoutOwnerLabels = <String, String>{};
@@ -296,54 +293,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ],
           ),
         ),
-
-        // Participant cards (multiplayer)
-        if (mp.isInSession && otherParticipants.isNotEmpty) ...[
-          Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
-
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-
-                  child: Text(
-                    'SESSION MEMBERS',
-
-                    style: TextStyle(
-                      fontSize: 11,
-
-                      fontWeight: FontWeight.bold,
-
-                      letterSpacing: 1.5,
-
-                      color: colorScheme.tertiary,
-                    ),
-                  ),
-                ),
-
-                ...otherParticipants.map((p) {
-                  final isNextUp =
-                      nextUpUserId.isNotEmpty && nextUpUserId == p.user.id;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-
-                    child: ParticipantCard(
-                      participant: p,
-                      isNextUp: isNextUp,
-                      onTap: () => showParticipantWorkoutModal(context, p),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ],
 
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
