@@ -57,6 +57,7 @@ class MainLayout extends StatelessWidget {
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: GestureDetector(
@@ -220,11 +221,9 @@ class MainLayout extends StatelessWidget {
             ),
           ),
         ),
-        body: Column(
-          children: [
-            Expanded(child: child),
-            WorkoutBottomBar(key: ValueKey(wp.activeWorkout?.id ?? 'none')),
-          ],
+        body: child,
+        bottomNavigationBar: WorkoutBottomBar(
+          key: ValueKey(wp.activeWorkout?.id ?? 'none'),
         ),
       ),
     );

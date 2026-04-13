@@ -32,6 +32,7 @@ struct ContentView: View {
                 } else {
                     Text("Waiting for phone")
                         .foregroundColor(.white)
+                        .watchAutoShrink()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
@@ -136,16 +137,14 @@ struct ContentView: View {
                     Text(liveYouTimerText)
                         .font(displayFontName(size: 34))
                         .foregroundColor(timerColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        .watchAutoShrink()
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 Text(data.youCard.stateLabel)
                     .font(displayFontName(size: 19, weight: .medium))
                     .foregroundColor(stateAccentColor ?? .white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .watchAutoShrink(minScale: 0.6)
                     .frame(maxWidth: .infinity, alignment: .trailing)
 
                 if !liveYouTimerText.isEmpty {
@@ -192,7 +191,7 @@ struct ContentView: View {
                                 Text(startButtonTitle)
                                     .font(displayFontName(size: 18))
                                     .foregroundColor(buttonContentColor)
-                                    .lineLimit(2)
+                                    .watchAutoShrink(lines: 2)
                                     .multilineTextAlignment(.leading)
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -201,7 +200,7 @@ struct ContentView: View {
                                 Text(repsWeightText)
                                     .font(displayFontName(size: 24))
                                     .foregroundColor(buttonContentColor)
-                                    .lineLimit(1)
+                                    .watchAutoShrink()
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
                                 if !groupProgressText.isEmpty {
@@ -209,14 +208,14 @@ struct ContentView: View {
                                     Text(groupProgressText)
                                         .font(displayFontName(size: 16, weight: .medium))
                                         .foregroundColor(buttonContentColor.opacity(0.9))
-                                        .lineLimit(1)
+                                        .watchAutoShrink()
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     if !setsLeftText.isEmpty {
                                         Text(setsLeftText)
                                             .font(.custom(bodyFont, size: 12).weight(.medium))
                                             .foregroundColor(buttonContentColor.opacity(0.72))
-                                            .lineLimit(1)
+                                            .watchAutoShrink()
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
@@ -251,7 +250,7 @@ struct ContentView: View {
                                 Text(completeButtonText)
                                     .font(displayFontName(size: 18))
                                     .foregroundColor(buttonContentColor)
-                                    .lineLimit(2)
+                                    .watchAutoShrink(lines: 2)
                                     .multilineTextAlignment(.leading)
 
                                 Spacer().frame(height: 6)
@@ -265,7 +264,7 @@ struct ContentView: View {
                                         Text("\(selectedReps)")
                                             .font(displayFontName(size: 40))
                                             .foregroundColor(buttonContentColor)
-                                            .lineLimit(1)
+                                            .watchAutoShrink()
                                     }
                                     .frame(width: 40, height: 94)
                                     .focusable()
@@ -280,7 +279,7 @@ struct ContentView: View {
                                     Text(weightOnlyText)
                                         .font(displayFontName(size: 28))
                                         .foregroundColor(buttonContentColor)
-                                        .lineLimit(1)
+                                        .watchAutoShrink()
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -289,14 +288,14 @@ struct ContentView: View {
                                     Text(groupProgressText)
                                         .font(displayFontName(size: 16, weight: .medium))
                                         .foregroundColor(buttonContentColor.opacity(0.9))
-                                        .lineLimit(1)
+                                        .watchAutoShrink()
                                         .frame(maxWidth: .infinity, alignment: .leading)
 
                                     if !setsLeftText.isEmpty {
                                         Text(setsLeftText)
                                             .font(.custom(bodyFont, size: 12).weight(.medium))
                                             .foregroundColor(buttonContentColor.opacity(0.72))
-                                            .lineLimit(1)
+                                            .watchAutoShrink()
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
@@ -327,8 +326,7 @@ struct ContentView: View {
             Text(text)
                 .font(.custom(bodyFont, size: fontSize).weight(.medium))
                 .foregroundColor(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .watchAutoShrink(minScale: 0.6)
                 .frame(maxWidth: .infinity, alignment: .trailing)
 
             Image(systemName: systemImage)
@@ -348,6 +346,7 @@ struct ContentView: View {
                 Text("Complete")
                     .font(displayFontName(size: 26))
                     .foregroundColor(.white)
+                    .watchAutoShrink()
                     .frame(maxWidth: .infinity, alignment: .trailing)
 
                 Spacer().frame(height: 6)
@@ -364,7 +363,7 @@ struct ContentView: View {
                 Text(primaryLabel)
                     .font(displayFontName(size: 16))
                     .foregroundColor(.black)
-                    .lineLimit(2)
+                    .watchAutoShrink(lines: 2)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
@@ -383,14 +382,25 @@ struct ContentView: View {
             Text(label)
                 .font(.custom(bodyFont, size: 13))
                 .foregroundColor(Color(red: 0x9C/255, green: 0xA3/255, blue: 0xAF/255))
+                .watchAutoShrink(minScale: 0.7)
 
             Spacer()
 
             Text(value)
                 .font(displayFontName(size: 18))
                 .foregroundColor(.white)
+                .watchAutoShrink()
         }
         .padding(.vertical, 1)
+    }
+}
+
+private extension View {
+    func watchAutoShrink(lines: Int = 1, minScale: CGFloat = 0.5) -> some View {
+        self
+            .lineLimit(lines)
+            .minimumScaleFactor(minScale)
+            .allowsTightening(true)
     }
 }
 
