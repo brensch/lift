@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -582,13 +583,35 @@ private fun WearApp(
         it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
     } ?: data.actionsList.firstOrNull()
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
-    var pendingActionKey by remember(data.workoutId) { mutableStateOf<String?>(null) }
+    // Track which snapshot the action was sent on. When emittedAt changes, the server has
+    // acknowledged the action and we are in a new phase — clear pending immediately in the
+    // same composition pass rather than via a LaunchedEffect (which fires after composition,
+    // causing the button to remain greyed for one extra frame).
+    var pendingActionEmittedAt by remember(data.workoutId) { mutableLongStateOf(-1L) }
     var pendingActionStartedAtMs by remember(data.workoutId) { mutableLongStateOf(0L) }
-    LaunchedEffect(data.emittedAt) {
-        pendingActionKey = null
-        pendingActionStartedAtMs = 0L
+    val isActionPending = pendingActionEmittedAt == data.emittedAt &&
+        pendingActionEmittedAt >= 0L &&
+        (System.currentTimeMillis() - pendingActionStartedAtMs) < 8000L
+
+    // When the local rest countdown expires, request a fresh snapshot immediately
+    // rather than waiting up to 3 s for the next heartbeat. This ensures the button
+    // re-enables at the exact moment the timer hits 0:00, with no visible delay.
+    val restRequestContext = LocalContext.current
+    LaunchedEffect(data.workoutId, data.restUntil) {
+        val restUntilMs = data.restUntil.toLong() * 1000L
+        if (restUntilMs <= 0L) return@LaunchedEffect
+        val delayMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
+        if (delayMs > 0L) delay(delayMs)
+        runCatching {
+            WearTransport.sendToPhone(
+                restRequestContext,
+                WearTransport.WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH,
+                ByteArray(0),
+            )
+        }.onFailure {
+            Log.d(SchliftWearTag, "Rest-expiry snapshot request not delivered", it)
+        }
     }
-    val isActionPending = pendingActionKey != null && (System.currentTimeMillis() - pendingActionStartedAtMs) < 8000L
 
     val hrColor = heartRateColor(latestBpm)
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
@@ -723,7 +746,7 @@ private fun WearApp(
                 Button(
                     onClick = {
                         if (primaryAction != null && !isActionPending) {
-                            pendingActionKey = "${primaryAction.type}:${primaryAction.setId}:${data.state}"
+                            pendingActionEmittedAt = data.emittedAt
                             pendingActionStartedAtMs = System.currentTimeMillis()
                             onAction(primaryAction)
                         }
@@ -810,7 +833,7 @@ private fun WearApp(
                                     if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
                                 )
                                 .build()
-                            pendingActionKey = "${action.type}:${action.setId}:${selectedReps}:${data.state}"
+                            pendingActionEmittedAt = data.emittedAt
                             pendingActionStartedAtMs = System.currentTimeMillis()
                             onAction(action)
                         }
