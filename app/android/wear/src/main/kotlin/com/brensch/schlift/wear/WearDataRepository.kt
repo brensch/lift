@@ -1,5 +1,10 @@
 package com.brensch.schlift.wear
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,8 +22,11 @@ object WearDataRepository {
     @Volatile
     private var lastSnapshotEmittedAtUnixMs: Long = 0L
 
-    fun updateSnapshot(snapshot: Wearable.WearWorkoutSnapshot) {
+    fun updateSnapshot(context: Context, snapshot: Wearable.WearWorkoutSnapshot) {
         val previous = _snapshot.value
+        if (shouldPlayRestFinishedHaptic(previous, snapshot)) {
+            playRestFinishedHaptic(context)
+        }
         if (previous == null ||
             previous.workoutId != snapshot.workoutId ||
             previous.state != snapshot.state ||
@@ -36,6 +44,42 @@ object WearDataRepository {
         lastSnapshotReceivedElapsedRealtimeMs = SystemClock.elapsedRealtime()
         lastSnapshotEmittedAtUnixMs = snapshot.emittedAt.toLong()
         _snapshot.value = snapshot
+    }
+
+    private fun shouldPlayRestFinishedHaptic(
+        previous: Wearable.WearWorkoutSnapshot?,
+        current: Wearable.WearWorkoutSnapshot,
+    ): Boolean {
+        if (previous == null) return false
+        val previousRestUntil = previous.restUntil.toLong()
+        if (previousRestUntil <= 0L) return false
+        val previousWasActiveCountdown =
+            previous.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING &&
+                previous.youCard.stateLabel == "Resting"
+        if (!previousWasActiveCountdown) return false
+        if (current.youCard.stateLabel != "Yapping") return false
+
+        val currentRestEnd = when {
+            current.lastRestEnd.toLong() > 0L -> current.lastRestEnd.toLong()
+            current.restUntil.toLong() > 0L -> current.restUntil.toLong()
+            else -> 0L
+        }
+        return currentRestEnd == previousRestUntil
+    }
+
+    private fun playRestFinishedHaptic(context: Context) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = context.getSystemService(VibratorManager::class.java)
+            manager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+        if (vibrator?.hasVibrator() != true) return
+
+        val pattern = longArrayOf(0L, 120L, 180L, 120L, 180L, 120L, 180L, 120L, 180L, 120L)
+        val effect = VibrationEffect.createWaveform(pattern, -1)
+        vibrator.vibrate(effect)
     }
 
     fun updateLatestBpm(bpm: Float?) {

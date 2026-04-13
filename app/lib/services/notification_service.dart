@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -123,6 +124,17 @@ class NotificationService {
   /// Cancels any pending or active rest notifications.
   static Future<void> cancelRest() async {
     await _plugin.cancel(_restNotificationId);
+  }
+
+  /// Plays an in-app haptic when rest finishes while the app is active.
+  /// Background delivery is still handled by the scheduled OS notification.
+  static Future<void> playRestCompletionHaptic() async {
+    for (var i = 0; i < 5; i++) {
+      await HapticFeedback.vibrate();
+      if (i < 4) {
+        await Future<void>.delayed(const Duration(milliseconds: 220));
+      }
+    }
   }
 
   /// Schedules a next-workout reminder notification.
