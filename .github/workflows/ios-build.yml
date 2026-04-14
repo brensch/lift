@@ -263,11 +263,17 @@ jobs:
             echo "No IPA found under build/ios/ipa"
             exit 1
           fi
+          ALTOOL_JSON="$RUNNER_TEMP/altool-result.json"
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
             --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --output-format json | tee "$ALTOOL_JSON"
+          if jq -e '."tool-errors" | length > 0' "$ALTOOL_JSON" > /dev/null 2>&1; then
+            echo "altool reported errors (see tool-errors above)"
+            exit 1
+          fi
 
       - name: Build unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'
