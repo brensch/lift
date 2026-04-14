@@ -8,8 +8,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
-    private var authorizationRequested = false
-    private var pendingStart = false
+    private var starting = false
 
     private var readTypes: Set<HKObjectType> {
         var types: Set<HKObjectType> = []
@@ -26,19 +25,19 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         [HKObjectType.workoutType()]
     }
 
+    // Idempotent — the system caches the user's answer, so calling this repeatedly is
+    // cheap and safe. We never gate on "have we already asked", so a denied-then-granted
+    // sequence (user flipped the setting in Watch Settings) still takes effect.
     func requestAuthorizationIfNeeded(completion: ((Bool) -> Void)? = nil) {
         guard HKHealthStore.isHealthDataAvailable() else {
             completion?(false)
             return
         }
-        guard !authorizationRequested else {
-            completion?(true)
-            return
-        }
-        authorizationRequested = true
         healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
             if let error = error {
                 print("SchliftWatch: HealthKit authorization error: \(error)")
+            } else {
+                print("SchliftWatch: HealthKit authorization success=\(success)")
             }
             DispatchQueue.main.async {
                 completion?(success)
@@ -48,14 +47,26 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
     func ensureSessionActive() {
         guard session == nil else { return }
-        guard HKHealthStore.isHealthDataAvailable() else { return }
-        guard !pendingStart else { return }
-        pendingStart = true
+        guard HKHealthStore.isHealthDataAvailable() else {
+            print("SchliftWatch: HealthKit unavailable on this device")
+            return
+        }
+        guard !starting else { return }
+        starting = true
         requestAuthorizationIfNeeded { [weak self] _ in
             guard let self = self else { return }
-            self.pendingStart = false
+            self.starting = false
+            // requestAuthorization can report failure even when read access is already
+            // granted from a prior run. Attempt to start regardless — HK will silently
+            // emit zero samples if read access is actually denied, and the HR watchdog
+            // in PhoneConnector will surface that.
             self.startSession()
         }
+    }
+
+    func restart() {
+        endSessionIfActive()
+        ensureSessionActive()
     }
 
     private func startSession() {
@@ -76,13 +87,17 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             self.builder = builder
 
             session.startActivity(with: Date())
-            builder.beginCollection(withStart: Date()) { _, error in
+            builder.beginCollection(withStart: Date()) { success, error in
                 if let error = error {
                     print("SchliftWatch: Failed to begin workout collection: \(error)")
+                } else {
+                    print("SchliftWatch: Workout collection started success=\(success)")
                 }
             }
         } catch {
             print("SchliftWatch: Failed to create workout session: \(error)")
+            self.session = nil
+            self.builder = nil
         }
     }
 
@@ -106,13 +121,15 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     // MARK: - HKWorkoutSessionDelegate
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
-        // No-op — lifecycle managed externally
+        print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
     }
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
         print("SchliftWatch: Workout session failed: \(error)")
         session = nil
         builder = nil
+        // Auto-retry once on next watchdog tick by leaving state clean; the
+        // PhoneConnector watchdog will call ensureSessionActive again within 10s.
     }
 
     // MARK: - HKLiveWorkoutBuilderDelegate

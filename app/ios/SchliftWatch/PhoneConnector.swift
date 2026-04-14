@@ -20,6 +20,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     private let hrLock = NSLock()
     private var pendingHRWorkoutID: String = ""
+    private var lastHRSampleAtMs: Int64 = 0
+    private var hrWatchdogTimer: Timer?
 
     override init() {
         super.init()
@@ -40,6 +42,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     deinit {
         heartbeatTimer?.invalidate()
+        hrWatchdogTimer?.invalidate()
         pendingActionTimeout?.cancel()
         restExpiryRequest?.cancel()
         restCompletionHaptic?.cancel()
@@ -254,6 +257,15 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
+        // Drop-stale guard: out-of-order publishes from the phone (unawaited
+        // sends + last-writer-wins native cache) could otherwise clobber newer
+        // state with an older snapshot. `emittedAt` is monotonic per workout.
+        if let existing = self.snapshot,
+           existing.workoutID == snapshot.workoutID,
+           snapshot.emittedAt > 0,
+           snapshot.emittedAt < existing.emittedAt {
+            return
+        }
         lastSnapshotReceivedUptime = ProcessInfo.processInfo.systemUptime
         lastSnapshotEmittedAtMs = snapshot.emittedAt
         let snapshotKey = meaningfulSnapshotKey(snapshot)
@@ -285,6 +297,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func bufferAndFlushHRSample(_ sample: Workout_V1_HeartRateSample) {
+        lastHRSampleAtMs = Int64(Date().timeIntervalSince1970 * 1000)
         hrLock.lock()
         let workoutID = pendingHRWorkoutID
         pendingHRSamples.append(sample)
@@ -317,13 +330,44 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             pendingHRWorkoutID = snapshot.workoutID
             hrLock.unlock()
             workoutSessionManager.ensureSessionActive()
+            startHRWatchdog()
             flushPendingSensorBatches()
         } else {
             hrLock.lock()
             pendingHRWorkoutID = ""
             pendingHRSamples.removeAll()
             hrLock.unlock()
+            stopHRWatchdog()
             workoutSessionManager.endSessionIfActive()
+        }
+    }
+
+    // Periodic safety net: while a workout is active, re-assert that the HK session is
+    // running and that HR samples have arrived recently. If either check fails we ask
+    // WorkoutSessionManager to (re)start. This covers ambient-mode drops, transient HK
+    // errors, and silent HR streams.
+    private func startHRWatchdog() {
+        guard hrWatchdogTimer == nil else { return }
+        hrWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            self?.runHRWatchdog()
+        }
+    }
+
+    private func stopHRWatchdog() {
+        hrWatchdogTimer?.invalidate()
+        hrWatchdogTimer = nil
+        lastHRSampleAtMs = 0
+    }
+
+    private func runHRWatchdog() {
+        // Always re-call ensureSessionActive — it's a no-op when the session is running.
+        workoutSessionManager.ensureSessionActive()
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        // If we've received at least one sample and then nothing for 20s, force a restart.
+        if lastHRSampleAtMs > 0, nowMs - lastHRSampleAtMs > 20_000 {
+            print("SchliftWatch: HR sample silence >20s, restarting workout session")
+            workoutSessionManager.restart()
+            lastHRSampleAtMs = 0
         }
     }
 
@@ -350,7 +394,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             self?.clearPendingAction()
         }
         pendingActionTimeout = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: workItem)
+        // Safety timeout: the button re-enables 2s after a tap even if no fresh snapshot
+        // arrives. Normal reply is <500ms, so 2s is ample and avoids the old 8s "stuck
+        // grey" window users complained about.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: workItem)
     }
 
     private func clearPendingAction() {

@@ -593,9 +593,12 @@ private fun WearApp(
     // causing the button to remain greyed for one extra frame).
     var pendingActionEmittedAt by remember(data.workoutId) { mutableLongStateOf(-1L) }
     var pendingActionStartedAtMs by remember(data.workoutId) { mutableLongStateOf(0L) }
+    // Safety timeout: the button re-enables 2s after a tap even if no fresh snapshot
+    // arrives (phone dropped the intent, watch offline, etc.). Normal reply is <500ms,
+    // so 2s is ample and avoids the old 8s "stuck grey" window users complained about.
     val isActionPending = pendingActionEmittedAt == data.emittedAt &&
         pendingActionEmittedAt >= 0L &&
-        (System.currentTimeMillis() - pendingActionStartedAtMs) < 8000L
+        (System.currentTimeMillis() - pendingActionStartedAtMs) < 2000L
 
     // When the local rest countdown expires, request a fresh snapshot immediately
     // rather than waiting up to 3 s for the next heartbeat. This ensures the button
