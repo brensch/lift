@@ -24,6 +24,17 @@ object WearDataRepository {
 
     fun updateSnapshot(context: Context, snapshot: Wearable.WearWorkoutSnapshot) {
         val previous = _snapshot.value
+        // Drop-stale guard: out-of-order sends from the phone (unawaited
+        // publishSnapshot + last-writer-wins native cache) could clobber newer
+        // state with an older snapshot. `emittedAt` is monotonic per workout.
+        val incomingEmittedAt = snapshot.emittedAt.toLong()
+        if (previous != null &&
+            previous.workoutId == snapshot.workoutId &&
+            incomingEmittedAt > 0L &&
+            incomingEmittedAt < previous.emittedAt.toLong()
+        ) {
+            return
+        }
         if (shouldPlayRestFinishedHaptic(previous, snapshot)) {
             playRestFinishedHaptic(context)
         }

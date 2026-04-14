@@ -23,6 +23,12 @@ class WearableSyncCoordinator {
   bool _workoutEverLoaded = false;
   String? _lastPublishedSnapshotKey;
   String? _lastWorkoutId;
+  // Suppresses dedupe-skips and unsolicited publishes (e.g. 1s multiplayer poll
+  // ticks) while an intent is mid-flight. Otherwise a stale poll-driven publish
+  // can clear the watch's pending state on pre-mutation data, and a dedupe hit
+  // against a previously-published identical snapshot can drop the post-mutation
+  // reply entirely — leaving the watch to wait out its safety timeout.
+  int _inFlightIntents = 0;
 
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
@@ -90,23 +96,32 @@ class WearableSyncCoordinator {
     if (intent.intentId.isEmpty) return;
     if (!_handledIntentIds.add(intent.intentId)) return;
 
-    if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
-      await _workoutProvider.startSet(intent.startSet.setId);
-    } else if (intent.hasCompleteSet() &&
-        intent.completeSet.workoutId == workoutId) {
-      await _workoutProvider.completeSet(
-        intent.completeSet.setId,
-        intent.completeSet.reps,
-        intent.completeSet.actualWeight,
-        completedAt: intent.completeSet.completedAt.toInt(),
-      );
-    } else if (intent.hasSkipWarmup() &&
-        intent.skipWarmup.workoutId == workoutId) {
-      await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
-    } else if (intent.hasEndWorkout() &&
-        intent.endWorkout.workoutId == workoutId) {
-      await _workoutProvider.endWorkout();
-      _multiplayerProvider.markLocalWorkoutFinished();
+    _inFlightIntents++;
+    try {
+      if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
+        await _workoutProvider.startSet(intent.startSet.setId);
+      } else if (intent.hasCompleteSet() &&
+          intent.completeSet.workoutId == workoutId) {
+        await _workoutProvider.completeSet(
+          intent.completeSet.setId,
+          intent.completeSet.reps,
+          intent.completeSet.actualWeight,
+          completedAt: intent.completeSet.completedAt.toInt(),
+        );
+      } else if (intent.hasSkipWarmup() &&
+          intent.skipWarmup.workoutId == workoutId) {
+        await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
+      } else if (intent.hasEndWorkout() &&
+          intent.endWorkout.workoutId == workoutId) {
+        await _workoutProvider.endWorkout();
+        _multiplayerProvider.markLocalWorkoutFinished();
+      }
+    } finally {
+      _inFlightIntents--;
+      // Force-publish the post-mutation snapshot as the reply, bypassing the
+      // content-dedupe guard. This is the watch's "ack" — it MUST land even if
+      // the serialized content happens to equal a previously-published snapshot.
+      _publishSnapshot(force: true);
     }
   }
 
@@ -118,7 +133,13 @@ class WearableSyncCoordinator {
     await _bridgeService.dispose();
   }
 
-  void _publishSnapshot() {
+  void _publishSnapshot({bool force = false}) {
+    // Suppress unsolicited (non-forced) publishes while an intent is mid-flight.
+    // Otherwise a 1s multiplayer-poll tick that fires between "intent received"
+    // and "mutation committed" would publish a pre-mutation snapshot, which the
+    // watch would treat as the reply and clear its pending state on stale data.
+    if (!force && _inFlightIntents > 0) return;
+
     if (!_workoutProvider.hasActiveWorkout &&
         !_workoutProvider.isWorkoutEnded) {
       return;
@@ -135,7 +156,7 @@ class WearableSyncCoordinator {
 
     if (snapshot == null) return;
     final snapshotKey = _snapshotPublishKey(snapshot);
-    if (_lastPublishedSnapshotKey == snapshotKey) return;
+    if (!force && _lastPublishedSnapshotKey == snapshotKey) return;
     _lastPublishedSnapshotKey = snapshotKey;
     unawaited(_bridgeService.publishSnapshot(snapshot));
   }
