@@ -14,6 +14,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var lastSnapshotEmittedAtMs: Int64 = 0
     private var pendingActionTimeout: DispatchWorkItem?
     private var restExpiryRequest: DispatchWorkItem?
+    private var restCompletionHaptic: DispatchWorkItem?
+    private var lastHapticForRestUntil: Int64 = 0
     private var lastSnapshotKey: String?
     private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     private let hrLock = NSLock()
@@ -27,6 +29,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         workoutSessionManager.onHeartRateSample = { [weak self] sample in
             self?.bufferAndFlushHRSample(sample)
         }
+        // Prompt for HealthKit access early so the first workout doesn't race the auth sheet.
+        workoutSessionManager.requestAuthorizationIfNeeded(completion: nil)
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
@@ -38,6 +42,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         heartbeatTimer?.invalidate()
         pendingActionTimeout?.cancel()
         restExpiryRequest?.cancel()
+        restCompletionHaptic?.cancel()
     }
 
     // MARK: - Send intent to phone
@@ -249,13 +254,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
-        let previousSnapshot = self.snapshot
         lastSnapshotReceivedUptime = ProcessInfo.processInfo.systemUptime
         lastSnapshotEmittedAtMs = snapshot.emittedAt
         let snapshotKey = meaningfulSnapshotKey(snapshot)
-        if shouldPlayRestCompletionHaptic(previous: previousSnapshot, current: snapshot) {
-            playRestCompletionHaptic()
-        }
         self.snapshot = snapshot
         manageCompanionSession(for: snapshot)
         if isActionPending || lastSnapshotKey != snapshotKey {
@@ -263,6 +264,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
         lastSnapshotKey = snapshotKey
         scheduleRestExpiryRequest(for: snapshot)
+        scheduleRestCompletionHaptic(for: snapshot)
     }
 
     // Schedule a snapshot request to fire exactly when the rest timer expires so the
@@ -369,28 +371,32 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         heartbeatTimer = nil
     }
 
-    private func shouldPlayRestCompletionHaptic(
-        previous: Workout_V1_WearWorkoutSnapshot?,
-        current: Workout_V1_WearWorkoutSnapshot
-    ) -> Bool {
-        guard let previous else { return false }
-        let previousRestUntil = previous.restUntil
-        guard previousRestUntil > 0 else { return false }
-        let previousWasActiveCountdown =
-            previous.state == .resting &&
-            previous.youCard.stateLabel == "Resting"
-        guard previousWasActiveCountdown else { return false }
-        guard current.youCard.stateLabel == "Yapping" else { return false }
-
-        let currentRestEnd: Int64
-        if current.lastRestEnd > 0 {
-            currentRestEnd = current.lastRestEnd
-        } else if current.restUntil > 0 {
-            currentRestEnd = current.restUntil
-        } else {
-            currentRestEnd = 0
+    // Schedule the rest-completion haptic locally at restUntil, regardless of whether
+    // a fresh snapshot lands in time. The active HKWorkoutSession keeps the watch app
+    // alive in ambient mode so this DispatchWorkItem will fire on the dot.
+    private func scheduleRestCompletionHaptic(for snapshot: Workout_V1_WearWorkoutSnapshot) {
+        // Cancel any pending haptic if we're no longer resting (e.g. user started
+        // the next set early, ended the workout, etc.).
+        guard snapshot.state == .resting, snapshot.restUntil > 0 else {
+            restCompletionHaptic?.cancel()
+            restCompletionHaptic = nil
+            return
         }
-        return currentRestEnd == previousRestUntil
+        // Idempotent: don't re-arm/replay for the same restUntil.
+        if snapshot.restUntil == lastHapticForRestUntil { return }
+
+        restCompletionHaptic?.cancel()
+        let restUntilMs = snapshot.restUntil * 1000
+        let nowMs = synchronizedNowMs()
+        let delayMs = max(0, restUntilMs - nowMs)
+        let target = snapshot.restUntil
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.lastHapticForRestUntil = target
+            self.playRestCompletionHaptic()
+        }
+        restCompletionHaptic = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int(delayMs)), execute: workItem)
     }
 
     private func playRestCompletionHaptic() {

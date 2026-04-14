@@ -63,14 +63,21 @@ class PhoneMessageListenerService : WearableListenerService() {
             val activeWorkout = snapshot.workoutId.isNotBlank() &&
                 (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
             if (activeWorkout) {
-                WorkoutForegroundService.startOrUpdate(
-                    this,
-                    workoutLabel = "Workout in progress",
-                    stateLabel = snapshot.youCard.stateLabel,
-                    workoutId = snapshot.workoutId,
-                    activeWorkout = true,
-                    allowStartForeground = false,
-                )
+                // Only push label updates when the FGS is already tracking.
+                // Cold-start of the FGS only happens when the user opens the
+                // watch app — MainActivity's snapshot collector handles that
+                // path. We deliberately do NOT launch MainActivity here, since
+                // snapshots arrive frequently and would re-foreground the app
+                // every few seconds.
+                if (WorkoutForegroundService.isRunning()) {
+                    WorkoutForegroundService.startOrUpdate(
+                        this,
+                        workoutLabel = "Workout in progress",
+                        stateLabel = snapshot.youCard.stateLabel,
+                        workoutId = snapshot.workoutId,
+                        activeWorkout = true,
+                    )
+                }
             } else {
                 WorkoutForegroundService.stop(this)
             }

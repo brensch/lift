@@ -8,10 +8,58 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
+    private var authorizationRequested = false
+    private var pendingStart = false
+
+    private var readTypes: Set<HKObjectType> {
+        var types: Set<HKObjectType> = []
+        if let hr = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+            types.insert(hr)
+        }
+        if let energy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+            types.insert(energy)
+        }
+        return types
+    }
+
+    private var shareTypes: Set<HKSampleType> {
+        [HKObjectType.workoutType()]
+    }
+
+    func requestAuthorizationIfNeeded(completion: ((Bool) -> Void)? = nil) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            completion?(false)
+            return
+        }
+        guard !authorizationRequested else {
+            completion?(true)
+            return
+        }
+        authorizationRequested = true
+        healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
+            if let error = error {
+                print("SchliftWatch: HealthKit authorization error: \(error)")
+            }
+            DispatchQueue.main.async {
+                completion?(success)
+            }
+        }
+    }
 
     func ensureSessionActive() {
         guard session == nil else { return }
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        guard !pendingStart else { return }
+        pendingStart = true
+        requestAuthorizationIfNeeded { [weak self] _ in
+            guard let self = self else { return }
+            self.pendingStart = false
+            self.startSession()
+        }
+    }
+
+    private func startSession() {
+        guard session == nil else { return }
 
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .traditionalStrengthTraining

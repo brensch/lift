@@ -141,14 +141,18 @@ class WorkoutForegroundService : Service() {
 
         fun isRunning() = running
 
+        /**
+         * Returns true if the start request was dispatched (sync or async). Returns false
+         * only if the FGS could not be started (e.g. background-start restriction); the
+         * caller can then fall back to launching MainActivity.
+         */
         fun startOrUpdate(
             context: Context,
             workoutLabel: String,
             stateLabel: String,
             workoutId: String,
             activeWorkout: Boolean,
-            allowStartForeground: Boolean = true,
-        ) {
+        ): Boolean {
             val intent = Intent(context, WorkoutForegroundService::class.java).apply {
                 action = if (activeWorkout && !running) ACTION_START else ACTION_UPDATE
                 putExtra(EXTRA_WORKOUT_LABEL, workoutLabel)
@@ -156,17 +160,18 @@ class WorkoutForegroundService : Service() {
                 putExtra(EXTRA_WORKOUT_ID, workoutId)
                 putExtra(EXTRA_ACTIVE_WORKOUT, activeWorkout)
             }
-            if (activeWorkout && !running) {
-                if (!allowStartForeground) {
-                    Log.i(
-                        "SchliftWear",
-                        "Skipping background health FGS start for workoutId=$workoutId",
-                    )
-                    return
+            return try {
+                if (activeWorkout && !running) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
                 }
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+                true
+            } catch (t: Throwable) {
+                // ForegroundServiceStartNotAllowedException on Android 12+ when starting from
+                // a context that has lost foreground priority. Caller falls back.
+                Log.w("SchliftWear", "Failed to (re)start workout FGS for workoutId=$workoutId", t)
+                false
             }
         }
 
