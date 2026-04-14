@@ -63,6 +63,7 @@ message WearWorkoutSnapshot {
   WearStatusCard group_card = 10; // optional
   repeated WearAction actions = 11;
   WearCompletionSummary completion_summary = 12; // optional
+  string next_up_emoji = 13; // profile emoji of the next-to-lift participant (empty if solo)
 }
 
 message WearCompletionSummary {

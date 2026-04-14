@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -621,6 +622,7 @@ private fun WearApp(
     }
 
     val hrColor = heartRateColor(latestBpm)
+    val nextUpText: String? = data.nextUpEmoji.takeIf { it.isNotEmpty() }
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
     val groupProgressText = formatGroupProgress(data.youCard)
     val setsLeftText = formatSetsLeft(data.youCard)
@@ -739,6 +741,14 @@ private fun WearApp(
                 color = hrColor,
                 fontSizeSp = 21,
             )
+            if (nextUpText != null) {
+                StatLine(
+                    text = nextUpText,
+                    icon = Icons.Filled.Person,
+                    color = Color(0xFF9CA3AF),
+                    fontSizeSp = 18,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(0.dp))

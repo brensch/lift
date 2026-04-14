@@ -24,6 +24,14 @@ struct ContentView: View {
 
     @State private var selectedReps: Int = 0
 
+    private var nextUpText: String? {
+        guard let snapshot = connector.snapshot,
+              !snapshot.nextUpEmoji.isEmpty else {
+            return nil
+        }
+        return snapshot.nextUpEmoji
+    }
+
     private var restBoundaryDate: Date? {
         guard let snapshot = connector.snapshot,
               snapshot.state == .resting,
@@ -186,6 +194,15 @@ struct ContentView: View {
                     color: hrColor,
                     fontSize: 21
                 )
+
+                if let nextUp = nextUpText {
+                    statLine(
+                        text: nextUp,
+                        systemImage: "person.fill",
+                        color: Color(red: 0x9C/255, green: 0xA3/255, blue: 0xAF/255),
+                        fontSize: 18
+                    )
+                }
             }
             .frame(maxHeight: .infinity)
             .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 6))

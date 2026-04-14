@@ -2,14 +2,17 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import 'package:fixnum/fixnum.dart';
+import '../logic/user_profile.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
+import '../widgets/participant_ticker.dart';
 
 class WearableSnapshotBuilder {
   static WearWorkoutSnapshot? build({
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
+    required String myProfileEmoji,
   }) {
     final workout = workoutProvider.activeWorkout;
     if (workout == null) return null;
@@ -193,13 +196,19 @@ class WearableSnapshotBuilder {
     snapshot.youCard = youCard;
     snapshot.actions.addAll(actions);
 
-    final groupCard = _buildGroupCard(
-      multiplayerProvider.sessionStatus,
-      myUserId,
-      nowUnix,
+    final groupResult = _buildGroupCard(
+      status: multiplayerProvider.sessionStatus,
+      myUserId: myUserId,
+      myProfileEmoji: myProfileEmoji,
+      nowUnix: nowUnix,
+      stateValue: stateValue,
+      restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
+      lastRestEnd: (stateSnapshot?.lastRestEnd ?? Int64.ZERO).toInt(),
+      nextSet: nextSet,
     );
-    if (groupCard != null) {
-      snapshot.groupCard = groupCard;
+    if (groupResult != null) {
+      snapshot.groupCard = groupResult.card;
+      snapshot.nextUpEmoji = groupResult.emoji;
     }
 
     return snapshot;
@@ -233,86 +242,123 @@ class WearableSnapshotBuilder {
     return (currentIndex + 1, groupSets.length);
   }
 
-  static WearStatusCard? _buildGroupCard(
-    SessionStatus? status,
-    String myUserId,
-    int nowUnix,
-  ) {
+  static ({WearStatusCard card, String emoji})? _buildGroupCard({
+    required SessionStatus? status,
+    required String myUserId,
+    required String myProfileEmoji,
+    required int nowUnix,
+    required int stateValue,
+    required int restUntil,
+    required int lastRestEnd,
+    required ProposedSet? nextSet,
+  }) {
     if (status == null || status.participants.isEmpty) return null;
 
-    ParticipantStatus? groupActive;
-    String groupState = '';
-    String groupTimer = '';
-    ProposedSet? groupSet;
-    String header = '';
+    final others = status.participants
+        .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
+        .toList();
+    if (others.isEmpty) return null;
 
-    final currentLifterId = status.currentlyLiftingUserId;
-    if (currentLifterId.isNotEmpty && currentLifterId != myUserId) {
-      final lifting = status.participants.cast<ParticipantStatus?>().firstWhere(
-        (p) => p!.user.id == currentLifterId,
+    // Use the same client-side logic as the bottom bar to find who's next.
+    final nextToLiftUserId = _computeNextToLiftUserId(
+      myUserId: myUserId,
+      others: others,
+      nowUnix: nowUnix,
+      stateValue: stateValue,
+      restUntil: restUntil,
+      lastRestEnd: lastRestEnd,
+      nextSet: nextSet,
+    );
+
+    // Resolve the next-to-lift emoji — include the current user.
+    String nextUpEmoji;
+    if (nextToLiftUserId != null && nextToLiftUserId == myUserId) {
+      nextUpEmoji = normalizedProfileEmoji(myProfileEmoji);
+    } else if (nextToLiftUserId != null) {
+      final nextParticipant = others.cast<ParticipantStatus?>().firstWhere(
+        (p) => p!.user.id == nextToLiftUserId,
         orElse: () => null,
       );
-      if (lifting != null) {
-        final active = lifting.completedSets.cast<CompletedSet?>().firstWhere(
-          (c) => c!.endedAt == Int64.ZERO,
-          orElse: () => null,
-        );
-        final proposed = active == null
-            ? null
-            : lifting.proposedSets.cast<ProposedSet?>().firstWhere(
-                (s) => s!.id == active.proposedSetId,
-                orElse: () => null,
-              );
-        groupActive = lifting;
-        groupState = proposed?.warmup == true ? 'Warmup' : 'Lifting';
-        groupTimer = active != null
-            ? _fmt(nowUnix - active.startedAt.toInt())
-            : '';
-        groupSet = proposed;
-      }
+      nextUpEmoji = nextParticipant != null
+          ? participantProfileEmoji(nextParticipant)
+          : '';
+    } else {
+      nextUpEmoji = '';
     }
 
-    if (groupActive == null) {
-      final nextUpUserId = status.nextUpUserId;
-      if (nextUpUserId.isNotEmpty && nextUpUserId != myUserId) {
-        final next = status.participants.cast<ParticipantStatus?>().firstWhere(
-          (p) => p!.user.id == nextUpUserId,
-          orElse: () => null,
-        );
-        if (next != null) {
-          groupActive = next;
-          final nextRestUntil = status.nextUpRestUntil.toInt() > 0
-              ? status.nextUpRestUntil.toInt()
-              : next.restUntil.toInt();
-          final remaining = nextRestUntil - nowUnix;
-          if (remaining > 0) {
-            groupState = 'Resting';
-            groupTimer = _fmt(remaining);
-          } else if (nextRestUntil > 0) {
-            groupState = 'Yapping';
-            groupTimer = '+${_fmt(nowUnix - nextRestUntil)}';
-          } else {
-            groupState = 'Ready';
-            groupTimer = 'Ready';
-          }
-          if (next.hasNextUpSet()) {
-            groupSet = next.nextUpSet;
-          } else if (status.hasNextUpSet()) {
-            groupSet = status.nextUpSet;
-          }
-        }
-      }
+    // Find the participant to show on the group card — prefer the next-to-lift
+    // if it's someone else, otherwise just pick the first other participant.
+    ParticipantStatus? target;
+    if (nextToLiftUserId != null && nextToLiftUserId != myUserId) {
+      target = others.cast<ParticipantStatus?>().firstWhere(
+        (p) => p!.user.id == nextToLiftUserId,
+        orElse: () => null,
+      );
     }
+    target ??= others.first;
 
-    if (groupActive == null) return null;
-    header = 'UP NEXT: ${groupActive.user.name}';
-    return WearStatusCard(
-      sideLabel: 'GROUP',
-      header: header,
-      stateLabel: groupState,
-      timerText: groupTimer,
-      displaySet: groupSet,
+    final vis = describeParticipantStatus(
+      target,
+      now: DateTime.fromMillisecondsSinceEpoch(nowUnix * 1000),
     );
+    return (
+      card: WearStatusCard(
+        sideLabel: 'GROUP',
+        header: participantDisplayName(target),
+        stateLabel: vis.stateLabel,
+        timerText: vis.timerText ?? '',
+        displaySet: vis.proposedSet,
+      ),
+      emoji: nextUpEmoji,
+    );
+  }
+
+  /// Same logic as `_computeNextToLiftUserId` in workout_bottom_bar.dart.
+  static String? _computeNextToLiftUserId({
+    required String? myUserId,
+    required List<ParticipantStatus> others,
+    required int nowUnix,
+    required int stateValue,
+    required int restUntil,
+    required int lastRestEnd,
+    required ProposedSet? nextSet,
+  }) {
+    String? bestId;
+    int? bestStart;
+
+    bool isCandidate(String uid, int start) {
+      final b = bestId;
+      final bs = bestStart;
+      if (b == null || bs == null) return true;
+      if (start != bs) return start < bs;
+      return uid.compareTo(b) < 0;
+    }
+
+    for (final p in others) {
+      final start = participantScheduledStartUnix(p, nowUnix: nowUnix);
+      if (start == null) continue;
+      if (isCandidate(p.user.id, start)) {
+        bestId = p.user.id;
+        bestStart = start;
+      }
+    }
+
+    if (myUserId != null && myUserId.isNotEmpty) {
+      final myStart =
+          !_isLiftingState(stateValue) &&
+                  !_isAllDoneState(stateValue) &&
+                  nextSet != null
+              ? (restUntil > 0
+                  ? restUntil
+                  : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
+              : null;
+      if (myStart != null && isCandidate(myUserId, myStart)) {
+        bestId = myUserId;
+        bestStart = myStart;
+      }
+    }
+
+    return bestId;
   }
 
   static WearCompletionSummary _buildCompletionSummary({

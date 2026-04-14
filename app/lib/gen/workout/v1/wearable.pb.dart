@@ -293,6 +293,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     WearStatusCard? groupCard,
     $core.Iterable<WearAction>? actions,
     WearCompletionSummary? completionSummary,
+    $core.String? nextUpEmoji,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -307,6 +308,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (groupCard != null) result.groupCard = groupCard;
     if (actions != null) result.actions.addAll(actions);
     if (completionSummary != null) result.completionSummary = completionSummary;
+    if (nextUpEmoji != null) result.nextUpEmoji = nextUpEmoji;
     return result;
   }
 
@@ -340,6 +342,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
         subBuilder: WearAction.create)
     ..aOM<WearCompletionSummary>(12, _omitFieldNames ? '' : 'completionSummary',
         subBuilder: WearCompletionSummary.create)
+    ..aOS(13, _omitFieldNames ? '' : 'nextUpEmoji')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -468,6 +471,15 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   void clearCompletionSummary() => $_clearField(12);
   @$pb.TagNumber(12)
   WearCompletionSummary ensureCompletionSummary() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  $core.String get nextUpEmoji => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set nextUpEmoji($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasNextUpEmoji() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearNextUpEmoji() => $_clearField(13);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {

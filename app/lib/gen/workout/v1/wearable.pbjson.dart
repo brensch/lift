@@ -191,6 +191,7 @@ const WearWorkoutSnapshot$json = {
       '6': '.workout.v1.WearCompletionSummary',
       '10': 'completionSummary'
     },
+    {'1': 'next_up_emoji', '3': 13, '4': 1, '5': 9, '10': 'nextUpEmoji'},
   ],
 };
 
@@ -206,7 +207,7 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'NhcmQYCiABKAsyGi53b3Jrb3V0LnYxLldlYXJTdGF0dXNDYXJkUglncm91cENhcmQSMAoHYWN0'
     'aW9ucxgLIAMoCzIWLndvcmtvdXQudjEuV2VhckFjdGlvblIHYWN0aW9ucxJQChJjb21wbGV0aW'
     '9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21wbGV0aW9uU3VtbWFyeVIRY29t'
-    'cGxldGlvblN1bW1hcnk=');
+    'cGxldGlvblN1bW1hcnkSIgoNbmV4dF91cF9lbW9qaRgNIAEoCVILbmV4dFVwRW1vamk=');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {
