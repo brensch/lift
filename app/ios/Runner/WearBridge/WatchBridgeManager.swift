@@ -100,24 +100,32 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     }
 
     func requestWatchAppOpen(completion: @escaping (Bool) -> Void) {
-        guard WCSession.default.activationState == .activated,
-              WCSession.default.isPaired else {
+        let session = WCSession.default
+        guard session.activationState == .activated,
+              session.isPaired,
+              session.isWatchAppInstalled else {
             completion(false)
             return
         }
 
-        // Send a launch message — watch's WCSessionDelegate will receive it
-        if WCSession.default.isReachable {
-            let message: [String: Any] = ["path": WatchBridgeManager.phoneToWearLaunchPath]
-            WCSession.default.sendMessage(message, replyHandler: { _ in
+        let message: [String: Any] = ["path": WatchBridgeManager.phoneToWearLaunchPath]
+
+        // If the watch is reachable, sendMessage will wake/foreground the watch app.
+        // Otherwise queue via transferUserInfo so the next time the user taps the
+        // app on their wrist, it picks up the launch intent. iOS does not allow
+        // cold-launching a suspended watch app from the phone — the user must
+        // tap it themselves in that case.
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: { _ in
                 completion(true)
             }) { error in
-                print("SchliftWearBridge: Failed to request watch app open: \(error)")
-                completion(false)
+                print("SchliftWearBridge: sendMessage launch failed, falling back to transferUserInfo: \(error)")
+                session.transferUserInfo(message)
+                completion(true)
             }
         } else {
-            WCSession.default.transferUserInfo(["path": WatchBridgeManager.phoneToWearLaunchPath])
-            completion(false)
+            session.transferUserInfo(message)
+            completion(true)
         }
     }
 

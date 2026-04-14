@@ -24,8 +24,21 @@ struct ContentView: View {
 
     @State private var selectedReps: Int = 0
 
+    private var restBoundaryDate: Date? {
+        guard let snapshot = connector.snapshot,
+              snapshot.state == .resting,
+              snapshot.restUntil > 0 else {
+            return nil
+        }
+        let restUntilMs = snapshot.restUntil * 1000
+        let nowMs = connector.synchronizedNowMs()
+        let deltaMs = restUntilMs - nowMs
+        guard deltaMs > 0 else { return nil }
+        return Date().addingTimeInterval(TimeInterval(deltaMs) / 1000.0)
+    }
+
     var body: some View {
-        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 60 : 1)) { context in
+        TimelineView(WatchSchedule(restBoundary: restBoundaryDate, ambient: isLuminanceReduced)) { context in
             Group {
                 if let snapshot = connector.snapshot {
                     workoutView(snapshot, now: context.date)
@@ -104,8 +117,12 @@ struct ContentView: View {
         }()
         let completeButtonText = "Complete\n\(exerciseName)"
 
-        let stateAccentColor = watchStateAccentColor(data.youCard.stateLabel)
-        let isResting = data.state == .resting
+        let effectiveStateLabel = deriveEffectiveStateLabel(
+            data,
+            currentApiNowMs: connector.synchronizedNowMs()
+        )
+        let stateAccentColor = watchStateAccentColor(effectiveStateLabel)
+        let isResting = data.state == .resting && effectiveStateLabel == "Resting"
         let timerColor: Color = {
             if !data.youCard.timerText.isEmpty, let accent = stateAccentColor {
                 return accent
@@ -141,7 +158,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
-                Text(data.youCard.stateLabel)
+                Text(effectiveStateLabel)
                     .font(displayFontName(size: 19, weight: .medium))
                     .foregroundColor(stateAccentColor ?? .white)
                     .watchAutoShrink(minScale: 0.6)
@@ -474,6 +491,52 @@ private func formatElapsedDurationNoSeconds(_ totalSeconds: Int) -> String {
         return String(format: "%d:%02d", hours, minutes)
     }
     return "\(minutes) min"
+}
+
+// Periodic schedule that also injects an explicit refresh tick at the rest-end
+// boundary so the color/state transition is visible even in ambient mode where
+// the periodic cadence drops to 60s.
+struct WatchSchedule: TimelineSchedule {
+    let restBoundary: Date?
+    let ambient: Bool
+
+    func entries(from startDate: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+        let interval: TimeInterval = ambient ? 60 : 1
+        var cursor = startDate
+        var boundaryEmitted = false
+        let boundary = restBoundary
+        return AnyIterator {
+            // If a future boundary falls before the next periodic tick, emit it once.
+            if let boundary = boundary,
+               !boundaryEmitted,
+               boundary > cursor,
+               boundary <= cursor.addingTimeInterval(interval) {
+                boundaryEmitted = true
+                let entry = boundary
+                cursor = boundary.addingTimeInterval(interval)
+                return entry
+            }
+            let entry = cursor
+            cursor = cursor.addingTimeInterval(interval)
+            return entry
+        }
+    }
+}
+
+// Decide what the watch should *display* as the current state, accounting for
+// rest timers that have already expired locally even if a fresh snapshot from
+// the phone hasn't landed yet.
+private func deriveEffectiveStateLabel(
+    _ snapshot: Workout_V1_WearWorkoutSnapshot,
+    currentApiNowMs: Int64
+) -> String {
+    if snapshot.state == .resting, snapshot.restUntil > 0 {
+        let restUntilMs = snapshot.restUntil * 1000
+        if currentApiNowMs >= restUntilMs {
+            return "Yapping"
+        }
+    }
+    return snapshot.youCard.stateLabel
 }
 
 private func watchStateAccentColor(_ stateLabel: String) -> Color? {

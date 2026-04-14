@@ -101,8 +101,6 @@ class MainActivity : ComponentActivity() {
     private var uiHeartbeatJob: kotlinx.coroutines.Job? = null
     private var heartRatePermissionRequestInFlight = false
     private var workoutPermissionRequestInFlight = false
-    private var heartRatePermissionRequestedOnce = false
-    private var workoutPermissionRequestedOnce = false
     private var keepScreenOnForWorkout = false
     private var isAmbientMode by mutableStateOf(false)
 
@@ -354,8 +352,7 @@ class MainActivity : ComponentActivity() {
 
     private fun requestHeartRatePermissionsIfNeeded(): Boolean {
         if (hasHeartRatePermissions()) return true
-        if (heartRatePermissionRequestInFlight || heartRatePermissionRequestedOnce) return false
-        heartRatePermissionRequestedOnce = true
+        if (heartRatePermissionRequestInFlight) return false
         heartRatePermissionRequestInFlight = true
         Log.i(SchliftWearTag, "Requesting heart-rate permissions: ${requiredHeartRatePermissions()}")
         heartRatePermissionLauncher.launch(requiredHeartRatePermissions().toTypedArray())
@@ -364,24 +361,31 @@ class MainActivity : ComponentActivity() {
 
     private fun requestWorkoutPermissionsIfNeeded(): Boolean {
         if (hasWorkoutPermissions()) return true
-        if (workoutPermissionRequestInFlight || workoutPermissionRequestedOnce) return false
-        workoutPermissionRequestedOnce = true
+        if (workoutPermissionRequestInFlight) return false
         workoutPermissionRequestInFlight = true
         Log.i(SchliftWearTag, "Requesting workout permissions: ${requiredWorkoutPermissions()}")
         workoutPermissionLauncher.launch(requiredWorkoutPermissions().toTypedArray())
         return false
     }
 
+    // Called from onResume and from the permission launcher callbacks. Always
+    // re-checks current grant state from the system instead of trusting a
+    // sticky "have we asked yet" flag — that flag was preventing re-prompts
+    // and also blocking the FGS start path when the user granted permission
+    // via system settings out-of-band.
     private fun maybeRequestRuntimePermissions(): Boolean {
         Log.d(
             SchliftWearTag,
             "maybeRequestRuntimePermissions hr=${hasHeartRatePermissions()} workout=${hasWorkoutPermissions()} " +
                 "hrReqInFlight=$heartRatePermissionRequestInFlight workoutReqInFlight=$workoutPermissionRequestInFlight",
         )
-        if (!requestHeartRatePermissionsIfNeeded()) return false
-        requestWorkoutPermissionsIfNeeded()
-        ensureCompanionSessionIfNeeded()
-        return true
+        val hrGranted = requestHeartRatePermissionsIfNeeded()
+        val workoutGranted = requestWorkoutPermissionsIfNeeded()
+        if (hrGranted) {
+            // Even if workout permission is still missing, HR streaming can begin.
+            ensureCompanionSessionIfNeeded()
+        }
+        return hrGranted && workoutGranted
     }
 
     private fun ensureCompanionSessionIfNeeded() {

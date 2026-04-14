@@ -287,16 +287,19 @@ class MainLayout extends StatelessWidget {
       icon: Icon(Icons.watch, color: colorScheme.onSurface),
       onPressed: () async {
         final bridge = context.read<WearableBridgeService>();
-        final opened = await bridge.openWatchApp();
+        final alreadyOpen = await bridge.isWatchAppOpenOnWatch();
+        final queued = await bridge.openWatchApp();
         if (!context.mounted) return;
+        final String message;
+        if (!queued) {
+          message = 'No paired watch with Schlift installed';
+        } else if (alreadyOpen) {
+          message = 'Schlift is already open on your watch';
+        } else {
+          message = 'Open Schlift on your wrist to connect';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              opened
-                  ? 'Sent open request to watch'
-                  : 'No connected watch found',
-            ),
-          ),
+          SnackBar(content: Text(message)),
         );
       },
     );
