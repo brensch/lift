@@ -1,7 +1,7 @@
 name: schlift
 description: "Schlift workout tracker"
 publish_to: 'none'
-version: 0.7.27+34
+version: 0.7.27+35
 
 environment:
   sdk: ^3.11.0
