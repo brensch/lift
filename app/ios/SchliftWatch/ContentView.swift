@@ -141,9 +141,8 @@ struct ContentView: View {
         let buttonBackgroundColor = stateAccentColor ?? .white
         let buttonContentColor: Color = stateAccentColor != nil ? .white : .black
 
-        let maxReps = isAmrap ? 30 : Int(currentSet?.targetReps ?? 0)
-        let repOptionMax = isAmrap ? 30 : max(maxReps * 2, 0)
-        let initialReps = isAmrap ? min(Int(currentSet?.targetReps ?? 0), 30) : max(maxReps, 0)
+        let repOptionMax = 100
+        let initialReps = min(max(Int(currentSet?.targetReps ?? 0), 0), repOptionMax)
 
         let hrColor = heartRateColor(connector.latestBpm)
         let liveYouTimerText = isLuminanceReduced ? "" : deriveYouTimerText(data, currentApiNowMs: connector.synchronizedNowMs())
@@ -276,25 +275,18 @@ struct ContentView: View {
                         Spacer().frame(height: 6)
 
                         HStack(alignment: .center, spacing: 0) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(buttonContentColor.opacity(0.45), lineWidth: 1)
-                                    .frame(width: 40, height: 94)
-
-                                Text("\(selectedReps)")
-                                    .font(displayFontName(size: 40))
-                                    .foregroundColor(buttonContentColor)
-                                    .watchAutoShrink()
+                            Picker("", selection: $selectedReps) {
+                                ForEach(0...repOptionMax, id: \.self) { i in
+                                    Text("\(i)")
+                                        .font(displayFontName(size: 20))
+                                        .foregroundColor(buttonContentColor)
+                                        .tag(i)
+                                }
                             }
-                            .frame(width: 40, height: 94)
-                            .focusable()
-                            .digitalCrownRotation(
-                                detent: $selectedReps,
-                                from: 0,
-                                through: repOptionMax,
-                                by: 1,
-                                sensitivity: .medium
-                            )
+                            .pickerStyle(.wheel)
+                            .labelsHidden()
+                            .frame(width: 44, height: 32)
+                            .clipped()
 
                             Text(weightOnlyText)
                                 .font(displayFontName(size: 28))

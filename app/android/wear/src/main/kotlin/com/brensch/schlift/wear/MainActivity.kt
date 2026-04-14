@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -638,16 +639,15 @@ private fun WearApp(
     }
     val completeButtonText = "Complete\n$exerciseName"
     val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
-    val maxReps = if (isAmrap) 30 else (currentSet?.targetReps ?: 0)
-    val repOptionMax = if (isAmrap) 30 else (maxReps * 2).coerceAtLeast(0)
-    val repOptionCount = (repOptionMax + 1).coerceAtLeast(1)
-    val initialReps = if (isAmrap) (currentSet?.targetReps ?: 0).coerceAtMost(30) else maxReps.coerceAtLeast(0)
+    val repOptionMax = 100
+    val repOptionCount = repOptionMax + 1
+    val initialReps = (currentSet?.targetReps ?: 0).coerceIn(0, repOptionMax)
     val pickerState = rememberPickerState(
         initialNumberOfOptions = repOptionCount,
         initiallySelectedOption = initialReps,
         repeatItems = false,
     )
-    LaunchedEffect(repOptionCount, initialReps) {
+    LaunchedEffect(initialReps) {
         pickerState.scrollToOption(initialReps)
         // Wear Picker can land a few pixels off before first layout settles.
         // Re-apply after a frame so the selected row starts centered.
@@ -886,15 +886,15 @@ private fun WearApp(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .width(40.dp)
-                                            .height(94.dp)
+                                            .width(44.dp)
+                                            .height(36.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(buttonBackgroundColor)
                                             .border(
                                                 width = 1.dp,
                                                 color = buttonContentColor.copy(alpha = 0.45f),
                                                 shape = RoundedCornerShape(6.dp),
-                                            )
-                                            .padding(horizontal = 2.dp, vertical = 1.dp),
-                                        contentAlignment = Alignment.Center,
+                                            ),
                                     ) {
                                         Picker(
                                             modifier = Modifier.fillMaxSize(),
@@ -906,32 +906,20 @@ private fun WearApp(
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(18.dp),
-                                                    contentAlignment = Alignment.CenterEnd,
+                                                        .height(24.dp),
+                                                    contentAlignment = Alignment.Center,
                                                 ) {
                                                     Text(
                                                         text = index.toString(),
-                                                        textAlign = TextAlign.End,
-                                                        fontSize = 14.sp,
-                                                        color = if (isSelected) Color.Transparent else buttonMutedContentColor,
+                                                        textAlign = TextAlign.Center,
+                                                        fontSize = if (isSelected) 20.sp else 12.sp,
+                                                        color = if (isSelected) buttonContentColor else buttonMutedContentColor,
                                                         fontFamily = WearDisplayFontFamily,
-                                                        fontWeight = FontWeight.Medium,
-                                                        lineHeight = 14.sp,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        lineHeight = 24.sp,
                                                     )
                                                 }
                                             },
-                                        )
-                                        Text(
-                                            text = selectedReps.toString(),
-                                            color = buttonContentColor,
-                                            textAlign = TextAlign.End,
-                                            fontSize = 40.sp,
-                                            fontFamily = WearDisplayFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            lineHeight = 40.sp,
-                                            modifier = Modifier
-                                                .align(Alignment.CenterEnd)
-                                                .padding(end = 1.dp),
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(0.dp))
