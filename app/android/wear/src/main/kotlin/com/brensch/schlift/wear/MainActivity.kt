@@ -61,6 +61,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.isUnspecified
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.CircularProgressIndicator
@@ -88,6 +91,45 @@ private val WearDisplayFontFamily = FontFamily(
     Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
     Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
 )
+
+@Composable
+fun AutoResizingText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = 16.sp,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    textAlign: TextAlign? = null,
+    overflow: TextOverflow = TextOverflow.Clip,
+    maxLines: Int = Int.MAX_VALUE,
+    minFontSize: TextUnit = 8.sp,
+) {
+    var currentFontSize by remember(text) { mutableStateOf(fontSize) }
+    var readyToDraw by remember(text) { mutableStateOf(false) }
+
+    Text(
+        text = text,
+        modifier = modifier.drawWithContent {
+            if (readyToDraw) drawContent()
+        },
+        color = color,
+        fontSize = currentFontSize,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        textAlign = textAlign,
+        overflow = overflow,
+        softWrap = maxLines > 1,
+        maxLines = maxLines,
+        onTextLayout = { textLayoutResult ->
+            if (textLayoutResult.hasVisualOverflow && currentFontSize > minFontSize) {
+                currentFontSize = (currentFontSize.value * 0.9f).sp
+            } else {
+                readyToDraw = true
+            }
+        }
+    )
+}
 
 // Match mobile app workout state accents:
 // Lifting/Warmup green: 0xFF16A34A
@@ -562,7 +604,7 @@ private fun WearApp(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Waiting for phone", color = Color.White)
+            AutoResizingText("Waiting for phone", color = Color.White)
         }
         return
     }
@@ -698,11 +740,10 @@ private fun WearApp(
             horizontalAlignment = Alignment.End,
         ) {
             if (!isAmbientMode && liveYouTimerText.isNotEmpty()) {
-                Text(
+                AutoResizingText(
                     text = liveYouTimerText,
                     color = timerColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.End,
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 34.sp,
@@ -710,11 +751,10 @@ private fun WearApp(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            Text(
+            AutoResizingText(
                 text = data.youCard.stateLabel,
                 color = stateAccentColor ?: Color.White,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 19.sp,
@@ -786,10 +826,9 @@ private fun WearApp(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.Start,
                                 ) {
-                                    Text(
+                                    AutoResizingText(
                                         text = startButtonTitle,
                                         maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
                                         textAlign = TextAlign.Start,
                                         modifier = Modifier.fillMaxWidth(),
                                         fontSize = 18.sp,
@@ -797,10 +836,9 @@ private fun WearApp(
                                         fontWeight = FontWeight.Bold,
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
+                                    AutoResizingText(
                                         text = repsWeightText,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
                                         textAlign = TextAlign.Start,
                                         modifier = Modifier.fillMaxWidth(),
                                         fontSize = 24.sp,
@@ -809,10 +847,9 @@ private fun WearApp(
                                     )
                                     if (groupProgressText.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
+                                        AutoResizingText(
                                             text = groupProgressText,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.fillMaxWidth(),
                                             fontSize = 16.sp,
@@ -820,10 +857,9 @@ private fun WearApp(
                                             fontWeight = FontWeight.Medium,
                                         )
                                         if (setsLeftText.isNotEmpty()) {
-                                            Text(
+                                            AutoResizingText(
                                                 text = setsLeftText,
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
                                                 textAlign = TextAlign.Start,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 fontSize = 12.sp,
@@ -870,13 +906,14 @@ private fun WearApp(
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.Start,
                             ) {
-                                Text(
+                                AutoResizingText(
                                     text = completeButtonText,
                                     color = buttonContentColor,
                                     fontSize = 18.sp,
                                     textAlign = TextAlign.Start,
                                     fontFamily = WearDisplayFontFamily,
                                     fontWeight = FontWeight.Bold,
+                                    maxLines = 2,
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(
@@ -923,22 +960,22 @@ private fun WearApp(
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(0.dp))
-                                    Text(
+                                    AutoResizingText(
                                         text = weightOnlyText,
                                         color = buttonContentColor,
                                         fontSize = 28.sp,
                                         textAlign = TextAlign.Start,
                                         fontFamily = WearDisplayFontFamily,
                                         fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
                                     )
                                 }
                                 if (groupProgressText.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
+                                    AutoResizingText(
                                         text = groupProgressText,
                                         color = buttonContentColor,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
                                         textAlign = TextAlign.Start,
                                         modifier = Modifier.fillMaxWidth(),
                                         fontSize = 16.sp,
@@ -946,11 +983,10 @@ private fun WearApp(
                                         fontWeight = FontWeight.Medium,
                                     )
                                     if (setsLeftText.isNotEmpty()) {
-                                        Text(
+                                        AutoResizingText(
                                             text = setsLeftText,
                                             color = buttonContentColor.copy(alpha = 0.72f),
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.fillMaxWidth(),
                                             fontSize = 12.sp,
@@ -986,7 +1022,7 @@ private fun WorkoutCompleteScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.End,
         ) {
-            Text(
+            AutoResizingText(
                 text = "Complete",
                 color = Color.White,
                 fontSize = 26.sp,
@@ -1021,16 +1057,15 @@ private fun WorkoutCompleteScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    Text(
-                        text = primaryLabel,
-                        textAlign = TextAlign.Start,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.fillMaxWidth(),
-                        fontSize = 16.sp,
-                        fontFamily = WearDisplayFontFamily,
-                        fontWeight = FontWeight.Bold,
-                    )
+                AutoResizingText(
+                    text = primaryLabel,
+                    textAlign = TextAlign.Start,
+                    maxLines = 2,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 16.sp,
+                    fontFamily = WearDisplayFontFamily,
+                    fontWeight = FontWeight.Bold,
+                )
                 }
             }
         }
@@ -1046,17 +1081,19 @@ private fun CompletionMetric(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        AutoResizingText(
             text = label,
             color = Color(0xFF9CA3AF),
             fontSize = 13.sp,
+            maxLines = 1,
         )
-        Text(
+        AutoResizingText(
             text = value,
             color = Color.White,
             fontSize = 18.sp,
             fontFamily = WearDisplayFontFamily,
             fontWeight = FontWeight.Bold,
+            maxLines = 1,
         )
     }
 }
@@ -1071,11 +1108,10 @@ private fun StatLine(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        AutoResizingText(
             text = text,
             color = color,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f),
             fontSize = fontSizeSp.sp,
