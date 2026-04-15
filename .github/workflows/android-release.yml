@@ -98,5 +98,5 @@ jobs:
             --phone-tracks internal alpha beta \
             --wear-aab app/build/wear/outputs/bundle/release/wear-release.aab \
             --wear-release-name "${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}-wear" \
-            --wear-tracks "wear:internal" "wear:alpha" "wear:beta watch" \
+            --wear-tracks "wear:internal" "wear:beta watch" \
             --changes-not-sent-for-review
