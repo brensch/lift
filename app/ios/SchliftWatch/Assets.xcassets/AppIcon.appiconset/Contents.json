@@ -1,14 +1,20 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "Icon-Watch-marketing-1024.png",
-      "idiom": "universal",
-      "platform": "watchos",
-      "size": "1024x1024"
+      "filename" : "Icon-Watch-marketing-1024.png",
+      "idiom" : "universal",
+      "platform" : "watchos",
+      "size" : "1024x1024"
+    },
+    {
+      "filename" : "Icon-Watch-marketing-1024.png",
+      "idiom" : "watch-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
   }
 }
