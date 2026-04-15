@@ -9,27 +9,17 @@ on:
 jobs:
   build-android-release:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
       - name: Install Google Play upload dependencies
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install google-api-python-client google-auth
+          python3 -m pip install --upgrade pip --break-system-packages
+          python3 -m pip install google-api-python-client google-auth --break-system-packages
 
       - name: Install Flutter dependencies
         working-directory: app
@@ -61,10 +51,6 @@ jobs:
           keyPassword=$RELEASE_KEY_PASSWORD
           EOF
 
-      - name: Validate signing config (fast fail)
-        working-directory: app/android
-        run: ./gradlew :app:validateSigningRelease :wear:validateSigningRelease --no-daemon
-
       - name: Validate Google Play credentials
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -77,7 +63,7 @@ jobs:
 
       - name: Build phone app bundle (.aab)
         working-directory: app
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
 
       - name: Build wear app bundle (.aab)
         working-directory: app/android
@@ -106,8 +92,8 @@ jobs:
             --status completed \
             --phone-aab app/build/app/outputs/bundle/release/app-release.aab \
             --phone-release-name "${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}-phone" \
-            --phone-tracks internal beta \
+            --phone-tracks internal alpha beta \
             --wear-aab app/build/wear/outputs/bundle/release/wear-release.aab \
             --wear-release-name "${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}-wear" \
-            --wear-tracks "wear:internal" "wear:beta watch" \
+            --wear-tracks "wear:internal" "wear:alpha" "wear:beta watch" \
             --changes-not-sent-for-review

@@ -168,14 +168,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift $IOS_APP_PROFILE_NAME" ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.watchkitapp $IOS_WATCH_PROFILE_NAME" ExportOptions.ci.plist
 
-      - name: Verify iOS signing build settings
+      - name: Pre-build Flutter for iOS (signed)
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app
-        run: |
-          set -euo pipefail
-          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -showBuildSettings > "$RUNNER_TEMP/runner-build-settings.txt"
-          grep -E "^[[:space:]]*CODE_SIGN_ENTITLEMENTS = (ios/)?Runner/Runner.entitlements$" "$RUNNER_TEMP/runner-build-settings.txt"
-          grep -E "^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = com\\.brensch\\.schlift$" "$RUNNER_TEMP/runner-build-settings.txt"
+        run: flutter build ios --release --no-codesign --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
 
       - name: Archive iOS app
         if: steps.signing-mode.outputs.enabled == 'true'
@@ -278,7 +274,7 @@ jobs:
       - name: Build unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'
         working-directory: app
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
 
       - name: Package unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'

@@ -40,6 +40,7 @@ import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
 import 'screens/regime_settings_screen.dart';
+import 'screens/build_info_screen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
@@ -260,6 +261,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/debug-logs',
               builder: (_, __) => const DebugLogsScreen(),
+            ),
+            GoRoute(
+              path: '/build-info',
+              builder: (_, __) => const BuildInfoScreen(),
             ),
             GoRoute(
               path: '/settings',

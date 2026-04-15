@@ -115,6 +115,13 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'How calories are calculated',
               onTap: () => context.push('/settings/maths'),
             ),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.info_outline,
+              label: 'Build info',
+              subtitle: 'Version, device, and watch details',
+              onTap: () => context.push('/build-info'),
+            ),
           ],
         ),
       ),
