@@ -90,10 +90,12 @@ def validate_artifacts(artifacts: Iterable[Artifact]) -> None:
 
 def upload_artifact(androidpublisher, package_name: str, edit_id: str, artifact: Artifact) -> str:
     print(f"Uploading {artifact.label} AAB once: {artifact.path}")
+    # resumable=False avoids chunked upload and the HTTP 308 "Resume Incomplete"
+    # responses that old system httplib2 mishandles as redirects.
     media = MediaFileUpload(
         str(artifact.path),
         mimetype="application/octet-stream",
-        resumable=True,
+        resumable=False,
     )
 
     for attempt in range(1, MAX_UPLOAD_RETRIES + 1):
@@ -114,11 +116,10 @@ def upload_artifact(androidpublisher, package_name: str, edit_id: str, artifact:
                     f"failed: {e}. Retrying in {RETRY_DELAY_SECONDS}s..."
                 )
                 time.sleep(RETRY_DELAY_SECONDS)
-                # Reset media stream position for retry
                 media = MediaFileUpload(
                     str(artifact.path),
                     mimetype="application/octet-stream",
-                    resumable=True,
+                    resumable=False,
                 )
             else:
                 raise
