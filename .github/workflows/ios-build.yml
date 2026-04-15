@@ -168,11 +168,6 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift $IOS_APP_PROFILE_NAME" ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.watchkitapp $IOS_WATCH_PROFILE_NAME" ExportOptions.ci.plist
 
-      - name: Pre-build Flutter for iOS (signed)
-        if: steps.signing-mode.outputs.enabled == 'true'
-        working-directory: app
-        run: flutter build ios --release --no-codesign --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
-
       - name: Archive iOS app
         if: steps.signing-mode.outputs.enabled == 'true'
         working-directory: app
@@ -181,6 +176,8 @@ jobs:
           IOS_APP_PROFILE_NAME: ${{ env.IOS_APP_PROFILE_NAME }}
           IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
         run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          DART_DEFINES=$(echo -n "GIT_HASH=$GIT_HASH" | base64)
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -189,7 +186,8 @@ jobs:
             -archivePath build/ios/archive/Runner.xcarchive \
             APPLE_TEAM_ID="$APPLE_TEAM_ID" \
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
-            IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME"
+            IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME" \
+            DART_DEFINES="$DART_DEFINES"
 
       - name: Verify archived iOS entitlements
         if: steps.signing-mode.outputs.enabled == 'true'
