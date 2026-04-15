@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -19,8 +20,14 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+import httplib2
 
 ANDROID_PUBLISHER_SCOPE = "https://www.googleapis.com/auth/androidpublisher"
+
+# Upload timeout: large AABs (~60MB+) can take a while to upload and process.
+UPLOAD_TIMEOUT_SECONDS = 300
+MAX_UPLOAD_RETRIES = 3
+RETRY_DELAY_SECONDS = 10
 
 
 @dataclass(frozen=True)
@@ -88,15 +95,33 @@ def upload_artifact(androidpublisher, package_name: str, edit_id: str, artifact:
         mimetype="application/octet-stream",
         resumable=True,
     )
-    bundle = (
-        androidpublisher.edits()
-        .bundles()
-        .upload(packageName=package_name, editId=edit_id, media_body=media)
-        .execute()
-    )
-    version_code = str(bundle["versionCode"])
-    print(f"{artifact.label} upload returned version code {version_code}")
-    return version_code
+
+    for attempt in range(1, MAX_UPLOAD_RETRIES + 1):
+        try:
+            bundle = (
+                androidpublisher.edits()
+                .bundles()
+                .upload(packageName=package_name, editId=edit_id, media_body=media)
+                .execute(num_retries=2)
+            )
+            version_code = str(bundle["versionCode"])
+            print(f"{artifact.label} upload returned version code {version_code}")
+            return version_code
+        except Exception as e:
+            if attempt < MAX_UPLOAD_RETRIES:
+                print(
+                    f"{artifact.label} upload attempt {attempt}/{MAX_UPLOAD_RETRIES} "
+                    f"failed: {e}. Retrying in {RETRY_DELAY_SECONDS}s..."
+                )
+                time.sleep(RETRY_DELAY_SECONDS)
+                # Reset media stream position for retry
+                media = MediaFileUpload(
+                    str(artifact.path),
+                    mimetype="application/octet-stream",
+                    resumable=True,
+                )
+            else:
+                raise
 
 
 def update_tracks(
@@ -158,10 +183,15 @@ def main() -> int:
         service_account_info,
         scopes=[ANDROID_PUBLISHER_SCOPE],
     )
+
+    # Use a longer timeout for large AAB uploads
+    http = httplib2.Http(timeout=UPLOAD_TIMEOUT_SECONDS)
+    http = google_auth_httplib2_request(credentials, http)
+
     androidpublisher = build(
         "androidpublisher",
         "v3",
-        credentials=credentials,
+        http=http,
         cache_discovery=False,
     )
 
@@ -214,6 +244,12 @@ def main() -> int:
         raise
 
     return 0
+
+
+def google_auth_httplib2_request(credentials, http):
+    """Wrap an httplib2.Http with google-auth credentials."""
+    import google_auth_httplib2
+    return google_auth_httplib2.AuthorizedHttp(credentials, http=http)
 
 
 if __name__ == "__main__":
