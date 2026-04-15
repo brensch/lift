@@ -31,7 +31,7 @@ jobs:
       - name: Install Google Play upload dependencies
         run: |
           apt-get update -qq && apt-get install -y -qq python3-pip
-          pip3 install --break-system-packages google-api-python-client google-auth
+          pip3 install --break-system-packages httplib2 google-api-python-client google-auth google-auth-httplib2
 
       - name: Install Flutter dependencies
         working-directory: app
