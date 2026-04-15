@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
