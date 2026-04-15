@@ -151,9 +151,8 @@ class HealthService {
 
     final types = [
       HealthDataType.WORKOUT,
-      HealthDataType.TOTAL_CALORIES_BURNED,
     ];
-    final permissions = [HealthDataAccess.WRITE, HealthDataAccess.WRITE];
+    final permissions = [HealthDataAccess.WRITE];
 
     final hasPerms = await health.hasPermissions(
       types,
