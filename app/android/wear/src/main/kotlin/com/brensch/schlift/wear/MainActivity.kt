@@ -667,8 +667,8 @@ private fun WearApp(
     val hrColor = heartRateColor(latestBpm)
     val nextUpText: String? = data.nextUpEmoji.takeIf { it.isNotEmpty() }
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
-    val groupProgressText = formatGroupProgress(data.youCard)
-    val setsLeftText = formatSetsLeft(data.youCard)
+    val groupProgressText = formatGroupProgress(data.youCard, currentSet)
+    val setsLeftText = formatSetsLeft(data.youCard, currentSet)
     val isAmrap = currentSet?.isAmrap ?: false
     val repsWeightText = if (currentSet != null) {
         if (isAmrap) "AMRAPx${currentSet.targetWeight.toInt()}" else "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
@@ -1129,19 +1129,26 @@ private fun formatNowClock(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
 }
 
-private fun formatGroupProgress(card: Wearable.WearStatusCard): String {
+private fun formatGroupProgress(
+    card: Wearable.WearStatusCard,
+    displaySet: workout.v1.WorkoutOuterClass.ProposedSet?,
+): String {
     val current = card.currentGroupSet
     val total = card.totalGroupSets
     if (current <= 0 || total <= 0) return ""
-    return "$current/$total"
+    val prefix = if (displaySet?.warmup == true) "Warmup" else "Working"
+    return "$prefix $current/$total"
 }
 
-private fun formatSetsLeft(card: Wearable.WearStatusCard): String {
+private fun formatSetsLeft(
+    card: Wearable.WearStatusCard,
+    displaySet: workout.v1.WorkoutOuterClass.ProposedSet?,
+): String {
     val current = card.currentGroupSet
     val total = card.totalGroupSets
     if (current <= 0 || total <= 0) return ""
     val remaining = (total - current + 1).coerceAtLeast(0)
-    return if (remaining == 1) "1 set left" else "$remaining sets left"
+    return if (remaining == 1) "1 left" else "$remaining left"
 }
 
 private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot, hideSeconds: Boolean = false): String {

@@ -164,6 +164,15 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
   // fully hide the participant layer at the exact collapsed endpoint.
   double get _collapsedPeekHeight => _handleToCardGap;
 
+  Widget _buildPanelDragTarget({required Widget child}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: _onDragUpdate,
+      onVerticalDragEnd: _onDragEnd,
+      child: child,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -647,10 +656,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (inSession)
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onVerticalDragUpdate: _onDragUpdate,
-                      onVerticalDragEnd: _onDragEnd,
+                    _buildPanelDragTarget(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -778,29 +784,46 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         children: [
                           _HorizontalShaker(
                             active: iAmNextToLift && !_isDraggingPanel,
-                            child: StatusBox(
-                              sideLabel: 'YOU',
-                              sideBadge: auth.profileEmoji,
-                              // In multiplayer show 'You' header so the rainbow
-                              // "next to lift" label has a home.
-                              header: inSession ? 'You' : null,
-                              showHeader: inSession,
-                              headerTrailing: iAmNextToLift
-                                  ? const _RainbowShimmerText(
-                                      text: 'next to schlift',
-                                    )
-                                  : null,
-                              stateLabel: stateLabel,
-                              color: stateColor,
-                              sideColor: profileColorFromHex(
-                                auth.profileColorHex,
-                              ),
-                              timerText: timerText,
-                              timerColor: timerColor,
-                              set: displaySet,
-                              isComplete: _isAllDoneState(stateValue),
-                              sideLabelWidth: 44,
-                            ),
+                            child: inSession
+                                ? _buildPanelDragTarget(
+                                    child: StatusBox(
+                                      sideLabel: 'YOU',
+                                      sideBadge: auth.profileEmoji,
+                                      // In multiplayer show 'You' header so the rainbow
+                                      // "next to lift" label has a home.
+                                      header: 'You',
+                                      showHeader: true,
+                                      headerTrailing: iAmNextToLift
+                                          ? const _RainbowShimmerText(
+                                              text: 'next to schlift',
+                                            )
+                                          : null,
+                                      stateLabel: stateLabel,
+                                      color: stateColor,
+                                      sideColor: profileColorFromHex(
+                                        auth.profileColorHex,
+                                      ),
+                                      timerText: timerText,
+                                      timerColor: timerColor,
+                                      set: displaySet,
+                                      isComplete: _isAllDoneState(stateValue),
+                                      sideLabelWidth: 44,
+                                    ),
+                                  )
+                                : StatusBox(
+                                    sideLabel: 'YOU',
+                                    sideBadge: auth.profileEmoji,
+                                    stateLabel: stateLabel,
+                                    color: stateColor,
+                                    sideColor: profileColorFromHex(
+                                      auth.profileColorHex,
+                                    ),
+                                    timerText: timerText,
+                                    timerColor: timerColor,
+                                    set: displaySet,
+                                    isComplete: _isAllDoneState(stateValue),
+                                    sideLabelWidth: 44,
+                                  ),
                           ),
                           const SizedBox(height: 12),
                           Row(

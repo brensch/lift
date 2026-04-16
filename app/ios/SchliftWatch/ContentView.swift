@@ -67,6 +67,11 @@ struct ContentView: View {
         .onChange(of: scenePhase) { newPhase in
             connector.setUIVisible(newPhase == .active)
         }
+        .onChange(of: isLuminanceReduced) { reduced in
+            if !reduced {
+                connector.setUIVisible(true)
+            }
+        }
     }
 
     @ViewBuilder
@@ -151,8 +156,8 @@ struct ContentView: View {
             currentApiNowMs: connector.synchronizedNowMs(),
             hideSeconds: isLuminanceReduced
         )
-        let groupProgressText = formatGroupProgress(data.youCard)
-        let setsLeftText = formatSetsLeft(data.youCard)
+        let groupProgressText = formatGroupProgress(data.youCard, displaySet: currentSet)
+        let setsLeftText = formatSetsLeft(data.youCard, displaySet: currentSet)
 
         HStack(spacing: 0) {
             // Left column: stats
@@ -426,15 +431,22 @@ private func formatNowClock(_ date: Date) -> String {
     return formatter.string(from: date)
 }
 
-private func formatGroupProgress(_ card: Workout_V1_WearStatusCard) -> String {
+private func formatGroupProgress(
+    _ card: Workout_V1_WearStatusCard,
+    displaySet: Workout_V1_ProposedSet?
+) -> String {
     guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
-    return "\(card.currentGroupSet)/\(card.totalGroupSets)"
+    let prefix = displaySet?.warmup == true ? "Warmup" : "Working"
+    return "\(prefix) \(card.currentGroupSet)/\(card.totalGroupSets)"
 }
 
-private func formatSetsLeft(_ card: Workout_V1_WearStatusCard) -> String {
+private func formatSetsLeft(
+    _ card: Workout_V1_WearStatusCard,
+    displaySet: Workout_V1_ProposedSet?
+) -> String {
     guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
     let remaining = max(0, Int(card.totalGroupSets - card.currentGroupSet + 1))
-    return remaining == 1 ? "1 set left" : "\(remaining) sets left"
+    return remaining == 1 ? "1 left" : "\(remaining) left"
 }
 
 private func deriveElapsedText(
