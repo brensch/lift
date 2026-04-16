@@ -697,6 +697,220 @@ public final class WorkoutOuterClass {
   }
 
   /**
+   * Protobuf enum {@code workout.v1.ProgressionChangeKind}
+   */
+  public enum ProgressionChangeKind
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_UNSPECIFIED = 0;</code>
+     */
+    PROGRESSION_CHANGE_KIND_UNSPECIFIED(0),
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_INCREASE = 1;</code>
+     */
+    PROGRESSION_CHANGE_KIND_INCREASE(1),
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_HOLD = 2;</code>
+     */
+    PROGRESSION_CHANGE_KIND_HOLD(2),
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_DELOAD = 3;</code>
+     */
+    PROGRESSION_CHANGE_KIND_DELOAD(3),
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE = 4;</code>
+     */
+    PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE(4),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_UNSPECIFIED = 0;</code>
+     */
+    public static final int PROGRESSION_CHANGE_KIND_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_INCREASE = 1;</code>
+     */
+    public static final int PROGRESSION_CHANGE_KIND_INCREASE_VALUE = 1;
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_HOLD = 2;</code>
+     */
+    public static final int PROGRESSION_CHANGE_KIND_HOLD_VALUE = 2;
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_DELOAD = 3;</code>
+     */
+    public static final int PROGRESSION_CHANGE_KIND_DELOAD_VALUE = 3;
+    /**
+     * <code>PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE = 4;</code>
+     */
+    public static final int PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE_VALUE = 4;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static ProgressionChangeKind valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static ProgressionChangeKind forNumber(int value) {
+      switch (value) {
+        case 0: return PROGRESSION_CHANGE_KIND_UNSPECIFIED;
+        case 1: return PROGRESSION_CHANGE_KIND_INCREASE;
+        case 2: return PROGRESSION_CHANGE_KIND_HOLD;
+        case 3: return PROGRESSION_CHANGE_KIND_DELOAD;
+        case 4: return PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<ProgressionChangeKind>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        ProgressionChangeKind> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ProgressionChangeKind>() {
+            @java.lang.Override
+            public ProgressionChangeKind findValueByNumber(int number) {
+              return ProgressionChangeKind.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return ProgressionChangeKindVerifier.INSTANCE;
+    }
+
+    private static final class ProgressionChangeKindVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new ProgressionChangeKindVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return ProgressionChangeKind.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private ProgressionChangeKind(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.ProgressionChangeKind)
+  }
+
+  /**
+   * Protobuf enum {@code workout.v1.ProgressionMetricKind}
+   */
+  public enum ProgressionMetricKind
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>PROGRESSION_METRIC_KIND_UNSPECIFIED = 0;</code>
+     */
+    PROGRESSION_METRIC_KIND_UNSPECIFIED(0),
+    /**
+     * <code>PROGRESSION_METRIC_KIND_WORKING_WEIGHT = 1;</code>
+     */
+    PROGRESSION_METRIC_KIND_WORKING_WEIGHT(1),
+    /**
+     * <code>PROGRESSION_METRIC_KIND_TRAINING_MAX = 2;</code>
+     */
+    PROGRESSION_METRIC_KIND_TRAINING_MAX(2),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>PROGRESSION_METRIC_KIND_UNSPECIFIED = 0;</code>
+     */
+    public static final int PROGRESSION_METRIC_KIND_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>PROGRESSION_METRIC_KIND_WORKING_WEIGHT = 1;</code>
+     */
+    public static final int PROGRESSION_METRIC_KIND_WORKING_WEIGHT_VALUE = 1;
+    /**
+     * <code>PROGRESSION_METRIC_KIND_TRAINING_MAX = 2;</code>
+     */
+    public static final int PROGRESSION_METRIC_KIND_TRAINING_MAX_VALUE = 2;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static ProgressionMetricKind valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static ProgressionMetricKind forNumber(int value) {
+      switch (value) {
+        case 0: return PROGRESSION_METRIC_KIND_UNSPECIFIED;
+        case 1: return PROGRESSION_METRIC_KIND_WORKING_WEIGHT;
+        case 2: return PROGRESSION_METRIC_KIND_TRAINING_MAX;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<ProgressionMetricKind>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        ProgressionMetricKind> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ProgressionMetricKind>() {
+            @java.lang.Override
+            public ProgressionMetricKind findValueByNumber(int number) {
+              return ProgressionMetricKind.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return ProgressionMetricKindVerifier.INSTANCE;
+    }
+
+    private static final class ProgressionMetricKindVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new ProgressionMetricKindVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return ProgressionMetricKind.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private ProgressionMetricKind(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.ProgressionMetricKind)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.WorkoutState}
    */
   public enum WorkoutState
@@ -7985,6 +8199,1300 @@ public final class WorkoutOuterClass {
     }
   }
 
+  public interface ProgressionDetailsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ProgressionDetails)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @return The enum numeric value on the wire for changeKind.
+     */
+    int getChangeKindValue();
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @return The changeKind.
+     */
+    workout.v1.WorkoutOuterClass.ProgressionChangeKind getChangeKind();
+
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @return The enum numeric value on the wire for metricKind.
+     */
+    int getMetricKindValue();
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @return The metricKind.
+     */
+    workout.v1.WorkoutOuterClass.ProgressionMetricKind getMetricKind();
+
+    /**
+     * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+     * @return The previousWeight.
+     */
+    float getPreviousWeight();
+
+    /**
+     * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+     * @return The nextWeight.
+     */
+    float getNextWeight();
+
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @return The previousStage.
+     */
+    java.lang.String getPreviousStage();
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @return The bytes for previousStage.
+     */
+    com.google.protobuf.ByteString
+        getPreviousStageBytes();
+
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @return The nextStage.
+     */
+    java.lang.String getNextStage();
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @return The bytes for nextStage.
+     */
+    com.google.protobuf.ByteString
+        getNextStageBytes();
+
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @return The sourceWorkoutId.
+     */
+    java.lang.String getSourceWorkoutId();
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @return The bytes for sourceWorkoutId.
+     */
+    com.google.protobuf.ByteString
+        getSourceWorkoutIdBytes();
+
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @return The contextLabel.
+     */
+    java.lang.String getContextLabel();
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @return The bytes for contextLabel.
+     */
+    com.google.protobuf.ByteString
+        getContextLabelBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ProgressionDetails}
+   */
+  public  static final class ProgressionDetails extends
+      com.google.protobuf.GeneratedMessageLite<
+          ProgressionDetails, ProgressionDetails.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ProgressionDetails)
+      ProgressionDetailsOrBuilder {
+    private ProgressionDetails() {
+      previousStage_ = "";
+      nextStage_ = "";
+      sourceWorkoutId_ = "";
+      contextLabel_ = "";
+    }
+    public static final int CHANGE_KIND_FIELD_NUMBER = 1;
+    private int changeKind_;
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @return The enum numeric value on the wire for changeKind.
+     */
+    @java.lang.Override
+    public int getChangeKindValue() {
+      return changeKind_;
+    }
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @return The changeKind.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgressionChangeKind getChangeKind() {
+      workout.v1.WorkoutOuterClass.ProgressionChangeKind result = workout.v1.WorkoutOuterClass.ProgressionChangeKind.forNumber(changeKind_);
+      return result == null ? workout.v1.WorkoutOuterClass.ProgressionChangeKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @param value The enum numeric value on the wire for changeKind to set.
+     */
+    private void setChangeKindValue(int value) {
+        changeKind_ = value;
+    }
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     * @param value The changeKind to set.
+     */
+    private void setChangeKind(workout.v1.WorkoutOuterClass.ProgressionChangeKind value) {
+      changeKind_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+     */
+    private void clearChangeKind() {
+      
+      changeKind_ = 0;
+    }
+
+    public static final int METRIC_KIND_FIELD_NUMBER = 2;
+    private int metricKind_;
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @return The enum numeric value on the wire for metricKind.
+     */
+    @java.lang.Override
+    public int getMetricKindValue() {
+      return metricKind_;
+    }
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @return The metricKind.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgressionMetricKind getMetricKind() {
+      workout.v1.WorkoutOuterClass.ProgressionMetricKind result = workout.v1.WorkoutOuterClass.ProgressionMetricKind.forNumber(metricKind_);
+      return result == null ? workout.v1.WorkoutOuterClass.ProgressionMetricKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @param value The enum numeric value on the wire for metricKind to set.
+     */
+    private void setMetricKindValue(int value) {
+        metricKind_ = value;
+    }
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     * @param value The metricKind to set.
+     */
+    private void setMetricKind(workout.v1.WorkoutOuterClass.ProgressionMetricKind value) {
+      metricKind_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+     */
+    private void clearMetricKind() {
+      
+      metricKind_ = 0;
+    }
+
+    public static final int PREVIOUS_WEIGHT_FIELD_NUMBER = 3;
+    private float previousWeight_;
+    /**
+     * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+     * @return The previousWeight.
+     */
+    @java.lang.Override
+    public float getPreviousWeight() {
+      return previousWeight_;
+    }
+    /**
+     * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+     * @param value The previousWeight to set.
+     */
+    private void setPreviousWeight(float value) {
+      
+      previousWeight_ = value;
+    }
+    /**
+     * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+     */
+    private void clearPreviousWeight() {
+      
+      previousWeight_ = 0F;
+    }
+
+    public static final int NEXT_WEIGHT_FIELD_NUMBER = 4;
+    private float nextWeight_;
+    /**
+     * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+     * @return The nextWeight.
+     */
+    @java.lang.Override
+    public float getNextWeight() {
+      return nextWeight_;
+    }
+    /**
+     * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+     * @param value The nextWeight to set.
+     */
+    private void setNextWeight(float value) {
+      
+      nextWeight_ = value;
+    }
+    /**
+     * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+     */
+    private void clearNextWeight() {
+      
+      nextWeight_ = 0F;
+    }
+
+    public static final int PREVIOUS_STAGE_FIELD_NUMBER = 5;
+    private java.lang.String previousStage_;
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @return The previousStage.
+     */
+    @java.lang.Override
+    public java.lang.String getPreviousStage() {
+      return previousStage_;
+    }
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @return The bytes for previousStage.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPreviousStageBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(previousStage_);
+    }
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @param value The previousStage to set.
+     */
+    private void setPreviousStage(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      previousStage_ = value;
+    }
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     */
+    private void clearPreviousStage() {
+      
+      previousStage_ = getDefaultInstance().getPreviousStage();
+    }
+    /**
+     * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+     * @param value The bytes for previousStage to set.
+     */
+    private void setPreviousStageBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      previousStage_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NEXT_STAGE_FIELD_NUMBER = 6;
+    private java.lang.String nextStage_;
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @return The nextStage.
+     */
+    @java.lang.Override
+    public java.lang.String getNextStage() {
+      return nextStage_;
+    }
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @return The bytes for nextStage.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNextStageBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(nextStage_);
+    }
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @param value The nextStage to set.
+     */
+    private void setNextStage(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      nextStage_ = value;
+    }
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     */
+    private void clearNextStage() {
+      
+      nextStage_ = getDefaultInstance().getNextStage();
+    }
+    /**
+     * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+     * @param value The bytes for nextStage to set.
+     */
+    private void setNextStageBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      nextStage_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SOURCE_WORKOUT_ID_FIELD_NUMBER = 7;
+    private java.lang.String sourceWorkoutId_;
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @return The sourceWorkoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getSourceWorkoutId() {
+      return sourceWorkoutId_;
+    }
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @return The bytes for sourceWorkoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSourceWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sourceWorkoutId_);
+    }
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @param value The sourceWorkoutId to set.
+     */
+    private void setSourceWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sourceWorkoutId_ = value;
+    }
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     */
+    private void clearSourceWorkoutId() {
+      
+      sourceWorkoutId_ = getDefaultInstance().getSourceWorkoutId();
+    }
+    /**
+     * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+     * @param value The bytes for sourceWorkoutId to set.
+     */
+    private void setSourceWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sourceWorkoutId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int CONTEXT_LABEL_FIELD_NUMBER = 8;
+    private java.lang.String contextLabel_;
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @return The contextLabel.
+     */
+    @java.lang.Override
+    public java.lang.String getContextLabel() {
+      return contextLabel_;
+    }
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @return The bytes for contextLabel.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getContextLabelBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(contextLabel_);
+    }
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @param value The contextLabel to set.
+     */
+    private void setContextLabel(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      contextLabel_ = value;
+    }
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     */
+    private void clearContextLabel() {
+      
+      contextLabel_ = getDefaultInstance().getContextLabel();
+    }
+    /**
+     * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+     * @param value The bytes for contextLabel to set.
+     */
+    private void setContextLabelBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      contextLabel_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ProgressionDetails prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ProgressionDetails}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ProgressionDetails, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ProgressionDetails)
+        workout.v1.WorkoutOuterClass.ProgressionDetailsOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ProgressionDetails.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+       * @return The enum numeric value on the wire for changeKind.
+       */
+      @java.lang.Override
+      public int getChangeKindValue() {
+        return instance.getChangeKindValue();
+      }
+      /**
+       * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+       * @param value The changeKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setChangeKindValue(int value) {
+        copyOnWrite();
+        instance.setChangeKindValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+       * @return The changeKind.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgressionChangeKind getChangeKind() {
+        return instance.getChangeKind();
+      }
+      /**
+       * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+       * @param value The enum numeric value on the wire for changeKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setChangeKind(workout.v1.WorkoutOuterClass.ProgressionChangeKind value) {
+        copyOnWrite();
+        instance.setChangeKind(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionChangeKind change_kind = 1 [json_name = "changeKind"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearChangeKind() {
+        copyOnWrite();
+        instance.clearChangeKind();
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+       * @return The enum numeric value on the wire for metricKind.
+       */
+      @java.lang.Override
+      public int getMetricKindValue() {
+        return instance.getMetricKindValue();
+      }
+      /**
+       * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+       * @param value The metricKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMetricKindValue(int value) {
+        copyOnWrite();
+        instance.setMetricKindValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+       * @return The metricKind.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgressionMetricKind getMetricKind() {
+        return instance.getMetricKind();
+      }
+      /**
+       * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+       * @param value The enum numeric value on the wire for metricKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMetricKind(workout.v1.WorkoutOuterClass.ProgressionMetricKind value) {
+        copyOnWrite();
+        instance.setMetricKind(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionMetricKind metric_kind = 2 [json_name = "metricKind"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMetricKind() {
+        copyOnWrite();
+        instance.clearMetricKind();
+        return this;
+      }
+
+      /**
+       * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+       * @return The previousWeight.
+       */
+      @java.lang.Override
+      public float getPreviousWeight() {
+        return instance.getPreviousWeight();
+      }
+      /**
+       * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+       * @param value The previousWeight to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPreviousWeight(float value) {
+        copyOnWrite();
+        instance.setPreviousWeight(value);
+        return this;
+      }
+      /**
+       * <code>float previous_weight = 3 [json_name = "previousWeight"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPreviousWeight() {
+        copyOnWrite();
+        instance.clearPreviousWeight();
+        return this;
+      }
+
+      /**
+       * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+       * @return The nextWeight.
+       */
+      @java.lang.Override
+      public float getNextWeight() {
+        return instance.getNextWeight();
+      }
+      /**
+       * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+       * @param value The nextWeight to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNextWeight(float value) {
+        copyOnWrite();
+        instance.setNextWeight(value);
+        return this;
+      }
+      /**
+       * <code>float next_weight = 4 [json_name = "nextWeight"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearNextWeight() {
+        copyOnWrite();
+        instance.clearNextWeight();
+        return this;
+      }
+
+      /**
+       * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+       * @return The previousStage.
+       */
+      @java.lang.Override
+      public java.lang.String getPreviousStage() {
+        return instance.getPreviousStage();
+      }
+      /**
+       * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+       * @return The bytes for previousStage.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPreviousStageBytes() {
+        return instance.getPreviousStageBytes();
+      }
+      /**
+       * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+       * @param value The previousStage to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPreviousStage(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPreviousStage(value);
+        return this;
+      }
+      /**
+       * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPreviousStage() {
+        copyOnWrite();
+        instance.clearPreviousStage();
+        return this;
+      }
+      /**
+       * <code>string previous_stage = 5 [json_name = "previousStage"];</code>
+       * @param value The bytes for previousStage to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPreviousStageBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPreviousStageBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+       * @return The nextStage.
+       */
+      @java.lang.Override
+      public java.lang.String getNextStage() {
+        return instance.getNextStage();
+      }
+      /**
+       * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+       * @return The bytes for nextStage.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNextStageBytes() {
+        return instance.getNextStageBytes();
+      }
+      /**
+       * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+       * @param value The nextStage to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNextStage(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setNextStage(value);
+        return this;
+      }
+      /**
+       * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearNextStage() {
+        copyOnWrite();
+        instance.clearNextStage();
+        return this;
+      }
+      /**
+       * <code>string next_stage = 6 [json_name = "nextStage"];</code>
+       * @param value The bytes for nextStage to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNextStageBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNextStageBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+       * @return The sourceWorkoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getSourceWorkoutId() {
+        return instance.getSourceWorkoutId();
+      }
+      /**
+       * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+       * @return The bytes for sourceWorkoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSourceWorkoutIdBytes() {
+        return instance.getSourceWorkoutIdBytes();
+      }
+      /**
+       * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+       * @param value The sourceWorkoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSourceWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSourceWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSourceWorkoutId() {
+        copyOnWrite();
+        instance.clearSourceWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string source_workout_id = 7 [json_name = "sourceWorkoutId"];</code>
+       * @param value The bytes for sourceWorkoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSourceWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSourceWorkoutIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+       * @return The contextLabel.
+       */
+      @java.lang.Override
+      public java.lang.String getContextLabel() {
+        return instance.getContextLabel();
+      }
+      /**
+       * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+       * @return The bytes for contextLabel.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getContextLabelBytes() {
+        return instance.getContextLabelBytes();
+      }
+      /**
+       * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+       * @param value The contextLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setContextLabel(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setContextLabel(value);
+        return this;
+      }
+      /**
+       * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearContextLabel() {
+        copyOnWrite();
+        instance.clearContextLabel();
+        return this;
+      }
+      /**
+       * <code>string context_label = 8 [json_name = "contextLabel"];</code>
+       * @param value The bytes for contextLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setContextLabelBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setContextLabelBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ProgressionDetails)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ProgressionDetails();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "changeKind_",
+              "metricKind_",
+              "previousWeight_",
+              "nextWeight_",
+              "previousStage_",
+              "nextStage_",
+              "sourceWorkoutId_",
+              "contextLabel_",
+            };
+            java.lang.String info =
+                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\f\u0002\f\u0003\u0001\u0004" +
+                "\u0001\u0005\u0208\u0006\u0208\u0007\u0208\b\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ProgressionDetails> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ProgressionDetails.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ProgressionDetails>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ProgressionDetails)
+    private static final workout.v1.WorkoutOuterClass.ProgressionDetails DEFAULT_INSTANCE;
+    static {
+      ProgressionDetails defaultInstance = new ProgressionDetails();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ProgressionDetails.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgressionDetails getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ProgressionDetails> PARSER;
+
+    public static com.google.protobuf.Parser<ProgressionDetails> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface UserMessageDetailsOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.UserMessageDetails)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     * @return Whether the progression field is set.
+     */
+    boolean hasProgression();
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     * @return The progression.
+     */
+    workout.v1.WorkoutOuterClass.ProgressionDetails getProgression();
+
+    public workout.v1.WorkoutOuterClass.UserMessageDetails.DetailCase getDetailCase();
+  }
+  /**
+   * Protobuf type {@code workout.v1.UserMessageDetails}
+   */
+  public  static final class UserMessageDetails extends
+      com.google.protobuf.GeneratedMessageLite<
+          UserMessageDetails, UserMessageDetails.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.UserMessageDetails)
+      UserMessageDetailsOrBuilder {
+    private UserMessageDetails() {
+    }
+    private int detailCase_ = 0;
+    private java.lang.Object detail_;
+    public enum DetailCase {
+      PROGRESSION(1),
+      DETAIL_NOT_SET(0);
+      private final int value;
+      private DetailCase(int value) {
+        this.value = value;
+      }
+      /**
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
+      public static DetailCase valueOf(int value) {
+        return forNumber(value);
+      }
+
+      public static DetailCase forNumber(int value) {
+        switch (value) {
+          case 1: return PROGRESSION;
+          case 0: return DETAIL_NOT_SET;
+          default: return null;
+        }
+      }
+      public int getNumber() {
+        return this.value;
+      }
+    };
+
+    @java.lang.Override
+    public DetailCase
+    getDetailCase() {
+      return DetailCase.forNumber(
+          detailCase_);
+    }
+
+    private void clearDetail() {
+      detailCase_ = 0;
+      detail_ = null;
+    }
+
+    public static final int PROGRESSION_FIELD_NUMBER = 1;
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     */
+    @java.lang.Override
+    public boolean hasProgression() {
+      return detailCase_ == 1;
+    }
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgressionDetails getProgression() {
+      if (detailCase_ == 1) {
+         return (workout.v1.WorkoutOuterClass.ProgressionDetails) detail_;
+      }
+      return workout.v1.WorkoutOuterClass.ProgressionDetails.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     */
+    private void setProgression(workout.v1.WorkoutOuterClass.ProgressionDetails value) {
+      value.getClass();
+  detail_ = value;
+      detailCase_ = 1;
+    }
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     */
+    private void mergeProgression(workout.v1.WorkoutOuterClass.ProgressionDetails value) {
+      value.getClass();
+  if (detailCase_ == 1 &&
+          detail_ != workout.v1.WorkoutOuterClass.ProgressionDetails.getDefaultInstance()) {
+        detail_ = workout.v1.WorkoutOuterClass.ProgressionDetails.newBuilder((workout.v1.WorkoutOuterClass.ProgressionDetails) detail_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        detail_ = value;
+      }
+      detailCase_ = 1;
+    }
+    /**
+     * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+     */
+    private void clearProgression() {
+      if (detailCase_ == 1) {
+        detailCase_ = 0;
+        detail_ = null;
+      }
+    }
+
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.UserMessageDetails prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.UserMessageDetails}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.UserMessageDetails, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.UserMessageDetails)
+        workout.v1.WorkoutOuterClass.UserMessageDetailsOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.UserMessageDetails.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+      @java.lang.Override
+      public DetailCase
+          getDetailCase() {
+        return instance.getDetailCase();
+      }
+
+      public Builder clearDetail() {
+        copyOnWrite();
+        instance.clearDetail();
+        return this;
+      }
+
+
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      @java.lang.Override
+      public boolean hasProgression() {
+        return instance.hasProgression();
+      }
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgressionDetails getProgression() {
+        return instance.getProgression();
+      }
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      public Builder setProgression(workout.v1.WorkoutOuterClass.ProgressionDetails value) {
+        copyOnWrite();
+        instance.setProgression(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      public Builder setProgression(
+          workout.v1.WorkoutOuterClass.ProgressionDetails.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProgression(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      public Builder mergeProgression(workout.v1.WorkoutOuterClass.ProgressionDetails value) {
+        copyOnWrite();
+        instance.mergeProgression(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionDetails progression = 1 [json_name = "progression"];</code>
+       */
+      public Builder clearProgression() {
+        copyOnWrite();
+        instance.clearProgression();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.UserMessageDetails)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.UserMessageDetails();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "detail_",
+              "detailCase_",
+              workout.v1.WorkoutOuterClass.ProgressionDetails.class,
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0001\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001<\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.UserMessageDetails> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.UserMessageDetails.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.UserMessageDetails>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.UserMessageDetails)
+    private static final workout.v1.WorkoutOuterClass.UserMessageDetails DEFAULT_INSTANCE;
+    static {
+      UserMessageDetails defaultInstance = new UserMessageDetails();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        UserMessageDetails.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.UserMessageDetails getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<UserMessageDetails> PARSER;
+
+    public static com.google.protobuf.Parser<UserMessageDetails> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface UserMessageOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.UserMessage)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -8113,16 +9621,15 @@ public final class WorkoutOuterClass {
         getSlotKeyBytes();
 
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @return The metadataJson.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
+     * @return Whether the details field is set.
      */
-    java.lang.String getMetadataJson();
+    boolean hasDetails();
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @return The bytes for metadataJson.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
+     * @return The details.
      */
-    com.google.protobuf.ByteString
-        getMetadataJsonBytes();
+    workout.v1.WorkoutOuterClass.UserMessageDetails getDetails();
   }
   /**
    * Protobuf type {@code workout.v1.UserMessage}
@@ -8139,7 +9646,6 @@ public final class WorkoutOuterClass {
       workoutId_ = "";
       exerciseGroupId_ = "";
       slotKey_ = "";
-      metadataJson_ = "";
     }
     public static final int MESSAGE_KEY_FIELD_NUMBER = 1;
     private java.lang.String messageKey_;
@@ -8627,50 +10133,49 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int METADATA_JSON_FIELD_NUMBER = 13;
-    private java.lang.String metadataJson_;
+    public static final int DETAILS_FIELD_NUMBER = 14;
+    private workout.v1.WorkoutOuterClass.UserMessageDetails details_;
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @return The metadataJson.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
      */
     @java.lang.Override
-    public java.lang.String getMetadataJson() {
-      return metadataJson_;
+    public boolean hasDetails() {
+      return details_ != null;
     }
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @return The bytes for metadataJson.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
      */
     @java.lang.Override
-    public com.google.protobuf.ByteString
-        getMetadataJsonBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(metadataJson_);
+    public workout.v1.WorkoutOuterClass.UserMessageDetails getDetails() {
+      return details_ == null ? workout.v1.WorkoutOuterClass.UserMessageDetails.getDefaultInstance() : details_;
     }
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @param value The metadataJson to set.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
      */
-    private void setMetadataJson(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      metadataJson_ = value;
-    }
-    /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     */
-    private void clearMetadataJson() {
+    private void setDetails(workout.v1.WorkoutOuterClass.UserMessageDetails value) {
+      value.getClass();
+  details_ = value;
       
-      metadataJson_ = getDefaultInstance().getMetadataJson();
+      }
+    /**
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeDetails(workout.v1.WorkoutOuterClass.UserMessageDetails value) {
+      value.getClass();
+  if (details_ != null &&
+          details_ != workout.v1.WorkoutOuterClass.UserMessageDetails.getDefaultInstance()) {
+        details_ =
+          workout.v1.WorkoutOuterClass.UserMessageDetails.newBuilder(details_).mergeFrom(value).buildPartial();
+      } else {
+        details_ = value;
+      }
+      
     }
     /**
-     * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-     * @param value The bytes for metadataJson to set.
+     * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
      */
-    private void setMetadataJsonBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      metadataJson_ = value.toStringUtf8();
+    private void clearDetails() {  details_ = null;
       
     }
 
@@ -9286,51 +10791,49 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-       * @return The metadataJson.
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
        */
       @java.lang.Override
-      public java.lang.String getMetadataJson() {
-        return instance.getMetadataJson();
+      public boolean hasDetails() {
+        return instance.hasDetails();
       }
       /**
-       * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-       * @return The bytes for metadataJson.
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
        */
       @java.lang.Override
-      public com.google.protobuf.ByteString
-          getMetadataJsonBytes() {
-        return instance.getMetadataJsonBytes();
+      public workout.v1.WorkoutOuterClass.UserMessageDetails getDetails() {
+        return instance.getDetails();
       }
       /**
-       * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-       * @param value The metadataJson to set.
-       * @return This builder for chaining.
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
        */
-      public Builder setMetadataJson(
-          java.lang.String value) {
+      public Builder setDetails(workout.v1.WorkoutOuterClass.UserMessageDetails value) {
         copyOnWrite();
-        instance.setMetadataJson(value);
+        instance.setDetails(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
+       */
+      public Builder setDetails(
+          workout.v1.WorkoutOuterClass.UserMessageDetails.Builder builderForValue) {
+        copyOnWrite();
+        instance.setDetails(builderForValue.build());
         return this;
       }
       /**
-       * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-       * @return This builder for chaining.
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
        */
-      public Builder clearMetadataJson() {
+      public Builder mergeDetails(workout.v1.WorkoutOuterClass.UserMessageDetails value) {
         copyOnWrite();
-        instance.clearMetadataJson();
+        instance.mergeDetails(value);
         return this;
       }
       /**
-       * <code>string metadata_json = 13 [json_name = "metadataJson"];</code>
-       * @param value The bytes for metadataJson to set.
-       * @return This builder for chaining.
+       * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
        */
-      public Builder setMetadataJsonBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setMetadataJsonBytes(value);
+      public Builder clearDetails() {  copyOnWrite();
+        instance.clearDetails();
         return this;
       }
 
@@ -9362,12 +10865,12 @@ public final class WorkoutOuterClass {
               "exerciseGroupId_",
               "exercise_",
               "slotKey_",
-              "metadataJson_",
+              "details_",
             };
             java.lang.String info =
-                "\u0000\r\u0000\u0000\u0001\r\r\u0000\u0000\u0000\u0001\u0208\u0002\f\u0003\f\u0004" +
-                "\u0208\u0005\u0208\u0006\u0007\u0007\u0002\b\u0002\t\u0208\n\u0208\u000b\f\f\u0208" +
-                "\r\u0208";
+                "\u0000\r\u0000\u0000\u0001\u000e\r\u0000\u0000\u0000\u0001\u0208\u0002\f\u0003\f" +
+                "\u0004\u0208\u0005\u0208\u0006\u0007\u0007\u0002\b\u0002\t\u0208\n\u0208\u000b\f" +
+                "\f\u0208\u000e\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

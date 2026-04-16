@@ -141,6 +141,37 @@ enum UserMessageSurface {
   USER_MESSAGE_SURFACE_WORKOUT_FEED = 3;
 }
 
+enum ProgressionChangeKind {
+  PROGRESSION_CHANGE_KIND_UNSPECIFIED = 0;
+  PROGRESSION_CHANGE_KIND_INCREASE = 1;
+  PROGRESSION_CHANGE_KIND_HOLD = 2;
+  PROGRESSION_CHANGE_KIND_DELOAD = 3;
+  PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE = 4;
+}
+
+enum ProgressionMetricKind {
+  PROGRESSION_METRIC_KIND_UNSPECIFIED = 0;
+  PROGRESSION_METRIC_KIND_WORKING_WEIGHT = 1;
+  PROGRESSION_METRIC_KIND_TRAINING_MAX = 2;
+}
+
+message ProgressionDetails {
+  ProgressionChangeKind change_kind = 1;
+  ProgressionMetricKind metric_kind = 2;
+  float previous_weight = 3;
+  float next_weight = 4;
+  string previous_stage = 5;
+  string next_stage = 6;
+  string source_workout_id = 7;
+  string context_label = 8;
+}
+
+message UserMessageDetails {
+  oneof detail {
+    ProgressionDetails progression = 1;
+  }
+}
+
 message UserMessage {
   string message_key = 1;
   UserMessageKind kind = 2;
@@ -154,7 +185,9 @@ message UserMessage {
   string exercise_group_id = 10;
   Exercise exercise = 11;
   string slot_key = 12;
-  string metadata_json = 13;
+  reserved 13;
+  reserved "metadata_json";
+  UserMessageDetails details = 14;
 }
 
 // --- RPC Requests/Responses ---

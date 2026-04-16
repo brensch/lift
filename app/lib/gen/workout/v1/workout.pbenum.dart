@@ -204,6 +204,66 @@ class UserMessageSurface extends $pb.ProtobufEnum {
   const UserMessageSurface._(super.value, super.name);
 }
 
+class ProgressionChangeKind extends $pb.ProtobufEnum {
+  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_UNSPECIFIED =
+      ProgressionChangeKind._(
+          0, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_UNSPECIFIED');
+  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_INCREASE =
+      ProgressionChangeKind._(
+          1, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_INCREASE');
+  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_HOLD =
+      ProgressionChangeKind._(
+          2, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_HOLD');
+  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_DELOAD =
+      ProgressionChangeKind._(
+          3, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_DELOAD');
+  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE =
+      ProgressionChangeKind._(
+          4, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE');
+
+  static const $core.List<ProgressionChangeKind> values =
+      <ProgressionChangeKind>[
+    PROGRESSION_CHANGE_KIND_UNSPECIFIED,
+    PROGRESSION_CHANGE_KIND_INCREASE,
+    PROGRESSION_CHANGE_KIND_HOLD,
+    PROGRESSION_CHANGE_KIND_DELOAD,
+    PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE,
+  ];
+
+  static final $core.List<ProgressionChangeKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static ProgressionChangeKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ProgressionChangeKind._(super.value, super.name);
+}
+
+class ProgressionMetricKind extends $pb.ProtobufEnum {
+  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_UNSPECIFIED =
+      ProgressionMetricKind._(
+          0, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_UNSPECIFIED');
+  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_WORKING_WEIGHT =
+      ProgressionMetricKind._(
+          1, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_WORKING_WEIGHT');
+  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_TRAINING_MAX =
+      ProgressionMetricKind._(
+          2, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_TRAINING_MAX');
+
+  static const $core.List<ProgressionMetricKind> values =
+      <ProgressionMetricKind>[
+    PROGRESSION_METRIC_KIND_UNSPECIFIED,
+    PROGRESSION_METRIC_KIND_WORKING_WEIGHT,
+    PROGRESSION_METRIC_KIND_TRAINING_MAX,
+  ];
+
+  static final $core.List<ProgressionMetricKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static ProgressionMetricKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ProgressionMetricKind._(super.value, super.name);
+}
+
 class WorkoutState extends $pb.ProtobufEnum {
   static const WorkoutState WORKOUT_STATE_UNSPECIFIED =
       WorkoutState._(0, _omitEnumNames ? '' : 'WORKOUT_STATE_UNSPECIFIED');

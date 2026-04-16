@@ -1084,6 +1084,218 @@ class CompletedSet extends $pb.GeneratedMessage {
   void clearRestUntil() => $_clearField(8);
 }
 
+class ProgressionDetails extends $pb.GeneratedMessage {
+  factory ProgressionDetails({
+    ProgressionChangeKind? changeKind,
+    ProgressionMetricKind? metricKind,
+    $core.double? previousWeight,
+    $core.double? nextWeight,
+    $core.String? previousStage,
+    $core.String? nextStage,
+    $core.String? sourceWorkoutId,
+    $core.String? contextLabel,
+  }) {
+    final result = create();
+    if (changeKind != null) result.changeKind = changeKind;
+    if (metricKind != null) result.metricKind = metricKind;
+    if (previousWeight != null) result.previousWeight = previousWeight;
+    if (nextWeight != null) result.nextWeight = nextWeight;
+    if (previousStage != null) result.previousStage = previousStage;
+    if (nextStage != null) result.nextStage = nextStage;
+    if (sourceWorkoutId != null) result.sourceWorkoutId = sourceWorkoutId;
+    if (contextLabel != null) result.contextLabel = contextLabel;
+    return result;
+  }
+
+  ProgressionDetails._();
+
+  factory ProgressionDetails.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ProgressionDetails.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ProgressionDetails',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<ProgressionChangeKind>(1, _omitFieldNames ? '' : 'changeKind',
+        enumValues: ProgressionChangeKind.values)
+    ..aE<ProgressionMetricKind>(2, _omitFieldNames ? '' : 'metricKind',
+        enumValues: ProgressionMetricKind.values)
+    ..aD(3, _omitFieldNames ? '' : 'previousWeight',
+        fieldType: $pb.PbFieldType.OF)
+    ..aD(4, _omitFieldNames ? '' : 'nextWeight', fieldType: $pb.PbFieldType.OF)
+    ..aOS(5, _omitFieldNames ? '' : 'previousStage')
+    ..aOS(6, _omitFieldNames ? '' : 'nextStage')
+    ..aOS(7, _omitFieldNames ? '' : 'sourceWorkoutId')
+    ..aOS(8, _omitFieldNames ? '' : 'contextLabel')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProgressionDetails clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ProgressionDetails copyWith(void Function(ProgressionDetails) updates) =>
+      super.copyWith((message) => updates(message as ProgressionDetails))
+          as ProgressionDetails;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ProgressionDetails create() => ProgressionDetails._();
+  @$core.override
+  ProgressionDetails createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ProgressionDetails getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ProgressionDetails>(create);
+  static ProgressionDetails? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ProgressionChangeKind get changeKind => $_getN(0);
+  @$pb.TagNumber(1)
+  set changeKind(ProgressionChangeKind value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasChangeKind() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChangeKind() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ProgressionMetricKind get metricKind => $_getN(1);
+  @$pb.TagNumber(2)
+  set metricKind(ProgressionMetricKind value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMetricKind() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMetricKind() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get previousWeight => $_getN(2);
+  @$pb.TagNumber(3)
+  set previousWeight($core.double value) => $_setFloat(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPreviousWeight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPreviousWeight() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get nextWeight => $_getN(3);
+  @$pb.TagNumber(4)
+  set nextWeight($core.double value) => $_setFloat(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasNextWeight() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearNextWeight() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get previousStage => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set previousStage($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasPreviousStage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPreviousStage() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get nextStage => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set nextStage($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasNextStage() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNextStage() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get sourceWorkoutId => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set sourceWorkoutId($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSourceWorkoutId() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSourceWorkoutId() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get contextLabel => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set contextLabel($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasContextLabel() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearContextLabel() => $_clearField(8);
+}
+
+enum UserMessageDetails_Detail { progression, notSet }
+
+class UserMessageDetails extends $pb.GeneratedMessage {
+  factory UserMessageDetails({
+    ProgressionDetails? progression,
+  }) {
+    final result = create();
+    if (progression != null) result.progression = progression;
+    return result;
+  }
+
+  UserMessageDetails._();
+
+  factory UserMessageDetails.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UserMessageDetails.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, UserMessageDetails_Detail>
+      _UserMessageDetails_DetailByTag = {
+    1: UserMessageDetails_Detail.progression,
+    0: UserMessageDetails_Detail.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UserMessageDetails',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1])
+    ..aOM<ProgressionDetails>(1, _omitFieldNames ? '' : 'progression',
+        subBuilder: ProgressionDetails.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserMessageDetails clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserMessageDetails copyWith(void Function(UserMessageDetails) updates) =>
+      super.copyWith((message) => updates(message as UserMessageDetails))
+          as UserMessageDetails;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UserMessageDetails create() => UserMessageDetails._();
+  @$core.override
+  UserMessageDetails createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UserMessageDetails getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UserMessageDetails>(create);
+  static UserMessageDetails? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  UserMessageDetails_Detail whichDetail() =>
+      _UserMessageDetails_DetailByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  void clearDetail() => $_clearField($_whichOneof(0));
+
+  @$pb.TagNumber(1)
+  ProgressionDetails get progression => $_getN(0);
+  @$pb.TagNumber(1)
+  set progression(ProgressionDetails value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProgression() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProgression() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ProgressionDetails ensureProgression() => $_ensure(0);
+}
+
 class UserMessage extends $pb.GeneratedMessage {
   factory UserMessage({
     $core.String? messageKey,
@@ -1098,7 +1310,7 @@ class UserMessage extends $pb.GeneratedMessage {
     $core.String? exerciseGroupId,
     Exercise? exercise,
     $core.String? slotKey,
-    $core.String? metadataJson,
+    UserMessageDetails? details,
   }) {
     final result = create();
     if (messageKey != null) result.messageKey = messageKey;
@@ -1113,7 +1325,7 @@ class UserMessage extends $pb.GeneratedMessage {
     if (exerciseGroupId != null) result.exerciseGroupId = exerciseGroupId;
     if (exercise != null) result.exercise = exercise;
     if (slotKey != null) result.slotKey = slotKey;
-    if (metadataJson != null) result.metadataJson = metadataJson;
+    if (details != null) result.details = details;
     return result;
   }
 
@@ -1145,7 +1357,8 @@ class UserMessage extends $pb.GeneratedMessage {
     ..aE<Exercise>(11, _omitFieldNames ? '' : 'exercise',
         enumValues: Exercise.values)
     ..aOS(12, _omitFieldNames ? '' : 'slotKey')
-    ..aOS(13, _omitFieldNames ? '' : 'metadataJson')
+    ..aOM<UserMessageDetails>(14, _omitFieldNames ? '' : 'details',
+        subBuilder: UserMessageDetails.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1275,14 +1488,16 @@ class UserMessage extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   void clearSlotKey() => $_clearField(12);
 
-  @$pb.TagNumber(13)
-  $core.String get metadataJson => $_getSZ(12);
-  @$pb.TagNumber(13)
-  set metadataJson($core.String value) => $_setString(12, value);
-  @$pb.TagNumber(13)
-  $core.bool hasMetadataJson() => $_has(12);
-  @$pb.TagNumber(13)
-  void clearMetadataJson() => $_clearField(13);
+  @$pb.TagNumber(14)
+  UserMessageDetails get details => $_getN(12);
+  @$pb.TagNumber(14)
+  set details(UserMessageDetails value) => $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasDetails() => $_has(12);
+  @$pb.TagNumber(14)
+  void clearDetails() => $_clearField(14);
+  @$pb.TagNumber(14)
+  UserMessageDetails ensureDetails() => $_ensure(12);
 }
 
 class StartWorkoutRequest extends $pb.GeneratedMessage {

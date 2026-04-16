@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +6,7 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/user_message_chip.dart';
 
 List<String> _slotKeysForStartConfig(ExerciseTypeConfig config) {
   final keys = <String>{};
@@ -46,64 +45,10 @@ class _WorkoutStartBriefingScreenState
 
   List<UserMessage> _displayMessages() {
     return widget.scheduleMessages
-        .map(_retargetMessageForSelection)
-        .where((message) => message.body.trim().isNotEmpty)
+        .where(
+          (message) => message.body.trim().isNotEmpty || message.hasDetails(),
+        )
         .toList(growable: false);
-  }
-
-  UserMessage _retargetMessageForSelection(UserMessage message) {
-    final kind = message.kind;
-    if (kind != UserMessageKind.USER_MESSAGE_KIND_LOAD_INCREASE &&
-        kind != UserMessageKind.USER_MESSAGE_KIND_LOAD_HOLD &&
-        kind != UserMessageKind.USER_MESSAGE_KIND_STALL_DELOAD) {
-      return message;
-    }
-
-    final targetWeight = _selectedWorkingWeight(message.exercise);
-    if (targetWeight == null) return message;
-
-    Map<String, dynamic> meta;
-    try {
-      meta = (jsonDecode(message.metadataJson) as Map).cast<String, dynamic>();
-    } catch (_) {
-      return message;
-    }
-
-    final recommendedWeight = (meta['recommended_weight'] as num?)?.toDouble();
-    if (recommendedWeight == null ||
-        (recommendedWeight - targetWeight).abs() < 0.1) {
-      return message;
-    }
-
-    final previousWeight = (meta['previous_weight'] as num?)?.toDouble();
-    final adjusted = message.deepCopy();
-    final exerciseLabel = exerciseNames[message.exercise] ?? 'This lift';
-    if (kind == UserMessageKind.USER_MESSAGE_KIND_LOAD_INCREASE &&
-        previousWeight != null) {
-      adjusted.body =
-          '$exerciseLabel was progressed from ${previousWeight.round()} to ${recommendedWeight.round()} after your last successful session. This workout starts at ${targetWeight.round()}.';
-    } else if (kind == UserMessageKind.USER_MESSAGE_KIND_LOAD_HOLD) {
-      adjusted.body =
-          '$exerciseLabel was held at ${recommendedWeight.round()} after the last miss. This workout starts at ${targetWeight.round()}.';
-    } else if (kind == UserMessageKind.USER_MESSAGE_KIND_STALL_DELOAD &&
-        previousWeight != null) {
-      adjusted.body =
-          '$exerciseLabel was reset from ${previousWeight.round()} to ${recommendedWeight.round()} after repeated misses. This workout starts at ${targetWeight.round()}.';
-    }
-    return adjusted;
-  }
-
-  double? _selectedWorkingWeight(Exercise exercise) {
-    for (final group in widget.selectedGroups) {
-      for (final config in group.exerciseConfigs) {
-        if (config.exercise != exercise) continue;
-        if (config.workingSets.isNotEmpty) {
-          return config.workingSets.first.targetWeight.toDouble();
-        }
-        return config.startWeight.toDouble();
-      }
-    }
-    return null;
   }
 
   List<UserMessage> _globalMessages(List<UserMessage> messages) {
@@ -220,10 +165,9 @@ class _WorkoutStartBriefingScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final message in globalMessages)
-                      _NoteRow(
-                        note: message.title.isNotEmpty
-                            ? '${message.title}: ${message.body}'
-                            : message.body,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: UserMessageChip(message: message, compact: true),
                       ),
                   ],
                 ),
@@ -310,43 +254,6 @@ class _BriefingSection extends StatelessWidget {
         const SizedBox(height: 10),
         child,
       ],
-    );
-  }
-}
-
-class _NoteRow extends StatelessWidget {
-  final String note;
-
-  const _NoteRow({required this.note});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              color: colorScheme.primary,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              note,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: colorScheme.onSurface.withValues(alpha: 0.82),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -444,10 +351,12 @@ class _GroupWeightCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     if (messages.isNotEmpty) ...[
                       for (final message in messages)
-                        _NoteRow(
-                          note: message.title.isNotEmpty
-                              ? '${message.title}: ${message.body}'
-                              : message.body,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: UserMessageChip(
+                            message: message,
+                            compact: true,
+                          ),
                         ),
                       const SizedBox(height: 4),
                     ],

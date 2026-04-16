@@ -18,7 +18,6 @@ use crate::schplanner::{
     summarize_history_window, summarize_proposed_slot_targets, ProposedSlotTarget,
     SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord,
 };
-use crate::weight_units::{pounds_to_kg, AppWeightUnit};
 use std::collections::{HashMap, HashSet};
 
 pub fn exercise_display_name(exercise: Exercise) -> String {
@@ -216,13 +215,6 @@ pub fn make_exercise_type_config_amrap(
         rest_config: None,
         last_set_amrap,
         working_sets,
-    }
-}
-
-pub fn format_weight_compact(weight_lb: f32, unit: AppWeightUnit) -> String {
-    match unit {
-        AppWeightUnit::Lb => format!("{:.0} lb", weight_lb.round()),
-        AppWeightUnit::Kg => format!("{:.1} kg", (pounds_to_kg(weight_lb) * 10.0).round() / 10.0),
     }
 }
 
