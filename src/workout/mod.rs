@@ -62,4 +62,4 @@ pub fn now_unix() -> i64 {
         .as_secs() as i64
 }
 
-pub(crate) const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 10;
+pub(crate) const END_OF_EXERCISE_GROUP_REST_SECONDS: i64 = 60;
