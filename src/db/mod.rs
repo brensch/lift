@@ -2,7 +2,8 @@ use prost::Message;
 use schlift::workout::v1::{
     CompletedSet, ExerciseGroup, ExerciseTypeConfig, GetActiveTrainingProgramStateResponse,
     GetProposedWorkoutScheduleResponse, GetWorkoutResponse, ParticipantStatus, ProgressionHint,
-    ProposedSet, RestConfig, UserSetting, Workout, WorkoutDraft, WorkoutHeartRatePoint,
+    ProposedSet, RestConfig, UserMessage, UserSetting, Workout, WorkoutDraft,
+    WorkoutHeartRatePoint,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -204,6 +205,27 @@ CREATE TABLE IF NOT EXISTS profile_exercise_groups (
 );
 CREATE INDEX IF NOT EXISTS idx_profile_exercise_groups_user_updated
     ON profile_exercise_groups(user_id, updated_at DESC, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS user_message_events (
+    user_id TEXT NOT NULL,
+    message_key TEXT NOT NULL,
+    surface INTEGER NOT NULL DEFAULT 0,
+    workout_id TEXT NOT NULL DEFAULT '',
+    exercise_group_id TEXT NOT NULL DEFAULT '',
+    exercise INTEGER NOT NULL DEFAULT 0,
+    slot_key TEXT NOT NULL DEFAULT '',
+    dismissed_at INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    message_blob BLOB NOT NULL,
+    PRIMARY KEY(user_id, message_key)
+);
+CREATE INDEX IF NOT EXISTS idx_user_message_events_user_surface
+    ON user_message_events(user_id, surface, workout_id, dismissed_at, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_message_events_user_workout
+    ON user_message_events(user_id, workout_id, dismissed_at, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
+    ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
 "#;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;

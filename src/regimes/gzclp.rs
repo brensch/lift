@@ -3,18 +3,16 @@ use schlift::workout::v1::{
     TrainingProgramStateSchema, WorkingSetSpec,
 };
 
+use super::{
+    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
+    rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+};
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
     set_f32, set_int, set_str, with_onboarding, FloatFieldBounds, ProposeResult, StatePayload,
 };
 use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
-
-use super::{
-    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
-    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
-    ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
-};
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -33,61 +31,6 @@ fn t2_stage_prescription(stage: u8) -> (i32, i32) {
         1 => (3, 10),
         2 => (3, 8),
         _ => (3, 6),
-    }
-}
-
-fn t1_phase_text(stage: u8) -> &'static str {
-    match stage {
-        1 => "Phase 1/3: 5×3 (last set AMRAP)",
-        2 => "Phase 2/3: 6×2 (last set AMRAP)",
-        _ => "Phase 3/3: 10×1 (no AMRAP)",
-    }
-}
-
-fn t2_phase_text(stage: u8) -> &'static str {
-    match stage {
-        1 => "Phase 1/3: 3×10",
-        2 => "Phase 2/3: 3×8",
-        _ => "Phase 3/3: 3×6",
-    }
-}
-
-fn gzclp_group_explanation(
-    exercise: Exercise,
-    tier: &str,
-    session_idx: usize,
-    phase_text: &str,
-    planned_weight: f32,
-    state: &StatePayload,
-    insights: &SchplannerInsights,
-) -> String {
-    let label = exercise_display_name(exercise);
-    let planned = format_weight_compact(planned_weight, weight_unit_from_state(state));
-    let base = format!(
-        "Session {} {} includes {}. Planned working weight is {}. {}.",
-        session_idx + 1,
-        tier,
-        label,
-        planned,
-        phase_text
-    );
-    let Some(insight) = insights.for_exercise(exercise) else {
-        return base;
-    };
-
-    let last_weight = format_weight_compact(insight.last_weight, weight_unit_from_state(state));
-    if insight.last_hit_target && planned_weight > insight.last_weight + 0.1 {
-        format!(
-            "{} That is up from {} because you cleared the last progression check.",
-            base, last_weight
-        )
-    } else if !insight.last_hit_target && (planned_weight - insight.last_weight).abs() <= 0.1 {
-        format!(
-            "{} It stays at {} because the last working set finished at {} of {} reps.",
-            base, planned, insight.last_actual_reps, insight.last_target_reps
-        )
-    } else {
-        base
     }
 }
 
@@ -419,7 +362,7 @@ impl WorkoutRegime for GzclpRegime {
         state: &StatePayload,
         _last_session_at: i64,
         _now_ts: i64,
-        insights: &SchplannerInsights,
+        _insights: &SchplannerInsights,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
         let sessions = sessions_for_variant(variant);
@@ -473,15 +416,6 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![cfg],
                 rest_config: rest_cfg(180, 300),
                 tags: vec!["recommended".to_string(), "T1".to_string()],
-                explanation: gzclp_group_explanation(
-                    ex,
-                    "T1",
-                    idx,
-                    t1_phase_text(stage),
-                    w,
-                    state,
-                    insights,
-                ),
                 prescribed_by_regime: false,
             });
         }
@@ -522,15 +456,6 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![cfg],
                 rest_config: rest_cfg(90, 120),
                 tags: vec!["recommended".to_string(), "T2".to_string()],
-                explanation: gzclp_group_explanation(
-                    ex,
-                    "T2",
-                    idx,
-                    t2_phase_text(stage),
-                    w,
-                    state,
-                    insights,
-                ),
                 prescribed_by_regime: false,
             });
         }
@@ -594,44 +519,11 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![ca, cb],
                 rest_config: rest_cfg(60, 60),
                 tags: vec!["auxiliary".to_string(), "T3".to_string()],
-                explanation: format!(
-                    "Session {} T3 accessory pair. {} uses {}, {} uses {}. Last set is AMRAP; add weight next time when it reaches 25+ reps.",
-                    idx + 1,
-                    exercise_display_name(ex_a),
-                    format_weight_compact(wa, weight_unit_from_state(state)),
-                    exercise_display_name(ex_b),
-                    format_weight_compact(wb, weight_unit_from_state(state)),
-                ),
                 prescribed_by_regime: false,
             });
         }
 
         let session_count = sessions.len();
-        let note_exercises = tmpl
-            .t1
-            .iter()
-            .chain(tmpl.t2.iter())
-            .copied()
-            .collect::<Vec<_>>();
-        let mut coaching_notes = recent_performance_notes(insights, &note_exercises, 3);
-        if coaching_notes.len() < 4 {
-            coaching_notes
-                .push("T1: heavy, low reps — treat every rep as a max-effort lift.".to_string());
-        }
-        if coaching_notes.len() < 4 {
-            coaching_notes.push("T1 last set (stages 1+2): AMRAP — push for max reps.".to_string());
-        }
-        if coaching_notes.len() < 4 {
-            coaching_notes
-                .push("T2: moderate weight, controlled tempo — build volume.".to_string());
-        }
-        if coaching_notes.len() < 4 {
-            coaching_notes.push(
-                "T3: light accessories — metabolic stress. Add weight only at 25+ AMRAP reps."
-                    .to_string(),
-            );
-        }
-        coaching_notes.truncate(4);
 
         let regime_context = RegimeContext {
             regime_display_name: "GZCLP".to_string(),
@@ -663,7 +555,6 @@ impl WorkoutRegime for GzclpRegime {
                 idx + 1,
                 session_count
             ),
-            coaching_notes,
         };
 
         ProposeResult {
@@ -685,6 +576,7 @@ impl WorkoutRegime for GzclpRegime {
                     )
                 }
             },
+            schedule_messages: Vec::new(),
         }
     }
 

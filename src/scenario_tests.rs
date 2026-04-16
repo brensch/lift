@@ -174,7 +174,7 @@ mod scenario_tests {
             workout_order: idx as i32,
             exercise_configs: group.exercise_configs.clone(),
             rest_config: group.rest_config.clone(),
-            instruction: group.explanation.clone(),
+            instruction: String::new(),
             prescribed_by_regime: group.prescribed_by_regime,
         }
     }

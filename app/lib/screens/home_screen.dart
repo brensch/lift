@@ -25,6 +25,63 @@ const _uuid = Uuid();
 
 enum _HomeGroupSection { recommended, saved, planLater }
 
+List<String> _slotKeysForConfig(ExerciseTypeConfig config) {
+  final keys = <String>{};
+  for (final set in config.workingSets) {
+    if (set.hasProgressionHint() && set.progressionHint.slotKey.isNotEmpty) {
+      keys.add(set.progressionHint.slotKey);
+    }
+  }
+  return keys.toList(growable: false);
+}
+
+List<UserMessage> _messagesForHomeGroup(
+  _HomeSelectableGroup group,
+  List<UserMessage> scheduleMessages,
+) {
+  if (group.section == _HomeGroupSection.saved) {
+    return const [];
+  }
+  final slotKeys = <String>{
+    for (final config in group.exerciseConfigs) ..._slotKeysForConfig(config),
+  };
+  final exercises = <int>{
+    for (final config in group.exerciseConfigs) config.exercise.value,
+  };
+  final seen = <String>{};
+  final out = <UserMessage>[];
+  for (final message in scheduleMessages) {
+    if (message.exerciseGroupId.isNotEmpty) continue;
+    final matchesSlot =
+        message.slotKey.isNotEmpty && slotKeys.contains(message.slotKey);
+    final matchesExercise =
+        message.exercise != Exercise.EXERCISE_UNSPECIFIED &&
+        exercises.contains(message.exercise.value);
+    if (!matchesSlot && !matchesExercise) continue;
+    if (!seen.add(message.messageKey)) continue;
+    out.add(message);
+  }
+  return out;
+}
+
+List<UserMessage> _messagesForExerciseConfig(
+  ExerciseTypeConfig config,
+  List<UserMessage> groupMessages,
+) {
+  final slotKeys = _slotKeysForConfig(config).toSet();
+  final seen = <String>{};
+  final out = <UserMessage>[];
+  for (final message in groupMessages) {
+    final matchesSlot =
+        message.slotKey.isNotEmpty && slotKeys.contains(message.slotKey);
+    final matchesExercise = message.exercise == config.exercise;
+    if (!matchesSlot && !matchesExercise) continue;
+    if (!seen.add(message.messageKey)) continue;
+    out.add(message);
+  }
+  return out;
+}
+
 class _HomeSelectableGroup {
   final String selectionKey;
   final _HomeGroupSection section;
@@ -69,7 +126,7 @@ class _HomeSelectableGroup {
       interleaveWarmups: group.interleaveWarmups,
       exerciseConfigs: group.exerciseConfigs.map((c) => c.deepCopy()).toList(),
       restConfig: group.hasRestConfig() ? group.restConfig.deepCopy() : null,
-      explanation: group.explanation,
+      explanation: '',
       prescribedByRegime: group.prescribedByRegime,
       useScheduleWeights: true,
     );
@@ -144,7 +201,7 @@ class _HomeSelectableGroup {
       ..interleaveWarmups = interleaveWarmups
       ..workoutOrder = workoutOrder
       ..prescribedByRegime = prescribedByRegime
-      ..instruction = explanation
+      ..instruction = (section == _HomeGroupSection.saved) ? explanation : ''
       ..exerciseConfigs.addAll(configs);
     if (restConfig != null) {
       group.restConfig = RestConfig()..mergeFromMessage(restConfig!);
@@ -173,7 +230,7 @@ class _HomeSelectableGroup {
       restConfig: restConfig ?? this.restConfig?.deepCopy(),
       explanation: explanation ?? this.explanation,
       prescribedByRegime: prescribedByRegime,
-      useScheduleWeights: useScheduleWeights,
+      useScheduleWeights: exerciseConfigs != null ? false : useScheduleWeights,
     );
   }
 }
@@ -191,6 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_HomeSelectableGroup>? _selectableGroups;
   RegimeContext? _regimeContext;
   TrainingStatus? _trainingStatus;
+  List<UserMessage> _scheduleMessages = [];
   String _suggestedWorkoutBaseName = '';
   Set<int> _selectedGroupIndices = {};
   bool _isLoading = true;
@@ -275,6 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _trainingStatus = scheduleRes.hasTrainingStatus()
             ? scheduleRes.trainingStatus
             : null;
+        _scheduleMessages = scheduleRes.userMessages;
         _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
         _selectedGroupIndices = selectedFromDraft.isNotEmpty
             ? selectedFromDraft
@@ -309,24 +368,60 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _startWorkout() async {
     if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
 
+    final auth = context.read<AuthProvider>();
+    final grpc = context.read<GrpcClient>();
+    final workoutService = WorkoutServiceWrapper(grpc);
+    final freshSchedule = await workoutService.getProposedWorkoutSchedule(
+      auth.userId!,
+    );
+    if (!mounted) return;
+
+    final freshStatusMap = <int, ExerciseStatus>{
+      for (final status in freshSchedule.exerciseStatuses)
+        status.exercise.value: status,
+    };
     final selectedGroups = (_selectedGroupIndices.toList()..sort())
         .map(
           (idx) => _selectableGroups![idx].toWorkoutGroup(
             workoutOrder: idx,
-            statusMap: _statusMap(),
+            statusMap: freshStatusMap,
             forWorkoutStart: false,
           ),
         )
         .toList(growable: false);
 
-    final workoutName = await _resolveLatestWorkoutName();
+    setState(() {
+      _schedule = freshSchedule.exerciseStatuses;
+      _regimeContext = freshSchedule.hasRegimeContext()
+          ? freshSchedule.regimeContext
+          : null;
+      _trainingStatus = freshSchedule.hasTrainingStatus()
+          ? freshSchedule.trainingStatus
+          : null;
+      _scheduleMessages = freshSchedule.userMessages;
+      _suggestedWorkoutBaseName = freshSchedule.suggestedWorkoutName.trim();
+    });
+
+    final workoutName = _buildWorkoutName(
+      freshSchedule.suggestedWorkoutName.trim().isNotEmpty
+          ? freshSchedule.suggestedWorkoutName.trim()
+          : (freshSchedule.hasRegimeContext() &&
+                    freshSchedule.regimeContext.regimeDisplayName
+                        .trim()
+                        .isNotEmpty
+                ? freshSchedule.regimeContext.regimeDisplayName.trim()
+                : _currentWorkoutBaseName()),
+    );
     if (!mounted) return;
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => WorkoutStartBriefingScreen(
           workoutName: workoutName,
-          regimeContext: _regimeContext,
+          regimeContext: freshSchedule.hasRegimeContext()
+              ? freshSchedule.regimeContext
+              : null,
+          scheduleMessages: freshSchedule.userMessages,
           selectedGroups: selectedGroups,
           onStartWorkout: _performWorkoutStart,
         ),
@@ -863,6 +958,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _GroupGrid(
                           indices: recommendedGroupIndices,
                           groups: _selectableGroups!,
+                          scheduleMessages: _scheduleMessages,
                           selectedIndices: _selectedGroupIndices,
                           onToggle: _toggleGroup,
                           onEdit: _editGroup,
@@ -890,6 +986,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _GroupGrid(
                           indices: savedGroupIndices,
                           groups: _selectableGroups!,
+                          scheduleMessages: _scheduleMessages,
                           selectedIndices: _selectedGroupIndices,
                           onToggle: _toggleGroup,
                           onEdit: _editGroup,
@@ -904,12 +1001,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       const SizedBox(height: 18),
-                      const _SectionHeader(title: 'Not today but in your schplan'),
+                      const _SectionHeader(
+                        title: 'Not today but in your schplan',
+                      ),
                       if (otherGroupIndices.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         _GroupGrid(
                           indices: otherGroupIndices,
                           groups: _selectableGroups!,
+                          scheduleMessages: _scheduleMessages,
                           selectedIndices: _selectedGroupIndices,
                           onToggle: _toggleGroup,
                           onEdit: _editGroup,
@@ -990,8 +1090,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               height: 62,
               child: FilledButton(
-                onPressed:
-                    _selectedGroupIndices.isEmpty || _isStarting
+                onPressed: _selectedGroupIndices.isEmpty || _isStarting
                     ? null
                     : _startWorkout,
                 style: FilledButton.styleFrom(
@@ -1153,7 +1252,8 @@ class _ReadinessBanner extends StatelessWidget {
                   textColor: textColor,
                 ),
                 _StatusChip(
-                  label: '${ts.completedSetsPer7Days}/${ts.targetSetsPer7Days} sets',
+                  label:
+                      '${ts.completedSetsPer7Days}/${ts.targetSetsPer7Days} sets',
                   textColor: textColor,
                 ),
                 if (ts.remainingSessionsPer7Days > 0)
@@ -1230,11 +1330,7 @@ class _ProgramChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.menu_book_rounded,
-                size: 12,
-                color: accentColor,
-              ),
+              Icon(Icons.menu_book_rounded, size: 12, color: accentColor),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -1246,11 +1342,7 @@ class _ProgramChip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Icon(
-                Icons.arrow_outward_rounded,
-                size: 13,
-                color: accentColor,
-              ),
+              Icon(Icons.arrow_outward_rounded, size: 13, color: accentColor),
             ],
           ),
         ),
@@ -1311,6 +1403,7 @@ class _EmptySectionText extends StatelessWidget {
 class _GroupGrid extends StatelessWidget {
   final List<int> indices;
   final List<_HomeSelectableGroup> groups;
+  final List<UserMessage> scheduleMessages;
   final Set<int> selectedIndices;
   final void Function(int) onToggle;
   final void Function(int) onEdit;
@@ -1319,6 +1412,7 @@ class _GroupGrid extends StatelessWidget {
   const _GroupGrid({
     required this.indices,
     required this.groups,
+    required this.scheduleMessages,
     required this.selectedIndices,
     required this.onToggle,
     required this.onEdit,
@@ -1332,6 +1426,7 @@ class _GroupGrid extends StatelessWidget {
         for (int i = 0; i < indices.length; i++) ...[
           _GroupChip(
             group: groups[indices[i]],
+            scheduleMessages: scheduleMessages,
             isSelected: selectedIndices.contains(indices[i]),
             onTap: () => onToggle(indices[i]),
             onEdit: () => onEdit(indices[i]),
@@ -1348,6 +1443,7 @@ class _GroupGrid extends StatelessWidget {
 
 class _GroupChip extends StatelessWidget {
   final _HomeSelectableGroup group;
+  final List<UserMessage> scheduleMessages;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onEdit;
@@ -1355,6 +1451,7 @@ class _GroupChip extends StatelessWidget {
 
   const _GroupChip({
     required this.group,
+    required this.scheduleMessages,
     required this.isSelected,
     required this.onTap,
     required this.onEdit,
@@ -1484,6 +1581,7 @@ class _GroupChip extends StatelessWidget {
   Future<void> _showDetails(BuildContext context) {
     final unit = context.read<SettingsProvider>().weightUnit;
     final colorScheme = Theme.of(context).colorScheme;
+    final groupMessages = _messagesForHomeGroup(group, scheduleMessages);
 
     return showModalBottomSheet<void>(
       context: context,
@@ -1517,7 +1615,20 @@ class _GroupChip extends StatelessWidget {
                     title:
                         exerciseNames[group.exerciseConfigs[i].exercise] ??
                         'Exercise',
-                    explanation: i == 0 ? group.explanation : '',
+                    notes: [
+                      for (final message in _messagesForExerciseConfig(
+                        group.exerciseConfigs[i],
+                        groupMessages,
+                      ))
+                        if (message.title.isNotEmpty)
+                          '${message.title}: ${message.body}'
+                        else
+                          message.body,
+                      if (i == 0 &&
+                          group.explanation.isNotEmpty &&
+                          groupMessages.isEmpty)
+                        group.explanation,
+                    ],
                     warmupLines: _warmupLinesForConfig(
                       group.exerciseConfigs[i],
                       unit,
@@ -1682,14 +1793,14 @@ typedef _SetLine = ({int index, String text, String note});
 
 class _ExerciseConfigDetailsCard extends StatelessWidget {
   final String title;
-  final String explanation;
+  final List<String> notes;
   final List<_SetLine> warmupLines;
   final List<_SetLine> workingSetLines;
   final List<String> meta;
 
   const _ExerciseConfigDetailsCard({
     required this.title,
-    required this.explanation,
+    required this.notes,
     required this.warmupLines,
     required this.workingSetLines,
     required this.meta,
@@ -1707,15 +1818,24 @@ class _ExerciseConfigDetailsCard extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
-          if (explanation.isNotEmpty) ...[
+          if (notes.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(
-              explanation,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: colorScheme.onSurface.withValues(alpha: 0.76),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final note in notes)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      note,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: colorScheme.onSurface.withValues(alpha: 0.76),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
           const SizedBox(height: 12),

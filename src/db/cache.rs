@@ -1,4 +1,5 @@
 use super::*;
+use schlift::workout::v1::UserMessageSurface;
 
 impl ServerDb {
     // ── Schedule/Program/Settings/Drafts (blob caches, unchanged) ──
@@ -124,6 +125,128 @@ impl ServerDb {
             .execute(&self.write_pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn upsert_user_message_events(
+        &self,
+        user_id: &str,
+        messages: &[UserMessage],
+    ) -> DbResult<()> {
+        let mut tx = self.write_pool.begin().await?;
+        for message in messages {
+            sqlx::query(
+                "INSERT INTO user_message_events
+                 (user_id, message_key, surface, workout_id, exercise_group_id, exercise, slot_key, dismissed_at, created_at, updated_at, message_blob)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                 ON CONFLICT(user_id, message_key) DO UPDATE SET
+                   surface = excluded.surface,
+                   workout_id = excluded.workout_id,
+                   exercise_group_id = excluded.exercise_group_id,
+                   exercise = excluded.exercise,
+                   slot_key = excluded.slot_key,
+                   dismissed_at = 0,
+                   created_at = excluded.created_at,
+                   updated_at = excluded.updated_at,
+                   message_blob = excluded.message_blob",
+            )
+            .bind(user_id)
+            .bind(&message.message_key)
+            .bind(message.surface)
+            .bind(&message.workout_id)
+            .bind(&message.exercise_group_id)
+            .bind(message.exercise)
+            .bind(&message.slot_key)
+            .bind(message.created_at)
+            .bind(message.updated_at)
+            .bind(message.encode_to_vec())
+            .execute(&mut *tx)
+            .await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn get_workout_user_messages(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        include_dismissed: bool,
+    ) -> DbResult<Vec<UserMessage>> {
+        let rows = if include_dismissed {
+            sqlx::query(
+                "SELECT message_blob FROM user_message_events
+                 WHERE user_id = ? AND workout_id = ?
+                 ORDER BY updated_at DESC",
+            )
+            .bind(user_id)
+            .bind(workout_id)
+            .fetch_all(&self.read_pool)
+            .await?
+        } else {
+            sqlx::query(
+                "SELECT message_blob FROM user_message_events
+                 WHERE user_id = ? AND workout_id = ? AND dismissed_at = 0
+                 ORDER BY updated_at DESC",
+            )
+            .bind(user_id)
+            .bind(workout_id)
+            .fetch_all(&self.read_pool)
+            .await?
+        };
+        let mut out = Vec::new();
+        for row in rows {
+            let blob: Vec<u8> = row.get("message_blob");
+            out.push(UserMessage::decode(blob.as_slice())?);
+        }
+        Ok(out)
+    }
+
+    pub async fn get_pending_workout_briefing_messages(
+        &self,
+        user_id: &str,
+    ) -> DbResult<Vec<UserMessage>> {
+        let rows = sqlx::query(
+            "SELECT message_blob FROM user_message_events
+             WHERE user_id = ? AND workout_id = '' AND dismissed_at = 0 AND surface = ?
+             ORDER BY updated_at DESC",
+        )
+        .bind(user_id)
+        .bind(UserMessageSurface::WorkoutBriefing as i32)
+        .fetch_all(&self.read_pool)
+        .await?;
+        let mut out = Vec::new();
+        for row in rows {
+            let blob: Vec<u8> = row.get("message_blob");
+            out.push(UserMessage::decode(blob.as_slice())?);
+        }
+        Ok(out)
+    }
+
+    pub async fn dismiss_user_messages(
+        &self,
+        user_id: &str,
+        message_keys: &[String],
+    ) -> DbResult<Vec<String>> {
+        let mut dismissed = Vec::new();
+        let mut tx = self.write_pool.begin().await?;
+        for key in message_keys {
+            let result = sqlx::query(
+                "UPDATE user_message_events
+                 SET dismissed_at = ?, updated_at = ?
+                 WHERE user_id = ? AND message_key = ? AND dismissed_at = 0",
+            )
+            .bind(now_unix())
+            .bind(now_unix())
+            .bind(user_id)
+            .bind(key)
+            .execute(&mut *tx)
+            .await?;
+            if result.rows_affected() > 0 {
+                dismissed.push(key.clone());
+            }
+        }
+        tx.commit().await?;
+        Ok(dismissed)
     }
 
     // ── Events & Heart Rate ──

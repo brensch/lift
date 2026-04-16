@@ -620,6 +620,7 @@ impl ServerDb {
             next_up_set,
             plan_change_stats,
             state_snapshot,
+            user_messages: Vec::new(),
         }))
     }
 

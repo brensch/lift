@@ -126,30 +126,6 @@ pub trait WorkoutRegime: Send + Sync {
     ) {
     }
 
-    fn schplanner_decorate_proposed_group(
-        &self,
-        group: &mut ProposedExerciseGroup,
-        _state: &StatePayload,
-        slot_reasons: &HashMap<String, String>,
-        started_workout_count: usize,
-    ) {
-        let mut reasons = Vec::new();
-        for key in crate::schplanner::group_slot_keys(group) {
-            if let Some(reason) = slot_reasons.get(&key) {
-                reasons.push(reason.clone());
-            }
-        }
-        if !reasons.is_empty() {
-            group.explanation = reasons.join(" ");
-        } else if group.explanation.is_empty() && started_workout_count > 0 {
-            group.explanation = format!(
-                "Schplanner derived this from {} started workout{} since your last program edit.",
-                started_workout_count,
-                if started_workout_count == 1 { "" } else { "s" }
-            );
-        }
-    }
-
     fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {
         let meta = self.catalog_meta();
         TrainingProgramDefinition {
@@ -197,81 +173,6 @@ pub fn catalog_regime_types() -> Vec<RegimeType> {
         RegimeType::Gzclp,
         RegimeType::Wendler531,
     ]
-}
-
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-
-pub fn recent_performance_notes(
-    insights: &SchplannerInsights,
-    exercises: &[Exercise],
-    limit: usize,
-) -> Vec<String> {
-    let mut notes = Vec::new();
-    let mut seen = HashSet::new();
-
-    for &exercise in exercises {
-        if !seen.insert(exercise) {
-            continue;
-        }
-        let Some(insight) = insights.for_exercise(exercise) else {
-            continue;
-        };
-        let label = exercise_display_name(exercise);
-        if !insight.last_hit_target {
-            notes.push(format!(
-                "Last {} working set missed target reps ({} of {}). Build today around cleaner reps before chasing load.",
-                label,
-                insight.last_actual_reps,
-                insight.last_target_reps
-            ));
-        } else if !insight.last_was_amrap {
-            notes.push(format!(
-                "Last {} work hit every prescribed rep cleanly. If today's bar speed matches, the next jump should be there.",
-                label
-            ));
-        } else if insight.last_was_amrap && insight.last_actual_reps >= insight.last_target_reps + 2
-        {
-            notes.push(format!(
-                "Last {} top set beat the target cleanly ({} on a {}+ set). If warmups move well, you can press the work today.",
-                label,
-                insight.last_actual_reps,
-                insight.last_target_reps
-            ));
-        }
-
-        if insight.recent_sessions >= 2
-            && insight.set_durations.sample_count >= 3
-            && insight.set_durations.max_secs as f32
-                > insight.set_durations.mean_secs + insight.set_durations.stddev_secs
-            && insight.set_durations.max_secs >= 45
-        {
-            notes.push(format!(
-                "{} has been taking longer to finish lately (last set {}s, recent average {:.0}s). Give the heavier work full setup time.",
-                label,
-                insight.set_durations.max_secs,
-                insight.set_durations.mean_secs
-            ));
-        }
-
-        if insight.recent_sessions >= 2
-            && insight.rests.sample_count >= 3
-            && insight.rests.stddev_secs >= 30.0
-        {
-            notes.push(format!(
-                "{} rest has been inconsistent recently (average {:.0}s, spread about {:.0}s). Keep rest periods more repeatable today.",
-                label,
-                insight.rests.mean_secs,
-                insight.rests.stddev_secs
-            ));
-        }
-
-        if notes.len() >= limit {
-            break;
-        }
-    }
-
-    notes.truncate(limit);
-    notes
 }
 
 pub fn make_exercise_type_config_amrap(
@@ -554,7 +455,6 @@ pub fn rest_cfg(success_secs: i32, failure_secs: i32) -> Option<RestConfig> {
 
 pub struct SingleGroupOptions {
     pub tags: Vec<String>,
-    pub explanation: String,
     pub rest_config: Option<RestConfig>,
     pub include_warmup: bool,
     pub last_set_amrap: bool,
@@ -583,7 +483,6 @@ pub fn build_single_group_amrap(
         exercise_configs: vec![cfg],
         rest_config: options.rest_config,
         tags: options.tags,
-        explanation: options.explanation,
         prescribed_by_regime: false,
     }
 }

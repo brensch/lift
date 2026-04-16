@@ -10,8 +10,8 @@ use std::collections::HashMap;
 
 use super::{
     build_single_group_amrap, build_training_status, exercise_display_name, exercise_short_label,
-    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
-    ProgramAtAGlanceMeta, ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
+    rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta,
+    SingleGroupOptions, WorkoutRegime,
 };
 use std::collections::HashSet;
 
@@ -98,38 +98,6 @@ fn workout_variant_exercises(variant: &str) -> &'static [Exercise] {
         WORKOUT_B
     } else {
         WORKOUT_A
-    }
-}
-
-fn linear_group_explanation(
-    exercise: Exercise,
-    workout_label: &str,
-    planned_weight: f32,
-    state: &StatePayload,
-    insights: &SchplannerInsights,
-) -> String {
-    let label = exercise_display_name(exercise);
-    let planned = format_weight_compact(planned_weight, weight_unit_from_state(state));
-    let Some(insight) = insights.for_exercise(exercise) else {
-        return format!("Workout {} includes {}. Planned working weight is {}.", workout_label, label, planned);
-    };
-
-    let last_weight = format_weight_compact(insight.last_weight, weight_unit_from_state(state));
-    if insight.last_hit_target && planned_weight > insight.last_weight + 0.1 {
-        format!(
-            "Workout {} includes {}. Planned working weight is {}, up from {} after you hit all prescribed reps last time.",
-            workout_label, label, planned, last_weight
-        )
-    } else if !insight.last_hit_target && (planned_weight - insight.last_weight).abs() <= 0.1 {
-        format!(
-            "Workout {} includes {}. Planned working weight stays at {} because last time you got {} of {} reps on the final working set.",
-            workout_label, label, planned, insight.last_actual_reps, insight.last_target_reps
-        )
-    } else {
-        format!(
-            "Workout {} includes {}. Planned working weight is {}.",
-            workout_label, label, planned
-        )
     }
 }
 
@@ -324,7 +292,7 @@ impl WorkoutRegime for Linear5x5Regime {
         state: &StatePayload,
         _last_session_at: i64,
         _now_ts: i64,
-        insights: &SchplannerInsights,
+        _insights: &SchplannerInsights,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_VARIANT, "A");
         let exercises = if variant.eq_ignore_ascii_case("B") {
@@ -353,13 +321,6 @@ impl WorkoutRegime for Linear5x5Regime {
                 reps,
                 SingleGroupOptions {
                     tags: vec!["recommended".to_string(), "compound".to_string()],
-                    explanation: linear_group_explanation(
-                        ex,
-                        next_variant_label,
-                        w,
-                        state,
-                        insights,
-                    ),
                     rest_config: rest_cfg(180, 300),
                     include_warmup: true,
                     last_set_amrap: false,
@@ -383,27 +344,11 @@ impl WorkoutRegime for Linear5x5Regime {
                 5,
                 SingleGroupOptions {
                     tags: vec!["compound".to_string()],
-                    explanation: format!(
-                        "{} is part of Workout {}. Add it only if you want extra work beyond today's Workout {} prescription.",
-                        exercise_display_name(ex),
-                        other_variant,
-                        next_variant_label
-                    ),
                     rest_config: rest_cfg(180, 300),
                     include_warmup: true,
                     last_set_amrap: false,
                 },
             ));
-        }
-
-        let mut coaching_notes = recent_performance_notes(insights, exercises, 3);
-        if coaching_notes.len() < 3 {
-            coaching_notes.push("Focus on form before chasing weight.".to_string());
-        }
-        if coaching_notes.len() < 3 {
-            coaching_notes.push(
-                "If a set feels like a 9/10 effort, consider deloading proactively.".to_string(),
-            );
         }
 
         let regime_context = RegimeContext {
@@ -443,13 +388,13 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Next: Workout {}. Alternate A/B each session; add weight after successful lifts.",
                 other_variant
             ),
-            coaching_notes,
         };
 
         ProposeResult {
             proposed_groups,
             regime_context,
             suggested_workout_name: format!("5×5 Workout {}", next_variant_label),
+            schedule_messages: Vec::new(),
         }
     }
 

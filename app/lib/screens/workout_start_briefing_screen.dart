@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,9 +9,20 @@ import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 
+List<String> _slotKeysForStartConfig(ExerciseTypeConfig config) {
+  final keys = <String>{};
+  for (final set in config.workingSets) {
+    if (set.hasProgressionHint() && set.progressionHint.slotKey.isNotEmpty) {
+      keys.add(set.progressionHint.slotKey);
+    }
+  }
+  return keys.toList(growable: false);
+}
+
 class WorkoutStartBriefingScreen extends StatefulWidget {
   final String workoutName;
   final RegimeContext? regimeContext;
+  final List<UserMessage> scheduleMessages;
   final List<ExerciseGroup> selectedGroups;
   final Future<void> Function() onStartWorkout;
 
@@ -17,6 +30,7 @@ class WorkoutStartBriefingScreen extends StatefulWidget {
     super.key,
     required this.workoutName,
     required this.regimeContext,
+    required this.scheduleMessages,
     required this.selectedGroups,
     required this.onStartWorkout,
   });
@@ -29,6 +43,100 @@ class WorkoutStartBriefingScreen extends StatefulWidget {
 class _WorkoutStartBriefingScreenState
     extends State<WorkoutStartBriefingScreen> {
   bool _starting = false;
+
+  List<UserMessage> _displayMessages() {
+    return widget.scheduleMessages
+        .map(_retargetMessageForSelection)
+        .where((message) => message.body.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  UserMessage _retargetMessageForSelection(UserMessage message) {
+    final kind = message.kind;
+    if (kind != UserMessageKind.USER_MESSAGE_KIND_LOAD_INCREASE &&
+        kind != UserMessageKind.USER_MESSAGE_KIND_LOAD_HOLD &&
+        kind != UserMessageKind.USER_MESSAGE_KIND_STALL_DELOAD) {
+      return message;
+    }
+
+    final targetWeight = _selectedWorkingWeight(message.exercise);
+    if (targetWeight == null) return message;
+
+    Map<String, dynamic> meta;
+    try {
+      meta = (jsonDecode(message.metadataJson) as Map).cast<String, dynamic>();
+    } catch (_) {
+      return message;
+    }
+
+    final recommendedWeight = (meta['recommended_weight'] as num?)?.toDouble();
+    if (recommendedWeight == null ||
+        (recommendedWeight - targetWeight).abs() < 0.1) {
+      return message;
+    }
+
+    final previousWeight = (meta['previous_weight'] as num?)?.toDouble();
+    final adjusted = message.deepCopy();
+    final exerciseLabel = exerciseNames[message.exercise] ?? 'This lift';
+    if (kind == UserMessageKind.USER_MESSAGE_KIND_LOAD_INCREASE &&
+        previousWeight != null) {
+      adjusted.body =
+          '$exerciseLabel was progressed from ${previousWeight.round()} to ${recommendedWeight.round()} after your last successful session. This workout starts at ${targetWeight.round()}.';
+    } else if (kind == UserMessageKind.USER_MESSAGE_KIND_LOAD_HOLD) {
+      adjusted.body =
+          '$exerciseLabel was held at ${recommendedWeight.round()} after the last miss. This workout starts at ${targetWeight.round()}.';
+    } else if (kind == UserMessageKind.USER_MESSAGE_KIND_STALL_DELOAD &&
+        previousWeight != null) {
+      adjusted.body =
+          '$exerciseLabel was reset from ${previousWeight.round()} to ${recommendedWeight.round()} after repeated misses. This workout starts at ${targetWeight.round()}.';
+    }
+    return adjusted;
+  }
+
+  double? _selectedWorkingWeight(Exercise exercise) {
+    for (final group in widget.selectedGroups) {
+      for (final config in group.exerciseConfigs) {
+        if (config.exercise != exercise) continue;
+        if (config.workingSets.isNotEmpty) {
+          return config.workingSets.first.targetWeight.toDouble();
+        }
+        return config.startWeight.toDouble();
+      }
+    }
+    return null;
+  }
+
+  List<UserMessage> _globalMessages(List<UserMessage> messages) {
+    return messages
+        .where(
+          (message) =>
+              message.exercise == Exercise.EXERCISE_UNSPECIFIED &&
+              message.slotKey.isEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  List<UserMessage> _messagesForConfig(
+    ExerciseTypeConfig config,
+    List<UserMessage> messages,
+  ) {
+    final slotKeys = _slotKeysForStartConfig(config).toSet();
+    final seen = <String>{};
+    final out = <UserMessage>[];
+    for (final message in messages) {
+      if (message.exercise == Exercise.EXERCISE_UNSPECIFIED &&
+          message.slotKey.isEmpty) {
+        continue;
+      }
+      final matchesSlot =
+          message.slotKey.isNotEmpty && slotKeys.contains(message.slotKey);
+      final matchesExercise = message.exercise == config.exercise;
+      if (!matchesSlot && !matchesExercise) continue;
+      if (!seen.add(message.messageKey)) continue;
+      out.add(message);
+    }
+    return out;
+  }
 
   Future<void> _handleStart() async {
     if (_starting) return;
@@ -49,6 +157,8 @@ class _WorkoutStartBriefingScreenState
     final colorScheme = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final regimeContext = widget.regimeContext;
+    final displayMessages = _displayMessages();
+    final globalMessages = _globalMessages(displayMessages);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Workout Start')),
@@ -102,16 +212,19 @@ class _WorkoutStartBriefingScreenState
                 ),
               ),
             ],
-            if (regimeContext != null &&
-                regimeContext.coachingNotes.isNotEmpty) ...[
+            if (globalMessages.isNotEmpty) ...[
               const SizedBox(height: 14),
               _BriefingSection(
-                title: 'Coaching notes',
+                title: 'Recommendation notes',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final note in regimeContext.coachingNotes)
-                      _NoteRow(note: note),
+                    for (final message in globalMessages)
+                      _NoteRow(
+                        note: message.title.isNotEmpty
+                            ? '${message.title}: ${message.body}'
+                            : message.body,
+                      ),
                   ],
                 ),
               ),
@@ -133,12 +246,17 @@ class _WorkoutStartBriefingScreenState
             ],
             const SizedBox(height: 14),
             _BriefingSection(
-              title: 'Weights and why',
+              title: 'Planned sets',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final group in widget.selectedGroups)
-                    _GroupWeightCard(group: group, unit: unit),
+                    _GroupWeightCard(
+                      group: group,
+                      unit: unit,
+                      messagesForConfig: (config) =>
+                          _messagesForConfig(config, displayMessages),
+                    ),
                 ],
               ),
             ),
@@ -236,8 +354,13 @@ class _NoteRow extends StatelessWidget {
 class _GroupWeightCard extends StatelessWidget {
   final ExerciseGroup group;
   final WeightUnit unit;
+  final List<UserMessage> Function(ExerciseTypeConfig config) messagesForConfig;
 
-  const _GroupWeightCard({required this.group, required this.unit});
+  const _GroupWeightCard({
+    required this.group,
+    required this.unit,
+    required this.messagesForConfig,
+  });
 
   List<WorkingSetSpec> _workingSets(ExerciseTypeConfig config) {
     if (config.workingSets.isNotEmpty) return config.workingSets;
@@ -266,65 +389,6 @@ class _GroupWeightCard extends StatelessWidget {
         .join('  •  ');
   }
 
-  bool get _isRecommendedSchplan => group.id.startsWith('recommended:');
-
-  bool get _isPlanLaterPick => group.id.startsWith('planLater:');
-
-  bool get _isSavedUserGroup => group.id.startsWith('saved:');
-
-  String _schplannerReason(ExerciseTypeConfig config) {
-    final scheduleExplanation = group.instruction.trim();
-    if (scheduleExplanation.isNotEmpty) {
-      return '';
-    }
-
-    if (_isSavedUserGroup) {
-      return 'Saved workout template. The regime did not choose these weights.';
-    }
-
-    if (_isPlanLaterPick) {
-      if (scheduleExplanation.isNotEmpty) {
-        return '$scheduleExplanation You added it outside today\'s recommended session.';
-      }
-      return 'You added this outside today\'s recommended regime session.';
-    }
-
-    if (_isRecommendedSchplan) {
-      return 'This exercise comes from today\'s recommended regime session.';
-    }
-
-    final hints = _workingSets(config)
-        .where((set) => set.hasProgressionHint())
-        .map((set) => set.progressionHint)
-        .toList(growable: false);
-    if (hints.isNotEmpty) {
-      final hint = hints.first;
-      final parts = <String>[];
-      if (hint.tier.isNotEmpty) {
-        parts.add('${hint.tier.toUpperCase()} slot');
-      }
-      if (hint.hasRule()) {
-        parts.add(_schplannerRuleLabel(hint.rule));
-      }
-      if (hint.amrapSuccessThreshold > 0) {
-        parts.add('AMRAP target ${hint.amrapSuccessThreshold}+');
-      }
-      if (parts.isNotEmpty) {
-        return 'Program rule for this exercise: ${parts.join(' • ')}.';
-      }
-    }
-
-    if (config.workingSets.isNotEmpty) {
-      return 'Weight comes from the regime\'s explicit working-set prescription.';
-    }
-
-    if (config.startWeight != config.endWeight) {
-      return 'Weight ramps across the set block from ${formatWeight(config.startWeight.toDouble(), unit, includeUnit: true)} to ${formatWeight(config.endWeight.toDouble(), unit, includeUnit: true)}.';
-    }
-
-    return 'Weight is held steady at ${formatWeight(config.startWeight.toDouble(), unit, includeUnit: true)} for the planned working sets.';
-  }
-
   String _instructionReason(ExerciseTypeConfig config) {
     final notes = _workingSets(config)
         .map((set) => set.instruction.trim())
@@ -348,24 +412,12 @@ class _GroupWeightCard extends StatelessWidget {
             textAlign: TextAlign.left,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-          if (group.instruction.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              group.instruction,
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: colorScheme.onSurface.withValues(alpha: 0.76),
-              ),
-            ),
-          ],
           const SizedBox(height: 12),
           for (final config in group.exerciseConfigs) ...[
             Builder(
               builder: (context) {
-                final schplannerReason = _schplannerReason(config);
                 final instructionReason = _instructionReason(config);
+                final messages = messagesForConfig(config);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -390,16 +442,13 @@ class _GroupWeightCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    if (schplannerReason.isNotEmpty) ...[
-                      Text(
-                        schplannerReason,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.35,
-                          color: colorScheme.onSurface.withValues(alpha: 0.78),
+                    if (messages.isNotEmpty) ...[
+                      for (final message in messages)
+                        _NoteRow(
+                          note: message.title.isNotEmpty
+                              ? '${message.title}: ${message.body}'
+                              : message.body,
                         ),
-                      ),
                       const SizedBox(height: 4),
                     ],
                     if (instructionReason.isNotEmpty) ...[
@@ -423,18 +472,4 @@ class _GroupWeightCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _schplannerRuleLabel(ProgressionRule rule) {
-  switch (rule) {
-    case ProgressionRule.PROGRESSION_RULE_UNSPECIFIED:
-      return 'regime progression';
-    case ProgressionRule.PROGRESSION_RULE_NONE:
-      return 'fixed prescription';
-    case ProgressionRule.PROGRESSION_RULE_ALL_SETS_MATCH_TARGET:
-      return 'all sets must hit target';
-    case ProgressionRule.PROGRESSION_RULE_TOP_SET_AMRAP:
-      return 'top-set AMRAP check';
-  }
-  return 'regime progression';
 }
