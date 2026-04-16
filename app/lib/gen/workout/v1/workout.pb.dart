@@ -1094,6 +1094,8 @@ class ProgressionDetails extends $pb.GeneratedMessage {
     $core.String? nextStage,
     $core.String? sourceWorkoutId,
     $core.String? contextLabel,
+    ProgressionReasonKind? reasonKind,
+    $core.String? reasonText,
   }) {
     final result = create();
     if (changeKind != null) result.changeKind = changeKind;
@@ -1104,6 +1106,8 @@ class ProgressionDetails extends $pb.GeneratedMessage {
     if (nextStage != null) result.nextStage = nextStage;
     if (sourceWorkoutId != null) result.sourceWorkoutId = sourceWorkoutId;
     if (contextLabel != null) result.contextLabel = contextLabel;
+    if (reasonKind != null) result.reasonKind = reasonKind;
+    if (reasonText != null) result.reasonText = reasonText;
     return result;
   }
 
@@ -1131,6 +1135,9 @@ class ProgressionDetails extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'nextStage')
     ..aOS(7, _omitFieldNames ? '' : 'sourceWorkoutId')
     ..aOS(8, _omitFieldNames ? '' : 'contextLabel')
+    ..aE<ProgressionReasonKind>(9, _omitFieldNames ? '' : 'reasonKind',
+        enumValues: ProgressionReasonKind.values)
+    ..aOS(10, _omitFieldNames ? '' : 'reasonText')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1223,6 +1230,24 @@ class ProgressionDetails extends $pb.GeneratedMessage {
   $core.bool hasContextLabel() => $_has(7);
   @$pb.TagNumber(8)
   void clearContextLabel() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  ProgressionReasonKind get reasonKind => $_getN(8);
+  @$pb.TagNumber(9)
+  set reasonKind(ProgressionReasonKind value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasReasonKind() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearReasonKind() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get reasonText => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set reasonText($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasReasonText() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearReasonText() => $_clearField(10);
 }
 
 enum UserMessageDetails_Detail { progression, notSet }
@@ -1311,6 +1336,7 @@ class UserMessage extends $pb.GeneratedMessage {
     Exercise? exercise,
     $core.String? slotKey,
     UserMessageDetails? details,
+    $core.String? sourceWorkoutId,
   }) {
     final result = create();
     if (messageKey != null) result.messageKey = messageKey;
@@ -1326,6 +1352,7 @@ class UserMessage extends $pb.GeneratedMessage {
     if (exercise != null) result.exercise = exercise;
     if (slotKey != null) result.slotKey = slotKey;
     if (details != null) result.details = details;
+    if (sourceWorkoutId != null) result.sourceWorkoutId = sourceWorkoutId;
     return result;
   }
 
@@ -1359,6 +1386,7 @@ class UserMessage extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'slotKey')
     ..aOM<UserMessageDetails>(14, _omitFieldNames ? '' : 'details',
         subBuilder: UserMessageDetails.create)
+    ..aOS(15, _omitFieldNames ? '' : 'sourceWorkoutId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1498,6 +1526,15 @@ class UserMessage extends $pb.GeneratedMessage {
   void clearDetails() => $_clearField(14);
   @$pb.TagNumber(14)
   UserMessageDetails ensureDetails() => $_ensure(12);
+
+  @$pb.TagNumber(15)
+  $core.String get sourceWorkoutId => $_getSZ(13);
+  @$pb.TagNumber(15)
+  set sourceWorkoutId($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(15)
+  $core.bool hasSourceWorkoutId() => $_has(13);
+  @$pb.TagNumber(15)
+  void clearSourceWorkoutId() => $_clearField(15);
 }
 
 class StartWorkoutRequest extends $pb.GeneratedMessage {

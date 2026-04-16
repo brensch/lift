@@ -264,6 +264,56 @@ class ProgressionMetricKind extends $pb.ProtobufEnum {
   const ProgressionMetricKind._(super.value, super.name);
 }
 
+class ProgressionReasonKind extends $pb.ProtobufEnum {
+  static const ProgressionReasonKind PROGRESSION_REASON_KIND_UNSPECIFIED =
+      ProgressionReasonKind._(
+          0, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_UNSPECIFIED');
+  static const ProgressionReasonKind
+      PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS =
+      ProgressionReasonKind._(
+          1,
+          _omitEnumNames
+              ? ''
+              : 'PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS');
+  static const ProgressionReasonKind
+      PROGRESSION_REASON_KIND_MISSED_TARGET_REPS = ProgressionReasonKind._(2,
+          _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_MISSED_TARGET_REPS');
+  static const ProgressionReasonKind PROGRESSION_REASON_KIND_REPEATED_MISSES =
+      ProgressionReasonKind._(
+          3, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_REPEATED_MISSES');
+  static const ProgressionReasonKind PROGRESSION_REASON_KIND_STAGE_ADVANCE =
+      ProgressionReasonKind._(
+          4, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_STAGE_ADVANCE');
+  static const ProgressionReasonKind PROGRESSION_REASON_KIND_CYCLE_COMPLETED =
+      ProgressionReasonKind._(
+          5, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_CYCLE_COMPLETED');
+  static const ProgressionReasonKind
+      PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK =
+      ProgressionReasonKind._(
+          6,
+          _omitEnumNames
+              ? ''
+              : 'PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK');
+
+  static const $core.List<ProgressionReasonKind> values =
+      <ProgressionReasonKind>[
+    PROGRESSION_REASON_KIND_UNSPECIFIED,
+    PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS,
+    PROGRESSION_REASON_KIND_MISSED_TARGET_REPS,
+    PROGRESSION_REASON_KIND_REPEATED_MISSES,
+    PROGRESSION_REASON_KIND_STAGE_ADVANCE,
+    PROGRESSION_REASON_KIND_CYCLE_COMPLETED,
+    PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK,
+  ];
+
+  static final $core.List<ProgressionReasonKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
+  static ProgressionReasonKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ProgressionReasonKind._(super.value, super.name);
+}
+
 class WorkoutState extends $pb.ProtobufEnum {
   static const WorkoutState WORKOUT_STATE_UNSPECIFIED =
       WorkoutState._(0, _omitEnumNames ? '' : 'WORKOUT_STATE_UNSPECIFIED');

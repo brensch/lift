@@ -142,11 +142,10 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<Workout> endWorkout(String workoutId) async {
-    final response = await _client.workoutService.endWorkout(
+  Future<EndWorkoutResponse> endWorkout(String workoutId) async {
+    return await _client.workoutService.endWorkout(
       EndWorkoutRequest()..workoutId = workoutId,
     );
-    return response.workout;
   }
 
   Future<ReplaceExerciseGroupPlanResponse> replaceExerciseGroupPlan({

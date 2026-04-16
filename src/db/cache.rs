@@ -136,11 +136,12 @@ impl ServerDb {
         for message in messages {
             sqlx::query(
                 "INSERT INTO user_message_events
-                 (user_id, message_key, surface, workout_id, exercise_group_id, exercise, slot_key, dismissed_at, created_at, updated_at, message_blob)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                 (user_id, message_key, surface, workout_id, source_workout_id, exercise_group_id, exercise, slot_key, dismissed_at, created_at, updated_at, message_blob)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
                  ON CONFLICT(user_id, message_key) DO UPDATE SET
                    surface = excluded.surface,
                    workout_id = excluded.workout_id,
+                   source_workout_id = excluded.source_workout_id,
                    exercise_group_id = excluded.exercise_group_id,
                    exercise = excluded.exercise,
                    slot_key = excluded.slot_key,
@@ -153,6 +154,7 @@ impl ServerDb {
             .bind(&message.message_key)
             .bind(message.surface)
             .bind(&message.workout_id)
+            .bind(&message.source_workout_id)
             .bind(&message.exercise_group_id)
             .bind(message.exercise)
             .bind(&message.slot_key)
@@ -175,7 +177,7 @@ impl ServerDb {
         let rows = if include_dismissed {
             sqlx::query(
                 "SELECT message_blob FROM user_message_events
-                 WHERE user_id = ? AND workout_id = ?
+                 WHERE user_id = ? AND source_workout_id = ?
                  ORDER BY updated_at DESC",
             )
             .bind(user_id)
@@ -185,7 +187,7 @@ impl ServerDb {
         } else {
             sqlx::query(
                 "SELECT message_blob FROM user_message_events
-                 WHERE user_id = ? AND workout_id = ? AND dismissed_at = 0
+                 WHERE user_id = ? AND source_workout_id = ? AND dismissed_at = 0
                  ORDER BY updated_at DESC",
             )
             .bind(user_id)
@@ -194,10 +196,15 @@ impl ServerDb {
             .await?
         };
         let mut out = Vec::new();
+        let mut seen = std::collections::HashSet::new();
         for row in rows {
             let blob: Vec<u8> = row.get("message_blob");
-            out.push(UserMessage::decode(blob.as_slice())?);
+            let message = UserMessage::decode(blob.as_slice())?;
+            if seen.insert(message.message_key.clone()) {
+                out.push(message);
+            }
         }
+        out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
         Ok(out)
     }
 

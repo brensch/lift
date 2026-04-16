@@ -911,6 +911,140 @@ public final class WorkoutOuterClass {
   }
 
   /**
+   * Protobuf enum {@code workout.v1.ProgressionReasonKind}
+   */
+  public enum ProgressionReasonKind
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>PROGRESSION_REASON_KIND_UNSPECIFIED = 0;</code>
+     */
+    PROGRESSION_REASON_KIND_UNSPECIFIED(0),
+    /**
+     * <code>PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS = 1;</code>
+     */
+    PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS(1),
+    /**
+     * <code>PROGRESSION_REASON_KIND_MISSED_TARGET_REPS = 2;</code>
+     */
+    PROGRESSION_REASON_KIND_MISSED_TARGET_REPS(2),
+    /**
+     * <code>PROGRESSION_REASON_KIND_REPEATED_MISSES = 3;</code>
+     */
+    PROGRESSION_REASON_KIND_REPEATED_MISSES(3),
+    /**
+     * <code>PROGRESSION_REASON_KIND_STAGE_ADVANCE = 4;</code>
+     */
+    PROGRESSION_REASON_KIND_STAGE_ADVANCE(4),
+    /**
+     * <code>PROGRESSION_REASON_KIND_CYCLE_COMPLETED = 5;</code>
+     */
+    PROGRESSION_REASON_KIND_CYCLE_COMPLETED(5),
+    /**
+     * <code>PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK = 6;</code>
+     */
+    PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK(6),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>PROGRESSION_REASON_KIND_UNSPECIFIED = 0;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS = 1;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS_VALUE = 1;
+    /**
+     * <code>PROGRESSION_REASON_KIND_MISSED_TARGET_REPS = 2;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_MISSED_TARGET_REPS_VALUE = 2;
+    /**
+     * <code>PROGRESSION_REASON_KIND_REPEATED_MISSES = 3;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_REPEATED_MISSES_VALUE = 3;
+    /**
+     * <code>PROGRESSION_REASON_KIND_STAGE_ADVANCE = 4;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_STAGE_ADVANCE_VALUE = 4;
+    /**
+     * <code>PROGRESSION_REASON_KIND_CYCLE_COMPLETED = 5;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_CYCLE_COMPLETED_VALUE = 5;
+    /**
+     * <code>PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK = 6;</code>
+     */
+    public static final int PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK_VALUE = 6;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static ProgressionReasonKind valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static ProgressionReasonKind forNumber(int value) {
+      switch (value) {
+        case 0: return PROGRESSION_REASON_KIND_UNSPECIFIED;
+        case 1: return PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS;
+        case 2: return PROGRESSION_REASON_KIND_MISSED_TARGET_REPS;
+        case 3: return PROGRESSION_REASON_KIND_REPEATED_MISSES;
+        case 4: return PROGRESSION_REASON_KIND_STAGE_ADVANCE;
+        case 5: return PROGRESSION_REASON_KIND_CYCLE_COMPLETED;
+        case 6: return PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<ProgressionReasonKind>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        ProgressionReasonKind> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<ProgressionReasonKind>() {
+            @java.lang.Override
+            public ProgressionReasonKind findValueByNumber(int number) {
+              return ProgressionReasonKind.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return ProgressionReasonKindVerifier.INSTANCE;
+    }
+
+    private static final class ProgressionReasonKindVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new ProgressionReasonKindVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return ProgressionReasonKind.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private ProgressionReasonKind(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.ProgressionReasonKind)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.WorkoutState}
    */
   public enum WorkoutState
@@ -8284,6 +8418,29 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getContextLabelBytes();
+
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @return The enum numeric value on the wire for reasonKind.
+     */
+    int getReasonKindValue();
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @return The reasonKind.
+     */
+    workout.v1.WorkoutOuterClass.ProgressionReasonKind getReasonKind();
+
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @return The reasonText.
+     */
+    java.lang.String getReasonText();
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @return The bytes for reasonText.
+     */
+    com.google.protobuf.ByteString
+        getReasonTextBytes();
   }
   /**
    * Protobuf type {@code workout.v1.ProgressionDetails}
@@ -8298,6 +8455,7 @@ public final class WorkoutOuterClass {
       nextStage_ = "";
       sourceWorkoutId_ = "";
       contextLabel_ = "";
+      reasonText_ = "";
     }
     public static final int CHANGE_KIND_FIELD_NUMBER = 1;
     private int changeKind_;
@@ -8620,6 +8778,95 @@ public final class WorkoutOuterClass {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       contextLabel_ = value.toStringUtf8();
+      
+    }
+
+    public static final int REASON_KIND_FIELD_NUMBER = 9;
+    private int reasonKind_;
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @return The enum numeric value on the wire for reasonKind.
+     */
+    @java.lang.Override
+    public int getReasonKindValue() {
+      return reasonKind_;
+    }
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @return The reasonKind.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgressionReasonKind getReasonKind() {
+      workout.v1.WorkoutOuterClass.ProgressionReasonKind result = workout.v1.WorkoutOuterClass.ProgressionReasonKind.forNumber(reasonKind_);
+      return result == null ? workout.v1.WorkoutOuterClass.ProgressionReasonKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @param value The enum numeric value on the wire for reasonKind to set.
+     */
+    private void setReasonKindValue(int value) {
+        reasonKind_ = value;
+    }
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     * @param value The reasonKind to set.
+     */
+    private void setReasonKind(workout.v1.WorkoutOuterClass.ProgressionReasonKind value) {
+      reasonKind_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+     */
+    private void clearReasonKind() {
+      
+      reasonKind_ = 0;
+    }
+
+    public static final int REASON_TEXT_FIELD_NUMBER = 10;
+    private java.lang.String reasonText_;
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @return The reasonText.
+     */
+    @java.lang.Override
+    public java.lang.String getReasonText() {
+      return reasonText_;
+    }
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @return The bytes for reasonText.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getReasonTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(reasonText_);
+    }
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @param value The reasonText to set.
+     */
+    private void setReasonText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      reasonText_ = value;
+    }
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     */
+    private void clearReasonText() {
+      
+      reasonText_ = getDefaultInstance().getReasonText();
+    }
+    /**
+     * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+     * @param value The bytes for reasonText to set.
+     */
+    private void setReasonTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      reasonText_ = value.toStringUtf8();
       
     }
 
@@ -9062,6 +9309,101 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+       * @return The enum numeric value on the wire for reasonKind.
+       */
+      @java.lang.Override
+      public int getReasonKindValue() {
+        return instance.getReasonKindValue();
+      }
+      /**
+       * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+       * @param value The reasonKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReasonKindValue(int value) {
+        copyOnWrite();
+        instance.setReasonKindValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+       * @return The reasonKind.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgressionReasonKind getReasonKind() {
+        return instance.getReasonKind();
+      }
+      /**
+       * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+       * @param value The enum numeric value on the wire for reasonKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReasonKind(workout.v1.WorkoutOuterClass.ProgressionReasonKind value) {
+        copyOnWrite();
+        instance.setReasonKind(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgressionReasonKind reason_kind = 9 [json_name = "reasonKind"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearReasonKind() {
+        copyOnWrite();
+        instance.clearReasonKind();
+        return this;
+      }
+
+      /**
+       * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+       * @return The reasonText.
+       */
+      @java.lang.Override
+      public java.lang.String getReasonText() {
+        return instance.getReasonText();
+      }
+      /**
+       * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+       * @return The bytes for reasonText.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getReasonTextBytes() {
+        return instance.getReasonTextBytes();
+      }
+      /**
+       * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+       * @param value The reasonText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReasonText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setReasonText(value);
+        return this;
+      }
+      /**
+       * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearReasonText() {
+        copyOnWrite();
+        instance.clearReasonText();
+        return this;
+      }
+      /**
+       * <code>string reason_text = 10 [json_name = "reasonText"];</code>
+       * @param value The bytes for reasonText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReasonTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setReasonTextBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ProgressionDetails)
     }
     @java.lang.Override
@@ -9086,10 +9428,12 @@ public final class WorkoutOuterClass {
               "nextStage_",
               "sourceWorkoutId_",
               "contextLabel_",
+              "reasonKind_",
+              "reasonText_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\f\u0002\f\u0003\u0001\u0004" +
-                "\u0001\u0005\u0208\u0006\u0208\u0007\u0208\b\u0208";
+                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0000\u0000\u0001\f\u0002\f\u0003\u0001\u0004" +
+                "\u0001\u0005\u0208\u0006\u0208\u0007\u0208\b\u0208\t\f\n\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -9630,6 +9974,18 @@ public final class WorkoutOuterClass {
      * @return The details.
      */
     workout.v1.WorkoutOuterClass.UserMessageDetails getDetails();
+
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @return The sourceWorkoutId.
+     */
+    java.lang.String getSourceWorkoutId();
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @return The bytes for sourceWorkoutId.
+     */
+    com.google.protobuf.ByteString
+        getSourceWorkoutIdBytes();
   }
   /**
    * Protobuf type {@code workout.v1.UserMessage}
@@ -9646,6 +10002,7 @@ public final class WorkoutOuterClass {
       workoutId_ = "";
       exerciseGroupId_ = "";
       slotKey_ = "";
+      sourceWorkoutId_ = "";
     }
     public static final int MESSAGE_KEY_FIELD_NUMBER = 1;
     private java.lang.String messageKey_;
@@ -10176,6 +10533,53 @@ public final class WorkoutOuterClass {
      * <code>.workout.v1.UserMessageDetails details = 14 [json_name = "details"];</code>
      */
     private void clearDetails() {  details_ = null;
+      
+    }
+
+    public static final int SOURCE_WORKOUT_ID_FIELD_NUMBER = 15;
+    private java.lang.String sourceWorkoutId_;
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @return The sourceWorkoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getSourceWorkoutId() {
+      return sourceWorkoutId_;
+    }
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @return The bytes for sourceWorkoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSourceWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sourceWorkoutId_);
+    }
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @param value The sourceWorkoutId to set.
+     */
+    private void setSourceWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sourceWorkoutId_ = value;
+    }
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     */
+    private void clearSourceWorkoutId() {
+      
+      sourceWorkoutId_ = getDefaultInstance().getSourceWorkoutId();
+    }
+    /**
+     * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+     * @param value The bytes for sourceWorkoutId to set.
+     */
+    private void setSourceWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sourceWorkoutId_ = value.toStringUtf8();
       
     }
 
@@ -10837,6 +11241,55 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+       * @return The sourceWorkoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getSourceWorkoutId() {
+        return instance.getSourceWorkoutId();
+      }
+      /**
+       * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+       * @return The bytes for sourceWorkoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSourceWorkoutIdBytes() {
+        return instance.getSourceWorkoutIdBytes();
+      }
+      /**
+       * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+       * @param value The sourceWorkoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSourceWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSourceWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSourceWorkoutId() {
+        copyOnWrite();
+        instance.clearSourceWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string source_workout_id = 15 [json_name = "sourceWorkoutId"];</code>
+       * @param value The bytes for sourceWorkoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSourceWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSourceWorkoutIdBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.UserMessage)
     }
     @java.lang.Override
@@ -10866,11 +11319,12 @@ public final class WorkoutOuterClass {
               "exercise_",
               "slotKey_",
               "details_",
+              "sourceWorkoutId_",
             };
             java.lang.String info =
-                "\u0000\r\u0000\u0000\u0001\u000e\r\u0000\u0000\u0000\u0001\u0208\u0002\f\u0003\f" +
-                "\u0004\u0208\u0005\u0208\u0006\u0007\u0007\u0002\b\u0002\t\u0208\n\u0208\u000b\f" +
-                "\f\u0208\u000e\t";
+                "\u0000\u000e\u0000\u0000\u0001\u000f\u000e\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "\u0003\f\u0004\u0208\u0005\u0208\u0006\u0007\u0007\u0002\b\u0002\t\u0208\n\u0208" +
+                "\u000b\f\f\u0208\u000e\t\u000f\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
