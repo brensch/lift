@@ -162,6 +162,30 @@ final $typed_data.Uint8List progressionMetricKindDescriptor = $convert.base64Dec
     'VDSUZJRUQQABIqCiZQUk9HUkVTU0lPTl9NRVRSSUNfS0lORF9XT1JLSU5HX1dFSUdIVBABEigK'
     'JFBST0dSRVNTSU9OX01FVFJJQ19LSU5EX1RSQUlOSU5HX01BWBAC');
 
+@$core.Deprecated('Use progressionReasonKindDescriptor instead')
+const ProgressionReasonKind$json = {
+  '1': 'ProgressionReasonKind',
+  '2': [
+    {'1': 'PROGRESSION_REASON_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS', '2': 1},
+    {'1': 'PROGRESSION_REASON_KIND_MISSED_TARGET_REPS', '2': 2},
+    {'1': 'PROGRESSION_REASON_KIND_REPEATED_MISSES', '2': 3},
+    {'1': 'PROGRESSION_REASON_KIND_STAGE_ADVANCE', '2': 4},
+    {'1': 'PROGRESSION_REASON_KIND_CYCLE_COMPLETED', '2': 5},
+    {'1': 'PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK', '2': 6},
+  ],
+};
+
+/// Descriptor for `ProgressionReasonKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List progressionReasonKindDescriptor = $convert.base64Decode(
+    'ChVQcm9ncmVzc2lvblJlYXNvbktpbmQSJwojUFJPR1JFU1NJT05fUkVBU09OX0tJTkRfVU5TUE'
+    'VDSUZJRUQQABI2CjJQUk9HUkVTU0lPTl9SRUFTT05fS0lORF9DT01QTEVURURfQUxMX1dPUktJ'
+    'TkdfU0VUUxABEi4KKlBST0dSRVNTSU9OX1JFQVNPTl9LSU5EX01JU1NFRF9UQVJHRVRfUkVQUx'
+    'ACEisKJ1BST0dSRVNTSU9OX1JFQVNPTl9LSU5EX1JFUEVBVEVEX01JU1NFUxADEikKJVBST0dS'
+    'RVNTSU9OX1JFQVNPTl9LSU5EX1NUQUdFX0FEVkFOQ0UQBBIrCidQUk9HUkVTU0lPTl9SRUFTT0'
+    '5fS0lORF9DWUNMRV9DT01QTEVURUQQBRI1CjFQUk9HUkVTU0lPTl9SRUFTT05fS0lORF9DTEVB'
+    'UkVEX1BST0dSRVNTSU9OX0NIRUNLEAY=');
+
 @$core.Deprecated('Use workoutStateDescriptor instead')
 const WorkoutState$json = {
   '1': 'WorkoutState',
@@ -506,6 +530,15 @@ const ProgressionDetails$json = {
     {'1': 'next_stage', '3': 6, '4': 1, '5': 9, '10': 'nextStage'},
     {'1': 'source_workout_id', '3': 7, '4': 1, '5': 9, '10': 'sourceWorkoutId'},
     {'1': 'context_label', '3': 8, '4': 1, '5': 9, '10': 'contextLabel'},
+    {
+      '1': 'reason_kind',
+      '3': 9,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ProgressionReasonKind',
+      '10': 'reasonKind'
+    },
+    {'1': 'reason_text', '3': 10, '4': 1, '5': 9, '10': 'reasonText'},
   ],
 };
 
@@ -517,7 +550,9 @@ final $typed_data.Uint8List progressionDetailsDescriptor = $convert.base64Decode
     'VzX3dlaWdodBgDIAEoAlIOcHJldmlvdXNXZWlnaHQSHwoLbmV4dF93ZWlnaHQYBCABKAJSCm5l'
     'eHRXZWlnaHQSJQoOcHJldmlvdXNfc3RhZ2UYBSABKAlSDXByZXZpb3VzU3RhZ2USHQoKbmV4dF'
     '9zdGFnZRgGIAEoCVIJbmV4dFN0YWdlEioKEXNvdXJjZV93b3Jrb3V0X2lkGAcgASgJUg9zb3Vy'
-    'Y2VXb3Jrb3V0SWQSIwoNY29udGV4dF9sYWJlbBgIIAEoCVIMY29udGV4dExhYmVs');
+    'Y2VXb3Jrb3V0SWQSIwoNY29udGV4dF9sYWJlbBgIIAEoCVIMY29udGV4dExhYmVsEkIKC3JlYX'
+    'Nvbl9raW5kGAkgASgOMiEud29ya291dC52MS5Qcm9ncmVzc2lvblJlYXNvbktpbmRSCnJlYXNv'
+    'bktpbmQSHwoLcmVhc29uX3RleHQYCiABKAlSCnJlYXNvblRleHQ=');
 
 @$core.Deprecated('Use userMessageDetailsDescriptor instead')
 const UserMessageDetails$json = {
@@ -594,6 +629,13 @@ const UserMessage$json = {
       '6': '.workout.v1.UserMessageDetails',
       '10': 'details'
     },
+    {
+      '1': 'source_workout_id',
+      '3': 15,
+      '4': 1,
+      '5': 9,
+      '10': 'sourceWorkoutId'
+    },
   ],
   '9': [
     {'1': 13, '2': 14},
@@ -612,7 +654,8 @@ final $typed_data.Uint8List userMessageDescriptor = $convert.base64Decode(
     'ZV9ncm91cF9pZBgKIAEoCVIPZXhlcmNpc2VHcm91cElkEjAKCGV4ZXJjaXNlGAsgASgOMhQud2'
     '9ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2USGQoIc2xvdF9rZXkYDCABKAlSB3Nsb3RLZXkS'
     'OAoHZGV0YWlscxgOIAEoCzIeLndvcmtvdXQudjEuVXNlck1lc3NhZ2VEZXRhaWxzUgdkZXRhaW'
-    'xzSgQIDRAOUg1tZXRhZGF0YV9qc29u');
+    'xzEioKEXNvdXJjZV93b3Jrb3V0X2lkGA8gASgJUg9zb3VyY2VXb3Jrb3V0SWRKBAgNEA5SDW1l'
+    'dGFkYXRhX2pzb24=');
 
 @$core.Deprecated('Use startWorkoutRequestDescriptor instead')
 const StartWorkoutRequest$json = {

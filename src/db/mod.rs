@@ -211,6 +211,7 @@ CREATE TABLE IF NOT EXISTS user_message_events (
     message_key TEXT NOT NULL,
     surface INTEGER NOT NULL DEFAULT 0,
     workout_id TEXT NOT NULL DEFAULT '',
+    source_workout_id TEXT NOT NULL DEFAULT '',
     exercise_group_id TEXT NOT NULL DEFAULT '',
     exercise INTEGER NOT NULL DEFAULT 0,
     slot_key TEXT NOT NULL DEFAULT '',
@@ -224,6 +225,8 @@ CREATE INDEX IF NOT EXISTS idx_user_message_events_user_surface
     ON user_message_events(user_id, surface, workout_id, dismissed_at, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_message_events_user_workout
     ON user_message_events(user_id, workout_id, dismissed_at, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
+    ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
     ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
 "#;
@@ -256,6 +259,18 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         sqlx::query(SERVER_SCHEMA).execute(&write_pool).await?;
+        sqlx::query(
+            "ALTER TABLE user_message_events ADD COLUMN source_workout_id TEXT NOT NULL DEFAULT ''",
+        )
+        .execute(&write_pool)
+        .await
+        .ok();
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
+             ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC)",
+        )
+        .execute(&write_pool)
+        .await?;
         Ok(Self {
             read_pool,
             write_pool,

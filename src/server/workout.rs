@@ -21,6 +21,7 @@ fn build_message(
         created_at: now,
         updated_at: now,
         workout_id: String::new(),
+        source_workout_id: String::new(),
         exercise_group_id: String::new(),
         exercise: Exercise::Unspecified as i32,
         slot_key: String::new(),
@@ -30,76 +31,6 @@ fn build_message(
 
 fn slot_key_for_exercise(exercise: Exercise) -> String {
     exercise.as_str_name().to_ascii_lowercase()
-}
-
-fn format_message_weight(weight: f32) -> String {
-    if (weight.fract()).abs() < 0.05 {
-        format!("{}", weight.round() as i32)
-    } else {
-        format!("{weight:.1}")
-    }
-}
-
-fn normalize_stage_label(stage: &str) -> String {
-    stage.replace('_', " ")
-}
-
-fn progression_subject(exercise: Exercise, details: &ProgressionDetails) -> String {
-    let label = exercise_display_name(exercise);
-    if details.context_label.is_empty() {
-        label
-    } else {
-        format!("{label} {}", details.context_label)
-    }
-}
-
-fn progression_body(details: &ProgressionDetails) -> String {
-    let prev = format_message_weight(details.previous_weight);
-    let next = format_message_weight(details.next_weight);
-    match ProgressionChangeKind::try_from(details.change_kind)
-        .unwrap_or(ProgressionChangeKind::Unspecified)
-    {
-        ProgressionChangeKind::Increase => format!("Progressed from {prev} to {next}."),
-        ProgressionChangeKind::Hold => {
-            if !details.previous_stage.is_empty()
-                && !details.next_stage.is_empty()
-                && details.previous_stage != details.next_stage
-            {
-                format!(
-                    "Held at {next}. Stage changed from {} to {}.",
-                    normalize_stage_label(&details.previous_stage),
-                    normalize_stage_label(&details.next_stage)
-                )
-            } else {
-                format!("Held at {next}.")
-            }
-        }
-        ProgressionChangeKind::Deload => format!("Reset from {prev} to {next}."),
-        ProgressionChangeKind::CycleAdvance => {
-            format!("Training Max increased from {prev} to {next}.")
-        }
-        ProgressionChangeKind::Unspecified => String::new(),
-    }
-}
-
-fn progression_details_for_message(message: &UserMessage) -> Option<&ProgressionDetails> {
-    match message.details.as_ref()?.detail.as_ref()? {
-        user_message_details::Detail::Progression(details) => Some(details),
-    }
-}
-
-fn sync_message_copy_from_details(message: &mut UserMessage) {
-    let Some(details) = progression_details_for_message(message) else {
-        return;
-    };
-    let title = progression_subject(message.exercise(), details);
-    let body = progression_body(details);
-    if !title.is_empty() {
-        message.title = title;
-    }
-    if !body.is_empty() {
-        message.body = body;
-    }
 }
 
 fn build_progression_message(
@@ -114,6 +45,8 @@ fn build_progression_message(
     next_stage: Option<&str>,
     context_label: Option<&str>,
     metric_kind: ProgressionMetricKind,
+    reason_kind: ProgressionReasonKind,
+    reason_text: Option<&str>,
 ) -> UserMessage {
     let change_kind = match kind {
         UserMessageKind::LoadIncrease => ProgressionChangeKind::Increase,
@@ -131,6 +64,7 @@ fn build_progression_message(
     );
     message.exercise = exercise as i32;
     message.slot_key = slot_key;
+    message.source_workout_id = source_workout_id.to_string();
     message.details = Some(UserMessageDetails {
         detail: Some(user_message_details::Detail::Progression(
             ProgressionDetails {
@@ -142,10 +76,11 @@ fn build_progression_message(
                 next_stage: next_stage.unwrap_or_default().to_string(),
                 source_workout_id: source_workout_id.to_string(),
                 context_label: context_label.unwrap_or_default().to_string(),
+                reason_kind: reason_kind as i32,
+                reason_text: reason_text.unwrap_or_default().to_string(),
             },
         )),
     });
-    sync_message_copy_from_details(&mut message);
     message
 }
 
@@ -192,9 +127,7 @@ fn exercise_group_slot_keys(group: &ExerciseGroup) -> Vec<String> {
 }
 
 fn retarget_progression_message(message: &UserMessage) -> UserMessage {
-    let mut out = message.clone();
-    sync_message_copy_from_details(&mut out);
-    out
+    message.clone()
 }
 
 fn schedule_messages_from_proposal(proposal: &ProposeResult, user_id: &str) -> Vec<UserMessage> {
@@ -310,6 +243,7 @@ fn session_messages_for_completed_set(
         body,
     );
     message.workout_id = workout_id.to_string();
+    message.source_workout_id = workout_id.to_string();
     message.exercise_group_id = proposed_set.exercise_group_id.clone();
     message.exercise = proposed_set.exercise;
     message.updated_at = ended_at;
@@ -369,6 +303,8 @@ fn lp_completion_messages(
                 None,
                 None,
                 ProgressionMetricKind::WorkingWeight,
+                ProgressionReasonKind::CompletedAllWorkingSets,
+                None,
             ));
         } else if next_weight < prev_weight - 0.1 {
             out.push(build_progression_message(
@@ -383,6 +319,8 @@ fn lp_completion_messages(
                 None,
                 None,
                 ProgressionMetricKind::WorkingWeight,
+                ProgressionReasonKind::RepeatedMisses,
+                None,
             ));
         } else if next_stall > prev_stall && !outcome.all_sets_hit_target() {
             out.push(build_progression_message(
@@ -397,6 +335,8 @@ fn lp_completion_messages(
                 None,
                 None,
                 ProgressionMetricKind::WorkingWeight,
+                ProgressionReasonKind::MissedTargetReps,
+                None,
             ));
         }
     }
@@ -477,6 +417,15 @@ fn completion_messages_for_regime(
                     (!next_stage.is_empty()).then_some(next_stage),
                     Some(tier),
                     ProgressionMetricKind::WorkingWeight,
+                    match kind {
+                        UserMessageKind::LoadIncrease => {
+                            ProgressionReasonKind::ClearedProgressionCheck
+                        }
+                        UserMessageKind::StallDeload => ProgressionReasonKind::RepeatedMisses,
+                        UserMessageKind::LoadHold => ProgressionReasonKind::StageAdvance,
+                        _ => ProgressionReasonKind::Unspecified,
+                    },
+                    None,
                 ));
             }
             out
@@ -510,6 +459,8 @@ fn completion_messages_for_regime(
                     None,
                     None,
                     ProgressionMetricKind::TrainingMax,
+                    ProgressionReasonKind::CycleCompleted,
+                    None,
                 ));
             }
             out

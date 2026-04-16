@@ -1767,8 +1767,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _flushPendingWearHeartRateUploads(force: true);
       await NotificationService.cancelAll();
       _wasResting = false;
-      final ended = await _service.endWorkout(_activeWorkout!.id);
+      final response = await _service.endWorkout(_activeWorkout!.id);
+      final ended = response.workout;
       _activeWorkout = ended;
+      _workoutMessages = List<UserMessage>.from(response.userMessages);
       _pendingMutations.clear();
       _stopTimer();
       await _persistLocalCache();

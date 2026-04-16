@@ -41,6 +41,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
   List<UserMessage> _messages = [];
+  bool _showingNextSessionChanges = false;
   bool _isLoading = true;
   String? _loadError;
   List<String> _sessionFriends = [];
@@ -63,13 +64,27 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     try {
       _loadError = null;
       final response = await _getWorkoutWithRetry(service);
+      final providerCompletionMessages =
+          workoutProvider.workout?.id == response.workout.id
+          ? List<UserMessage>.from(workoutProvider.workoutMessages)
+          : const <UserMessage>[];
+      final persistedWorkoutMessages = List<UserMessage>.from(
+        response.userMessages,
+      );
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
           _workout = response.workout;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
-          _messages = List.from(response.userMessages);
+          _messages = providerCompletionMessages.isNotEmpty
+              ? providerCompletionMessages
+              : persistedWorkoutMessages.isNotEmpty
+              ? persistedWorkoutMessages
+              : const <UserMessage>[];
+          _showingNextSessionChanges =
+              providerCompletionMessages.isNotEmpty ||
+              persistedWorkoutMessages.isNotEmpty;
           _heartRateSamples = workoutProvider.workout?.id == response.workout.id
               ? workoutProvider.wearHeartRateSamples
               : const [];
@@ -80,11 +95,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         });
       }
 
+      final userId = auth.userId;
       if (sessionId.isNotEmpty) {
         await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
 
-      final userId = auth.userId;
       if (!widget.isHistory && userId != null && userId.isNotEmpty) {
         _scheduleNextWorkoutNotification(userId, service);
       }
@@ -330,7 +345,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             if (_messages.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                'Workout notes',
+                _showingNextSessionChanges ? 'Updates' : 'Workout notes',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
