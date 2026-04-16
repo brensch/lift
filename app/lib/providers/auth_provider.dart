@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:passkeys/exceptions.dart';
@@ -179,6 +181,8 @@ class AuthProvider extends ChangeNotifier {
     await refreshProfile(notify: false);
   }
 
+  bool _profileRefreshRetryScheduled = false;
+
   Future<void> refreshProfile({bool notify = true}) async {
     final userId = _userId;
     if (userId == null || userId.isEmpty || _sessionToken == null) {
@@ -190,12 +194,25 @@ class AuthProvider extends ChangeNotifier {
       _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
       _profileColorHex = normalizedProfileColorHex(user.profileColorHex);
       _bodyWeightKg = user.bodyWeightKg.toDouble();
+      _profileRefreshRetryScheduled = false;
       if (notify) {
         notifyListeners();
       }
-    } catch (_) {
-      // Keep cached profile if refresh fails.
+    } catch (e) {
+      AppLogger.instance.warn('Auth', 'refreshProfile failed, will retry', {
+        'error': e.toString(),
+      });
+      _scheduleProfileRetry();
     }
+  }
+
+  void _scheduleProfileRetry() {
+    if (_profileRefreshRetryScheduled) return;
+    _profileRefreshRetryScheduled = true;
+    Timer(const Duration(seconds: 5), () {
+      _profileRefreshRetryScheduled = false;
+      refreshProfile();
+    });
   }
 
   void setProfile({
