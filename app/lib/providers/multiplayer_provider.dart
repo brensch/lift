@@ -28,6 +28,14 @@ class MultiplayerProvider extends ChangeNotifier {
   bool _pollInFlight = false;
   bool _syncEnabled = false;
 
+  /// Called when the provider detects repeated poll failures and wants to
+  /// force a fresh HTTP/2 connection.
+  VoidCallback? onConnectionStale;
+
+  /// Number of consecutive poll failures before triggering a channel reset.
+  static const int _maxConsecutiveFailures = 3;
+  int _consecutivePollFailures = 0;
+
   MultiplayerProvider(this._service);
 
   String? get sessionId => _sessionId;
@@ -200,6 +208,7 @@ class MultiplayerProvider extends ChangeNotifier {
     _pollInFlight = true;
     try {
       final response = await _service.getCurrentSession();
+      _consecutivePollFailures = 0;
       if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
         _clearSession(notify: true);
         return;
@@ -210,9 +219,19 @@ class MultiplayerProvider extends ChangeNotifier {
         notify: true,
       );
     } catch (e) {
+      _consecutivePollFailures++;
       AppLogger.instance.warn('Multiplayer', 'poll error', {
         'error': e.toString(),
+        'consecutiveFailures': _consecutivePollFailures,
       });
+      if (_consecutivePollFailures >= _maxConsecutiveFailures) {
+        AppLogger.instance.info(
+          'Multiplayer',
+          'resetting channel after $_consecutivePollFailures consecutive poll failures',
+        );
+        _consecutivePollFailures = 0;
+        onConnectionStale?.call();
+      }
     } finally {
       _pollInFlight = false;
     }
