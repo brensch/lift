@@ -6,10 +6,13 @@ import 'grpc_client.dart';
 
 class MultiplayerServiceWrapper {
   final GrpcClient _client;
+
   /// Poll calls use a shorter deadline so a stale connection fails fast
   /// and the next poll can try on a fresh connection.
   static final _pollCallOptions = CallOptions(timeout: Duration(seconds: 5));
-  static final _defaultCallOptions = CallOptions(timeout: Duration(seconds: 10));
+  static final _defaultCallOptions = CallOptions(
+    timeout: Duration(seconds: 10),
+  );
 
   MultiplayerServiceWrapper(this._client);
 
@@ -23,9 +26,13 @@ class MultiplayerServiceWrapper {
   }
 
   Future<String> getMyInviteToken() async {
-    final response = await _client.multiplayerService.getMyInviteToken(
-      GetMyInviteTokenRequest(),
-      options: _defaultCallOptions,
+    final response = await retryReadAfterReconnect(
+      operation: 'GetMyInviteToken',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.multiplayerService.getMyInviteToken(
+        GetMyInviteTokenRequest(),
+        options: _defaultCallOptions,
+      ),
     );
     return response.inviteToken;
   }
@@ -39,18 +46,26 @@ class MultiplayerServiceWrapper {
   }
 
   Future<GetCurrentSessionResponse> getCurrentSession() async {
-    return await _client.multiplayerService.getCurrentSession(
-      GetCurrentSessionRequest(),
-      options: _pollCallOptions,
+    return await retryReadAfterReconnect(
+      operation: 'GetCurrentSession',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.multiplayerService.getCurrentSession(
+        GetCurrentSessionRequest(),
+        options: _pollCallOptions,
+      ),
     );
   }
 
   Future<GetSessionParticipantsResponse> getSessionParticipants(
     String sessionId,
   ) async {
-    return await _client.multiplayerService.getSessionParticipants(
-      GetSessionParticipantsRequest()..sessionId = sessionId,
-      options: _defaultCallOptions,
+    return await retryReadAfterReconnect(
+      operation: 'GetSessionParticipants',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.multiplayerService.getSessionParticipants(
+        GetSessionParticipantsRequest()..sessionId = sessionId,
+        options: _defaultCallOptions,
+      ),
     );
   }
 
@@ -71,10 +86,14 @@ class MultiplayerServiceWrapper {
     String userId,
     String workoutId,
   ) async {
-    return await _client.multiplayerService.getParticipantWorkout(
-      GetParticipantWorkoutRequest()
-        ..userId = userId
-        ..workoutId = workoutId,
+    return await retryReadAfterReconnect(
+      operation: 'GetParticipantWorkout',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.multiplayerService.getParticipantWorkout(
+        GetParticipantWorkoutRequest()
+          ..userId = userId
+          ..workoutId = workoutId,
+      ),
     );
   }
 }

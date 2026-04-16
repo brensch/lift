@@ -15,8 +15,10 @@ class UserServiceWrapper {
   }
 
   Future<User?> getUser(String userId) async {
-    final response = await _client.userService.getUser(
-      GetUserRequest()..userId = userId,
+    final response = await retryReadAfterReconnect(
+      operation: 'GetUser',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.userService.getUser(GetUserRequest()..userId = userId),
     );
     return response.hasUser() ? response.user : null;
   }
@@ -30,7 +32,9 @@ class UserServiceWrapper {
       UpdateMyProfileRequest(
         profileEmoji: profileEmoji,
         profileColorHex: profileColorHex,
-        bodyWeightKg: bodyWeightKg != null && bodyWeightKg > 0 ? bodyWeightKg.toDouble() : null,
+        bodyWeightKg: bodyWeightKg != null && bodyWeightKg > 0
+            ? bodyWeightKg.toDouble()
+            : null,
       ),
     );
     return response.user;
