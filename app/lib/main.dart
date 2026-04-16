@@ -123,6 +123,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
     );
+    _multiplayerProvider.onConnectionStale = () {
+      _grpcClient.resetChannel();
+    };
     _themeProvider = ThemeProvider();
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(
