@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:fixnum/fixnum.dart' as fixnum;
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/settings.pbgrpc.dart';
 import '../logic/weight_units.dart';
+import '../services/app_logger.dart';
 import '../services/grpc_client.dart';
 
 class SettingsProvider extends ChangeNotifier {
@@ -34,6 +37,8 @@ class SettingsProvider extends ChangeNotifier {
   List<TrainingProgramDefinition> _trainingPrograms = const [];
   TrainingProgramState? _programState;
   bool _loaded = false;
+
+  bool _loadRetryScheduled = false;
 
   SettingsProvider(this._grpcClient);
 
@@ -81,14 +86,22 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       // Load catalog
-      final catalog = await _grpcClient.settingsService
-          .getTrainingProgramCatalog(GetTrainingProgramCatalogRequest());
+      final catalog = await retryReadAfterReconnect(
+        operation: 'GetTrainingProgramCatalog',
+        resetChannel: _grpcClient.resetChannel,
+        rpc: () => _grpcClient.settingsService.getTrainingProgramCatalog(
+          GetTrainingProgramCatalogRequest(),
+        ),
+      );
       _trainingPrograms = [...catalog.programs]
         ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
       // Load user settings (plate colors)
-      final response = await _grpcClient.settingsService.getSettings(
-        GetSettingsRequest(),
+      final response = await retryReadAfterReconnect(
+        operation: 'GetSettings',
+        resetChannel: _grpcClient.resetChannel,
+        rpc: () =>
+            _grpcClient.settingsService.getSettings(GetSettingsRequest()),
       );
       for (final setting in response.settings) {
         if (setting.whichSetting() == UserSetting_Setting.plateColors) {
@@ -102,31 +115,66 @@ class SettingsProvider extends ChangeNotifier {
       }
 
       // Load training program state
-      final stateRes = await _grpcClient.settingsService
-          .getActiveTrainingProgramState(
-            GetActiveTrainingProgramStateRequest(),
-          );
+      final stateRes = await retryReadAfterReconnect(
+        operation: 'GetActiveTrainingProgramState',
+        resetChannel: _grpcClient.resetChannel,
+        rpc: () => _grpcClient.settingsService.getActiveTrainingProgramState(
+          GetActiveTrainingProgramStateRequest(),
+        ),
+      );
       if (stateRes.hasState()) _programState = stateRes.state;
 
+      _loadRetryScheduled = false;
       _loaded = true;
       notifyListeners();
     } catch (e) {
+      AppLogger.instance.warn('Settings', 'load failed, will retry', {
+        'error': e.toString(),
+      });
       _loaded = true;
       notifyListeners();
+      _scheduleLoadRetry();
     }
   }
 
+  void _scheduleLoadRetry() {
+    if (_loadRetryScheduled) return;
+    _loadRetryScheduled = true;
+    Timer(const Duration(seconds: 5), () {
+      _loadRetryScheduled = false;
+      load();
+    });
+  }
+
+  bool _refreshStateRetryScheduled = false;
+
   Future<void> refreshActiveTrainingProgramState() async {
     try {
-      final stateRes = await _grpcClient.settingsService
-          .getActiveTrainingProgramState(
-            GetActiveTrainingProgramStateRequest(),
-          );
+      final stateRes = await retryReadAfterReconnect(
+        operation: 'GetActiveTrainingProgramState',
+        resetChannel: _grpcClient.resetChannel,
+        rpc: () => _grpcClient.settingsService.getActiveTrainingProgramState(
+          GetActiveTrainingProgramStateRequest(),
+        ),
+      );
       _programState = stateRes.hasState() ? stateRes.state : null;
+      _refreshStateRetryScheduled = false;
       notifyListeners();
-    } catch (_) {
-      // Keep existing cached state on refresh failure.
+    } catch (e) {
+      AppLogger.instance.warn('Settings', 'refreshState failed, will retry', {
+        'error': e.toString(),
+      });
+      _scheduleRefreshStateRetry();
     }
+  }
+
+  void _scheduleRefreshStateRetry() {
+    if (_refreshStateRetryScheduled) return;
+    _refreshStateRetryScheduled = true;
+    Timer(const Duration(seconds: 5), () {
+      _refreshStateRetryScheduled = false;
+      refreshActiveTrainingProgramState();
+    });
   }
 
   void clear() {

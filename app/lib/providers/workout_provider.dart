@@ -1193,7 +1193,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  bool _loadWorkoutRetryScheduled = false;
+  String? _lastLoadUserId;
+
   Future<void> loadActiveWorkout(String userId) async {
+    _lastLoadUserId = userId;
     await _restoreLocalCacheFuture;
     _isLoading = true;
     _lastLoadError = null;
@@ -1227,6 +1231,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _regimeContext = proposedSchedule.hasRegimeContext()
           ? proposedSchedule.regimeContext
           : null;
+      _loadWorkoutRetryScheduled = false;
       await _persistLocalCache();
     } catch (e) {
       _lastLoadWasUnauthorized = isUnauthenticatedError(e);
@@ -1239,14 +1244,27 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       } else {
         AppLogger.instance.warn(
           'Workout',
-          'loadActiveWorkout transient error',
+          'loadActiveWorkout transient error, will retry',
           {'error': _lastLoadError ?? e.toString()},
         );
+        _scheduleLoadWorkoutRetry();
       }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _scheduleLoadWorkoutRetry() {
+    if (_loadWorkoutRetryScheduled) return;
+    _loadWorkoutRetryScheduled = true;
+    Timer(const Duration(seconds: 5), () {
+      _loadWorkoutRetryScheduled = false;
+      final userId = _lastLoadUserId;
+      if (userId != null) {
+        loadActiveWorkout(userId);
+      }
+    });
   }
 
   Future<void> loadWorkoutFromServer(String workoutId) async {

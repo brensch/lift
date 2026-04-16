@@ -1,5 +1,6 @@
-import 'package:grpc/grpc.dart';
 import 'dart:async';
+
+import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
@@ -48,6 +49,41 @@ class AuthInterceptor extends ClientInterceptor {
   }
 }
 
+String formatGrpcError(Object error) {
+  if (error is GrpcError) {
+    return '${error.codeName}: ${error.message}';
+  }
+  return error.toString();
+}
+
+bool isTransientReadConnectionError(Object error) {
+  if (error is GrpcError) {
+    return error.code == StatusCode.deadlineExceeded ||
+        error.code == StatusCode.unavailable;
+  }
+  return false;
+}
+
+/// grpc-dart reconnects when the transport is known to be broken, but a
+/// per-RPC deadline can fire while the channel still believes the connection is
+/// ready. For short idempotent reads, force a fresh channel and retry once.
+Future<T> retryReadAfterReconnect<T>({
+  required String operation,
+  required Future<T> Function() rpc,
+  required void Function() resetChannel,
+}) async {
+  try {
+    return await rpc();
+  } catch (error) {
+    if (!isTransientReadConnectionError(error)) rethrow;
+    AppLogger.instance.warn('gRPC', '$operation timed out, resetting channel', {
+      'error': formatGrpcError(error),
+    });
+    resetChannel();
+    return await rpc();
+  }
+}
+
 /// Logs every unary gRPC call with timing and error info.
 class LoggingInterceptor extends ClientInterceptor {
   static const _tag = 'gRPC';
@@ -75,25 +111,32 @@ class LoggingInterceptor extends ClientInterceptor {
     final response = invoker(method, request, options);
 
     // Attach completion logging.
-    unawaited(response.then((_) {
-      stopwatch.stop();
-      final ms = stopwatch.elapsedMilliseconds;
-      if (isDebugOnly) {
-        AppLogger.instance.debug(_tag, shortName, {'ms': ms});
-      } else {
-        AppLogger.instance.info(_tag, shortName, {'phase': 'done', 'ms': ms});
-      }
-    }).catchError((Object e) {
-      stopwatch.stop();
-      final ms = stopwatch.elapsedMilliseconds;
-      final errorMsg = e is GrpcError
-          ? '${e.codeName}: ${e.message}'
-          : e.toString();
-      AppLogger.instance.error(_tag, shortName, {
-        'ms': ms,
-        'error': errorMsg,
-      });
-    }));
+    unawaited(
+      response
+          .then((_) {
+            stopwatch.stop();
+            final ms = stopwatch.elapsedMilliseconds;
+            if (isDebugOnly) {
+              AppLogger.instance.debug(_tag, shortName, {'ms': ms});
+            } else {
+              AppLogger.instance.info(_tag, shortName, {
+                'phase': 'done',
+                'ms': ms,
+              });
+            }
+          })
+          .catchError((Object e) {
+            stopwatch.stop();
+            final ms = stopwatch.elapsedMilliseconds;
+            final errorMsg = e is GrpcError
+                ? '${e.codeName}: ${e.message}'
+                : e.toString();
+            AppLogger.instance.error(_tag, shortName, {
+              'ms': ms,
+              'error': errorMsg,
+            });
+          }),
+    );
 
     return response;
   }
@@ -117,8 +160,10 @@ class GrpcClient {
     _buildChannel();
   }
 
-  List<ClientInterceptor> get _interceptors =>
-      [authInterceptor, _loggingInterceptor];
+  List<ClientInterceptor> get _interceptors => [
+    authInterceptor,
+    _loggingInterceptor,
+  ];
 
   void _buildChannel() {
     // Use secure credentials for production (port 443)
@@ -141,10 +186,7 @@ class GrpcClient {
         ),
       ),
     );
-    workoutService = WorkoutServiceClient(
-      channel,
-      interceptors: _interceptors,
-    );
+    workoutService = WorkoutServiceClient(channel, interceptors: _interceptors);
     userService = UserServiceClient(channel, interceptors: _interceptors);
     multiplayerService = MultiplayerServiceClient(
       channel,

@@ -24,16 +24,24 @@ class WorkoutServiceWrapper {
   }
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) async {
-    return await _client.workoutService.getWorkout(
-      GetWorkoutRequest()..workoutId = workoutId,
-      options: _defaultCallOptions,
+    return await retryReadAfterReconnect(
+      operation: 'GetWorkout',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.workoutService.getWorkout(
+        GetWorkoutRequest()..workoutId = workoutId,
+        options: _defaultCallOptions,
+      ),
     );
   }
 
   Future<Workout?> getActiveWorkout() async {
-    final response = await _client.workoutService.getActiveWorkout(
-      GetActiveWorkoutRequest(),
-      options: _defaultCallOptions,
+    final response = await retryReadAfterReconnect(
+      operation: 'GetActiveWorkout',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.workoutService.getActiveWorkout(
+        GetActiveWorkoutRequest(),
+        options: _defaultCallOptions,
+      ),
     );
     return response.hasWorkout() ? response.workout : null;
   }
@@ -177,9 +185,13 @@ class WorkoutServiceWrapper {
   Future<GetProposedWorkoutScheduleResponse> getProposedWorkoutSchedule(
     String userId,
   ) async {
-    return await _client.workoutService.getProposedWorkoutSchedule(
-      GetProposedWorkoutScheduleRequest()..userId = userId,
-      options: _defaultCallOptions,
+    return await retryReadAfterReconnect(
+      operation: 'GetProposedWorkoutSchedule',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.workoutService.getProposedWorkoutSchedule(
+        GetProposedWorkoutScheduleRequest()..userId = userId,
+        options: _defaultCallOptions,
+      ),
     );
   }
 
