@@ -49,6 +49,10 @@
 		<string>Fonts/Manrope-Variable.ttf</string>
 		<string>Fonts/SpaceGrotesk-Variable.ttf</string>
 	</array>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKApplication</key>
 	<true/>
 </dict>

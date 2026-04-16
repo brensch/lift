@@ -232,10 +232,16 @@ class WearableSnapshotBuilder {
   ) {
     final groupId = displaySet.exerciseGroupId;
     if (groupId.isEmpty) return null;
-    final groupSets = proposedSets
-        .where((set) => !set.cancelled && set.exerciseGroupId == groupId)
-        .toList()
-      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    final groupSets =
+        proposedSets
+            .where(
+              (set) =>
+                  !set.cancelled &&
+                  set.exerciseGroupId == groupId &&
+                  set.warmup == displaySet.warmup,
+            )
+            .toList()
+          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     if (groupSets.isEmpty) return null;
     final currentIndex = groupSets.indexWhere((set) => set.id == displaySet.id);
     if (currentIndex < 0) return null;
@@ -346,12 +352,12 @@ class WearableSnapshotBuilder {
     if (myUserId != null && myUserId.isNotEmpty) {
       final myStart =
           !_isLiftingState(stateValue) &&
-                  !_isAllDoneState(stateValue) &&
-                  nextSet != null
-              ? (restUntil > 0
-                  ? restUntil
-                  : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
-              : null;
+              !_isAllDoneState(stateValue) &&
+              nextSet != null
+          ? (restUntil > 0
+                ? restUntil
+                : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
+          : null;
       if (myStart != null && isCandidate(myUserId, myStart)) {
         bestId = myUserId;
         bestStart = myStart;

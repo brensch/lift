@@ -65,6 +65,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
         let data = bytes.data
         queue.async { self.lastSnapshotBytes = data }
+        let session = WCSession.default
 
         let message: [String: Any] = [
             "path": WatchBridgeManager.phoneToWearSnapshotPath,
@@ -72,15 +73,20 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         ]
 
         do {
-            try WCSession.default.updateApplicationContext(message)
+            try session.updateApplicationContext(message)
         } catch {
             print("SchliftWearBridge: Failed to update watch app context: \(error)")
         }
 
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(message, replyHandler: nil) { error in
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil) { error in
                 print("SchliftWearBridge: Failed to send snapshot: \(error)")
             }
+        } else {
+            // Queue a guaranteed background delivery so the watch can ingest fresh
+            // rest/start state changes while its UI is inactive and reschedule local
+            // boundary haptics from the newest snapshot it receives.
+            session.transferUserInfo(message)
         }
     }
 

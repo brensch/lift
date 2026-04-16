@@ -9,6 +9,15 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
     private var starting = false
+    private var currentSessionState: HKWorkoutSessionState = .notStarted
+    private var builderCollectionStarted = false
+
+    private var isSessionRunning: Bool {
+        session != nil &&
+        builder != nil &&
+        builderCollectionStarted &&
+        currentSessionState == .running
+    }
 
     private var readTypes: Set<HKObjectType> {
         var types: Set<HKObjectType> = []
@@ -46,16 +55,22 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func ensureSessionActive() {
-        guard session == nil else { return }
+        guard !isSessionRunning else { return }
         guard HKHealthStore.isHealthDataAvailable() else {
             print("SchliftWatch: HealthKit unavailable on this device")
             return
         }
         guard !starting else { return }
         starting = true
+        if session != nil || builder != nil {
+            print(
+                "SchliftWatch: Resetting unhealthy workout session before restart " +
+                "state=\(currentSessionState.rawValue) collectionStarted=\(builderCollectionStarted)"
+            )
+            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+        }
         requestAuthorizationIfNeeded { [weak self] _ in
             guard let self = self else { return }
-            self.starting = false
             // requestAuthorization can report failure even when read access is already
             // granted from a prior run. Attempt to start regardless — HK will silently
             // emit zero samples if read access is actually denied, and the HR watchdog
@@ -65,18 +80,22 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func restart() {
-        endSessionIfActive()
+        tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
         ensureSessionActive()
     }
 
     private func startSession() {
-        guard session == nil else { return }
+        guard session == nil, builder == nil else {
+            starting = false
+            return
+        }
 
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .traditionalStrengthTraining
         configuration.locationType = .indoor
 
         do {
+            let startDate = Date()
             let session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             session.delegate = self
             let builder = session.associatedWorkoutBuilder()
@@ -85,49 +104,50 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
             self.session = session
             self.builder = builder
+            currentSessionState = .prepared
+            builderCollectionStarted = false
 
-            session.startActivity(with: Date())
-            builder.beginCollection(withStart: Date()) { success, error in
+            session.startActivity(with: startDate)
+            builder.beginCollection(withStart: startDate) { [weak self] success, error in
+                guard let self = self else { return }
+                self.starting = false
                 if let error = error {
                     print("SchliftWatch: Failed to begin workout collection: \(error)")
+                    self.tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+                } else if !success {
+                    print("SchliftWatch: Workout collection reported success=false")
+                    self.tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
                 } else {
+                    self.builderCollectionStarted = true
                     print("SchliftWatch: Workout collection started success=\(success)")
                 }
             }
         } catch {
             print("SchliftWatch: Failed to create workout session: \(error)")
-            self.session = nil
-            self.builder = nil
+            starting = false
+            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
         }
     }
 
     func endSessionIfActive() {
-        guard let session = session else { return }
-        let builder = builder
-        session.end()
-        builder?.endCollection(withEnd: Date()) { _, error in
-            if let error = error {
-                print("SchliftWatch: Failed to end workout collection: \(error)")
-            }
-            builder?.discardWorkout()
-        }
-        self.session = nil
-        self.builder = nil
-        DispatchQueue.main.async { [weak self] in
-            self?.onLatestHeartRateChanged?(nil)
-        }
+        guard session != nil || builder != nil else { return }
+        tearDownCurrentSession(clearDisplayedHeartRate: true, endUnderlyingSession: true)
     }
 
     // MARK: - HKWorkoutSessionDelegate
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+        currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
+        if toState == .ended {
+            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
+        }
     }
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
         print("SchliftWatch: Workout session failed: \(error)")
-        session = nil
-        builder = nil
+        starting = false
+        tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
         // Auto-retry once on next watchdog tick by leaving state clean; the
         // PhoneConnector watchdog will call ensureSessionActive again within 10s.
     }
@@ -161,6 +181,37 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
         DispatchQueue.main.async { [weak self] in
             self?.onLatestHeartRateChanged?(bpm)
+        }
+    }
+
+    private func tearDownCurrentSession(clearDisplayedHeartRate: Bool, endUnderlyingSession: Bool) {
+        let existingSession = session
+        let existingBuilder = builder
+        let shouldEndCollection = builderCollectionStarted
+
+        session = nil
+        builder = nil
+        starting = false
+        currentSessionState = .notStarted
+        builderCollectionStarted = false
+
+        if endUnderlyingSession {
+            existingSession?.end()
+        }
+        if shouldEndCollection {
+            existingBuilder?.endCollection(withEnd: Date()) { _, error in
+                if let error = error {
+                    print("SchliftWatch: Failed to end workout collection: \(error)")
+                }
+                existingBuilder?.discardWorkout()
+            }
+        } else {
+            existingBuilder?.discardWorkout()
+        }
+
+        guard clearDisplayedHeartRate else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.onLatestHeartRateChanged?(nil)
         }
     }
 }
