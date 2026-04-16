@@ -127,6 +127,41 @@ final $typed_data.Uint8List userMessageSurfaceDescriptor = $convert.base64Decode
     'VVJGQUNFX1dPUktPVVRfQlJJRUZJTkcQAhIlCiFVU0VSX01FU1NBR0VfU1VSRkFDRV9XT1JLT1'
     'VUX0ZFRUQQAw==');
 
+@$core.Deprecated('Use progressionChangeKindDescriptor instead')
+const ProgressionChangeKind$json = {
+  '1': 'ProgressionChangeKind',
+  '2': [
+    {'1': 'PROGRESSION_CHANGE_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'PROGRESSION_CHANGE_KIND_INCREASE', '2': 1},
+    {'1': 'PROGRESSION_CHANGE_KIND_HOLD', '2': 2},
+    {'1': 'PROGRESSION_CHANGE_KIND_DELOAD', '2': 3},
+    {'1': 'PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE', '2': 4},
+  ],
+};
+
+/// Descriptor for `ProgressionChangeKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List progressionChangeKindDescriptor = $convert.base64Decode(
+    'ChVQcm9ncmVzc2lvbkNoYW5nZUtpbmQSJwojUFJPR1JFU1NJT05fQ0hBTkdFX0tJTkRfVU5TUE'
+    'VDSUZJRUQQABIkCiBQUk9HUkVTU0lPTl9DSEFOR0VfS0lORF9JTkNSRUFTRRABEiAKHFBST0dS'
+    'RVNTSU9OX0NIQU5HRV9LSU5EX0hPTEQQAhIiCh5QUk9HUkVTU0lPTl9DSEFOR0VfS0lORF9ERU'
+    'xPQUQQAxIpCiVQUk9HUkVTU0lPTl9DSEFOR0VfS0lORF9DWUNMRV9BRFZBTkNFEAQ=');
+
+@$core.Deprecated('Use progressionMetricKindDescriptor instead')
+const ProgressionMetricKind$json = {
+  '1': 'ProgressionMetricKind',
+  '2': [
+    {'1': 'PROGRESSION_METRIC_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'PROGRESSION_METRIC_KIND_WORKING_WEIGHT', '2': 1},
+    {'1': 'PROGRESSION_METRIC_KIND_TRAINING_MAX', '2': 2},
+  ],
+};
+
+/// Descriptor for `ProgressionMetricKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List progressionMetricKindDescriptor = $convert.base64Decode(
+    'ChVQcm9ncmVzc2lvbk1ldHJpY0tpbmQSJwojUFJPR1JFU1NJT05fTUVUUklDX0tJTkRfVU5TUE'
+    'VDSUZJRUQQABIqCiZQUk9HUkVTU0lPTl9NRVRSSUNfS0lORF9XT1JLSU5HX1dFSUdIVBABEigK'
+    'JFBST0dSRVNTSU9OX01FVFJJQ19LSU5EX1RSQUlOSU5HX01BWBAC');
+
 @$core.Deprecated('Use workoutStateDescriptor instead')
 const WorkoutState$json = {
   '1': 'WorkoutState',
@@ -445,6 +480,69 @@ final $typed_data.Uint8List completedSetDescriptor = $convert.base64Decode(
     'VpZ2h0Eh0KCnN0YXJ0ZWRfYXQYBiABKANSCXN0YXJ0ZWRBdBIZCghlbmRlZF9hdBgHIAEoA1IH'
     'ZW5kZWRBdBIdCgpyZXN0X3VudGlsGAggASgDUglyZXN0VW50aWw=');
 
+@$core.Deprecated('Use progressionDetailsDescriptor instead')
+const ProgressionDetails$json = {
+  '1': 'ProgressionDetails',
+  '2': [
+    {
+      '1': 'change_kind',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ProgressionChangeKind',
+      '10': 'changeKind'
+    },
+    {
+      '1': 'metric_kind',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ProgressionMetricKind',
+      '10': 'metricKind'
+    },
+    {'1': 'previous_weight', '3': 3, '4': 1, '5': 2, '10': 'previousWeight'},
+    {'1': 'next_weight', '3': 4, '4': 1, '5': 2, '10': 'nextWeight'},
+    {'1': 'previous_stage', '3': 5, '4': 1, '5': 9, '10': 'previousStage'},
+    {'1': 'next_stage', '3': 6, '4': 1, '5': 9, '10': 'nextStage'},
+    {'1': 'source_workout_id', '3': 7, '4': 1, '5': 9, '10': 'sourceWorkoutId'},
+    {'1': 'context_label', '3': 8, '4': 1, '5': 9, '10': 'contextLabel'},
+  ],
+};
+
+/// Descriptor for `ProgressionDetails`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List progressionDetailsDescriptor = $convert.base64Decode(
+    'ChJQcm9ncmVzc2lvbkRldGFpbHMSQgoLY2hhbmdlX2tpbmQYASABKA4yIS53b3Jrb3V0LnYxLl'
+    'Byb2dyZXNzaW9uQ2hhbmdlS2luZFIKY2hhbmdlS2luZBJCCgttZXRyaWNfa2luZBgCIAEoDjIh'
+    'LndvcmtvdXQudjEuUHJvZ3Jlc3Npb25NZXRyaWNLaW5kUgptZXRyaWNLaW5kEicKD3ByZXZpb3'
+    'VzX3dlaWdodBgDIAEoAlIOcHJldmlvdXNXZWlnaHQSHwoLbmV4dF93ZWlnaHQYBCABKAJSCm5l'
+    'eHRXZWlnaHQSJQoOcHJldmlvdXNfc3RhZ2UYBSABKAlSDXByZXZpb3VzU3RhZ2USHQoKbmV4dF'
+    '9zdGFnZRgGIAEoCVIJbmV4dFN0YWdlEioKEXNvdXJjZV93b3Jrb3V0X2lkGAcgASgJUg9zb3Vy'
+    'Y2VXb3Jrb3V0SWQSIwoNY29udGV4dF9sYWJlbBgIIAEoCVIMY29udGV4dExhYmVs');
+
+@$core.Deprecated('Use userMessageDetailsDescriptor instead')
+const UserMessageDetails$json = {
+  '1': 'UserMessageDetails',
+  '2': [
+    {
+      '1': 'progression',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ProgressionDetails',
+      '9': 0,
+      '10': 'progression'
+    },
+  ],
+  '8': [
+    {'1': 'detail'},
+  ],
+};
+
+/// Descriptor for `UserMessageDetails`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List userMessageDetailsDescriptor = $convert.base64Decode(
+    'ChJVc2VyTWVzc2FnZURldGFpbHMSQgoLcHJvZ3Jlc3Npb24YASABKAsyHi53b3Jrb3V0LnYxLl'
+    'Byb2dyZXNzaW9uRGV0YWlsc0gAUgtwcm9ncmVzc2lvbkIICgZkZXRhaWw=');
+
 @$core.Deprecated('Use userMessageDescriptor instead')
 const UserMessage$json = {
   '1': 'UserMessage',
@@ -488,8 +586,19 @@ const UserMessage$json = {
       '10': 'exercise'
     },
     {'1': 'slot_key', '3': 12, '4': 1, '5': 9, '10': 'slotKey'},
-    {'1': 'metadata_json', '3': 13, '4': 1, '5': 9, '10': 'metadataJson'},
+    {
+      '1': 'details',
+      '3': 14,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.UserMessageDetails',
+      '10': 'details'
+    },
   ],
+  '9': [
+    {'1': 13, '2': 14},
+  ],
+  '10': ['metadata_json'],
 };
 
 /// Descriptor for `UserMessage`. Decode as a `google.protobuf.DescriptorProto`.
@@ -502,7 +611,8 @@ final $typed_data.Uint8List userMessageDescriptor = $convert.base64Decode(
     'EoA1IJdXBkYXRlZEF0Eh0KCndvcmtvdXRfaWQYCSABKAlSCXdvcmtvdXRJZBIqChFleGVyY2lz'
     'ZV9ncm91cF9pZBgKIAEoCVIPZXhlcmNpc2VHcm91cElkEjAKCGV4ZXJjaXNlGAsgASgOMhQud2'
     '9ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2USGQoIc2xvdF9rZXkYDCABKAlSB3Nsb3RLZXkS'
-    'IwoNbWV0YWRhdGFfanNvbhgNIAEoCVIMbWV0YWRhdGFKc29u');
+    'OAoHZGV0YWlscxgOIAEoCzIeLndvcmtvdXQudjEuVXNlck1lc3NhZ2VEZXRhaWxzUgdkZXRhaW'
+    'xzSgQIDRAOUg1tZXRhZGF0YV9qc29u');
 
 @$core.Deprecated('Use startWorkoutRequestDescriptor instead')
 const StartWorkoutRequest$json = {

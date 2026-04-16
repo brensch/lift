@@ -14,6 +14,7 @@ import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/set_log.dart';
+import '../widgets/user_message_chip.dart';
 import '../widgets/workout_modals.dart';
 import '../widgets/heart_rate_chart.dart';
 
@@ -521,55 +522,14 @@ class _WorkoutMessagesSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         for (final message in messages.take(6)) ...[
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (message.title.isNotEmpty)
-                        Text(
-                          message.title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      if (message.title.isNotEmpty) const SizedBox(height: 4),
-                      Text(
-                        message.body,
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.35,
-                          color: colorScheme.onSurface.withValues(alpha: 0.82),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (message.dismissible) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: () =>
-                        provider.dismissUserMessages([message.messageKey]),
-                  ),
-                ],
-              ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: UserMessageChip(
+              message: message,
+              compact: true,
+              onDismiss: message.dismissible
+                  ? () => provider.dismissUserMessages([message.messageKey])
+                  : null,
             ),
           ),
         ],
@@ -987,57 +947,14 @@ class _ExerciseMessagesBlock extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         for (final message in messages.take(3)) ...[
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.35,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.22),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (message.title.isNotEmpty)
-                        Text(
-                          message.title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      if (message.title.isNotEmpty) const SizedBox(height: 4),
-                      Text(
-                        message.body,
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.35,
-                          color: colorScheme.onSurface.withValues(alpha: 0.82),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (message.dismissible) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: () =>
-                        provider.dismissUserMessages([message.messageKey]),
-                  ),
-                ],
-              ],
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: UserMessageChip(
+              message: message,
+              compact: true,
+              onDismiss: message.dismissible
+                  ? () => provider.dismissUserMessages([message.messageKey])
+                  : null,
             ),
           ),
         ],

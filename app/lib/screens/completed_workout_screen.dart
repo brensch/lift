@@ -18,6 +18,7 @@ import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
+import '../widgets/user_message_chip.dart';
 import '../services/notification_service.dart';
 
 class CompletedWorkoutScreen extends StatefulWidget {
@@ -338,7 +339,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               ..._messages.map(
                 (message) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _WorkoutNoteCard(message: message),
+                  child: UserMessageChip(message: message),
                 ),
               ),
             ],
@@ -423,45 +424,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     } else {
       context.go('/');
     }
-  }
-}
-
-class _WorkoutNoteCard extends StatelessWidget {
-  final UserMessage message;
-
-  const _WorkoutNoteCard({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (message.title.isNotEmpty) ...[
-            Text(
-              message.title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 4),
-          ],
-          Text(
-            message.body,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.35,
-              color: colorScheme.onSurface.withValues(alpha: 0.82),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

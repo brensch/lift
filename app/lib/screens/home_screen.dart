@@ -17,6 +17,7 @@ import '../logic/exercise_groups.dart';
 import '../logic/warmup.dart';
 import '../logic/weight_units.dart';
 import '../logic/utils.dart';
+import '../widgets/user_message_chip.dart';
 import '../widgets/workout_modals.dart';
 import 'package:uuid/uuid.dart';
 import 'workout_start_briefing_screen.dart';
@@ -1620,14 +1621,25 @@ class _GroupChip extends StatelessWidget {
                         group.exerciseConfigs[i],
                         groupMessages,
                       ))
-                        if (message.title.isNotEmpty)
-                          '${message.title}: ${message.body}'
-                        else
-                          message.body,
+                        UserMessageChip(message: message, compact: true),
                       if (i == 0 &&
                           group.explanation.isNotEmpty &&
                           groupMessages.isEmpty)
-                        group.explanation,
+                        Builder(
+                          builder: (context) {
+                            final colorScheme = Theme.of(context).colorScheme;
+                            return Text(
+                              group.explanation,
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.4,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.76,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                     ],
                     warmupLines: _warmupLinesForConfig(
                       group.exerciseConfigs[i],
@@ -1793,7 +1805,7 @@ typedef _SetLine = ({int index, String text, String note});
 
 class _ExerciseConfigDetailsCard extends StatelessWidget {
   final String title;
-  final List<String> notes;
+  final List<Widget> notes;
   final List<_SetLine> warmupLines;
   final List<_SetLine> workingSetLines;
   final List<String> meta;
@@ -1826,14 +1838,7 @@ class _ExerciseConfigDetailsCard extends StatelessWidget {
                 for (final note in notes)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      note,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: colorScheme.onSurface.withValues(alpha: 0.76),
-                      ),
-                    ),
+                    child: note,
                   ),
               ],
             ),

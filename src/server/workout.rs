@@ -1,8 +1,6 @@
 use super::*;
 use crate::program_state::{FieldVal, ProposalMessage, ProposeResult, StatePayload};
-use crate::regimes::{exercise_display_name, format_weight_compact};
-use crate::weight_units::weight_unit_from_state;
-use serde::{Deserialize, Serialize};
+use crate::regimes::exercise_display_name;
 use std::collections::HashMap;
 
 fn build_message(
@@ -26,29 +24,129 @@ fn build_message(
         exercise_group_id: String::new(),
         exercise: Exercise::Unspecified as i32,
         slot_key: String::new(),
-        metadata_json: "{}".to_string(),
+        details: None,
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct ProgressionMessageMeta {
-    source_workout_id: String,
-    previous_weight: Option<f32>,
-    recommended_weight: Option<f32>,
-    previous_stage: Option<String>,
-    next_stage: Option<String>,
-}
-
-fn encode_progression_meta(meta: &ProgressionMessageMeta) -> String {
-    serde_json::to_string(meta).unwrap_or_else(|_| "{}".to_string())
-}
-
-fn decode_progression_meta(message: &UserMessage) -> ProgressionMessageMeta {
-    serde_json::from_str(&message.metadata_json).unwrap_or_default()
 }
 
 fn slot_key_for_exercise(exercise: Exercise) -> String {
     exercise.as_str_name().to_ascii_lowercase()
+}
+
+fn format_message_weight(weight: f32) -> String {
+    if (weight.fract()).abs() < 0.05 {
+        format!("{}", weight.round() as i32)
+    } else {
+        format!("{weight:.1}")
+    }
+}
+
+fn normalize_stage_label(stage: &str) -> String {
+    stage.replace('_', " ")
+}
+
+fn progression_subject(exercise: Exercise, details: &ProgressionDetails) -> String {
+    let label = exercise_display_name(exercise);
+    if details.context_label.is_empty() {
+        label
+    } else {
+        format!("{label} {}", details.context_label)
+    }
+}
+
+fn progression_body(details: &ProgressionDetails) -> String {
+    let prev = format_message_weight(details.previous_weight);
+    let next = format_message_weight(details.next_weight);
+    match ProgressionChangeKind::try_from(details.change_kind)
+        .unwrap_or(ProgressionChangeKind::Unspecified)
+    {
+        ProgressionChangeKind::Increase => format!("Progressed from {prev} to {next}."),
+        ProgressionChangeKind::Hold => {
+            if !details.previous_stage.is_empty()
+                && !details.next_stage.is_empty()
+                && details.previous_stage != details.next_stage
+            {
+                format!(
+                    "Held at {next}. Stage changed from {} to {}.",
+                    normalize_stage_label(&details.previous_stage),
+                    normalize_stage_label(&details.next_stage)
+                )
+            } else {
+                format!("Held at {next}.")
+            }
+        }
+        ProgressionChangeKind::Deload => format!("Reset from {prev} to {next}."),
+        ProgressionChangeKind::CycleAdvance => {
+            format!("Training Max increased from {prev} to {next}.")
+        }
+        ProgressionChangeKind::Unspecified => String::new(),
+    }
+}
+
+fn progression_details_for_message(message: &UserMessage) -> Option<&ProgressionDetails> {
+    match message.details.as_ref()?.detail.as_ref()? {
+        user_message_details::Detail::Progression(details) => Some(details),
+    }
+}
+
+fn sync_message_copy_from_details(message: &mut UserMessage) {
+    let Some(details) = progression_details_for_message(message) else {
+        return;
+    };
+    let title = progression_subject(message.exercise(), details);
+    let body = progression_body(details);
+    if !title.is_empty() {
+        message.title = title;
+    }
+    if !body.is_empty() {
+        message.body = body;
+    }
+}
+
+fn build_progression_message(
+    key: impl Into<String>,
+    kind: UserMessageKind,
+    exercise: Exercise,
+    slot_key: String,
+    source_workout_id: &str,
+    previous_weight: f32,
+    next_weight: f32,
+    previous_stage: Option<&str>,
+    next_stage: Option<&str>,
+    context_label: Option<&str>,
+    metric_kind: ProgressionMetricKind,
+) -> UserMessage {
+    let change_kind = match kind {
+        UserMessageKind::LoadIncrease => ProgressionChangeKind::Increase,
+        UserMessageKind::LoadHold => ProgressionChangeKind::Hold,
+        UserMessageKind::StallDeload => ProgressionChangeKind::Deload,
+        UserMessageKind::CycleAdvance => ProgressionChangeKind::CycleAdvance,
+        _ => ProgressionChangeKind::Unspecified,
+    };
+    let mut message = build_message(
+        key,
+        kind,
+        UserMessageSurface::WorkoutBriefing,
+        String::new(),
+        String::new(),
+    );
+    message.exercise = exercise as i32;
+    message.slot_key = slot_key;
+    message.details = Some(UserMessageDetails {
+        detail: Some(user_message_details::Detail::Progression(
+            ProgressionDetails {
+                change_kind: change_kind as i32,
+                metric_kind: metric_kind as i32,
+                previous_weight,
+                next_weight,
+                previous_stage: previous_stage.unwrap_or_default().to_string(),
+                next_stage: next_stage.unwrap_or_default().to_string(),
+                source_workout_id: source_workout_id.to_string(),
+                context_label: context_label.unwrap_or_default().to_string(),
+            },
+        )),
+    });
+    sync_message_copy_from_details(&mut message);
+    message
 }
 
 fn proposed_group_slot_keys(group: &ProposedExerciseGroup) -> Vec<String> {
@@ -93,113 +191,9 @@ fn exercise_group_slot_keys(group: &ExerciseGroup) -> Vec<String> {
     out
 }
 
-fn group_working_weight_from_configs(
-    configs: &[ExerciseTypeConfig],
-    exercise: Exercise,
-) -> Option<f32> {
-    configs.iter().find_map(|config| {
-        if Exercise::try_from(config.exercise).unwrap_or(Exercise::Unspecified) != exercise {
-            return None;
-        }
-        config
-            .working_sets
-            .iter()
-            .find(|set| !set.is_amrap || set.target_weight > 0.0)
-            .map(|set| set.target_weight)
-            .or_else(|| Some(config.start_weight))
-    })
-}
-
-fn group_working_weight(group: &ExerciseGroup, exercise: Exercise) -> Option<f32> {
-    group_working_weight_from_configs(&group.exercise_configs, exercise)
-}
-
-fn proposed_group_working_weight(group: &ProposedExerciseGroup, exercise: Exercise) -> Option<f32> {
-    group_working_weight_from_configs(&group.exercise_configs, exercise)
-}
-
-fn retarget_progression_message(message: &UserMessage, target_weight: Option<f32>) -> UserMessage {
+fn retarget_progression_message(message: &UserMessage) -> UserMessage {
     let mut out = message.clone();
-    let meta = decode_progression_meta(message);
-    let started = target_weight.map(|weight| weight.round());
-    let kind = UserMessageKind::try_from(message.kind).unwrap_or(UserMessageKind::Unspecified);
-    let label = exercise_display_name(out.exercise());
-
-    out.body = match kind {
-        UserMessageKind::LoadIncrease => match (meta.previous_weight, meta.recommended_weight) {
-            (Some(prev), Some(rec)) => match started {
-                Some(started) => format!(
-                    "{} was progressed from {} to {} after your last successful session. This workout starts at {}.",
-                    label,
-                    prev.round(),
-                    rec.round(),
-                    started
-                ),
-                None => format!(
-                    "{} was progressed from {} to {} after your last successful session.",
-                    label,
-                    prev.round(),
-                    rec.round()
-                ),
-            },
-            _ => out.body.clone(),
-        },
-        UserMessageKind::LoadHold => {
-            match (
-                meta.recommended_weight,
-                meta.previous_stage.as_deref(),
-                meta.next_stage.as_deref(),
-            ) {
-                (Some(rec), Some(prev_stage), Some(next_stage)) if prev_stage != next_stage => {
-                    format!(
-                        "{} stays at {} and shifts from {} to {} for this workout.",
-                        label,
-                        rec.round(),
-                        prev_stage.replace('_', " "),
-                        next_stage.replace('_', " ")
-                    )
-                }
-                (Some(rec), _, _) => match started {
-                    Some(started) => format!(
-                        "{} was held at {} after the last miss. This workout starts at {}.",
-                        label,
-                        rec.round(),
-                        started
-                    ),
-                    None => format!("{} was held at {} after the last miss.", label, rec.round()),
-                },
-                _ => out.body.clone(),
-            }
-        }
-        UserMessageKind::StallDeload => match (meta.previous_weight, meta.recommended_weight) {
-            (Some(prev), Some(rec)) => match started {
-                Some(started) => format!(
-                    "{} was reset from {} to {} after repeated misses. This workout starts at {}.",
-                    label,
-                    prev.round(),
-                    rec.round(),
-                    started
-                ),
-                None => format!(
-                    "{} was reset from {} to {} after repeated misses.",
-                    label,
-                    prev.round(),
-                    rec.round()
-                ),
-            },
-            _ => out.body.clone(),
-        },
-        UserMessageKind::CycleAdvance => match (meta.previous_weight, meta.recommended_weight) {
-            (Some(prev), Some(rec)) => format!(
-                "{} Training Max increased from {} to {} for this cycle.",
-                label,
-                prev.round(),
-                rec.round()
-            ),
-            _ => out.body.clone(),
-        },
-        _ => out.body.clone(),
-    };
+    sync_message_copy_from_details(&mut out);
     out
 }
 
@@ -243,9 +237,7 @@ fn pending_briefing_messages_for_proposal(
             if !slot_keys.contains(&message.slot_key) {
                 continue;
             }
-            let exercise = message.exercise();
-            let target_weight = proposed_group_working_weight(group, exercise);
-            out.push(retarget_progression_message(message, target_weight));
+            out.push(retarget_progression_message(message));
             seen.push(message.message_key.clone());
         }
     }
@@ -331,7 +323,6 @@ fn lp_completion_messages(
     slot_outcomes: &HashMap<String, crate::schplanner::SchplannerSlotOutcome>,
     workout_id: &str,
 ) -> Vec<UserMessage> {
-    let unit = weight_unit_from_state(next);
     let lifts = [
         (Exercise::Squat, "squat_weight", "squat_stall_count"),
         (
@@ -364,83 +355,49 @@ fn lp_completion_messages(
         let Some(outcome) = slot_outcomes.get(&exercise.as_str_name().to_ascii_lowercase()) else {
             continue;
         };
-        let label = exercise_display_name(exercise);
         let slot_key = slot_key_for_exercise(exercise);
         if next_weight > prev_weight + 0.1 {
-            let mut msg = build_message(
+            out.push(build_progression_message(
                 format!("pending:{workout_id}:increase:{slot_key}"),
                 UserMessageKind::LoadIncrease,
-                UserMessageSurface::WorkoutBriefing,
-                format!("{label} increased"),
-                format!(
-                    "{} moves from {} to {} next session because you completed all working sets.",
-                    label,
-                    format_weight_compact(prev_weight, unit),
-                    format_weight_compact(next_weight, unit)
-                ),
-            );
-            msg.exercise = exercise as i32;
-            msg.slot_key = slot_key.clone();
-            msg.updated_at = now_unix();
-            msg.created_at = msg.updated_at;
-            msg.metadata_json = encode_progression_meta(&ProgressionMessageMeta {
-                source_workout_id: workout_id.to_string(),
-                previous_weight: Some(prev_weight),
-                recommended_weight: Some(next_weight),
-                previous_stage: None,
-                next_stage: None,
-            });
-            out.push(msg);
+                exercise,
+                slot_key.clone(),
+                workout_id,
+                prev_weight,
+                next_weight,
+                None,
+                None,
+                None,
+                ProgressionMetricKind::WorkingWeight,
+            ));
         } else if next_weight < prev_weight - 0.1 {
-            let mut msg = build_message(
+            out.push(build_progression_message(
                 format!("pending:{workout_id}:deload:{slot_key}"),
                 UserMessageKind::StallDeload,
-                UserMessageSurface::WorkoutBriefing,
-                format!("{label} deloaded"),
-                format!(
-                    "{} drops from {} to {} after the third stall at this load.",
-                    label,
-                    format_weight_compact(prev_weight, unit),
-                    format_weight_compact(next_weight, unit)
-                ),
-            );
-            msg.exercise = exercise as i32;
-            msg.slot_key = slot_key.clone();
-            msg.updated_at = now_unix();
-            msg.created_at = msg.updated_at;
-            msg.metadata_json = encode_progression_meta(&ProgressionMessageMeta {
-                source_workout_id: workout_id.to_string(),
-                previous_weight: Some(prev_weight),
-                recommended_weight: Some(next_weight),
-                previous_stage: None,
-                next_stage: None,
-            });
-            out.push(msg);
+                exercise,
+                slot_key.clone(),
+                workout_id,
+                prev_weight,
+                next_weight,
+                None,
+                None,
+                None,
+                ProgressionMetricKind::WorkingWeight,
+            ));
         } else if next_stall > prev_stall && !outcome.all_sets_hit_target() {
-            let mut msg = build_message(
+            out.push(build_progression_message(
                 format!("pending:{workout_id}:hold:{slot_key}"),
                 UserMessageKind::LoadHold,
-                UserMessageSurface::WorkoutBriefing,
-                format!("{label} held"),
-                format!(
-                    "{} stays at {}. Stall count is now {} of 3.",
-                    label,
-                    format_weight_compact(next_weight, unit),
-                    next_stall
-                ),
-            );
-            msg.exercise = exercise as i32;
-            msg.slot_key = slot_key;
-            msg.updated_at = now_unix();
-            msg.created_at = msg.updated_at;
-            msg.metadata_json = encode_progression_meta(&ProgressionMessageMeta {
-                source_workout_id: workout_id.to_string(),
-                previous_weight: Some(prev_weight),
-                recommended_weight: Some(next_weight),
-                previous_stage: None,
-                next_stage: None,
-            });
-            out.push(msg);
+                exercise,
+                slot_key,
+                workout_id,
+                prev_weight,
+                next_weight,
+                None,
+                None,
+                None,
+                ProgressionMetricKind::WorkingWeight,
+            ));
         }
     }
     out
@@ -456,7 +413,6 @@ fn completion_messages_for_regime(
     match regime_type {
         RegimeType::Linear5x5 => lp_completion_messages(prev, next, slot_outcomes, workout_id),
         RegimeType::Gzclp => {
-            let unit = weight_unit_from_state(next);
             let lifts = [
                 (
                     Exercise::Squat,
@@ -499,77 +455,33 @@ fn completion_messages_for_regime(
                 let next_stage = stage_key
                     .map(|k| crate::program_state::get_str_or(next, k, ""))
                     .unwrap_or("");
-                let label = exercise_display_name(exercise);
                 let slot_key = slot_key_for_exercise(exercise);
-                let (kind, body) = if next_weight > prev_weight + 0.1 {
-                    (
-                        UserMessageKind::LoadIncrease,
-                        format!(
-                            "{} {} moves from {} to {} after you cleared the progression check.",
-                            label,
-                            tier,
-                            format_weight_compact(prev_weight, unit),
-                            format_weight_compact(next_weight, unit)
-                        ),
-                    )
+                let kind = if next_weight > prev_weight + 0.1 {
+                    UserMessageKind::LoadIncrease
                 } else if next_weight < prev_weight - 0.1 {
-                    (
-                        UserMessageKind::StallDeload,
-                        format!(
-                            "{} {} resets from {} to {} and returns to its first stage after repeated misses.",
-                            label,
-                            tier,
-                            format_weight_compact(prev_weight, unit),
-                            format_weight_compact(next_weight, unit)
-                        ),
-                    )
+                    UserMessageKind::StallDeload
                 } else if prev_stage != next_stage && !next_stage.is_empty() {
-                    (
-                        UserMessageKind::LoadHold,
-                        format!(
-                            "{} {} stays at {} and shifts from {} to {}.",
-                            label,
-                            tier,
-                            format_weight_compact(next_weight, unit),
-                            prev_stage.replace('_', " "),
-                            next_stage.replace('_', " ")
-                        ),
-                    )
+                    UserMessageKind::LoadHold
                 } else {
                     continue;
                 };
-                let mut msg = build_message(
+                out.push(build_progression_message(
                     format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
                     kind,
-                    UserMessageSurface::WorkoutBriefing,
-                    format!("{label} {tier} update"),
-                    body,
-                );
-                msg.exercise = exercise as i32;
-                msg.slot_key = slot_key;
-                msg.updated_at = now_unix();
-                msg.created_at = msg.updated_at;
-                msg.metadata_json = encode_progression_meta(&ProgressionMessageMeta {
-                    source_workout_id: workout_id.to_string(),
-                    previous_weight: Some(prev_weight),
-                    recommended_weight: Some(next_weight),
-                    previous_stage: if prev_stage.is_empty() {
-                        None
-                    } else {
-                        Some(prev_stage.to_string())
-                    },
-                    next_stage: if next_stage.is_empty() {
-                        None
-                    } else {
-                        Some(next_stage.to_string())
-                    },
-                });
-                out.push(msg);
+                    exercise,
+                    slot_key,
+                    workout_id,
+                    prev_weight,
+                    next_weight,
+                    (!prev_stage.is_empty()).then_some(prev_stage),
+                    (!next_stage.is_empty()).then_some(next_stage),
+                    Some(tier),
+                    ProgressionMetricKind::WorkingWeight,
+                ));
             }
             out
         }
         RegimeType::Wendler531 => {
-            let unit = weight_unit_from_state(next);
             let lifts = [
                 (Exercise::Squat, "squat_tm"),
                 (Exercise::BenchPress, "bench_press_tm"),
@@ -583,34 +495,22 @@ fn completion_messages_for_regime(
                 if next_tm <= prev_tm + 0.1 {
                     continue;
                 }
-                let label = exercise_display_name(exercise);
-                let mut msg = build_message(
+                out.push(build_progression_message(
                     format!(
                         "pending:{workout_id}:cycle:{}",
                         slot_key_for_exercise(exercise)
                     ),
                     UserMessageKind::CycleAdvance,
-                    UserMessageSurface::WorkoutBriefing,
-                    format!("{label} Training Max increased"),
-                    format!(
-                        "{} Training Max moves from {} to {} for the next cycle.",
-                        label,
-                        format_weight_compact(prev_tm, unit),
-                        format_weight_compact(next_tm, unit)
-                    ),
-                );
-                msg.exercise = exercise as i32;
-                msg.slot_key = slot_key_for_exercise(exercise);
-                msg.updated_at = now_unix();
-                msg.created_at = msg.updated_at;
-                msg.metadata_json = encode_progression_meta(&ProgressionMessageMeta {
-                    source_workout_id: workout_id.to_string(),
-                    previous_weight: Some(prev_tm),
-                    recommended_weight: Some(next_tm),
-                    previous_stage: None,
-                    next_stage: None,
-                });
-                out.push(msg);
+                    exercise,
+                    slot_key_for_exercise(exercise),
+                    workout_id,
+                    prev_tm,
+                    next_tm,
+                    None,
+                    None,
+                    None,
+                    ProgressionMetricKind::TrainingMax,
+                ));
             }
             out
         }
@@ -1027,11 +927,7 @@ impl WorkoutService for ServerWorkoutService {
             .iter()
             .filter_map(|(message_key, exercise_group_id)| {
                 let base = pending_by_key.get(message_key)?;
-                let group = groups.iter().find(|group| group.id == *exercise_group_id)?;
-                let mut message = retarget_progression_message(
-                    base,
-                    group_working_weight(group, base.exercise()),
-                );
+                let mut message = retarget_progression_message(base);
                 message.workout_id = workout_id.clone();
                 message.exercise_group_id = exercise_group_id.clone();
                 message.updated_at = started_at;
