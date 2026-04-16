@@ -58,11 +58,7 @@ impl ServerDb {
 
     /// Upsert the caller's current session. Overwrites any prior membership (a user can
     /// only be in one session at a time).
-    pub async fn set_user_current_session(
-        &self,
-        user_id: &str,
-        session_id: &str,
-    ) -> DbResult<()> {
+    pub async fn set_user_current_session(&self, user_id: &str, session_id: &str) -> DbResult<()> {
         sqlx::query(
             "INSERT INTO user_current_session (user_id, session_id, joined_at) VALUES (?, ?, ?)
              ON CONFLICT(user_id) DO UPDATE SET

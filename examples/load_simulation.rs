@@ -7,11 +7,10 @@ use schlift::workout::v1::{
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
     ExerciseTypeConfig, GetActiveTrainingProgramStateRequest, GetActiveWorkoutRequest,
-    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, GetSettingsRequest,
-    GetMyInviteTokenRequest, GetTrainingProgramCatalogRequest, GetWorkoutRequest,
-    JoinViaInviteRequest, StartSetRequest,
-    StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint,
-    WorkoutMutation,
+    GetCurrentSessionRequest, GetMyInviteTokenRequest, GetProposedWorkoutScheduleRequest,
+    GetSettingsRequest, GetTrainingProgramCatalogRequest, GetWorkoutRequest, JoinViaInviteRequest,
+    StartSetRequest, StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest,
+    WorkoutHeartRatePoint, WorkoutMutation,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;

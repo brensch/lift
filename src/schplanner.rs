@@ -27,6 +27,8 @@ pub struct SchplannerSlotOutcome {
     pub planned_sets: usize,
     pub completed_sets: usize,
     pub successful_sets: usize,
+    pub last_completed_actual_weight: Option<f32>,
+    pub last_successful_actual_weight: Option<f32>,
     pub top_set_target_reps: i32,
     pub top_set_actual_reps: i32,
     pub amrap_success_threshold: i32,
@@ -49,11 +51,10 @@ impl SchplannerSlotOutcome {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Default)]
 pub struct SchplannerDerivation {
     pub effective_state: StatePayload,
-    pub slot_reasons: HashMap<String, String>,
-    pub started_workout_count: usize,
     pub last_session_at: i64,
 }
 
@@ -155,14 +156,13 @@ impl SchplannerInsights {
     }
 }
 
+#[cfg(test)]
 pub fn derive_state(
     regime: &dyn WorkoutRegime,
     base_state: &StatePayload,
     history: &[SchplannerWorkoutRecord],
 ) -> SchplannerDerivation {
     let mut effective_state = base_state.clone();
-    let mut slot_reasons = HashMap::new();
-    let mut started_workout_count = 0usize;
     let mut last_session_at = 0i64;
 
     let mut history_sorted = history.to_vec();
@@ -174,28 +174,24 @@ pub fn derive_state(
     });
 
     for workout in &history_sorted {
-        started_workout_count += 1;
         last_session_at = last_session_at.max(if workout.workout.end_time > 0 {
             workout.workout.end_time
         } else {
             workout.workout.start_time
         });
 
-        regime.schplanner_transition_on_workout_started(&mut effective_state, workout);
-
-        let slot_outcomes = summarize_slot_outcomes(workout);
-        regime.schplanner_apply_logged_results(
-            &mut effective_state,
-            workout,
-            &slot_outcomes,
-            &mut slot_reasons,
-        );
+        if workout.workout.end_time > 0 {
+            let slot_outcomes = summarize_slot_outcomes(workout);
+            regime.transition_state_on_workout_completed(
+                &mut effective_state,
+                workout,
+                &slot_outcomes,
+            );
+        }
     }
 
     SchplannerDerivation {
         effective_state,
-        slot_reasons,
-        started_workout_count,
         last_session_at,
     }
 }
@@ -346,7 +342,7 @@ struct CompletedWorkingSetSample {
     rest_secs: Option<i64>,
     actual_reps: i32,
     target_reps: i32,
-    target_weight: f32,
+    actual_weight: f32,
     hit_target: bool,
     is_amrap: bool,
 }
@@ -412,7 +408,7 @@ fn build_recent_exercise_insight(
         recent_sessions: sessions.len(),
         last_actual_reps: last.actual_reps,
         last_target_reps: last.target_reps,
-        last_weight: last.target_weight,
+        last_weight: last.actual_weight,
         last_hit_target: last.hit_target,
         last_was_amrap: last.is_amrap,
         set_durations: duration_stats.build_from_last(last.duration_secs),
@@ -442,7 +438,7 @@ fn build_recent_slot_insight(
         recent_sessions: sessions.len(),
         last_actual_reps: last.actual_reps,
         last_target_reps: last.target_reps,
-        last_weight: last.target_weight,
+        last_weight: last.actual_weight,
         last_hit_target: last.hit_target,
         last_was_amrap: last.is_amrap,
         set_durations: duration_stats.build_from_last(last.duration_secs),
@@ -493,7 +489,7 @@ pub fn summarize_recent_insights(history: &[SchplannerWorkoutRecord]) -> Schplan
                     .then_some(completed_set.rest_until - completed_set.ended_at),
                 actual_reps: completed_set.actual_reps,
                 target_reps: proposed_set.target_reps,
-                target_weight: proposed_set.target_weight,
+                actual_weight: completed_set.actual_weight,
                 hit_target: completed_set.actual_reps >= proposed_set.target_reps,
                 is_amrap: proposed_set.is_amrap,
             };
@@ -561,7 +557,7 @@ pub fn group_slot_keys(group: &ProposedExerciseGroup) -> Vec<String> {
     out
 }
 
-fn summarize_slot_outcomes(
+pub fn summarize_slot_outcomes(
     workout: &SchplannerWorkoutRecord,
 ) -> HashMap<String, SchplannerSlotOutcome> {
     let completed_by_proposed = workout
@@ -597,6 +593,8 @@ fn summarize_slot_outcomes(
         let exercise = planned[0].0.exercise();
         let mut successful_sets = 0usize;
         let mut completed_sets = 0usize;
+        let mut last_completed_actual_weight = None;
+        let mut last_successful_actual_weight = None;
         let mut top_set_target_reps = 0;
         let mut top_set_actual_reps = 0;
         let amrap_success_threshold = first_hint.amrap_success_threshold;
@@ -604,8 +602,10 @@ fn summarize_slot_outcomes(
         for (idx, (set, _)) in planned.iter().enumerate() {
             if let Some(completed) = completed_by_proposed.get(set.id.as_str()) {
                 completed_sets += 1;
+                last_completed_actual_weight = Some(completed.actual_weight);
                 if completed.actual_reps >= set.target_reps {
                     successful_sets += 1;
+                    last_successful_actual_weight = Some(completed.actual_weight);
                 }
                 if idx + 1 == planned.len() {
                     top_set_target_reps = set.target_reps;
@@ -626,6 +626,8 @@ fn summarize_slot_outcomes(
                 planned_sets: planned.len(),
                 completed_sets,
                 successful_sets,
+                last_completed_actual_weight,
+                last_successful_actual_weight,
                 top_set_target_reps,
                 top_set_actual_reps,
                 amrap_success_threshold,
@@ -846,6 +848,24 @@ mod tests {
         assert_eq!(
             get_int_or(&derived.effective_state, "squat_stall_count", -1),
             0
+        );
+    }
+
+    #[test]
+    fn linear_replay_uses_last_successful_actual_weight_for_progression() {
+        let regime = get_regime(RegimeType::Linear5x5);
+        let mut base = regime.default_state();
+        crate::program_state::set_f32(&mut base, "squat_weight", 45.0);
+        let mut workout = linear_workout(true);
+        for set in &mut workout.completed_sets {
+            set.actual_weight = 185.0;
+        }
+
+        let derived = derive_state(regime.as_ref(), &base, &[workout]);
+
+        assert_eq!(
+            get_f32_or(&derived.effective_state, "squat_weight", 0.0),
+            190.0
         );
     }
 

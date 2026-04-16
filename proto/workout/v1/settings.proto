@@ -129,29 +129,6 @@ message TrainingProgramStateEvent {
   string source_workout_id = 7;  // non-empty for workout_completed events (idempotency key)
 }
 
-// ─── Pending state updates ────────────────────────────────────────────────────
-
-// A single input field in a pending update (e.g., "deload percent").
-message PendingStateUpdateField {
-  string key = 1;
-  string label = 2;
-  StateFieldKind kind = 3;
-  StateFieldValue default_value = 4;
-  double min_value = 5;
-  double max_value = 6;
-  double step = 7;
-  repeated StateEnumOption enum_options = 8;
-}
-
-// A pending recommendation that blocks workout start until resolved.
-// Rendered entirely by backend — frontend shows fields dynamically.
-message PendingStateUpdate {
-  string update_id = 1;
-  string title = 2;
-  string message = 3;
-  repeated PendingStateUpdateField fields = 4;
-}
-
 // ─── User settings ────────────────────────────────────────────────────────────
 
 message UserSetting {
@@ -208,15 +185,6 @@ message GetTrainingProgramStateHistoryResponse {
   repeated TrainingProgramStateEvent events = 1;
 }
 
-message ApplyPendingStateUpdateRequest {
-  string update_id = 1;
-  map<string, StateFieldValue> field_values = 2;
-}
-
-message ApplyPendingStateUpdateResponse {
-  TrainingProgramState state = 1;
-}
-
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 service SettingsService {
@@ -231,6 +199,4 @@ service SettingsService {
       returns (SetActiveTrainingProgramStateResponse);
   rpc GetTrainingProgramStateHistory(GetTrainingProgramStateHistoryRequest)
       returns (GetTrainingProgramStateHistoryResponse);
-  rpc ApplyPendingStateUpdate(ApplyPendingStateUpdateRequest)
-      returns (ApplyPendingStateUpdateResponse);
 }

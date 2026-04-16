@@ -1518,17 +1518,8 @@ const GetProposedWorkoutScheduleResponse$json = {
       '10': 'suggestedWorkoutName'
     },
     {
-      '1': 'pending_state_updates',
-      '3': 7,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.PendingStateUpdate',
-      '10': 'pendingStateUpdates'
-    },
-    {'1': 'can_start_workout', '3': 8, '4': 1, '5': 8, '10': 'canStartWorkout'},
-    {
       '1': 'draft',
-      '3': 9,
+      '3': 7,
       '4': 1,
       '5': 11,
       '6': '.workout.v1.WorkoutDraft',
@@ -1536,7 +1527,7 @@ const GetProposedWorkoutScheduleResponse$json = {
     },
     {
       '1': 'saved_exercise_groups',
-      '3': 10,
+      '3': 8,
       '4': 3,
       '5': 11,
       '6': '.workout.v1.ExerciseGroup',
@@ -1554,12 +1545,9 @@ final $typed_data.Uint8List getProposedWorkoutScheduleResponseDescriptor = $conv
     'ZEdyb3VwcxJACg5yZWdpbWVfY29udGV4dBgEIAEoCzIZLndvcmtvdXQudjEuUmVnaW1lQ29udG'
     'V4dFINcmVnaW1lQ29udGV4dBJDCg90cmFpbmluZ19zdGF0dXMYBSABKAsyGi53b3Jrb3V0LnYx'
     'LlRyYWluaW5nU3RhdHVzUg50cmFpbmluZ1N0YXR1cxI0ChZzdWdnZXN0ZWRfd29ya291dF9uYW'
-    '1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRJSChVwZW5kaW5nX3N0YXRlX3VwZGF0ZXMY'
-    'ByADKAsyHi53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZVITcGVuZGluZ1N0YXRlVXBkYX'
-    'RlcxIqChFjYW5fc3RhcnRfd29ya291dBgIIAEoCFIPY2FuU3RhcnRXb3Jrb3V0Ei4KBWRyYWZ0'
-    'GAkgASgLMhgud29ya291dC52MS5Xb3Jrb3V0RHJhZnRSBWRyYWZ0Ek0KFXNhdmVkX2V4ZXJjaX'
-    'NlX2dyb3VwcxgKIAMoCzIZLndvcmtvdXQudjEuRXhlcmNpc2VHcm91cFITc2F2ZWRFeGVyY2lz'
-    'ZUdyb3Vwcw==');
+    '1lGAYgASgJUhRzdWdnZXN0ZWRXb3Jrb3V0TmFtZRIuCgVkcmFmdBgHIAEoCzIYLndvcmtvdXQu'
+    'djEuV29ya291dERyYWZ0UgVkcmFmdBJNChVzYXZlZF9leGVyY2lzZV9ncm91cHMYCCADKAsyGS'
+    '53b3Jrb3V0LnYxLkV4ZXJjaXNlR3JvdXBSE3NhdmVkRXhlcmNpc2VHcm91cHM=');
 
 @$core.Deprecated('Use saveProfileExerciseGroupRequestDescriptor instead')
 const SaveProfileExerciseGroupRequest$json = {

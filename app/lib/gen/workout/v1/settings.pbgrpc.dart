@@ -82,15 +82,6 @@ class SettingsServiceClient extends $grpc.Client {
         options: options);
   }
 
-  $grpc.ResponseFuture<$0.ApplyPendingStateUpdateResponse>
-      applyPendingStateUpdate(
-    $0.ApplyPendingStateUpdateRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$applyPendingStateUpdate, request,
-        options: options);
-  }
-
   // method descriptors
 
   static final _$updateSetting =
@@ -127,12 +118,6 @@ class SettingsServiceClient extends $grpc.Client {
       '/workout.v1.SettingsService/GetTrainingProgramStateHistory',
       ($0.GetTrainingProgramStateHistoryRequest value) => value.writeToBuffer(),
       $0.GetTrainingProgramStateHistoryResponse.fromBuffer);
-  static final _$applyPendingStateUpdate = $grpc.ClientMethod<
-          $0.ApplyPendingStateUpdateRequest,
-          $0.ApplyPendingStateUpdateResponse>(
-      '/workout.v1.SettingsService/ApplyPendingStateUpdate',
-      ($0.ApplyPendingStateUpdateRequest value) => value.writeToBuffer(),
-      $0.ApplyPendingStateUpdateResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.SettingsService')
@@ -197,15 +182,6 @@ abstract class SettingsServiceBase extends $grpc.Service {
             $0.GetTrainingProgramStateHistoryRequest.fromBuffer(value),
         ($0.GetTrainingProgramStateHistoryResponse value) =>
             value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ApplyPendingStateUpdateRequest,
-            $0.ApplyPendingStateUpdateResponse>(
-        'ApplyPendingStateUpdate',
-        applyPendingStateUpdate_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.ApplyPendingStateUpdateRequest.fromBuffer(value),
-        ($0.ApplyPendingStateUpdateResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.UpdateSettingResponse> updateSetting_Pre(
@@ -269,13 +245,4 @@ abstract class SettingsServiceBase extends $grpc.Service {
   $async.Future<$0.GetTrainingProgramStateHistoryResponse>
       getTrainingProgramStateHistory($grpc.ServiceCall call,
           $0.GetTrainingProgramStateHistoryRequest request);
-
-  $async.Future<$0.ApplyPendingStateUpdateResponse> applyPendingStateUpdate_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.ApplyPendingStateUpdateRequest> $request) async {
-    return applyPendingStateUpdate($call, await $request);
-  }
-
-  $async.Future<$0.ApplyPendingStateUpdateResponse> applyPendingStateUpdate(
-      $grpc.ServiceCall call, $0.ApplyPendingStateUpdateRequest request);
 }

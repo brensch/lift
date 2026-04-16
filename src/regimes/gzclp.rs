@@ -5,18 +5,16 @@ use schlift::workout::v1::{
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
-    PendingUpdateFieldDef, ProposeResult, StatePayload,
+    set_f32, set_int, set_str, with_onboarding, FloatFieldBounds, ProposeResult, StatePayload,
 };
 use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
-    recent_performance_notes, rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, WorkoutRegime,
+    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
+    ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
-use schlift::workout::v1::StateFieldKind;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -51,6 +49,45 @@ fn t2_phase_text(stage: u8) -> &'static str {
         1 => "Phase 1/3: 3×10",
         2 => "Phase 2/3: 3×8",
         _ => "Phase 3/3: 3×6",
+    }
+}
+
+fn gzclp_group_explanation(
+    exercise: Exercise,
+    tier: &str,
+    session_idx: usize,
+    phase_text: &str,
+    planned_weight: f32,
+    state: &StatePayload,
+    insights: &SchplannerInsights,
+) -> String {
+    let label = exercise_display_name(exercise);
+    let planned = format_weight_compact(planned_weight, weight_unit_from_state(state));
+    let base = format!(
+        "Session {} {} includes {}. Planned working weight is {}. {}.",
+        session_idx + 1,
+        tier,
+        label,
+        planned,
+        phase_text
+    );
+    let Some(insight) = insights.for_exercise(exercise) else {
+        return base;
+    };
+
+    let last_weight = format_weight_compact(insight.last_weight, weight_unit_from_state(state));
+    if insight.last_hit_target && planned_weight > insight.last_weight + 0.1 {
+        format!(
+            "{} That is up from {} because you cleared the last progression check.",
+            base, last_weight
+        )
+    } else if !insight.last_hit_target && (planned_weight - insight.last_weight).abs() <= 0.1 {
+        format!(
+            "{} It stays at {} because the last working set finished at {} of {} reps.",
+            base, planned, insight.last_actual_reps, insight.last_target_reps
+        )
+    } else {
+        base
     }
 }
 
@@ -388,8 +425,6 @@ impl WorkoutRegime for GzclpRegime {
         let sessions = sessions_for_variant(variant);
         let idx = (get_int_or(state, KEY_SESSION_IDX, 0) as usize) % sessions.len();
         let tmpl = &sessions[idx];
-        let weight_unit = weight_unit_from_state(state);
-
         let mut proposed_groups = Vec::new();
 
         // T1 groups
@@ -438,7 +473,15 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![cfg],
                 rest_config: rest_cfg(180, 300),
                 tags: vec!["recommended".to_string(), "T1".to_string()],
-                explanation: format!("GZCLP T1 {} — {}", t1_phase_text(stage), w),
+                explanation: gzclp_group_explanation(
+                    ex,
+                    "T1",
+                    idx,
+                    t1_phase_text(stage),
+                    w,
+                    state,
+                    insights,
+                ),
                 prescribed_by_regime: false,
             });
         }
@@ -479,11 +522,14 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![cfg],
                 rest_config: rest_cfg(90, 120),
                 tags: vec!["recommended".to_string(), "T2".to_string()],
-                explanation: format!(
-                    "GZCLP T2 {} — {} {}",
+                explanation: gzclp_group_explanation(
+                    ex,
+                    "T2",
+                    idx,
                     t2_phase_text(stage),
                     w,
-                    weight_unit.suffix()
+                    state,
+                    insights,
                 ),
                 prescribed_by_regime: false,
             });
@@ -548,9 +594,14 @@ impl WorkoutRegime for GzclpRegime {
                 exercise_configs: vec![ca, cb],
                 rest_config: rest_cfg(60, 60),
                 tags: vec!["auxiliary".to_string(), "T3".to_string()],
-                explanation:
-                    "T3 accessories — 3×15, last set AMRAP. Add weight when last set hits 25+ reps."
-                        .to_string(),
+                explanation: format!(
+                    "Session {} T3 accessory pair. {} uses {}, {} uses {}. Last set is AMRAP; add weight next time when it reaches 25+ reps.",
+                    idx + 1,
+                    exercise_display_name(ex_a),
+                    format_weight_compact(wa, weight_unit_from_state(state)),
+                    exercise_display_name(ex_b),
+                    format_weight_compact(wb, weight_unit_from_state(state)),
+                ),
                 prescribed_by_regime: false,
             });
         }
@@ -637,38 +688,43 @@ impl WorkoutRegime for GzclpRegime {
         }
     }
 
-    fn pending_updates_for_state(
+    fn apply_temporal_adjustments_for_proposal(
         &self,
-        _state: &StatePayload,
+        state: &StatePayload,
         last_session_at: i64,
         now_ts: i64,
-    ) -> Vec<PendingUpdateDef> {
+    ) -> StatePayload {
         if last_session_at == 0 {
-            return vec![];
+            return state.clone();
         }
         let days_since = (now_ts - last_session_at) / (24 * 3600);
         if days_since < 14 {
-            return vec![];
+            return state.clone();
         }
-        let recommended_pct = if days_since >= 30 { 80 } else { 90 };
-        vec![PendingUpdateDef {
-            update_id: "temporal_deload".to_string(),
-            title: "Long break — deload recommended".to_string(),
-            message: format!(
-                "It's been {} days since your last session. A deload is recommended.",
-                days_since
-            ),
-            fields: vec![PendingUpdateFieldDef {
-                key: "deload_percent".to_string(),
-                label: "Deload %".to_string(),
-                kind: StateFieldKind::Int,
-                default_value: FieldVal::Int(recommended_pct),
-                min_value: 50.0,
-                max_value: 100.0,
-                step: 5.0,
-                enum_options: vec![],
-            }],
-        }]
+        let pct = if days_since >= 30 { 0.8 } else { 0.9 };
+        let unit = weight_unit_from_state(state);
+        let mut adjusted = state.clone();
+        for ex in [Exercise::Squat, Exercise::Deadlift] {
+            let w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
+            set_f32(
+                &mut adjusted,
+                t1_weight_key(ex),
+                round_to_unit_increment(w * pct, unit, 5.0, 2.5),
+            );
+        }
+        for ex in [
+            Exercise::BenchPress,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ] {
+            let w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
+            set_f32(
+                &mut adjusted,
+                t2_weight_key(ex),
+                round_to_unit_increment(w * pct, unit, 5.0, 2.5),
+            );
+        }
+        adjusted
     }
 
     fn derive_training_status(
@@ -708,66 +764,11 @@ impl WorkoutRegime for GzclpRegime {
         )
     }
 
-    fn apply_pending_update_to_state(
-        &self,
-        state: &StatePayload,
-        update_id: &str,
-        field_values: &StatePayload,
-    ) -> Result<StatePayload, String> {
-        match update_id {
-            "temporal_deload" => {
-                let pct = match field_values.get("deload_percent") {
-                    Some(FieldVal::Int(p)) => *p as f32 / 100.0,
-                    Some(FieldVal::Float(p)) => *p as f32 / 100.0,
-                    _ => return Err("deload_percent field is required".to_string()),
-                };
-                if !(0.5..=1.0).contains(&pct) {
-                    return Err("deload_percent must be 50–100".to_string());
-                }
-                let mut new_state = state.clone();
-                let unit = weight_unit_from_state(state);
-                for ex in [Exercise::Squat, Exercise::Deadlift] {
-                    let w = get_f32_or(state, t1_weight_key(ex), default_t1_weight(ex));
-                    set_f32(
-                        &mut new_state,
-                        t1_weight_key(ex),
-                        round_to_unit_increment(w * pct, unit, 5.0, 2.5),
-                    );
-                }
-                for ex in [
-                    Exercise::BenchPress,
-                    Exercise::OverheadPress,
-                    Exercise::BarbellRow,
-                ] {
-                    let w = get_f32_or(state, t2_weight_key(ex), default_t2_weight(ex));
-                    set_f32(
-                        &mut new_state,
-                        t2_weight_key(ex),
-                        round_to_unit_increment(w * pct, unit, 5.0, 2.5),
-                    );
-                }
-                Ok(new_state)
-            }
-            _ => Err(format!("Unknown update_id: {}", update_id)),
-        }
-    }
-
-    fn schplanner_transition_on_workout_started(
-        &self,
-        state: &mut StatePayload,
-        _workout: &SchplannerWorkoutRecord,
-    ) {
-        let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
-        let next = (get_int_or(state, KEY_SESSION_IDX, 0) + 1).rem_euclid(session_count(variant));
-        set_int(state, KEY_SESSION_IDX, next);
-    }
-
-    fn schplanner_apply_logged_results(
+    fn transition_state_on_workout_completed(
         &self,
         state: &mut StatePayload,
         _workout: &SchplannerWorkoutRecord,
         slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
-        slot_reasons: &mut HashMap<String, String>,
     ) {
         let unit = weight_unit_from_state(state);
         for (slot_key, outcome) in slot_outcomes {
@@ -781,64 +782,30 @@ impl WorkoutRegime for GzclpRegime {
                 "T1" => {
                     let current =
                         get_f32_or(state, t1_weight_key(exercise), default_t1_weight(exercise));
+                    let attempted_weight = outcome.last_completed_actual_weight.unwrap_or(current);
                     let stage_key = t1_stage_key(exercise);
                     let stage = stage_str_to_u8_t1(get_str_or(state, stage_key, "stage_1_5x3"));
                     if outcome.all_sets_hit_target() {
-                        let next_weight = round_to_unit_increment(current + 10.0, unit, 5.0, 2.5);
+                        let base_weight = outcome
+                            .last_successful_actual_weight
+                            .unwrap_or(attempted_weight);
+                        let next_weight =
+                            round_to_unit_increment(base_weight + 10.0, unit, 5.0, 2.5);
                         set_f32(state, t1_weight_key(exercise), next_weight);
                         set_str(state, stage_key, "stage_1_5x3");
-                        slot_reasons.insert(
-                            slot_key.clone(),
-                            format!(
-                                "Schplanner marked {} T1 as a pass, so the next weight goes from {} {} to {} {} and the lift returns to Stage 1 (5×3).",
-                                exercise_display_name(exercise),
-                                current.round() as i32,
-                                unit.suffix(),
-                                next_weight.round() as i32,
-                                unit.suffix()
-                            ),
-                        );
                     } else {
                         match stage {
                             1 => {
                                 set_str(state, stage_key, "stage_2_6x2");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner saw {} stall in T1, so it kept the weight at {} {} and moved the lift to Stage 2 (6×2).",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                             2 => {
                                 set_str(state, stage_key, "stage_3_10x1");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner saw another {} T1 stall, so it kept the weight at {} {} and moved the lift to Stage 3 (10×1).",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                             _ => {
-                                let reset = round_to_unit_increment(current * 0.9, unit, 5.0, 2.5);
+                                let reset =
+                                    round_to_unit_increment(attempted_weight * 0.9, unit, 5.0, 2.5);
                                 set_f32(state, t1_weight_key(exercise), reset);
                                 set_str(state, stage_key, "stage_1_5x3");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner reset {} T1 after a Stage 3 miss, dropping the weight from {} {} to {} {} and returning to Stage 1.",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix(),
-                                        reset.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                         }
                     }
@@ -846,101 +813,51 @@ impl WorkoutRegime for GzclpRegime {
                 "T2" => {
                     let current =
                         get_f32_or(state, t2_weight_key(exercise), default_t2_weight(exercise));
+                    let attempted_weight = outcome.last_completed_actual_weight.unwrap_or(current);
                     let stage_key = t2_stage_key(exercise);
                     let stage = stage_str_to_u8_t2(get_str_or(state, stage_key, "stage_1_3x10"));
                     if outcome.all_sets_hit_target() {
-                        let next_weight = round_to_unit_increment(current + 5.0, unit, 5.0, 2.5);
+                        let base_weight = outcome
+                            .last_successful_actual_weight
+                            .unwrap_or(attempted_weight);
+                        let next_weight =
+                            round_to_unit_increment(base_weight + 5.0, unit, 5.0, 2.5);
                         set_f32(state, t2_weight_key(exercise), next_weight);
                         set_str(state, stage_key, "stage_1_3x10");
-                        slot_reasons.insert(
-                            slot_key.clone(),
-                            format!(
-                                "Schplanner marked {} T2 as a pass, so the next weight goes from {} {} to {} {} and the lift returns to Stage 1 (3×10).",
-                                exercise_display_name(exercise),
-                                current.round() as i32,
-                                unit.suffix(),
-                                next_weight.round() as i32,
-                                unit.suffix()
-                            ),
-                        );
                     } else {
                         match stage {
                             1 => {
                                 set_str(state, stage_key, "stage_2_3x8");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner moved {} T2 to Stage 2 (3×8) at the same {} {} after a stall.",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                             2 => {
                                 set_str(state, stage_key, "stage_3_3x6");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner moved {} T2 to Stage 3 (3×6) at the same {} {} after another stall.",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                             _ => {
-                                let reset = round_to_unit_increment(current * 0.9, unit, 5.0, 2.5);
+                                let reset =
+                                    round_to_unit_increment(attempted_weight * 0.9, unit, 5.0, 2.5);
                                 set_f32(state, t2_weight_key(exercise), reset);
                                 set_str(state, stage_key, "stage_1_3x10");
-                                slot_reasons.insert(
-                                    slot_key.clone(),
-                                    format!(
-                                        "Schplanner reset {} T2 after a Stage 3 miss, dropping the weight from {} {} to {} {} and returning to Stage 1.",
-                                        exercise_display_name(exercise),
-                                        current.round() as i32,
-                                        unit.suffix(),
-                                        reset.round() as i32,
-                                        unit.suffix()
-                                    ),
-                                );
                             }
                         }
                     }
                 }
                 "T3" => {
                     let current = get_f32_or(state, t3_weight_key(exercise), 10.0);
+                    let base_weight = outcome
+                        .last_successful_actual_weight
+                        .or(outcome.last_completed_actual_weight)
+                        .unwrap_or(current);
                     if outcome.top_set_hit_threshold() {
-                        let next_weight = round_to_unit_increment(current + 5.0, unit, 5.0, 2.5);
+                        let next_weight =
+                            round_to_unit_increment(base_weight + 5.0, unit, 5.0, 2.5);
                         set_f32(state, t3_weight_key(exercise), next_weight);
-                        slot_reasons.insert(
-                            slot_key.clone(),
-                            format!(
-                                "Schplanner saw {} hit {} reps on the T3 AMRAP set, so it raised the next weight from {} {} to {} {}.",
-                                exercise_display_name(exercise),
-                                outcome.top_set_actual_reps,
-                                current.round() as i32,
-                                unit.suffix(),
-                                next_weight.round() as i32,
-                                unit.suffix()
-                            ),
-                        );
-                    } else {
-                        slot_reasons.insert(
-                            slot_key.clone(),
-                            format!(
-                                "Schplanner kept {} T3 at {} {} because the AMRAP set finished at {} reps and the add-weight mark is {}.",
-                                exercise_display_name(exercise),
-                                current.round() as i32,
-                                unit.suffix(),
-                                outcome.top_set_actual_reps,
-                                outcome.amrap_threshold()
-                            ),
-                        );
                     }
                 }
                 _ => {}
             }
         }
+        let variant = get_str_or(state, KEY_SCHEDULE, "four_day");
+        let next = (get_int_or(state, KEY_SESSION_IDX, 0) + 1).rem_euclid(session_count(variant));
+        set_int(state, KEY_SESSION_IDX, next);
     }
 }

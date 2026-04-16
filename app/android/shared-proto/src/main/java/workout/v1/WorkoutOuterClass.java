@@ -25020,13 +25020,1002 @@ public final class WorkoutOuterClass {
     }
   }
 
-  public interface SessionReadinessOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.SessionReadiness)
+  public interface SlotTrainingStatusOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SlotTrainingStatus)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @return The slotKey.
+     */
+    java.lang.String getSlotKey();
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @return The bytes for slotKey.
+     */
+    com.google.protobuf.ByteString
+        getSlotKeyBytes();
+
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The label.
+     */
+    java.lang.String getLabel();
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The bytes for label.
+     */
+    com.google.protobuf.ByteString
+        getLabelBytes();
+
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @return The tier.
+     */
+    java.lang.String getTier();
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @return The bytes for tier.
+     */
+    com.google.protobuf.ByteString
+        getTierBytes();
+
+    /**
+     * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+     * @return The lastTrainedAt.
+     */
+    long getLastTrainedAt();
+
+    /**
+     * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+     * @return The daysSinceLastTrained.
+     */
+    int getDaysSinceLastTrained();
+
+    /**
+     * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+     * @return The targetSetsPer7Days.
+     */
+    int getTargetSetsPer7Days();
+
+    /**
+     * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+     * @return The completedSetsPer7Days.
+     */
+    int getCompletedSetsPer7Days();
+
+    /**
+     * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+     * @return The remainingSetsPer7Days.
+     */
+    int getRemainingSetsPer7Days();
+
+    /**
+     * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+     * @return The appearsInNextWorkout.
+     */
+    boolean getAppearsInNextWorkout();
+
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @return The statusLabel.
+     */
+    java.lang.String getStatusLabel();
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @return The bytes for statusLabel.
+     */
+    com.google.protobuf.ByteString
+        getStatusLabelBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SlotTrainingStatus}
+   */
+  public  static final class SlotTrainingStatus extends
+      com.google.protobuf.GeneratedMessageLite<
+          SlotTrainingStatus, SlotTrainingStatus.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SlotTrainingStatus)
+      SlotTrainingStatusOrBuilder {
+    private SlotTrainingStatus() {
+      slotKey_ = "";
+      label_ = "";
+      tier_ = "";
+      statusLabel_ = "";
+    }
+    public static final int SLOT_KEY_FIELD_NUMBER = 1;
+    private java.lang.String slotKey_;
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @return The slotKey.
+     */
+    @java.lang.Override
+    public java.lang.String getSlotKey() {
+      return slotKey_;
+    }
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @return The bytes for slotKey.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSlotKeyBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(slotKey_);
+    }
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @param value The slotKey to set.
+     */
+    private void setSlotKey(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      slotKey_ = value;
+    }
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     */
+    private void clearSlotKey() {
+      
+      slotKey_ = getDefaultInstance().getSlotKey();
+    }
+    /**
+     * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+     * @param value The bytes for slotKey to set.
+     */
+    private void setSlotKeyBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      slotKey_ = value.toStringUtf8();
+      
+    }
+
+    public static final int LABEL_FIELD_NUMBER = 2;
+    private java.lang.String label_;
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The label.
+     */
+    @java.lang.Override
+    public java.lang.String getLabel() {
+      return label_;
+    }
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The bytes for label.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getLabelBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(label_);
+    }
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @param value The label to set.
+     */
+    private void setLabel(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      label_ = value;
+    }
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     */
+    private void clearLabel() {
+      
+      label_ = getDefaultInstance().getLabel();
+    }
+    /**
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @param value The bytes for label to set.
+     */
+    private void setLabelBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      label_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TIER_FIELD_NUMBER = 3;
+    private java.lang.String tier_;
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @return The tier.
+     */
+    @java.lang.Override
+    public java.lang.String getTier() {
+      return tier_;
+    }
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @return The bytes for tier.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTierBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(tier_);
+    }
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @param value The tier to set.
+     */
+    private void setTier(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      tier_ = value;
+    }
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     */
+    private void clearTier() {
+      
+      tier_ = getDefaultInstance().getTier();
+    }
+    /**
+     * <code>string tier = 3 [json_name = "tier"];</code>
+     * @param value The bytes for tier to set.
+     */
+    private void setTierBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      tier_ = value.toStringUtf8();
+      
+    }
+
+    public static final int LAST_TRAINED_AT_FIELD_NUMBER = 4;
+    private long lastTrainedAt_;
+    /**
+     * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+     * @return The lastTrainedAt.
+     */
+    @java.lang.Override
+    public long getLastTrainedAt() {
+      return lastTrainedAt_;
+    }
+    /**
+     * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+     * @param value The lastTrainedAt to set.
+     */
+    private void setLastTrainedAt(long value) {
+      
+      lastTrainedAt_ = value;
+    }
+    /**
+     * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+     */
+    private void clearLastTrainedAt() {
+      
+      lastTrainedAt_ = 0L;
+    }
+
+    public static final int DAYS_SINCE_LAST_TRAINED_FIELD_NUMBER = 5;
+    private int daysSinceLastTrained_;
+    /**
+     * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+     * @return The daysSinceLastTrained.
+     */
+    @java.lang.Override
+    public int getDaysSinceLastTrained() {
+      return daysSinceLastTrained_;
+    }
+    /**
+     * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+     * @param value The daysSinceLastTrained to set.
+     */
+    private void setDaysSinceLastTrained(int value) {
+      
+      daysSinceLastTrained_ = value;
+    }
+    /**
+     * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+     */
+    private void clearDaysSinceLastTrained() {
+      
+      daysSinceLastTrained_ = 0;
+    }
+
+    public static final int TARGET_SETS_PER_7_DAYS_FIELD_NUMBER = 6;
+    private int targetSetsPer7Days_;
+    /**
+     * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+     * @return The targetSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getTargetSetsPer7Days() {
+      return targetSetsPer7Days_;
+    }
+    /**
+     * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+     * @param value The targetSetsPer7Days to set.
+     */
+    private void setTargetSetsPer7Days(int value) {
+      
+      targetSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+     */
+    private void clearTargetSetsPer7Days() {
+      
+      targetSetsPer7Days_ = 0;
+    }
+
+    public static final int COMPLETED_SETS_PER_7_DAYS_FIELD_NUMBER = 7;
+    private int completedSetsPer7Days_;
+    /**
+     * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+     * @return The completedSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getCompletedSetsPer7Days() {
+      return completedSetsPer7Days_;
+    }
+    /**
+     * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+     * @param value The completedSetsPer7Days to set.
+     */
+    private void setCompletedSetsPer7Days(int value) {
+      
+      completedSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+     */
+    private void clearCompletedSetsPer7Days() {
+      
+      completedSetsPer7Days_ = 0;
+    }
+
+    public static final int REMAINING_SETS_PER_7_DAYS_FIELD_NUMBER = 8;
+    private int remainingSetsPer7Days_;
+    /**
+     * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+     * @return The remainingSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getRemainingSetsPer7Days() {
+      return remainingSetsPer7Days_;
+    }
+    /**
+     * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+     * @param value The remainingSetsPer7Days to set.
+     */
+    private void setRemainingSetsPer7Days(int value) {
+      
+      remainingSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+     */
+    private void clearRemainingSetsPer7Days() {
+      
+      remainingSetsPer7Days_ = 0;
+    }
+
+    public static final int APPEARS_IN_NEXT_WORKOUT_FIELD_NUMBER = 9;
+    private boolean appearsInNextWorkout_;
+    /**
+     * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+     * @return The appearsInNextWorkout.
+     */
+    @java.lang.Override
+    public boolean getAppearsInNextWorkout() {
+      return appearsInNextWorkout_;
+    }
+    /**
+     * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+     * @param value The appearsInNextWorkout to set.
+     */
+    private void setAppearsInNextWorkout(boolean value) {
+      
+      appearsInNextWorkout_ = value;
+    }
+    /**
+     * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+     */
+    private void clearAppearsInNextWorkout() {
+      
+      appearsInNextWorkout_ = false;
+    }
+
+    public static final int STATUS_LABEL_FIELD_NUMBER = 10;
+    private java.lang.String statusLabel_;
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @return The statusLabel.
+     */
+    @java.lang.Override
+    public java.lang.String getStatusLabel() {
+      return statusLabel_;
+    }
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @return The bytes for statusLabel.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getStatusLabelBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(statusLabel_);
+    }
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @param value The statusLabel to set.
+     */
+    private void setStatusLabel(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      statusLabel_ = value;
+    }
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     */
+    private void clearStatusLabel() {
+      
+      statusLabel_ = getDefaultInstance().getStatusLabel();
+    }
+    /**
+     * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+     * @param value The bytes for statusLabel to set.
+     */
+    private void setStatusLabelBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      statusLabel_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SlotTrainingStatus prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SlotTrainingStatus}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SlotTrainingStatus, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SlotTrainingStatus)
+        workout.v1.WorkoutOuterClass.SlotTrainingStatusOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SlotTrainingStatus.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+       * @return The slotKey.
+       */
+      @java.lang.Override
+      public java.lang.String getSlotKey() {
+        return instance.getSlotKey();
+      }
+      /**
+       * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+       * @return The bytes for slotKey.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSlotKeyBytes() {
+        return instance.getSlotKeyBytes();
+      }
+      /**
+       * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+       * @param value The slotKey to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSlotKey(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSlotKey(value);
+        return this;
+      }
+      /**
+       * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSlotKey() {
+        copyOnWrite();
+        instance.clearSlotKey();
+        return this;
+      }
+      /**
+       * <code>string slot_key = 1 [json_name = "slotKey"];</code>
+       * @param value The bytes for slotKey to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSlotKeyBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSlotKeyBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return The label.
+       */
+      @java.lang.Override
+      public java.lang.String getLabel() {
+        return instance.getLabel();
+      }
+      /**
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return The bytes for label.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getLabelBytes() {
+        return instance.getLabelBytes();
+      }
+      /**
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @param value The label to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLabel(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setLabel(value);
+        return this;
+      }
+      /**
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLabel() {
+        copyOnWrite();
+        instance.clearLabel();
+        return this;
+      }
+      /**
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @param value The bytes for label to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLabelBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setLabelBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string tier = 3 [json_name = "tier"];</code>
+       * @return The tier.
+       */
+      @java.lang.Override
+      public java.lang.String getTier() {
+        return instance.getTier();
+      }
+      /**
+       * <code>string tier = 3 [json_name = "tier"];</code>
+       * @return The bytes for tier.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTierBytes() {
+        return instance.getTierBytes();
+      }
+      /**
+       * <code>string tier = 3 [json_name = "tier"];</code>
+       * @param value The tier to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTier(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTier(value);
+        return this;
+      }
+      /**
+       * <code>string tier = 3 [json_name = "tier"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTier() {
+        copyOnWrite();
+        instance.clearTier();
+        return this;
+      }
+      /**
+       * <code>string tier = 3 [json_name = "tier"];</code>
+       * @param value The bytes for tier to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTierBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTierBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+       * @return The lastTrainedAt.
+       */
+      @java.lang.Override
+      public long getLastTrainedAt() {
+        return instance.getLastTrainedAt();
+      }
+      /**
+       * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+       * @param value The lastTrainedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLastTrainedAt(long value) {
+        copyOnWrite();
+        instance.setLastTrainedAt(value);
+        return this;
+      }
+      /**
+       * <code>int64 last_trained_at = 4 [json_name = "lastTrainedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLastTrainedAt() {
+        copyOnWrite();
+        instance.clearLastTrainedAt();
+        return this;
+      }
+
+      /**
+       * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+       * @return The daysSinceLastTrained.
+       */
+      @java.lang.Override
+      public int getDaysSinceLastTrained() {
+        return instance.getDaysSinceLastTrained();
+      }
+      /**
+       * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+       * @param value The daysSinceLastTrained to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDaysSinceLastTrained(int value) {
+        copyOnWrite();
+        instance.setDaysSinceLastTrained(value);
+        return this;
+      }
+      /**
+       * <code>int32 days_since_last_trained = 5 [json_name = "daysSinceLastTrained"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDaysSinceLastTrained() {
+        copyOnWrite();
+        instance.clearDaysSinceLastTrained();
+        return this;
+      }
+
+      /**
+       * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+       * @return The targetSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getTargetSetsPer7Days() {
+        return instance.getTargetSetsPer7Days();
+      }
+      /**
+       * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+       * @param value The targetSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTargetSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setTargetSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 target_sets_per_7_days = 6 [json_name = "targetSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTargetSetsPer7Days() {
+        copyOnWrite();
+        instance.clearTargetSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+       * @return The completedSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getCompletedSetsPer7Days() {
+        return instance.getCompletedSetsPer7Days();
+      }
+      /**
+       * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+       * @param value The completedSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCompletedSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setCompletedSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 completed_sets_per_7_days = 7 [json_name = "completedSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCompletedSetsPer7Days() {
+        copyOnWrite();
+        instance.clearCompletedSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+       * @return The remainingSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getRemainingSetsPer7Days() {
+        return instance.getRemainingSetsPer7Days();
+      }
+      /**
+       * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+       * @param value The remainingSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRemainingSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setRemainingSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 remaining_sets_per_7_days = 8 [json_name = "remainingSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRemainingSetsPer7Days() {
+        copyOnWrite();
+        instance.clearRemainingSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+       * @return The appearsInNextWorkout.
+       */
+      @java.lang.Override
+      public boolean getAppearsInNextWorkout() {
+        return instance.getAppearsInNextWorkout();
+      }
+      /**
+       * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+       * @param value The appearsInNextWorkout to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAppearsInNextWorkout(boolean value) {
+        copyOnWrite();
+        instance.setAppearsInNextWorkout(value);
+        return this;
+      }
+      /**
+       * <code>bool appears_in_next_workout = 9 [json_name = "appearsInNextWorkout"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAppearsInNextWorkout() {
+        copyOnWrite();
+        instance.clearAppearsInNextWorkout();
+        return this;
+      }
+
+      /**
+       * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+       * @return The statusLabel.
+       */
+      @java.lang.Override
+      public java.lang.String getStatusLabel() {
+        return instance.getStatusLabel();
+      }
+      /**
+       * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+       * @return The bytes for statusLabel.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getStatusLabelBytes() {
+        return instance.getStatusLabelBytes();
+      }
+      /**
+       * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+       * @param value The statusLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStatusLabel(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setStatusLabel(value);
+        return this;
+      }
+      /**
+       * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearStatusLabel() {
+        copyOnWrite();
+        instance.clearStatusLabel();
+        return this;
+      }
+      /**
+       * <code>string status_label = 10 [json_name = "statusLabel"];</code>
+       * @param value The bytes for statusLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStatusLabelBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setStatusLabelBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SlotTrainingStatus)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SlotTrainingStatus();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "slotKey_",
+              "label_",
+              "tier_",
+              "lastTrainedAt_",
+              "daysSinceLastTrained_",
+              "targetSetsPer7Days_",
+              "completedSetsPer7Days_",
+              "remainingSetsPer7Days_",
+              "appearsInNextWorkout_",
+              "statusLabel_",
+            };
+            java.lang.String info =
+                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
+                "\u0004\u0002\u0005\u0004\u0006\u0004\u0007\u0004\b\u0004\t\u0007\n\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SlotTrainingStatus> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SlotTrainingStatus.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SlotTrainingStatus>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SlotTrainingStatus)
+    private static final workout.v1.WorkoutOuterClass.SlotTrainingStatus DEFAULT_INSTANCE;
+    static {
+      SlotTrainingStatus defaultInstance = new SlotTrainingStatus();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SlotTrainingStatus.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SlotTrainingStatus getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SlotTrainingStatus> PARSER;
+
+    public static com.google.protobuf.Parser<SlotTrainingStatus> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface TrainingStatusOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.TrainingStatus)
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
      * <pre>
-     * Unix timestamp for recommended next workout
+     * Unix timestamp for the regime-recommended next workout
      * </pre>
      *
      * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25046,81 +26035,122 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @return The readinessLabel.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @return The headline.
      */
-    java.lang.String getReadinessLabel();
+    java.lang.String getHeadline();
     /**
      * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @return The bytes for readinessLabel.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @return The bytes for headline.
      */
     com.google.protobuf.ByteString
-        getReadinessLabelBytes();
+        getHeadlineBytes();
 
     /**
      * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @return The readinessDetail.
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @return The detail.
      */
-    java.lang.String getReadinessDetail();
+    java.lang.String getDetail();
     /**
      * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @return The bytes for readinessDetail.
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @return The bytes for detail.
      */
     com.google.protobuf.ByteString
-        getReadinessDetailBytes();
+        getDetailBytes();
 
     /**
      * <pre>
      * true if now &gt;= next_session_at
      * </pre>
      *
-     * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-     * @return The isReady.
+     * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+     * @return The shouldTrainNow.
      */
-    boolean getIsReady();
+    boolean getShouldTrainNow();
 
     /**
-     * <pre>
-     * true if overdue by more than 24h
-     * </pre>
-     *
-     * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
-     * @return The isOverdue.
+     * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+     * @return The targetSessionsPer7Days.
      */
-    boolean getIsOverdue();
+    int getTargetSessionsPer7Days();
+
+    /**
+     * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+     * @return The completedSessionsPer7Days.
+     */
+    int getCompletedSessionsPer7Days();
+
+    /**
+     * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+     * @return The remainingSessionsPer7Days.
+     */
+    int getRemainingSessionsPer7Days();
+
+    /**
+     * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+     * @return The targetSetsPer7Days.
+     */
+    int getTargetSetsPer7Days();
+
+    /**
+     * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+     * @return The completedSetsPer7Days.
+     */
+    int getCompletedSetsPer7Days();
+
+    /**
+     * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+     * @return The remainingSetsPer7Days.
+     */
+    int getRemainingSetsPer7Days();
+
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.SlotTrainingStatus> 
+        getSlotStatusesList();
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    workout.v1.WorkoutOuterClass.SlotTrainingStatus getSlotStatuses(int index);
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    int getSlotStatusesCount();
   }
   /**
-   * Protobuf type {@code workout.v1.SessionReadiness}
+   * Protobuf type {@code workout.v1.TrainingStatus}
    */
-  public  static final class SessionReadiness extends
+  public  static final class TrainingStatus extends
       com.google.protobuf.GeneratedMessageLite<
-          SessionReadiness, SessionReadiness.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.SessionReadiness)
-      SessionReadinessOrBuilder {
-    private SessionReadiness() {
-      readinessLabel_ = "";
-      readinessDetail_ = "";
+          TrainingStatus, TrainingStatus.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.TrainingStatus)
+      TrainingStatusOrBuilder {
+    private TrainingStatus() {
+      headline_ = "";
+      detail_ = "";
+      slotStatuses_ = emptyProtobufList();
     }
     public static final int NEXT_SESSION_AT_FIELD_NUMBER = 1;
     private long nextSessionAt_;
     /**
      * <pre>
-     * Unix timestamp for recommended next workout
+     * Unix timestamp for the regime-recommended next workout
      * </pre>
      *
      * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25132,7 +26162,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Unix timestamp for recommended next workout
+     * Unix timestamp for the regime-recommended next workout
      * </pre>
      *
      * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25144,7 +26174,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Unix timestamp for recommended next workout
+     * Unix timestamp for the regime-recommended next workout
      * </pre>
      *
      * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25192,283 +26222,495 @@ public final class WorkoutOuterClass {
       lastSessionAt_ = 0L;
     }
 
-    public static final int READINESS_LABEL_FIELD_NUMBER = 3;
-    private java.lang.String readinessLabel_;
+    public static final int HEADLINE_FIELD_NUMBER = 3;
+    private java.lang.String headline_;
     /**
      * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @return The readinessLabel.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @return The headline.
      */
     @java.lang.Override
-    public java.lang.String getReadinessLabel() {
-      return readinessLabel_;
+    public java.lang.String getHeadline() {
+      return headline_;
     }
     /**
      * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @return The bytes for readinessLabel.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getReadinessLabelBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(readinessLabel_);
-    }
-    /**
-     * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-     * </pre>
-     *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @param value The readinessLabel to set.
-     */
-    private void setReadinessLabel(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      readinessLabel_ = value;
-    }
-    /**
-     * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-     * </pre>
-     *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     */
-    private void clearReadinessLabel() {
-      
-      readinessLabel_ = getDefaultInstance().getReadinessLabel();
-    }
-    /**
-     * <pre>
-     * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-     * </pre>
-     *
-     * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-     * @param value The bytes for readinessLabel to set.
-     */
-    private void setReadinessLabelBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      readinessLabel_ = value.toStringUtf8();
-      
-    }
-
-    public static final int READINESS_DETAIL_FIELD_NUMBER = 4;
-    private java.lang.String readinessDetail_;
-    /**
-     * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
-     * </pre>
-     *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @return The readinessDetail.
-     */
-    @java.lang.Override
-    public java.lang.String getReadinessDetail() {
-      return readinessDetail_;
-    }
-    /**
-     * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
-     * </pre>
-     *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @return The bytes for readinessDetail.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @return The bytes for headline.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getReadinessDetailBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(readinessDetail_);
+        getHeadlineBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(headline_);
     }
     /**
      * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @param value The readinessDetail to set.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @param value The headline to set.
      */
-    private void setReadinessDetail(
+    private void setHeadline(
         java.lang.String value) {
       java.lang.Class<?> valueClass = value.getClass();
   
-      readinessDetail_ = value;
+      headline_ = value;
     }
     /**
      * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
+     * <code>string headline = 3 [json_name = "headline"];</code>
      */
-    private void clearReadinessDetail() {
+    private void clearHeadline() {
       
-      readinessDetail_ = getDefaultInstance().getReadinessDetail();
+      headline_ = getDefaultInstance().getHeadline();
     }
     /**
      * <pre>
-     * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+     * e.g. "Train today", "Next lift window in 14h"
      * </pre>
      *
-     * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-     * @param value The bytes for readinessDetail to set.
+     * <code>string headline = 3 [json_name = "headline"];</code>
+     * @param value The bytes for headline to set.
      */
-    private void setReadinessDetailBytes(
+    private void setHeadlineBytes(
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
-      readinessDetail_ = value.toStringUtf8();
+      headline_ = value.toStringUtf8();
       
     }
 
-    public static final int IS_READY_FIELD_NUMBER = 5;
-    private boolean isReady_;
+    public static final int DETAIL_FIELD_NUMBER = 4;
+    private java.lang.String detail_;
     /**
      * <pre>
-     * true if now &gt;= next_session_at
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-     * @return The isReady.
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @return The detail.
      */
     @java.lang.Override
-    public boolean getIsReady() {
-      return isReady_;
+    public java.lang.String getDetail() {
+      return detail_;
     }
     /**
      * <pre>
-     * true if now &gt;= next_session_at
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-     * @param value The isReady to set.
-     */
-    private void setIsReady(boolean value) {
-      
-      isReady_ = value;
-    }
-    /**
-     * <pre>
-     * true if now &gt;= next_session_at
-     * </pre>
-     *
-     * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-     */
-    private void clearIsReady() {
-      
-      isReady_ = false;
-    }
-
-    public static final int IS_OVERDUE_FIELD_NUMBER = 6;
-    private boolean isOverdue_;
-    /**
-     * <pre>
-     * true if overdue by more than 24h
-     * </pre>
-     *
-     * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
-     * @return The isOverdue.
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @return The bytes for detail.
      */
     @java.lang.Override
-    public boolean getIsOverdue() {
-      return isOverdue_;
+    public com.google.protobuf.ByteString
+        getDetailBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(detail_);
     }
     /**
      * <pre>
-     * true if overdue by more than 24h
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
-     * @param value The isOverdue to set.
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @param value The detail to set.
      */
-    private void setIsOverdue(boolean value) {
-      
-      isOverdue_ = value;
+    private void setDetail(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      detail_ = value;
     }
     /**
      * <pre>
-     * true if overdue by more than 24h
+     * e.g. "1 of 3 sessions done in the last 7 days"
      * </pre>
      *
-     * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
+     * <code>string detail = 4 [json_name = "detail"];</code>
      */
-    private void clearIsOverdue() {
+    private void clearDetail() {
       
-      isOverdue_ = false;
+      detail_ = getDefaultInstance().getDetail();
+    }
+    /**
+     * <pre>
+     * e.g. "1 of 3 sessions done in the last 7 days"
+     * </pre>
+     *
+     * <code>string detail = 4 [json_name = "detail"];</code>
+     * @param value The bytes for detail to set.
+     */
+    private void setDetailBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      detail_ = value.toStringUtf8();
+      
     }
 
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static final int SHOULD_TRAIN_NOW_FIELD_NUMBER = 5;
+    private boolean shouldTrainNow_;
+    /**
+     * <pre>
+     * true if now &gt;= next_session_at
+     * </pre>
+     *
+     * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+     * @return The shouldTrainNow.
+     */
+    @java.lang.Override
+    public boolean getShouldTrainNow() {
+      return shouldTrainNow_;
+    }
+    /**
+     * <pre>
+     * true if now &gt;= next_session_at
+     * </pre>
+     *
+     * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+     * @param value The shouldTrainNow to set.
+     */
+    private void setShouldTrainNow(boolean value) {
+      
+      shouldTrainNow_ = value;
+    }
+    /**
+     * <pre>
+     * true if now &gt;= next_session_at
+     * </pre>
+     *
+     * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+     */
+    private void clearShouldTrainNow() {
+      
+      shouldTrainNow_ = false;
+    }
+
+    public static final int TARGET_SESSIONS_PER_7_DAYS_FIELD_NUMBER = 6;
+    private int targetSessionsPer7Days_;
+    /**
+     * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+     * @return The targetSessionsPer7Days.
+     */
+    @java.lang.Override
+    public int getTargetSessionsPer7Days() {
+      return targetSessionsPer7Days_;
+    }
+    /**
+     * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+     * @param value The targetSessionsPer7Days to set.
+     */
+    private void setTargetSessionsPer7Days(int value) {
+      
+      targetSessionsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+     */
+    private void clearTargetSessionsPer7Days() {
+      
+      targetSessionsPer7Days_ = 0;
+    }
+
+    public static final int COMPLETED_SESSIONS_PER_7_DAYS_FIELD_NUMBER = 7;
+    private int completedSessionsPer7Days_;
+    /**
+     * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+     * @return The completedSessionsPer7Days.
+     */
+    @java.lang.Override
+    public int getCompletedSessionsPer7Days() {
+      return completedSessionsPer7Days_;
+    }
+    /**
+     * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+     * @param value The completedSessionsPer7Days to set.
+     */
+    private void setCompletedSessionsPer7Days(int value) {
+      
+      completedSessionsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+     */
+    private void clearCompletedSessionsPer7Days() {
+      
+      completedSessionsPer7Days_ = 0;
+    }
+
+    public static final int REMAINING_SESSIONS_PER_7_DAYS_FIELD_NUMBER = 8;
+    private int remainingSessionsPer7Days_;
+    /**
+     * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+     * @return The remainingSessionsPer7Days.
+     */
+    @java.lang.Override
+    public int getRemainingSessionsPer7Days() {
+      return remainingSessionsPer7Days_;
+    }
+    /**
+     * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+     * @param value The remainingSessionsPer7Days to set.
+     */
+    private void setRemainingSessionsPer7Days(int value) {
+      
+      remainingSessionsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+     */
+    private void clearRemainingSessionsPer7Days() {
+      
+      remainingSessionsPer7Days_ = 0;
+    }
+
+    public static final int TARGET_SETS_PER_7_DAYS_FIELD_NUMBER = 9;
+    private int targetSetsPer7Days_;
+    /**
+     * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+     * @return The targetSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getTargetSetsPer7Days() {
+      return targetSetsPer7Days_;
+    }
+    /**
+     * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+     * @param value The targetSetsPer7Days to set.
+     */
+    private void setTargetSetsPer7Days(int value) {
+      
+      targetSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+     */
+    private void clearTargetSetsPer7Days() {
+      
+      targetSetsPer7Days_ = 0;
+    }
+
+    public static final int COMPLETED_SETS_PER_7_DAYS_FIELD_NUMBER = 10;
+    private int completedSetsPer7Days_;
+    /**
+     * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+     * @return The completedSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getCompletedSetsPer7Days() {
+      return completedSetsPer7Days_;
+    }
+    /**
+     * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+     * @param value The completedSetsPer7Days to set.
+     */
+    private void setCompletedSetsPer7Days(int value) {
+      
+      completedSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+     */
+    private void clearCompletedSetsPer7Days() {
+      
+      completedSetsPer7Days_ = 0;
+    }
+
+    public static final int REMAINING_SETS_PER_7_DAYS_FIELD_NUMBER = 11;
+    private int remainingSetsPer7Days_;
+    /**
+     * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+     * @return The remainingSetsPer7Days.
+     */
+    @java.lang.Override
+    public int getRemainingSetsPer7Days() {
+      return remainingSetsPer7Days_;
+    }
+    /**
+     * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+     * @param value The remainingSetsPer7Days to set.
+     */
+    private void setRemainingSetsPer7Days(int value) {
+      
+      remainingSetsPer7Days_ = value;
+    }
+    /**
+     * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+     */
+    private void clearRemainingSetsPer7Days() {
+      
+      remainingSetsPer7Days_ = 0;
+    }
+
+    public static final int SLOT_STATUSES_FIELD_NUMBER = 12;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SlotTrainingStatus> slotStatuses_;
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.SlotTrainingStatus> getSlotStatusesList() {
+      return slotStatuses_;
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.SlotTrainingStatusOrBuilder> 
+        getSlotStatusesOrBuilderList() {
+      return slotStatuses_;
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    @java.lang.Override
+    public int getSlotStatusesCount() {
+      return slotStatuses_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.SlotTrainingStatus getSlotStatuses(int index) {
+      return slotStatuses_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.SlotTrainingStatusOrBuilder getSlotStatusesOrBuilder(
+        int index) {
+      return slotStatuses_.get(index);
+    }
+    private void ensureSlotStatusesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SlotTrainingStatus> tmp = slotStatuses_;
+      if (!tmp.isModifiable()) {
+        slotStatuses_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void setSlotStatuses(
+        int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+      value.getClass();
+  ensureSlotStatusesIsMutable();
+      slotStatuses_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void addSlotStatuses(workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+      value.getClass();
+  ensureSlotStatusesIsMutable();
+      slotStatuses_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void addSlotStatuses(
+        int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+      value.getClass();
+  ensureSlotStatusesIsMutable();
+      slotStatuses_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void addAllSlotStatuses(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SlotTrainingStatus> values) {
+      ensureSlotStatusesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, slotStatuses_);
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void clearSlotStatuses() {
+      slotStatuses_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+     */
+    private void removeSlotStatuses(int index) {
+      ensureSlotStatusesIsMutable();
+      slotStatuses_.remove(index);
+    }
+
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(byte[] data)
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(java.io.InputStream input)
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseDelimitedFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.WorkoutOuterClass.SessionReadiness parseFrom(
+    public static workout.v1.WorkoutOuterClass.TrainingStatus parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -25479,19 +26721,19 @@ public final class WorkoutOuterClass {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SessionReadiness prototype) {
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.TrainingStatus prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.SessionReadiness}
+     * Protobuf type {@code workout.v1.TrainingStatus}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.WorkoutOuterClass.SessionReadiness, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.SessionReadiness)
-        workout.v1.WorkoutOuterClass.SessionReadinessOrBuilder {
-      // Construct using workout.v1.WorkoutOuterClass.SessionReadiness.newBuilder()
+          workout.v1.WorkoutOuterClass.TrainingStatus, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.TrainingStatus)
+        workout.v1.WorkoutOuterClass.TrainingStatusOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.TrainingStatus.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
@@ -25499,7 +26741,7 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * Unix timestamp for recommended next workout
+       * Unix timestamp for the regime-recommended next workout
        * </pre>
        *
        * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25511,7 +26753,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Unix timestamp for recommended next workout
+       * Unix timestamp for the regime-recommended next workout
        * </pre>
        *
        * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25525,7 +26767,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Unix timestamp for recommended next workout
+       * Unix timestamp for the regime-recommended next workout
        * </pre>
        *
        * <code>int64 next_session_at = 1 [json_name = "nextSessionAt"];</code>
@@ -25579,223 +26821,453 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+       * e.g. "Train today", "Next lift window in 14h"
        * </pre>
        *
-       * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-       * @return The readinessLabel.
+       * <code>string headline = 3 [json_name = "headline"];</code>
+       * @return The headline.
        */
       @java.lang.Override
-      public java.lang.String getReadinessLabel() {
-        return instance.getReadinessLabel();
+      public java.lang.String getHeadline() {
+        return instance.getHeadline();
       }
       /**
        * <pre>
-       * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
+       * e.g. "Train today", "Next lift window in 14h"
        * </pre>
        *
-       * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-       * @return The bytes for readinessLabel.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getReadinessLabelBytes() {
-        return instance.getReadinessLabelBytes();
-      }
-      /**
-       * <pre>
-       * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-       * </pre>
-       *
-       * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-       * @param value The readinessLabel to set.
-       * @return This builder for chaining.
-       */
-      public Builder setReadinessLabel(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setReadinessLabel(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-       * </pre>
-       *
-       * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearReadinessLabel() {
-        copyOnWrite();
-        instance.clearReadinessLabel();
-        return this;
-      }
-      /**
-       * <pre>
-       * e.g. "Ready to train!", "In 14h", "Overdue — 1 day"
-       * </pre>
-       *
-       * <code>string readiness_label = 3 [json_name = "readinessLabel"];</code>
-       * @param value The bytes for readinessLabel to set.
-       * @return This builder for chaining.
-       */
-      public Builder setReadinessLabelBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setReadinessLabelBytes(value);
-        return this;
-      }
-
-      /**
-       * <pre>
-       * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
-       * </pre>
-       *
-       * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-       * @return The readinessDetail.
-       */
-      @java.lang.Override
-      public java.lang.String getReadinessDetail() {
-        return instance.getReadinessDetail();
-      }
-      /**
-       * <pre>
-       * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
-       * </pre>
-       *
-       * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-       * @return The bytes for readinessDetail.
+       * <code>string headline = 3 [json_name = "headline"];</code>
+       * @return The bytes for headline.
        */
       @java.lang.Override
       public com.google.protobuf.ByteString
-          getReadinessDetailBytes() {
-        return instance.getReadinessDetailBytes();
+          getHeadlineBytes() {
+        return instance.getHeadlineBytes();
       }
       /**
        * <pre>
-       * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+       * e.g. "Train today", "Next lift window in 14h"
        * </pre>
        *
-       * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-       * @param value The readinessDetail to set.
+       * <code>string headline = 3 [json_name = "headline"];</code>
+       * @param value The headline to set.
        * @return This builder for chaining.
        */
-      public Builder setReadinessDetail(
+      public Builder setHeadline(
           java.lang.String value) {
         copyOnWrite();
-        instance.setReadinessDetail(value);
+        instance.setHeadline(value);
         return this;
       }
       /**
        * <pre>
-       * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+       * e.g. "Train today", "Next lift window in 14h"
        * </pre>
        *
-       * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
+       * <code>string headline = 3 [json_name = "headline"];</code>
        * @return This builder for chaining.
        */
-      public Builder clearReadinessDetail() {
+      public Builder clearHeadline() {
         copyOnWrite();
-        instance.clearReadinessDetail();
+        instance.clearHeadline();
         return this;
       }
       /**
        * <pre>
-       * e.g. "Based on Wendler 5/3/1 (4 days/week, 48h recovery)"
+       * e.g. "Train today", "Next lift window in 14h"
        * </pre>
        *
-       * <code>string readiness_detail = 4 [json_name = "readinessDetail"];</code>
-       * @param value The bytes for readinessDetail to set.
+       * <code>string headline = 3 [json_name = "headline"];</code>
+       * @param value The bytes for headline to set.
        * @return This builder for chaining.
        */
-      public Builder setReadinessDetailBytes(
+      public Builder setHeadlineBytes(
           com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setReadinessDetailBytes(value);
+        instance.setHeadlineBytes(value);
         return this;
       }
 
       /**
        * <pre>
-       * true if now &gt;= next_session_at
+       * e.g. "1 of 3 sessions done in the last 7 days"
        * </pre>
        *
-       * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-       * @return The isReady.
+       * <code>string detail = 4 [json_name = "detail"];</code>
+       * @return The detail.
        */
       @java.lang.Override
-      public boolean getIsReady() {
-        return instance.getIsReady();
+      public java.lang.String getDetail() {
+        return instance.getDetail();
       }
       /**
        * <pre>
-       * true if now &gt;= next_session_at
+       * e.g. "1 of 3 sessions done in the last 7 days"
        * </pre>
        *
-       * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-       * @param value The isReady to set.
-       * @return This builder for chaining.
-       */
-      public Builder setIsReady(boolean value) {
-        copyOnWrite();
-        instance.setIsReady(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * true if now &gt;= next_session_at
-       * </pre>
-       *
-       * <code>bool is_ready = 5 [json_name = "isReady"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearIsReady() {
-        copyOnWrite();
-        instance.clearIsReady();
-        return this;
-      }
-
-      /**
-       * <pre>
-       * true if overdue by more than 24h
-       * </pre>
-       *
-       * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
-       * @return The isOverdue.
+       * <code>string detail = 4 [json_name = "detail"];</code>
+       * @return The bytes for detail.
        */
       @java.lang.Override
-      public boolean getIsOverdue() {
-        return instance.getIsOverdue();
+      public com.google.protobuf.ByteString
+          getDetailBytes() {
+        return instance.getDetailBytes();
       }
       /**
        * <pre>
-       * true if overdue by more than 24h
+       * e.g. "1 of 3 sessions done in the last 7 days"
        * </pre>
        *
-       * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
-       * @param value The isOverdue to set.
+       * <code>string detail = 4 [json_name = "detail"];</code>
+       * @param value The detail to set.
        * @return This builder for chaining.
        */
-      public Builder setIsOverdue(boolean value) {
+      public Builder setDetail(
+          java.lang.String value) {
         copyOnWrite();
-        instance.setIsOverdue(value);
+        instance.setDetail(value);
         return this;
       }
       /**
        * <pre>
-       * true if overdue by more than 24h
+       * e.g. "1 of 3 sessions done in the last 7 days"
        * </pre>
        *
-       * <code>bool is_overdue = 6 [json_name = "isOverdue"];</code>
+       * <code>string detail = 4 [json_name = "detail"];</code>
        * @return This builder for chaining.
        */
-      public Builder clearIsOverdue() {
+      public Builder clearDetail() {
         copyOnWrite();
-        instance.clearIsOverdue();
+        instance.clearDetail();
+        return this;
+      }
+      /**
+       * <pre>
+       * e.g. "1 of 3 sessions done in the last 7 days"
+       * </pre>
+       *
+       * <code>string detail = 4 [json_name = "detail"];</code>
+       * @param value The bytes for detail to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDetailBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setDetailBytes(value);
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.SessionReadiness)
+      /**
+       * <pre>
+       * true if now &gt;= next_session_at
+       * </pre>
+       *
+       * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+       * @return The shouldTrainNow.
+       */
+      @java.lang.Override
+      public boolean getShouldTrainNow() {
+        return instance.getShouldTrainNow();
+      }
+      /**
+       * <pre>
+       * true if now &gt;= next_session_at
+       * </pre>
+       *
+       * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+       * @param value The shouldTrainNow to set.
+       * @return This builder for chaining.
+       */
+      public Builder setShouldTrainNow(boolean value) {
+        copyOnWrite();
+        instance.setShouldTrainNow(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * true if now &gt;= next_session_at
+       * </pre>
+       *
+       * <code>bool should_train_now = 5 [json_name = "shouldTrainNow"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearShouldTrainNow() {
+        copyOnWrite();
+        instance.clearShouldTrainNow();
+        return this;
+      }
+
+      /**
+       * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+       * @return The targetSessionsPer7Days.
+       */
+      @java.lang.Override
+      public int getTargetSessionsPer7Days() {
+        return instance.getTargetSessionsPer7Days();
+      }
+      /**
+       * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+       * @param value The targetSessionsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTargetSessionsPer7Days(int value) {
+        copyOnWrite();
+        instance.setTargetSessionsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 target_sessions_per_7_days = 6 [json_name = "targetSessionsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTargetSessionsPer7Days() {
+        copyOnWrite();
+        instance.clearTargetSessionsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+       * @return The completedSessionsPer7Days.
+       */
+      @java.lang.Override
+      public int getCompletedSessionsPer7Days() {
+        return instance.getCompletedSessionsPer7Days();
+      }
+      /**
+       * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+       * @param value The completedSessionsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCompletedSessionsPer7Days(int value) {
+        copyOnWrite();
+        instance.setCompletedSessionsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 completed_sessions_per_7_days = 7 [json_name = "completedSessionsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCompletedSessionsPer7Days() {
+        copyOnWrite();
+        instance.clearCompletedSessionsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+       * @return The remainingSessionsPer7Days.
+       */
+      @java.lang.Override
+      public int getRemainingSessionsPer7Days() {
+        return instance.getRemainingSessionsPer7Days();
+      }
+      /**
+       * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+       * @param value The remainingSessionsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRemainingSessionsPer7Days(int value) {
+        copyOnWrite();
+        instance.setRemainingSessionsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 remaining_sessions_per_7_days = 8 [json_name = "remainingSessionsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRemainingSessionsPer7Days() {
+        copyOnWrite();
+        instance.clearRemainingSessionsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+       * @return The targetSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getTargetSetsPer7Days() {
+        return instance.getTargetSetsPer7Days();
+      }
+      /**
+       * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+       * @param value The targetSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTargetSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setTargetSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 target_sets_per_7_days = 9 [json_name = "targetSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTargetSetsPer7Days() {
+        copyOnWrite();
+        instance.clearTargetSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+       * @return The completedSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getCompletedSetsPer7Days() {
+        return instance.getCompletedSetsPer7Days();
+      }
+      /**
+       * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+       * @param value The completedSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCompletedSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setCompletedSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 completed_sets_per_7_days = 10 [json_name = "completedSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCompletedSetsPer7Days() {
+        copyOnWrite();
+        instance.clearCompletedSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+       * @return The remainingSetsPer7Days.
+       */
+      @java.lang.Override
+      public int getRemainingSetsPer7Days() {
+        return instance.getRemainingSetsPer7Days();
+      }
+      /**
+       * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+       * @param value The remainingSetsPer7Days to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRemainingSetsPer7Days(int value) {
+        copyOnWrite();
+        instance.setRemainingSetsPer7Days(value);
+        return this;
+      }
+      /**
+       * <code>int32 remaining_sets_per_7_days = 11 [json_name = "remainingSetsPer7Days"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRemainingSetsPer7Days() {
+        copyOnWrite();
+        instance.clearRemainingSetsPer7Days();
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.SlotTrainingStatus> getSlotStatusesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getSlotStatusesList());
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      @java.lang.Override
+      public int getSlotStatusesCount() {
+        return instance.getSlotStatusesCount();
+      }/**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SlotTrainingStatus getSlotStatuses(int index) {
+        return instance.getSlotStatuses(index);
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder setSlotStatuses(
+          int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+        copyOnWrite();
+        instance.setSlotStatuses(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder setSlotStatuses(
+          int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSlotStatuses(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder addSlotStatuses(workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+        copyOnWrite();
+        instance.addSlotStatuses(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder addSlotStatuses(
+          int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus value) {
+        copyOnWrite();
+        instance.addSlotStatuses(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder addSlotStatuses(
+          workout.v1.WorkoutOuterClass.SlotTrainingStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSlotStatuses(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder addSlotStatuses(
+          int index, workout.v1.WorkoutOuterClass.SlotTrainingStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSlotStatuses(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder addAllSlotStatuses(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SlotTrainingStatus> values) {
+        copyOnWrite();
+        instance.addAllSlotStatuses(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder clearSlotStatuses() {
+        copyOnWrite();
+        instance.clearSlotStatuses();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SlotTrainingStatus slot_statuses = 12 [json_name = "slotStatuses"];</code>
+       */
+      public Builder removeSlotStatuses(int index) {
+        copyOnWrite();
+        instance.removeSlotStatuses(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.TrainingStatus)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -25804,7 +27276,7 @@ public final class WorkoutOuterClass {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.WorkoutOuterClass.SessionReadiness();
+          return new workout.v1.WorkoutOuterClass.TrainingStatus();
         }
         case NEW_BUILDER: {
           return new Builder();
@@ -25813,14 +27285,22 @@ public final class WorkoutOuterClass {
             java.lang.Object[] objects = new java.lang.Object[] {
               "nextSessionAt_",
               "lastSessionAt_",
-              "readinessLabel_",
-              "readinessDetail_",
-              "isReady_",
-              "isOverdue_",
+              "headline_",
+              "detail_",
+              "shouldTrainNow_",
+              "targetSessionsPer7Days_",
+              "completedSessionsPer7Days_",
+              "remainingSessionsPer7Days_",
+              "targetSetsPer7Days_",
+              "completedSetsPer7Days_",
+              "remainingSetsPer7Days_",
+              "slotStatuses_",
+              workout.v1.WorkoutOuterClass.SlotTrainingStatus.class,
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0002\u0002\u0002" +
-                "\u0003\u0208\u0004\u0208\u0005\u0007\u0006\u0007";
+                "\u0000\f\u0000\u0000\u0001\f\f\u0000\u0001\u0000\u0001\u0002\u0002\u0002\u0003\u0208" +
+                "\u0004\u0208\u0005\u0007\u0006\u0004\u0007\u0004\b\u0004\t\u0004\n\u0004\u000b\u0004" +
+                "\f\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -25828,13 +27308,13 @@ public final class WorkoutOuterClass {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SessionReadiness> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.TrainingStatus> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.WorkoutOuterClass.SessionReadiness.class) {
+            synchronized (workout.v1.WorkoutOuterClass.TrainingStatus.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SessionReadiness>(
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.TrainingStatus>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -25853,24 +27333,24 @@ public final class WorkoutOuterClass {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.SessionReadiness)
-    private static final workout.v1.WorkoutOuterClass.SessionReadiness DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.TrainingStatus)
+    private static final workout.v1.WorkoutOuterClass.TrainingStatus DEFAULT_INSTANCE;
     static {
-      SessionReadiness defaultInstance = new SessionReadiness();
+      TrainingStatus defaultInstance = new TrainingStatus();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        SessionReadiness.class, defaultInstance);
+        TrainingStatus.class, defaultInstance);
     }
 
-    public static workout.v1.WorkoutOuterClass.SessionReadiness getDefaultInstance() {
+    public static workout.v1.WorkoutOuterClass.TrainingStatus getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<SessionReadiness> PARSER;
+    private static volatile com.google.protobuf.Parser<TrainingStatus> PARSER;
 
-    public static com.google.protobuf.Parser<SessionReadiness> parser() {
+    public static com.google.protobuf.Parser<TrainingStatus> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -26888,15 +28368,15 @@ public final class WorkoutOuterClass {
     workout.v1.WorkoutOuterClass.RegimeContext getRegimeContext();
 
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
-     * @return Whether the sessionReadiness field is set.
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
+     * @return Whether the trainingStatus field is set.
      */
-    boolean hasSessionReadiness();
+    boolean hasTrainingStatus();
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
-     * @return The sessionReadiness.
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
+     * @return The trainingStatus.
      */
-    workout.v1.WorkoutOuterClass.SessionReadiness getSessionReadiness();
+    workout.v1.WorkoutOuterClass.TrainingStatus getTrainingStatus();
 
     /**
      * <pre>
@@ -26919,63 +28399,27 @@ public final class WorkoutOuterClass {
         getSuggestedWorkoutNameBytes();
 
     /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    java.util.List<workout.v1.Settings.PendingStateUpdate> 
-        getPendingStateUpdatesList();
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    workout.v1.Settings.PendingStateUpdate getPendingStateUpdates(int index);
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    int getPendingStateUpdatesCount();
-
-    /**
-     * <pre>
-     * False if there are unresolved pending_state_updates.
-     * </pre>
-     *
-     * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-     * @return The canStartWorkout.
-     */
-    boolean getCanStartWorkout();
-
-    /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      * @return Whether the draft field is set.
      */
     boolean hasDraft();
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      * @return The draft.
      */
     workout.v1.WorkoutOuterClass.WorkoutDraft getDraft();
 
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> 
         getSavedExerciseGroupsList();
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index);
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     int getSavedExerciseGroupsCount();
   }
@@ -26992,7 +28436,6 @@ public final class WorkoutOuterClass {
       activeWorkoutId_ = "";
       proposedGroups_ = emptyProtobufList();
       suggestedWorkoutName_ = "";
-      pendingStateUpdates_ = emptyProtobufList();
       savedExerciseGroups_ = emptyProtobufList();
     }
     public static final int EXERCISE_STATUSES_FIELD_NUMBER = 1;
@@ -27276,49 +28719,49 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int SESSION_READINESS_FIELD_NUMBER = 5;
-    private workout.v1.WorkoutOuterClass.SessionReadiness sessionReadiness_;
+    public static final int TRAINING_STATUS_FIELD_NUMBER = 5;
+    private workout.v1.WorkoutOuterClass.TrainingStatus trainingStatus_;
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
      */
     @java.lang.Override
-    public boolean hasSessionReadiness() {
-      return sessionReadiness_ != null;
+    public boolean hasTrainingStatus() {
+      return trainingStatus_ != null;
     }
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.SessionReadiness getSessionReadiness() {
-      return sessionReadiness_ == null ? workout.v1.WorkoutOuterClass.SessionReadiness.getDefaultInstance() : sessionReadiness_;
+    public workout.v1.WorkoutOuterClass.TrainingStatus getTrainingStatus() {
+      return trainingStatus_ == null ? workout.v1.WorkoutOuterClass.TrainingStatus.getDefaultInstance() : trainingStatus_;
     }
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
      */
-    private void setSessionReadiness(workout.v1.WorkoutOuterClass.SessionReadiness value) {
+    private void setTrainingStatus(workout.v1.WorkoutOuterClass.TrainingStatus value) {
       value.getClass();
-  sessionReadiness_ = value;
+  trainingStatus_ = value;
       
       }
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
      */
     @java.lang.SuppressWarnings({"ReferenceEquality"})
-    private void mergeSessionReadiness(workout.v1.WorkoutOuterClass.SessionReadiness value) {
+    private void mergeTrainingStatus(workout.v1.WorkoutOuterClass.TrainingStatus value) {
       value.getClass();
-  if (sessionReadiness_ != null &&
-          sessionReadiness_ != workout.v1.WorkoutOuterClass.SessionReadiness.getDefaultInstance()) {
-        sessionReadiness_ =
-          workout.v1.WorkoutOuterClass.SessionReadiness.newBuilder(sessionReadiness_).mergeFrom(value).buildPartial();
+  if (trainingStatus_ != null &&
+          trainingStatus_ != workout.v1.WorkoutOuterClass.TrainingStatus.getDefaultInstance()) {
+        trainingStatus_ =
+          workout.v1.WorkoutOuterClass.TrainingStatus.newBuilder(trainingStatus_).mergeFrom(value).buildPartial();
       } else {
-        sessionReadiness_ = value;
+        trainingStatus_ = value;
       }
       
     }
     /**
-     * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+     * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
      */
-    private void clearSessionReadiness() {  sessionReadiness_ = null;
+    private void clearTrainingStatus() {  trainingStatus_ = null;
       
     }
 
@@ -27389,200 +28832,24 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int PENDING_STATE_UPDATES_FIELD_NUMBER = 7;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.Settings.PendingStateUpdate> pendingStateUpdates_;
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.Settings.PendingStateUpdate> getPendingStateUpdatesList() {
-      return pendingStateUpdates_;
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    public java.util.List<? extends workout.v1.Settings.PendingStateUpdateOrBuilder> 
-        getPendingStateUpdatesOrBuilderList() {
-      return pendingStateUpdates_;
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    @java.lang.Override
-    public int getPendingStateUpdatesCount() {
-      return pendingStateUpdates_.size();
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.Settings.PendingStateUpdate getPendingStateUpdates(int index) {
-      return pendingStateUpdates_.get(index);
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    public workout.v1.Settings.PendingStateUpdateOrBuilder getPendingStateUpdatesOrBuilder(
-        int index) {
-      return pendingStateUpdates_.get(index);
-    }
-    private void ensurePendingStateUpdatesIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.Settings.PendingStateUpdate> tmp = pendingStateUpdates_;
-      if (!tmp.isModifiable()) {
-        pendingStateUpdates_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void setPendingStateUpdates(
-        int index, workout.v1.Settings.PendingStateUpdate value) {
-      value.getClass();
-  ensurePendingStateUpdatesIsMutable();
-      pendingStateUpdates_.set(index, value);
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void addPendingStateUpdates(workout.v1.Settings.PendingStateUpdate value) {
-      value.getClass();
-  ensurePendingStateUpdatesIsMutable();
-      pendingStateUpdates_.add(value);
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void addPendingStateUpdates(
-        int index, workout.v1.Settings.PendingStateUpdate value) {
-      value.getClass();
-  ensurePendingStateUpdatesIsMutable();
-      pendingStateUpdates_.add(index, value);
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void addAllPendingStateUpdates(
-        java.lang.Iterable<? extends workout.v1.Settings.PendingStateUpdate> values) {
-      ensurePendingStateUpdatesIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, pendingStateUpdates_);
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void clearPendingStateUpdates() {
-      pendingStateUpdates_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-     */
-    private void removePendingStateUpdates(int index) {
-      ensurePendingStateUpdatesIsMutable();
-      pendingStateUpdates_.remove(index);
-    }
-
-    public static final int CAN_START_WORKOUT_FIELD_NUMBER = 8;
-    private boolean canStartWorkout_;
-    /**
-     * <pre>
-     * False if there are unresolved pending_state_updates.
-     * </pre>
-     *
-     * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-     * @return The canStartWorkout.
-     */
-    @java.lang.Override
-    public boolean getCanStartWorkout() {
-      return canStartWorkout_;
-    }
-    /**
-     * <pre>
-     * False if there are unresolved pending_state_updates.
-     * </pre>
-     *
-     * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-     * @param value The canStartWorkout to set.
-     */
-    private void setCanStartWorkout(boolean value) {
-      
-      canStartWorkout_ = value;
-    }
-    /**
-     * <pre>
-     * False if there are unresolved pending_state_updates.
-     * </pre>
-     *
-     * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-     */
-    private void clearCanStartWorkout() {
-      
-      canStartWorkout_ = false;
-    }
-
-    public static final int DRAFT_FIELD_NUMBER = 9;
+    public static final int DRAFT_FIELD_NUMBER = 7;
     private workout.v1.WorkoutOuterClass.WorkoutDraft draft_;
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      */
     @java.lang.Override
     public boolean hasDraft() {
       return draft_ != null;
     }
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      */
     @java.lang.Override
     public workout.v1.WorkoutOuterClass.WorkoutDraft getDraft() {
       return draft_ == null ? workout.v1.WorkoutOuterClass.WorkoutDraft.getDefaultInstance() : draft_;
     }
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      */
     private void setDraft(workout.v1.WorkoutOuterClass.WorkoutDraft value) {
       value.getClass();
@@ -27590,7 +28857,7 @@ public final class WorkoutOuterClass {
       
       }
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      */
     @java.lang.SuppressWarnings({"ReferenceEquality"})
     private void mergeDraft(workout.v1.WorkoutOuterClass.WorkoutDraft value) {
@@ -27605,44 +28872,44 @@ public final class WorkoutOuterClass {
       
     }
     /**
-     * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+     * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
      */
     private void clearDraft() {  draft_ = null;
       
     }
 
-    public static final int SAVED_EXERCISE_GROUPS_FIELD_NUMBER = 10;
+    public static final int SAVED_EXERCISE_GROUPS_FIELD_NUMBER = 8;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> savedExerciseGroups_;
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     @java.lang.Override
     public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getSavedExerciseGroupsList() {
       return savedExerciseGroups_;
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder> 
         getSavedExerciseGroupsOrBuilderList() {
       return savedExerciseGroups_;
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     @java.lang.Override
     public int getSavedExerciseGroupsCount() {
       return savedExerciseGroups_.size();
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     @java.lang.Override
     public workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index) {
       return savedExerciseGroups_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     public workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder getSavedExerciseGroupsOrBuilder(
         int index) {
@@ -27657,7 +28924,7 @@ public final class WorkoutOuterClass {
     }
 
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void setSavedExerciseGroups(
         int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
@@ -27666,7 +28933,7 @@ public final class WorkoutOuterClass {
       savedExerciseGroups_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void addSavedExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
       value.getClass();
@@ -27674,7 +28941,7 @@ public final class WorkoutOuterClass {
       savedExerciseGroups_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void addSavedExerciseGroups(
         int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
@@ -27683,7 +28950,7 @@ public final class WorkoutOuterClass {
       savedExerciseGroups_.add(index, value);
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void addAllSavedExerciseGroups(
         java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
@@ -27692,13 +28959,13 @@ public final class WorkoutOuterClass {
           values, savedExerciseGroups_);
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void clearSavedExerciseGroups() {
       savedExerciseGroups_ = emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+     * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
      */
     private void removeSavedExerciseGroups(int index) {
       ensureSavedExerciseGroupsIsMutable();
@@ -28101,49 +29368,49 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
       @java.lang.Override
-      public boolean hasSessionReadiness() {
-        return instance.hasSessionReadiness();
+      public boolean hasTrainingStatus() {
+        return instance.hasTrainingStatus();
       }
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.SessionReadiness getSessionReadiness() {
-        return instance.getSessionReadiness();
+      public workout.v1.WorkoutOuterClass.TrainingStatus getTrainingStatus() {
+        return instance.getTrainingStatus();
       }
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
-      public Builder setSessionReadiness(workout.v1.WorkoutOuterClass.SessionReadiness value) {
+      public Builder setTrainingStatus(workout.v1.WorkoutOuterClass.TrainingStatus value) {
         copyOnWrite();
-        instance.setSessionReadiness(value);
+        instance.setTrainingStatus(value);
         return this;
         }
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
-      public Builder setSessionReadiness(
-          workout.v1.WorkoutOuterClass.SessionReadiness.Builder builderForValue) {
+      public Builder setTrainingStatus(
+          workout.v1.WorkoutOuterClass.TrainingStatus.Builder builderForValue) {
         copyOnWrite();
-        instance.setSessionReadiness(builderForValue.build());
+        instance.setTrainingStatus(builderForValue.build());
         return this;
       }
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
-      public Builder mergeSessionReadiness(workout.v1.WorkoutOuterClass.SessionReadiness value) {
+      public Builder mergeTrainingStatus(workout.v1.WorkoutOuterClass.TrainingStatus value) {
         copyOnWrite();
-        instance.mergeSessionReadiness(value);
+        instance.mergeTrainingStatus(value);
         return this;
       }
       /**
-       * <code>.workout.v1.SessionReadiness session_readiness = 5 [json_name = "sessionReadiness"];</code>
+       * <code>.workout.v1.TrainingStatus training_status = 5 [json_name = "trainingStatus"];</code>
        */
-      public Builder clearSessionReadiness() {  copyOnWrite();
-        instance.clearSessionReadiness();
+      public Builder clearTrainingStatus() {  copyOnWrite();
+        instance.clearTrainingStatus();
         return this;
       }
 
@@ -28217,211 +29484,21 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.Settings.PendingStateUpdate> getPendingStateUpdatesList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getPendingStateUpdatesList());
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      @java.lang.Override
-      public int getPendingStateUpdatesCount() {
-        return instance.getPendingStateUpdatesCount();
-      }/**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.Settings.PendingStateUpdate getPendingStateUpdates(int index) {
-        return instance.getPendingStateUpdates(index);
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder setPendingStateUpdates(
-          int index, workout.v1.Settings.PendingStateUpdate value) {
-        copyOnWrite();
-        instance.setPendingStateUpdates(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder setPendingStateUpdates(
-          int index, workout.v1.Settings.PendingStateUpdate.Builder builderForValue) {
-        copyOnWrite();
-        instance.setPendingStateUpdates(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder addPendingStateUpdates(workout.v1.Settings.PendingStateUpdate value) {
-        copyOnWrite();
-        instance.addPendingStateUpdates(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder addPendingStateUpdates(
-          int index, workout.v1.Settings.PendingStateUpdate value) {
-        copyOnWrite();
-        instance.addPendingStateUpdates(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder addPendingStateUpdates(
-          workout.v1.Settings.PendingStateUpdate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addPendingStateUpdates(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder addPendingStateUpdates(
-          int index, workout.v1.Settings.PendingStateUpdate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addPendingStateUpdates(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder addAllPendingStateUpdates(
-          java.lang.Iterable<? extends workout.v1.Settings.PendingStateUpdate> values) {
-        copyOnWrite();
-        instance.addAllPendingStateUpdates(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder clearPendingStateUpdates() {
-        copyOnWrite();
-        instance.clearPendingStateUpdates();
-        return this;
-      }
-      /**
-       * <pre>
-       * Pending recommendations (e.g. temporal deload) that must be resolved before starting.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.PendingStateUpdate pending_state_updates = 7 [json_name = "pendingStateUpdates"];</code>
-       */
-      public Builder removePendingStateUpdates(int index) {
-        copyOnWrite();
-        instance.removePendingStateUpdates(index);
-        return this;
-      }
-
-      /**
-       * <pre>
-       * False if there are unresolved pending_state_updates.
-       * </pre>
-       *
-       * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-       * @return The canStartWorkout.
-       */
-      @java.lang.Override
-      public boolean getCanStartWorkout() {
-        return instance.getCanStartWorkout();
-      }
-      /**
-       * <pre>
-       * False if there are unresolved pending_state_updates.
-       * </pre>
-       *
-       * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-       * @param value The canStartWorkout to set.
-       * @return This builder for chaining.
-       */
-      public Builder setCanStartWorkout(boolean value) {
-        copyOnWrite();
-        instance.setCanStartWorkout(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * False if there are unresolved pending_state_updates.
-       * </pre>
-       *
-       * <code>bool can_start_workout = 8 [json_name = "canStartWorkout"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearCanStartWorkout() {
-        copyOnWrite();
-        instance.clearCanStartWorkout();
-        return this;
-      }
-
-      /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       @java.lang.Override
       public boolean hasDraft() {
         return instance.hasDraft();
       }
       /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       @java.lang.Override
       public workout.v1.WorkoutOuterClass.WorkoutDraft getDraft() {
         return instance.getDraft();
       }
       /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       public Builder setDraft(workout.v1.WorkoutOuterClass.WorkoutDraft value) {
         copyOnWrite();
@@ -28429,7 +29506,7 @@ public final class WorkoutOuterClass {
         return this;
         }
       /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       public Builder setDraft(
           workout.v1.WorkoutOuterClass.WorkoutDraft.Builder builderForValue) {
@@ -28438,7 +29515,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       public Builder mergeDraft(workout.v1.WorkoutOuterClass.WorkoutDraft value) {
         copyOnWrite();
@@ -28446,7 +29523,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>.workout.v1.WorkoutDraft draft = 9 [json_name = "draft"];</code>
+       * <code>.workout.v1.WorkoutDraft draft = 7 [json_name = "draft"];</code>
        */
       public Builder clearDraft() {  copyOnWrite();
         instance.clearDraft();
@@ -28454,7 +29531,7 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       @java.lang.Override
       public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getSavedExerciseGroupsList() {
@@ -28462,20 +29539,20 @@ public final class WorkoutOuterClass {
             instance.getSavedExerciseGroupsList());
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       @java.lang.Override
       public int getSavedExerciseGroupsCount() {
         return instance.getSavedExerciseGroupsCount();
       }/**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       @java.lang.Override
       public workout.v1.WorkoutOuterClass.ExerciseGroup getSavedExerciseGroups(int index) {
         return instance.getSavedExerciseGroups(index);
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder setSavedExerciseGroups(
           int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
@@ -28484,7 +29561,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder setSavedExerciseGroups(
           int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
@@ -28494,7 +29571,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder addSavedExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
         copyOnWrite();
@@ -28502,7 +29579,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder addSavedExerciseGroups(
           int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
@@ -28511,7 +29588,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder addSavedExerciseGroups(
           workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
@@ -28520,7 +29597,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder addSavedExerciseGroups(
           int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
@@ -28530,7 +29607,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder addAllSavedExerciseGroups(
           java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
@@ -28539,7 +29616,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder clearSavedExerciseGroups() {
         copyOnWrite();
@@ -28547,7 +29624,7 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 10 [json_name = "savedExerciseGroups"];</code>
+       * <code>repeated .workout.v1.ExerciseGroup saved_exercise_groups = 8 [json_name = "savedExerciseGroups"];</code>
        */
       public Builder removeSavedExerciseGroups(int index) {
         copyOnWrite();
@@ -28577,18 +29654,15 @@ public final class WorkoutOuterClass {
               "proposedGroups_",
               workout.v1.WorkoutOuterClass.ProposedExerciseGroup.class,
               "regimeContext_",
-              "sessionReadiness_",
+              "trainingStatus_",
               "suggestedWorkoutName_",
-              "pendingStateUpdates_",
-              workout.v1.Settings.PendingStateUpdate.class,
-              "canStartWorkout_",
               "draft_",
               "savedExerciseGroups_",
               workout.v1.WorkoutOuterClass.ExerciseGroup.class,
             };
             java.lang.String info =
-                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0004\u0000\u0001\u001b\u0002\u0208\u0003\u001b" +
-                "\u0004\t\u0005\t\u0006\u0208\u0007\u001b\b\u0007\t\t\n\u001b";
+                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0003\u0000\u0001\u001b\u0002\u0208\u0003\u001b" +
+                "\u0004\t\u0005\t\u0006\u0208\u0007\t\b\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

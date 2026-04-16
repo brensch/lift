@@ -273,16 +273,24 @@ class _GroupWeightCard extends StatelessWidget {
   bool get _isSavedUserGroup => group.id.startsWith('saved:');
 
   String _schplannerReason(ExerciseTypeConfig config) {
+    final scheduleExplanation = group.instruction.trim();
+    if (scheduleExplanation.isNotEmpty) {
+      return '';
+    }
+
     if (_isSavedUserGroup) {
-      return 'User defined workout, schplanner not involved.';
+      return 'Saved workout template. The regime did not choose these weights.';
     }
 
     if (_isPlanLaterPick) {
-      return 'Not following the recommended schplan here. User picked this though.';
+      if (scheduleExplanation.isNotEmpty) {
+        return '$scheduleExplanation You added it outside today\'s recommended session.';
+      }
+      return 'You added this outside today\'s recommended regime session.';
     }
 
     if (_isRecommendedSchplan) {
-      return 'Weights picked from recommended schplan.';
+      return 'This exercise comes from today\'s recommended regime session.';
     }
 
     final hints = _workingSets(config)
@@ -302,7 +310,7 @@ class _GroupWeightCard extends StatelessWidget {
         parts.add('AMRAP target ${hint.amrapSuccessThreshold}+');
       }
       if (parts.isNotEmpty) {
-        return 'Weight picked from ${parts.join(' • ')}.';
+        return 'Program rule for this exercise: ${parts.join(' • ')}.';
       }
     }
 
@@ -354,49 +362,62 @@ class _GroupWeightCard extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           for (final config in group.exerciseConfigs) ...[
-            Text(
-              exerciseNames[config.exercise] ?? 'Exercise',
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: colorScheme.primary,
-              ),
+            Builder(
+              builder: (context) {
+                final schplannerReason = _schplannerReason(config);
+                final instructionReason = _instructionReason(config);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exerciseNames[config.exercise] ?? 'Exercise',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _exerciseSummary(config),
+                      textAlign: TextAlign.left,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        height: 1.4,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (schplannerReason.isNotEmpty) ...[
+                      Text(
+                        schplannerReason,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          color: colorScheme.onSurface.withValues(alpha: 0.78),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (instructionReason.isNotEmpty) ...[
+                      Text(
+                        instructionReason,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          color: colorScheme.tertiary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                  ],
+                );
+              },
             ),
-            const SizedBox(height: 4),
-            Text(
-              _exerciseSummary(config),
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _schplannerReason(config),
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: colorScheme.onSurface.withValues(alpha: 0.78),
-              ),
-            ),
-            if (_instructionReason(config).isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                _instructionReason(config),
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.35,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
           ],
         ],
       ),

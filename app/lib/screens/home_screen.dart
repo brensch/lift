@@ -191,9 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<_HomeSelectableGroup>? _selectableGroups;
   RegimeContext? _regimeContext;
   TrainingStatus? _trainingStatus;
-  List<PendingStateUpdate> _pendingUpdates = [];
   String _suggestedWorkoutBaseName = '';
-  bool _canStartWorkout = true;
   Set<int> _selectedGroupIndices = {};
   bool _isLoading = true;
   bool _isRefreshing = false;
@@ -277,9 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _trainingStatus = scheduleRes.hasTrainingStatus()
             ? scheduleRes.trainingStatus
             : null;
-        _pendingUpdates = scheduleRes.pendingStateUpdates;
         _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
-        _canStartWorkout = scheduleRes.canStartWorkout;
         _selectedGroupIndices = selectedFromDraft.isNotEmpty
             ? selectedFromDraft
             : autoSelected;
@@ -829,22 +825,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-            if (_pendingUpdates.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    for (final update in _pendingUpdates)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _PendingUpdateCard(
-                          update: update,
-                          onResolved: () => _loadData(refreshOnly: true),
-                        ),
-                      ),
-                  ]),
-                ),
-              ),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 20,
@@ -1011,9 +991,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 62,
               child: FilledButton(
                 onPressed:
-                    _selectedGroupIndices.isEmpty ||
-                        _isStarting ||
-                        !_canStartWorkout
+                    _selectedGroupIndices.isEmpty || _isStarting
                     ? null
                     : _startWorkout,
                 style: FilledButton.styleFrom(
@@ -1869,270 +1847,6 @@ class _DetailsSection extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-// ─── Pending update card ──────────────────────────────────────────────────────
-
-class _PendingUpdateCard extends StatelessWidget {
-  final PendingStateUpdate update;
-  final VoidCallback onResolved;
-
-  const _PendingUpdateCard({required this.update, required this.onResolved});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.errorContainer.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.error.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.warning_amber_rounded, size: 18, color: cs.error),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  update.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: cs.onErrorContainer,
-                  ),
-                ),
-                if (update.message.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    update.message,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: cs.onErrorContainer.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => _showResolveDialog(context),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              'Resolve',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                color: cs.error,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showResolveDialog(BuildContext context) async {
-    final controllers = <String, TextEditingController>{};
-    for (final f in update.fields) {
-      final defaultText = _defaultText(f);
-      controllers[f.key] = TextEditingController(text: defaultText);
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) =>
-          _PendingUpdateDialog(update: update, controllers: controllers),
-    );
-
-    for (final c in controllers.values) {
-      c.dispose();
-    }
-
-    if (confirmed != true || !context.mounted) return;
-
-    final settingsProvider = context.read<SettingsProvider>();
-    final fieldValues = <String, StateFieldValue>{};
-    for (final f in update.fields) {
-      final text = controllers[f.key]?.text.trim() ?? '';
-      // Convert PendingStateUpdateField to StateFieldKind for value building
-      final schema = TrainingProgramStateFieldSchema(key: f.key, kind: f.kind);
-      final val = SettingsProvider.fieldValueFromText(
-        schema,
-        text,
-        unit: settingsProvider.weightUnit,
-      );
-      if (val != null) fieldValues[f.key] = val;
-    }
-
-    try {
-      await settingsProvider.applyPendingStateUpdate(
-        updateId: update.updateId,
-        fieldValues: fieldValues,
-      );
-      onResolved();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to apply update: $e')));
-      }
-    }
-  }
-
-  String _defaultText(PendingStateUpdateField f) {
-    switch (f.defaultValue.whichValue()) {
-      case StateFieldValue_Value.floatVal:
-        return f.defaultValue.floatVal.toStringAsFixed(0);
-      case StateFieldValue_Value.intVal:
-        return f.defaultValue.intVal.toString();
-      case StateFieldValue_Value.boolVal:
-        return f.defaultValue.boolVal ? 'true' : 'false';
-      case StateFieldValue_Value.stringVal:
-        return f.defaultValue.stringVal;
-      default:
-        return '';
-    }
-  }
-}
-
-class _PendingUpdateDialog extends StatefulWidget {
-  final PendingStateUpdate update;
-  final Map<String, TextEditingController> controllers;
-
-  const _PendingUpdateDialog({required this.update, required this.controllers});
-
-  @override
-  State<_PendingUpdateDialog> createState() => _PendingUpdateDialogState();
-}
-
-class _PendingUpdateDialogState extends State<_PendingUpdateDialog> {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
-      title: Text(
-        widget.update.title,
-        style: const TextStyle(fontWeight: FontWeight.w900),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.update.message.isNotEmpty) ...[
-              Text(
-                widget.update.message,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: cs.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            for (final f in widget.update.fields)
-              _buildFieldInput(context, f, cs),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Apply'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFieldInput(
-    BuildContext context,
-    PendingStateUpdateField f,
-    ColorScheme cs,
-  ) {
-    final controller = widget.controllers[f.key]!;
-    if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM &&
-        f.enumOptions.isNotEmpty) {
-      return ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  f.label,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: f.enumOptions.map((opt) {
-                    return ChoiceChip(
-                      label: Text(opt.label.isNotEmpty ? opt.label : opt.value),
-                      selected: opt.value == controller.text,
-                      onSelected: (_) =>
-                          setState(() => controller.text = opt.value),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    }
-
-    final isNumeric =
-        f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT ||
-        f.kind == StateFieldKind.STATE_FIELD_KIND_INT;
-    final unit = context.watch<SettingsProvider>().weightUnit;
-    final isWeightField =
-        '${f.label} ${f.key}'.toLowerCase().contains('weight') ||
-        '${f.label} ${f.key}'.toLowerCase().contains('max');
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(f.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: controller,
-            keyboardType: isNumeric
-                ? const TextInputType.numberWithOptions(decimal: true)
-                : TextInputType.text,
-            textAlign: TextAlign.right,
-            decoration: InputDecoration(
-              suffixText: isWeightField ? weightUnitSuffixPlural(unit) : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: cs.outline.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::program_state::{FieldVal, ProposeResult, StatePayload};
 
 // ── Workout Service ──
 
@@ -8,6 +9,67 @@ pub struct ServerWorkoutService {
 }
 
 impl ServerWorkoutService {
+    fn maybe_annotate_temporal_adjustment(
+        stored_payload: &StatePayload,
+        effective_payload: &StatePayload,
+        last_session_at: i64,
+        now: i64,
+        proposal: &mut ProposeResult,
+    ) {
+        if last_session_at <= 0 || stored_payload == effective_payload {
+            return;
+        }
+
+        let changed_numeric = effective_payload
+            .iter()
+            .filter_map(|(key, effective)| {
+                let stored = stored_payload.get(key)?;
+                let stored_num = match stored {
+                    FieldVal::Float(v) => Some(v.to_owned()),
+                    FieldVal::Int(v) => Some(v.to_owned() as f64),
+                    _ => None,
+                }?;
+                let effective_num = match effective {
+                    FieldVal::Float(v) => Some(v.to_owned()),
+                    FieldVal::Int(v) => Some(v.to_owned() as f64),
+                    _ => None,
+                }?;
+                if (stored_num - effective_num).abs() < 0.001 {
+                    return None;
+                }
+                Some((key.as_str(), stored_num, effective_num))
+            })
+            .collect::<Vec<_>>();
+
+        if changed_numeric.is_empty() {
+            return;
+        }
+
+        let days_since = ((now - last_session_at) / (24 * 3600)).max(0);
+        let ratio_pct = changed_numeric
+            .first()
+            .and_then(|(_, stored, effective)| {
+                if *stored > 0.0 {
+                    Some((effective / stored * 100.0).round() as i64)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(100);
+        let lowered_fields = changed_numeric.len();
+        let note = format!(
+            "Comeback deload applied: after {} days away, today's programmed weights were reduced to about {}% across {} setting{}.",
+            days_since,
+            ratio_pct,
+            lowered_fields,
+            if lowered_fields == 1 { "" } else { "s" }
+        );
+
+        if !proposal.regime_context.coaching_notes.iter().any(|n| n == &note) {
+            proposal.regime_context.coaching_notes.insert(0, note);
+        }
+    }
+
     async fn load_schplanner_history(
         &self,
         user_id: &str,
@@ -74,37 +136,41 @@ impl ServerWorkoutService {
             .ok_or_else(|| Status::internal("missing state"))?;
         let regime_type = RegimeType::try_from(state.regime_type).unwrap_or(RegimeType::Linear5x5);
         let regime = get_regime(regime_type);
-        let payload = payload_from_proto(&state.fields);
+        let stored_payload = payload_from_proto(&state.fields);
         let now = if at_time > 0 { at_time } else { now_unix() };
-        let history = self
-            .load_schplanner_history(user_id, state.updated_at)
-            .await?;
-        let derivation = derive_state(regime.as_ref(), &payload, &history);
+        let history = self.load_schplanner_history(user_id, 0).await?;
+        let last_session_at = history
+            .iter()
+            .map(|workout| {
+                if workout.workout.end_time > 0 {
+                    workout.workout.end_time
+                } else {
+                    workout.workout.start_time
+                }
+            })
+            .max()
+            .unwrap_or(0);
+        let effective_state =
+            regime.apply_temporal_adjustments_for_proposal(&stored_payload, last_session_at, now);
         let insights = summarize_recent_insights(&history);
-        let mut proposal = regime.propose_from_state(
-            &derivation.effective_state,
-            derivation.last_session_at,
+        let mut proposal =
+            regime.propose_from_state(&effective_state, last_session_at, now, &insights);
+        Self::maybe_annotate_temporal_adjustment(
+            &stored_payload,
+            &effective_state,
+            last_session_at,
             now,
-            &insights,
+            &mut proposal,
         );
         decorate_proposed_groups(
             regime.as_ref(),
             &mut proposal.proposed_groups,
-            &derivation.effective_state,
-            &derivation.slot_reasons,
-            derivation.started_workout_count,
+            &effective_state,
+            &std::collections::HashMap::new(),
+            0,
         );
-        let pending_updates = regime
-            .pending_updates_for_state(&derivation.effective_state, derivation.last_session_at, now)
-            .into_iter()
-            .map(pending_update_to_proto)
-            .collect::<Vec<_>>();
-        let training_status = regime.derive_training_status(
-            &derivation.effective_state,
-            &history,
-            derivation.last_session_at,
-            now,
-        );
+        let training_status =
+            regime.derive_training_status(&effective_state, &history, last_session_at, now);
 
         let active_workout_id = self
             .db
@@ -120,8 +186,6 @@ impl ServerWorkoutService {
             regime_context: Some(proposal.regime_context),
             training_status: Some(training_status),
             suggested_workout_name: proposal.suggested_workout_name,
-            pending_state_updates: pending_updates.clone(),
-            can_start_workout: pending_updates.is_empty(),
             draft: self
                 .db
                 .get_workout_draft(user_id)
@@ -138,6 +202,57 @@ impl ServerWorkoutService {
             .await
             .map_err(internal_error)?;
         Ok(response)
+    }
+
+    async fn persist_program_state_after_workout_end(
+        &self,
+        user_id: &str,
+        workout: &SchplannerWorkoutRecord,
+    ) -> Result<(), Status> {
+        let state_resp = if let Some(resp) = self
+            .db
+            .get_program_state(user_id)
+            .await
+            .map_err(internal_error)?
+        {
+            resp
+        } else {
+            let regime = get_regime(RegimeType::Linear5x5);
+            GetActiveTrainingProgramStateResponse {
+                state: Some(TrainingProgramState {
+                    regime_type: RegimeType::Linear5x5 as i32,
+                    fields: payload_to_proto(&regime.default_state()),
+                    updated_at: 0,
+                    source: "default".to_string(),
+                }),
+                schema: Some(regime.state_schema()),
+            }
+        };
+
+        let state = state_resp
+            .state
+            .ok_or_else(|| Status::internal("missing state"))?;
+        let regime_type = RegimeType::try_from(state.regime_type).unwrap_or(RegimeType::Linear5x5);
+        let regime = get_regime(regime_type);
+        let mut payload = payload_from_proto(&state.fields);
+        let slot_outcomes = summarize_slot_outcomes(workout);
+        regime.transition_state_on_workout_completed(&mut payload, workout, &slot_outcomes);
+        let next_updated_at = workout.workout.end_time.max(workout.workout.start_time);
+        let response = GetActiveTrainingProgramStateResponse {
+            state: Some(TrainingProgramState {
+                regime_type: regime_type as i32,
+                fields: payload_to_proto(&payload),
+                updated_at: next_updated_at,
+                source: format!("workout_completed:{}", workout.workout.id),
+            }),
+            schema: Some(regime.state_schema()),
+        };
+
+        self.db
+            .put_program_state(user_id, &response)
+            .await
+            .map_err(internal_error)?;
+        Ok(())
     }
 
     /// Load proposed_sets + completed_sets for a workout and compute next_up + snapshot.
@@ -274,6 +389,29 @@ impl WorkoutService for ServerWorkoutService {
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
+        let exercise_groups = self
+            .db
+            .get_exercise_groups(&req.workout_id)
+            .await
+            .map_err(internal_error)?;
+        let proposed_sets = self
+            .db
+            .get_proposed_sets(&req.workout_id)
+            .await
+            .map_err(internal_error)?;
+        let completed_sets = self
+            .db
+            .get_completed_sets(&req.workout_id)
+            .await
+            .map_err(internal_error)?;
+        let workout_record = SchplannerWorkoutRecord {
+            workout: workout.clone(),
+            exercise_groups,
+            proposed_sets,
+            completed_sets,
+        };
+        self.persist_program_state_after_workout_end(&user_id, &workout_record)
+            .await?;
 
         if !session_id.is_empty() {
             // Refresh with the finished workout so peers still in the session see the
@@ -422,7 +560,8 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
         }
 
         Ok(Response::new(StartSetResponse {
@@ -515,7 +654,13 @@ impl WorkoutService for ServerWorkoutService {
 
             let session_id = self.get_session_id_for_user(&user_id).await?;
             if !session_id.is_empty() {
-                refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+                refresh_participant_for_user(
+                    &self.db,
+                    &user_id,
+                    &session_id,
+                    Some(&req.workout_id),
+                )
+                .await?;
             }
 
             Ok(Response::new(CompleteSetResponse {
@@ -546,7 +691,13 @@ impl WorkoutService for ServerWorkoutService {
 
             let session_id = self.get_session_id_for_user(&user_id).await?;
             if !session_id.is_empty() {
-                refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+                refresh_participant_for_user(
+                    &self.db,
+                    &user_id,
+                    &session_id,
+                    Some(&req.workout_id),
+                )
+                .await?;
             }
 
             Ok(Response::new(CompleteSetResponse {
@@ -576,7 +727,8 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
         }
 
         Ok(Response::new(DeleteCompletedSetResponse {
@@ -604,7 +756,8 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
         }
 
         Ok(Response::new(CancelProposedSetResponse {
@@ -657,7 +810,8 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
         }
 
         Ok(Response::new(ReplaceExerciseGroupPlanResponse {
@@ -707,7 +861,8 @@ impl WorkoutService for ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(&user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id)).await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
+                .await?;
         }
 
         Ok(Response::new(ReorderExerciseGroupsResponse {
