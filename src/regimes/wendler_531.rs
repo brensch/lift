@@ -3,18 +3,16 @@ use schlift::workout::v1::{
     TrainingProgramStateSchema, WorkingSetSpec,
 };
 
+use super::{
+    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
+    rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
+};
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
     set_f32, set_int, set_str, with_onboarding, FloatFieldBounds, ProposeResult, StatePayload,
 };
 use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
-
-use super::{
-    build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
-    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
-    ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
-};
 use std::collections::HashSet;
 
 pub struct Wendler531Regime;
@@ -180,43 +178,6 @@ fn build_wendler_working_sets(
             }
         })
         .collect()
-}
-
-fn set_pattern_text(week_def: &WeekDef) -> String {
-    week_def
-        .set_reps
-        .iter()
-        .enumerate()
-        .map(|(idx, &r)| {
-            if idx == 2 && week_def.top_set_amrap {
-                format!("{}+", r)
-            } else {
-                r.to_string()
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("/")
-}
-
-fn coaching_notes_for_week(week: i64, week_def: &WeekDef) -> Vec<String> {
-    if week_def.is_deload {
-        vec![
-            "Deload week — intentionally light.".to_string(),
-            "Focus on technique and movement quality.".to_string(),
-            "Your Training Maxes increase next cycle.".to_string(),
-        ]
-    } else if week == 3 {
-        vec![
-            "Peak week — push the AMRAP set hard.".to_string(),
-            "Warm up thoroughly before the top set.".to_string(),
-            "Your reps on the top set measure progress.".to_string(),
-        ]
-    } else {
-        vec![
-            "Push the last set for extra reps if you feel strong.".to_string(),
-            "Log all reps accurately for best tracking.".to_string(),
-        ]
-    }
 }
 
 fn recovery_seconds_for_week(week: i64) -> i64 {
@@ -395,7 +356,7 @@ impl WorkoutRegime for Wendler531Regime {
         state: &StatePayload,
         _last_session_at: i64,
         _now_ts: i64,
-        insights: &SchplannerInsights,
+        _insights: &SchplannerInsights,
     ) -> ProposeResult {
         let variant = get_str_or(state, KEY_VARIANT, "four_day");
         let cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
@@ -404,7 +365,6 @@ impl WorkoutRegime for Wendler531Regime {
 
         let week_def = &WEEKS[(week - 1) as usize];
         let lifts = lifts_for_session(variant, cycle, week, session_in_week);
-        let pattern = set_pattern_text(week_def);
         let weight_unit = weight_unit_from_state(state);
 
         let mut proposed_groups = Vec::new();
@@ -439,7 +399,6 @@ impl WorkoutRegime for Wendler531Regime {
                 last_set_amrap: week_def.top_set_amrap,
                 working_sets,
             };
-
             proposed_groups.push(ProposedExerciseGroup {
                 name: exercise_display_name(ex),
                 sets: 3,
@@ -447,24 +406,11 @@ impl WorkoutRegime for Wendler531Regime {
                 exercise_configs: vec![config],
                 rest_config: group_rest,
                 tags: vec!["recommended".to_string(), "compound".to_string()],
-                explanation: format!(
-                    "Session {} of Cycle {} includes {}. {} uses {} off a Training Max of {}.",
-                    session_in_week + 1,
-                    cycle,
-                    exercise_display_name(ex),
-                    week_def.name,
-                    pattern,
-                    format_weight_compact(tm, weight_unit),
-                ),
                 prescribed_by_regime: false,
             });
         }
 
         let lifts_display: Vec<String> = lifts.iter().map(|&e| exercise_display_name(e)).collect();
-
-        let mut coaching_notes = recent_performance_notes(insights, &lifts, 2);
-        coaching_notes.extend(coaching_notes_for_week(week, week_def));
-        coaching_notes.truncate(4);
 
         let regime_context = RegimeContext {
             regime_display_name: "Wendler 5/3/1".to_string(),
@@ -479,7 +425,6 @@ impl WorkoutRegime for Wendler531Regime {
                     .join("/")
             ),
             next_session_preview: week_def.preview.to_string(),
-            coaching_notes,
         };
 
         ProposeResult {
@@ -491,6 +436,7 @@ impl WorkoutRegime for Wendler531Regime {
                 week_def.name,
                 lifts_display.join(" + ")
             ),
+            schedule_messages: Vec::new(),
         }
     }
 
@@ -597,33 +543,6 @@ impl WorkoutRegime for Wendler531Regime {
                 current_tm + bump
             };
             set_f32(state, tm_key(exercise), next_tm);
-        }
-    }
-
-    fn schplanner_decorate_proposed_group(
-        &self,
-        group: &mut ProposedExerciseGroup,
-        state: &StatePayload,
-        slot_reasons: &std::collections::HashMap<String, String>,
-        started_workout_count: usize,
-    ) {
-        let cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
-        let week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
-        let week_def = &WEEKS[(week - 1) as usize];
-        if let Some(reason) = crate::schplanner::group_slot_keys(group)
-            .into_iter()
-            .find_map(|key| slot_reasons.get(&key).cloned())
-        {
-            group.explanation = reason;
-        } else if started_workout_count > 0 {
-            group.explanation = format!(
-                "{} Schplanner replayed {} started workout{} to place you at Cycle {}, {}.",
-                group.explanation,
-                started_workout_count,
-                if started_workout_count == 1 { "" } else { "s" },
-                cycle,
-                week_def.name
-            );
         }
     }
 }

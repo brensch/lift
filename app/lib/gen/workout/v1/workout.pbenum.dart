@@ -127,6 +127,83 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
+class UserMessageKind extends $pb.ProtobufEnum {
+  static const UserMessageKind USER_MESSAGE_KIND_UNSPECIFIED =
+      UserMessageKind._(
+          0, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_UNSPECIFIED');
+  static const UserMessageKind USER_MESSAGE_KIND_COACHING_NOTE =
+      UserMessageKind._(
+          1, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_COACHING_NOTE');
+  static const UserMessageKind USER_MESSAGE_KIND_GROUP_RATIONALE =
+      UserMessageKind._(
+          2, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_GROUP_RATIONALE');
+  static const UserMessageKind USER_MESSAGE_KIND_LOAD_INCREASE =
+      UserMessageKind._(
+          3, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_LOAD_INCREASE');
+  static const UserMessageKind USER_MESSAGE_KIND_LOAD_HOLD =
+      UserMessageKind._(4, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_LOAD_HOLD');
+  static const UserMessageKind USER_MESSAGE_KIND_STALL_DELOAD =
+      UserMessageKind._(
+          5, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_STALL_DELOAD');
+  static const UserMessageKind USER_MESSAGE_KIND_TEMPORAL_DELOAD =
+      UserMessageKind._(
+          6, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_TEMPORAL_DELOAD');
+  static const UserMessageKind USER_MESSAGE_KIND_SESSION_UPDATE =
+      UserMessageKind._(
+          7, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_SESSION_UPDATE');
+  static const UserMessageKind USER_MESSAGE_KIND_CYCLE_ADVANCE =
+      UserMessageKind._(
+          8, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_CYCLE_ADVANCE');
+
+  static const $core.List<UserMessageKind> values = <UserMessageKind>[
+    USER_MESSAGE_KIND_UNSPECIFIED,
+    USER_MESSAGE_KIND_COACHING_NOTE,
+    USER_MESSAGE_KIND_GROUP_RATIONALE,
+    USER_MESSAGE_KIND_LOAD_INCREASE,
+    USER_MESSAGE_KIND_LOAD_HOLD,
+    USER_MESSAGE_KIND_STALL_DELOAD,
+    USER_MESSAGE_KIND_TEMPORAL_DELOAD,
+    USER_MESSAGE_KIND_SESSION_UPDATE,
+    USER_MESSAGE_KIND_CYCLE_ADVANCE,
+  ];
+
+  static final $core.List<UserMessageKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 8);
+  static UserMessageKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const UserMessageKind._(super.value, super.name);
+}
+
+class UserMessageSurface extends $pb.ProtobufEnum {
+  static const UserMessageSurface USER_MESSAGE_SURFACE_UNSPECIFIED =
+      UserMessageSurface._(
+          0, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_UNSPECIFIED');
+  static const UserMessageSurface USER_MESSAGE_SURFACE_SCHEDULE =
+      UserMessageSurface._(
+          1, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_SCHEDULE');
+  static const UserMessageSurface USER_MESSAGE_SURFACE_WORKOUT_BRIEFING =
+      UserMessageSurface._(
+          2, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_WORKOUT_BRIEFING');
+  static const UserMessageSurface USER_MESSAGE_SURFACE_WORKOUT_FEED =
+      UserMessageSurface._(
+          3, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_WORKOUT_FEED');
+
+  static const $core.List<UserMessageSurface> values = <UserMessageSurface>[
+    USER_MESSAGE_SURFACE_UNSPECIFIED,
+    USER_MESSAGE_SURFACE_SCHEDULE,
+    USER_MESSAGE_SURFACE_WORKOUT_BRIEFING,
+    USER_MESSAGE_SURFACE_WORKOUT_FEED,
+  ];
+
+  static final $core.List<UserMessageSurface?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static UserMessageSurface? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const UserMessageSurface._(super.value, super.name);
+}
+
 class WorkoutState extends $pb.ProtobufEnum {
   static const WorkoutState WORKOUT_STATE_UNSPECIFIED =
       WorkoutState._(0, _omitEnumNames ? '' : 'WORKOUT_STATE_UNSPECIFIED');

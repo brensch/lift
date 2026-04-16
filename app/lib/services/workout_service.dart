@@ -195,6 +195,13 @@ class WorkoutServiceWrapper {
     );
   }
 
+  Future<List<String>> dismissUserMessages(List<String> messageKeys) async {
+    final response = await _client.workoutService.dismissUserMessages(
+      DismissUserMessagesRequest()..messageKeys.addAll(messageKeys),
+    );
+    return response.dismissedMessageKeys;
+  }
+
   Future<WorkoutDraft> saveWorkoutDraft(WorkoutDraft draft) async {
     final response = await _client.workoutService.saveWorkoutDraft(
       SaveWorkoutDraftRequest()..draft = draft,

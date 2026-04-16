@@ -143,6 +143,7 @@ pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWor
         next_up_set,
         plan_change_stats: Some(workout_plan_change_stats_from_sets(&active.proposed_sets)),
         state_snapshot,
+        user_messages: Vec::new(),
     }
 }
 
@@ -156,6 +157,7 @@ pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> Star
         completed_sets: resp.completed_sets,
         next_up_set: resp.next_up_set,
         state_snapshot: resp.state_snapshot,
+        user_messages: Vec::new(),
     }
 }
 

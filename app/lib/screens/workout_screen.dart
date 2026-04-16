@@ -43,6 +43,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final remainingGroups = groups
         .where((group) => !_isGroupCompleted(group, wp.completedSets))
         .toList(growable: false);
+    final sessionMessages = wp.workoutMessages
+        .where(
+          (message) =>
+              message.exerciseGroupId.isEmpty &&
+              message.exercise == Exercise.EXERCISE_UNSPECIFIED,
+        )
+        .toList(growable: false);
 
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
@@ -117,6 +124,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ],
           ),
         ),
+        if (sessionMessages.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _WorkoutMessagesSection(messages: sessionMessages),
+          ),
         if (wp.wearHeartRateSamples.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -163,6 +175,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               if (focusedGroup != null) ...[
                 _CurrentExerciseCard(
                   group: focusedGroup,
+                  messages: _messagesForWorkoutGroup(
+                    focusedGroup,
+                    wp.workoutMessages,
+                  ),
                   completedSets: wp.completedSets,
                   activeSetId: activeSetId,
                   onEdit: () => _editCurrentGroup(context, wp, focusedGroup),
@@ -235,6 +251,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _RemainingExerciseCard(
                         group: group,
+                        messages: _messagesForWorkoutGroup(
+                          group,
+                          wp.workoutMessages,
+                        ),
                         groupIndex: idx,
                         onDelete: () => _confirmDeleteGroup(context, wp, group),
                         onEdit: () => _editCurrentGroup(context, wp, group),
@@ -456,14 +476,118 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 }
 
+List<UserMessage> _messagesForWorkoutGroup(
+  ExerciseGroupData group,
+  List<UserMessage> messages,
+) {
+  final groupId = group.group?.id ?? '';
+  final exercises = <Exercise>{group.exercise, ...group.exercises};
+  final seen = <String>{};
+  final out = <UserMessage>[];
+  for (final message in messages) {
+    final matchesGroupId =
+        groupId.isNotEmpty && message.exerciseGroupId == groupId;
+    final matchesExercise =
+        message.exerciseGroupId.isEmpty &&
+        message.exercise != Exercise.EXERCISE_UNSPECIFIED &&
+        exercises.contains(message.exercise);
+    if (!matchesGroupId && !matchesExercise) continue;
+    if (!seen.add(message.messageKey)) continue;
+    out.add(message);
+  }
+  return out;
+}
+
+class _WorkoutMessagesSection extends StatelessWidget {
+  final List<UserMessage> messages;
+
+  const _WorkoutMessagesSection({required this.messages});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final provider = context.read<WorkoutProvider>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Session updates',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final message in messages.take(6)) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.title.isNotEmpty)
+                        Text(
+                          message.title,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      if (message.title.isNotEmpty) const SizedBox(height: 4),
+                      Text(
+                        message.body,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          color: colorScheme.onSurface.withValues(alpha: 0.82),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (message.dismissible) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    onPressed: () =>
+                        provider.dismissUserMessages([message.messageKey]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _CurrentExerciseCard extends StatelessWidget {
   final ExerciseGroupData group;
+  final List<UserMessage> messages;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
   final VoidCallback onEdit;
 
   const _CurrentExerciseCard({
     required this.group,
+    required this.messages,
     required this.completedSets,
     required this.activeSetId,
     required this.onEdit,
@@ -474,7 +598,6 @@ class _CurrentExerciseCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final title =
         group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
-    final explanation = group.group?.instruction.trim() ?? '';
 
     final activeSet = group.sets.cast<ProposedSet?>().firstWhere(
       (set) => set?.id == activeSetId,
@@ -536,18 +659,11 @@ class _CurrentExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          if (explanation.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              explanation,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: colorScheme.onSurface.withValues(alpha: 0.74),
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
+          if (messages.isNotEmpty) ...[
+            _ExerciseMessagesBlock(messages: messages),
+            const SizedBox(height: 14),
+          ],
           if (group.sets.any((set) => set.warmup)) ...[
             _SetProgressSection(
               label: 'Warmup',
@@ -700,12 +816,14 @@ class _CurrentSetChip extends StatelessWidget {
 
 class _RemainingExerciseCard extends StatelessWidget {
   final ExerciseGroupData group;
+  final List<UserMessage> messages;
   final int groupIndex;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
 
   const _RemainingExerciseCard({
     required this.group,
+    required this.messages,
     required this.groupIndex,
     required this.onDelete,
     required this.onEdit,
@@ -763,73 +881,167 @@ class _RemainingExerciseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.45)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ReorderableDragStartListener(
-            index: groupIndex,
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.drag_indicator,
-                size: 18,
-                color: colorScheme.onSurface.withValues(alpha: 0.24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ReorderableDragStartListener(
+                index: groupIndex,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.drag_indicator,
+                    size: 18,
+                    color: colorScheme.onSurface.withValues(alpha: 0.24),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
-                letterSpacing: -0.3,
-                height: 1.0,
-                color: colorScheme.onSurface,
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    letterSpacing: -0.3,
+                    height: 1.0,
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            weightLabel,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.2,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.45,
+              const SizedBox(width: 10),
+              Text(
+                weightLabel,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.2,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '$setCount sets',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: colorScheme.onSurface.withValues(alpha: 0.78),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.45,
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$setCount sets',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface.withValues(alpha: 0.78),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              iconButton(icon: Icons.edit_outlined, onPressed: onEdit),
+              iconButton(
+                icon: Icons.delete_outline_rounded,
+                onPressed: onDelete,
+                color: colorScheme.error,
+              ),
+            ],
           ),
-          const SizedBox(width: 4),
-          iconButton(icon: Icons.edit_outlined, onPressed: onEdit),
-          iconButton(
-            icon: Icons.delete_outline_rounded,
-            onPressed: onDelete,
-            color: colorScheme.error,
-          ),
+          if (messages.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _ExerciseMessagesBlock(messages: messages),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _ExerciseMessagesBlock extends StatelessWidget {
+  final List<UserMessage> messages;
+
+  const _ExerciseMessagesBlock({required this.messages});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final provider = context.read<WorkoutProvider>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Notes',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.35,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (final message in messages.take(3)) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.35,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.title.isNotEmpty)
+                        Text(
+                          message.title,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      if (message.title.isNotEmpty) const SizedBox(height: 4),
+                      Text(
+                        message.body,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          color: colorScheme.onSurface.withValues(alpha: 0.82),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (message.dismissible) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    onPressed: () =>
+                        provider.dismissUserMessages([message.messageKey]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

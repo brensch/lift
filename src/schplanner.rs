@@ -5,7 +5,9 @@ use schlift::workout::v1::{
     ProposedSet, Workout,
 };
 
+#[cfg(test)]
 use crate::program_state::StatePayload;
+#[cfg(test)]
 use crate::regimes::WorkoutRegime;
 
 #[allow(dead_code)]
@@ -193,23 +195,6 @@ pub fn derive_state(
     SchplannerDerivation {
         effective_state,
         last_session_at,
-    }
-}
-
-pub fn decorate_proposed_groups(
-    regime: &dyn WorkoutRegime,
-    groups: &mut [ProposedExerciseGroup],
-    effective_state: &StatePayload,
-    slot_reasons: &HashMap<String, String>,
-    started_workout_count: usize,
-) {
-    for group in groups {
-        regime.schplanner_decorate_proposed_group(
-            group,
-            effective_state,
-            slot_reasons,
-            started_workout_count,
-        );
     }
 }
 
@@ -530,31 +515,6 @@ pub fn summarize_recent_insights(history: &[SchplannerWorkoutRecord]) -> Schplan
         exercise_insights,
         slot_insights,
     }
-}
-
-pub fn group_slot_keys(group: &ProposedExerciseGroup) -> Vec<String> {
-    let mut out = Vec::new();
-    for config in &group.exercise_configs {
-        let hinted = config.working_sets.iter().find_map(|set| {
-            set.progression_hint
-                .as_ref()
-                .map(|hint| hint.slot_key.clone())
-        });
-        if let Some(key) = hinted {
-            if !out.contains(&key) {
-                out.push(key);
-            }
-            continue;
-        }
-        let key = Exercise::try_from(config.exercise)
-            .unwrap_or(Exercise::Unspecified)
-            .as_str_name()
-            .to_ascii_lowercase();
-        if !out.contains(&key) {
-            out.push(key);
-        }
-    }
-    out
 }
 
 pub fn summarize_slot_outcomes(

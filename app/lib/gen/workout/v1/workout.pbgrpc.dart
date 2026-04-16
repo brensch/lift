@@ -156,6 +156,13 @@ class WorkoutServiceClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.DismissUserMessagesResponse> dismissUserMessages(
+    $0.DismissUserMessagesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$dismissUserMessages, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.SaveWorkoutDraftResponse> saveWorkoutDraft(
     $0.SaveWorkoutDraftRequest request, {
     $grpc.CallOptions? options,
@@ -273,6 +280,11 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetProposedWorkoutSchedule',
       ($0.GetProposedWorkoutScheduleRequest value) => value.writeToBuffer(),
       $0.GetProposedWorkoutScheduleResponse.fromBuffer);
+  static final _$dismissUserMessages = $grpc.ClientMethod<
+          $0.DismissUserMessagesRequest, $0.DismissUserMessagesResponse>(
+      '/workout.v1.WorkoutService/DismissUserMessages',
+      ($0.DismissUserMessagesRequest value) => value.writeToBuffer(),
+      $0.DismissUserMessagesResponse.fromBuffer);
   static final _$saveWorkoutDraft = $grpc.ClientMethod<
           $0.SaveWorkoutDraftRequest, $0.SaveWorkoutDraftResponse>(
       '/workout.v1.WorkoutService/SaveWorkoutDraft',
@@ -442,6 +454,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
             $0.GetProposedWorkoutScheduleRequest.fromBuffer(value),
         ($0.GetProposedWorkoutScheduleResponse value) =>
             value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DismissUserMessagesRequest,
+            $0.DismissUserMessagesResponse>(
+        'DismissUserMessages',
+        dismissUserMessages_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DismissUserMessagesRequest.fromBuffer(value),
+        ($0.DismissUserMessagesResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.SaveWorkoutDraftRequest,
             $0.SaveWorkoutDraftResponse>(
         'SaveWorkoutDraft',
@@ -622,6 +643,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.GetProposedWorkoutScheduleResponse>
       getProposedWorkoutSchedule(
           $grpc.ServiceCall call, $0.GetProposedWorkoutScheduleRequest request);
+
+  $async.Future<$0.DismissUserMessagesResponse> dismissUserMessages_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DismissUserMessagesRequest> $request) async {
+    return dismissUserMessages($call, await $request);
+  }
+
+  $async.Future<$0.DismissUserMessagesResponse> dismissUserMessages(
+      $grpc.ServiceCall call, $0.DismissUserMessagesRequest request);
 
   $async.Future<$0.SaveWorkoutDraftResponse> saveWorkoutDraft_Pre(
       $grpc.ServiceCall $call,

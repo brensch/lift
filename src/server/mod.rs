@@ -3,8 +3,7 @@ use crate::program_state::{payload_from_proto, payload_to_proto};
 use crate::progress::compute_next_up_set;
 use crate::regimes::{catalog_regime_types, get_regime};
 use crate::schplanner::{
-    decorate_proposed_groups, summarize_recent_insights, summarize_slot_outcomes,
-    SchplannerWorkoutRecord,
+    summarize_recent_insights, summarize_slot_outcomes, SchplannerWorkoutRecord,
 };
 use crate::state::ActiveWorkout;
 use crate::time::now_unix;

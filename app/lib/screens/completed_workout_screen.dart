@@ -39,6 +39,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   Workout? _workout;
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
+  List<UserMessage> _messages = [];
   bool _isLoading = true;
   String? _loadError;
   List<String> _sessionFriends = [];
@@ -67,6 +68,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _workout = response.workout;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
+          _messages = List.from(response.userMessages);
           _heartRateSamples = workoutProvider.workout?.id == response.workout.id
               ? workoutProvider.wearHeartRateSamples
               : const [];
@@ -324,6 +326,22 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             ),
             const SizedBox(height: 6),
             _buildFriendChips(context),
+            if (_messages.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Workout notes',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              ..._messages.map(
+                (message) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _WorkoutNoteCard(message: message),
+                ),
+              ),
+            ],
             const SizedBox(height: 28),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -405,6 +423,45 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     } else {
       context.go('/');
     }
+  }
+}
+
+class _WorkoutNoteCard extends StatelessWidget {
+  final UserMessage message;
+
+  const _WorkoutNoteCard({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (message.title.isNotEmpty) ...[
+            Text(
+              message.title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+          ],
+          Text(
+            message.body,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: colorScheme.onSurface.withValues(alpha: 0.82),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -122,6 +122,41 @@ message CompletedSet {
   int64 rest_until = 8;
 }
 
+enum UserMessageKind {
+  USER_MESSAGE_KIND_UNSPECIFIED = 0;
+  USER_MESSAGE_KIND_COACHING_NOTE = 1;
+  USER_MESSAGE_KIND_GROUP_RATIONALE = 2;
+  USER_MESSAGE_KIND_LOAD_INCREASE = 3;
+  USER_MESSAGE_KIND_LOAD_HOLD = 4;
+  USER_MESSAGE_KIND_STALL_DELOAD = 5;
+  USER_MESSAGE_KIND_TEMPORAL_DELOAD = 6;
+  USER_MESSAGE_KIND_SESSION_UPDATE = 7;
+  USER_MESSAGE_KIND_CYCLE_ADVANCE = 8;
+}
+
+enum UserMessageSurface {
+  USER_MESSAGE_SURFACE_UNSPECIFIED = 0;
+  USER_MESSAGE_SURFACE_SCHEDULE = 1;
+  USER_MESSAGE_SURFACE_WORKOUT_BRIEFING = 2;
+  USER_MESSAGE_SURFACE_WORKOUT_FEED = 3;
+}
+
+message UserMessage {
+  string message_key = 1;
+  UserMessageKind kind = 2;
+  UserMessageSurface surface = 3;
+  string title = 4;
+  string body = 5;
+  bool dismissible = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  string workout_id = 9;
+  string exercise_group_id = 10;
+  Exercise exercise = 11;
+  string slot_key = 12;
+  string metadata_json = 13;
+}
+
 // --- RPC Requests/Responses ---
 
 message StartWorkoutRequest {
@@ -137,6 +172,7 @@ message StartWorkoutResponse {
   repeated CompletedSet completed_sets = 5;
   ProposedSet next_up_set = 6;
   WorkoutStateSnapshot state_snapshot = 7;
+  repeated UserMessage user_messages = 8;
 }
 
 message GetWorkoutRequest {
@@ -150,6 +186,7 @@ message GetWorkoutResponse {
   ProposedSet next_up_set = 5;
   WorkoutPlanChangeStats plan_change_stats = 6;
   WorkoutStateSnapshot state_snapshot = 7;
+  repeated UserMessage user_messages = 8;
 }
 
 message WorkoutPlanChangeStats {
@@ -277,6 +314,8 @@ message StartSetResponse {
 
   WorkoutStateSnapshot state_snapshot = 3;
 
+  repeated UserMessage user_messages = 4;
+
 }
 
 
@@ -303,6 +342,8 @@ message CompleteSetResponse {
 
   WorkoutStateSnapshot state_snapshot = 3;
 
+  repeated UserMessage user_messages = 4;
+
 }
 
 
@@ -318,6 +359,7 @@ message DeleteCompletedSetRequest {
 message DeleteCompletedSetResponse {
   ProposedSet next_up_set = 1;
   WorkoutStateSnapshot state_snapshot = 2;
+  repeated UserMessage user_messages = 3;
 }
 
 message CancelProposedSetRequest {
@@ -328,6 +370,7 @@ message CancelProposedSetRequest {
 message CancelProposedSetResponse {
   ProposedSet next_up_set = 1;
   WorkoutStateSnapshot state_snapshot = 2;
+  repeated UserMessage user_messages = 3;
 }
 
 
@@ -343,6 +386,8 @@ message EndWorkoutRequest {
 message EndWorkoutResponse {
 
   Workout workout = 1;
+
+  repeated UserMessage user_messages = 2;
 
 }
 
@@ -361,23 +406,21 @@ message ExerciseStatus {
 
   float target_weight = 2;
 
-  string explanation = 3;
+  int64 last_performed_at = 3;
 
-  int64 last_performed_at = 4;
+  repeated float weight_history = 4;
 
-  repeated float weight_history = 5;
+  repeated MuscleGroup muscle_groups = 5;
 
-  repeated MuscleGroup muscle_groups = 6;
+  int32 default_sets = 6;
 
-  int32 default_sets = 7;
+  int32 default_reps = 7;
 
-  int32 default_reps = 8;
+  bool recovered = 8;
 
-  bool recovered = 9;
+  bool always_include = 9;
 
-  bool always_include = 10;
-
-  ExerciseCategory category = 11;
+  ExerciseCategory category = 10;
 
 }
 
@@ -397,9 +440,7 @@ message ProposedExerciseGroup {
 
   repeated string tags = 6;
 
-  string explanation = 7;
-
-  bool prescribed_by_regime = 8;
+  bool prescribed_by_regime = 7;
 
 }
 
@@ -437,7 +478,6 @@ message RegimeContext {
   string regime_display_name = 1;   // e.g. "Wendler 5/3/1"
   string session_description = 2;   // e.g. "Cycle 1, Week 2 — Intensity Week"
   string next_session_preview = 3;  // e.g. "Next: Week 3 — Peak Week (1-rep sets)"
-  repeated string coaching_notes = 4; // Tips for today's session
 }
 
 message GetProposedWorkoutScheduleResponse {
@@ -457,6 +497,8 @@ message GetProposedWorkoutScheduleResponse {
   WorkoutDraft draft = 7;
 
   repeated ExerciseGroup saved_exercise_groups = 8;
+
+  repeated UserMessage user_messages = 9;
 
 }
 
@@ -527,6 +569,7 @@ message UpdateExerciseGroupResponse {
   repeated ProposedSet generated_sets = 2;
   ProposedSet next_up_set = 3;
   WorkoutStateSnapshot state_snapshot = 4;
+  repeated UserMessage user_messages = 5;
 }
 
 message DeleteExerciseGroupRequest {
@@ -537,6 +580,7 @@ message DeleteExerciseGroupRequest {
 message DeleteExerciseGroupResponse {
   ProposedSet next_up_set = 1;
   WorkoutStateSnapshot state_snapshot = 2;
+  repeated UserMessage user_messages = 3;
 }
 
 message ReorderExerciseGroupsRequest {
@@ -547,6 +591,7 @@ message ReorderExerciseGroupsRequest {
 message ReorderExerciseGroupsResponse {
   ProposedSet next_up_set = 1;
   WorkoutStateSnapshot state_snapshot = 2;
+  repeated UserMessage user_messages = 3;
 }
 
 message WorkoutHeartRatePoint {
@@ -595,6 +640,14 @@ message AppendWorkoutMutationsResponse {
   GetWorkoutResponse workout_state = 2;
 }
 
+message DismissUserMessagesRequest {
+  repeated string message_keys = 1;
+}
+
+message DismissUserMessagesResponse {
+  repeated string dismissed_message_keys = 1;
+}
+
 message RehydrateWorkoutFromEventsRequest {
   string workout_id = 1;
   bool persist = 2; // if true, overwrite current workout tables with rebuilt state
@@ -630,6 +683,7 @@ service WorkoutService {
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);
+  rpc DismissUserMessages(DismissUserMessagesRequest) returns (DismissUserMessagesResponse);
   rpc SaveWorkoutDraft(SaveWorkoutDraftRequest) returns (SaveWorkoutDraftResponse);
   rpc ClearWorkoutDraft(ClearWorkoutDraftRequest) returns (ClearWorkoutDraftResponse);
   rpc SaveProfileExerciseGroup(SaveProfileExerciseGroupRequest) returns (SaveProfileExerciseGroupResponse);

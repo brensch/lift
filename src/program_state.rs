@@ -5,8 +5,9 @@
 use std::collections::HashMap;
 
 use schlift::workout::v1::{
-    state_field_value, StateEnumOption, StateFieldKind, StateFieldValue,
-    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
+    state_field_value, Exercise, StateEnumOption, StateFieldKind, StateFieldValue,
+    TrainingProgramStateFieldSchema, TrainingProgramStateSchema, UserMessageKind,
+    UserMessageSurface,
 };
 use serde::{Deserialize, Serialize};
 
@@ -142,6 +143,17 @@ pub struct ProposeResult {
     pub proposed_groups: Vec<schlift::workout::v1::ProposedExerciseGroup>,
     pub regime_context: schlift::workout::v1::RegimeContext,
     pub suggested_workout_name: String,
+    pub schedule_messages: Vec<ProposalMessage>,
+}
+
+pub struct ProposalMessage {
+    pub key: String,
+    pub kind: UserMessageKind,
+    pub surface: UserMessageSurface,
+    pub title: String,
+    pub body: String,
+    pub exercise: Exercise,
+    pub slot_key: String,
 }
 
 // ─── Schema builder helpers ───────────────────────────────────────────────────

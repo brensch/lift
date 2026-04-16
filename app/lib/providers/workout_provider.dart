@@ -69,6 +69,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ExerciseStatus> _exerciseStatuses = [];
   List<ProposedExerciseGroup> _proposedGroups = [];
   RegimeContext? _regimeContext;
+  List<UserMessage> _scheduleMessages = [];
+  List<UserMessage> _workoutMessages = [];
   final List<HeartRateSample> _wearHeartRateSamples = [];
   final Set<String> _wearHeartRateBatchIds = <String>{};
   final Set<int> _wearHeartRateSampleTimestamps = <int>{};
@@ -796,6 +798,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeExerciseGroups = List.from(response.exerciseGroups);
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
+    _workoutMessages = List<UserMessage>.from(response.userMessages);
     _refreshDerivedState();
   }
 
@@ -993,6 +996,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ExerciseStatus> get exerciseStatuses => _exerciseStatuses;
   List<ProposedExerciseGroup> get proposedGroups => _proposedGroups;
   RegimeContext? get regimeContext => _regimeContext;
+  List<UserMessage> get scheduleMessages => _scheduleMessages;
+  List<UserMessage> get workoutMessages => _workoutMessages;
 
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
@@ -1218,6 +1223,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeExerciseGroups = [];
         _activeProposedSets = [];
         _activeCompletedSets = [];
+        _workoutMessages = [];
         _backendNextUpSet = null;
         _applyStateSnapshot(null);
         _stopTimer();
@@ -1231,6 +1237,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _regimeContext = proposedSchedule.hasRegimeContext()
           ? proposedSchedule.regimeContext
           : null;
+      _scheduleMessages = List<UserMessage>.from(proposedSchedule.userMessages);
       _loadWorkoutRetryScheduled = false;
       await _persistLocalCache();
     } catch (e) {
@@ -1308,6 +1315,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _wasResting = false;
       final response = await _service.startWorkout(name, groups);
       _applyStartWorkoutResponse(response);
+      _workoutMessages = List<UserMessage>.from(response.userMessages);
       await _persistLocalCache();
       notifyListeners();
       if (response.id.isNotEmpty) return response.id;
@@ -1341,6 +1349,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     var progressMade = false;
     try {
       final response = await _service.appendWorkoutMutations(batch);
+      if (response.hasWorkoutState()) {
+        _applyWorkoutResponse(response.workoutState);
+      }
       if (response.appliedEventIds.isNotEmpty) {
         final applied = response.appliedEventIds.toSet();
         final before = _pendingMutations.length;
@@ -1769,6 +1780,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (fireEndedCallback) {
         onWorkoutEnded?.call(ended.id);
       }
+    } catch (e) {
+      _handleError(e);
+    }
+  }
+
+  Future<void> dismissUserMessages(List<String> messageKeys) async {
+    if (messageKeys.isEmpty) return;
+    try {
+      final dismissed = await _service.dismissUserMessages(messageKeys);
+      if (dismissed.isEmpty) return;
+      final dismissedSet = dismissed.toSet();
+      _scheduleMessages.removeWhere((m) => dismissedSet.contains(m.messageKey));
+      _workoutMessages.removeWhere((m) => dismissedSet.contains(m.messageKey));
+      await _persistLocalCache();
+      notifyListeners();
     } catch (e) {
       _handleError(e);
     }

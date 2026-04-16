@@ -706,7 +706,7 @@ fn build_start_workout_groups(
                 workout_order: idx as i32,
                 prescribed_by_regime: proposed.prescribed_by_regime,
                 exercise_configs: proposed.exercise_configs.clone(),
-                instruction: proposed.explanation.clone(),
+                instruction: String::new(),
                 rest_config: proposed.rest_config,
             });
         }
