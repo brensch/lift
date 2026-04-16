@@ -131,47 +131,4 @@ impl SettingsService for ServerSettingsService {
             "server settings does not store state history yet",
         ))
     }
-
-    async fn apply_pending_state_update(
-        &self,
-        request: Request<ApplyPendingStateUpdateRequest>,
-    ) -> Result<Response<ApplyPendingStateUpdateResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "ApplyPendingStateUpdate", %user_id, update_id = %req.update_id, "request");
-        let current = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::failed_precondition("No active training program state"))?;
-        let current_state = current
-            .state
-            .ok_or_else(|| Status::internal("missing state"))?;
-        let regime_type =
-            RegimeType::try_from(current_state.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let current_payload = payload_from_proto(&current_state.fields);
-        let updates = payload_from_proto(&req.field_values);
-        let next_payload = regime
-            .apply_pending_update_to_state(&current_payload, &req.update_id, &updates)
-            .map_err(Status::invalid_argument)?;
-        let state = TrainingProgramState {
-            regime_type: regime_type as i32,
-            fields: payload_to_proto(&next_payload),
-            updated_at: now_unix(),
-            source: format!("pending_update:{}", req.update_id),
-        };
-        let response = GetActiveTrainingProgramStateResponse {
-            state: Some(state.clone()),
-            schema: Some(regime.state_schema()),
-        };
-        self.db
-            .put_program_state(&user_id, &response)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(ApplyPendingStateUpdateResponse {
-            state: Some(state),
-        }))
-    }
 }

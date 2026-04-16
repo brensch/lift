@@ -13,11 +13,12 @@ pub use gzclp::GzclpRegime;
 pub use linear_5x5::Linear5x5Regime;
 pub use wendler_531::Wendler531Regime;
 
-use crate::program_state::{PendingUpdateDef, ProposeResult, StatePayload};
+use crate::program_state::{ProposeResult, StatePayload};
 use crate::schplanner::{
     summarize_history_window, summarize_proposed_slot_targets, ProposedSlotTarget,
     SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord,
 };
+use crate::weight_units::{pounds_to_kg, AppWeightUnit};
 use std::collections::{HashMap, HashSet};
 
 pub fn exercise_display_name(exercise: Exercise) -> String {
@@ -99,14 +100,15 @@ pub trait WorkoutRegime: Send + Sync {
         insights: &SchplannerInsights,
     ) -> ProposeResult;
 
-    /// Return pending state updates (e.g. temporal deload recommendations).
-    /// These block workout start until resolved.
-    fn pending_updates_for_state(
+    /// Apply non-persisted proposal-time adjustments such as long-break deloads.
+    fn apply_temporal_adjustments_for_proposal(
         &self,
         state: &StatePayload,
-        last_session_at: i64,
-        now_ts: i64,
-    ) -> Vec<PendingUpdateDef>;
+        _last_session_at: i64,
+        _now_ts: i64,
+    ) -> StatePayload {
+        state.clone()
+    }
 
     fn derive_training_status(
         &self,
@@ -116,28 +118,11 @@ pub trait WorkoutRegime: Send + Sync {
         now_ts: i64,
     ) -> TrainingStatus;
 
-    /// Apply a pending update's resolved field values to state.
-    /// Returns the new state or an error string if validation fails.
-    fn apply_pending_update_to_state(
-        &self,
-        state: &StatePayload,
-        update_id: &str,
-        field_values: &StatePayload,
-    ) -> Result<StatePayload, String>;
-
-    fn schplanner_transition_on_workout_started(
-        &self,
-        _state: &mut StatePayload,
-        _workout: &SchplannerWorkoutRecord,
-    ) {
-    }
-
-    fn schplanner_apply_logged_results(
+    fn transition_state_on_workout_completed(
         &self,
         _state: &mut StatePayload,
         _workout: &SchplannerWorkoutRecord,
         _slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
-        _slot_reasons: &mut HashMap<String, String>,
     ) {
     }
 
@@ -239,6 +224,11 @@ pub fn recent_performance_notes(
                 insight.last_actual_reps,
                 insight.last_target_reps
             ));
+        } else if !insight.last_was_amrap {
+            notes.push(format!(
+                "Last {} work hit every prescribed rep cleanly. If today's bar speed matches, the next jump should be there.",
+                label
+            ));
         } else if insight.last_was_amrap && insight.last_actual_reps >= insight.last_target_reps + 2
         {
             notes.push(format!(
@@ -249,7 +239,8 @@ pub fn recent_performance_notes(
             ));
         }
 
-        if insight.set_durations.sample_count >= 3
+        if insight.recent_sessions >= 2
+            && insight.set_durations.sample_count >= 3
             && insight.set_durations.max_secs as f32
                 > insight.set_durations.mean_secs + insight.set_durations.stddev_secs
             && insight.set_durations.max_secs >= 45
@@ -262,9 +253,12 @@ pub fn recent_performance_notes(
             ));
         }
 
-        if insight.rests.sample_count >= 3 && insight.rests.stddev_secs >= 30.0 {
+        if insight.recent_sessions >= 2
+            && insight.rests.sample_count >= 3
+            && insight.rests.stddev_secs >= 30.0
+        {
             notes.push(format!(
-                "{} rest has been inconsistent recently (average {:.0}s, variance about {:.0}s). Keep rest periods more repeatable today.",
+                "{} rest has been inconsistent recently (average {:.0}s, spread about {:.0}s). Keep rest periods more repeatable today.",
                 label,
                 insight.rests.mean_secs,
                 insight.rests.stddev_secs
@@ -324,6 +318,13 @@ pub fn make_exercise_type_config_amrap(
     }
 }
 
+pub fn format_weight_compact(weight_lb: f32, unit: AppWeightUnit) -> String {
+    match unit {
+        AppWeightUnit::Lb => format!("{:.0} lb", weight_lb.round()),
+        AppWeightUnit::Kg => format!("{:.1} kg", (pounds_to_kg(weight_lb) * 10.0).round() / 10.0),
+    }
+}
+
 pub fn progression_slot_key(exercise: Exercise) -> String {
     exercise.as_str_name().to_ascii_lowercase()
 }
@@ -344,13 +345,13 @@ pub fn progression_hint_for_set(
     }
 }
 
-pub fn fake_started_workout(at_time: i64) -> SchplannerWorkoutRecord {
+pub fn fake_completed_workout(at_time: i64) -> SchplannerWorkoutRecord {
     SchplannerWorkoutRecord {
         workout: Workout {
             id: String::new(),
             name: String::new(),
             start_time: at_time,
-            end_time: 0,
+            end_time: at_time,
             session_id: String::new(),
         },
         exercise_groups: Vec::new(),
@@ -518,6 +519,7 @@ pub fn simulate_target_slot_sets(
     let mut sim_state = state.clone();
     let mut combined = HashMap::<String, ProposedSlotTarget>::new();
     let empty_insights = SchplannerInsights::default();
+    let empty_outcomes = HashMap::<String, SchplannerSlotOutcome>::new();
     for idx in 0..session_count.max(0) {
         let proposal =
             regime.propose_from_state(&sim_state, last_session_at, now_ts, &empty_insights);
@@ -533,8 +535,8 @@ pub fn simulate_target_slot_sets(
             entry.set_count += target.set_count;
         }
         if idx + 1 < session_count {
-            let fake = fake_started_workout(now_ts + i64::from(idx) * 3600);
-            regime.schplanner_transition_on_workout_started(&mut sim_state, &fake);
+            let fake = fake_completed_workout(now_ts + i64::from(idx) * 3600);
+            regime.transition_state_on_workout_completed(&mut sim_state, &fake, &empty_outcomes);
         }
     }
     combined

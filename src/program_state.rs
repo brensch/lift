@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 
 use schlift::workout::v1::{
-    state_field_value, PendingStateUpdate, PendingStateUpdateField, StateEnumOption,
-    StateFieldKind, StateFieldValue, TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
+    state_field_value, StateEnumOption, StateFieldKind, StateFieldValue,
+    TrainingProgramStateFieldSchema, TrainingProgramStateSchema,
 };
 use serde::{Deserialize, Serialize};
 
@@ -142,69 +142,6 @@ pub struct ProposeResult {
     pub proposed_groups: Vec<schlift::workout::v1::ProposedExerciseGroup>,
     pub regime_context: schlift::workout::v1::RegimeContext,
     pub suggested_workout_name: String,
-}
-
-/// Definition of a pending state update (returned before converting to proto).
-pub struct PendingUpdateDef {
-    pub update_id: String,
-    pub title: String,
-    pub message: String,
-    pub fields: Vec<PendingUpdateFieldDef>,
-}
-
-pub struct PendingUpdateFieldDef {
-    pub key: String,
-    pub label: String,
-    pub kind: StateFieldKind,
-    pub default_value: FieldVal,
-    pub min_value: f64,
-    pub max_value: f64,
-    pub step: f64,
-    pub enum_options: Vec<(String, String)>, // (value, label)
-}
-
-// ─── Proto conversion for pending updates ────────────────────────────────────
-
-pub fn pending_update_to_proto(def: PendingUpdateDef) -> PendingStateUpdate {
-    PendingStateUpdate {
-        update_id: def.update_id,
-        title: def.title,
-        message: def.message,
-        fields: def
-            .fields
-            .into_iter()
-            .map(|f| {
-                let default_proto = match &f.default_value {
-                    FieldVal::Int(n) => StateFieldValue {
-                        value: Some(state_field_value::Value::IntVal(*n)),
-                    },
-                    FieldVal::Float(fv) => StateFieldValue {
-                        value: Some(state_field_value::Value::FloatVal(*fv)),
-                    },
-                    FieldVal::Bool(b) => StateFieldValue {
-                        value: Some(state_field_value::Value::BoolVal(*b)),
-                    },
-                    FieldVal::Str(s) => StateFieldValue {
-                        value: Some(state_field_value::Value::StringVal(s.clone())),
-                    },
-                };
-                PendingStateUpdateField {
-                    key: f.key,
-                    label: f.label,
-                    kind: f.kind as i32,
-                    default_value: Some(default_proto),
-                    min_value: f.min_value,
-                    max_value: f.max_value,
-                    step: f.step,
-                    enum_options: f
-                        .enum_options
-                        .into_iter()
-                        .map(|(v, l)| StateEnumOption { value: v, label: l })
-                        .collect(),
-                }
-            })
-            .collect(),
-    }
 }
 
 // ─── Schema builder helpers ───────────────────────────────────────────────────

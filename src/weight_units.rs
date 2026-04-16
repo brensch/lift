@@ -9,15 +9,6 @@ pub enum AppWeightUnit {
     Kg,
 }
 
-impl AppWeightUnit {
-    pub fn suffix(self) -> &'static str {
-        match self {
-            Self::Lb => "lb",
-            Self::Kg => "kg",
-        }
-    }
-}
-
 pub fn weight_unit_from_state(state: &StatePayload) -> AppWeightUnit {
     match state.get(STATE_WEIGHT_UNIT_KEY) {
         Some(FieldVal::Str(unit)) if unit.eq_ignore_ascii_case("kg") => AppWeightUnit::Kg,

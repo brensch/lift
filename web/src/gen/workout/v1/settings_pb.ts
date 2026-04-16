@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/settings.proto.
  */
 export const file_workout_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQifAoYVHJhaW5pbmdQcm9ncmFtQXRBR2xhbmNlEhUKDWRheXNfcGVyX3dlZWsYASABKAkSEAoIYmVzdF9mb3IYAiABKAkSHAoUYXZlcmFnZV9zZXNzaW9uX3RpbWUYAyABKAkSGQoRcHJvZ3Jlc3Npb25fc3R5bGUYBCABKAkiMQoTVHJhaW5pbmdQcm9ncmFtTGluaxINCgVsYWJlbBgBIAEoCRILCgN1cmwYAiABKAkihQMKGVRyYWluaW5nUHJvZ3JhbURlZmluaXRpb24SKwoLcmVnaW1lX3R5cGUYASABKA4yFi53b3Jrb3V0LnYxLlJlZ2ltZVR5cGUSFAoMZGlzcGxheV9uYW1lGAIgASgJEhAKCGhlYWRsaW5lGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSFAoMaG93X2l0X3dvcmtzGAYgASgJEjkKC2F0X2FfZ2xhbmNlGAcgASgLMiQud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1BdEFHbGFuY2USDwoHZGV0YWlscxgIIAMoCRI5ChBsZWFybl9tb3JlX2xpbmtzGAkgAygLMh8ud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1MaW5rEhIKCnNvcnRfb3JkZXIYCyABKAUSPAoMc3RhdGVfc2NoZW1hGAwgASgLMiYud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZVNjaGVtYSIvCg9TdGF0ZUVudW1PcHRpb24SDQoFdmFsdWUYASABKAkSDQoFbGFiZWwYAiABKAkirQIKH1RyYWluaW5nUHJvZ3JhbVN0YXRlRmllbGRTY2hlbWESCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEhEKCWhlbHBfdGV4dBgDIAEoCRIPCgdzZWN0aW9uGAQgASgJEg0KBW9yZGVyGAUgASgFEigKBGtpbmQYBiABKA4yGi53b3Jrb3V0LnYxLlN0YXRlRmllbGRLaW5kEhAKCHJlcXVpcmVkGAcgASgIEhEKCW1pbl92YWx1ZRgIIAEoARIRCgltYXhfdmFsdWUYCSABKAESDAoEc3RlcBgKIAEoARIxCgxlbnVtX29wdGlvbnMYCyADKAsyGy53b3Jrb3V0LnYxLlN0YXRlRW51bU9wdGlvbhIYChBvbmJvYXJkaW5nX2ZpZWxkGAwgASgIIlkKGlRyYWluaW5nUHJvZ3JhbVN0YXRlU2NoZW1hEjsKBmZpZWxkcxgBIAMoCzIrLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGVGaWVsZFNjaGVtYSJsCg9TdGF0ZUZpZWxkVmFsdWUSEQoHaW50X3ZhbBgBIAEoA0gAEhMKCWZsb2F0X3ZhbBgCIAEoAUgAEhIKCGJvb2xfdmFsGAMgASgISAASFAoKc3RyaW5nX3ZhbBgEIAEoCUgAQgcKBXZhbHVlIvEBChRUcmFpbmluZ1Byb2dyYW1TdGF0ZRIrCgtyZWdpbWVfdHlwZRgBIAEoDjIWLndvcmtvdXQudjEuUmVnaW1lVHlwZRI8CgZmaWVsZHMYAiADKAsyLC53b3Jrb3V0LnYxLlRyYWluaW5nUHJvZ3JhbVN0YXRlLkZpZWxkc0VudHJ5EhIKCnVwZGF0ZWRfYXQYAyABKAMSDgoGc291cmNlGAQgASgJGkoKC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRIqCgV2YWx1ZRgCIAEoCzIbLndvcmtvdXQudjEuU3RhdGVGaWVsZFZhbHVlOgI4ASK/AgoZVHJhaW5pbmdQcm9ncmFtU3RhdGVFdmVudBIQCghldmVudF9pZBgBIAEoCRIrCgtyZWdpbWVfdHlwZRgCIAEoDjIWLndvcmtvdXQudjEuUmVnaW1lVHlwZRIUCgxlZmZlY3RpdmVfYXQYAyABKAMSEwoLcmVjb3JkZWRfYXQYBCABKAMSDgoGc291cmNlGAUgASgJEkEKBmZpZWxkcxgGIAMoCzIxLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGVFdmVudC5GaWVsZHNFbnRyeRIZChFzb3VyY2Vfd29ya291dF9pZBgHIAEoCRpKCgtGaWVsZHNFbnRyeRILCgNrZXkYASABKAkSKgoFdmFsdWUYAiABKAsyGy53b3Jrb3V0LnYxLlN0YXRlRmllbGRWYWx1ZToCOAEi+gEKF1BlbmRpbmdTdGF0ZVVwZGF0ZUZpZWxkEgsKA2tleRgBIAEoCRINCgVsYWJlbBgCIAEoCRIoCgRraW5kGAMgASgOMhoud29ya291dC52MS5TdGF0ZUZpZWxkS2luZBIyCg1kZWZhdWx0X3ZhbHVlGAQgASgLMhsud29ya291dC52MS5TdGF0ZUZpZWxkVmFsdWUSEQoJbWluX3ZhbHVlGAUgASgBEhEKCW1heF92YWx1ZRgGIAEoARIMCgRzdGVwGAcgASgBEjEKDGVudW1fb3B0aW9ucxgIIAMoCzIbLndvcmtvdXQudjEuU3RhdGVFbnVtT3B0aW9uInwKElBlbmRpbmdTdGF0ZVVwZGF0ZRIRCgl1cGRhdGVfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIzCgZmaWVsZHMYBCADKAsyIy53b3Jrb3V0LnYxLlBlbmRpbmdTdGF0ZVVwZGF0ZUZpZWxkIoQBCgtVc2VyU2V0dGluZxI1CgxwbGF0ZV9jb2xvcnMYCiABKAsyHS53b3Jrb3V0LnYxLlBsYXRlQ29sb3JzQ29uZmlnSAASMwoLd2VpZ2h0X3VuaXQYDCABKAsyHC53b3Jrb3V0LnYxLldlaWdodFVuaXRDb25maWdIAEIJCgdzZXR0aW5nIkAKFFVwZGF0ZVNldHRpbmdSZXF1ZXN0EigKB3NldHRpbmcYASABKAsyFy53b3Jrb3V0LnYxLlVzZXJTZXR0aW5nIhcKFVVwZGF0ZVNldHRpbmdSZXNwb25zZSIUChJHZXRTZXR0aW5nc1JlcXVlc3QiQAoTR2V0U2V0dGluZ3NSZXNwb25zZRIpCghzZXR0aW5ncxgBIAMoCzIXLndvcmtvdXQudjEuVXNlclNldHRpbmciIgogR2V0VHJhaW5pbmdQcm9ncmFtQ2F0YWxvZ1JlcXVlc3QiXAohR2V0VHJhaW5pbmdQcm9ncmFtQ2F0YWxvZ1Jlc3BvbnNlEjcKCHByb2dyYW1zGAEgAygLMiUud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1EZWZpbml0aW9uIiYKJEdldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlUmVxdWVzdCKQAQolR2V0QWN0aXZlVHJhaW5pbmdQcm9ncmFtU3RhdGVSZXNwb25zZRIvCgVzdGF0ZRgBIAEoCzIgLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGUSNgoGc2NoZW1hGAIgASgLMiYud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZVNjaGVtYSL9AQokU2V0QWN0aXZlVHJhaW5pbmdQcm9ncmFtU3RhdGVSZXF1ZXN0EisKC3JlZ2ltZV90eXBlGAEgASgOMhYud29ya291dC52MS5SZWdpbWVUeXBlEkwKBmZpZWxkcxgCIAMoCzI8LndvcmtvdXQudjEuU2V0QWN0aXZlVHJhaW5pbmdQcm9ncmFtU3RhdGVSZXF1ZXN0LkZpZWxkc0VudHJ5Eg4KBnNvdXJjZRgDIAEoCRpKCgtGaWVsZHNFbnRyeRILCgNrZXkYASABKAkSKgoFdmFsdWUYAiABKAsyGy53b3Jrb3V0LnYxLlN0YXRlRmllbGRWYWx1ZToCOAEidQolU2V0QWN0aXZlVHJhaW5pbmdQcm9ncmFtU3RhdGVSZXNwb25zZRIvCgVzdGF0ZRgBIAEoCzIgLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGUSGwoTdmFsaWRhdGlvbl93YXJuaW5ncxgCIAMoCSInCiVHZXRUcmFpbmluZ1Byb2dyYW1TdGF0ZUhpc3RvcnlSZXF1ZXN0Il8KJkdldFRyYWluaW5nUHJvZ3JhbVN0YXRlSGlzdG9yeVJlc3BvbnNlEjUKBmV2ZW50cxgBIAMoCzIlLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGVFdmVudCLXAQoeQXBwbHlQZW5kaW5nU3RhdGVVcGRhdGVSZXF1ZXN0EhEKCXVwZGF0ZV9pZBgBIAEoCRJRCgxmaWVsZF92YWx1ZXMYAiADKAsyOy53b3Jrb3V0LnYxLkFwcGx5UGVuZGluZ1N0YXRlVXBkYXRlUmVxdWVzdC5GaWVsZFZhbHVlc0VudHJ5Gk8KEEZpZWxkVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEioKBXZhbHVlGAIgASgLMhsud29ya291dC52MS5TdGF0ZUZpZWxkVmFsdWU6AjgBIlIKH0FwcGx5UGVuZGluZ1N0YXRlVXBkYXRlUmVzcG9uc2USLwoFc3RhdGUYASABKAsyIC53b3Jrb3V0LnYxLlRyYWluaW5nUHJvZ3JhbVN0YXRlKlEKCldlaWdodFVuaXQSGwoXV0VJR0hUX1VOSVRfVU5TUEVDSUZJRUQQABISCg5XRUlHSFRfVU5JVF9MQhABEhIKDldFSUdIVF9VTklUX0tHEAIqeQoKUmVnaW1lVHlwZRIbChdSRUdJTUVfVFlQRV9VTlNQRUNJRklFRBAAEhoKFlJFR0lNRV9UWVBFX0xJTkVBUl81WDUQARIVChFSRUdJTUVfVFlQRV9HWkNMUBACEhsKF1JFR0lNRV9UWVBFX1dFTkRMRVJfNTMxEAMquwEKDlN0YXRlRmllbGRLaW5kEiAKHFNUQVRFX0ZJRUxEX0tJTkRfVU5TUEVDSUZJRUQQABIYChRTVEFURV9GSUVMRF9LSU5EX0lOVBABEhoKFlNUQVRFX0ZJRUxEX0tJTkRfRkxPQVQQAhIZChVTVEFURV9GSUVMRF9LSU5EX0JPT0wQAxIbChdTVEFURV9GSUVMRF9LSU5EX1NUUklORxAEEhkKFVNUQVRFX0ZJRUxEX0tJTkRfRU5VTRAFMr0GCg9TZXR0aW5nc1NlcnZpY2USVAoNVXBkYXRlU2V0dGluZxIgLndvcmtvdXQudjEuVXBkYXRlU2V0dGluZ1JlcXVlc3QaIS53b3Jrb3V0LnYxLlVwZGF0ZVNldHRpbmdSZXNwb25zZRJOCgtHZXRTZXR0aW5ncxIeLndvcmtvdXQudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh8ud29ya291dC52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlEngKGUdldFRyYWluaW5nUHJvZ3JhbUNhdGFsb2cSLC53b3Jrb3V0LnYxLkdldFRyYWluaW5nUHJvZ3JhbUNhdGFsb2dSZXF1ZXN0Gi0ud29ya291dC52MS5HZXRUcmFpbmluZ1Byb2dyYW1DYXRhbG9nUmVzcG9uc2UShAEKHUdldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlEjAud29ya291dC52MS5HZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QaMS53b3Jrb3V0LnYxLkdldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlUmVzcG9uc2UShAEKHVNldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlEjAud29ya291dC52MS5TZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QaMS53b3Jrb3V0LnYxLlNldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlUmVzcG9uc2UShwEKHkdldFRyYWluaW5nUHJvZ3JhbVN0YXRlSGlzdG9yeRIxLndvcmtvdXQudjEuR2V0VHJhaW5pbmdQcm9ncmFtU3RhdGVIaXN0b3J5UmVxdWVzdBoyLndvcmtvdXQudjEuR2V0VHJhaW5pbmdQcm9ncmFtU3RhdGVIaXN0b3J5UmVzcG9uc2UScgoXQXBwbHlQZW5kaW5nU3RhdGVVcGRhdGUSKi53b3Jrb3V0LnYxLkFwcGx5UGVuZGluZ1N0YXRlVXBkYXRlUmVxdWVzdBorLndvcmtvdXQudjEuQXBwbHlQZW5kaW5nU3RhdGVVcGRhdGVSZXNwb25zZWIGcHJvdG8z");
+  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQifAoYVHJhaW5pbmdQcm9ncmFtQXRBR2xhbmNlEhUKDWRheXNfcGVyX3dlZWsYASABKAkSEAoIYmVzdF9mb3IYAiABKAkSHAoUYXZlcmFnZV9zZXNzaW9uX3RpbWUYAyABKAkSGQoRcHJvZ3Jlc3Npb25fc3R5bGUYBCABKAkiMQoTVHJhaW5pbmdQcm9ncmFtTGluaxINCgVsYWJlbBgBIAEoCRILCgN1cmwYAiABKAkihQMKGVRyYWluaW5nUHJvZ3JhbURlZmluaXRpb24SKwoLcmVnaW1lX3R5cGUYASABKA4yFi53b3Jrb3V0LnYxLlJlZ2ltZVR5cGUSFAoMZGlzcGxheV9uYW1lGAIgASgJEhAKCGhlYWRsaW5lGAMgASgJEg8KB3N1bW1hcnkYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSFAoMaG93X2l0X3dvcmtzGAYgASgJEjkKC2F0X2FfZ2xhbmNlGAcgASgLMiQud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1BdEFHbGFuY2USDwoHZGV0YWlscxgIIAMoCRI5ChBsZWFybl9tb3JlX2xpbmtzGAkgAygLMh8ud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1MaW5rEhIKCnNvcnRfb3JkZXIYCyABKAUSPAoMc3RhdGVfc2NoZW1hGAwgASgLMiYud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZVNjaGVtYSIvCg9TdGF0ZUVudW1PcHRpb24SDQoFdmFsdWUYASABKAkSDQoFbGFiZWwYAiABKAkirQIKH1RyYWluaW5nUHJvZ3JhbVN0YXRlRmllbGRTY2hlbWESCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEhEKCWhlbHBfdGV4dBgDIAEoCRIPCgdzZWN0aW9uGAQgASgJEg0KBW9yZGVyGAUgASgFEigKBGtpbmQYBiABKA4yGi53b3Jrb3V0LnYxLlN0YXRlRmllbGRLaW5kEhAKCHJlcXVpcmVkGAcgASgIEhEKCW1pbl92YWx1ZRgIIAEoARIRCgltYXhfdmFsdWUYCSABKAESDAoEc3RlcBgKIAEoARIxCgxlbnVtX29wdGlvbnMYCyADKAsyGy53b3Jrb3V0LnYxLlN0YXRlRW51bU9wdGlvbhIYChBvbmJvYXJkaW5nX2ZpZWxkGAwgASgIIlkKGlRyYWluaW5nUHJvZ3JhbVN0YXRlU2NoZW1hEjsKBmZpZWxkcxgBIAMoCzIrLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGVGaWVsZFNjaGVtYSJsCg9TdGF0ZUZpZWxkVmFsdWUSEQoHaW50X3ZhbBgBIAEoA0gAEhMKCWZsb2F0X3ZhbBgCIAEoAUgAEhIKCGJvb2xfdmFsGAMgASgISAASFAoKc3RyaW5nX3ZhbBgEIAEoCUgAQgcKBXZhbHVlIvEBChRUcmFpbmluZ1Byb2dyYW1TdGF0ZRIrCgtyZWdpbWVfdHlwZRgBIAEoDjIWLndvcmtvdXQudjEuUmVnaW1lVHlwZRI8CgZmaWVsZHMYAiADKAsyLC53b3Jrb3V0LnYxLlRyYWluaW5nUHJvZ3JhbVN0YXRlLkZpZWxkc0VudHJ5EhIKCnVwZGF0ZWRfYXQYAyABKAMSDgoGc291cmNlGAQgASgJGkoKC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRIqCgV2YWx1ZRgCIAEoCzIbLndvcmtvdXQudjEuU3RhdGVGaWVsZFZhbHVlOgI4ASK/AgoZVHJhaW5pbmdQcm9ncmFtU3RhdGVFdmVudBIQCghldmVudF9pZBgBIAEoCRIrCgtyZWdpbWVfdHlwZRgCIAEoDjIWLndvcmtvdXQudjEuUmVnaW1lVHlwZRIUCgxlZmZlY3RpdmVfYXQYAyABKAMSEwoLcmVjb3JkZWRfYXQYBCABKAMSDgoGc291cmNlGAUgASgJEkEKBmZpZWxkcxgGIAMoCzIxLndvcmtvdXQudjEuVHJhaW5pbmdQcm9ncmFtU3RhdGVFdmVudC5GaWVsZHNFbnRyeRIZChFzb3VyY2Vfd29ya291dF9pZBgHIAEoCRpKCgtGaWVsZHNFbnRyeRILCgNrZXkYASABKAkSKgoFdmFsdWUYAiABKAsyGy53b3Jrb3V0LnYxLlN0YXRlRmllbGRWYWx1ZToCOAEihAEKC1VzZXJTZXR0aW5nEjUKDHBsYXRlX2NvbG9ycxgKIAEoCzIdLndvcmtvdXQudjEuUGxhdGVDb2xvcnNDb25maWdIABIzCgt3ZWlnaHRfdW5pdBgMIAEoCzIcLndvcmtvdXQudjEuV2VpZ2h0VW5pdENvbmZpZ0gAQgkKB3NldHRpbmciQAoUVXBkYXRlU2V0dGluZ1JlcXVlc3QSKAoHc2V0dGluZxgBIAEoCzIXLndvcmtvdXQudjEuVXNlclNldHRpbmciFwoVVXBkYXRlU2V0dGluZ1Jlc3BvbnNlIhQKEkdldFNldHRpbmdzUmVxdWVzdCJAChNHZXRTZXR0aW5nc1Jlc3BvbnNlEikKCHNldHRpbmdzGAEgAygLMhcud29ya291dC52MS5Vc2VyU2V0dGluZyIiCiBHZXRUcmFpbmluZ1Byb2dyYW1DYXRhbG9nUmVxdWVzdCJcCiFHZXRUcmFpbmluZ1Byb2dyYW1DYXRhbG9nUmVzcG9uc2USNwoIcHJvZ3JhbXMYASADKAsyJS53b3Jrb3V0LnYxLlRyYWluaW5nUHJvZ3JhbURlZmluaXRpb24iJgokR2V0QWN0aXZlVHJhaW5pbmdQcm9ncmFtU3RhdGVSZXF1ZXN0IpABCiVHZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlc3BvbnNlEi8KBXN0YXRlGAEgASgLMiAud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZRI2CgZzY2hlbWEYAiABKAsyJi53b3Jrb3V0LnYxLlRyYWluaW5nUHJvZ3JhbVN0YXRlU2NoZW1hIv0BCiRTZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QSKwoLcmVnaW1lX3R5cGUYASABKA4yFi53b3Jrb3V0LnYxLlJlZ2ltZVR5cGUSTAoGZmllbGRzGAIgAygLMjwud29ya291dC52MS5TZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QuRmllbGRzRW50cnkSDgoGc291cmNlGAMgASgJGkoKC0ZpZWxkc0VudHJ5EgsKA2tleRgBIAEoCRIqCgV2YWx1ZRgCIAEoCzIbLndvcmtvdXQudjEuU3RhdGVGaWVsZFZhbHVlOgI4ASJ1CiVTZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlc3BvbnNlEi8KBXN0YXRlGAEgASgLMiAud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZRIbChN2YWxpZGF0aW9uX3dhcm5pbmdzGAIgAygJIicKJUdldFRyYWluaW5nUHJvZ3JhbVN0YXRlSGlzdG9yeVJlcXVlc3QiXwomR2V0VHJhaW5pbmdQcm9ncmFtU3RhdGVIaXN0b3J5UmVzcG9uc2USNQoGZXZlbnRzGAEgAygLMiUud29ya291dC52MS5UcmFpbmluZ1Byb2dyYW1TdGF0ZUV2ZW50KlEKCldlaWdodFVuaXQSGwoXV0VJR0hUX1VOSVRfVU5TUEVDSUZJRUQQABISCg5XRUlHSFRfVU5JVF9MQhABEhIKDldFSUdIVF9VTklUX0tHEAIqeQoKUmVnaW1lVHlwZRIbChdSRUdJTUVfVFlQRV9VTlNQRUNJRklFRBAAEhoKFlJFR0lNRV9UWVBFX0xJTkVBUl81WDUQARIVChFSRUdJTUVfVFlQRV9HWkNMUBACEhsKF1JFR0lNRV9UWVBFX1dFTkRMRVJfNTMxEAMquwEKDlN0YXRlRmllbGRLaW5kEiAKHFNUQVRFX0ZJRUxEX0tJTkRfVU5TUEVDSUZJRUQQABIYChRTVEFURV9GSUVMRF9LSU5EX0lOVBABEhoKFlNUQVRFX0ZJRUxEX0tJTkRfRkxPQVQQAhIZChVTVEFURV9GSUVMRF9LSU5EX0JPT0wQAxIbChdTVEFURV9GSUVMRF9LSU5EX1NUUklORxAEEhkKFVNUQVRFX0ZJRUxEX0tJTkRfRU5VTRAFMskFCg9TZXR0aW5nc1NlcnZpY2USVAoNVXBkYXRlU2V0dGluZxIgLndvcmtvdXQudjEuVXBkYXRlU2V0dGluZ1JlcXVlc3QaIS53b3Jrb3V0LnYxLlVwZGF0ZVNldHRpbmdSZXNwb25zZRJOCgtHZXRTZXR0aW5ncxIeLndvcmtvdXQudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh8ud29ya291dC52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlEngKGUdldFRyYWluaW5nUHJvZ3JhbUNhdGFsb2cSLC53b3Jrb3V0LnYxLkdldFRyYWluaW5nUHJvZ3JhbUNhdGFsb2dSZXF1ZXN0Gi0ud29ya291dC52MS5HZXRUcmFpbmluZ1Byb2dyYW1DYXRhbG9nUmVzcG9uc2UShAEKHUdldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlEjAud29ya291dC52MS5HZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QaMS53b3Jrb3V0LnYxLkdldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlUmVzcG9uc2UShAEKHVNldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlEjAud29ya291dC52MS5TZXRBY3RpdmVUcmFpbmluZ1Byb2dyYW1TdGF0ZVJlcXVlc3QaMS53b3Jrb3V0LnYxLlNldEFjdGl2ZVRyYWluaW5nUHJvZ3JhbVN0YXRlUmVzcG9uc2UShwEKHkdldFRyYWluaW5nUHJvZ3JhbVN0YXRlSGlzdG9yeRIxLndvcmtvdXQudjEuR2V0VHJhaW5pbmdQcm9ncmFtU3RhdGVIaXN0b3J5UmVxdWVzdBoyLndvcmtvdXQudjEuR2V0VHJhaW5pbmdQcm9ncmFtU3RhdGVIaXN0b3J5UmVzcG9uc2ViBnByb3RvMw");
 
 /**
  * @generated from message workout.v1.PlateColor
@@ -452,95 +452,6 @@ export const TrainingProgramStateEventSchema: GenMessage<TrainingProgramStateEve
   messageDesc(file_workout_v1_settings, 11);
 
 /**
- * A single input field in a pending update (e.g., "deload percent").
- *
- * @generated from message workout.v1.PendingStateUpdateField
- */
-export type PendingStateUpdateField = Message<"workout.v1.PendingStateUpdateField"> & {
-  /**
-   * @generated from field: string key = 1;
-   */
-  key: string;
-
-  /**
-   * @generated from field: string label = 2;
-   */
-  label: string;
-
-  /**
-   * @generated from field: workout.v1.StateFieldKind kind = 3;
-   */
-  kind: StateFieldKind;
-
-  /**
-   * @generated from field: workout.v1.StateFieldValue default_value = 4;
-   */
-  defaultValue?: StateFieldValue;
-
-  /**
-   * @generated from field: double min_value = 5;
-   */
-  minValue: number;
-
-  /**
-   * @generated from field: double max_value = 6;
-   */
-  maxValue: number;
-
-  /**
-   * @generated from field: double step = 7;
-   */
-  step: number;
-
-  /**
-   * @generated from field: repeated workout.v1.StateEnumOption enum_options = 8;
-   */
-  enumOptions: StateEnumOption[];
-};
-
-/**
- * Describes the message workout.v1.PendingStateUpdateField.
- * Use `create(PendingStateUpdateFieldSchema)` to create a new message.
- */
-export const PendingStateUpdateFieldSchema: GenMessage<PendingStateUpdateField> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 12);
-
-/**
- * A pending recommendation that blocks workout start until resolved.
- * Rendered entirely by backend — frontend shows fields dynamically.
- *
- * @generated from message workout.v1.PendingStateUpdate
- */
-export type PendingStateUpdate = Message<"workout.v1.PendingStateUpdate"> & {
-  /**
-   * @generated from field: string update_id = 1;
-   */
-  updateId: string;
-
-  /**
-   * @generated from field: string title = 2;
-   */
-  title: string;
-
-  /**
-   * @generated from field: string message = 3;
-   */
-  message: string;
-
-  /**
-   * @generated from field: repeated workout.v1.PendingStateUpdateField fields = 4;
-   */
-  fields: PendingStateUpdateField[];
-};
-
-/**
- * Describes the message workout.v1.PendingStateUpdate.
- * Use `create(PendingStateUpdateSchema)` to create a new message.
- */
-export const PendingStateUpdateSchema: GenMessage<PendingStateUpdate> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 13);
-
-/**
  * @generated from message workout.v1.UserSetting
  */
 export type UserSetting = Message<"workout.v1.UserSetting"> & {
@@ -569,7 +480,7 @@ export type UserSetting = Message<"workout.v1.UserSetting"> & {
  * Use `create(UserSettingSchema)` to create a new message.
  */
 export const UserSettingSchema: GenMessage<UserSetting> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 14);
+  messageDesc(file_workout_v1_settings, 12);
 
 /**
  * @generated from message workout.v1.UpdateSettingRequest
@@ -586,7 +497,7 @@ export type UpdateSettingRequest = Message<"workout.v1.UpdateSettingRequest"> & 
  * Use `create(UpdateSettingRequestSchema)` to create a new message.
  */
 export const UpdateSettingRequestSchema: GenMessage<UpdateSettingRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 15);
+  messageDesc(file_workout_v1_settings, 13);
 
 /**
  * @generated from message workout.v1.UpdateSettingResponse
@@ -599,7 +510,7 @@ export type UpdateSettingResponse = Message<"workout.v1.UpdateSettingResponse"> 
  * Use `create(UpdateSettingResponseSchema)` to create a new message.
  */
 export const UpdateSettingResponseSchema: GenMessage<UpdateSettingResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 16);
+  messageDesc(file_workout_v1_settings, 14);
 
 /**
  * @generated from message workout.v1.GetSettingsRequest
@@ -612,7 +523,7 @@ export type GetSettingsRequest = Message<"workout.v1.GetSettingsRequest"> & {
  * Use `create(GetSettingsRequestSchema)` to create a new message.
  */
 export const GetSettingsRequestSchema: GenMessage<GetSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 17);
+  messageDesc(file_workout_v1_settings, 15);
 
 /**
  * @generated from message workout.v1.GetSettingsResponse
@@ -629,7 +540,7 @@ export type GetSettingsResponse = Message<"workout.v1.GetSettingsResponse"> & {
  * Use `create(GetSettingsResponseSchema)` to create a new message.
  */
 export const GetSettingsResponseSchema: GenMessage<GetSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 18);
+  messageDesc(file_workout_v1_settings, 16);
 
 /**
  * @generated from message workout.v1.GetTrainingProgramCatalogRequest
@@ -642,7 +553,7 @@ export type GetTrainingProgramCatalogRequest = Message<"workout.v1.GetTrainingPr
  * Use `create(GetTrainingProgramCatalogRequestSchema)` to create a new message.
  */
 export const GetTrainingProgramCatalogRequestSchema: GenMessage<GetTrainingProgramCatalogRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 19);
+  messageDesc(file_workout_v1_settings, 17);
 
 /**
  * @generated from message workout.v1.GetTrainingProgramCatalogResponse
@@ -659,7 +570,7 @@ export type GetTrainingProgramCatalogResponse = Message<"workout.v1.GetTrainingP
  * Use `create(GetTrainingProgramCatalogResponseSchema)` to create a new message.
  */
 export const GetTrainingProgramCatalogResponseSchema: GenMessage<GetTrainingProgramCatalogResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 20);
+  messageDesc(file_workout_v1_settings, 18);
 
 /**
  * @generated from message workout.v1.GetActiveTrainingProgramStateRequest
@@ -672,7 +583,7 @@ export type GetActiveTrainingProgramStateRequest = Message<"workout.v1.GetActive
  * Use `create(GetActiveTrainingProgramStateRequestSchema)` to create a new message.
  */
 export const GetActiveTrainingProgramStateRequestSchema: GenMessage<GetActiveTrainingProgramStateRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 21);
+  messageDesc(file_workout_v1_settings, 19);
 
 /**
  * @generated from message workout.v1.GetActiveTrainingProgramStateResponse
@@ -694,7 +605,7 @@ export type GetActiveTrainingProgramStateResponse = Message<"workout.v1.GetActiv
  * Use `create(GetActiveTrainingProgramStateResponseSchema)` to create a new message.
  */
 export const GetActiveTrainingProgramStateResponseSchema: GenMessage<GetActiveTrainingProgramStateResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 22);
+  messageDesc(file_workout_v1_settings, 20);
 
 /**
  * @generated from message workout.v1.SetActiveTrainingProgramStateRequest
@@ -723,7 +634,7 @@ export type SetActiveTrainingProgramStateRequest = Message<"workout.v1.SetActive
  * Use `create(SetActiveTrainingProgramStateRequestSchema)` to create a new message.
  */
 export const SetActiveTrainingProgramStateRequestSchema: GenMessage<SetActiveTrainingProgramStateRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 23);
+  messageDesc(file_workout_v1_settings, 21);
 
 /**
  * @generated from message workout.v1.SetActiveTrainingProgramStateResponse
@@ -745,7 +656,7 @@ export type SetActiveTrainingProgramStateResponse = Message<"workout.v1.SetActiv
  * Use `create(SetActiveTrainingProgramStateResponseSchema)` to create a new message.
  */
 export const SetActiveTrainingProgramStateResponseSchema: GenMessage<SetActiveTrainingProgramStateResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 24);
+  messageDesc(file_workout_v1_settings, 22);
 
 /**
  * @generated from message workout.v1.GetTrainingProgramStateHistoryRequest
@@ -758,7 +669,7 @@ export type GetTrainingProgramStateHistoryRequest = Message<"workout.v1.GetTrain
  * Use `create(GetTrainingProgramStateHistoryRequestSchema)` to create a new message.
  */
 export const GetTrainingProgramStateHistoryRequestSchema: GenMessage<GetTrainingProgramStateHistoryRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 25);
+  messageDesc(file_workout_v1_settings, 23);
 
 /**
  * @generated from message workout.v1.GetTrainingProgramStateHistoryResponse
@@ -775,46 +686,7 @@ export type GetTrainingProgramStateHistoryResponse = Message<"workout.v1.GetTrai
  * Use `create(GetTrainingProgramStateHistoryResponseSchema)` to create a new message.
  */
 export const GetTrainingProgramStateHistoryResponseSchema: GenMessage<GetTrainingProgramStateHistoryResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 26);
-
-/**
- * @generated from message workout.v1.ApplyPendingStateUpdateRequest
- */
-export type ApplyPendingStateUpdateRequest = Message<"workout.v1.ApplyPendingStateUpdateRequest"> & {
-  /**
-   * @generated from field: string update_id = 1;
-   */
-  updateId: string;
-
-  /**
-   * @generated from field: map<string, workout.v1.StateFieldValue> field_values = 2;
-   */
-  fieldValues: { [key: string]: StateFieldValue };
-};
-
-/**
- * Describes the message workout.v1.ApplyPendingStateUpdateRequest.
- * Use `create(ApplyPendingStateUpdateRequestSchema)` to create a new message.
- */
-export const ApplyPendingStateUpdateRequestSchema: GenMessage<ApplyPendingStateUpdateRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 27);
-
-/**
- * @generated from message workout.v1.ApplyPendingStateUpdateResponse
- */
-export type ApplyPendingStateUpdateResponse = Message<"workout.v1.ApplyPendingStateUpdateResponse"> & {
-  /**
-   * @generated from field: workout.v1.TrainingProgramState state = 1;
-   */
-  state?: TrainingProgramState;
-};
-
-/**
- * Describes the message workout.v1.ApplyPendingStateUpdateResponse.
- * Use `create(ApplyPendingStateUpdateResponseSchema)` to create a new message.
- */
-export const ApplyPendingStateUpdateResponseSchema: GenMessage<ApplyPendingStateUpdateResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 28);
+  messageDesc(file_workout_v1_settings, 24);
 
 /**
  * @generated from enum workout.v1.WeightUnit
@@ -965,14 +837,6 @@ export const SettingsService: GenService<{
     methodKind: "unary";
     input: typeof GetTrainingProgramStateHistoryRequestSchema;
     output: typeof GetTrainingProgramStateHistoryResponseSchema;
-  },
-  /**
-   * @generated from rpc workout.v1.SettingsService.ApplyPendingStateUpdate
-   */
-  applyPendingStateUpdate: {
-    methodKind: "unary";
-    input: typeof ApplyPendingStateUpdateRequestSchema;
-    output: typeof ApplyPendingStateUpdateResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_workout_v1_settings, 0);

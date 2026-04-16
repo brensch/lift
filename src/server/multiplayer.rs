@@ -24,11 +24,7 @@ impl ServerMultiplayerService {
     /// Place `user_id` into `session_id` (upsert), backfill their active workout's
     /// historical session stamp if any, and refresh their participant blob so peers see
     /// them immediately on the next poll.
-    async fn place_user_in_session(
-        &self,
-        user_id: &str,
-        session_id: &str,
-    ) -> Result<(), Status> {
+    async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> Result<(), Status> {
         self.db
             .set_user_current_session(user_id, session_id)
             .await

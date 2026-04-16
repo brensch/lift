@@ -15,7 +15,6 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'settings.pb.dart' as $1;
 import 'workout.pbenum.dart';
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
@@ -4051,8 +4050,6 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     RegimeContext? regimeContext,
     TrainingStatus? trainingStatus,
     $core.String? suggestedWorkoutName,
-    $core.Iterable<$1.PendingStateUpdate>? pendingStateUpdates,
-    $core.bool? canStartWorkout,
     WorkoutDraft? draft,
     $core.Iterable<ExerciseGroup>? savedExerciseGroups,
   }) {
@@ -4065,9 +4062,6 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (trainingStatus != null) result.trainingStatus = trainingStatus;
     if (suggestedWorkoutName != null)
       result.suggestedWorkoutName = suggestedWorkoutName;
-    if (pendingStateUpdates != null)
-      result.pendingStateUpdates.addAll(pendingStateUpdates);
-    if (canStartWorkout != null) result.canStartWorkout = canStartWorkout;
     if (draft != null) result.draft = draft;
     if (savedExerciseGroups != null)
       result.savedExerciseGroups.addAll(savedExerciseGroups);
@@ -4098,13 +4092,9 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     ..aOM<TrainingStatus>(5, _omitFieldNames ? '' : 'trainingStatus',
         subBuilder: TrainingStatus.create)
     ..aOS(6, _omitFieldNames ? '' : 'suggestedWorkoutName')
-    ..pPM<$1.PendingStateUpdate>(
-        7, _omitFieldNames ? '' : 'pendingStateUpdates',
-        subBuilder: $1.PendingStateUpdate.create)
-    ..aOB(8, _omitFieldNames ? '' : 'canStartWorkout')
-    ..aOM<WorkoutDraft>(9, _omitFieldNames ? '' : 'draft',
+    ..aOM<WorkoutDraft>(7, _omitFieldNames ? '' : 'draft',
         subBuilder: WorkoutDraft.create)
-    ..pPM<ExerciseGroup>(10, _omitFieldNames ? '' : 'savedExerciseGroups',
+    ..pPM<ExerciseGroup>(8, _omitFieldNames ? '' : 'savedExerciseGroups',
         subBuilder: ExerciseGroup.create)
     ..hasRequiredFields = false;
 
@@ -4177,33 +4167,19 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   void clearSuggestedWorkoutName() => $_clearField(6);
 
-  /// Pending recommendations (e.g. temporal deload) that must be resolved before starting.
   @$pb.TagNumber(7)
-  $pb.PbList<$1.PendingStateUpdate> get pendingStateUpdates => $_getList(6);
+  WorkoutDraft get draft => $_getN(6);
+  @$pb.TagNumber(7)
+  set draft(WorkoutDraft value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDraft() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDraft() => $_clearField(7);
+  @$pb.TagNumber(7)
+  WorkoutDraft ensureDraft() => $_ensure(6);
 
-  /// False if there are unresolved pending_state_updates.
   @$pb.TagNumber(8)
-  $core.bool get canStartWorkout => $_getBF(7);
-  @$pb.TagNumber(8)
-  set canStartWorkout($core.bool value) => $_setBool(7, value);
-  @$pb.TagNumber(8)
-  $core.bool hasCanStartWorkout() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearCanStartWorkout() => $_clearField(8);
-
-  @$pb.TagNumber(9)
-  WorkoutDraft get draft => $_getN(8);
-  @$pb.TagNumber(9)
-  set draft(WorkoutDraft value) => $_setField(9, value);
-  @$pb.TagNumber(9)
-  $core.bool hasDraft() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearDraft() => $_clearField(9);
-  @$pb.TagNumber(9)
-  WorkoutDraft ensureDraft() => $_ensure(8);
-
-  @$pb.TagNumber(10)
-  $pb.PbList<ExerciseGroup> get savedExerciseGroups => $_getList(9);
+  $pb.PbList<ExerciseGroup> get savedExerciseGroups => $_getList(7);
 }
 
 class SaveProfileExerciseGroupRequest extends $pb.GeneratedMessage {

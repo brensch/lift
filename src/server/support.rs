@@ -94,7 +94,10 @@ pub(super) async fn refresh_participant_for_user(
         .ok_or_else(|| Status::not_found("User not found"))?;
     let resolved_workout_id = match workout_id {
         Some(id) => Some(id.to_string()),
-        None => db.get_active_workout_id(user_id).await.map_err(internal_error)?,
+        None => db
+            .get_active_workout_id(user_id)
+            .await
+            .map_err(internal_error)?,
     };
     let active = if let Some(id) = resolved_workout_id.as_deref() {
         db.load_workout_full(user_id, id)

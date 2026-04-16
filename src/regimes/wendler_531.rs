@@ -5,18 +5,16 @@ use schlift::workout::v1::{
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
-    PendingUpdateFieldDef, ProposeResult, StatePayload,
+    set_f32, set_int, set_str, with_onboarding, FloatFieldBounds, ProposeResult, StatePayload,
 };
 use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
 
 use super::{
     build_training_status, exercise_display_name, exercise_short_label, progression_hint_for_set,
-    recent_performance_notes, rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, WorkoutRegime,
+    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
+    ProgramAtAGlanceMeta, ProgramCatalogMeta, WorkoutRegime,
 };
-use schlift::workout::v1::StateFieldKind;
 use std::collections::HashSet;
 
 pub struct Wendler531Regime;
@@ -450,13 +448,13 @@ impl WorkoutRegime for Wendler531Regime {
                 rest_config: group_rest,
                 tags: vec!["recommended".to_string(), "compound".to_string()],
                 explanation: format!(
-                    "5/3/1 Cycle {}, {} — {} ({}). TM: {:.0} {}.",
+                    "Session {} of Cycle {} includes {}. {} uses {} off a Training Max of {}.",
+                    session_in_week + 1,
                     cycle,
-                    week_def.name,
                     exercise_display_name(ex),
+                    week_def.name,
                     pattern,
-                    tm,
-                    weight_unit.suffix()
+                    format_weight_compact(tm, weight_unit),
                 ),
                 prescribed_by_regime: false,
             });
@@ -496,38 +494,29 @@ impl WorkoutRegime for Wendler531Regime {
         }
     }
 
-    fn pending_updates_for_state(
+    fn apply_temporal_adjustments_for_proposal(
         &self,
-        _state: &StatePayload,
+        state: &StatePayload,
         last_session_at: i64,
         now_ts: i64,
-    ) -> Vec<PendingUpdateDef> {
+    ) -> StatePayload {
         if last_session_at == 0 {
-            return vec![];
+            return state.clone();
         }
         let days_since = (now_ts - last_session_at) / (24 * 3600);
         if days_since < 14 {
-            return vec![];
+            return state.clone();
         }
-        let recommended_pct = if days_since >= 30 { 80 } else { 90 };
-        vec![PendingUpdateDef {
-            update_id: "temporal_deload".to_string(),
-            title: "Long break — Training Max reset recommended".to_string(),
-            message: format!(
-                "It's been {} days since your last session. Reducing your Training Maxes will help you ease back in safely and avoid injury.",
-                days_since
-            ),
-            fields: vec![PendingUpdateFieldDef {
-                key: "deload_percent".to_string(),
-                label: "Reset to % of current TM".to_string(),
-                kind: StateFieldKind::Int,
-                default_value: FieldVal::Int(recommended_pct),
-                min_value: 50.0,
-                max_value: 100.0,
-                step: 5.0,
-                enum_options: vec![],
-            }],
-        }]
+        let pct = if days_since >= 30 { 0.8 } else { 0.9 };
+        let unit = weight_unit_from_state(state);
+        let mut adjusted = state.clone();
+        for &ex in WENDLER_LIFTS {
+            let current = get_f32_or(state, tm_key(ex), default_tm(ex));
+            let deloaded = round_to_unit_increment(current * pct, unit, 5.0, 2.5)
+                .max(min_weight_lb(unit, 45.0, 20.0));
+            set_f32(&mut adjusted, tm_key(ex), deloaded);
+        }
+        adjusted
     }
 
     fn derive_training_status(
@@ -568,46 +557,18 @@ impl WorkoutRegime for Wendler531Regime {
         )
     }
 
-    fn apply_pending_update_to_state(
-        &self,
-        state: &StatePayload,
-        update_id: &str,
-        field_values: &StatePayload,
-    ) -> Result<StatePayload, String> {
-        match update_id {
-            "temporal_deload" => {
-                let pct = match field_values.get("deload_percent") {
-                    Some(FieldVal::Int(p)) => *p as f32 / 100.0,
-                    Some(FieldVal::Float(p)) => *p as f32 / 100.0,
-                    _ => return Err("deload_percent field is required".to_string()),
-                };
-                if !(0.5..=1.0).contains(&pct) {
-                    return Err("deload_percent must be between 50 and 100".to_string());
-                }
-                let mut new_state = state.clone();
-                let unit = weight_unit_from_state(state);
-                for &ex in WENDLER_LIFTS {
-                    let current = get_f32_or(state, tm_key(ex), default_tm(ex));
-                    let deloaded = round_to_unit_increment(current * pct, unit, 5.0, 2.5)
-                        .max(min_weight_lb(unit, 45.0, 20.0));
-                    set_f32(&mut new_state, tm_key(ex), deloaded);
-                }
-                Ok(new_state)
-            }
-            _ => Err(format!("Unknown update_id: {}", update_id)),
-        }
-    }
-
-    fn schplanner_transition_on_workout_started(
+    fn transition_state_on_workout_completed(
         &self,
         state: &mut StatePayload,
         _workout: &SchplannerWorkoutRecord,
+        _slot_outcomes: &std::collections::HashMap<String, SchplannerSlotOutcome>,
     ) {
         let variant = get_str_or(state, KEY_VARIANT, "four_day");
         let sessions = sessions_per_variant(variant).max(1);
         let mut cycle = get_int_or(state, KEY_CYCLE, 1).max(1);
         let mut week = get_int_or(state, KEY_WEEK, 1).clamp(1, 4);
         let mut session = get_int_or(state, KEY_SESSION, 0).max(0) + 1;
+        let wrapped_cycle = session >= sessions && week >= 4;
         if session >= sessions {
             session = 0;
             week += 1;
@@ -619,16 +580,7 @@ impl WorkoutRegime for Wendler531Regime {
         set_int(state, KEY_CYCLE, cycle);
         set_int(state, KEY_WEEK, week);
         set_int(state, KEY_SESSION, session);
-    }
-
-    fn schplanner_apply_logged_results(
-        &self,
-        state: &mut StatePayload,
-        _workout: &SchplannerWorkoutRecord,
-        _slot_outcomes: &std::collections::HashMap<String, SchplannerSlotOutcome>,
-        _slot_reasons: &mut std::collections::HashMap<String, String>,
-    ) {
-        if get_int_or(state, KEY_WEEK, 1) != 1 || get_int_or(state, KEY_SESSION, 0) != 0 {
+        if !wrapped_cycle {
             return;
         }
         let unit = weight_unit_from_state(state);

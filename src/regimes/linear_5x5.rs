@@ -2,8 +2,7 @@ use schlift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
-    set_f32, set_int, set_str, with_onboarding, FieldVal, FloatFieldBounds, PendingUpdateDef,
-    PendingUpdateFieldDef, ProposeResult, StatePayload,
+    set_f32, set_int, set_str, with_onboarding, FloatFieldBounds, ProposeResult, StatePayload,
 };
 use crate::schplanner::{SchplannerInsights, SchplannerSlotOutcome, SchplannerWorkoutRecord};
 use crate::weight_units::{min_weight_lb, round_to_unit_increment, weight_unit_from_state};
@@ -11,10 +10,9 @@ use std::collections::HashMap;
 
 use super::{
     build_single_group_amrap, build_training_status, exercise_display_name, exercise_short_label,
-    recent_performance_notes, rest_cfg, simulate_target_slot_sets, ProgramAtAGlanceMeta,
-    ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
+    format_weight_compact, recent_performance_notes, rest_cfg, simulate_target_slot_sets,
+    ProgramAtAGlanceMeta, ProgramCatalogMeta, SingleGroupOptions, WorkoutRegime,
 };
-use schlift::workout::v1::StateFieldKind;
 use std::collections::HashSet;
 
 const UPPER_INCREMENT: f32 = 5.0;
@@ -100,6 +98,38 @@ fn workout_variant_exercises(variant: &str) -> &'static [Exercise] {
         WORKOUT_B
     } else {
         WORKOUT_A
+    }
+}
+
+fn linear_group_explanation(
+    exercise: Exercise,
+    workout_label: &str,
+    planned_weight: f32,
+    state: &StatePayload,
+    insights: &SchplannerInsights,
+) -> String {
+    let label = exercise_display_name(exercise);
+    let planned = format_weight_compact(planned_weight, weight_unit_from_state(state));
+    let Some(insight) = insights.for_exercise(exercise) else {
+        return format!("Workout {} includes {}. Planned working weight is {}.", workout_label, label, planned);
+    };
+
+    let last_weight = format_weight_compact(insight.last_weight, weight_unit_from_state(state));
+    if insight.last_hit_target && planned_weight > insight.last_weight + 0.1 {
+        format!(
+            "Workout {} includes {}. Planned working weight is {}, up from {} after you hit all prescribed reps last time.",
+            workout_label, label, planned, last_weight
+        )
+    } else if !insight.last_hit_target && (planned_weight - insight.last_weight).abs() <= 0.1 {
+        format!(
+            "Workout {} includes {}. Planned working weight stays at {} because last time you got {} of {} reps on the final working set.",
+            workout_label, label, planned, insight.last_actual_reps, insight.last_target_reps
+        )
+    } else {
+        format!(
+            "Workout {} includes {}. Planned working weight is {}.",
+            workout_label, label, planned
+        )
     }
 }
 
@@ -307,7 +337,6 @@ impl WorkoutRegime for Linear5x5Regime {
         } else {
             "A"
         };
-        let weight_unit = weight_unit_from_state(state);
         let other_variant = if next_variant_label == "A" { "B" } else { "A" };
 
         let mut proposed_groups = Vec::new();
@@ -324,11 +353,12 @@ impl WorkoutRegime for Linear5x5Regime {
                 reps,
                 SingleGroupOptions {
                     tags: vec!["recommended".to_string(), "compound".to_string()],
-                    explanation: format!(
-                        "5×5 Workout {} — {} {}",
+                    explanation: linear_group_explanation(
+                        ex,
                         next_variant_label,
                         w,
-                        weight_unit.suffix()
+                        state,
+                        insights,
                     ),
                     rest_config: rest_cfg(180, 300),
                     include_warmup: true,
@@ -354,9 +384,10 @@ impl WorkoutRegime for Linear5x5Regime {
                 SingleGroupOptions {
                     tags: vec!["compound".to_string()],
                     explanation: format!(
-                        "{} — optional (from Workout {})",
+                        "{} is part of Workout {}. Add it only if you want extra work beyond today's Workout {} prescription.",
                         exercise_display_name(ex),
-                        other_variant
+                        other_variant,
+                        next_variant_label
                     ),
                     rest_config: rest_cfg(180, 300),
                     include_warmup: true,
@@ -422,38 +453,36 @@ impl WorkoutRegime for Linear5x5Regime {
         }
     }
 
-    fn pending_updates_for_state(
+    fn apply_temporal_adjustments_for_proposal(
         &self,
-        _state: &StatePayload,
+        state: &StatePayload,
         last_session_at: i64,
         now_ts: i64,
-    ) -> Vec<PendingUpdateDef> {
+    ) -> StatePayload {
         if last_session_at == 0 {
-            return vec![];
+            return state.clone();
         }
         let days_since = (now_ts - last_session_at) / (24 * 3600);
         if days_since < 14 {
-            return vec![];
+            return state.clone();
         }
-        let recommended_pct = if days_since >= 30 { 80 } else { 90 };
-        vec![PendingUpdateDef {
-            update_id: "temporal_deload".to_string(),
-            title: "Long break — deload recommended".to_string(),
-            message: format!(
-                "It's been {} days since your last session. A deload is recommended to reduce injury risk and ease back in.",
-                days_since
-            ),
-            fields: vec![PendingUpdateFieldDef {
-                key: "deload_percent".to_string(),
-                label: "Deload %".to_string(),
-                kind: StateFieldKind::Int,
-                default_value: FieldVal::Int(recommended_pct),
-                min_value: 50.0,
-                max_value: 100.0,
-                step: 5.0,
-                enum_options: vec![],
-            }],
-        }]
+        let pct = if days_since >= 30 { 0.8 } else { 0.9 };
+        let unit = weight_unit_from_state(state);
+        let mut adjusted = state.clone();
+        for ex in [
+            Exercise::Squat,
+            Exercise::BenchPress,
+            Exercise::BarbellRow,
+            Exercise::OverheadPress,
+            Exercise::Deadlift,
+        ] {
+            let current = get_f32_or(state, weight_key(ex), default_weight(ex));
+            let (lb_round, kg_round) = rounding_steps(ex);
+            let deloaded = round_to_unit_increment(current * pct, unit, lb_round, kg_round)
+                .max(min_weight_lb(unit, 45.0, 20.0));
+            set_f32(&mut adjusted, weight_key(ex), deloaded);
+        }
+        adjusted
     }
 
     fn derive_training_status(
@@ -490,63 +519,11 @@ impl WorkoutRegime for Linear5x5Regime {
         )
     }
 
-    fn apply_pending_update_to_state(
-        &self,
-        state: &StatePayload,
-        update_id: &str,
-        field_values: &StatePayload,
-    ) -> Result<StatePayload, String> {
-        match update_id {
-            "temporal_deload" => {
-                let pct = match field_values.get("deload_percent") {
-                    Some(FieldVal::Int(p)) => *p as f32 / 100.0,
-                    Some(FieldVal::Float(p)) => *p as f32 / 100.0,
-                    _ => return Err("deload_percent field is required".to_string()),
-                };
-                if !(0.5..=1.0).contains(&pct) {
-                    return Err("deload_percent must be between 50 and 100".to_string());
-                }
-                let mut new_state = state.clone();
-                let unit = weight_unit_from_state(state);
-                for ex in &[
-                    Exercise::Squat,
-                    Exercise::BenchPress,
-                    Exercise::BarbellRow,
-                    Exercise::OverheadPress,
-                    Exercise::Deadlift,
-                ] {
-                    let current = get_f32_or(state, weight_key(*ex), default_weight(*ex));
-                    let (lb_round, kg_round) = rounding_steps(*ex);
-                    let deloaded = round_to_unit_increment(current * pct, unit, lb_round, kg_round)
-                        .max(min_weight_lb(unit, 45.0, 20.0));
-                    set_f32(&mut new_state, weight_key(*ex), deloaded);
-                    set_int(&mut new_state, stall_key(*ex), 0);
-                }
-                Ok(new_state)
-            }
-            _ => Err(format!("Unknown update_id: {}", update_id)),
-        }
-    }
-
-    fn schplanner_transition_on_workout_started(
-        &self,
-        state: &mut StatePayload,
-        _workout: &SchplannerWorkoutRecord,
-    ) {
-        let next = if get_str_or(state, KEY_VARIANT, "A").eq_ignore_ascii_case("B") {
-            "A"
-        } else {
-            "B"
-        };
-        set_str(state, KEY_VARIANT, next);
-    }
-
-    fn schplanner_apply_logged_results(
+    fn transition_state_on_workout_completed(
         &self,
         state: &mut StatePayload,
         _workout: &SchplannerWorkoutRecord,
         slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
-        slot_reasons: &mut HashMap<String, String>,
     ) {
         let unit = weight_unit_from_state(state);
         for exercise in [
@@ -564,60 +541,37 @@ impl WorkoutRegime for Linear5x5Regime {
                 continue;
             }
             let current_weight = get_f32_or(state, weight_key(exercise), default_weight(exercise));
+            let attempted_weight = outcome
+                .last_completed_actual_weight
+                .unwrap_or(current_weight);
             let (lb_step, _kg_step) = progression_increments(exercise);
             let (lb_round, kg_round) = rounding_steps(exercise);
             if outcome.all_sets_hit_target() {
+                let base_weight = outcome
+                    .last_successful_actual_weight
+                    .unwrap_or(attempted_weight);
                 let next_weight =
-                    round_to_unit_increment(current_weight + lb_step, unit, lb_round, kg_round);
+                    round_to_unit_increment(base_weight + lb_step, unit, lb_round, kg_round);
                 set_f32(state, weight_key(exercise), next_weight);
                 set_int(state, stall_key(exercise), 0);
-                slot_reasons.insert(
-                    slot_key,
-                    format!(
-                        "Schplanner saw {} hit all {} working sets at {} {}, so it moved the next target to {} {}.",
-                        exercise_display_name(exercise),
-                        outcome.planned_sets,
-                        current_weight.round() as i32,
-                        unit.suffix(),
-                        next_weight.round() as i32,
-                        unit.suffix()
-                    ),
-                );
             } else {
                 let next_stall = get_int_or(state, stall_key(exercise), 0) + 1;
                 if next_stall >= 3 {
                     let deloaded =
-                        round_to_unit_increment(current_weight * 0.9, unit, lb_round, kg_round)
+                        round_to_unit_increment(attempted_weight * 0.9, unit, lb_round, kg_round)
                             .max(min_weight_lb(unit, 45.0, 20.0));
                     set_f32(state, weight_key(exercise), deloaded);
                     set_int(state, stall_key(exercise), 0);
-                    slot_reasons.insert(
-                        slot_key,
-                        format!(
-                            "Schplanner logged a third miss for {} at {} {}, so it deloaded the next target to {} {}.",
-                            exercise_display_name(exercise),
-                            current_weight.round() as i32,
-                            unit.suffix(),
-                            deloaded.round() as i32,
-                            unit.suffix()
-                        ),
-                    );
                 } else {
                     set_int(state, stall_key(exercise), next_stall);
-                    slot_reasons.insert(
-                        slot_key,
-                        format!(
-                            "Schplanner kept {} at {} {} after {} of {} sets hit target; stall count is now {}.",
-                            exercise_display_name(exercise),
-                            current_weight.round() as i32,
-                            unit.suffix(),
-                            outcome.successful_sets,
-                            outcome.planned_sets,
-                            next_stall
-                        ),
-                    );
                 }
             }
         }
+        let next = if get_str_or(state, KEY_VARIANT, "A").eq_ignore_ascii_case("B") {
+            "A"
+        } else {
+            "B"
+        };
+        set_str(state, KEY_VARIANT, next);
     }
 }

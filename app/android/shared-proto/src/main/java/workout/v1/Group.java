@@ -8,175 +8,175 @@ public final class Group {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistryLite registry) {
   }
-  public interface JoinUserRequestOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.JoinUserRequest)
+  public interface JoinViaInviteRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.JoinViaInviteRequest)
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @return The userId.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
      */
-    java.lang.String getUserId();
+    java.lang.String getInviteToken();
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @return The bytes for userId.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
      */
     com.google.protobuf.ByteString
-        getUserIdBytes();
+        getInviteTokenBytes();
   }
   /**
-   * Protobuf type {@code workout.v1.JoinUserRequest}
+   * Protobuf type {@code workout.v1.JoinViaInviteRequest}
    */
-  public  static final class JoinUserRequest extends
+  public  static final class JoinViaInviteRequest extends
       com.google.protobuf.GeneratedMessageLite<
-          JoinUserRequest, JoinUserRequest.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.JoinUserRequest)
-      JoinUserRequestOrBuilder {
-    private JoinUserRequest() {
-      userId_ = "";
+          JoinViaInviteRequest, JoinViaInviteRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.JoinViaInviteRequest)
+      JoinViaInviteRequestOrBuilder {
+    private JoinViaInviteRequest() {
+      inviteToken_ = "";
     }
-    public static final int USER_ID_FIELD_NUMBER = 1;
-    private java.lang.String userId_;
+    public static final int INVITE_TOKEN_FIELD_NUMBER = 1;
+    private java.lang.String inviteToken_;
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @return The userId.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
      */
     @java.lang.Override
-    public java.lang.String getUserId() {
-      return userId_;
+    public java.lang.String getInviteToken() {
+      return inviteToken_;
     }
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @return The bytes for userId.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
-        getUserIdBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(userId_);
+        getInviteTokenBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(inviteToken_);
     }
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @param value The userId to set.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The inviteToken to set.
      */
-    private void setUserId(
+    private void setInviteToken(
         java.lang.String value) {
       java.lang.Class<?> valueClass = value.getClass();
   
-      userId_ = value;
+      inviteToken_ = value;
     }
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
      */
-    private void clearUserId() {
+    private void clearInviteToken() {
       
-      userId_ = getDefaultInstance().getUserId();
+      inviteToken_ = getDefaultInstance().getInviteToken();
     }
     /**
      * <pre>
-     * The ID of the user whose QR code was scanned
+     * Opaque token from the target user's QR code
      * </pre>
      *
-     * <code>string user_id = 1 [json_name = "userId"];</code>
-     * @param value The bytes for userId to set.
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The bytes for inviteToken to set.
      */
-    private void setUserIdBytes(
+    private void setInviteTokenBytes(
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
-      userId_ = value.toStringUtf8();
+      inviteToken_ = value.toStringUtf8();
       
     }
 
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(byte[] data)
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(java.io.InputStream input)
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserRequest parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.Group.JoinViaInviteRequest parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserRequest parseDelimitedFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserRequest parseFrom(
+    public static workout.v1.Group.JoinViaInviteRequest parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -187,19 +187,19 @@ public final class Group {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.Group.JoinUserRequest prototype) {
+    public static Builder newBuilder(workout.v1.Group.JoinViaInviteRequest prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.JoinUserRequest}
+     * Protobuf type {@code workout.v1.JoinViaInviteRequest}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Group.JoinUserRequest, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.JoinUserRequest)
-        workout.v1.Group.JoinUserRequestOrBuilder {
-      // Construct using workout.v1.Group.JoinUserRequest.newBuilder()
+          workout.v1.Group.JoinViaInviteRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.JoinViaInviteRequest)
+        workout.v1.Group.JoinViaInviteRequestOrBuilder {
+      // Construct using workout.v1.Group.JoinViaInviteRequest.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
@@ -207,74 +207,74 @@ public final class Group {
 
       /**
        * <pre>
-       * The ID of the user whose QR code was scanned
+       * Opaque token from the target user's QR code
        * </pre>
        *
-       * <code>string user_id = 1 [json_name = "userId"];</code>
-       * @return The userId.
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The inviteToken.
        */
       @java.lang.Override
-      public java.lang.String getUserId() {
-        return instance.getUserId();
+      public java.lang.String getInviteToken() {
+        return instance.getInviteToken();
       }
       /**
        * <pre>
-       * The ID of the user whose QR code was scanned
+       * Opaque token from the target user's QR code
        * </pre>
        *
-       * <code>string user_id = 1 [json_name = "userId"];</code>
-       * @return The bytes for userId.
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The bytes for inviteToken.
        */
       @java.lang.Override
       public com.google.protobuf.ByteString
-          getUserIdBytes() {
-        return instance.getUserIdBytes();
+          getInviteTokenBytes() {
+        return instance.getInviteTokenBytes();
       }
       /**
        * <pre>
-       * The ID of the user whose QR code was scanned
+       * Opaque token from the target user's QR code
        * </pre>
        *
-       * <code>string user_id = 1 [json_name = "userId"];</code>
-       * @param value The userId to set.
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The inviteToken to set.
        * @return This builder for chaining.
        */
-      public Builder setUserId(
+      public Builder setInviteToken(
           java.lang.String value) {
         copyOnWrite();
-        instance.setUserId(value);
+        instance.setInviteToken(value);
         return this;
       }
       /**
        * <pre>
-       * The ID of the user whose QR code was scanned
+       * Opaque token from the target user's QR code
        * </pre>
        *
-       * <code>string user_id = 1 [json_name = "userId"];</code>
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
        * @return This builder for chaining.
        */
-      public Builder clearUserId() {
+      public Builder clearInviteToken() {
         copyOnWrite();
-        instance.clearUserId();
+        instance.clearInviteToken();
         return this;
       }
       /**
        * <pre>
-       * The ID of the user whose QR code was scanned
+       * Opaque token from the target user's QR code
        * </pre>
        *
-       * <code>string user_id = 1 [json_name = "userId"];</code>
-       * @param value The bytes for userId to set.
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The bytes for inviteToken to set.
        * @return This builder for chaining.
        */
-      public Builder setUserIdBytes(
+      public Builder setInviteTokenBytes(
           com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setUserIdBytes(value);
+        instance.setInviteTokenBytes(value);
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.JoinUserRequest)
+      // @@protoc_insertion_point(builder_scope:workout.v1.JoinViaInviteRequest)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -283,14 +283,14 @@ public final class Group {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Group.JoinUserRequest();
+          return new workout.v1.Group.JoinViaInviteRequest();
         }
         case NEW_BUILDER: {
           return new Builder();
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "userId_",
+              "inviteToken_",
             };
             java.lang.String info =
                 "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
@@ -301,13 +301,13 @@ public final class Group {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Group.JoinUserRequest> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.Group.JoinViaInviteRequest> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.Group.JoinUserRequest.class) {
+            synchronized (workout.v1.Group.JoinViaInviteRequest.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.Group.JoinUserRequest>(
+                    new DefaultInstanceBasedParser<workout.v1.Group.JoinViaInviteRequest>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -326,30 +326,30 @@ public final class Group {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.JoinUserRequest)
-    private static final workout.v1.Group.JoinUserRequest DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.JoinViaInviteRequest)
+    private static final workout.v1.Group.JoinViaInviteRequest DEFAULT_INSTANCE;
     static {
-      JoinUserRequest defaultInstance = new JoinUserRequest();
+      JoinViaInviteRequest defaultInstance = new JoinViaInviteRequest();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        JoinUserRequest.class, defaultInstance);
+        JoinViaInviteRequest.class, defaultInstance);
     }
 
-    public static workout.v1.Group.JoinUserRequest getDefaultInstance() {
+    public static workout.v1.Group.JoinViaInviteRequest getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<JoinUserRequest> PARSER;
+    private static volatile com.google.protobuf.Parser<JoinViaInviteRequest> PARSER;
 
-    public static com.google.protobuf.Parser<JoinUserRequest> parser() {
+    public static com.google.protobuf.Parser<JoinViaInviteRequest> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
 
-  public interface JoinUserResponseOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.JoinUserResponse)
+  public interface JoinViaInviteResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.JoinViaInviteResponse)
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
@@ -365,14 +365,14 @@ public final class Group {
         getSessionIdBytes();
   }
   /**
-   * Protobuf type {@code workout.v1.JoinUserResponse}
+   * Protobuf type {@code workout.v1.JoinViaInviteResponse}
    */
-  public  static final class JoinUserResponse extends
+  public  static final class JoinViaInviteResponse extends
       com.google.protobuf.GeneratedMessageLite<
-          JoinUserResponse, JoinUserResponse.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.JoinUserResponse)
-      JoinUserResponseOrBuilder {
-    private JoinUserResponse() {
+          JoinViaInviteResponse, JoinViaInviteResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.JoinViaInviteResponse)
+      JoinViaInviteResponseOrBuilder {
+    private JoinViaInviteResponse() {
       sessionId_ = "";
     }
     public static final int SESSION_ID_FIELD_NUMBER = 1;
@@ -422,73 +422,73 @@ public final class Group {
       
     }
 
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(byte[] data)
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(java.io.InputStream input)
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserResponse parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.Group.JoinViaInviteResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserResponse parseDelimitedFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.JoinUserResponse parseFrom(
+    public static workout.v1.Group.JoinViaInviteResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -499,19 +499,19 @@ public final class Group {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.Group.JoinUserResponse prototype) {
+    public static Builder newBuilder(workout.v1.Group.JoinViaInviteResponse prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.JoinUserResponse}
+     * Protobuf type {@code workout.v1.JoinViaInviteResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Group.JoinUserResponse, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.JoinUserResponse)
-        workout.v1.Group.JoinUserResponseOrBuilder {
-      // Construct using workout.v1.Group.JoinUserResponse.newBuilder()
+          workout.v1.Group.JoinViaInviteResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.JoinViaInviteResponse)
+        workout.v1.Group.JoinViaInviteResponseOrBuilder {
+      // Construct using workout.v1.Group.JoinViaInviteResponse.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
@@ -566,7 +566,7 @@ public final class Group {
         return this;
       }
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.JoinUserResponse)
+      // @@protoc_insertion_point(builder_scope:workout.v1.JoinViaInviteResponse)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -575,7 +575,7 @@ public final class Group {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Group.JoinUserResponse();
+          return new workout.v1.Group.JoinViaInviteResponse();
         }
         case NEW_BUILDER: {
           return new Builder();
@@ -593,13 +593,13 @@ public final class Group {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Group.JoinUserResponse> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.Group.JoinViaInviteResponse> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.Group.JoinUserResponse.class) {
+            synchronized (workout.v1.Group.JoinViaInviteResponse.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.Group.JoinUserResponse>(
+                    new DefaultInstanceBasedParser<workout.v1.Group.JoinViaInviteResponse>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -618,109 +618,109 @@ public final class Group {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.JoinUserResponse)
-    private static final workout.v1.Group.JoinUserResponse DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.JoinViaInviteResponse)
+    private static final workout.v1.Group.JoinViaInviteResponse DEFAULT_INSTANCE;
     static {
-      JoinUserResponse defaultInstance = new JoinUserResponse();
+      JoinViaInviteResponse defaultInstance = new JoinViaInviteResponse();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        JoinUserResponse.class, defaultInstance);
+        JoinViaInviteResponse.class, defaultInstance);
     }
 
-    public static workout.v1.Group.JoinUserResponse getDefaultInstance() {
+    public static workout.v1.Group.JoinViaInviteResponse getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<JoinUserResponse> PARSER;
+    private static volatile com.google.protobuf.Parser<JoinViaInviteResponse> PARSER;
 
-    public static com.google.protobuf.Parser<JoinUserResponse> parser() {
+    public static com.google.protobuf.Parser<JoinViaInviteResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
 
-  public interface LeaveSessionRequestOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.LeaveSessionRequest)
+  public interface GetMyInviteTokenRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetMyInviteTokenRequest)
       com.google.protobuf.MessageLiteOrBuilder {
   }
   /**
-   * Protobuf type {@code workout.v1.LeaveSessionRequest}
+   * Protobuf type {@code workout.v1.GetMyInviteTokenRequest}
    */
-  public  static final class LeaveSessionRequest extends
+  public  static final class GetMyInviteTokenRequest extends
       com.google.protobuf.GeneratedMessageLite<
-          LeaveSessionRequest, LeaveSessionRequest.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.LeaveSessionRequest)
-      LeaveSessionRequestOrBuilder {
-    private LeaveSessionRequest() {
+          GetMyInviteTokenRequest, GetMyInviteTokenRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetMyInviteTokenRequest)
+      GetMyInviteTokenRequestOrBuilder {
+    private GetMyInviteTokenRequest() {
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(byte[] data)
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(java.io.InputStream input)
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.Group.GetMyInviteTokenRequest parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseDelimitedFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionRequest parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenRequest parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -731,25 +731,25 @@ public final class Group {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.Group.LeaveSessionRequest prototype) {
+    public static Builder newBuilder(workout.v1.Group.GetMyInviteTokenRequest prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.LeaveSessionRequest}
+     * Protobuf type {@code workout.v1.GetMyInviteTokenRequest}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Group.LeaveSessionRequest, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.LeaveSessionRequest)
-        workout.v1.Group.LeaveSessionRequestOrBuilder {
-      // Construct using workout.v1.Group.LeaveSessionRequest.newBuilder()
+          workout.v1.Group.GetMyInviteTokenRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetMyInviteTokenRequest)
+        workout.v1.Group.GetMyInviteTokenRequestOrBuilder {
+      // Construct using workout.v1.Group.GetMyInviteTokenRequest.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
 
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.LeaveSessionRequest)
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetMyInviteTokenRequest)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -758,7 +758,7 @@ public final class Group {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Group.LeaveSessionRequest();
+          return new workout.v1.Group.GetMyInviteTokenRequest();
         }
         case NEW_BUILDER: {
           return new Builder();
@@ -773,13 +773,13 @@ public final class Group {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Group.LeaveSessionRequest> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.Group.GetMyInviteTokenRequest> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.Group.LeaveSessionRequest.class) {
+            synchronized (workout.v1.Group.GetMyInviteTokenRequest.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.Group.LeaveSessionRequest>(
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetMyInviteTokenRequest>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -798,109 +798,169 @@ public final class Group {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.LeaveSessionRequest)
-    private static final workout.v1.Group.LeaveSessionRequest DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.GetMyInviteTokenRequest)
+    private static final workout.v1.Group.GetMyInviteTokenRequest DEFAULT_INSTANCE;
     static {
-      LeaveSessionRequest defaultInstance = new LeaveSessionRequest();
+      GetMyInviteTokenRequest defaultInstance = new GetMyInviteTokenRequest();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        LeaveSessionRequest.class, defaultInstance);
+        GetMyInviteTokenRequest.class, defaultInstance);
     }
 
-    public static workout.v1.Group.LeaveSessionRequest getDefaultInstance() {
+    public static workout.v1.Group.GetMyInviteTokenRequest getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<LeaveSessionRequest> PARSER;
+    private static volatile com.google.protobuf.Parser<GetMyInviteTokenRequest> PARSER;
 
-    public static com.google.protobuf.Parser<LeaveSessionRequest> parser() {
+    public static com.google.protobuf.Parser<GetMyInviteTokenRequest> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
 
-  public interface LeaveSessionResponseOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.LeaveSessionResponse)
+  public interface GetMyInviteTokenResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetMyInviteTokenResponse)
       com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
+     */
+    java.lang.String getInviteToken();
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
+     */
+    com.google.protobuf.ByteString
+        getInviteTokenBytes();
   }
   /**
-   * Protobuf type {@code workout.v1.LeaveSessionResponse}
+   * Protobuf type {@code workout.v1.GetMyInviteTokenResponse}
    */
-  public  static final class LeaveSessionResponse extends
+  public  static final class GetMyInviteTokenResponse extends
       com.google.protobuf.GeneratedMessageLite<
-          LeaveSessionResponse, LeaveSessionResponse.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.LeaveSessionResponse)
-      LeaveSessionResponseOrBuilder {
-    private LeaveSessionResponse() {
+          GetMyInviteTokenResponse, GetMyInviteTokenResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetMyInviteTokenResponse)
+      GetMyInviteTokenResponseOrBuilder {
+    private GetMyInviteTokenResponse() {
+      inviteToken_ = "";
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static final int INVITE_TOKEN_FIELD_NUMBER = 1;
+    private java.lang.String inviteToken_;
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
+     */
+    @java.lang.Override
+    public java.lang.String getInviteToken() {
+      return inviteToken_;
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getInviteTokenBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(inviteToken_);
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The inviteToken to set.
+     */
+    private void setInviteToken(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      inviteToken_ = value;
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     */
+    private void clearInviteToken() {
+      
+      inviteToken_ = getDefaultInstance().getInviteToken();
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The bytes for inviteToken to set.
+     */
+    private void setInviteTokenBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      inviteToken_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(byte[] data)
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, data, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(java.io.InputStream input)
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseDelimitedFrom(java.io.InputStream input)
+    public static workout.v1.Group.GetMyInviteTokenResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseDelimitedFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageLite.parseFrom(
           DEFAULT_INSTANCE, input);
     }
-    public static workout.v1.Group.LeaveSessionResponse parseFrom(
+    public static workout.v1.Group.GetMyInviteTokenResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -911,25 +971,74 @@ public final class Group {
     public static Builder newBuilder() {
       return (Builder) DEFAULT_INSTANCE.createBuilder();
     }
-    public static Builder newBuilder(workout.v1.Group.LeaveSessionResponse prototype) {
+    public static Builder newBuilder(workout.v1.Group.GetMyInviteTokenResponse prototype) {
       return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
     }
 
     /**
-     * Protobuf type {@code workout.v1.LeaveSessionResponse}
+     * Protobuf type {@code workout.v1.GetMyInviteTokenResponse}
      */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.Group.LeaveSessionResponse, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.LeaveSessionResponse)
-        workout.v1.Group.LeaveSessionResponseOrBuilder {
-      // Construct using workout.v1.Group.LeaveSessionResponse.newBuilder()
+          workout.v1.Group.GetMyInviteTokenResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetMyInviteTokenResponse)
+        workout.v1.Group.GetMyInviteTokenResponseOrBuilder {
+      // Construct using workout.v1.Group.GetMyInviteTokenResponse.newBuilder()
       private Builder() {
         super(DEFAULT_INSTANCE);
       }
 
 
-      // @@protoc_insertion_point(builder_scope:workout.v1.LeaveSessionResponse)
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The inviteToken.
+       */
+      @java.lang.Override
+      public java.lang.String getInviteToken() {
+        return instance.getInviteToken();
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The bytes for inviteToken.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getInviteTokenBytes() {
+        return instance.getInviteTokenBytes();
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The inviteToken to set.
+       * @return This builder for chaining.
+       */
+      public Builder setInviteToken(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setInviteToken(value);
+        return this;
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearInviteToken() {
+        copyOnWrite();
+        instance.clearInviteToken();
+        return this;
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The bytes for inviteToken to set.
+       * @return This builder for chaining.
+       */
+      public Builder setInviteTokenBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setInviteTokenBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetMyInviteTokenResponse)
     }
     @java.lang.Override
     @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
@@ -938,7 +1047,190 @@ public final class Group {
         java.lang.Object arg0, java.lang.Object arg1) {
       switch (method) {
         case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.Group.LeaveSessionResponse();
+          return new workout.v1.Group.GetMyInviteTokenResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "inviteToken_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetMyInviteTokenResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetMyInviteTokenResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetMyInviteTokenResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetMyInviteTokenResponse)
+    private static final workout.v1.Group.GetMyInviteTokenResponse DEFAULT_INSTANCE;
+    static {
+      GetMyInviteTokenResponse defaultInstance = new GetMyInviteTokenResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetMyInviteTokenResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetMyInviteTokenResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetMyInviteTokenResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetMyInviteTokenResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RotateInviteTokenRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RotateInviteTokenRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.RotateInviteTokenRequest}
+   */
+  public  static final class RotateInviteTokenRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          RotateInviteTokenRequest, RotateInviteTokenRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RotateInviteTokenRequest)
+      RotateInviteTokenRequestOrBuilder {
+    private RotateInviteTokenRequest() {
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RotateInviteTokenRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RotateInviteTokenRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RotateInviteTokenRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RotateInviteTokenRequest)
+        workout.v1.Group.RotateInviteTokenRequestOrBuilder {
+      // Construct using workout.v1.Group.RotateInviteTokenRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RotateInviteTokenRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RotateInviteTokenRequest();
         }
         case NEW_BUILDER: {
           return new Builder();
@@ -953,13 +1245,13 @@ public final class Group {
           return DEFAULT_INSTANCE;
         }
         case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.Group.LeaveSessionResponse> parser = PARSER;
+          com.google.protobuf.Parser<workout.v1.Group.RotateInviteTokenRequest> parser = PARSER;
           if (parser == null) {
-            synchronized (workout.v1.Group.LeaveSessionResponse.class) {
+            synchronized (workout.v1.Group.RotateInviteTokenRequest.class) {
               parser = PARSER;
               if (parser == null) {
                 parser =
-                    new DefaultInstanceBasedParser<workout.v1.Group.LeaveSessionResponse>(
+                    new DefaultInstanceBasedParser<workout.v1.Group.RotateInviteTokenRequest>(
                         DEFAULT_INSTANCE);
                 PARSER = parser;
               }
@@ -978,24 +1270,676 @@ public final class Group {
     }
 
 
-    // @@protoc_insertion_point(class_scope:workout.v1.LeaveSessionResponse)
-    private static final workout.v1.Group.LeaveSessionResponse DEFAULT_INSTANCE;
+    // @@protoc_insertion_point(class_scope:workout.v1.RotateInviteTokenRequest)
+    private static final workout.v1.Group.RotateInviteTokenRequest DEFAULT_INSTANCE;
     static {
-      LeaveSessionResponse defaultInstance = new LeaveSessionResponse();
+      RotateInviteTokenRequest defaultInstance = new RotateInviteTokenRequest();
       // New instances are implicitly immutable so no need to make
       // immutable.
       DEFAULT_INSTANCE = defaultInstance;
       com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        LeaveSessionResponse.class, defaultInstance);
+        RotateInviteTokenRequest.class, defaultInstance);
     }
 
-    public static workout.v1.Group.LeaveSessionResponse getDefaultInstance() {
+    public static workout.v1.Group.RotateInviteTokenRequest getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
-    private static volatile com.google.protobuf.Parser<LeaveSessionResponse> PARSER;
+    private static volatile com.google.protobuf.Parser<RotateInviteTokenRequest> PARSER;
 
-    public static com.google.protobuf.Parser<LeaveSessionResponse> parser() {
+    public static com.google.protobuf.Parser<RotateInviteTokenRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RotateInviteTokenResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RotateInviteTokenResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
+     */
+    java.lang.String getInviteToken();
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
+     */
+    com.google.protobuf.ByteString
+        getInviteTokenBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RotateInviteTokenResponse}
+   */
+  public  static final class RotateInviteTokenResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          RotateInviteTokenResponse, RotateInviteTokenResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RotateInviteTokenResponse)
+      RotateInviteTokenResponseOrBuilder {
+    private RotateInviteTokenResponse() {
+      inviteToken_ = "";
+    }
+    public static final int INVITE_TOKEN_FIELD_NUMBER = 1;
+    private java.lang.String inviteToken_;
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The inviteToken.
+     */
+    @java.lang.Override
+    public java.lang.String getInviteToken() {
+      return inviteToken_;
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @return The bytes for inviteToken.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getInviteTokenBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(inviteToken_);
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The inviteToken to set.
+     */
+    private void setInviteToken(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      inviteToken_ = value;
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     */
+    private void clearInviteToken() {
+      
+      inviteToken_ = getDefaultInstance().getInviteToken();
+    }
+    /**
+     * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+     * @param value The bytes for inviteToken to set.
+     */
+    private void setInviteTokenBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      inviteToken_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RotateInviteTokenResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RotateInviteTokenResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RotateInviteTokenResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RotateInviteTokenResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RotateInviteTokenResponse)
+        workout.v1.Group.RotateInviteTokenResponseOrBuilder {
+      // Construct using workout.v1.Group.RotateInviteTokenResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The inviteToken.
+       */
+      @java.lang.Override
+      public java.lang.String getInviteToken() {
+        return instance.getInviteToken();
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return The bytes for inviteToken.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getInviteTokenBytes() {
+        return instance.getInviteTokenBytes();
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The inviteToken to set.
+       * @return This builder for chaining.
+       */
+      public Builder setInviteToken(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setInviteToken(value);
+        return this;
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearInviteToken() {
+        copyOnWrite();
+        instance.clearInviteToken();
+        return this;
+      }
+      /**
+       * <code>string invite_token = 1 [json_name = "inviteToken"];</code>
+       * @param value The bytes for inviteToken to set.
+       * @return This builder for chaining.
+       */
+      public Builder setInviteTokenBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setInviteTokenBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RotateInviteTokenResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RotateInviteTokenResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "inviteToken_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.RotateInviteTokenResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.RotateInviteTokenResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.RotateInviteTokenResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RotateInviteTokenResponse)
+    private static final workout.v1.Group.RotateInviteTokenResponse DEFAULT_INSTANCE;
+    static {
+      RotateInviteTokenResponse defaultInstance = new RotateInviteTokenResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RotateInviteTokenResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.RotateInviteTokenResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RotateInviteTokenResponse> PARSER;
+
+    public static com.google.protobuf.Parser<RotateInviteTokenResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface LeaveCurrentSessionRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.LeaveCurrentSessionRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.LeaveCurrentSessionRequest}
+   */
+  public  static final class LeaveCurrentSessionRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          LeaveCurrentSessionRequest, LeaveCurrentSessionRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.LeaveCurrentSessionRequest)
+      LeaveCurrentSessionRequestOrBuilder {
+    private LeaveCurrentSessionRequest() {
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.LeaveCurrentSessionRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.LeaveCurrentSessionRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.LeaveCurrentSessionRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.LeaveCurrentSessionRequest)
+        workout.v1.Group.LeaveCurrentSessionRequestOrBuilder {
+      // Construct using workout.v1.Group.LeaveCurrentSessionRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.LeaveCurrentSessionRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.LeaveCurrentSessionRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.LeaveCurrentSessionRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.LeaveCurrentSessionRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.LeaveCurrentSessionRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.LeaveCurrentSessionRequest)
+    private static final workout.v1.Group.LeaveCurrentSessionRequest DEFAULT_INSTANCE;
+    static {
+      LeaveCurrentSessionRequest defaultInstance = new LeaveCurrentSessionRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        LeaveCurrentSessionRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.LeaveCurrentSessionRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<LeaveCurrentSessionRequest> PARSER;
+
+    public static com.google.protobuf.Parser<LeaveCurrentSessionRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface LeaveCurrentSessionResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.LeaveCurrentSessionResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.LeaveCurrentSessionResponse}
+   */
+  public  static final class LeaveCurrentSessionResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          LeaveCurrentSessionResponse, LeaveCurrentSessionResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.LeaveCurrentSessionResponse)
+      LeaveCurrentSessionResponseOrBuilder {
+    private LeaveCurrentSessionResponse() {
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.LeaveCurrentSessionResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.LeaveCurrentSessionResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.LeaveCurrentSessionResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.LeaveCurrentSessionResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.LeaveCurrentSessionResponse)
+        workout.v1.Group.LeaveCurrentSessionResponseOrBuilder {
+      // Construct using workout.v1.Group.LeaveCurrentSessionResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.LeaveCurrentSessionResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.LeaveCurrentSessionResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.LeaveCurrentSessionResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.LeaveCurrentSessionResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.LeaveCurrentSessionResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.LeaveCurrentSessionResponse)
+    private static final workout.v1.Group.LeaveCurrentSessionResponse DEFAULT_INSTANCE;
+    static {
+      LeaveCurrentSessionResponse defaultInstance = new LeaveCurrentSessionResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        LeaveCurrentSessionResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.LeaveCurrentSessionResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<LeaveCurrentSessionResponse> PARSER;
+
+    public static com.google.protobuf.Parser<LeaveCurrentSessionResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -1406,26 +2350,6 @@ public final class Group {
   public interface GetCurrentSessionRequestOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.GetCurrentSessionRequest)
       com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @return The sessionId.
-     */
-    java.lang.String getSessionId();
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @return The bytes for sessionId.
-     */
-    com.google.protobuf.ByteString
-        getSessionIdBytes();
   }
   /**
    * Protobuf type {@code workout.v1.GetCurrentSessionRequest}
@@ -1436,75 +2360,7 @@ public final class Group {
       // @@protoc_insertion_point(message_implements:workout.v1.GetCurrentSessionRequest)
       GetCurrentSessionRequestOrBuilder {
     private GetCurrentSessionRequest() {
-      sessionId_ = "";
     }
-    public static final int SESSION_ID_FIELD_NUMBER = 1;
-    private java.lang.String sessionId_;
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @return The sessionId.
-     */
-    @java.lang.Override
-    public java.lang.String getSessionId() {
-      return sessionId_;
-    }
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @return The bytes for sessionId.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getSessionIdBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(sessionId_);
-    }
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @param value The sessionId to set.
-     */
-    private void setSessionId(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      sessionId_ = value;
-    }
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     */
-    private void clearSessionId() {
-      
-      sessionId_ = getDefaultInstance().getSessionId();
-    }
-    /**
-     * <pre>
-     * Optional: If provided, gets status of this specific session.
-     * </pre>
-     *
-     * <code>string session_id = 1 [json_name = "sessionId"];</code>
-     * @param value The bytes for sessionId to set.
-     */
-    private void setSessionIdBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      sessionId_ = value.toStringUtf8();
-      
-    }
-
     public static workout.v1.Group.GetCurrentSessionRequest parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1600,75 +2456,6 @@ public final class Group {
       }
 
 
-      /**
-       * <pre>
-       * Optional: If provided, gets status of this specific session.
-       * </pre>
-       *
-       * <code>string session_id = 1 [json_name = "sessionId"];</code>
-       * @return The sessionId.
-       */
-      @java.lang.Override
-      public java.lang.String getSessionId() {
-        return instance.getSessionId();
-      }
-      /**
-       * <pre>
-       * Optional: If provided, gets status of this specific session.
-       * </pre>
-       *
-       * <code>string session_id = 1 [json_name = "sessionId"];</code>
-       * @return The bytes for sessionId.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getSessionIdBytes() {
-        return instance.getSessionIdBytes();
-      }
-      /**
-       * <pre>
-       * Optional: If provided, gets status of this specific session.
-       * </pre>
-       *
-       * <code>string session_id = 1 [json_name = "sessionId"];</code>
-       * @param value The sessionId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSessionId(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setSessionId(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Optional: If provided, gets status of this specific session.
-       * </pre>
-       *
-       * <code>string session_id = 1 [json_name = "sessionId"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSessionId() {
-        copyOnWrite();
-        instance.clearSessionId();
-        return this;
-      }
-      /**
-       * <pre>
-       * Optional: If provided, gets status of this specific session.
-       * </pre>
-       *
-       * <code>string session_id = 1 [json_name = "sessionId"];</code>
-       * @param value The bytes for sessionId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSessionIdBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setSessionIdBytes(value);
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.GetCurrentSessionRequest)
     }
     @java.lang.Override
@@ -1684,11 +2471,8 @@ public final class Group {
           return new Builder();
         }
         case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "sessionId_",
-            };
-            java.lang.String info =
-                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -1739,6 +2523,804 @@ public final class Group {
     private static volatile com.google.protobuf.Parser<GetCurrentSessionRequest> PARSER;
 
     public static com.google.protobuf.Parser<GetCurrentSessionRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetSessionParticipantsRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetSessionParticipantsRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    java.lang.String getSessionId();
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    com.google.protobuf.ByteString
+        getSessionIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetSessionParticipantsRequest}
+   */
+  public  static final class GetSessionParticipantsRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetSessionParticipantsRequest, GetSessionParticipantsRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetSessionParticipantsRequest)
+      GetSessionParticipantsRequestOrBuilder {
+    private GetSessionParticipantsRequest() {
+      sessionId_ = "";
+    }
+    public static final int SESSION_ID_FIELD_NUMBER = 1;
+    private java.lang.String sessionId_;
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    @java.lang.Override
+    public java.lang.String getSessionId() {
+      return sessionId_;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSessionIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sessionId_);
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The sessionId to set.
+     */
+    private void setSessionId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sessionId_ = value;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     */
+    private void clearSessionId() {
+      
+      sessionId_ = getDefaultInstance().getSessionId();
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The bytes for sessionId to set.
+     */
+    private void setSessionIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sessionId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetSessionParticipantsRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetSessionParticipantsRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetSessionParticipantsRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetSessionParticipantsRequest)
+        workout.v1.Group.GetSessionParticipantsRequestOrBuilder {
+      // Construct using workout.v1.Group.GetSessionParticipantsRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The sessionId.
+       */
+      @java.lang.Override
+      public java.lang.String getSessionId() {
+        return instance.getSessionId();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The bytes for sessionId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSessionIdBytes() {
+        return instance.getSessionIdBytes();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSessionId(value);
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessionId() {
+        copyOnWrite();
+        instance.clearSessionId();
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The bytes for sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSessionIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetSessionParticipantsRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetSessionParticipantsRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "sessionId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetSessionParticipantsRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetSessionParticipantsRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetSessionParticipantsRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetSessionParticipantsRequest)
+    private static final workout.v1.Group.GetSessionParticipantsRequest DEFAULT_INSTANCE;
+    static {
+      GetSessionParticipantsRequest defaultInstance = new GetSessionParticipantsRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetSessionParticipantsRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetSessionParticipantsRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetSessionParticipantsRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetSessionParticipantsRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetSessionParticipantsResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetSessionParticipantsResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    java.lang.String getSessionId();
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    com.google.protobuf.ByteString
+        getSessionIdBytes();
+
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    java.util.List<workout.v1.Group.ParticipantStatus> 
+        getParticipantsList();
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    workout.v1.Group.ParticipantStatus getParticipants(int index);
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    int getParticipantsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetSessionParticipantsResponse}
+   */
+  public  static final class GetSessionParticipantsResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetSessionParticipantsResponse, GetSessionParticipantsResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetSessionParticipantsResponse)
+      GetSessionParticipantsResponseOrBuilder {
+    private GetSessionParticipantsResponse() {
+      sessionId_ = "";
+      participants_ = emptyProtobufList();
+    }
+    public static final int SESSION_ID_FIELD_NUMBER = 1;
+    private java.lang.String sessionId_;
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    @java.lang.Override
+    public java.lang.String getSessionId() {
+      return sessionId_;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSessionIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sessionId_);
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The sessionId to set.
+     */
+    private void setSessionId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sessionId_ = value;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     */
+    private void clearSessionId() {
+      
+      sessionId_ = getDefaultInstance().getSessionId();
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The bytes for sessionId to set.
+     */
+    private void setSessionIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sessionId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PARTICIPANTS_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Group.ParticipantStatus> participants_;
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Group.ParticipantStatus> getParticipantsList() {
+      return participants_;
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    public java.util.List<? extends workout.v1.Group.ParticipantStatusOrBuilder> 
+        getParticipantsOrBuilderList() {
+      return participants_;
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    @java.lang.Override
+    public int getParticipantsCount() {
+      return participants_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Group.ParticipantStatus getParticipants(int index) {
+      return participants_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    public workout.v1.Group.ParticipantStatusOrBuilder getParticipantsOrBuilder(
+        int index) {
+      return participants_.get(index);
+    }
+    private void ensureParticipantsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Group.ParticipantStatus> tmp = participants_;
+      if (!tmp.isModifiable()) {
+        participants_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void setParticipants(
+        int index, workout.v1.Group.ParticipantStatus value) {
+      value.getClass();
+  ensureParticipantsIsMutable();
+      participants_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void addParticipants(workout.v1.Group.ParticipantStatus value) {
+      value.getClass();
+  ensureParticipantsIsMutable();
+      participants_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void addParticipants(
+        int index, workout.v1.Group.ParticipantStatus value) {
+      value.getClass();
+  ensureParticipantsIsMutable();
+      participants_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void addAllParticipants(
+        java.lang.Iterable<? extends workout.v1.Group.ParticipantStatus> values) {
+      ensureParticipantsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, participants_);
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void clearParticipants() {
+      participants_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+     */
+    private void removeParticipants(int index) {
+      ensureParticipantsIsMutable();
+      participants_.remove(index);
+    }
+
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSessionParticipantsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetSessionParticipantsResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetSessionParticipantsResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetSessionParticipantsResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetSessionParticipantsResponse)
+        workout.v1.Group.GetSessionParticipantsResponseOrBuilder {
+      // Construct using workout.v1.Group.GetSessionParticipantsResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The sessionId.
+       */
+      @java.lang.Override
+      public java.lang.String getSessionId() {
+        return instance.getSessionId();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The bytes for sessionId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSessionIdBytes() {
+        return instance.getSessionIdBytes();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSessionId(value);
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessionId() {
+        copyOnWrite();
+        instance.clearSessionId();
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The bytes for sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSessionIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Group.ParticipantStatus> getParticipantsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getParticipantsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      @java.lang.Override
+      public int getParticipantsCount() {
+        return instance.getParticipantsCount();
+      }/**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Group.ParticipantStatus getParticipants(int index) {
+        return instance.getParticipants(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder setParticipants(
+          int index, workout.v1.Group.ParticipantStatus value) {
+        copyOnWrite();
+        instance.setParticipants(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder setParticipants(
+          int index, workout.v1.Group.ParticipantStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.setParticipants(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder addParticipants(workout.v1.Group.ParticipantStatus value) {
+        copyOnWrite();
+        instance.addParticipants(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder addParticipants(
+          int index, workout.v1.Group.ParticipantStatus value) {
+        copyOnWrite();
+        instance.addParticipants(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder addParticipants(
+          workout.v1.Group.ParticipantStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.addParticipants(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder addParticipants(
+          int index, workout.v1.Group.ParticipantStatus.Builder builderForValue) {
+        copyOnWrite();
+        instance.addParticipants(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder addAllParticipants(
+          java.lang.Iterable<? extends workout.v1.Group.ParticipantStatus> values) {
+        copyOnWrite();
+        instance.addAllParticipants(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder clearParticipants() {
+        copyOnWrite();
+        instance.clearParticipants();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ParticipantStatus participants = 2 [json_name = "participants"];</code>
+       */
+      public Builder removeParticipants(int index) {
+        copyOnWrite();
+        instance.removeParticipants(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetSessionParticipantsResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetSessionParticipantsResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "sessionId_",
+              "participants_",
+              workout.v1.Group.ParticipantStatus.class,
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u0208\u0002\u001b" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetSessionParticipantsResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetSessionParticipantsResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetSessionParticipantsResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetSessionParticipantsResponse)
+    private static final workout.v1.Group.GetSessionParticipantsResponse DEFAULT_INSTANCE;
+    static {
+      GetSessionParticipantsResponse defaultInstance = new GetSessionParticipantsResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetSessionParticipantsResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetSessionParticipantsResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetSessionParticipantsResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetSessionParticipantsResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

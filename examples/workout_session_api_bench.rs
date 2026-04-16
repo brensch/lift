@@ -7,10 +7,10 @@ use schlift::workout::v1::{
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
     ExerciseTypeConfig, GetActiveTrainingProgramStateRequest, GetActiveWorkoutRequest,
-    GetCurrentSessionRequest, GetProposedWorkoutScheduleRequest, GetSettingsRequest,
-    GetMyInviteTokenRequest, GetTrainingProgramCatalogRequest, JoinViaInviteRequest,
-    StartWorkoutRequest, TestLoginRequest,
-    UpdateActiveWorkoutRequest, WorkoutHeartRatePoint, WorkoutMutation,
+    GetCurrentSessionRequest, GetMyInviteTokenRequest, GetProposedWorkoutScheduleRequest,
+    GetSettingsRequest, GetTrainingProgramCatalogRequest, JoinViaInviteRequest,
+    StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint,
+    WorkoutMutation,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -346,7 +346,11 @@ async fn run_user(config: UserConfig) -> Result<(), Box<dyn std::error::Error + 
     if is_leader {
         let mut req = Request::new(GetMyInviteTokenRequest {});
         req.metadata_mut().insert("x-session-token", token.clone());
-        let invite_token = multiplayer.get_my_invite_token(req).await?.into_inner().invite_token;
+        let invite_token = multiplayer
+            .get_my_invite_token(req)
+            .await?
+            .into_inner()
+            .invite_token;
         registry.leaders.insert(group_idx, invite_token);
     } else {
         let leader_invite = loop {

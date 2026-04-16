@@ -227,20 +227,6 @@ class SettingsProvider extends ChangeNotifier {
     return res.validationWarnings;
   }
 
-  /// Apply a pending state update (e.g. weight progression prompt).
-  Future<void> applyPendingStateUpdate({
-    required String updateId,
-    required Map<String, StateFieldValue> fieldValues,
-  }) async {
-    final req = ApplyPendingStateUpdateRequest(
-      updateId: updateId,
-      fieldValues: fieldValues.entries,
-    );
-    final res = await _grpcClient.settingsService.applyPendingStateUpdate(req);
-    if (res.hasState()) _programState = res.state;
-    notifyListeners();
-  }
-
   Future<void> updatePlateColors(Map<double, Color> colors) async {
     _plateColors = Map.from(colors);
     notifyListeners();
