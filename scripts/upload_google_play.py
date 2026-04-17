@@ -18,6 +18,7 @@ from typing import Iterable
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 import httplib2
@@ -52,11 +53,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wear-aab", required=True, type=Path)
     parser.add_argument("--wear-release-name", required=True)
     parser.add_argument("--wear-tracks", required=True, nargs="+")
-    parser.add_argument(
-        "--changes-not-sent-for-review",
-        action="store_true",
-        help="Commit the edit without sending changes for review.",
-    )
     return parser.parse_args()
 
 
@@ -161,6 +157,41 @@ def update_tracks(
         )
 
 
+def should_retry_commit_with_changes_not_sent(error: HttpError) -> bool:
+    if error.resp.status != 400:
+        return False
+    message = str(error)
+    return "changesnotsentforreview" in message.lower() and "must be set" in message.lower()
+
+
+def commit_edit(androidpublisher, package_name: str, edit_id: str) -> None:
+    try:
+        (
+            androidpublisher.edits()
+            .commit(
+                packageName=package_name,
+                editId=edit_id,
+            )
+            .execute()
+        )
+        return
+    except HttpError as error:
+        if not should_retry_commit_with_changes_not_sent(error):
+            raise
+        print(
+            "Google Play requires changesNotSentForReview for this edit; retrying commit with it set"
+        )
+        (
+            androidpublisher.edits()
+            .commit(
+                packageName=package_name,
+                editId=edit_id,
+                changesNotSentForReview=True,
+            )
+            .execute()
+        )
+
+
 def main() -> int:
     args = parse_args()
     artifacts = [
@@ -222,15 +253,7 @@ def main() -> int:
             )
 
         print("Committing Google Play edit")
-        (
-            androidpublisher.edits()
-            .commit(
-                packageName=args.package_name,
-                editId=edit_id,
-                changesNotSentForReview=args.changes_not_sent_for_review,
-            )
-            .execute()
-        )
+        commit_edit(androidpublisher, args.package_name, edit_id)
         print("Google Play edit committed")
     except Exception:
         print(f"Upload failed before commit; deleting edit {edit_id}", file=sys.stderr)
