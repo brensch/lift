@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use crate::regimes::progression_slot_key;
 use schlift::workout::v1::{
-    CompletedSet, Exercise, ExerciseGroup, ProgressionHint, ProgressionRule, ProposedExerciseGroup,
-    ProposedSet, Workout,
+    CompletedSet, Exercise, ExerciseGroup, ProgressionRule, ProposedExerciseGroup, ProposedSet,
+    Workout,
 };
 
 #[cfg(test)]
@@ -39,9 +40,10 @@ pub struct SchplannerSlotOutcome {
 
 impl SchplannerSlotOutcome {
     pub fn all_sets_hit_target(&self) -> bool {
-        self.planned_sets > 0
-            && self.completed_sets == self.planned_sets
-            && self.successful_sets == self.planned_sets
+        // Judged against the *prescribed* set count: you must successfully complete at
+        // least as many working sets as the program asked for. Extra (user-added) sets
+        // don't hurt; cancelling prescribed sets to shrink the denominator doesn't help.
+        self.planned_sets > 0 && self.successful_sets >= self.planned_sets
     }
 
     pub fn top_set_hit_threshold(&self) -> bool {
@@ -183,7 +185,8 @@ pub fn derive_state(
         });
 
         if workout.workout.end_time > 0 {
-            let slot_outcomes = summarize_slot_outcomes(workout);
+            let prescribed = prescribed_slots_from_workout(workout);
+            let slot_outcomes = summarize_slot_outcomes(workout, &prescribed);
             regime.transition_state_on_workout_completed(
                 &mut effective_state,
                 workout,
@@ -517,17 +520,65 @@ pub fn summarize_recent_insights(history: &[SchplannerWorkoutRecord]) -> Schplan
     }
 }
 
-pub fn summarize_slot_outcomes(
-    workout: &SchplannerWorkoutRecord,
-) -> HashMap<String, SchplannerSlotOutcome> {
-    let completed_by_proposed = workout
-        .completed_sets
-        .iter()
-        .filter(|set| set.ended_at > 0)
-        .map(|set| (set.proposed_set_id.as_str(), set))
-        .collect::<HashMap<_, _>>();
+/// The program's intent for a single tracked slot in one session: identity
+/// (`slot_key`/`exercise`/`tier`), how to judge it (`rule`/`amrap_success_threshold`/
+/// `target_reps`), and how much was asked for (`set_count`).
+///
+/// This is deliberately decoupled from the individual proposed/completed sets, so
+/// progression no longer depends on per-set hints surviving the round-trip through
+/// an editable workout. Reconciliation matches completed work to slots by exercise.
+#[derive(Clone, Debug)]
+pub struct PrescribedSlot {
+    pub exercise: Exercise,
+    pub tier: String,
+    pub rule: ProgressionRule,
+    pub amrap_success_threshold: i32,
+    pub set_count: usize,
+    pub target_reps: i32,
+}
 
-    let mut hinted_sets = HashMap::<String, Vec<(&ProposedSet, &ProgressionHint)>>::new();
+/// Authoritative source (production): derive the prescribed slots from a freshly
+/// generated proposal. Independent of whatever the user did to their workout plan.
+pub fn prescribed_slots_from_groups(
+    groups: &[ProposedExerciseGroup],
+) -> HashMap<String, PrescribedSlot> {
+    let mut slots: HashMap<String, PrescribedSlot> = HashMap::new();
+    for group in groups {
+        for config in &group.exercise_configs {
+            for ws in &config.working_sets {
+                let Some(hint) = ws.progression_hint.as_ref() else {
+                    continue;
+                };
+                if !hint.counts_toward_program {
+                    continue;
+                }
+                let entry = slots.entry(hint.slot_key.clone()).or_insert_with(|| {
+                    PrescribedSlot {
+                        exercise: Exercise::try_from(config.exercise)
+                            .unwrap_or(Exercise::Unspecified),
+                        tier: hint.tier.clone(),
+                        rule: ProgressionRule::try_from(hint.rule)
+                            .unwrap_or(ProgressionRule::None),
+                        amrap_success_threshold: hint.amrap_success_threshold,
+                        set_count: 0,
+                        target_reps: ws.target_reps,
+                    }
+                });
+                entry.set_count += 1;
+            }
+        }
+    }
+    slots
+}
+
+/// Test-only source: derive prescribed slots from a workout's own proposed-set
+/// hints (the scheduler stamped them at proposal time). Used by the replay path
+/// `derive_state`, which only exists in tests.
+#[cfg(test)]
+pub fn prescribed_slots_from_workout(
+    workout: &SchplannerWorkoutRecord,
+) -> HashMap<String, PrescribedSlot> {
+    let mut slots: HashMap<String, PrescribedSlot> = HashMap::new();
     for set in workout
         .proposed_sets
         .iter()
@@ -539,58 +590,92 @@ pub fn summarize_slot_outcomes(
         if !hint.counts_toward_program {
             continue;
         }
-        hinted_sets
+        let entry = slots
             .entry(hint.slot_key.clone())
+            .or_insert_with(|| PrescribedSlot {
+                exercise: set.exercise(),
+                tier: hint.tier.clone(),
+                rule: ProgressionRule::try_from(hint.rule).unwrap_or(ProgressionRule::None),
+                amrap_success_threshold: hint.amrap_success_threshold,
+                set_count: 0,
+                target_reps: set.target_reps,
+            });
+        entry.set_count += 1;
+    }
+    slots
+}
+
+/// Reconcile what the user actually did against the program's prescription.
+///
+/// Completed working sets are matched to a prescribed slot **by exercise** (so a
+/// deleted-and-re-added group, an edited weight, or a stripped hint all still
+/// resolve to the right slot). Exercises that aren't part of the prescription this
+/// session (accessories, optional lifts the user didn't intend as program work) are
+/// ignored — they neither progress nor stall. Judging uses the prescribed rep
+/// target and set count, not whatever the editable sets happen to say.
+pub fn summarize_slot_outcomes(
+    workout: &SchplannerWorkoutRecord,
+    prescribed: &HashMap<String, PrescribedSlot>,
+) -> HashMap<String, SchplannerSlotOutcome> {
+    let proposed_by_id = workout
+        .proposed_sets
+        .iter()
+        .map(|set| (set.id.as_str(), set))
+        .collect::<HashMap<_, _>>();
+
+    // Group completed working sets by slot (keyed by exercise).
+    let mut by_slot: HashMap<String, Vec<(&ProposedSet, &CompletedSet)>> = HashMap::new();
+    for completed in workout.completed_sets.iter().filter(|set| set.ended_at > 0) {
+        let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
+            continue;
+        };
+        if proposed.warmup || proposed.cancelled {
+            continue;
+        }
+        let slot_key = progression_slot_key(proposed.exercise());
+        if !prescribed.contains_key(&slot_key) {
+            continue;
+        }
+        by_slot
+            .entry(slot_key)
             .or_default()
-            .push((set, hint));
+            .push((proposed, completed));
     }
 
     let mut outcomes = HashMap::new();
-    for (slot_key, mut planned) in hinted_sets {
-        planned.sort_by_key(|(set, _)| set.workout_order);
-        let first_hint = planned[0].1;
-        let rule = ProgressionRule::try_from(first_hint.rule).unwrap_or(ProgressionRule::None);
-        let exercise = planned[0].0.exercise();
-        let mut successful_sets = 0usize;
-        let mut completed_sets = 0usize;
-        let mut last_completed_actual_weight = None;
-        let mut last_successful_actual_weight = None;
-        let mut top_set_target_reps = 0;
-        let mut top_set_actual_reps = 0;
-        let amrap_success_threshold = first_hint.amrap_success_threshold;
+    for (slot_key, mut sets) in by_slot {
+        sets.sort_by_key(|(proposed, _)| proposed.workout_order);
+        let slot = &prescribed[&slot_key];
+        let target_reps = slot.target_reps;
 
-        for (idx, (set, _)) in planned.iter().enumerate() {
-            if let Some(completed) = completed_by_proposed.get(set.id.as_str()) {
-                completed_sets += 1;
-                last_completed_actual_weight = Some(completed.actual_weight);
-                if completed.actual_reps >= set.target_reps {
-                    successful_sets += 1;
-                    last_successful_actual_weight = Some(completed.actual_weight);
-                }
-                if idx + 1 == planned.len() {
-                    top_set_target_reps = set.target_reps;
-                    top_set_actual_reps = completed.actual_reps;
-                }
-            } else if idx + 1 == planned.len() {
-                top_set_target_reps = set.target_reps;
-            }
-        }
+        let completed_sets = sets.len();
+        let successful_sets = sets
+            .iter()
+            .filter(|(_, c)| c.actual_reps >= target_reps)
+            .count();
+        let last_completed_actual_weight = sets.last().map(|(_, c)| c.actual_weight);
+        let last_successful_actual_weight = sets
+            .iter()
+            .rev()
+            .find(|(_, c)| c.actual_reps >= target_reps)
+            .map(|(_, c)| c.actual_weight);
+        let top_set_actual_reps = sets.last().map(|(_, c)| c.actual_reps).unwrap_or(0);
 
         outcomes.insert(
             slot_key.clone(),
             SchplannerSlotOutcome {
                 slot_key,
-                exercise,
-                tier: first_hint.tier.clone(),
-                rule,
-                planned_sets: planned.len(),
+                exercise: slot.exercise,
+                tier: slot.tier.clone(),
+                rule: slot.rule,
+                planned_sets: slot.set_count,
                 completed_sets,
                 successful_sets,
                 last_completed_actual_weight,
                 last_successful_actual_weight,
-                top_set_target_reps,
+                top_set_target_reps: target_reps,
                 top_set_actual_reps,
-                amrap_success_threshold,
+                amrap_success_threshold: slot.amrap_success_threshold,
                 workout_ended: workout.workout.end_time > 0,
             },
         );
@@ -826,6 +911,97 @@ mod tests {
         assert_eq!(
             get_f32_or(&derived.effective_state, "squat_weight", 0.0),
             190.0
+        );
+    }
+
+    #[test]
+    fn edited_workout_without_hints_still_progresses_by_exercise() {
+        // Reproduces the original bug: the user edited the squat group mid-workout
+        // (bumping the weight), which strips progression hints off the proposed sets.
+        // Progression must still happen — driven by the program-state prescription and
+        // matched to completed work by exercise, not by surviving per-set hints.
+        let regime = get_regime(RegimeType::Linear5x5);
+        let mut base = regime.default_state();
+        crate::program_state::set_f32(&mut base, "squat_weight", 175.0);
+
+        // Prescription is derived from the proposal generated off program state.
+        let insights = summarize_recent_insights(&[]);
+        let proposal = regime.propose_from_state(&base, 0, 1, &insights);
+        let prescribed = prescribed_slots_from_groups(&proposal.proposed_groups);
+        let squat_slot = progression_slot_key(Exercise::Squat);
+        assert!(prescribed.contains_key(&squat_slot));
+
+        // A completed workout whose proposed sets carry NO progression hints (as if the
+        // group was edited / regenerated), squat done for 5×5 at a heavier 185.
+        let workout = Workout {
+            id: "edited".to_string(),
+            name: "Workout A".to_string(),
+            start_time: 100,
+            end_time: 200,
+            session_id: String::new(),
+        };
+        let group = ExerciseGroup {
+            id: "g1".to_string(),
+            workout_id: workout.id.clone(),
+            name: "Squat".to_string(),
+            sets: 5,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+        };
+        let proposed_sets = (0..5)
+            .map(|idx| ProposedSet {
+                id: format!("p{idx}"),
+                workout_id: workout.id.clone(),
+                workout_order: idx,
+                exercise: Exercise::Squat as i32,
+                target_reps: 5,
+                target_weight: 185.0,
+                warmup: false,
+                exercise_group_id: group.id.clone(),
+                rest_after_success: 180,
+                rest_after_failure: 300,
+                cancelled: false,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None, // stripped by editing the group
+            })
+            .collect::<Vec<_>>();
+        let completed_sets = proposed_sets
+            .iter()
+            .map(|set| CompletedSet {
+                id: format!("c{}", set.id),
+                workout_id: workout.id.clone(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: 5,
+                actual_weight: 185.0,
+                started_at: 120,
+                ended_at: 150,
+                rest_until: 0,
+            })
+            .collect::<Vec<_>>();
+        let record = SchplannerWorkoutRecord {
+            workout,
+            exercise_groups: vec![group],
+            proposed_sets,
+            completed_sets,
+        };
+
+        let slot_outcomes = summarize_slot_outcomes(&record, &prescribed);
+        assert!(
+            slot_outcomes.contains_key(&squat_slot),
+            "squat must reconcile by exercise even without hints"
+        );
+
+        let mut state = base.clone();
+        regime.transition_state_on_workout_completed(&mut state, &record, &slot_outcomes);
+        assert_eq!(
+            get_f32_or(&state, "squat_weight", 0.0),
+            190.0,
+            "next squat weight should increment from the 185 actually lifted"
         );
     }
 
