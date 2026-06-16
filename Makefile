@@ -1,10 +1,36 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release android-sdk-check android-phone-avd-create android-phone-play-avd-create android-phone-play-emulator-start android-wear-avd-create android-emulator-start android-emulator-stop android-emulator-wait android-emulator-unlock android-emulator-reverse android-screenshot android-tap android-text android-run-emulator agent-backend-start agent-backend-stop android-agent-start android-agent-stop android-wear-emulator-start android-wear-run-emulator android-wear-pairing-notes watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
 RELEASE_ENV_FILE ?= .env
 AAB_OUT_DIR ?= aab
+
+ANDROID_SDK ?= $(HOME)/android-sdk
+ANDROID_HOME ?= $(ANDROID_SDK)
+ANDROID_PLATFORM ?= android-34
+ANDROID_PHONE_AVD ?= lift_api34
+ANDROID_PHONE_PLAY_AVD ?= lift_api34_play
+ANDROID_WEAR_AVD ?= lift_wear_api34
+ANDROID_PHONE_IMAGE ?= system-images;$(ANDROID_PLATFORM);google_apis;x86_64
+ANDROID_PHONE_PLAY_IMAGE ?= system-images;$(ANDROID_PLATFORM);google_apis_playstore;x86_64
+ANDROID_WEAR_IMAGE ?= system-images;$(ANDROID_PLATFORM);android-wear;x86_64
+ANDROID_PHONE_DEVICE ?= pixel_6
+ANDROID_WEAR_DEVICE ?= wearos_large_round
+ANDROID_SERIAL ?= emulator-5554
+ANDROID_SCREENSHOT_OUT ?= .tmp/screenshots/android.png
+ANDROID_EMULATOR_WINDOW ?= 0
+ANDROID_EMULATOR_EXTRA_ARGS ?=
+ANDROID_EMULATOR_HEADLESS_ARGS = -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -camera-back none -camera-front none
+ANDROID_EMULATOR_VISIBLE_ARGS = -no-audio -gpu swiftshader_indirect -camera-back none -camera-front none
+ANDROID_EMULATOR_ARGS = $(if $(filter 1 true yes,$(ANDROID_EMULATOR_WINDOW)),$(ANDROID_EMULATOR_VISIBLE_ARGS),$(ANDROID_EMULATOR_HEADLESS_ARGS)) $(ANDROID_EMULATOR_EXTRA_ARGS)
+ANDROID_AVDMANAGER = $(ANDROID_SDK)/cmdline-tools/latest/bin/avdmanager
+ANDROID_SDKMANAGER = $(ANDROID_SDK)/cmdline-tools/latest/bin/sdkmanager
+ANDROID_EMULATOR = $(ANDROID_SDK)/emulator/emulator
+ADB = $(ANDROID_SDK)/platform-tools/adb
+AGENT_TMP_DIR ?= .tmp/agent-android
+AGENT_BACKEND_DATA_DIR ?= $(AGENT_TMP_DIR)/data
+AGENT_BACKEND_LOG ?= $(AGENT_TMP_DIR)/backend.log
 
 # Debug keystore config
 DEBUG_KEYSTORE = $(HOME)/.android/debug.keystore
@@ -41,8 +67,6 @@ run-backend-release:
 
 run-frontend:
 	cd web && npm run dev
-
-ADB = $(HOME)/android-sdk/platform-tools/adb
 
 define EXPORT_JAVA_HOME_FROM_JAVAC
 	if command -v javac >/dev/null 2>&1; then \
@@ -112,6 +136,253 @@ run-android-clean:
 		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
 		(cd app && $(FLUTTER) run -d "$$SERIAL"); \
 	'
+
+android-sdk-check:
+	@bash -ec '\
+		for path in "$(ANDROID_SDKMANAGER)" "$(ANDROID_AVDMANAGER)" "$(ANDROID_EMULATOR)" "$(ADB)" "$(FLUTTER)"; do \
+			if [ ! -x "$$path" ]; then \
+				echo "Missing executable: $$path"; \
+				exit 1; \
+			fi; \
+		done; \
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		echo "ANDROID_SDK=$(ANDROID_SDK)"; \
+		echo "JAVA_HOME=$$JAVA_HOME"; \
+		if [ -e /dev/kvm ]; then \
+			ls -l /dev/kvm; \
+		else \
+			echo "Warning: /dev/kvm is missing; emulator boot may be very slow or fail."; \
+		fi; \
+		$(FLUTTER) doctor -v; \
+	'
+
+android-phone-avd-create: android-sdk-check
+	@bash -ec '\
+		"$(ANDROID_SDKMANAGER)" "platform-tools" "emulator" "platforms;$(ANDROID_PLATFORM)" "$(ANDROID_PHONE_IMAGE)"; \
+		if "$(ANDROID_EMULATOR)" -list-avds | grep -qx "$(ANDROID_PHONE_AVD)"; then \
+			echo "Phone AVD already exists: $(ANDROID_PHONE_AVD)"; \
+		else \
+			printf "no\n" | "$(ANDROID_AVDMANAGER)" create avd --force \
+				--name "$(ANDROID_PHONE_AVD)" \
+				--package "$(ANDROID_PHONE_IMAGE)" \
+				--device "$(ANDROID_PHONE_DEVICE)"; \
+		fi; \
+	'
+
+android-phone-play-avd-create: android-sdk-check
+	@bash -ec '\
+		"$(ANDROID_SDKMANAGER)" "platform-tools" "emulator" "platforms;$(ANDROID_PLATFORM)" "$(ANDROID_PHONE_PLAY_IMAGE)"; \
+		if "$(ANDROID_EMULATOR)" -list-avds | grep -qx "$(ANDROID_PHONE_PLAY_AVD)"; then \
+			echo "Play Store phone AVD already exists: $(ANDROID_PHONE_PLAY_AVD)"; \
+		else \
+			printf "no\n" | "$(ANDROID_AVDMANAGER)" create avd --force \
+				--name "$(ANDROID_PHONE_PLAY_AVD)" \
+				--package "$(ANDROID_PHONE_PLAY_IMAGE)" \
+				--device "$(ANDROID_PHONE_DEVICE)"; \
+		fi; \
+	'
+
+android-phone-play-emulator-start:
+	$(MAKE) android-emulator-start \
+		ANDROID_PHONE_AVD="$(ANDROID_PHONE_PLAY_AVD)" \
+		ANDROID_PHONE_IMAGE="$(ANDROID_PHONE_PLAY_IMAGE)"
+
+android-wear-avd-create: android-sdk-check
+	@bash -ec '\
+		"$(ANDROID_SDKMANAGER)" "platform-tools" "emulator" "platforms;$(ANDROID_PLATFORM)" "$(ANDROID_WEAR_IMAGE)"; \
+		if "$(ANDROID_EMULATOR)" -list-avds | grep -qx "$(ANDROID_WEAR_AVD)"; then \
+			echo "Wear AVD already exists: $(ANDROID_WEAR_AVD)"; \
+		else \
+			printf "no\n" | "$(ANDROID_AVDMANAGER)" create avd --force \
+				--name "$(ANDROID_WEAR_AVD)" \
+				--package "$(ANDROID_WEAR_IMAGE)" \
+				--device "$(ANDROID_WEAR_DEVICE)"; \
+		fi; \
+	'
+
+android-emulator-start: android-phone-avd-create
+	@bash -ec '\
+		mkdir -p "$(AGENT_TMP_DIR)/logs"; \
+		if "$(ADB)" -s "$(ANDROID_SERIAL)" get-state >/dev/null 2>&1; then \
+			echo "Android emulator already online: $(ANDROID_SERIAL)"; \
+			exit 0; \
+		fi; \
+		echo "Starting AVD $(ANDROID_PHONE_AVD) as $(ANDROID_SERIAL)"; \
+		nohup "$(ANDROID_EMULATOR)" @"$(ANDROID_PHONE_AVD)" $(ANDROID_EMULATOR_ARGS) \
+			> "$(AGENT_TMP_DIR)/logs/$(ANDROID_PHONE_AVD).log" 2>&1 & \
+		echo $$! > "$(AGENT_TMP_DIR)/$(ANDROID_PHONE_AVD).pid"; \
+		echo "Emulator log: $(AGENT_TMP_DIR)/logs/$(ANDROID_PHONE_AVD).log"; \
+	'
+
+android-emulator-stop:
+	@bash -ec '\
+		"$(ADB)" -s "$(ANDROID_SERIAL)" emu kill >/dev/null 2>&1 || true; \
+		if [ -f "$(AGENT_TMP_DIR)/$(ANDROID_PHONE_AVD).pid" ]; then \
+			pid=$$(cat "$(AGENT_TMP_DIR)/$(ANDROID_PHONE_AVD).pid"); \
+			kill "$$pid" >/dev/null 2>&1 || true; \
+			rm -f "$(AGENT_TMP_DIR)/$(ANDROID_PHONE_AVD).pid"; \
+		fi; \
+	'
+
+android-emulator-wait:
+	@bash -ec '\
+		"$(ADB)" -s "$(ANDROID_SERIAL)" wait-for-device; \
+		for i in $$(seq 1 90); do \
+			boot=$$("$(ADB)" -s "$(ANDROID_SERIAL)" shell getprop sys.boot_completed 2>/dev/null | tr -d "\r"); \
+			if [ "$$boot" = "1" ]; then \
+				echo "Android emulator booted: $(ANDROID_SERIAL)"; \
+				"$(ADB)" -s "$(ANDROID_SERIAL)" shell wm size || true; \
+				exit 0; \
+			fi; \
+			sleep 2; \
+		done; \
+		echo "Timed out waiting for $(ANDROID_SERIAL) to boot"; \
+		exit 1; \
+	'
+
+android-emulator-unlock:
+	@bash -ec '\
+		"$(ADB)" -s "$(ANDROID_SERIAL)" shell settings put system screen_off_timeout 2147483647 || true; \
+		"$(ADB)" -s "$(ANDROID_SERIAL)" shell input keyevent 82 || true; \
+	'
+
+android-emulator-reverse:
+	$(ADB) -s $(ANDROID_SERIAL) reverse tcp:50051 tcp:50051
+
+android-screenshot:
+	@mkdir -p "$$(dirname "$(ANDROID_SCREENSHOT_OUT)")"
+	$(ADB) -s $(ANDROID_SERIAL) exec-out screencap -p > "$(ANDROID_SCREENSHOT_OUT)"
+	@file "$(ANDROID_SCREENSHOT_OUT)"
+
+android-tap:
+	@test -n "$(X)" -a -n "$(Y)" || { echo "Usage: make android-tap X=540 Y=1300 [ANDROID_SERIAL=...]"; exit 1; }
+	$(ADB) -s $(ANDROID_SERIAL) shell input tap $(X) $(Y)
+
+android-text:
+	@test -n "$(TEXT)" || { echo "Usage: make android-text TEXT=codex [ANDROID_SERIAL=...]"; exit 1; }
+	$(ADB) -s $(ANDROID_SERIAL) shell input text "$(TEXT)"
+
+android-run-emulator: android-emulator-reverse
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		cd app && \
+			ANDROID_HOME="$(ANDROID_SDK)" \
+			PATH="$(ANDROID_SDK)/platform-tools:$(ANDROID_SDK)/emulator:$(ANDROID_SDK)/cmdline-tools/latest/bin:$$PATH" \
+			"$(FLUTTER)" run -d "$(ANDROID_SERIAL)" --debug --no-resident; \
+	'
+
+agent-backend-start:
+	@bash -ec '\
+		mkdir -p "$(AGENT_TMP_DIR)" "$(AGENT_BACKEND_DATA_DIR)"; \
+		if [ -f "$(AGENT_TMP_DIR)/backend.pid" ]; then \
+			pid=$$(cat "$(AGENT_TMP_DIR)/backend.pid" 2>/dev/null || true); \
+			if [ -n "$$pid" ] && kill -0 "$$pid" >/dev/null 2>&1; then \
+				echo "Backend already running with pid $$pid"; \
+				exit 0; \
+			fi; \
+		fi; \
+		APK_HASH=$$(keytool -exportcert -keystore "$(DEBUG_KEYSTORE)" -alias "$(DEBUG_ALIAS)" -storepass "$(DEBUG_STOREPASS)" 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr "+/" "-_" | tr -d "=" || true); \
+		CERT_SHA=$$(keytool -list -v -keystore "$(DEBUG_KEYSTORE)" -alias "$(DEBUG_ALIAS)" -storepass "$(DEBUG_STOREPASS)" 2>/dev/null | grep SHA256 | head -1 | sed "s/.*SHA256: //" || true); \
+		echo "Starting backend on localhost:50051"; \
+		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" \
+		RUST_LOG=info \
+		TEST_AUTH_ENABLED=1 \
+		WEBAUTHN_RP_ID=schlift.com \
+		WEBAUTHN_RP_ORIGIN=https://schlift.com \
+		WEBAUTHN_ANDROID_ORIGIN="android:apk-key-hash:$$APK_HASH" \
+		WEBAUTHN_ANDROID_ORIGINS="android:apk-key-hash:$$APK_HASH,android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk" \
+		ANDROID_CERT_SHA256="$$CERT_SHA" \
+		cargo run --bin schlift --features test-auth > "$(AGENT_BACKEND_LOG)" 2>&1 & \
+		echo $$! > "$(AGENT_TMP_DIR)/backend.pid"; \
+		for i in $$(seq 1 120); do \
+			if curl -fsS http://127.0.0.1:50051/api/health >/dev/null 2>&1; then \
+				echo "Backend ready: http://127.0.0.1:50051/api/health"; \
+				exit 0; \
+			fi; \
+			sleep 1; \
+		done; \
+		echo "Backend did not become healthy. Tail of $(AGENT_BACKEND_LOG):"; \
+		tail -80 "$(AGENT_BACKEND_LOG)" || true; \
+		exit 1; \
+	'
+
+agent-backend-stop:
+	@bash -ec '\
+		if [ -f "$(AGENT_TMP_DIR)/backend.pid" ]; then \
+			pid=$$(cat "$(AGENT_TMP_DIR)/backend.pid" 2>/dev/null || true); \
+			[ -n "$$pid" ] && kill "$$pid" >/dev/null 2>&1 || true; \
+			rm -f "$(AGENT_TMP_DIR)/backend.pid"; \
+		fi; \
+	'
+
+android-agent-start:
+	$(MAKE) agent-backend-start
+	$(MAKE) android-emulator-start
+	$(MAKE) android-emulator-wait
+	$(MAKE) android-emulator-unlock
+	$(MAKE) android-emulator-reverse
+	$(MAKE) android-run-emulator
+	$(MAKE) android-screenshot ANDROID_SCREENSHOT_OUT=.tmp/screenshots/android-agent-start.png
+
+android-agent-stop: agent-backend-stop android-emulator-stop
+
+android-wear-emulator-start: android-wear-avd-create
+	@bash -ec '\
+		mkdir -p "$(AGENT_TMP_DIR)/logs"; \
+		WATCH_SERIAL=$$("$(ADB)" devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
+			CH=$$("$(ADB)" -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+		if [ -n "$$WATCH_SERIAL" ]; then \
+			echo "Wear emulator already online: $$WATCH_SERIAL"; \
+			exit 0; \
+		fi; \
+		echo "Starting Wear AVD $(ANDROID_WEAR_AVD)"; \
+		nohup "$(ANDROID_EMULATOR)" @"$(ANDROID_WEAR_AVD)" $(ANDROID_EMULATOR_ARGS) \
+			> "$(AGENT_TMP_DIR)/logs/$(ANDROID_WEAR_AVD).log" 2>&1 & \
+		echo $$! > "$(AGENT_TMP_DIR)/$(ANDROID_WEAR_AVD).pid"; \
+		echo "Wear emulator log: $(AGENT_TMP_DIR)/logs/$(ANDROID_WEAR_AVD).log"; \
+	'
+
+android-wear-run-emulator: android-wear-emulator-start
+	@bash -ec '\
+		SERIAL=""; \
+		for i in $$(seq 1 120); do \
+			SERIAL=$$("$(ADB)" devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
+				CH=$$("$(ADB)" -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+				if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+			done); \
+			if [ -n "$$SERIAL" ]; then break; fi; \
+			sleep 2; \
+		done; \
+		if [ -z "$$SERIAL" ]; then \
+			echo "Timed out waiting for a Wear OS emulator"; \
+			"$(ADB)" devices; \
+			exit 1; \
+		fi; \
+		echo "Using Wear target: $$SERIAL"; \
+		$(MAKE) run-wear WEAR_SERIAL="$$SERIAL"; \
+	'
+
+android-wear-pairing-notes:
+	@printf '%s\n' \
+		'Wear OS emulator pairing status:' \
+		'' \
+		'- Yes, Android supports pairing a Wear emulator with a phone device/emulator.' \
+		'- Current Android docs require a phone on Android 11+ with the Google Play Store' \
+		'  for the Wear OS emulator pairing assistant.' \
+		'- This repo can create:' \
+		'    make android-phone-play-avd-create' \
+		'    make android-wear-avd-create' \
+		'- To pair those two AVDs, use Android Studio Device Manager -> Pair Wearable.' \
+		'  Android Studio is not installed in this WSL environment right now.' \
+		'- Command-line-only automation can still boot both emulators, install both APKs,' \
+		'  screenshot them, and tap/type through adb. It does not establish the official' \
+		'  Google Play Services Wear node connection by itself.' \
+		'- For a physical watch, use wireless debugging:' \
+		'    adb pair <watch_ip>:<pair_port>' \
+		'    adb connect <watch_ip>:<debug_port>' \
+		'    WEAR_SERIAL=<watch_ip>:<debug_port> make run-wear'
 
 WEAR_SERIAL ?=
 WEAR_LOG_FILTER ?= SchliftWear:D SchliftWearBridge:D Wearable:D WearTransport:D *:S
