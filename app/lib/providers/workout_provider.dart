@@ -297,28 +297,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return out;
   }
 
-  List<PlannedGroupSet> _buildPlannedGroupSetsFromExistingGroup(
-    ExerciseGroupData groupData,
-  ) {
-    final sets = groupData.sets.where((s) => !s.cancelled).toList()
-      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-    return sets
-        .map(
-          (s) => PlannedGroupSet()
-            ..clientSetId = s.id
-            ..exercise = s.exercise
-            ..targetReps = s.targetReps
-            ..targetWeight = s.targetWeight
-            ..warmup = s.warmup
-            ..restAfterSuccess = s.restAfterSuccess
-            ..restAfterFailure = s.restAfterFailure
-            ..isAmrap = s.isAmrap
-            ..instruction = s.instruction
-            ..progressionHint = s.progressionHint.deepCopy(),
-        )
-        .toList();
-  }
-
   int _computeGroupWorkingRoundsFromSets(List<PlannedGroupSet> sets) {
     final counts = <int, int>{};
     for (final set in sets) {
@@ -1680,55 +1658,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       _handleError(e);
     }
-  }
-
-  Future<void> updateSet(String setId, int reps, double weight) async {
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p!.id == setId,
-      orElse: () => null,
-    );
-    if (proposed == null || proposed.exerciseGroupId.isEmpty) return;
-
-    final groupIndex = exerciseGroups.indexWhere(
-      (g) => g.group?.id == proposed.exerciseGroupId,
-    );
-    if (groupIndex == -1) return;
-
-    final groupData = exerciseGroups[groupIndex];
-    final group = groupData.group!;
-
-    final plannedSets = _buildPlannedGroupSetsFromExistingGroup(groupData);
-    final idx = plannedSets.indexWhere(
-      (s) =>
-          s.exercise == proposed.exercise &&
-          s.warmup == proposed.warmup &&
-          s.targetWeight == proposed.targetWeight &&
-          s.targetReps == proposed.targetReps,
-    );
-    if (idx >= 0) {
-      plannedSets[idx]
-        ..targetReps = reps
-        ..targetWeight = weight;
-    } else {
-      // Fallback: update first matching proposed set slot by id order.
-      final existingOrdered = List<ProposedSet>.from(groupData.sets)
-        ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-      final slot = existingOrdered.indexWhere((s) => s.id == setId);
-      if (slot >= 0 && slot < plannedSets.length) {
-        plannedSets[slot]
-          ..targetReps = reps
-          ..targetWeight = weight;
-      }
-    }
-
-    await _replaceExerciseGroupPlan(
-      name: group.name,
-      exerciseGroupId: group.id,
-      interleaveWarmups: group.interleaveWarmups,
-      sets: plannedSets,
-      restConfig: group.hasRestConfig() ? group.restConfig : null,
-      instruction: group.instruction,
-    );
   }
 
   Future<void> deleteExerciseGroup(int groupIndex) async {
