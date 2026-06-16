@@ -50,6 +50,9 @@ jobs:
       - name: Install iOS build tools
         run: brew install buf swift-protobuf
 
+      - name: Use CocoaPods for plugins (disable Swift Package Manager)
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get
