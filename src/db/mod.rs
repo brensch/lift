@@ -172,6 +172,15 @@ CREATE TABLE IF NOT EXISTS training_program_state_latest (
     updated_at INTEGER NOT NULL
 );
 
+-- Idempotency ledger for progression: one row per workout that has advanced the
+-- program state. The PRIMARY KEY makes a second EndWorkout for the same workout a
+-- no-op claim, so progression can't be applied twice.
+CREATE TABLE IF NOT EXISTS program_progression_applied (
+    workout_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    applied_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_settings_current (
     user_id TEXT NOT NULL,
     setting_type TEXT NOT NULL,

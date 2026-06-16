@@ -735,7 +735,33 @@ impl ServerWorkoutService {
         let regime = get_regime(regime_type);
         let prev_payload = payload_from_proto(&state.fields);
         let mut payload = prev_payload.clone();
-        let slot_outcomes = summarize_slot_outcomes(workout);
+
+        // Reconcile against the program's prescription for this session, derived from the
+        // pre-transition state — NOT from the (possibly user-edited) workout plan. Completed
+        // work is matched to prescribed slots by exercise, so editing a weight or
+        // deleting/re-adding a group still progresses the correct lift.
+        let now = workout
+            .workout
+            .end_time
+            .max(workout.workout.start_time)
+            .max(1);
+        let history = self.load_schplanner_history(user_id, 0).await?;
+        let last_session_at = history
+            .iter()
+            .filter(|h| h.workout.id != workout.workout.id)
+            .map(|h| {
+                if h.workout.end_time > 0 {
+                    h.workout.end_time
+                } else {
+                    h.workout.start_time
+                }
+            })
+            .max()
+            .unwrap_or(0);
+        let insights = summarize_recent_insights(&history);
+        let proposal = regime.propose_from_state(&prev_payload, last_session_at, now, &insights);
+        let prescribed = prescribed_slots_from_groups(&proposal.proposed_groups);
+        let slot_outcomes = summarize_slot_outcomes(workout, &prescribed);
         regime.transition_state_on_workout_completed(&mut payload, workout, &slot_outcomes);
         let next_updated_at = workout.workout.end_time.max(workout.workout.start_time);
         let response = GetActiveTrainingProgramStateResponse {
@@ -748,10 +774,17 @@ impl ServerWorkoutService {
             schema: Some(regime.state_schema()),
         };
 
-        self.db
-            .put_program_state(user_id, &response)
+        // Idempotency lives in the DB: the first EndWorkout for this workout claims the
+        // progression and writes the new state atomically; a retry / double-fire finds the
+        // claim already taken and is a no-op, so we never advance twice.
+        let applied = self
+            .db
+            .apply_program_state_for_workout(user_id, &workout.workout.id, &response)
             .await
             .map_err(internal_error)?;
+        if !applied {
+            return Ok(Vec::new());
+        }
         let messages = completion_messages_for_regime(
             regime_type,
             &prev_payload,
@@ -1814,5 +1847,346 @@ impl WorkoutService for ServerWorkoutService {
         Err(Status::unimplemented(
             "server workout service does not support rehydration yet",
         ))
+    }
+}
+
+#[cfg(test)]
+mod live_progression_tests {
+    use super::*;
+
+    fn authed<T>(token: &str, msg: T) -> Request<T> {
+        let mut req = Request::new(msg);
+        req.metadata_mut()
+            .insert("x-session-token", token.parse().unwrap());
+        req
+    }
+
+    async fn setup() -> (ServerWorkoutService, String, String) {
+        let dir = std::env::temp_dir().join(format!("lift-live-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let (user, token) = db
+            .get_or_create_user_with_auth_session("tester")
+            .await
+            .unwrap();
+        (ServerWorkoutService { db }, user.id, token)
+    }
+
+    /// End-to-end through the real RPCs: start a Linear 5x5 squat session, then edit
+    /// the weight mid-workout exactly as the app does (ReplaceExerciseGroupPlan with the
+    /// progression hints stripped off), complete it heavier, end the workout, and confirm
+    /// the next proposal increments from the weight actually lifted. This exercises the
+    /// live EndWorkout glue (propose_from_state -> prescribed_slots_from_groups -> reconcile)
+    /// that the replay-based unit/scenario tests don't cover.
+    #[tokio::test]
+    async fn edited_weight_progresses_through_live_end_workout_path() {
+        let (svc, user_id, token) = setup().await;
+
+        // Seed Linear 5x5 program state with squat at 175.
+        let regime = get_regime(RegimeType::Linear5x5);
+        let mut payload = regime.default_state();
+        crate::program_state::set_f32(&mut payload, "squat_weight", 175.0);
+        svc.db
+            .put_program_state(
+                &user_id,
+                &GetActiveTrainingProgramStateResponse {
+                    state: Some(TrainingProgramState {
+                        regime_type: RegimeType::Linear5x5 as i32,
+                        fields: payload_to_proto(&payload),
+                        updated_at: 1,
+                        source: "test".to_string(),
+                    }),
+                    schema: Some(regime.state_schema()),
+                },
+            )
+            .await
+            .unwrap();
+
+        // Start a squat 5x5 @175 group WITH hints, as the app does from the proposal.
+        let hint = ProgressionHint {
+            slot_key: slot_key_for_exercise(Exercise::Squat),
+            tier: "MAIN".to_string(),
+            rule: ProgressionRule::AllSetsMatchTarget as i32,
+            amrap_success_threshold: 0,
+            counts_toward_program: true,
+        };
+        let working_sets = (0..5)
+            .map(|_| WorkingSetSpec {
+                target_weight: 175.0,
+                target_reps: 5,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: Some(hint.clone()),
+            })
+            .collect::<Vec<_>>();
+        let group = ExerciseGroup {
+            id: String::new(),
+            workout_id: String::new(),
+            name: "Squat".to_string(),
+            sets: 5,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![ExerciseTypeConfig {
+                exercise: Exercise::Squat as i32,
+                start_weight: 175.0,
+                end_weight: 175.0,
+                reps: 5,
+                include_warmup: false,
+                rest_config: None,
+                last_set_amrap: false,
+                working_sets,
+            }],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+        };
+        let start = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Workout A".to_string(),
+                    exercise_groups: vec![group],
+                    started_at: 1000,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+        let group_id = start.exercise_groups[0].id.clone();
+
+        // Edit the weight mid-workout the way the app does: replace the group's plan with
+        // 5 sets @185 and NO progression hints.
+        let planned = (0..5)
+            .map(|_| PlannedGroupSet {
+                exercise: Exercise::Squat as i32,
+                target_reps: 5,
+                target_weight: 185.0,
+                warmup: false,
+                rest_after_success: 180,
+                rest_after_failure: 300,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+                client_set_id: String::new(),
+            })
+            .collect::<Vec<_>>();
+        let replaced = svc
+            .replace_exercise_group_plan(authed(
+                &token,
+                ReplaceExerciseGroupPlanRequest {
+                    workout_id: workout_id.clone(),
+                    exercise_group_id: group_id.clone(),
+                    name: "Squat".to_string(),
+                    interleave_warmups: false,
+                    sets: planned,
+                    rest_config: None,
+                    delete_group_if_empty: false,
+                    instruction: String::new(),
+                    create_if_missing: false,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        // The edit really did strip the hints (the bug condition).
+        assert!(
+            replaced
+                .generated_sets
+                .iter()
+                .all(|s| s.progression_hint.is_none()),
+            "edit should leave the working sets hint-less, like the real app"
+        );
+        assert_eq!(replaced.generated_sets.len(), 5);
+
+        // Complete all 5 working sets at the heavier 185x5.
+        let mut ts = 1100;
+        for set in &replaced.generated_sets {
+            svc.complete_set(authed(
+                &token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: 185.0,
+                    completed_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+            ts += 10;
+        }
+
+        // End the workout: this runs the live reconciliation against program state.
+        svc.end_workout(authed(
+            &token,
+            EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+                ended_at: ts,
+            },
+        ))
+        .await
+        .unwrap();
+
+        // The next proposal should put squat at 190 (185 lifted + 5), proving progression
+        // tracked the edited weight even though the hints were gone.
+        let sched = svc
+            .get_proposed_workout_schedule(authed(
+                &token,
+                GetProposedWorkoutScheduleRequest {
+                    user_id: user_id.clone(),
+                    at_time: ts + 100,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let squat_cfg = sched
+            .proposed_groups
+            .iter()
+            .flat_map(|g| g.exercise_configs.iter())
+            .find(|c| c.exercise == Exercise::Squat as i32)
+            .expect("squat should appear in the next proposal");
+        assert_eq!(
+            squat_cfg.start_weight, 190.0,
+            "next squat weight should increment from the edited 185"
+        );
+    }
+
+    /// EndWorkout must be idempotent: a retry / double-fire on the same workout must not
+    /// advance the program twice (175 -> 180, never 175 -> 180 -> 185).
+    #[tokio::test]
+    async fn end_workout_is_idempotent_and_does_not_double_progress() {
+        let (svc, user_id, token) = setup().await;
+
+        let regime = get_regime(RegimeType::Linear5x5);
+        let mut payload = regime.default_state();
+        crate::program_state::set_f32(&mut payload, "squat_weight", 175.0);
+        svc.db
+            .put_program_state(
+                &user_id,
+                &GetActiveTrainingProgramStateResponse {
+                    state: Some(TrainingProgramState {
+                        regime_type: RegimeType::Linear5x5 as i32,
+                        fields: payload_to_proto(&payload),
+                        updated_at: 1,
+                        source: "test".to_string(),
+                    }),
+                    schema: Some(regime.state_schema()),
+                },
+            )
+            .await
+            .unwrap();
+
+        let hint = ProgressionHint {
+            slot_key: slot_key_for_exercise(Exercise::Squat),
+            tier: "MAIN".to_string(),
+            rule: ProgressionRule::AllSetsMatchTarget as i32,
+            amrap_success_threshold: 0,
+            counts_toward_program: true,
+        };
+        let working_sets = (0..5)
+            .map(|_| WorkingSetSpec {
+                target_weight: 175.0,
+                target_reps: 5,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: Some(hint.clone()),
+            })
+            .collect::<Vec<_>>();
+        let group = ExerciseGroup {
+            id: String::new(),
+            workout_id: String::new(),
+            name: "Squat".to_string(),
+            sets: 5,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![ExerciseTypeConfig {
+                exercise: Exercise::Squat as i32,
+                start_weight: 175.0,
+                end_weight: 175.0,
+                reps: 5,
+                include_warmup: false,
+                rest_config: None,
+                last_set_amrap: false,
+                working_sets,
+            }],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+        };
+        let start = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Workout A".to_string(),
+                    exercise_groups: vec![group],
+                    started_at: 1000,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+
+        let mut ts = 1100;
+        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
+            svc.complete_set(authed(
+                &token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: 175.0,
+                    completed_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+            ts += 10;
+        }
+
+        // End it twice — second call is the retry / double-fire.
+        for _ in 0..2 {
+            svc.end_workout(authed(
+                &token,
+                EndWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                    ended_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+        }
+
+        let sched = svc
+            .get_proposed_workout_schedule(authed(
+                &token,
+                GetProposedWorkoutScheduleRequest {
+                    user_id: user_id.clone(),
+                    at_time: ts + 100,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let squat_cfg = sched
+            .proposed_groups
+            .iter()
+            .flat_map(|g| g.exercise_configs.iter())
+            .find(|c| c.exercise == Exercise::Squat as i32)
+            .expect("squat should appear in the next proposal");
+        assert_eq!(
+            squat_cfg.start_weight, 180.0,
+            "ending twice must progress 175 -> 180 only once, not 175 -> 180 -> 185"
+        );
+        // The A/B variant must advance exactly once. A double-apply would flip A->B->A and
+        // the next proposal would come back as Workout A; the guard keeps it on B.
+        assert!(
+            sched.suggested_workout_name.contains('B'),
+            "variant should advance exactly once (next session is Workout B), got {:?}",
+            sched.suggested_workout_name
+        );
     }
 }
