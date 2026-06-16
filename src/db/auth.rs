@@ -317,6 +317,10 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        sqlx::query("DELETE FROM program_progression_applied WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("DELETE FROM user_settings_current WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)

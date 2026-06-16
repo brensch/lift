@@ -75,6 +75,45 @@ impl ServerDb {
         Ok(())
     }
 
+    /// Atomically claim that `workout_id` advanced the program and persist the new state,
+    /// in a single transaction. Returns `false` (writing nothing) if this workout has
+    /// already been applied — the PRIMARY KEY on `program_progression_applied` makes the
+    /// progression idempotent at the storage layer, even under concurrent EndWorkout calls.
+    pub async fn apply_program_state_for_workout(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        response: &GetActiveTrainingProgramStateResponse,
+    ) -> DbResult<bool> {
+        let mut tx = self.write_pool.begin().await?;
+        let claim = sqlx::query(
+            "INSERT OR IGNORE INTO program_progression_applied (workout_id, user_id, applied_at)
+             VALUES (?, ?, ?)",
+        )
+        .bind(workout_id)
+        .bind(user_id)
+        .bind(now_unix())
+        .execute(&mut *tx)
+        .await?;
+        if claim.rows_affected() == 0 {
+            // Already applied by a previous EndWorkout for this workout.
+            tx.rollback().await?;
+            return Ok(false);
+        }
+        sqlx::query(
+            "INSERT INTO training_program_state_latest (user_id, response_blob, updated_at)
+             VALUES (?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET response_blob = excluded.response_blob, updated_at = excluded.updated_at",
+        )
+        .bind(user_id)
+        .bind(response.encode_to_vec())
+        .bind(now_unix())
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(true)
+    }
+
     pub async fn get_program_state(
         &self,
         user_id: &str,
