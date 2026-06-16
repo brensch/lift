@@ -2054,6 +2054,133 @@ mod live_progression_tests {
         );
     }
 
+    /// Editing a group's weight after completing some sets must keep completed sets first
+    /// and the regenerated pending sets after them — not interleave them (the "jump around"
+    /// bug from a colliding workout_order on the regenerated sets).
+    #[tokio::test]
+    async fn editing_weight_after_completing_sets_keeps_order_stable() {
+        let (svc, _user_id, token) = setup().await;
+
+        let working_sets = (0..5)
+            .map(|_| WorkingSetSpec {
+                target_weight: 175.0,
+                target_reps: 5,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+            })
+            .collect::<Vec<_>>();
+        let group = ExerciseGroup {
+            id: String::new(),
+            workout_id: String::new(),
+            name: "Squat".to_string(),
+            sets: 5,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![ExerciseTypeConfig {
+                exercise: Exercise::Squat as i32,
+                start_weight: 175.0,
+                end_weight: 175.0,
+                reps: 5,
+                include_warmup: false,
+                rest_config: None,
+                last_set_amrap: false,
+                working_sets,
+            }],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+        };
+        let start = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Workout A".to_string(),
+                    exercise_groups: vec![group],
+                    started_at: 1000,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+        let group_id = start.exercise_groups[0].id.clone();
+        let working: Vec<_> = start.proposed_sets.iter().filter(|s| !s.warmup).collect();
+        assert_eq!(working.len(), 5);
+
+        // Complete the first two working sets at the original 175.
+        for (i, set) in working.iter().take(2).enumerate() {
+            svc.complete_set(authed(
+                &token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: 175.0,
+                    completed_at: 1100 + i as i64 * 10,
+                },
+            ))
+            .await
+            .unwrap();
+        }
+
+        // Edit the whole group up to 185 (like the app: no hints).
+        let planned = (0..5)
+            .map(|_| PlannedGroupSet {
+                exercise: Exercise::Squat as i32,
+                target_reps: 5,
+                target_weight: 185.0,
+                warmup: false,
+                rest_after_success: 180,
+                rest_after_failure: 300,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+                client_set_id: String::new(),
+            })
+            .collect::<Vec<_>>();
+        svc.replace_exercise_group_plan(authed(
+            &token,
+            ReplaceExerciseGroupPlanRequest {
+                workout_id: workout_id.clone(),
+                exercise_group_id: group_id.clone(),
+                name: "Squat".to_string(),
+                interleave_warmups: false,
+                sets: planned,
+                rest_config: None,
+                delete_group_if_empty: false,
+                instruction: String::new(),
+                create_if_missing: false,
+            },
+        ))
+        .await
+        .unwrap();
+
+        // Read back the active (non-cancelled) working sets in order.
+        let wk = svc
+            .get_workout(authed(
+                &token,
+                GetWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let mut active: Vec<_> = wk
+            .proposed_sets
+            .iter()
+            .filter(|s| !s.warmup && !s.cancelled)
+            .collect();
+        active.sort_by_key(|s| s.workout_order);
+        let weights: Vec<f32> = active.iter().map(|s| s.target_weight).collect();
+        assert_eq!(
+            weights,
+            vec![175.0, 175.0, 185.0, 185.0, 185.0],
+            "completed sets must stay first, then the new heavier sets — no interleaving"
+        );
+    }
+
     /// EndWorkout must be idempotent: a retry / double-fire on the same workout must not
     /// advance the program twice (175 -> 180, never 175 -> 180 -> 185).
     #[tokio::test]

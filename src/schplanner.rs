@@ -653,11 +653,17 @@ pub fn summarize_slot_outcomes(
             .iter()
             .filter(|(_, c)| c.actual_reps >= target_reps)
             .count();
-        let last_completed_actual_weight = sets.last().map(|(_, c)| c.actual_weight);
+        // Progression follows the *last set you actually did* — the most recently completed
+        // set by wall-clock (ended_at), not its position in the list. This is robust to a
+        // mid-workout weight edit reordering the sets: whatever you finished last wins.
+        let last_completed_actual_weight = sets
+            .iter()
+            .max_by_key(|(_, c)| c.ended_at)
+            .map(|(_, c)| c.actual_weight);
         let last_successful_actual_weight = sets
             .iter()
-            .rev()
-            .find(|(_, c)| c.actual_reps >= target_reps)
+            .filter(|(_, c)| c.actual_reps >= target_reps)
+            .max_by_key(|(_, c)| c.ended_at)
             .map(|(_, c)| c.actual_weight);
         let top_set_actual_reps = sets.last().map(|(_, c)| c.actual_reps).unwrap_or(0);
 
@@ -897,7 +903,7 @@ mod tests {
     }
 
     #[test]
-    fn linear_replay_uses_last_successful_actual_weight_for_progression() {
+    fn linear_replay_uses_actual_lifted_weight_for_progression() {
         let regime = get_regime(RegimeType::Linear5x5);
         let mut base = regime.default_state();
         crate::program_state::set_f32(&mut base, "squat_weight", 45.0);
@@ -911,6 +917,37 @@ mod tests {
         assert_eq!(
             get_f32_or(&derived.effective_state, "squat_weight", 0.0),
             190.0
+        );
+    }
+
+    #[test]
+    fn linear_progression_uses_last_completed_weight_by_time() {
+        // The set finished *last by wall-clock* (ended_at) drives progression, even if a
+        // heavier set was done earlier and even if list order disagrees. Here the most
+        // recently completed set is 175 (-> 180); an earlier 185 set must NOT win.
+        let regime = get_regime(RegimeType::Linear5x5);
+        let mut base = regime.default_state();
+        crate::program_state::set_f32(&mut base, "squat_weight", 175.0);
+        let mut workout = linear_workout(true);
+        // (weight, ended_at) per set; linear_workout(true) records 5 reps so all succeed.
+        let plan = [
+            (175.0, 100),
+            (175.0, 200), // most recently completed -> this is the one that should win
+            (175.0, 120),
+            (175.0, 130),
+            (185.0, 110), // heavier, but completed earlier and last in list order
+        ];
+        for (set, (w, ended)) in workout.completed_sets.iter_mut().zip(plan) {
+            set.actual_weight = w;
+            set.ended_at = ended;
+        }
+
+        let derived = derive_state(regime.as_ref(), &base, &[workout]);
+
+        assert_eq!(
+            get_f32_or(&derived.effective_state, "squat_weight", 0.0),
+            180.0,
+            "should progress from the last-completed set (175 -> 180), not the heavier earlier 185"
         );
     }
 

@@ -549,11 +549,23 @@ pub(crate) fn apply_replace_exercise_group_plan(
         })
         .collect();
 
+    // Place the regenerated pending sets *after* every existing set's order. Otherwise they
+    // collide with the kept completed sets' workout_order and reindex_sets() interleaves them
+    // (completed/new/completed/new...), which scrambles the visible order and progression.
+    // A higher start order keeps completed sets first, then the new pending sets, within the
+    // group — matching what the client does locally.
+    let start_order = workout_ref
+        .proposed_sets
+        .iter()
+        .map(|s| s.workout_order)
+        .max()
+        .map(|m| m + 1)
+        .unwrap_or(0);
     let appended = proposed_sets_from_planned_group_sets(
         &req.workout_id,
         &req.exercise_group_id,
         &pending_planned,
-        0,
+        start_order,
     );
     workout_ref.proposed_sets.extend(appended);
     workout_ref.reindex_sets();
