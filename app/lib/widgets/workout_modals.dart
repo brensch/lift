@@ -270,6 +270,9 @@ Future<void> showEditExerciseDialog(
           restConfig: matchingConfig != null && matchingConfig.hasRestConfig()
               ? matchingConfig.restConfig.deepCopy()
               : null,
+          lastSetAmrap:
+              (matchingConfig?.lastSetAmrap ?? false) ||
+              exerciseWorkingSets.any((s) => s.isAmrap),
         ),
       );
     }
@@ -288,6 +291,7 @@ Future<void> showEditExerciseDialog(
           restConfig: config.hasRestConfig()
               ? config.restConfig.deepCopy()
               : null,
+          lastSetAmrap: config.lastSetAmrap,
         ),
       );
     }
@@ -310,6 +314,7 @@ Future<void> showEditExerciseDialog(
           differentEndWeight: false,
           reps: workingSets.firstOrNull?.targetReps ?? 5,
           includeWarmup: group.sets.any((s) => s.warmup && s.exercise == ex),
+          lastSetAmrap: workingSets.any((s) => s.isAmrap),
         ),
       );
     }
@@ -481,7 +486,8 @@ Future<void> showEditExerciseDialog(
                                   ..startWeight = c.startWeight
                                   ..endWeight = c.endWeight
                                   ..reps = c.reps
-                                  ..includeWarmup = c.includeWarmup;
+                                  ..includeWarmup = c.includeWarmup
+                                  ..lastSetAmrap = c.lastSetAmrap;
                                 if (c.restConfig != null) {
                                   config.restConfig = c.restConfig!;
                                 }
@@ -724,7 +730,8 @@ Future<void> showAddExerciseDialog(
                                   ..startWeight = c.startWeight
                                   ..endWeight = c.endWeight
                                   ..reps = c.reps
-                                  ..includeWarmup = c.includeWarmup;
+                                  ..includeWarmup = c.includeWarmup
+                                  ..lastSetAmrap = c.lastSetAmrap;
                                 if (c.restConfig != null) {
                                   config.restConfig = c.restConfig!;
                                 }
@@ -767,6 +774,10 @@ class _EditableConfig {
   int reps;
   bool includeWarmup;
   RestConfig? restConfig;
+  // Carried through edits so the last-set AMRAP marker + instruction survive a
+  // weight change. (Progression itself is reconciled server-side by exercise, so
+  // it does not depend on this round-trip.)
+  bool lastSetAmrap;
 
   _EditableConfig({
     required this.exercise,
@@ -776,6 +787,7 @@ class _EditableConfig {
     required this.reps,
     required this.includeWarmup,
     this.restConfig,
+    this.lastSetAmrap = false,
   });
 }
 
