@@ -241,6 +241,15 @@ Future<void> showEditExerciseDialog(
       final exerciseWorkingSets =
           currentWorkingSets.where((s) => s.exercise == exercise).toList()
             ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+      // Only the not-yet-completed sets get re-planned on an edit. Completed sets keep
+      // their own (older) weight, so deriving start/end from them would look like an
+      // intentional ramp on a later edit and leave the remaining sets unequal/unchanged.
+      final pendingWorkingSets = exerciseWorkingSets
+          .where((s) => !isSetDone(s.id))
+          .toList();
+      final refWorkingSets = pendingWorkingSets.isNotEmpty
+          ? pendingWorkingSets
+          : exerciseWorkingSets;
       final matchingConfig = group.group?.exerciseConfigs
           .cast<ExerciseTypeConfig?>()
           .firstWhere(
@@ -248,12 +257,10 @@ Future<void> showEditExerciseDialog(
             orElse: () => null,
           );
 
-      final baseSet = exerciseWorkingSets.isNotEmpty
-          ? exerciseWorkingSets.first
+      final baseSet = refWorkingSets.isNotEmpty
+          ? refWorkingSets.first
           : currentSets.firstWhere((s) => s.exercise == exercise);
-      final endSet = exerciseWorkingSets.isNotEmpty
-          ? exerciseWorkingSets.last
-          : baseSet;
+      final endSet = refWorkingSets.isNotEmpty ? refWorkingSets.last : baseSet;
 
       editableConfigs.add(
         _EditableConfig(
@@ -261,7 +268,7 @@ Future<void> showEditExerciseDialog(
           startWeight: baseSet.targetWeight.toDouble(),
           endWeight: endSet.targetWeight.toDouble(),
           differentEndWeight:
-              exerciseWorkingSets.length > 1 &&
+              refWorkingSets.length > 1 &&
               baseSet.targetWeight != endSet.targetWeight,
           reps: baseSet.targetReps,
           includeWarmup: currentSets.any(
