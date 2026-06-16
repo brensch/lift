@@ -73,6 +73,18 @@ jobs:
             exit 1
           fi
 
+      - name: Auto-bump versionCode (build number)
+        working-directory: app
+        run: |
+          # Stateless, monotonic versionCode so Play never rejects a duplicate.
+          # Kept small because the wear module derives its code as base*1000+1
+          # (app/android/wear/build.gradle.kts), which must stay under the 2.1B int cap.
+          CODE=$((1000 + GITHUB_RUN_NUMBER))
+          NAME=$(grep -E '^version:' pubspec.yaml | sed -E 's/^version:[[:space:]]*//; s/\+.*//')
+          sed -i -E "s|^version:.*|version: ${NAME}+${CODE}|" pubspec.yaml
+          echo "phone versionCode=${CODE}, wear versionCode=$((CODE * 1000 + 1))"
+          grep -E '^version:' pubspec.yaml
+
       - name: Build phone app bundle (.aab)
         working-directory: app
         run: flutter build appbundle --release --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
