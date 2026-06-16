@@ -1,1 +1,6 @@
 #include "Generated.xcconfig"
+
+// See note in Release.xcconfig — disable Xcode 16+ explicit modules so the
+// Runner target can resolve Flutter plugin modules during the build.
+CLANG_ENABLE_EXPLICIT_MODULES = NO
+SWIFT_ENABLE_EXPLICIT_MODULES = NO
