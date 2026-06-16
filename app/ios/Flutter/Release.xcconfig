@@ -1,8 +1,1 @@
 #include "Generated.xcconfig"
-
-// Xcode 16+ builds modules explicitly by default. Its ScanDependencies phase
-// can't resolve Flutter plugin modules (e.g. `@import app_links;` in
-// GeneratedPluginRegistrant.m) and fails with "Module 'app_links' not found".
-// Disable explicit modules for the Runner target to restore the prior behavior.
-CLANG_ENABLE_EXPLICIT_MODULES = NO
-SWIFT_ENABLE_EXPLICIT_MODULES = NO
