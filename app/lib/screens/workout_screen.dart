@@ -316,6 +316,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                         const _EmptyPanel(
                                           text: 'No exercises remaining.',
                                         ),
+                                      if (unfinishedGroups.length >= 2)
+                                        const _ReorderHint(),
                                       if (!isEnded) ...[
                                         const SizedBox(height: 8),
                                         _AddExerciseButton(
@@ -1241,6 +1243,38 @@ class _DashedRRectPainter extends CustomPainter {
       old.strokeWidth != strokeWidth ||
       old.dash != dash ||
       old.gap != gap;
+}
+
+// ─── Reorder affordance hint ───────────────────────────────────────────────
+
+class _ReorderHint extends StatelessWidget {
+  const _ReorderHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface.withValues(
+      alpha: 0.32,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Icon(Icons.swap_vert_rounded, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            'drag to reorder',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── No heart-rate monitor placeholder ─────────────────────────────────────
