@@ -913,6 +913,10 @@ impl WorkoutService for ServerWorkoutService {
                 let base = pending_by_key.get(message_key)?;
                 let mut message = retarget_progression_message(base);
                 message.workout_id = workout_id.clone();
+                // Tie the message to this workout so subsequent reads
+                // (get_workout / mutation refreshes) keyed by source_workout_id
+                // keep returning it for the whole session.
+                message.source_workout_id = workout_id.clone();
                 message.exercise_group_id = exercise_group_id.clone();
                 message.updated_at = started_at;
                 Some(message)

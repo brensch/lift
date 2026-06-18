@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
 enum WaveType { sine, triangle, square, sawtooth }
@@ -219,12 +221,47 @@ Uint8List generateWav(String presetId) {
 
 class SoundPlayer {
   final _players = <String, AudioPlayer>{};
+  bool _sessionConfigured = false;
+
+  /// Configure the shared audio session so our short notification "ding"
+  /// mixes with any background music instead of interrupting/stopping it.
+  Future<void> _ensureSession() async {
+    if (_sessionConfigured) return;
+    final session = await AudioSession.instance;
+    await session.configure(
+      const AudioSessionConfiguration(
+        // Ambient + mixWithOthers: play alongside other audio, respect the
+        // mute switch, and never take exclusive playback focus on iOS.
+        avAudioSessionCategory: AVAudioSessionCategory.ambient,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.mixWithOthers,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        // Play on the MEDIA stream (audible alongside music) rather than the
+        // sonification/system stream, which is often silenced. We avoid pausing
+        // other apps by simply not requesting audio focus on Android (see the
+        // player's handleAudioSessionActivation below).
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
+        ),
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
+        androidWillPauseWhenDucked: false,
+      ),
+    );
+    _sessionConfigured = true;
+  }
 
   Future<void> play(String presetId) async {
     try {
+      await _ensureSession();
       var player = _players[presetId];
       if (player == null) {
-        player = AudioPlayer();
+        // iOS needs the audio session active or nothing is output, and the
+        // ambient + mixWithOthers config means activating it still mixes with
+        // music. Android plays without activation and we deliberately skip it
+        // so we never request audio focus / pause the user's music.
+        player = AudioPlayer(handleAudioSessionActivation: Platform.isIOS);
         final wavBytes = generateWav(presetId);
         final base64Wav = Uri.dataFromBytes(wavBytes, mimeType: 'audio/wav');
         await player.setUrl(base64Wav.toString());
