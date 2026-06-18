@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:audio_session/audio_session.dart';
@@ -235,13 +236,16 @@ class SoundPlayer {
         avAudioSessionCategoryOptions:
             AVAudioSessionCategoryOptions.mixWithOthers,
         avAudioSessionMode: AVAudioSessionMode.defaultMode,
-        // Sonification + no audio-focus request: don't pause or duck other
-        // apps' music on Android.
+        // Play on the MEDIA stream (audible alongside music) rather than the
+        // sonification/system stream, which is often silenced. We avoid pausing
+        // other apps by simply not requesting audio focus on Android (see the
+        // player's handleAudioSessionActivation below).
         androidAudioAttributes: AndroidAudioAttributes(
-          contentType: AndroidAudioContentType.sonification,
-          usage: AndroidAudioUsage.assistanceSonification,
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
         ),
-        androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
+        androidAudioFocusGainType:
+            AndroidAudioFocusGainType.gainTransientMayDuck,
         androidWillPauseWhenDucked: false,
       ),
     );
@@ -253,9 +257,11 @@ class SoundPlayer {
       await _ensureSession();
       var player = _players[presetId];
       if (player == null) {
-        // Don't let just_audio activate the audio session; that would request
-        // audio focus and stop background music. We mix with others instead.
-        player = AudioPlayer(handleAudioSessionActivation: false);
+        // iOS needs the audio session active or nothing is output, and the
+        // ambient + mixWithOthers config means activating it still mixes with
+        // music. Android plays without activation and we deliberately skip it
+        // so we never request audio focus / pause the user's music.
+        player = AudioPlayer(handleAudioSessionActivation: Platform.isIOS);
         final wavBytes = generateWav(presetId);
         final base64Wav = Uri.dataFromBytes(wavBytes, mimeType: 'audio/wav');
         await player.setUrl(base64Wav.toString());

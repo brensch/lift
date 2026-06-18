@@ -20,6 +20,10 @@ class HeartRateChart extends StatefulWidget {
   final bool collapsible;
   final bool startCollapsed;
 
+  /// Full-page mode: no card chrome, never collapsible, taller chart, and an
+  /// extra avg/max/min + time-in-zone summary below it.
+  final bool fullView;
+
   const HeartRateChart({
     super.key,
     required this.heartRateSamples,
@@ -30,6 +34,7 @@ class HeartRateChart extends StatefulWidget {
     this.followLiveClock = true,
     this.collapsible = false,
     this.startCollapsed = false,
+    this.fullView = false,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -253,7 +258,9 @@ class _HeartRateChartState extends State<HeartRateChart> {
       maxX: maxX,
     );
     final bottomInterval = _bottomAxisInterval(viewport.spanSec);
-    final zoneLineSegments = _buildZoneLineSegments(spots, zones);
+    // Colour the single line by HR zone with a vertical stepped gradient
+    // (one series) instead of emitting a separate series per point pair.
+    final zoneGradient = _buildZoneGradient(zones, maxY);
 
     final expandedHeader = Row(
       children: [
@@ -394,12 +401,16 @@ class _HeartRateChartState extends State<HeartRateChart> {
     );
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.35)),
-      ),
+      padding: widget.fullView ? EdgeInsets.zero : const EdgeInsets.all(12),
+      decoration: widget.fullView
+          ? null
+          : BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.35),
+              ),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -432,7 +443,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
                       children: [
                         const SizedBox(height: 8),
                         SizedBox(
-                          height: 160,
+                          height: widget.fullView ? 320 : 160,
                           child: LayoutBuilder(
                             builder: (context, constraints) => GestureDetector(
                               behavior: HitTestBehavior.opaque,
@@ -614,14 +625,11 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                       spots: spots,
                                       isCurved: true,
                                       curveSmoothness: 0.2,
-                                      color: colorScheme.onSurface.withValues(
-                                        alpha: 0.10,
-                                      ),
-                                      barWidth: 1.0,
+                                      gradient: zoneGradient,
+                                      barWidth: 2.0,
                                       dotData: const FlDotData(show: false),
                                       belowBarData: BarAreaData(show: false),
                                     ),
-                                    ...zoneLineSegments,
                                   ],
                                 ),
                                 duration: Duration.zero,
@@ -673,6 +681,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
                             ],
                           ],
                         ),
+                        if (widget.fullView) ...[
+                          const SizedBox(height: 18),
+                          _buildZoneSummary(context, available, zones),
+                        ],
                       ],
                     ),
             ),
@@ -1113,28 +1125,179 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return out;
   }
 
-  List<LineChartBarData> _buildZoneLineSegments(
-    List<FlSpot> spots,
+  /// A vertical, hard-stepped gradient that paints the line in its HR-zone
+  /// colour by y-position. Maps each zone's [low, high] bpm to a fraction of
+  /// the chart's y-range and repeats the colour at both ends for a sharp edge.
+  LinearGradient _buildZoneGradient(List<_Zone> zones, double maxY) {
+    final colors = <Color>[];
+    final stops = <double>[];
+    if (zones.isEmpty || maxY <= 0) {
+      return const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF22C55E)]);
+    }
+    void add(Color c, double stop) {
+      final s = stop.clamp(0.0, 1.0);
+      // Keep stops non-decreasing (LinearGradient requires ascending order).
+      colors.add(c);
+      stops.add(stops.isEmpty ? s : (s < stops.last ? stops.last : s));
+    }
+
+    add(_zoneColorByName(zones.first.name), 0.0);
+    for (final z in zones) {
+      final c = _zoneColorByName(z.name);
+      add(c, z.low / maxY);
+      add(c, z.high / maxY);
+    }
+    add(_zoneColorByName(zones.last.name), 1.0);
+
+    return LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: colors,
+      stops: stops,
+    );
+  }
+
+  // ── Full-view summary: avg/max/min + time in zone ──
+  Widget _buildZoneSummary(
+    BuildContext context,
+    List<HeartRateSample> available,
     List<_Zone> zones,
   ) {
-    if (spots.length < 2) return const [];
-    final segments = <LineChartBarData>[];
-    for (var i = 1; i < spots.length; i++) {
-      final a = spots[i - 1];
-      final b = spots[i];
-      final color = _zoneColorForBpm((a.y + b.y) / 2, zones);
-      segments.add(
-        LineChartBarData(
-          spots: [a, b],
-          isCurved: false,
-          color: color,
-          barWidth: 2.0,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(show: false),
-        ),
-      );
+    final colorScheme = Theme.of(context).colorScheme;
+    final bpms = available.map((s) => s.bpm).toList(growable: false);
+    final avg = bpms.reduce((a, b) => a + b) / bpms.length;
+    final maxBpm = bpms.reduce(max);
+    final minBpm = bpms.reduce(min);
+
+    final zoneSeconds = {for (final z in zones) z.name: 0.0};
+    for (var i = 1; i < available.length; i++) {
+      final dt =
+          (available[i].sampledAt.toInt() - available[i - 1].sampledAt.toInt())
+              .toDouble();
+      // Ignore long gaps (watch dropped out) so they don't inflate a zone.
+      if (dt <= 0 || dt > 60) continue;
+      final z = _zoneFor(available[i - 1].bpm, zones);
+      if (z != null) zoneSeconds[z.name] = (zoneSeconds[z.name] ?? 0) + dt;
     }
-    return segments;
+    final totalSec = zoneSeconds.values.fold<double>(0, (a, b) => a + b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _statTile(context, 'AVG', avg.round().toString()),
+            _statTile(context, 'MAX', maxBpm.round().toString()),
+            _statTile(context, 'MIN', minBpm.round().toString()),
+          ],
+        ),
+        if (totalSec > 0) ...[
+          const SizedBox(height: 20),
+          Text(
+            'TIME IN ZONE',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: [
+                  for (final z in zones)
+                    Expanded(
+                      flex: (zoneSeconds[z.name] ?? 0).round(),
+                      child: Container(color: _zoneColorByName(z.name)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: [
+              for (final z in zones)
+                if ((zoneSeconds[z.name] ?? 0) >= 1)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _zoneColorByName(z.name),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${z.name}  ${_formatElapsed((zoneSeconds[z.name] ?? 0).round())}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _statTile(BuildContext context, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: colorScheme.tertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _zoneColorByName(String name) {
+    switch (name) {
+      case 'Z1':
+        return const Color(0xFF22C55E);
+      case 'Z2':
+        return const Color(0xFFEAB308);
+      case 'Z3':
+        return const Color(0xFFF59E0B);
+      case 'Z4':
+        return const Color(0xFFEF4444);
+      case 'Z5':
+        return const Color(0xFFB91C1C);
+      default:
+        return const Color(0xFF22C55E);
+    }
   }
 }
 
