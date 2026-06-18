@@ -771,12 +771,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _applyWorkoutResponse(GetWorkoutResponse response) {
+    final isSameWorkout = _activeWorkout?.id == response.workout.id;
     _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
     _activeWorkout = response.workout;
     _activeExerciseGroups = List.from(response.exerciseGroups);
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
-    _workoutMessages = List<UserMessage>.from(response.userMessages);
+    // Keep the schplanner explanation sticky for the duration of a workout: a
+    // mid-workout refresh that returns no messages should not wipe the ones we
+    // already have (only replace when we get a fresh set, or switch workouts).
+    if (response.userMessages.isNotEmpty || !isSameWorkout) {
+      _workoutMessages = List<UserMessage>.from(response.userMessages);
+    }
     _refreshDerivedState();
   }
 
