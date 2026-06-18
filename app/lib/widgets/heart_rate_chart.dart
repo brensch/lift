@@ -258,7 +258,9 @@ class _HeartRateChartState extends State<HeartRateChart> {
       maxX: maxX,
     );
     final bottomInterval = _bottomAxisInterval(viewport.spanSec);
-    final zoneLineSegments = _buildZoneLineSegments(spots, zones);
+    // Colour the single line by HR zone with a vertical stepped gradient
+    // (one series) instead of emitting a separate series per point pair.
+    final zoneGradient = _buildZoneGradient(zones, maxY);
 
     final expandedHeader = Row(
       children: [
@@ -623,14 +625,11 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                       spots: spots,
                                       isCurved: true,
                                       curveSmoothness: 0.2,
-                                      color: colorScheme.onSurface.withValues(
-                                        alpha: 0.10,
-                                      ),
-                                      barWidth: 1.0,
+                                      gradient: zoneGradient,
+                                      barWidth: 2.0,
                                       dotData: const FlDotData(show: false),
                                       belowBarData: BarAreaData(show: false),
                                     ),
-                                    ...zoneLineSegments,
                                   ],
                                 ),
                                 duration: Duration.zero,
@@ -1126,28 +1125,36 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return out;
   }
 
-  List<LineChartBarData> _buildZoneLineSegments(
-    List<FlSpot> spots,
-    List<_Zone> zones,
-  ) {
-    if (spots.length < 2) return const [];
-    final segments = <LineChartBarData>[];
-    for (var i = 1; i < spots.length; i++) {
-      final a = spots[i - 1];
-      final b = spots[i];
-      final color = _zoneColorForBpm((a.y + b.y) / 2, zones);
-      segments.add(
-        LineChartBarData(
-          spots: [a, b],
-          isCurved: false,
-          color: color,
-          barWidth: 2.0,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(show: false),
-        ),
-      );
+  /// A vertical, hard-stepped gradient that paints the line in its HR-zone
+  /// colour by y-position. Maps each zone's [low, high] bpm to a fraction of
+  /// the chart's y-range and repeats the colour at both ends for a sharp edge.
+  LinearGradient _buildZoneGradient(List<_Zone> zones, double maxY) {
+    final colors = <Color>[];
+    final stops = <double>[];
+    if (zones.isEmpty || maxY <= 0) {
+      return const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF22C55E)]);
     }
-    return segments;
+    void add(Color c, double stop) {
+      final s = stop.clamp(0.0, 1.0);
+      // Keep stops non-decreasing (LinearGradient requires ascending order).
+      colors.add(c);
+      stops.add(stops.isEmpty ? s : (s < stops.last ? stops.last : s));
+    }
+
+    add(_zoneColorByName(zones.first.name), 0.0);
+    for (final z in zones) {
+      final c = _zoneColorByName(z.name);
+      add(c, z.low / maxY);
+      add(c, z.high / maxY);
+    }
+    add(_zoneColorByName(zones.last.name), 1.0);
+
+    return LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: colors,
+      stops: stops,
+    );
   }
 
   // ── Full-view summary: avg/max/min + time in zone ──
