@@ -219,6 +219,7 @@ Future<void> showEditExerciseDialog(
     RestConfig? restConfig,
   })
   onSave,
+  VoidCallback? onDelete,
 }) async {
   int sets = group.group?.sets ?? 5;
   bool interleaveWarmups = group.group?.interleaveWarmups ?? false;
@@ -517,6 +518,37 @@ Future<void> showEditExerciseDialog(
                       ),
                     ),
                   ),
+                  if (onDelete != null) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          onDelete();
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Delete exercise',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(ctx).colorScheme.error,
+                          side: BorderSide(
+                            color: Theme.of(
+                              ctx,
+                            ).colorScheme.error.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
