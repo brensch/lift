@@ -29,6 +29,9 @@ class WorkoutScreen extends StatefulWidget {
 class _WorkoutScreenState extends State<WorkoutScreen> {
   final PageController _pageController = PageController();
   int _page = 0;
+  // While the user is touching the heart-rate chart we lock horizontal paging
+  // so the chart's own pan/zoom gesture wins instead of the page swipe.
+  bool _lockPager = false;
 
   @override
   void dispose() {
@@ -88,6 +91,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
     final exschplanationSections = _buildExschplanationSections(wp);
     final hasExschplanation = exschplanationSections.isNotEmpty;
+    final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
     final workout = wp.workout!;
     return Column(
@@ -126,7 +130,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           ),
         ),
         _PageDots(
-          count: hasExschplanation ? 3 : 2,
+          // Workout + Completed + Heart rate are always present; Exschplanation
+          // only when the schplanner has notes.
+          count: 3 + (hasExschplanation ? 1 : 0),
           index: _page,
           onTap: (i) => _pageController.animateToPage(
             i,
@@ -142,25 +148,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           child: PageView(
             controller: _pageController,
             onPageChanged: (i) => setState(() => _page = i),
+            physics: _lockPager
+                ? const NeverScrollableScrollPhysics()
+                : const PageScrollPhysics(),
             children: [
               // ════ PAGE 1 — the workout ════
               ListView(
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.zero,
                 children: [
-                  if (wp.wearHeartRateSamples.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                      child: HeartRateChart(
-                        heartRateSamples: wp.wearHeartRateSamples,
-                        completedSets: wp.completedSets,
-                        workoutStartTime: workout.startTime,
-                        now: wp.now,
-                        stateSnapshot: wp.stateSnapshot,
-                        collapsible: true,
-                        startCollapsed: true,
-                      ),
-                    ),
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: LayoutBuilder(
@@ -394,7 +390,38 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   stickyHeader: true,
                 ),
               ),
-              // ════ PAGE 3 — exschplanation ════
+              // ════ PAGE 3 — heart rate (full detail) ════
+              if (hasHeartRate)
+                ListView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  children: [
+                    // Lock page-swiping while touching the chart so its own
+                    // left/right pan/zoom gesture takes priority.
+                    Listener(
+                      onPointerDown: (_) {
+                        if (!_lockPager) setState(() => _lockPager = true);
+                      },
+                      onPointerUp: (_) {
+                        if (_lockPager) setState(() => _lockPager = false);
+                      },
+                      onPointerCancel: (_) {
+                        if (_lockPager) setState(() => _lockPager = false);
+                      },
+                      child: HeartRateChart(
+                        heartRateSamples: wp.wearHeartRateSamples,
+                        completedSets: wp.completedSets,
+                        workoutStartTime: workout.startTime,
+                        now: wp.now,
+                        stateSnapshot: wp.stateSnapshot,
+                        fullView: true,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const _NoHeartRateMonitor(),
+              // ════ PAGE 4 — exschplanation ════
               if (hasExschplanation)
                 _ExschplanationPage(sections: exschplanationSections),
             ],
@@ -981,15 +1008,14 @@ class _ExerciseListCard extends StatelessWidget {
     this.onEdit,
   });
 
-  double? _maxWorkingWeight() {
-    double? maxWeight;
+  ProposedSet? _topWorkingSet() {
+    ProposedSet? top;
     for (final set in group.sets.where((set) => !set.warmup)) {
-      final weight = set.targetWeight.toDouble();
-      if (maxWeight == null || weight > maxWeight) {
-        maxWeight = weight;
+      if (top == null || set.targetWeight > top.targetWeight) {
+        top = set;
       }
     }
-    return maxWeight;
+    return top;
   }
 
   @override
@@ -998,10 +1024,13 @@ class _ExerciseListCard extends StatelessWidget {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final title =
         group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
-    final weight = _maxWorkingWeight();
-    final weightLabel = weight == null
+    final topSet = _topWorkingSet();
+    final weightLabel = topSet == null
         ? '—'
-        : formatWeight(weight, unit, includeUnit: true);
+        : formatWeight(topSet.targetWeight.toDouble(), unit, includeUnit: true);
+    final repsLabel = topSet == null
+        ? null
+        : (topSet.isAmrap ? '${topSet.targetReps}+' : '${topSet.targetReps}');
     final contentColor = completed ? AppTheme.successFg : colorScheme.onSurface;
 
     Widget content = Container(
@@ -1026,10 +1055,23 @@ class _ExerciseListCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            weightLabel,
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: weightLabel),
+                if (repsLabel != null)
+                  TextSpan(
+                    text: '  × $repsLabel',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            softWrap: false,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w900,
@@ -1199,6 +1241,50 @@ class _DashedRRectPainter extends CustomPainter {
       old.strokeWidth != strokeWidth ||
       old.dash != dash ||
       old.gap != gap;
+}
+
+// ─── No heart-rate monitor placeholder ─────────────────────────────────────
+
+class _NoHeartRateMonitor extends StatelessWidget {
+  const _NoHeartRateMonitor();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.watch_outlined, size: 52, color: colorScheme.tertiary),
+            const SizedBox(height: 18),
+            Text(
+              'No heart rate yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Get the watch app and you can see how hard you are pumping '
+              'your heart while schlifting.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.5,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Page indicator ────────────────────────────────────────────────────────

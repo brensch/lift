@@ -20,6 +20,10 @@ class HeartRateChart extends StatefulWidget {
   final bool collapsible;
   final bool startCollapsed;
 
+  /// Full-page mode: no card chrome, never collapsible, taller chart, and an
+  /// extra avg/max/min + time-in-zone summary below it.
+  final bool fullView;
+
   const HeartRateChart({
     super.key,
     required this.heartRateSamples,
@@ -30,6 +34,7 @@ class HeartRateChart extends StatefulWidget {
     this.followLiveClock = true,
     this.collapsible = false,
     this.startCollapsed = false,
+    this.fullView = false,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -394,12 +399,16 @@ class _HeartRateChartState extends State<HeartRateChart> {
     );
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.35)),
-      ),
+      padding: widget.fullView ? EdgeInsets.zero : const EdgeInsets.all(12),
+      decoration: widget.fullView
+          ? null
+          : BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.35),
+              ),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -432,7 +441,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
                       children: [
                         const SizedBox(height: 8),
                         SizedBox(
-                          height: 160,
+                          height: widget.fullView ? 320 : 160,
                           child: LayoutBuilder(
                             builder: (context, constraints) => GestureDetector(
                               behavior: HitTestBehavior.opaque,
@@ -673,6 +682,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
                             ],
                           ],
                         ),
+                        if (widget.fullView) ...[
+                          const SizedBox(height: 18),
+                          _buildZoneSummary(context, available, zones),
+                        ],
                       ],
                     ),
             ),
@@ -1135,6 +1148,149 @@ class _HeartRateChartState extends State<HeartRateChart> {
       );
     }
     return segments;
+  }
+
+  // ── Full-view summary: avg/max/min + time in zone ──
+  Widget _buildZoneSummary(
+    BuildContext context,
+    List<HeartRateSample> available,
+    List<_Zone> zones,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bpms = available.map((s) => s.bpm).toList(growable: false);
+    final avg = bpms.reduce((a, b) => a + b) / bpms.length;
+    final maxBpm = bpms.reduce(max);
+    final minBpm = bpms.reduce(min);
+
+    final zoneSeconds = {for (final z in zones) z.name: 0.0};
+    for (var i = 1; i < available.length; i++) {
+      final dt =
+          (available[i].sampledAt.toInt() - available[i - 1].sampledAt.toInt())
+              .toDouble();
+      // Ignore long gaps (watch dropped out) so they don't inflate a zone.
+      if (dt <= 0 || dt > 60) continue;
+      final z = _zoneFor(available[i - 1].bpm, zones);
+      if (z != null) zoneSeconds[z.name] = (zoneSeconds[z.name] ?? 0) + dt;
+    }
+    final totalSec = zoneSeconds.values.fold<double>(0, (a, b) => a + b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _statTile(context, 'AVG', avg.round().toString()),
+            _statTile(context, 'MAX', maxBpm.round().toString()),
+            _statTile(context, 'MIN', minBpm.round().toString()),
+          ],
+        ),
+        if (totalSec > 0) ...[
+          const SizedBox(height: 20),
+          Text(
+            'TIME IN ZONE',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: colorScheme.tertiary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: [
+                  for (final z in zones)
+                    Expanded(
+                      flex: (zoneSeconds[z.name] ?? 0).round(),
+                      child: Container(color: _zoneColorByName(z.name)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: [
+              for (final z in zones)
+                if ((zoneSeconds[z.name] ?? 0) >= 1)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _zoneColorByName(z.name),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${z.name}  ${_formatElapsed((zoneSeconds[z.name] ?? 0).round())}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _statTile(BuildContext context, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: colorScheme.tertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _zoneColorByName(String name) {
+    switch (name) {
+      case 'Z1':
+        return const Color(0xFF22C55E);
+      case 'Z2':
+        return const Color(0xFFEAB308);
+      case 'Z3':
+        return const Color(0xFFF59E0B);
+      case 'Z4':
+        return const Color(0xFFEF4444);
+      case 'Z5':
+        return const Color(0xFFB91C1C);
+      default:
+        return const Color(0xFF22C55E);
+    }
   }
 }
 
