@@ -424,6 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : null,
           scheduleMessages: freshSchedule.userMessages,
           selectedGroups: selectedGroups,
+          estimatedTimeLabel: _predictedWorkoutTimeLabel(),
           onStartWorkout: _performWorkoutStart,
         ),
       ),
