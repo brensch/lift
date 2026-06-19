@@ -23,6 +23,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve version from tag + run number
+        run: |
+          # Version NAME comes from the release tag (v0.9.6 -> 0.9.6); dispatch /
+          # non-tag runs get a dev placeholder. Build NUMBER is a stateless,
+          # monotonic value (matches the Android scheme) — TestFlight rejects a
+          # build number <= one already uploaded for the same version, and 1000+
+          # stays safely above the legacy hand-bumped numbers.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="0.0.0-dev"
+          fi
+          CODE=$((1000 + GITHUB_RUN_NUMBER))
+          echo "BUILD_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$CODE" >> "$GITHUB_ENV"
+          echo "Resolved iOS version $NAME ($CODE)"
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -190,6 +207,8 @@ jobs:
             APPLE_TEAM_ID="$APPLE_TEAM_ID" \
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
             IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME" \
+            FLUTTER_BUILD_NAME="$BUILD_NAME" \
+            FLUTTER_BUILD_NUMBER="$BUILD_NUMBER" \
             DART_DEFINES="$DART_DEFINES"
 
       - name: Verify archived iOS entitlements
@@ -275,7 +294,7 @@ jobs:
       - name: Build unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'
         working-directory: app
-        run: flutter build ios --release --no-codesign --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
+        run: flutter build ios --release --no-codesign --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" --dart-define=GIT_HASH=$(git rev-parse --short HEAD)
 
       - name: Package unsigned iOS app
         if: steps.signing-mode.outputs.enabled != 'true'
