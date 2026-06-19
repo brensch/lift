@@ -19,36 +19,37 @@ commit `vX.Y.Z` and push the tag. Pushing the tag is what triggers both builds.
 > So the commit you tag must already contain these tag-triggered workflows —
 > always tag a commit on `main` that has them, never an older one.
 
+## Version comes from the tag — do NOT hand-edit it
+
+The version is injected by CI; there is **no manual version bump**:
+
+- **Name (`X.Y.Z`)** is the tag with the `v` stripped — tag `v0.9.6` ships as
+  `0.9.6`. Choose it like semver: patch for fixes, minor for features, major
+  for breaking changes.
+- **Build number** is `1000 + GITHUB_RUN_NUMBER`, generated per run on both
+  platforms — monotonic, so stores never see a duplicate.
+
+`app/pubspec.yaml` holds a frozen `0.0.0+1` placeholder used only for local/dev
+builds. Leave it alone.
+
 ## Steps
 
-1. **Bump the version** (required before every build). Edit
-   `app/pubspec.yaml` `version: X.Y.Z+N` and bump **both** parts:
-   - **Semver `X.Y.Z`** — always increment. Patch (`Z`) for fixes, minor
-     (`Y`) for features, major (`X`) for breaking changes. This is the
-     user-visible version and must move every build.
-   - **Build number `+N`** — always increment by 1. Stores reject duplicate
-     build numbers. (Android's `versionCode` is also auto-bumped in CI, but
-     iOS/TestFlight relies on this `+N`.)
-
-   Example bugfix bump: `0.9.2+48` → `0.9.3+49`.
-
-2. **PR into `main`.** Commit the change (including the version bump) on a
-   feature branch, open a PR to `main`, get it merged.
+1. **Land your changes on `main`** via the normal PR flow (nothing version-
+   related to edit):
    ```bash
    gh pr create --base main --head <branch> --title "..." --body "..."
    gh pr merge <branch> --squash   # or --merge, after checks/review
    ```
 
-3. **Tag the merged commit and push the tag.** This push is what triggers
-   both builds. Tag `main` after the PR lands (use the same `X.Y.Z` as the
-   version bump):
+2. **Tag the merged commit and push the tag.** This push is what triggers both
+   builds. Pick the next `vX.Y.Z`:
    ```bash
    git fetch origin
-   git tag v0.9.5 origin/main
-   git push origin v0.9.5
+   git tag v0.9.6 origin/main
+   git push origin v0.9.6
    ```
 
-4. **Report run status:**
+3. **Report run status:**
    ```bash
    gh run list --event push --limit 5      # tag pushes show as 'push' events
    ```
@@ -63,6 +64,10 @@ commit `vX.Y.Z` and push the tag. Pushing the tag is what triggers both builds.
 - iOS uploads to App Store Connect via `altool` using `APP_STORE_CONNECT_*`
   secrets; Android uploads via Google Play service account. If those secrets
   are missing the workflow still builds an artifact but skips the upload.
+- Both workflows resolve the version in a `Resolve version from tag + run
+  number` step. On a `workflow_dispatch` (non-tag) run the name falls back to
+  `0.0.0-dev`, so those builds are clearly marked and won't collide with a real
+  release name.
 - The upload step only checks that store secrets exist, not what ref the run
   is on — which is exactly why a feature-branch `workflow_dispatch` would
   still push to the stores. Stick to the tag flow.

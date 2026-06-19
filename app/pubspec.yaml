@@ -1,7 +1,10 @@
 name: schlift
 description: "Schlift workout tracker"
 publish_to: 'none'
-version: 0.9.5+51
+# Version is injected by CI from the release tag (vX.Y.Z) plus the run number
+# (build = 1000 + GITHUB_RUN_NUMBER). This placeholder is only used for local /
+# dev builds — never bump it by hand; cut a release by pushing a `vX.Y.Z` tag.
+version: 0.0.0+1
 
 environment:
   sdk: ^3.11.0
