@@ -7,13 +7,17 @@ description: Build and submit the Lift app to TestFlight / Google Play. Use when
 
 The iOS and Android release workflows build the Flutter app and, when store
 secrets are present, upload to **TestFlight** (iOS) and **Google Play**
-(Android). They trigger on push to the **`release`** branch.
+(Android). They trigger on pushing a **`v*` git tag** (e.g. `v0.9.5`).
 
-**Always ship via the `release` branch.** Do not use `gh workflow run` /
+**Always ship by tagging a commit on `main`.** Do not use `gh workflow run` /
 `workflow_dispatch` against a feature branch to cut a real build — that
 bypasses code review and pollutes the store with builds that aren't on
-`release`. The canonical flow is: PR into `main`, merge, then promote `main`
-to `release`. A push to `release` is what triggers the build.
+`main`. The canonical flow is: PR into `main`, merge, then tag the merged
+commit `vX.Y.Z` and push the tag. Pushing the tag is what triggers both builds.
+
+> GitHub Actions runs the workflow file **as it exists at the tagged commit**.
+> So the commit you tag must already contain these tag-triggered workflows —
+> always tag a commit on `main` that has them, never an older one.
 
 ## Steps
 
@@ -35,17 +39,18 @@ to `release`. A push to `release` is what triggers the build.
    gh pr merge <branch> --squash   # or --merge, after checks/review
    ```
 
-3. **Promote `main` to `release`.** This push is what triggers both builds:
+3. **Tag the merged commit and push the tag.** This push is what triggers
+   both builds. Tag `main` after the PR lands (use the same `X.Y.Z` as the
+   version bump):
    ```bash
    git fetch origin
-   git push origin origin/main:release
+   git tag v0.9.5 origin/main
+   git push origin v0.9.5
    ```
-   (Or open a `main → release` PR and merge it if you want a review gate on
-   the promotion too.)
 
 4. **Report run status:**
    ```bash
-   gh run list --branch release --limit 5
+   gh run list --event push --limit 5      # tag pushes show as 'push' events
    ```
    Give the user the run URLs (`gh run view <id> --web`). Do not block waiting
    for completion unless asked.
@@ -58,6 +63,6 @@ to `release`. A push to `release` is what triggers the build.
 - iOS uploads to App Store Connect via `altool` using `APP_STORE_CONNECT_*`
   secrets; Android uploads via Google Play service account. If those secrets
   are missing the workflow still builds an artifact but skips the upload.
-- The upload step only checks that store secrets exist, not which branch the
-  run is on — which is exactly why a feature-branch `workflow_dispatch` would
-  still push to the stores. Stick to the `release` flow.
+- The upload step only checks that store secrets exist, not what ref the run
+  is on — which is exactly why a feature-branch `workflow_dispatch` would
+  still push to the stores. Stick to the tag flow.
