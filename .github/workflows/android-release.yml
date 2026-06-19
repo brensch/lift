@@ -73,16 +73,25 @@ jobs:
             exit 1
           fi
 
-      - name: Auto-bump versionCode (build number)
+      - name: Resolve version from tag + run number
         working-directory: app
         run: |
-          # Stateless, monotonic versionCode so Play never rejects a duplicate.
-          # Kept small because the wear module derives its code as base*1000+1
+          # Version NAME comes from the release tag (v0.9.6 -> 0.9.6); dispatch /
+          # non-tag runs get a dev placeholder. Build CODE is a stateless,
+          # monotonic versionCode so Play never rejects a duplicate. Kept small
+          # because the wear module derives its code as base*1000+1
           # (app/android/wear/build.gradle.kts), which must stay under the 2.1B int cap.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="0.0.0-dev"
+          fi
           CODE=$((1000 + GITHUB_RUN_NUMBER))
-          NAME=$(grep -E '^version:' pubspec.yaml | sed -E 's/^version:[[:space:]]*//; s/\+.*//')
+          # Rewrite pubspec so both the phone build and the separate wear gradle
+          # build (which reads flutter.versionName/Code from local.properties,
+          # regenerated from pubspec) pick up the same version.
           sed -i -E "s|^version:.*|version: ${NAME}+${CODE}|" pubspec.yaml
-          echo "phone versionCode=${CODE}, wear versionCode=$((CODE * 1000 + 1))"
+          echo "phone version=${NAME}+${CODE}, wear versionCode=$((CODE * 1000 + 1))"
           grep -E '^version:' pubspec.yaml
 
       - name: Build phone app bundle (.aab)
