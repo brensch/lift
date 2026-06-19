@@ -54,6 +54,52 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
+    // Launch/foreground permission check. Logs the current workout-share status
+    // (the only HealthKit status the system will report — read-type status is
+    // always hidden as .notDetermined for privacy) and then re-requests. The
+    // request is idempotent: the system only presents its sheet for types not yet
+    // determined, so this won't nag a user who has already answered.
+    func checkAndRequestAuthorization() {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            print("SchliftWatch: HealthKit unavailable; skipping permission check")
+            return
+        }
+        let workoutStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
+        print("SchliftWatch: foreground health check — workout share status=\(workoutStatus.rawValue)")
+        requestAuthorizationIfNeeded(completion: nil)
+    }
+
+    // Result of probing whether HealthKit would still present its permission
+    // sheet for heart-rate READ access. HealthKit never reports read-type denial
+    // directly (privacy), so `.determined` ("won't prompt again") is as close as
+    // we can get — the caller combines it with "no samples arriving" to infer a
+    // denial.
+    enum HeartRateReadProbe {
+        case shouldRequest   // never answered — a request will present the sheet
+        case determined      // already answered (allowed OR denied) — no sheet will show
+        case unavailable     // HealthKit / HR type not available on this device
+    }
+
+    func probeHeartRateReadAuthorization(completion: @escaping (HeartRateReadProbe) -> Void) {
+        guard HKHealthStore.isHealthDataAvailable(),
+              let hr = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+            DispatchQueue.main.async { completion(.unavailable) }
+            return
+        }
+        healthStore.getRequestStatusForAuthorization(toShare: [], read: [hr]) { status, error in
+            if let error = error {
+                print("SchliftWatch: getRequestStatusForAuthorization error: \(error)")
+            }
+            let probe: HeartRateReadProbe
+            switch status {
+            case .shouldRequest: probe = .shouldRequest
+            case .unnecessary: probe = .determined
+            default: probe = .unavailable
+            }
+            DispatchQueue.main.async { completion(probe) }
+        }
+    }
+
     func ensureSessionActive() {
         guard !isSessionRunning else { return }
         guard HKHealthStore.isHealthDataAvailable() else {

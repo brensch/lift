@@ -8,12 +8,16 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
     @Published private(set) var latestBpm: Double?
     @Published private(set) var isActionPending = false
+    // Set when we infer the user has DENIED heart-rate read access: HealthKit
+    // refuses to report read-type denial directly, so we conclude it from "the
+    // system won't prompt again" + "no samples are arriving" (see runHRWatchdog).
+    // Drives the "enable HR in Settings" modal. Flagged at most once per workout.
+    @Published var heartRateAccessDenied = false
+    private var heartRateDeniedEvaluated = false
 
     private var heartbeatTimer: Timer?
     private let workoutSessionManager = WorkoutSessionManager()
     private let sensorBatchOutbox = WatchSensorBatchOutbox()
-    private var lastSnapshotReceivedAtMs: Int64 = 0
-    private var lastSnapshotEmittedAtMs: Int64 = 0
     private var pendingActionTimeout: DispatchWorkItem?
     private var restExpiryRequest: DispatchWorkItem?
     private var restCompletionHaptic: DispatchWorkItem?
@@ -252,13 +256,30 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// Verify HealthKit access (heart-rate read + workout-session share) on every
+    /// app launch / foreground, mirroring WearOS's onResume() permission re-check.
+    /// Called from ContentView's onAppear and scenePhase→active — deliberately NOT
+    /// from setUIVisible, which also fires on wrist-raise / luminance changes. The
+    /// one-shot request in init() can run before the app is frontmost (so the
+    /// system never presents the sheet), and a user who enables access later in
+    /// Watch Settings needs it to take effect. Safe to call repeatedly: HealthKit
+    /// only presents its sheet for types whose status is still not-determined.
+    func checkHealthPermissionsOnForeground() {
+        workoutSessionManager.checkAndRequestAuthorization()
+    }
+
     func synchronizedNowMs() -> Int64 {
-        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
-        guard lastSnapshotEmittedAtMs > 0, lastSnapshotReceivedAtMs > 0 else {
-            return nowMs
-        }
-        let elapsedMs = nowMs - lastSnapshotReceivedAtMs
-        return lastSnapshotEmittedAtMs + max(0, elapsedMs)
+        // The watch's wall clock is NTP-synced with the phone, so it is already a
+        // faithful estimate of "phone now" — which is exactly what restUntil /
+        // activeStartedAt / workoutStartTime (phone wall-clock seconds) are
+        // compared against. We deliberately do NOT anchor on snapshot.emittedAt:
+        // snapshots routinely arrive stale (the phone replies to snapshot_request
+        // with cached bytes, and pushes are delayed while the phone app is
+        // suspended), so anchoring would repeatedly drag this clock back to the
+        // emit time and freeze/reset the on-watch timer. WearOS must anchor on
+        // emittedAt only because its monotonic clock (SystemClock.elapsedRealtime)
+        // is not a wall clock; the watch has no such constraint.
+        Int64(Date().timeIntervalSince1970 * 1000)
     }
 
     private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
@@ -271,8 +292,6 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
            snapshot.emittedAt < existing.emittedAt {
             return
         }
-        lastSnapshotReceivedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
-        lastSnapshotEmittedAtMs = snapshot.emittedAt
         let snapshotKey = meaningfulSnapshotKey(snapshot)
         self.snapshot = snapshot
         manageCompanionSession(for: snapshot)
@@ -303,6 +322,14 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     private func bufferAndFlushHRSample(_ sample: Workout_V1_HeartRateSample) {
         lastHRSampleAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+        // A real sample arrived → read access is clearly working; clear any
+        // previously-inferred denial so a stale modal can't linger.
+        if heartRateAccessDenied || heartRateDeniedEvaluated {
+            DispatchQueue.main.async { [weak self] in
+                self?.heartRateAccessDenied = false
+                self?.heartRateDeniedEvaluated = false
+            }
+        }
         hrLock.lock()
         let workoutID = pendingHRWorkoutID
         pendingHRSamples.append(sample)
@@ -334,6 +361,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             if pendingHRWorkoutID != snapshot.workoutID {
                 lastHRSampleAtMs = 0
                 hrMonitoringStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+                heartRateDeniedEvaluated = false
             } else if hrMonitoringStartedAtMs == 0 {
                 hrMonitoringStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
             }
@@ -378,6 +406,27 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         if lastHRSampleAtMs == 0,
            hrMonitoringStartedAtMs > 0,
            nowMs - hrMonitoringStartedAtMs > 25_000 {
+            // 25s with no HR sample: either access is denied or the stream is
+            // wedged. Probe whether the system would still prompt — if not, the
+            // user has already answered, and zero samples means they denied it.
+            // Surface the modal instead of silently restarting forever.
+            if !heartRateDeniedEvaluated {
+                heartRateDeniedEvaluated = true
+                workoutSessionManager.probeHeartRateReadAuthorization { [weak self] probe in
+                    guard let self = self else { return }
+                    switch probe {
+                    case .determined:
+                        print("SchliftWatch: No HR samples and system won't re-prompt — inferring HR denied")
+                        self.heartRateAccessDenied = true
+                    case .shouldRequest:
+                        // Never actually answered — ask now (presents the sheet).
+                        self.heartRateDeniedEvaluated = false
+                        self.workoutSessionManager.requestAuthorizationIfNeeded(completion: nil)
+                    case .unavailable:
+                        self.heartRateDeniedEvaluated = false
+                    }
+                }
+            }
             print("SchliftWatch: No initial HR sample within 25s, restarting workout session")
             workoutSessionManager.restart()
             hrMonitoringStartedAtMs = nowMs
