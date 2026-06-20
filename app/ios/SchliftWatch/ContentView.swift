@@ -60,56 +60,18 @@ struct ContentView: View {
         }
         .onAppear {
             connector.setUIVisible(true)
-            connector.checkHealthPermissionsOnForeground()
         }
         .onDisappear {
             connector.setUIVisible(false)
         }
         .onChange(of: scenePhase) { newPhase in
             connector.setUIVisible(newPhase == .active)
-            if newPhase == .active {
-                connector.checkHealthPermissionsOnForeground()
-            }
         }
         .onChange(of: isLuminanceReduced) { reduced in
             if !reduced {
                 connector.setUIVisible(true)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { connector.heartRateAccessDenied },
-            set: { connector.heartRateAccessDenied = $0 }
-        )) {
-            heartRateDeniedModal
-        }
-    }
-
-    @ViewBuilder
-    private var heartRateDeniedModal: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "heart.slash.fill")
-                        .foregroundColor(Color(red: 0xEF/255, green: 0x44/255, blue: 0x44/255))
-                    Text("Heart rate off")
-                        .font(displayFontName(size: 18))
-                        .foregroundColor(.white)
-                }
-
-                Text("Schlift can't read your heart rate because access was turned off. On your iPhone, open Settings → Privacy & Security → Health → Schlift and turn on Heart Rate.")
-                    .font(.custom(bodyFont, size: 14))
-                    .foregroundColor(Color(red: 0xCB/255, green: 0xD5/255, blue: 0xE1/255))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button("Got it") {
-                    connector.heartRateAccessDenied = false
-                }
-                .font(displayFontName(size: 16, weight: .medium))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-        }
-        .background(Color.black)
     }
 
     @ViewBuilder

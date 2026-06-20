@@ -34,9 +34,9 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         [HKObjectType.workoutType()]
     }
 
-    // Idempotent — the system caches the user's answer, so calling this repeatedly is
-    // cheap and safe. We never gate on "have we already asked", so a denied-then-granted
-    // sequence (user flipped the setting in Watch Settings) still takes effect.
+    // Requested once per workout, from ensureSessionActive() when the HK session is
+    // (re)started. The system caches the user's answer and only presents its sheet for
+    // types still not-determined, so this never nags between workouts.
     func requestAuthorizationIfNeeded(completion: ((Bool) -> Void)? = nil) {
         guard HKHealthStore.isHealthDataAvailable() else {
             completion?(false)
@@ -51,52 +51,6 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             DispatchQueue.main.async {
                 completion?(success)
             }
-        }
-    }
-
-    // Launch/foreground permission check. Logs the current workout-share status
-    // (the only HealthKit status the system will report — read-type status is
-    // always hidden as .notDetermined for privacy) and then re-requests. The
-    // request is idempotent: the system only presents its sheet for types not yet
-    // determined, so this won't nag a user who has already answered.
-    func checkAndRequestAuthorization() {
-        guard HKHealthStore.isHealthDataAvailable() else {
-            print("SchliftWatch: HealthKit unavailable; skipping permission check")
-            return
-        }
-        let workoutStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
-        print("SchliftWatch: foreground health check — workout share status=\(workoutStatus.rawValue)")
-        requestAuthorizationIfNeeded(completion: nil)
-    }
-
-    // Result of probing whether HealthKit would still present its permission
-    // sheet for heart-rate READ access. HealthKit never reports read-type denial
-    // directly (privacy), so `.determined` ("won't prompt again") is as close as
-    // we can get — the caller combines it with "no samples arriving" to infer a
-    // denial.
-    enum HeartRateReadProbe {
-        case shouldRequest   // never answered — a request will present the sheet
-        case determined      // already answered (allowed OR denied) — no sheet will show
-        case unavailable     // HealthKit / HR type not available on this device
-    }
-
-    func probeHeartRateReadAuthorization(completion: @escaping (HeartRateReadProbe) -> Void) {
-        guard HKHealthStore.isHealthDataAvailable(),
-              let hr = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
-            DispatchQueue.main.async { completion(.unavailable) }
-            return
-        }
-        healthStore.getRequestStatusForAuthorization(toShare: [], read: [hr]) { status, error in
-            if let error = error {
-                print("SchliftWatch: getRequestStatusForAuthorization error: \(error)")
-            }
-            let probe: HeartRateReadProbe
-            switch status {
-            case .shouldRequest: probe = .shouldRequest
-            case .unnecessary: probe = .determined
-            default: probe = .unavailable
-            }
-            DispatchQueue.main.async { completion(probe) }
         }
     }
 

@@ -28,7 +28,12 @@ data/
 user_dbs/
 
 .tmp/
+tmp/
 aab/
+
+# Python caches
+__pycache__/
+*.pyc
 
 *.jks
 # Local secrets

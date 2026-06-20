@@ -1,6 +1,7 @@
 import Foundation
 import WatchConnectivity
 import Flutter
+import HealthKit
 
 /// Singleton that manages WatchConnectivity on the phone side.
 /// Mirrors the Android `WearBridgeManager` — publishes snapshots to watch,
@@ -26,6 +27,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private var pendingClockSyncs: [String: (Int64) -> Void] = [:]
     private var lastWatchUiHeartbeatAtMs: Int64 = 0
     private var lastSnapshotBytes: Data?
+    private let healthStore = HKHealthStore()
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
     private override init() {
@@ -114,13 +116,48 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             return
         }
 
-        let message: [String: Any] = ["path": WatchBridgeManager.phoneToWearLaunchPath]
+        // Preferred path: HKHealthStore.startWatchApp can cold-launch the watch app even
+        // when it's closed/suspended (WatchConnectivity cannot — see below). It hands the
+        // workout configuration to the watch's WKApplicationDelegate.handle(_:). If the
+        // launch can't be honoured for any reason we fall back to the connectivity nudge,
+        // so this is strictly additive — no regression versus the old behaviour.
+        guard HKHealthStore.isHealthDataAvailable() else {
+            wakeWatchViaConnectivity(session: session, completion: completion)
+            return
+        }
 
-        // If the watch is reachable, sendMessage will wake/foreground the watch app.
-        // Otherwise queue via transferUserInfo so the next time the user taps the
-        // app on their wrist, it picks up the launch intent. iOS does not allow
-        // cold-launching a suspended watch app from the phone — the user must
-        // tap it themselves in that case.
+        // startWatchApp requires the phone app to be authorized to share workouts. The
+        // request is idempotent — the system only presents its sheet for not-yet-decided
+        // types — so calling it on each workout start is cheap and won't nag. We proceed
+        // regardless of the result: if it's denied, startWatchApp fails and we fall back.
+        let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
+        healthStore.requestAuthorization(toShare: shareTypes, read: []) { [weak self] _, authError in
+            guard let self = self else { return }
+            if let authError = authError {
+                print("SchliftWearBridge: phone HealthKit auth error: \(authError)")
+            }
+            let configuration = HKWorkoutConfiguration()
+            configuration.activityType = .traditionalStrengthTraining
+            configuration.locationType = .indoor
+            self.healthStore.startWatchApp(toHandle: configuration) { [weak self] success, error in
+                if let error = error {
+                    print("SchliftWearBridge: startWatchApp failed, falling back to connectivity: \(error)")
+                }
+                if success {
+                    completion(true)
+                } else {
+                    self?.wakeWatchViaConnectivity(session: session, completion: completion)
+                }
+            }
+        }
+    }
+
+    /// Fallback wake path. `sendMessage` foregrounds the watch app only if it is already
+    /// running/reachable; otherwise we queue via `transferUserInfo` so the launch intent
+    /// is picked up the next time the user opens the app on their wrist. This cannot
+    /// cold-launch a suspended app — that's what `startWatchApp` above is for.
+    private func wakeWatchViaConnectivity(session: WCSession, completion: @escaping (Bool) -> Void) {
+        let message: [String: Any] = ["path": WatchBridgeManager.phoneToWearLaunchPath]
         if session.isReachable {
             session.sendMessage(message, replyHandler: { _ in
                 completion(true)
