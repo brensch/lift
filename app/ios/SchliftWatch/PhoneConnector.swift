@@ -54,7 +54,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     // Called from the WKApplicationDelegate when the phone cold-launches us via
-    // startWatchApp(toHandle:). We must start the HK session from this launch path (see
+    // startWatchApp(with:). We must start the HK session from this launch path (see
     // WatchAppDelegate). ensureSessionActive is idempotent, so if a snapshot has already
     // started the session this is a no-op. HR samples collected before the phone's
     // snapshot supplies a workoutID are dropped until then; the session staying active is

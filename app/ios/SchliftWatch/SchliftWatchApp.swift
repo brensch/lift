@@ -15,7 +15,7 @@ struct SchliftWatchApp: App {
     }
 }
 
-/// Receives the launch the iPhone triggers via `HKHealthStore.startWatchApp(toHandle:)`.
+/// Receives the launch the iPhone triggers via `HKHealthStore.startWatchApp(with:)`.
 /// `startWatchApp` launches this app into the *background* (it then runs via the
 /// workout-processing mode), and on watchOS 10+ a workout session may only be started
 /// from this sanctioned launch callback — starting it from any other background context

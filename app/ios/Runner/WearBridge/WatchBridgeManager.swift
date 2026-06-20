@@ -139,7 +139,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = .traditionalStrengthTraining
             configuration.locationType = .indoor
-            self.healthStore.startWatchApp(toHandle: configuration) { [weak self] success, error in
+            self.healthStore.startWatchApp(with: configuration) { [weak self] success, error in
                 if let error = error {
                     print("SchliftWearBridge: startWatchApp failed, falling back to connectivity: \(error)")
                 }
