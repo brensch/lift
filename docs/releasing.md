@@ -1,4 +1,12 @@
-# Play Store Release Checklist (Phone + Wear)
+# Release Guide (Android, Wear & iOS)
+
+Releases are triggered by pushing a `v*` tag (e.g. `git tag v0.9.6 origin/main &&
+git push origin v0.9.6`), which runs the signed Android/Wear and iOS build
+workflows. This document covers signing setup, required secrets, and the store
+checklists. The backend deploys separately on push to `main`
+(`.github/workflows/backend-deploy.yml`).
+
+## Android / Wear (Play Store)
 
 This project publishes two Android artifacts under one package:
 - Phone app module: `app/android/app`
@@ -58,16 +66,18 @@ keyPassword=REPLACE_ME
 
 ## 4) Set Release Version
 
-Phone version source:
-- `app/pubspec.yaml` -> `version: x.y.z+N`
+For CI release builds there is **no manual version step** — the version is
+derived from the release tag and run number (see `Resolve version from tag +
+run number` in `.github/workflows/android-release.yml`):
+- **name** = the `v*` tag with the `v` stripped (`v0.9.6` → `0.9.6`)
+- **phone build number** = `1000 + GITHUB_RUN_NUMBER`
+- **wear `versionCode`** = `(phoneBuildNumber * 1000) + 1` to avoid collisions
 
-Wear version source:
-- Derived from `app/android/local.properties` Flutter version values during build.
-- Wear `versionCode` is computed as `(phoneVersionCode * 1000) + 1` to avoid collisions.
-
-Before each upload:
-1. Bump `app/pubspec.yaml` version/build number.
-2. Run `flutter pub get` in `app/`.
+`app/pubspec.yaml` holds a frozen `0.0.0+1` placeholder (local/dev only). The CI
+step rewrites it at build time so the phone build and the separate wear gradle
+build (which reads the version from `app/android/local.properties`) stay in
+sync. For a purely local build, pass the version yourself:
+`flutter build appbundle --build-name=x.y.z --build-number=N`.
 
 ## 5) Build Release Artifacts
 
@@ -136,6 +146,36 @@ base64 -w 0 ~/upload-keystore.jks
 ```
 
 Run options:
-- Manual: Actions tab -> `Android Release` -> `Run workflow`
-- Branch trigger: push `release`
+- Manual: Actions tab -> `Android Release` -> `Run workflow` (test builds only;
+  versioned `0.0.0-dev`)
+- Tag trigger: push a `v*` tag (e.g. `git tag v0.9.6 origin/main && git push
+  origin v0.9.6`)
   - This builds artifacts and uploads both AABs to the Play Console internal track.
+
+## iOS (App Store)
+
+Workflow file: `.github/workflows/ios-build.yml`, triggered on `v*` tags or
+manual dispatch. It regenerates `Runner.xcodeproj` from `app/ios/project.yml`,
+then:
+
+- **If Apple signing secrets are present:** imports the distribution
+  certificate into a temporary CI keychain, installs the iPhone + watch
+  provisioning profiles, archives the signed app, and exports an IPA artifact.
+- **If they are missing:** builds an unsigned app with `--no-codesign` and
+  uploads `Runner.app.zip`.
+
+It does not upload to App Store Connect automatically.
+
+Required for real iOS distribution (Apple Developer Program needed):
+- Distribution certificate (`.p12`) and password
+- iPhone app provisioning profile
+- watch app provisioning profile
+- Apple Team ID
+- (Later) App Store Connect API key for automated upload
+
+Required GitHub Actions secrets:
+- `IOS_CERT_P12_BASE64`
+- `IOS_CERT_PASSWORD`
+- `IOS_APP_PROVISION_PROFILE_BASE64`
+- `IOS_WATCH_PROVISION_PROFILE_BASE64`
+- `APPLE_TEAM_ID`
