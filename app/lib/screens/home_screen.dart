@@ -474,6 +474,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _attemptAutoLaunchWatchApp(WearableBridgeService bridge) async {
     try {
+      // Only engage HealthKit / the watch when a paired watch app is actually present —
+      // heart rate comes from the watch, so there's nothing to authorize without one.
+      if (!await bridge.isWatchAppAvailable()) return;
+      // Request health permissions up front on the phone so the user gets the clear
+      // full-screen Health sheet (incl. Heart Rate) at workout start, before the watch
+      // session needs the data. Idempotent — won't re-prompt once answered.
+      await bridge.requestHealthAuthorization();
       await bridge.openWatchApp();
     } catch (e) {
       debugPrint('Auto watch launch failed: $e');

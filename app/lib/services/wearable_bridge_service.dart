@@ -9,6 +9,11 @@ abstract class WearableBridgeService {
   Future<void> dispose();
 
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot);
+
+  /// Requests health-data authorization (heart rate, etc.) on the phone, up front.
+  /// No-op on platforms without a phone-side health permission flow.
+  Future<void> requestHealthAuthorization();
+
   Future<bool> openWatchApp();
   Future<bool> isWatchAppAvailable();
   Future<bool> isWatchAppOpenOnWatch();
@@ -46,6 +51,9 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {}
+
+  @override
+  Future<void> requestHealthAuthorization() async {}
 
   @override
   Future<bool> openWatchApp() async => false;

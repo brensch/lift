@@ -52,6 +52,11 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
                 result(success)
             }
 
+        case "requestHealthAuthorization":
+            WatchBridgeManager.shared.requestHealthAuthorization { granted in
+                result(granted)
+            }
+
         case "isWatchAppAvailable":
             result(WatchBridgeManager.shared.isWatchAppAvailable())
 
