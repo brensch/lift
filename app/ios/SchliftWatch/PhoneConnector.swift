@@ -289,9 +289,25 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             reconcileRestCompletionAlert()
             sendHeartbeat()
             requestSnapshotFromPhone()
+            // Also pull the last state the phone PUSHED. requestSnapshotFromPhone needs the
+            // phone to be reachable to reply; receivedApplicationContext is cached locally and
+            // works even when the phone app is backgrounded — so this is how we reliably pick
+            // up "workout ended" on wrist-raise after the user ended on the phone.
+            ingestLatestApplicationContext()
         } else {
             stopHeartbeat()
         }
+    }
+
+    // The phone always mirrors the latest snapshot into updateApplicationContext, which the
+    // system delivers to the watch without requiring reachability and caches in
+    // receivedApplicationContext. Reading it here lets the watch converge on the true state
+    // (including workout-ended → tear the session down) even when neither app can do live
+    // messaging — the gap that left the HK session (and the watch-face indicator) stuck on.
+    private func ingestLatestApplicationContext() {
+        let ctx = WCSession.default.receivedApplicationContext
+        guard !ctx.isEmpty else { return }
+        handleIncomingMessage(ctx)
     }
 
     func synchronizedNowMs() -> Int64 {
@@ -426,7 +442,14 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func runHRWatchdog() {
-        // Always re-call ensureSessionActive — it's a no-op when the session is running.
+        // First, converge on the phone's latest PUSHED state (works without reachability).
+        // If the workout has ended, this tears the session down via manageCompanionSession,
+        // which also stops this watchdog — so bail before re-asserting the session, otherwise
+        // we'd immediately restart what we just ended. This is what finally stops the watch
+        // session when the user ends on the phone while both apps are backgrounded.
+        ingestLatestApplicationContext()
+        guard hrWatchdogTimer != nil else { return }
+        // Re-assert the session — no-op when it's already running.
         workoutSessionManager.ensureSessionActive()
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         if lastHRSampleAtMs == 0,
