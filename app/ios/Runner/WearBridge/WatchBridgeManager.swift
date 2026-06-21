@@ -12,6 +12,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private static let watchUiHeartbeatTtlMs: Int64 = 8_000
     private static let phoneToWearSnapshotPath = "/schlift/phone/snapshot"
     private static let phoneToWearLaunchPath = "/schlift/phone/launch"
+    private static let phoneToWearEndWorkoutPath = "/schlift/phone/end_workout"
     private static let phoneToWearClockSyncPath = "/schlift/phone/clock_sync"
     private static let phoneToWearSensorBatchAckPath = "/schlift/phone/sensor_batch_ack"
     private static let wearToPhoneIntentPath = "/schlift/wear/intent"
@@ -89,6 +90,27 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             // rest/start state changes while its UI is inactive and reschedule local
             // boundary haptics from the newest snapshot it receives.
             session.transferUserInfo(message)
+        }
+    }
+
+    /// Dedicated "end this workout" command to the watch — the only way the phone can stop
+    /// the watch's HKWorkoutSession (the session is owned by watchOS; iOS cannot end it
+    /// directly). We send it via transferUserInfo, WCSession's GUARANTEED delivery channel:
+    /// it is queued and delivered to the watch app even when it's backgrounded/unreachable,
+    /// unlike sendMessage. We also sendMessage when reachable for an instant teardown. The
+    /// watch handler force-ends its session regardless of snapshot state.
+    func endWatchWorkout(workoutId: String) {
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired else { return }
+        let message: [String: Any] = [
+            "path": WatchBridgeManager.phoneToWearEndWorkoutPath,
+            "data": Data(workoutId.utf8),
+        ]
+        session.transferUserInfo(message)
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil) { error in
+                print("SchliftWearBridge: Failed to send end-workout command: \(error)")
+            }
         }
     }
 

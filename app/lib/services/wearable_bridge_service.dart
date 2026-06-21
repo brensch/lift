@@ -10,6 +10,12 @@ abstract class WearableBridgeService {
 
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot);
   Future<bool> openWatchApp();
+
+  /// Tell the watch to end the given workout's tracking session. The phone cannot end the
+  /// watch's HKWorkoutSession directly, so this sends a dedicated guaranteed-delivery
+  /// command the watch acts on. No-op where the platform already stops it reliably.
+  Future<void> endWatchWorkout(String workoutId);
+
   Future<bool> isWatchAppAvailable();
   Future<bool> isWatchAppOpenOnWatch();
   Future<WatchClockSync?> getWatchClockSync();
@@ -46,6 +52,9 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {}
+
+  @override
+  Future<void> endWatchWorkout(String workoutId) async {}
 
   @override
   Future<bool> openWatchApp() async => false;

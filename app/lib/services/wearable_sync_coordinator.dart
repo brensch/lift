@@ -24,6 +24,9 @@ class WearableSyncCoordinator {
   bool _workoutEverLoaded = false;
   String? _lastPublishedSnapshotKey;
   String? _lastWorkoutId;
+  // Workout id we've already told the watch to end, so we send the dedicated end command
+  // exactly once when a workout finishes (phone- or watch-initiated).
+  String? _endCommandSentForWorkoutId;
   // Suppresses dedupe-skips and unsolicited publishes (e.g. 1s multiplayer poll
   // ticks) while an intent is mid-flight. Otherwise a stale poll-driven publish
   // can clear the watch's pending state on pre-mutation data, and a dedupe hit
@@ -71,6 +74,15 @@ class WearableSyncCoordinator {
     if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
       _workoutEverLoaded = true;
       _replayPendingIntents();
+    }
+    // When the workout becomes ended, tell the watch to stop its HK session (exactly once).
+    // The phone cannot end the watch's session directly — this dedicated, guaranteed-delivery
+    // command is the reliable way to stop it, independent of the snapshot pipeline.
+    if (_workoutProvider.isWorkoutEnded &&
+        workoutId != null &&
+        _endCommandSentForWorkoutId != workoutId) {
+      _endCommandSentForWorkoutId = workoutId;
+      unawaited(_bridgeService.endWatchWorkout(workoutId));
     }
     _publishSnapshot();
   }
