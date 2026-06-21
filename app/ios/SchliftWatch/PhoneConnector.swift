@@ -72,24 +72,29 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Send intent to phone
 
+    /// Force-ends the watch's HK workout session right now and blocks a stale "all sets
+    /// done" snapshot from restarting it. Called when the user finishes from the watch's
+    /// complete screen — including when the workout was already ended on the phone but the
+    /// session lingered (watchOS has no always-on listener like Android, so the phone's
+    /// "ended" snapshot can be missed/delayed and the HR watchdog keeps re-asserting it).
+    func endLocalSession() {
+        if let id = snapshot?.workoutID, !id.isEmpty {
+            endedWorkoutID = id
+        }
+        stopHRWatchdog()
+        hrLock.lock()
+        pendingHRWorkoutID = ""
+        pendingHRSamples.removeAll()
+        hrLock.unlock()
+        workoutSessionManager.endSessionIfActive()
+    }
+
     func sendIntent(action: Workout_V1_WearAction) {
-        // Explicit end from the watch: tear our workout session down immediately so the
-        // tracking indicator clears right away, rather than waiting for the phone to echo
-        // back an "ended" snapshot (which can be delayed when the watch is in the
-        // background — unlike Android, watchOS has no always-on listener, and the HR
-        // watchdog would otherwise keep re-asserting the session). endedWorkoutID then
-        // blocks a stale "all sets done" snapshot from restarting it. We still send the
-        // intent below so the phone ends the workout too.
+        // Explicit end from the watch: tear the session down immediately rather than waiting
+        // for the phone to echo back an "ended" snapshot. We still send the intent below so
+        // the phone ends the workout too.
         if action.type == .endWorkout {
-            if let id = snapshot?.workoutID, !id.isEmpty {
-                endedWorkoutID = id
-            }
-            stopHRWatchdog()
-            hrLock.lock()
-            pendingHRWorkoutID = ""
-            pendingHRSamples.removeAll()
-            hrLock.unlock()
-            workoutSessionManager.endSessionIfActive()
+            endLocalSession()
         }
 
         guard !isActionPending else { return }

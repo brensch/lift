@@ -11,60 +11,12 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private var starting = false
     private var currentSessionState: HKWorkoutSessionState = .notStarted
     private var builderCollectionStarted = false
-    // HealthKit authorization is requested at most once per app run. ensureSessionActive
-    // is called repeatedly by the watchdog (every 10–25s) and on every session restart;
-    // without this guard each call re-invoked requestAuthorization, which re-presented the
-    // permission sheet on the wrist over and over.
-    private var hasRequestedAuthorization = false
 
     private var isSessionRunning: Bool {
         session != nil &&
         builder != nil &&
         builderCollectionStarted &&
         currentSessionState == .running
-    }
-
-    private var readTypes: Set<HKObjectType> {
-        var types: Set<HKObjectType> = []
-        if let hr = HKQuantityType.quantityType(forIdentifier: .heartRate) {
-            types.insert(hr)
-        }
-        if let energy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            types.insert(energy)
-        }
-        return types
-    }
-
-    private var shareTypes: Set<HKSampleType> {
-        [HKObjectType.workoutType()]
-    }
-
-    // Requested once per workout, from ensureSessionActive() when the HK session is
-    // (re)started. The system caches the user's answer and only presents its sheet for
-    // types still not-determined, so this never nags between workouts.
-    func requestAuthorizationIfNeeded(completion: ((Bool) -> Void)? = nil) {
-        guard HKHealthStore.isHealthDataAvailable() else {
-            completion?(false)
-            return
-        }
-        // Already asked this run — don't re-present the sheet (the watchdog calls this
-        // every cycle). The session can still proceed; HK silently yields no samples if
-        // access was actually denied, which the HR watchdog already handles.
-        if hasRequestedAuthorization {
-            completion?(true)
-            return
-        }
-        hasRequestedAuthorization = true
-        healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
-            if let error = error {
-                print("SchliftWatch: HealthKit authorization error: \(error)")
-            } else {
-                print("SchliftWatch: HealthKit authorization success=\(success)")
-            }
-            DispatchQueue.main.async {
-                completion?(success)
-            }
-        }
     }
 
     func ensureSessionActive() {
@@ -82,14 +34,13 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             )
             tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
         }
-        requestAuthorizationIfNeeded { [weak self] _ in
-            guard let self = self else { return }
-            // requestAuthorization can report failure even when read access is already
-            // granted from a prior run. Attempt to start regardless — HK will silently
-            // emit zero samples if read access is actually denied, and the HR watchdog
-            // in PhoneConnector will surface that.
-            self.startSession()
-        }
+        // HealthKit authorization is requested ONCE by the phone (the Flutter `health`
+        // plugin) before the watch is launched; auth is shared across the paired app, so we
+        // do not request it again here. A second native request from the watch was racing
+        // the phone's grant and leaving heart-rate-read / workout-share toggles unset. Just
+        // start — HK silently yields no samples if access was actually denied, which the HR
+        // watchdog surfaces.
+        startSession()
     }
 
     func restart() {
@@ -143,8 +94,23 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func endSessionIfActive() {
-        guard session != nil || builder != nil else { return }
-        tearDownCurrentSession(clearDisplayedHeartRate: true, endUnderlyingSession: true)
+        DispatchQueue.main.async { [weak self] in
+            self?.onLatestHeartRateChanged?(nil)
+        }
+        if let currentSession = session {
+            // Apple's required pattern: call end(), then finalize the builder once the
+            // session reaches .ended (handled in the delegate below). The previous code
+            // called endCollection synchronously right after end(), which could leave the
+            // session half-terminated — keeping it, and the watch-face "running" indicator,
+            // alive after the workout finished.
+            currentSession.end()
+        } else if builder != nil {
+            // Builder without a session (rare) — just discard.
+            let existingBuilder = builder
+            builder = nil
+            builderCollectionStarted = false
+            existingBuilder?.discardWorkout()
+        }
     }
 
     // MARK: - HKWorkoutSessionDelegate
@@ -152,8 +118,27 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
-        if toState == .ended {
-            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
+        guard toState == .ended else { return }
+        // Only finalize if this is still our current session. A restart (tearDownCurrentSession)
+        // nils `session` before calling end(), so its .ended fires here with `workoutSession`
+        // no longer matching — we skip, because that path already finalized synchronously.
+        guard workoutSession === session else { return }
+        let endingBuilder = builder
+        let shouldEndCollection = builderCollectionStarted
+        session = nil
+        builder = nil
+        starting = false
+        currentSessionState = .notStarted
+        builderCollectionStarted = false
+        if shouldEndCollection {
+            endingBuilder?.endCollection(withEnd: Date()) { _, error in
+                if let error = error {
+                    print("SchliftWatch: Failed to end workout collection: \(error)")
+                }
+                endingBuilder?.discardWorkout()
+            }
+        } else {
+            endingBuilder?.discardWorkout()
         }
     }
 
