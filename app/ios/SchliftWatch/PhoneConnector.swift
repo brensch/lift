@@ -23,12 +23,13 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var scheduledRestCompletionForRestUntil: Int64 = 0
     private var lastHapticForRestUntil: Int64 = 0
     private var lastSnapshotKey: String?
-    // Set when the user taps "End Workout" on the watch. Until a new workout starts, we
-    // treat this workout id as inactive so a stale "all sets done" snapshot (which still
-    // carries an End action) can't restart the session we just tore down. This is the only
-    // thing that ends the session early — finishing the planned sets (ALL_DONE without an
-    // explicit end) keeps it running, since the user may add more.
-    private var endedWorkoutID: String = ""
+    // Set when the user taps "End Workout" on the watch (or the phone sends a dedicated end).
+    // Two jobs: (1) block a stale "all sets done" snapshot from restarting the session we
+    // just tore down; (2) drive the UI OPTIMISTICALLY — @Published so ContentView re-renders
+    // the instant we end, showing the ended state ("Done") without waiting for the phone to
+    // push a fresh snapshot back (that round-trip is unreliable, which is why the button
+    // appeared to "not update"). Reset when a new/different workout starts.
+    @Published private(set) var endedWorkoutID: String = ""
     private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     private let hrLock = NSLock()
     private var pendingHRWorkoutID: String = ""
