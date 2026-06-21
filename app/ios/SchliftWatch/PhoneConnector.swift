@@ -507,6 +507,13 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         // The session is created once at workout start and ended once at workout end; an HR
         // gap just means no samples for a bit, not a reason to spawn another session.
         ingestLatestApplicationContext()
+        // ALSO actively pull the phone's current state. Ending on the phone while the watch is
+        // backgrounded is the case that wasn't tearing down: the phone's pushed end can be
+        // delayed, and the cached applicationContext may be stale. The watch app is alive
+        // (the session keeps it running), so it can ask the phone — which iOS wakes to reply —
+        // for the latest snapshot every tick. When that snapshot is "ended",
+        // handleSnapshot -> manageCompanionSession tears the session down within ~10s.
+        requestSnapshotFromPhone()
     }
 
     private func meaningfulSnapshotKey(_ snapshot: Workout_V1_WearWorkoutSnapshot) -> String {
@@ -654,9 +661,29 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func requestSnapshotFromPhone() {
-        guard WCSession.default.isReachable else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { return }
         let message: [String: Any] = ["path": WatchPaths.wearToPhoneSnapshotRequest]
-        WCSession.default.sendMessage(message, replyHandler: nil) { _ in }
+        // Use a reply handler: the phone replies with the latest snapshot on THIS message's
+        // channel, which works even when the watch app is backgrounded. (A separate
+        // phone->watch sendMessage reply would require the watch to be reachable, which it
+        // isn't when you end on the phone with your wrist down — that's why ending on the
+        // phone didn't tear the watch session down.)
+        session.sendMessage(
+            message,
+            replyHandler: { [weak self] reply in
+                guard let data = reply["data"] as? Data else { return }
+                DispatchQueue.main.async {
+                    self?.handleIncomingMessage([
+                        "path": WatchPaths.phoneToWearSnapshot,
+                        "data": data,
+                    ])
+                }
+            },
+            errorHandler: { error in
+                print("SchliftWatch: snapshot request failed: \(error)")
+            }
+        )
     }
 }
 
