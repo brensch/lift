@@ -52,6 +52,15 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
                 result(success)
             }
 
+        case "endWatchWorkout":
+            guard let args = call.arguments as? [String: Any],
+                  let workoutId = args["workoutId"] as? String else {
+                result(FlutterError(code: "invalid_args", message: "Missing workoutId", details: nil))
+                return
+            }
+            WatchBridgeManager.shared.endWatchWorkout(workoutId: workoutId)
+            result(nil)
+
         case "isWatchAppAvailable":
             result(WatchBridgeManager.shared.isWatchAppAvailable())
 

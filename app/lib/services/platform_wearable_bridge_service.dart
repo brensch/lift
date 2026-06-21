@@ -47,6 +47,22 @@ class PlatformWearableBridgeService implements WearableBridgeService {
   }
 
   @override
+  Future<void> endWatchWorkout(String workoutId) async {
+    // iOS only: the phone can't end the watch's HKWorkoutSession directly, so we send a
+    // dedicated command. Android's Wear foreground service already stops reliably via its
+    // background WearableListenerService, so skip there (and avoid a MissingPluginException
+    // on the shared channel).
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    try {
+      await _methods.invokeMethod<void>('endWatchWorkout', {
+        'workoutId': workoutId,
+      });
+    } catch (e) {
+      debugPrint('endWatchWorkout failed: $e');
+    }
+  }
+
+  @override
   Future<bool> isWatchAppAvailable() async {
     final available = await _methods.invokeMethod<bool>('isWatchAppAvailable');
     return available ?? false;

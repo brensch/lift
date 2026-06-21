@@ -78,8 +78,11 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     /// complete screen — including when the workout was already ended on the phone but the
     /// session lingered (watchOS has no always-on listener like Android, so the phone's
     /// "ended" snapshot can be missed/delayed and the HR watchdog keeps re-asserting it).
-    func endLocalSession() {
-        if let id = snapshot?.workoutID, !id.isEmpty {
+    func endLocalSession(workoutID explicitID: String? = nil) {
+        // Prefer an explicit id (from the phone's dedicated end command) so we end the right
+        // workout even if our own snapshot is stale; fall back to the current snapshot.
+        let id = (explicitID?.isEmpty == false ? explicitID : nil) ?? snapshot?.workoutID
+        if let id = id, !id.isEmpty {
             endedWorkoutID = id
         }
         stopHRWatchdog()
@@ -187,6 +190,17 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     private func handleIncomingMessage(_ message: [String: Any]) {
         guard let path = message["path"] as? String else { return }
+
+        if path == WatchPaths.phoneToWearEndWorkout {
+            // Dedicated, unconditional end command from the phone, delivered via
+            // transferUserInfo (guaranteed) — the reliable way to stop the watch's HK session
+            // when the user ends on the phone, bypassing the snapshot pipeline entirely.
+            let id = (message["data"] as? Data).flatMap { String(data: $0, encoding: .utf8) }
+            DispatchQueue.main.async {
+                self.endLocalSession(workoutID: id)
+            }
+            return
+        }
 
         if path == WatchPaths.phoneToWearLaunch {
             DispatchQueue.main.async {
@@ -627,6 +641,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 enum WatchPaths {
     static let phoneToWearSnapshot = "/schlift/phone/snapshot"
     static let phoneToWearLaunch = "/schlift/phone/launch"
+    static let phoneToWearEndWorkout = "/schlift/phone/end_workout"
     static let phoneToWearClockSync = "/schlift/phone/clock_sync"
     static let phoneToWearSensorBatchAck = "/schlift/phone/sensor_batch_ack"
     static let wearToPhoneIntent = "/schlift/wear/intent"
