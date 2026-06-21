@@ -83,10 +83,20 @@ struct ContentView: View {
         let completionSummary: Workout_V1_WearCompletionSummary? = data.hasCompletionSummary ? data.completionSummary : nil
 
         if data.state == .allDone, let summary = completionSummary {
+            // Always offer a working button on the complete screen. When the workout hasn't
+            // been ended yet (an End action is present) this ends it on the phone too; when
+            // it was already ended on the phone, it still force-stops the lingering watch
+            // session so the tracking indicator clears.
             workoutCompleteScreen(
                 summary: summary,
-                onPrimary: primaryAction.map { action in { connector.sendIntent(action: action) } },
-                primaryLabel: primaryAction?.label ?? "Done"
+                onPrimary: {
+                    if let action = primaryAction {
+                        connector.sendIntent(action: action)
+                    } else {
+                        connector.endLocalSession()
+                    }
+                },
+                primaryLabel: primaryAction?.label ?? "End workout"
             )
         } else {
             mainLayout(

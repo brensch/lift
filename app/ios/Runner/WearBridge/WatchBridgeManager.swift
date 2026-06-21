@@ -126,35 +126,23 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             return
         }
 
-        // startWatchApp(with:) is only permitted if the app is authorized to SHARE workouts,
-        // so request just that here. We intentionally do NOT request heart-rate (read or
-        // write) from this native path: all Health permissions — including heart rate — are
-        // requested once, comprehensively, by the Flutter `health` plugin at workout start
-        // (HealthService.requestWorkoutHealthPermissions). Authorization is app-wide, so that
-        // single grant also satisfies startWatchApp here. Requesting heart rate from multiple
-        // native + plugin paths is exactly what caused the cascade of repeating sheets.
-        //
-        // The request is idempotent — the system only shows its sheet for not-yet-decided
-        // types — and by the time we reach here the plugin's request has already run (the Dart
-        // side awaits it before calling openWatchApp), so this presents no additional sheet.
-        let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
-        healthStore.requestAuthorization(toShare: shareTypes, read: []) { [weak self] _, authError in
-            guard let self = self else { return }
-            if let authError = authError {
-                print("SchliftWearBridge: phone HealthKit auth error: \(authError)")
+        // All HealthKit permissions are requested ONCE by the Flutter `health` plugin
+        // (HealthService.requestWorkoutHealthPermissions), which the Dart side awaits before
+        // calling openWatchApp. Authorization is shared across the paired iPhone + Watch app,
+        // so that single grant covers the workout-share access startWatchApp needs. We do NOT
+        // request here: a competing native request was racing the plugin's grant and leaving
+        // workout-write (and heart-rate-read) unset in Health settings.
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+        healthStore.startWatchApp(with: configuration) { [weak self] success, error in
+            if let error = error {
+                print("SchliftWearBridge: startWatchApp failed, falling back to connectivity: \(error)")
             }
-            let configuration = HKWorkoutConfiguration()
-            configuration.activityType = .traditionalStrengthTraining
-            configuration.locationType = .indoor
-            self.healthStore.startWatchApp(with: configuration) { [weak self] success, error in
-                if let error = error {
-                    print("SchliftWearBridge: startWatchApp failed, falling back to connectivity: \(error)")
-                }
-                if success {
-                    completion(true)
-                } else {
-                    self?.wakeWatchViaConnectivity(session: session, completion: completion)
-                }
+            if success {
+                completion(true)
+            } else {
+                self?.wakeWatchViaConnectivity(session: session, completion: completion)
             }
         }
     }
