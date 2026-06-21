@@ -94,23 +94,8 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func endSessionIfActive() {
-        DispatchQueue.main.async { [weak self] in
-            self?.onLatestHeartRateChanged?(nil)
-        }
-        if let currentSession = session {
-            // Apple's required pattern: call end(), then finalize the builder once the
-            // session reaches .ended (handled in the delegate below). The previous code
-            // called endCollection synchronously right after end(), which could leave the
-            // session half-terminated — keeping it, and the watch-face "running" indicator,
-            // alive after the workout finished.
-            currentSession.end()
-        } else if builder != nil {
-            // Builder without a session (rare) — just discard.
-            let existingBuilder = builder
-            builder = nil
-            builderCollectionStarted = false
-            existingBuilder?.discardWorkout()
-        }
+        guard session != nil || builder != nil else { return }
+        tearDownCurrentSession(clearDisplayedHeartRate: true, endUnderlyingSession: true)
     }
 
     // MARK: - HKWorkoutSessionDelegate
@@ -118,27 +103,11 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
-        guard toState == .ended else { return }
-        // Only finalize if this is still our current session. A restart (tearDownCurrentSession)
-        // nils `session` before calling end(), so its .ended fires here with `workoutSession`
-        // no longer matching — we skip, because that path already finalized synchronously.
-        guard workoutSession === session else { return }
-        let endingBuilder = builder
-        let shouldEndCollection = builderCollectionStarted
-        session = nil
-        builder = nil
-        starting = false
-        currentSessionState = .notStarted
-        builderCollectionStarted = false
-        if shouldEndCollection {
-            endingBuilder?.endCollection(withEnd: Date()) { _, error in
-                if let error = error {
-                    print("SchliftWatch: Failed to end workout collection: \(error)")
-                }
-                endingBuilder?.discardWorkout()
-            }
-        } else {
-            endingBuilder?.discardWorkout()
+        // If the session ends for any reason while we still own it (e.g. the system ends it),
+        // clean up our references and discard the builder. Our own teardown nils `session`
+        // first, so its later .ended fires here with workoutSession !== session and no-ops.
+        if toState == .ended, workoutSession === session {
+            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
         }
     }
 
@@ -185,7 +154,6 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private func tearDownCurrentSession(clearDisplayedHeartRate: Bool, endUnderlyingSession: Bool) {
         let existingSession = session
         let existingBuilder = builder
-        let shouldEndCollection = builderCollectionStarted
 
         session = nil
         builder = nil
@@ -193,19 +161,19 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         currentSessionState = .notStarted
         builderCollectionStarted = false
 
+        // CORRECT end sequence for a live-builder session. Two rules learned the hard way:
+        //  1. Stop the builder SYNCHRONOUSLY here — do NOT wait for the .ended delegate to do
+        //     it. A session with a live builder will not reach .ended until the builder stops
+        //     collecting, so deferring this deadlocks: .ended never arrives, the session sits
+        //     in .stopped, and the app keeps its workout-processing background runtime alive.
+        //  2. discardWorkout() (not endCollection+finishWorkout): it stops the live data
+        //     source AND throws the data away — no duplicate workout (the phone saves it to
+        //     Health) and no write-authorization required on the watch. This is what actually
+        //     lets the session finish ending and release the watch-face "running" indicator.
         if endUnderlyingSession {
             existingSession?.end()
         }
-        if shouldEndCollection {
-            existingBuilder?.endCollection(withEnd: Date()) { _, error in
-                if let error = error {
-                    print("SchliftWatch: Failed to end workout collection: \(error)")
-                }
-                existingBuilder?.discardWorkout()
-            }
-        } else {
-            existingBuilder?.discardWorkout()
-        }
+        existingBuilder?.discardWorkout()
 
         guard clearDisplayedHeartRate else { return }
         DispatchQueue.main.async { [weak self] in
