@@ -292,13 +292,29 @@ Pose poseAt(ExerciseArt art, double t) {
 class ExerciseArtPainter extends CustomPainter {
   final ExerciseArt art;
   final Color figureColor;
-  final double t;
+
+  /// Drives the animation: the painter repaints the canvas whenever this ticks
+  /// (passed to `super(repaint:)`), with no widget rebuild. Its value is the
+  /// eased progress 0→1.
+  final Animation<double> progress;
 
   ExerciseArtPainter({
     required this.art,
     required this.figureColor,
-    this.t = 1.0,
-  });
+    required this.progress,
+  }) : super(repaint: progress);
+
+  double get t => progress.value;
+
+  // Reused across every frame and every instance — Flutter paints on a single
+  // thread, so sharing these avoids allocating Paints/Paths ~thousands of times
+  // a second while the thumbnails loop.
+  static final Paint _stroke = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+  static final Paint _fill = Paint()..style = PaintingStyle.fill;
+  static final Path _path = Path();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -307,50 +323,42 @@ class ExerciseArtPainter extends CustomPainter {
 
     final equipColor = art.machine ? _machineGrey : figureColor;
 
-    final bodyPaint = Paint()
-      ..color = figureColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5.0 * s
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final equipPaint = Paint()
-      ..color = equipColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.2 * s
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final discPaint = Paint()
-      ..color = equipColor
-      ..style = PaintingStyle.fill;
-
-    void drawPolyline(List<Offset> pts, Paint paint) {
+    void drawPolyline(List<Offset> pts) {
       if (pts.length < 2) return;
-      final path = Path()..moveTo(sc(pts.first).dx, sc(pts.first).dy);
-      for (final p in pts.skip(1)) {
-        path.lineTo(sc(p).dx, sc(p).dy);
+      _path.reset();
+      _path.moveTo(pts.first.dx * s, pts.first.dy * s);
+      for (var i = 1; i < pts.length; i++) {
+        _path.lineTo(pts[i].dx * s, pts[i].dy * s);
       }
-      canvas.drawPath(path, paint);
+      canvas.drawPath(_path, _stroke);
     }
 
     final pose = poseAt(art, t);
     final fig = pose.figure;
 
     // Equipment behind the figure.
+    _stroke
+      ..color = equipColor
+      ..strokeWidth = 4.2 * s;
     for (final pl in pose.props) {
-      drawPolyline(pl, equipPaint);
+      drawPolyline(pl);
     }
+    _fill.color = equipColor;
     for (final d in pose.propDiscs) {
-      canvas.drawCircle(sc(d.c), d.r * s, discPaint);
+      canvas.drawCircle(sc(d.c), d.r * s, _fill);
     }
 
     // Figure (forward kinematics from fixed bone lengths).
-    drawPolyline([fig.pelvis, fig.neck], bodyPaint); // spine
-    canvas.drawCircle(sc(fig.head), fig.headR * s, bodyPaint);
+    _stroke
+      ..color = figureColor
+      ..strokeWidth = 5.0 * s;
+    drawPolyline([fig.pelvis, fig.neck]); // spine
+    canvas.drawCircle(sc(fig.head), fig.headR * s, _stroke);
     for (final arm in fig.arms) {
-      drawPolyline(fig.armPoints(arm), bodyPaint);
+      drawPolyline(fig.armPoints(arm));
     }
     for (final leg in fig.legs) {
-      drawPolyline(fig.legPoints(leg), bodyPaint);
+      drawPolyline(fig.legPoints(leg));
     }
 
     // Barbells on top — resolved against the interpolated figure, so they stay
@@ -378,15 +386,11 @@ class ExerciseArtPainter extends CustomPainter {
   /// Compact dumbbell: a short handle with a chunky end each side. Centred on
   /// the gripping hand.
   static void _drawDumbbell(Canvas canvas, double s, Color color) {
-    final handle = Paint()
+    _stroke
       ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4 * s
-      ..strokeCap = StrokeCap.round;
-    final end = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-    canvas.drawLine(Offset(-4.5 * s, 0), Offset(4.5 * s, 0), handle);
+      ..strokeWidth = 2.4 * s;
+    _fill.color = color;
+    canvas.drawLine(Offset(-4.5 * s, 0), Offset(4.5 * s, 0), _stroke);
     for (final sign in const [-1.0, 1.0]) {
       final rect = Rect.fromCenter(
         center: Offset(sign * 5.0 * s, 0),
@@ -395,7 +399,7 @@ class ExerciseArtPainter extends CustomPainter {
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, Radius.circular(1.8 * s)),
-        end,
+        _fill,
       );
     }
   }
@@ -407,26 +411,20 @@ class ExerciseArtPainter extends CustomPainter {
     Color color,
     ExerciseView view,
   ) {
-    final bar = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4 * s
-      ..strokeCap = StrokeCap.round;
-
     if (view == ExerciseView.side) {
-      final plateRing = Paint()
+      _stroke
         ..color = color
-        ..style = PaintingStyle.stroke
         ..strokeWidth = 3.6 * s;
-      canvas.drawCircle(Offset.zero, 8.5 * s, plateRing);
+      canvas.drawCircle(Offset.zero, 8.5 * s, _stroke);
       return;
     }
 
-    final half = lengthPx / 2;
-    final plate = Paint()
+    _stroke
       ..color = color
-      ..style = PaintingStyle.fill;
-    canvas.drawLine(Offset(-half, 0), Offset(half, 0), bar);
+      ..strokeWidth = 2.4 * s;
+    _fill.color = color;
+    final half = lengthPx / 2;
+    canvas.drawLine(Offset(-half, 0), Offset(half, 0), _stroke);
     const plateW = 4.6;
     const plateH = 17.0;
     final inset = 1.4 * s;
@@ -439,12 +437,14 @@ class ExerciseArtPainter extends CustomPainter {
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, Radius.circular(2.0 * s)),
-        plate,
+        _fill,
       );
     }
   }
 
   @override
   bool shouldRepaint(ExerciseArtPainter old) =>
-      old.t != t || old.figureColor != figureColor || old.art != art;
+      old.progress != progress ||
+      old.figureColor != figureColor ||
+      old.art != art;
 }
