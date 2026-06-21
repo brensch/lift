@@ -13,6 +13,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
     @Published private(set) var latestBpm: Double?
     @Published private(set) var isActionPending = false
+    // Live HK workout-session state, surfaced on the watch UI so we can see exactly what the
+    // session is doing (running / stopped / ended) rather than guessing.
+    @Published private(set) var sessionStateLabel: String = "—"
 
     private var heartbeatTimer: Timer?
     private let workoutSessionManager = WorkoutSessionManager()
@@ -45,10 +48,26 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         workoutSessionManager.onHeartRateSample = { [weak self] sample in
             self?.bufferAndFlushHRSample(sample)
         }
+        workoutSessionManager.onSessionStateChanged = { [weak self] raw in
+            self?.sessionStateLabel = PhoneConnector.sessionStateName(raw)
+        }
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
             session.activate()
+        }
+    }
+
+    // Maps HKWorkoutSessionState raw values to a short label for the on-watch readout.
+    private static func sessionStateName(_ raw: Int) -> String {
+        switch raw {
+        case 1: return "notStarted"
+        case 2: return "running"
+        case 3: return "ended"
+        case 4: return "paused"
+        case 5: return "prepared"
+        case 6: return "stopped"
+        default: return "state \(raw)"
         }
     }
 

@@ -4,6 +4,9 @@ import HealthKit
 class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     var onLatestHeartRateChanged: ((Double?) -> Void)?
     var onHeartRateSample: ((Workout_V1_HeartRateSample) -> Void)?
+    // Reports the raw HKWorkoutSessionState on every transition, so the UI can surface what
+    // the session is actually doing (running/stopped/ended) instead of us guessing.
+    var onSessionStateChanged: ((Int) -> Void)?
 
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -11,6 +14,8 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private var starting = false
     private var currentSessionState: HKWorkoutSessionState = .notStarted
     private var builderCollectionStarted = false
+    // True while a graceful end is in flight (stopActivity → .stopped → discard → end()).
+    private var endingInProgress = false
 
     private var isSessionRunning: Bool {
         session != nil &&
@@ -94,8 +99,45 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     }
 
     func endSessionIfActive() {
-        guard session != nil || builder != nil else { return }
-        tearDownCurrentSession(clearDisplayedHeartRate: true, endUnderlyingSession: true)
+        guard let currentSession = session else {
+            // Builder without a session (rare) — just discard and reset.
+            builder?.discardWorkout()
+            resetSessionState()
+            DispatchQueue.main.async { [weak self] in self?.onLatestHeartRateChanged?(nil) }
+            return
+        }
+        DispatchQueue.main.async { [weak self] in self?.onLatestHeartRateChanged?(nil) }
+        // Apple's documented end sequence for a LIVE-builder session:
+        //   stopActivity → (.stopped) → stop+discard the builder → end() → (.ended) → cleanup.
+        // Calling end() directly while the live data source is still collecting can leave the
+        // session stuck in .stopped and never reach .ended, so the app keeps its
+        // workout-processing background runtime (the persistent indicator) alive. We drive the
+        // rest from the didChangeTo delegate.
+        switch currentSessionState {
+        case .running, .prepared, .paused:
+            currentSession.stopActivity(with: Date())
+        default:
+            finalizeStoppedSession()
+        }
+    }
+
+    // After the session reaches .stopped: stop the live builder (discardWorkout — no save,
+    // no write auth needed, the phone persists the workout) and then end() the session so it
+    // transitions to .ended and releases the background runtime.
+    private func finalizeStoppedSession() {
+        guard !endingInProgress else { return }
+        endingInProgress = true
+        builder?.discardWorkout()
+        session?.end()
+    }
+
+    private func resetSessionState() {
+        session = nil
+        builder = nil
+        starting = false
+        endingInProgress = false
+        builderCollectionStarted = false
+        currentSessionState = .notStarted
     }
 
     // MARK: - HKWorkoutSessionDelegate
@@ -103,11 +145,19 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
-        // If the session ends for any reason while we still own it (e.g. the system ends it),
-        // clean up our references and discard the builder. Our own teardown nils `session`
-        // first, so its later .ended fires here with workoutSession !== session and no-ops.
-        if toState == .ended, workoutSession === session {
-            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
+        DispatchQueue.main.async { [weak self] in self?.onSessionStateChanged?(toState.rawValue) }
+        // Only drive teardown for the session we currently own. The force path
+        // (tearDownCurrentSession) nils `session` first, so its transitions fall through here.
+        guard workoutSession === session else { return }
+        switch toState {
+        case .stopped:
+            // Reached .stopped (from stopActivity) — finalize the builder and end the session.
+            finalizeStoppedSession()
+        case .ended:
+            // Fully ended — background runtime released. Drop references.
+            resetSessionState()
+        default:
+            break
         }
     }
 
@@ -151,6 +201,12 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
+    // Immediate, forced teardown — used for restart/error paths (NOT the user-initiated end,
+    // which uses the graceful stopActivity flow above). Order matters: discard the live builder
+    // FIRST (stops the data source) so the session can actually reach .ended when we end() it;
+    // ending before the source stops can strand the session in .stopped (a zombie that keeps
+    // the app's background runtime alive). References are nil'd up front, so this session's
+    // later delegate transitions fall through (workoutSession !== session).
     private func tearDownCurrentSession(clearDisplayedHeartRate: Bool, endUnderlyingSession: Bool) {
         let existingSession = session
         let existingBuilder = builder
@@ -158,22 +214,14 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         session = nil
         builder = nil
         starting = false
+        endingInProgress = false
         currentSessionState = .notStarted
         builderCollectionStarted = false
 
-        // CORRECT end sequence for a live-builder session. Two rules learned the hard way:
-        //  1. Stop the builder SYNCHRONOUSLY here — do NOT wait for the .ended delegate to do
-        //     it. A session with a live builder will not reach .ended until the builder stops
-        //     collecting, so deferring this deadlocks: .ended never arrives, the session sits
-        //     in .stopped, and the app keeps its workout-processing background runtime alive.
-        //  2. discardWorkout() (not endCollection+finishWorkout): it stops the live data
-        //     source AND throws the data away — no duplicate workout (the phone saves it to
-        //     Health) and no write-authorization required on the watch. This is what actually
-        //     lets the session finish ending and release the watch-face "running" indicator.
+        existingBuilder?.discardWorkout()
         if endUnderlyingSession {
             existingSession?.end()
         }
-        existingBuilder?.discardWorkout()
 
         guard clearDisplayedHeartRate else { return }
         DispatchQueue.main.async { [weak self] in
