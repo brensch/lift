@@ -33,8 +33,31 @@ pub fn exercise_display_name(exercise: Exercise) -> String {
         Exercise::GluteBridge => "Glute Bridge".to_string(),
         Exercise::Lunge => "Lunge".to_string(),
         Exercise::LegCurl => "Leg Curl".to_string(),
-        _ => "Unknown".to_string(),
+        // Accessory exercises (added manually, not regime-driven): derive a
+        // human label from the enum name rather than showing "Unknown".
+        other => prettify_exercise_name(other.as_str_name()),
     }
+}
+
+/// Turns an enum name like `EXERCISE_INCLINE_BENCH_PRESS` into `Incline Bench Press`.
+fn prettify_exercise_name(str_name: &str) -> String {
+    let trimmed = str_name.strip_prefix("EXERCISE_").unwrap_or(str_name);
+    if trimmed.is_empty() {
+        return "Unknown".to_string();
+    }
+    trimmed
+        .split('_')
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => {
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub fn exercise_short_label(exercise: Exercise) -> &'static str {
