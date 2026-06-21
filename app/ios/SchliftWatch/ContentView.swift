@@ -398,6 +398,13 @@ struct ContentView: View {
                     completionMetric(label: "Time", value: summary.durationText)
                     completionMetric(label: "Sets", value: "\(summary.completedWorkingSets)")
                     completionMetric(label: "Vol", value: "\(summary.totalVolumeLb)lb")
+
+                    // Live HK session state — so we can see whether the session actually
+                    // reaches .ended after pressing the button (diagnostic).
+                    Text("hk: \(connector.sessionStateLabel)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 6))
                 .frame(width: geo.size.width * 2.0 / 3.0, height: geo.size.height)
