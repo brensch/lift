@@ -248,6 +248,22 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        // Snapshot request with a reply handler (the watch's watchdog poll): reply with the
+        // latest snapshot bytes on this channel. This reaches the watch even when its app is
+        // backgrounded, so a phone-initiated end propagates to the watch within ~10s.
+        if message["path"] as? String == WatchBridgeManager.wearToPhoneSnapshotRequestPath {
+            queue.async {
+                let bytes = self.lastSnapshotBytes
+                DispatchQueue.main.async {
+                    if let bytes = bytes {
+                        replyHandler(["data": bytes])
+                    } else {
+                        replyHandler([:])
+                    }
+                }
+            }
+            return
+        }
         handleIncomingMessage(message)
         replyHandler([:])
     }
