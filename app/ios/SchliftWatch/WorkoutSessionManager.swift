@@ -11,6 +11,11 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private var starting = false
     private var currentSessionState: HKWorkoutSessionState = .notStarted
     private var builderCollectionStarted = false
+    // HealthKit authorization is requested at most once per app run. ensureSessionActive
+    // is called repeatedly by the watchdog (every 10–25s) and on every session restart;
+    // without this guard each call re-invoked requestAuthorization, which re-presented the
+    // permission sheet on the wrist over and over.
+    private var hasRequestedAuthorization = false
 
     private var isSessionRunning: Bool {
         session != nil &&
@@ -42,6 +47,14 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
             completion?(false)
             return
         }
+        // Already asked this run — don't re-present the sheet (the watchdog calls this
+        // every cycle). The session can still proceed; HK silently yields no samples if
+        // access was actually denied, which the HR watchdog already handles.
+        if hasRequestedAuthorization {
+            completion?(true)
+            return
+        }
+        hasRequestedAuthorization = true
         healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, error in
             if let error = error {
                 print("SchliftWatch: HealthKit authorization error: \(error)")

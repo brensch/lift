@@ -55,9 +55,9 @@
 		</dict>
 	</dict>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Schlift reads health data to avoid duplicate workout entries</string>
+	<string>Schlift reads your heart rate, resting heart rate and body weight to show workout intensity, heart-rate zones and calorie estimates.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Schlift saves your completed workouts to Apple Health</string>
+	<string>Schlift saves your completed workouts and heart-rate data to Apple Health.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Schlift uses the camera to scan codes for app features that require camera input.</string>
 	<key>NSMicrophoneUsageDescription</key>

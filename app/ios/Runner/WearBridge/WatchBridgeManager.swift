@@ -30,20 +30,6 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private let healthStore = HKHealthStore()
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
-    /// HealthKit read types requested from the phone. Must mirror the watch's
-    /// `WorkoutSessionManager.readTypes` so the single, shared authorization grant covers
-    /// everything the watch workout session reads (heart rate + active energy).
-    static var healthReadTypes: Set<HKObjectType> {
-        var types: Set<HKObjectType> = []
-        if let hr = HKQuantityType.quantityType(forIdentifier: .heartRate) {
-            types.insert(hr)
-        }
-        if let energy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            types.insert(energy)
-        }
-        return types
-    }
-
     private override init() {
         super.init()
         if WCSession.isSupported() {
@@ -140,13 +126,23 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             return
         }
 
-        // Ensure HealthKit access is requested on the phone before launching the watch app.
-        // share(workoutType) is required for startWatchApp(with:) to be allowed to launch a
-        // workout; the read types let the watch's workout session actually deliver HR. The
-        // request is idempotent, so this is safe even though the app also requests it
-        // explicitly at workout start (see requestHealthAuthorization).
-        requestHealthAuthorization { [weak self] _ in
+        // startWatchApp(with:) is only permitted if the app is authorized to SHARE workouts,
+        // so request just that here. We intentionally do NOT request heart-rate (read or
+        // write) from this native path: all Health permissions — including heart rate — are
+        // requested once, comprehensively, by the Flutter `health` plugin at workout start
+        // (HealthService.requestWorkoutHealthPermissions). Authorization is app-wide, so that
+        // single grant also satisfies startWatchApp here. Requesting heart rate from multiple
+        // native + plugin paths is exactly what caused the cascade of repeating sheets.
+        //
+        // The request is idempotent — the system only shows its sheet for not-yet-decided
+        // types — and by the time we reach here the plugin's request has already run (the Dart
+        // side awaits it before calling openWatchApp), so this presents no additional sheet.
+        let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
+        healthStore.requestAuthorization(toShare: shareTypes, read: []) { [weak self] _, authError in
             guard let self = self else { return }
+            if let authError = authError {
+                print("SchliftWearBridge: phone HealthKit auth error: \(authError)")
+            }
             let configuration = HKWorkoutConfiguration()
             configuration.activityType = .traditionalStrengthTraining
             configuration.locationType = .indoor
@@ -160,35 +156,6 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
                     self?.wakeWatchViaConnectivity(session: session, completion: completion)
                 }
             }
-        }
-    }
-
-    /// Requests the full HealthKit authorization set on the phone — the same types the watch's
-    /// workout session needs. Called explicitly at workout start (and again, idempotently,
-    /// before launching the watch).
-    ///
-    /// Why drive this from the phone: HealthKit authorization for an iPhone app and its paired
-    /// Watch app is coordinated through the iPhone's Health database, and the phone presents the
-    /// clear full-screen Health permission sheet — far better than the watch's tiny on-wrist
-    /// prompt, which is easy to miss. Requesting heart-rate READ here is what makes "Heart Rate"
-    /// appear under Health ▸ Sources ▸ Schlift and lets the watch's HKLiveWorkoutBuilder receive
-    /// HR samples. Read-type denials are silent (HealthKit hides them for privacy), so a clear
-    /// up-front grant on the phone is the only reliable path.
-    ///
-    /// Idempotent: the system only presents its sheet for not-yet-decided types, so calling this
-    /// on every workout start is cheap and won't nag a user who has already answered.
-    func requestHealthAuthorization(completion: ((Bool) -> Void)? = nil) {
-        guard HKHealthStore.isHealthDataAvailable() else {
-            completion?(false)
-            return
-        }
-        let shareTypes: Set<HKSampleType> = [HKObjectType.workoutType()]
-        let readTypes = WatchBridgeManager.healthReadTypes
-        healthStore.requestAuthorization(toShare: shareTypes, read: readTypes) { success, authError in
-            if let authError = authError {
-                print("SchliftWearBridge: phone HealthKit auth error: \(authError)")
-            }
-            completion?(success)
         }
     }
 
