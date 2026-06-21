@@ -334,6 +334,14 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             ingestLatestApplicationContext()
         } else {
             stopHeartbeat()
+            // The workout is over and the user has left the screen. Drop the completed
+            // snapshot so when watchOS "Return to App" brings Schlift back on a later
+            // wrist-raise, it shows the neutral waiting screen rather than the stale
+            // complete screen. (We can't stop watchOS returning to the app — that's the
+            // Return to Clock setting — but we can avoid sitting on dead stats.)
+            if !endedWorkoutID.isEmpty, snapshot?.workoutID == endedWorkoutID {
+                snapshot = nil
+            }
         }
     }
 
@@ -363,6 +371,13 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func handleSnapshot(_ snapshot: Workout_V1_WearWorkoutSnapshot) {
+        // This workout has already been ended (and torn down) from the watch. Ignore further
+        // snapshots for it so a late "all done"/"complete" push can't re-surface the stale
+        // complete screen after the user has moved on. A new workout has a different id and
+        // resets endedWorkoutID via manageCompanionSession, so this never blocks new sessions.
+        if !endedWorkoutID.isEmpty && snapshot.workoutID == endedWorkoutID {
+            return
+        }
         // Drop-stale guard: out-of-order publishes from the phone (unawaited
         // sends + last-writer-wins native cache) could otherwise clobber newer
         // state with an older snapshot. `emittedAt` is monotonic per workout.
