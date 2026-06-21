@@ -23,6 +23,12 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     private var scheduledRestCompletionForRestUntil: Int64 = 0
     private var lastHapticForRestUntil: Int64 = 0
     private var lastSnapshotKey: String?
+    // Set when the user taps "End Workout" on the watch. Until a new workout starts, we
+    // treat this workout id as inactive so a stale "all sets done" snapshot (which still
+    // carries an End action) can't restart the session we just tore down. This is the only
+    // thing that ends the session early — finishing the planned sets (ALL_DONE without an
+    // explicit end) keeps it running, since the user may add more.
+    private var endedWorkoutID: String = ""
     private var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     private let hrLock = NSLock()
     private var pendingHRWorkoutID: String = ""
@@ -67,6 +73,25 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Send intent to phone
 
     func sendIntent(action: Workout_V1_WearAction) {
+        // Explicit end from the watch: tear our workout session down immediately so the
+        // tracking indicator clears right away, rather than waiting for the phone to echo
+        // back an "ended" snapshot (which can be delayed when the watch is in the
+        // background — unlike Android, watchOS has no always-on listener, and the HR
+        // watchdog would otherwise keep re-asserting the session). endedWorkoutID then
+        // blocks a stale "all sets done" snapshot from restarting it. We still send the
+        // intent below so the phone ends the workout too.
+        if action.type == .endWorkout {
+            if let id = snapshot?.workoutID, !id.isEmpty {
+                endedWorkoutID = id
+            }
+            stopHRWatchdog()
+            hrLock.lock()
+            pendingHRWorkoutID = ""
+            pendingHRSamples.removeAll()
+            hrLock.unlock()
+            workoutSessionManager.endSessionIfActive()
+        }
+
         guard !isActionPending else { return }
         guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
 
@@ -342,8 +367,17 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func manageCompanionSession(for snapshot: Workout_V1_WearWorkoutSnapshot) {
+        // A new/different workout clears any prior watch-initiated end.
+        if !endedWorkoutID.isEmpty && snapshot.workoutID != endedWorkoutID {
+            endedWorkoutID = ""
+        }
+        // Finishing the planned sets (ALL_DONE) keeps the session alive while an End action
+        // is still offered — the user may add more. The session ends only on an explicit
+        // End Workout: either the phone drops the End action from the snapshot (handled
+        // here), or the user ends from the watch (locallyEnded, set in sendIntent).
+        let locallyEnded = !endedWorkoutID.isEmpty && snapshot.workoutID == endedWorkoutID
         let hasEndWorkoutAction = snapshot.actions.contains { $0.type == .endWorkout }
-        let activeWorkout = !snapshot.workoutID.isEmpty &&
+        let activeWorkout = !locallyEnded && !snapshot.workoutID.isEmpty &&
             (snapshot.state != .allDone || hasEndWorkoutAction)
         if activeWorkout {
             if pendingHRWorkoutID != snapshot.workoutID {
