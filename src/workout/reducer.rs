@@ -187,9 +187,11 @@ pub(crate) fn apply_start_set_to_active(
         .iter()
         .find(|p| p.id == req.proposed_set_id && !p.cancelled);
     if proposed.is_none() {
-        return Err(WorkoutError::failed_precondition(
-            "Proposed set not available",
-        ));
+        // The set is gone — cancelled by a skip, or a stale/duplicate intent (the watch
+        // delivers at-least-once and may reference a set the user has since skipped). Treat
+        // it as a no-op instead of erroring: a hard error here permanently desynced the
+        // watch. The next pushed snapshot reconciles it to the real state.
+        return Ok(());
     }
     if workout_ref
         .completed_sets
@@ -225,12 +227,18 @@ pub(crate) fn apply_complete_set_to_active(
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
-    let proposed = workout_ref
+    let proposed = match workout_ref
         .proposed_sets
         .iter()
         .find(|p| p.id == req.proposed_set_id && !p.cancelled)
         .cloned()
-        .ok_or_else(|| WorkoutError::failed_precondition("Proposed set not available"))?;
+    {
+        Some(p) => p,
+        // Set gone (skipped/cancelled, or a stale/duplicate at-least-once intent). No-op
+        // rather than erroring — erroring permanently desynced the watch. The next snapshot
+        // reconciles the watch to the real state.
+        None => return Ok(()),
+    };
     let ended_at = if req.completed_at > 0 {
         req.completed_at
     } else {

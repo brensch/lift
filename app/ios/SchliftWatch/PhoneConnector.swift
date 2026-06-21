@@ -497,34 +497,16 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func runHRWatchdog() {
-        // First, converge on the phone's latest PUSHED state (works without reachability).
-        // If the workout has ended, this tears the session down via manageCompanionSession,
-        // which also stops this watchdog — so bail before re-asserting the session, otherwise
-        // we'd immediately restart what we just ended. This is what finally stops the watch
-        // session when the user ends on the phone while both apps are backgrounded.
+        // Converge on the phone's latest PUSHED state (works without reachability) so we
+        // notice "workout ended" and tear the session down even when both apps are
+        // backgrounded — this is the reliable phone-end teardown path.
+        //
+        // We deliberately do NOT restart or re-create the workout session here. Re-creating
+        // it on HR gaps (which are normal indoors / from wrist position) stacked up orphaned
+        // HKWorkoutSessions — the "multiple Schlift timers" zombies that kept the app active.
+        // The session is created once at workout start and ended once at workout end; an HR
+        // gap just means no samples for a bit, not a reason to spawn another session.
         ingestLatestApplicationContext()
-        guard hrWatchdogTimer != nil else { return }
-        // Re-assert the session — no-op when it's already running.
-        workoutSessionManager.ensureSessionActive()
-        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
-        if lastHRSampleAtMs == 0,
-           hrMonitoringStartedAtMs > 0,
-           nowMs - hrMonitoringStartedAtMs > 25_000 {
-            // 25s with no HR sample: the session is likely wedged. Restart it; if
-            // the user actually denied HR access, HK keeps emitting zero samples
-            // and we simply keep retrying (no nagging — we never re-request auth).
-            print("SchliftWatch: No initial HR sample within 25s, restarting workout session")
-            workoutSessionManager.restart()
-            hrMonitoringStartedAtMs = nowMs
-            return
-        }
-        // If we've received at least one sample and then nothing for 20s, force a restart.
-        if lastHRSampleAtMs > 0, nowMs - lastHRSampleAtMs > 20_000 {
-            print("SchliftWatch: HR sample silence >20s, restarting workout session")
-            workoutSessionManager.restart()
-            lastHRSampleAtMs = 0
-            hrMonitoringStartedAtMs = nowMs
-        }
     }
 
     private func meaningfulSnapshotKey(_ snapshot: Workout_V1_WearWorkoutSnapshot) -> String {
