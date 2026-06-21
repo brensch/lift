@@ -832,6 +832,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                               _TimerHeartBox(
                                 elapsedText: elapsedText,
                                 heartRateText: heartRateText,
+                                heartRateDetected:
+                                    latestHeartRate != null &&
+                                    latestHeartRate.bpm > 0,
                               ),
                               const SizedBox(width: 8),
                               Expanded(child: actionButton),
@@ -1128,9 +1131,11 @@ class _HorizontalShakerState extends State<_HorizontalShaker>
 class _TimerHeartBox extends StatelessWidget {
   final String elapsedText;
   final String heartRateText;
+  final bool heartRateDetected;
   const _TimerHeartBox({
     required this.elapsedText,
     required this.heartRateText,
+    required this.heartRateDetected,
   });
 
   @override
@@ -1168,22 +1173,39 @@ class _TimerHeartBox extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.favorite, size: 14, color: Color(0xFFE11D48)),
-              const SizedBox(width: 4),
-              Text(
-                heartRateText,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'monospace',
-                  color: colorScheme.onSurface,
-                  height: 1.0,
+          // When no heart rate is detected, tapping shows OS-specific instructions
+          // on enabling live BPM. Once HR is streaming there's nothing to fix, so the
+          // row is just a static readout.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: heartRateDetected
+                ? null
+                : () => showHeartRateHelpDialog(context),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.favorite, size: 14, color: Color(0xFFE11D48)),
+                const SizedBox(width: 4),
+                Text(
+                  heartRateText,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                    color: colorScheme.onSurface,
+                    height: 1.0,
+                  ),
                 ),
-              ),
-            ],
+                if (!heartRateDetected) ...[
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.help_outline,
+                    size: 11,
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

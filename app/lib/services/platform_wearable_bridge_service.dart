@@ -41,6 +41,20 @@ class PlatformWearableBridgeService implements WearableBridgeService {
   }
 
   @override
+  Future<void> requestHealthAuthorization() async {
+    // HealthKit-only: the phone presents the Health permission sheet. Android handles
+    // wearable health permissions on the watch itself (Health Services), so there's no
+    // phone-side method — skip it there to avoid a MissingPluginException on the shared
+    // channel.
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    try {
+      await _methods.invokeMethod<void>('requestHealthAuthorization');
+    } catch (e) {
+      debugPrint('requestHealthAuthorization failed: $e');
+    }
+  }
+
+  @override
   Future<bool> openWatchApp() async {
     final opened = await _methods.invokeMethod<bool>('openWatchApp');
     return opened ?? false;
