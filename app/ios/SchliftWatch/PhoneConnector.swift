@@ -140,7 +140,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
 
         guard let data = try? intent.serializedData() else { return }
-        guard WCSession.default.isReachable else { return }
+        // Do NOT gate on isReachable — sendToPhone falls back to guaranteed transferUserInfo
+        // delivery when the phone app isn't reachable, so the button press is never silently
+        // dropped (the root cause of "I press it and nothing happens" + the watch/phone wedge).
         beginPendingAction()
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
@@ -279,21 +281,23 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             return false
         }
 
-        if preferBackgroundDelivery {
+        // When the phone app isn't reachable (backgrounded), sendMessage cannot deliver.
+        // Fall back to transferUserInfo — WCSession's GUARANTEED FIFO delivery, which reaches
+        // the phone app even when it's not running (the equivalent of Android's
+        // MessageClient → WearableListenerService). This is what stops button presses from
+        // being silently dropped and the two sides from wedging out of sync. Intents are
+        // idempotent (deduped by intentID on the phone), so guaranteed-but-delayed is safe.
+        if preferBackgroundDelivery || !session.isReachable {
             session.transferUserInfo(message)
             return true
         }
 
-        guard session.isReachable else {
-            print("SchliftWatch: Phone not reachable")
-            return false
-        }
-
         session.sendMessage(message, replyHandler: nil) { error in
-            print("SchliftWatch: Failed to send message: \(error)")
-            DispatchQueue.main.async {
-                self.clearPendingAction()
-            }
+            print("SchliftWatch: sendMessage failed, falling back to transferUserInfo: \(error)")
+            // The live send failed — re-queue via guaranteed delivery so the action still
+            // reaches the phone. Don't clear the pending action here; the resulting snapshot
+            // (or the 2s safety timeout) re-enables the button.
+            session.transferUserInfo(message)
         }
         return true
     }
