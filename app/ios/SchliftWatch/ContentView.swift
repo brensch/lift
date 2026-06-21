@@ -51,10 +51,18 @@ struct ContentView: View {
                 if let snapshot = connector.snapshot {
                     workoutView(snapshot, now: context.date)
                 } else {
-                    Text("Waiting for phone")
-                        .foregroundColor(.white)
-                        .watchAutoShrink()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 8) {
+                        Text("Waiting for phone")
+                            .foregroundColor(.white)
+                            .watchAutoShrink()
+                        // Build version of the WATCH app specifically. The watch app updates
+                        // independently of the phone app, so this is the only reliable way to
+                        // confirm the watch is actually running the latest code.
+                        Text(watchAppVersionString())
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
@@ -430,6 +438,13 @@ private extension View {
 }
 
 // MARK: - Helpers
+
+private func watchAppVersionString() -> String {
+    let info = Bundle.main.infoDictionary
+    let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+    let build = info?["CFBundleVersion"] as? String ?? "?"
+    return "watch v\(version) (\(build))"
+}
 
 private func formatNowClock() -> String {
     formatNowClock(Date())
