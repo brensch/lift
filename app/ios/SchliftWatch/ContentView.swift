@@ -91,20 +91,26 @@ struct ContentView: View {
         let completionSummary: Workout_V1_WearCompletionSummary? = data.hasCompletionSummary ? data.completionSummary : nil
 
         if data.state == .allDone, let summary = completionSummary {
-            // Always offer a working button on the complete screen. When the workout hasn't
-            // been ended yet (an End action is present) this ends it on the phone too; when
-            // it was already ended on the phone, it still force-stops the lingering watch
-            // session so the tracking indicator clears.
+            // Has the user already ended this workout from the watch? endedWorkoutID is set
+            // (and @Published) the instant they tap, so this flips to the ended state
+            // immediately — no waiting on the phone to echo a fresh snapshot back.
+            let endedLocally = !connector.endedWorkoutID.isEmpty
+                && connector.endedWorkoutID == data.workoutID
+            // Offer "End Workout" only while the workout is genuinely still endable: all sets
+            // done, not yet ended (an End action present), and not already ended from here.
+            let canEnd = !endedLocally && primaryAction != nil
+
             workoutCompleteScreen(
                 summary: summary,
                 onPrimary: {
-                    if let action = primaryAction {
+                    if canEnd, let action = primaryAction {
                         connector.sendIntent(action: action)
                     } else {
+                        // Already ended — just make sure the local session is torn down.
                         connector.endLocalSession()
                     }
                 },
-                primaryLabel: primaryAction?.label ?? "End workout"
+                primaryLabel: canEnd ? (primaryAction?.label ?? "End Workout") : "Done"
             )
         } else {
             mainLayout(
