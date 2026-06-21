@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
+import '../services/health_service.dart';
 import '../services/wearable_bridge_service.dart';
 import '../services/workout_service.dart';
 import '../logic/exercises.dart';
@@ -455,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (workoutId != null && mounted) {
         await WorkoutServiceWrapper(grpc).clearWorkoutDraft();
-        unawaited(_attemptAutoLaunchWatchApp(wearableBridge));
+        unawaited(_setUpHealthAndWatch(wearableBridge));
       }
     } catch (e) {
       debugPrint('Error starting workout: $e');
@@ -472,16 +473,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _attemptAutoLaunchWatchApp(WearableBridgeService bridge) async {
+  Future<void> _setUpHealthAndWatch(WearableBridgeService bridge) async {
+    // ONE comprehensive Health permission request, fully awaited, THEN launch the
+    // watch — never concurrently. Doing them at the same time made iOS re-present a
+    // half-answered sheet (the "Allow read → comes back unticked" bug). Requested for
+    // everyone (not just watch users) because completed workouts are saved to Health.
+    await HealthService.requestWorkoutHealthPermissions();
     try {
-      // Only engage HealthKit / the watch when a paired watch app is actually present —
-      // heart rate comes from the watch, so there's nothing to authorize without one.
-      if (!await bridge.isWatchAppAvailable()) return;
-      // Request health permissions up front on the phone so the user gets the clear
-      // full-screen Health sheet (incl. Heart Rate) at workout start, before the watch
-      // session needs the data. Idempotent — won't re-prompt once answered.
-      await bridge.requestHealthAuthorization();
-      await bridge.openWatchApp();
+      if (await bridge.isWatchAppAvailable()) {
+        await bridge.openWatchApp();
+      }
     } catch (e) {
       debugPrint('Auto watch launch failed: $e');
     }

@@ -33,6 +33,67 @@ class HealthService {
 
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
+  static bool _workoutHealthPermissionsRequested = false;
+
+  /// Requests every Health permission the workout flow uses, in a SINGLE system
+  /// sheet, at most once per app run.
+  ///
+  /// This is the ONLY place that proactively prompts. iOS HealthKit hides
+  /// read-permission status (`hasPermissions` returns null for reads), so checking it
+  /// before each read/write makes the app re-request forever; and firing several
+  /// separate authorization requests (live HR read, HR-sample write, workout write,
+  /// resting HR, …) makes iOS present a cascade of sheets that appear to "reset" when
+  /// you grant them. We ask for the full union once, up front, then never prompt
+  /// again — every other read/write simply attempts the operation and silently
+  /// no-ops if the user declined.
+  ///
+  /// `requestAuthorization` is idempotent: on later app runs it presents no sheet for
+  /// already-decided types, so calling this again is harmless.
+  static Future<void> requestWorkoutHealthPermissions() async {
+    if (_workoutHealthPermissionsRequested) return;
+    // Another request is mid-flight; don't stack a competing sheet. Retry next time.
+    if (_healthPermissionRequestInFlight) return;
+    _workoutHealthPermissionsRequested = true;
+    _healthPermissionRequestInFlight = true;
+    try {
+      final health = Health();
+      await health.configure();
+
+      final types = <HealthDataType>[];
+      final access = <HealthDataAccess>[];
+      void want(HealthDataType type, HealthDataAccess accessLevel) {
+        if (health.isDataTypeAvailable(type)) {
+          types.add(type);
+          access.add(accessLevel);
+        }
+      }
+
+      // Live HR from the watch (read) + saving HR samples into the workout (write).
+      want(HealthDataType.HEART_RATE, HealthDataAccess.READ_WRITE);
+      want(HealthDataType.ACTIVE_ENERGY_BURNED, HealthDataAccess.READ_WRITE);
+      // Saving the completed workout.
+      want(HealthDataType.WORKOUT, HealthDataAccess.WRITE);
+      // Heart-rate zone chart inputs.
+      want(HealthDataType.RESTING_HEART_RATE, HealthDataAccess.READ);
+      if (Platform.isIOS) {
+        want(HealthDataType.BIRTH_DATE, HealthDataAccess.READ);
+      }
+      // Body-weight import for calorie maths.
+      want(HealthDataType.WEIGHT, HealthDataAccess.READ);
+
+      if (types.isEmpty) return;
+      AppLogger.instance.info('Health', 'requestWorkoutHealthPermissions', {
+        'types': types.map((t) => t.name).toList(),
+      });
+      await health.requestAuthorization(types, permissions: access);
+    } catch (e, st) {
+      debugPrint('Health: requestWorkoutHealthPermissions failed: $e\n$st');
+      // Allow a retry on a later workout if it threw before prompting.
+      _workoutHealthPermissionsRequested = false;
+    } finally {
+      _healthPermissionRequestInFlight = false;
+    }
+  }
 
   static Future<double?> readLatestBodyWeightKg({
     bool requestPermissions = false,
@@ -149,29 +210,11 @@ class HealthService {
     await health.configure();
     debugPrint('Health: configured');
 
-    final types = [
-      HealthDataType.WORKOUT,
-    ];
-    final permissions = [HealthDataAccess.WRITE];
-
-    final hasPerms = await health.hasPermissions(
-      types,
-      permissions: permissions,
-    );
-    debugPrint('Health: hasPermissions=$hasPerms');
-
-    if (hasPerms != true) {
-      debugPrint('Health: requesting authorization...');
-      final authorized = await health.requestAuthorization(
-        types,
-        permissions: permissions,
-      );
-      debugPrint('Health: authorization result=$authorized');
-      if (!authorized) {
-        debugPrint('Health: authorization denied, skipping write');
-        return HealthWriteResult.permissionDenied;
-      }
-    }
+    // Auth is requested once, comprehensively (see requestWorkoutHealthPermissions),
+    // normally at workout start. Ensure it has run at least once (e.g. for a resumed
+    // workout ended in a fresh app run), then just attempt the write — we never
+    // re-prompt per write.
+    await requestWorkoutHealthPermissions();
 
     final durationMinutes = endTime.difference(startTime).inSeconds / 60.0;
     final calories = estimateCalories(
@@ -207,30 +250,10 @@ class HealthService {
     final health = Health();
     await health.configure();
 
-    final types = <HealthDataType>[HealthDataType.HEART_RATE];
-    final permissions = <HealthDataAccess>[HealthDataAccess.WRITE];
-    if (Platform.isAndroid &&
-        health.isDataTypeAvailable(HealthDataType.RESTING_HEART_RATE)) {
-      // Piggyback this on the existing HR permission flow so the chart can
-      // compute zones without a second competing permission request.
-      types.add(HealthDataType.RESTING_HEART_RATE);
-      permissions.add(HealthDataAccess.READ);
-    }
-
-    final hasPerms = await health.hasPermissions(
-      types,
-      permissions: permissions,
-    );
-    if (hasPerms != true) {
-      if (_healthPermissionRequestInFlight) return;
-      _healthPermissionRequestInFlight = true;
-      final granted = await health.requestAuthorization(
-        types,
-        permissions: permissions,
-      );
-      _healthPermissionRequestInFlight = false;
-      if (!granted) return;
-    }
+    // Heart-rate write access is part of the single comprehensive request made at
+    // workout start. Ensure it has run once, then just attempt the writes — no
+    // per-write permission prompt (that caused the repeating "write heart rate" sheet).
+    await requestWorkoutHealthPermissions();
 
     for (final sample in samples) {
       final ts = DateTime.fromMillisecondsSinceEpoch(sample.sampledAt.toInt());
