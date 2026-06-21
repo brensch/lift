@@ -29,6 +29,11 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private var lastWatchUiHeartbeatAtMs: Int64 = 0
     private var lastSnapshotBytes: Data?
     private let healthStore = HKHealthStore()
+    // The watch mirrors its HKWorkoutSession here (iOS 17+). Holding the mirror lets us end
+    // the workout directly from the phone, which propagates to the watch — Apple's supported
+    // way to end a watch workout from the phone. Stored untyped because HKWorkoutSession does
+    // not exist on iOS < 17 (deployment target is 15.5); cast behind #available at use sites.
+    private var mirroredSession: Any?
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
     private override init() {
@@ -37,6 +42,15 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             let session = WCSession.default
             session.delegate = self
             session.activate()
+        }
+        // Receive the watch's mirrored workout session so we can end it from the phone.
+        if #available(iOS 17.0, *) {
+            healthStore.workoutSessionMirroringStartHandler = { [weak self] session in
+                DispatchQueue.main.async {
+                    self?.mirroredSession = session
+                    print("SchliftWearBridge: received mirrored workout session from watch")
+                }
+            }
         }
     }
 
@@ -93,13 +107,18 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         }
     }
 
-    /// Dedicated "end this workout" command to the watch — the only way the phone can stop
-    /// the watch's HKWorkoutSession (the session is owned by watchOS; iOS cannot end it
-    /// directly). We send it via transferUserInfo, WCSession's GUARANTEED delivery channel:
-    /// it is queued and delivered to the watch app even when it's backgrounded/unreachable,
-    /// unlike sendMessage. We also sendMessage when reachable for an instant teardown. The
-    /// watch handler force-ends its session regardless of snapshot state.
+    /// End the watch's workout from the phone. Primary path: end the MIRRORED session
+    /// directly — with HKWorkoutSession mirroring the watch's session is reflected here, and
+    /// ending it propagates to the watch (Apple's supported phone->watch end). Fallback: the
+    /// WCSession message asking the watch app to end its own session, for the case where
+    /// mirroring isn't established (older OS, mirror not yet received).
     func endWatchWorkout(workoutId: String) {
+        if #available(iOS 17.0, *), let mirrored = mirroredSession as? HKWorkoutSession {
+            print("SchliftWearBridge: ending mirrored workout session from phone")
+            mirrored.end()
+            mirroredSession = nil
+        }
+
         let session = WCSession.default
         guard session.activationState == .activated, session.isPaired else { return }
         let message: [String: Any] = [

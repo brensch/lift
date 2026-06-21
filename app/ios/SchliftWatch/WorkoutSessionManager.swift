@@ -89,6 +89,19 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
                 } else {
                     self.builderCollectionStarted = true
                     print("SchliftWatch: Workout collection started success=\(success)")
+                    // Mirror this session to the paired iPhone. With mirroring, the phone holds
+                    // a live mirror and can END the session directly — Apple's supported way to
+                    // end a watch workout from the phone. (Messaging the watch to end itself
+                    // was unreliable.) Best-effort; if it fails, watch-side end still works.
+                    if #available(watchOS 10.0, *) {
+                        session.startMirroringToCompanionDevice { mirrorSuccess, mirrorError in
+                            if let mirrorError = mirrorError {
+                                print("SchliftWatch: startMirroringToCompanionDevice failed: \(mirrorError)")
+                            } else {
+                                print("SchliftWatch: mirroring to companion success=\(mirrorSuccess)")
+                            }
+                        }
+                    }
                 }
             }
         } catch {
