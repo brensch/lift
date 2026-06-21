@@ -334,14 +334,6 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             ingestLatestApplicationContext()
         } else {
             stopHeartbeat()
-            // The workout is over and the user has left the screen. Drop the completed
-            // snapshot so when watchOS "Return to App" brings Schlift back on a later
-            // wrist-raise, it shows the neutral waiting screen rather than the stale
-            // complete screen. (We can't stop watchOS returning to the app — that's the
-            // Return to Clock setting — but we can avoid sitting on dead stats.)
-            if !endedWorkoutID.isEmpty, snapshot?.workoutID == endedWorkoutID {
-                snapshot = nil
-            }
         }
     }
 
@@ -467,6 +459,16 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             startHRWatchdog()
             flushPendingSensorBatches()
         } else {
+            // If this snapshot says the workout is ENDED (all sets done AND no End action),
+            // lock it as ended. Without this, a snapshot-driven end (e.g. ending on the phone)
+            // left endedWorkoutID empty, so the very next snapshot could flip activeWorkout
+            // back true and RESTART the HK session — the intermittent "hk: running after
+            // finishing". (The watch-button/dedicated-command paths already set it.)
+            if !snapshot.workoutID.isEmpty
+                && snapshot.state == .allDone
+                && !hasEndWorkoutAction {
+                endedWorkoutID = snapshot.workoutID
+            }
             hrLock.lock()
             pendingHRWorkoutID = ""
             pendingHRSamples.removeAll()
