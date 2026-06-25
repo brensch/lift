@@ -21,11 +21,26 @@ import { cn } from "@/lib/utils";
 import { settingsClient } from "@/lib/grpc";
 import type { TrainingProgramDefinition } from "@/gen/workout/v1/settings_pb";
 
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const storeUrl = isIOS
-  ? "https://apps.apple.com/app/schlift-workout-tracker/id6742123456"
-  : "https://play.google.com/store/apps/details?id=com.brensch.schlift";
-const storeLabel = isIOS ? "Download on App Store" : "Get it on Google Play";
+const APP_STORE = {
+  url: "https://apps.apple.com/us/app/schlift/id6761754276",
+  label: "Download on App Store",
+};
+const PLAY_STORE = {
+  url: "https://play.google.com/store/apps/details?id=com.brensch.schlift",
+  label: "Get it on Google Play",
+};
+
+const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+const isIOS =
+  /iPhone|iPad|iPod/i.test(ua) ||
+  // iPadOS 13+ reports as a Mac, so disambiguate with touch support.
+  (typeof navigator !== "undefined" &&
+    navigator.platform === "MacIntel" &&
+    navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(ua);
+
+// Show the user's store if we can tell what they're on; otherwise show both.
+const stores = isIOS ? [APP_STORE] : isAndroid ? [PLAY_STORE] : [APP_STORE, PLAY_STORE];
 
 const features = [
   {
@@ -304,15 +319,17 @@ export function HomePage() {
             className="mt-10 flex gap-3 flex-wrap justify-center opacity-0"
             style={{ animation: "fade-in 0.8s ease-out 0.6s forwards" }}
           >
-            <a href={storeUrl} className="no-underline">
-              <Button variant="primary" size="lg" className="group">
-                {storeLabel}
-                <ArrowRight
-                  size={16}
-                  className="ml-2 transition-transform group-hover:translate-x-0.5"
-                />
-              </Button>
-            </a>
+            {stores.map((store) => (
+              <a key={store.url} href={store.url} className="no-underline">
+                <Button variant="primary" size="lg" className="group">
+                  {store.label}
+                  <ArrowRight
+                    size={16}
+                    className="ml-2 transition-transform group-hover:translate-x-0.5"
+                  />
+                </Button>
+              </a>
+            ))}
           </div>
 
           <p
@@ -454,16 +471,18 @@ export function HomePage() {
           <p className="mt-4 text-muted max-w-sm mx-auto leading-relaxed">
             Download Schlift and start your first session in under a minute.
           </p>
-          <div className="mt-8">
-            <a href={storeUrl} className="no-underline">
-              <Button variant="primary" size="lg" className="group">
-                Get the App
-                <ArrowRight
-                  size={16}
-                  className="ml-2 transition-transform group-hover:translate-x-0.5"
-                />
-              </Button>
-            </a>
+          <div className="mt-8 flex gap-3 flex-wrap justify-center">
+            {stores.map((store) => (
+              <a key={store.url} href={store.url} className="no-underline">
+                <Button variant="primary" size="lg" className="group">
+                  {store.label}
+                  <ArrowRight
+                    size={16}
+                    className="ml-2 transition-transform group-hover:translate-x-0.5"
+                  />
+                </Button>
+              </a>
+            ))}
           </div>
         </Reveal>
       </section>
