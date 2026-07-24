@@ -91,6 +91,20 @@ Defined in `src/db/mod.rs:251`.
 - Multi-statement writes use an explicit `write_pool.begin()` transaction; see
   `apply_program_state_for_workout` (`src/db/cache.rs:82`) for the pattern.
 
+> **Read-modify-write is not atomic across the two pools.** The structural
+> mutation handlers (`ReplaceExerciseGroupPlan`, `ReorderExerciseGroups`,
+> `AppendWorkoutMutations`) load a workout on the read pool, apply the change in
+> memory, then `persist_workout_state` — a full delete-and-reinsert — on the
+> write pool. Two mutations to the *same workout* that interleave read→read→
+> write→write lose the first write, because the second persist replaces the
+> whole workout. In practice a workout has one writer: the phone is the only
+> gRPC client (the watch relays through it), and the app serialises its own
+> flushes (`_mutationFlushInFlight`) and dedups by `event_id`. The exposure is
+> the narrow case of two clients (or a client and a retried request) writing the
+> same workout concurrently. Closing it fully needs per-workout locking or a
+> version column with a compare-and-set on persist. The fuzzer does not cover
+> this — it is single-workout-sequential per user.
+
 ### Blob columns
 
 Several tables store a protobuf-encoded blob alongside indexed scalar columns
