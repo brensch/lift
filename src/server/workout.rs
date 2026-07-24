@@ -33,21 +33,61 @@ fn slot_key_for_exercise(exercise: Exercise) -> String {
     exercise.as_str_name().to_ascii_lowercase()
 }
 
-fn build_progression_message(
-    key: impl Into<String>,
+/// Everything a progression message needs. A struct rather than a parameter
+/// list because the call sites pass a dozen values, most of them optional, and
+/// positional arguments made them unreadable and easy to transpose.
+struct ProgressionMessage<'a> {
+    key: String,
     kind: UserMessageKind,
     exercise: Exercise,
     slot_key: String,
-    source_workout_id: &str,
+    source_workout_id: &'a str,
     previous_weight: f32,
     next_weight: f32,
-    previous_stage: Option<&str>,
-    next_stage: Option<&str>,
-    context_label: Option<&str>,
+    previous_stage: Option<&'a str>,
+    next_stage: Option<&'a str>,
+    context_label: Option<&'a str>,
     metric_kind: ProgressionMetricKind,
     reason_kind: ProgressionReasonKind,
-    reason_text: Option<&str>,
-) -> UserMessage {
+    reason_text: Option<&'a str>,
+}
+
+impl Default for ProgressionMessage<'_> {
+    fn default() -> Self {
+        Self {
+            key: String::new(),
+            kind: UserMessageKind::Unspecified,
+            exercise: Exercise::Unspecified,
+            slot_key: String::new(),
+            source_workout_id: "",
+            previous_weight: 0.0,
+            next_weight: 0.0,
+            previous_stage: None,
+            next_stage: None,
+            context_label: None,
+            metric_kind: ProgressionMetricKind::Unspecified,
+            reason_kind: ProgressionReasonKind::Unspecified,
+            reason_text: None,
+        }
+    }
+}
+
+fn build_progression_message(params: ProgressionMessage<'_>) -> UserMessage {
+    let ProgressionMessage {
+        key,
+        kind,
+        exercise,
+        slot_key,
+        source_workout_id,
+        previous_weight,
+        next_weight,
+        previous_stage,
+        next_stage,
+        context_label,
+        metric_kind,
+        reason_kind,
+        reason_text,
+    } = params;
     let change_kind = match kind {
         UserMessageKind::LoadIncrease => ProgressionChangeKind::Increase,
         UserMessageKind::LoadHold => ProgressionChangeKind::Hold,
@@ -291,53 +331,53 @@ fn lp_completion_messages(
         };
         let slot_key = slot_key_for_exercise(exercise);
         if next_weight > prev_weight + 0.1 {
-            out.push(build_progression_message(
-                format!("pending:{workout_id}:increase:{slot_key}"),
-                UserMessageKind::LoadIncrease,
-                exercise,
-                slot_key.clone(),
-                workout_id,
-                prev_weight,
-                next_weight,
-                None,
-                None,
-                None,
-                ProgressionMetricKind::WorkingWeight,
-                ProgressionReasonKind::CompletedAllWorkingSets,
-                None,
-            ));
+            out.push(build_progression_message(ProgressionMessage {
+                    key: format!("pending:{workout_id}:increase:{slot_key}"),
+                    kind: UserMessageKind::LoadIncrease,
+                    exercise,
+                    slot_key: slot_key.clone(),
+                    source_workout_id: workout_id,
+                    previous_weight: prev_weight,
+                    next_weight,
+                    previous_stage: None,
+                    next_stage: None,
+                    context_label: None,
+                    metric_kind: ProgressionMetricKind::WorkingWeight,
+                    reason_kind: ProgressionReasonKind::CompletedAllWorkingSets,
+                    reason_text: None,
+                }));
         } else if next_weight < prev_weight - 0.1 {
-            out.push(build_progression_message(
-                format!("pending:{workout_id}:deload:{slot_key}"),
-                UserMessageKind::StallDeload,
-                exercise,
-                slot_key.clone(),
-                workout_id,
-                prev_weight,
-                next_weight,
-                None,
-                None,
-                None,
-                ProgressionMetricKind::WorkingWeight,
-                ProgressionReasonKind::RepeatedMisses,
-                None,
-            ));
+            out.push(build_progression_message(ProgressionMessage {
+                    key: format!("pending:{workout_id}:deload:{slot_key}"),
+                    kind: UserMessageKind::StallDeload,
+                    exercise,
+                    slot_key: slot_key.clone(),
+                    source_workout_id: workout_id,
+                    previous_weight: prev_weight,
+                    next_weight,
+                    previous_stage: None,
+                    next_stage: None,
+                    context_label: None,
+                    metric_kind: ProgressionMetricKind::WorkingWeight,
+                    reason_kind: ProgressionReasonKind::RepeatedMisses,
+                    reason_text: None,
+                }));
         } else if next_stall > prev_stall && !outcome.all_sets_hit_target() {
-            out.push(build_progression_message(
-                format!("pending:{workout_id}:hold:{slot_key}"),
-                UserMessageKind::LoadHold,
-                exercise,
-                slot_key,
-                workout_id,
-                prev_weight,
-                next_weight,
-                None,
-                None,
-                None,
-                ProgressionMetricKind::WorkingWeight,
-                ProgressionReasonKind::MissedTargetReps,
-                None,
-            ));
+            out.push(build_progression_message(ProgressionMessage {
+                    key: format!("pending:{workout_id}:hold:{slot_key}"),
+                    kind: UserMessageKind::LoadHold,
+                    exercise,
+                    slot_key,
+                    source_workout_id: workout_id,
+                    previous_weight: prev_weight,
+                    next_weight,
+                    previous_stage: None,
+                    next_stage: None,
+                    context_label: None,
+                    metric_kind: ProgressionMetricKind::WorkingWeight,
+                    reason_kind: ProgressionReasonKind::MissedTargetReps,
+                    reason_text: None,
+                }));
         }
     }
     out
@@ -405,19 +445,19 @@ fn completion_messages_for_regime(
                 } else {
                     continue;
                 };
-                out.push(build_progression_message(
-                    format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
+                out.push(build_progression_message(ProgressionMessage {
+                    key: format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
                     kind,
                     exercise,
                     slot_key,
-                    workout_id,
-                    prev_weight,
+                    source_workout_id: workout_id,
+                    previous_weight: prev_weight,
                     next_weight,
-                    (!prev_stage.is_empty()).then_some(prev_stage),
-                    (!next_stage.is_empty()).then_some(next_stage),
-                    Some(tier),
-                    ProgressionMetricKind::WorkingWeight,
-                    match kind {
+                    previous_stage: (!prev_stage.is_empty()).then_some(prev_stage),
+                    next_stage: (!next_stage.is_empty()).then_some(next_stage),
+                    context_label: Some(tier),
+                    metric_kind: ProgressionMetricKind::WorkingWeight,
+                    reason_kind: match kind {
                         UserMessageKind::LoadIncrease => {
                             ProgressionReasonKind::ClearedProgressionCheck
                         }
@@ -425,8 +465,8 @@ fn completion_messages_for_regime(
                         UserMessageKind::LoadHold => ProgressionReasonKind::StageAdvance,
                         _ => ProgressionReasonKind::Unspecified,
                     },
-                    None,
-                ));
+                    reason_text: None,
+                }));
             }
             out
         }
@@ -444,24 +484,24 @@ fn completion_messages_for_regime(
                 if next_tm <= prev_tm + 0.1 {
                     continue;
                 }
-                out.push(build_progression_message(
-                    format!(
+                out.push(build_progression_message(ProgressionMessage {
+                    key: format!(
                         "pending:{workout_id}:cycle:{}",
                         slot_key_for_exercise(exercise)
                     ),
-                    UserMessageKind::CycleAdvance,
+                    kind: UserMessageKind::CycleAdvance,
                     exercise,
-                    slot_key_for_exercise(exercise),
-                    workout_id,
-                    prev_tm,
-                    next_tm,
-                    None,
-                    None,
-                    None,
-                    ProgressionMetricKind::TrainingMax,
-                    ProgressionReasonKind::CycleCompleted,
-                    None,
-                ));
+                    slot_key: slot_key_for_exercise(exercise),
+                    source_workout_id: workout_id,
+                    previous_weight: prev_tm,
+                    next_weight: next_tm,
+                    previous_stage: None,
+                    next_stage: None,
+                    context_label: None,
+                    metric_kind: ProgressionMetricKind::TrainingMax,
+                    reason_kind: ProgressionReasonKind::CycleCompleted,
+                    reason_text: None,
+                }));
             }
             out
         }

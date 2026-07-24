@@ -27,10 +27,14 @@ struct PendingAuthChallenge {
     created_at: Instant,
 }
 
+/// A registration handshake in flight: the webauthn-rs state, the username it
+/// was started for, and when it was issued (for TTL expiry).
+type PendingRegistration = (PasskeyRegistration, String, Instant);
+
 pub struct AuthState {
     pub webauthn: Arc<Webauthn>,
     pub db: ServerDb,
-    reg_challenges: Arc<Mutex<HashMap<String, (PasskeyRegistration, String, Instant)>>>,
+    reg_challenges: Arc<Mutex<HashMap<String, PendingRegistration>>>,
     auth_challenges: Arc<Mutex<HashMap<String, PendingAuthChallenge>>>,
 }
 

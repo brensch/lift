@@ -47,6 +47,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
   }
 
   Future<void> _deletePasskey(String credentialId) async {
+    // Resolved up front: every use below sits after an await, and reading from
+    // the BuildContext across an async gap risks touching a defunct element.
+    final authService = context.read<AuthService>();
+
     final confirmed = await _showDeleteConfirmDialog();
     if (confirmed != true) return;
 
@@ -55,7 +59,6 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
       _error = null;
     });
     try {
-      final authService = context.read<AuthService>();
       await authService.deletePasskey(credentialId);
       await _loadPasskeys();
     } catch (e) {

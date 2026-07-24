@@ -4,6 +4,9 @@
 // This duplicates the WAV generation logic from lib/logic/audio.dart
 // because that file imports Flutter-dependent packages (just_audio).
 
+// This is a command-line generator, not app code — printing is its output.
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
