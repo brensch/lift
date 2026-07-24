@@ -501,7 +501,7 @@ impl ServerDb {
             interleave_warmups: group.interleave_warmups,
             workout_order: profile_order,
             exercise_configs: group.exercise_configs.clone(),
-            rest_config: group.rest_config.clone(),
+            rest_config: group.rest_config,
             instruction: group.instruction.clone(),
             prescribed_by_regime: group.prescribed_by_regime,
         })

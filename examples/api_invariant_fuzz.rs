@@ -167,7 +167,7 @@ async fn run_user(
 
         let group_count = rng.gen_range(1..4);
         let groups: Vec<ExerciseGroup> = (0..group_count)
-            .map(|i| random_group(&mut rng, i as i32))
+            .map(|i| random_group(&mut rng, i))
             .collect();
 
         let started = match wk

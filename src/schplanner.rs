@@ -805,18 +805,33 @@ mod tests {
         assert_eq!(squat.rests.max_secs, 130);
     }
 
-    fn single_group_workout(
-        workout_id: &str,
+    /// The prescription half of a fabricated workout; what the lifter did comes
+    /// in via `actual_reps` / `ended` so tests read as "prescription, outcome".
+    struct SingleGroupSpec<'a> {
         exercise: Exercise,
-        tier: &str,
+        tier: &'a str,
         rule: ProgressionRule,
         weight: f32,
         reps: i32,
         set_count: i32,
+        amrap_threshold: i32,
+    }
+
+    fn single_group_workout(
+        workout_id: &str,
+        spec: SingleGroupSpec<'_>,
         actual_reps: Vec<i32>,
         ended: bool,
-        amrap_threshold: i32,
     ) -> SchplannerWorkoutRecord {
+        let SingleGroupSpec {
+            exercise,
+            tier,
+            rule,
+            weight,
+            reps,
+            set_count,
+            amrap_threshold,
+        } = spec;
         let workout = Workout {
             id: workout_id.to_string(),
             name: workout_id.to_string(),
@@ -1064,15 +1079,17 @@ mod tests {
         let base = regime.default_state();
         let workout = single_group_workout(
             "g-t1-fail",
-            Exercise::Squat,
-            "T1",
-            ProgressionRule::AllSetsMatchTarget,
-            135.0,
-            3,
-            5,
+            SingleGroupSpec {
+                exercise: Exercise::Squat,
+                tier: "T1",
+                rule: ProgressionRule::AllSetsMatchTarget,
+                weight: 135.0,
+                reps: 3,
+                set_count: 5,
+                amrap_threshold: 0,
+            },
             vec![3, 3, 3, 3, 2],
             true,
-            0,
         );
         let derived = derive_state(regime.as_ref(), &base, &[workout]);
         assert_eq!(
@@ -1091,15 +1108,17 @@ mod tests {
         let base = regime.default_state();
         let workout = single_group_workout(
             "g-t3-pass",
-            Exercise::HipThrust,
-            "T3",
-            ProgressionRule::TopSetAmrap,
-            45.0,
-            15,
-            3,
+            SingleGroupSpec {
+                exercise: Exercise::HipThrust,
+                tier: "T3",
+                rule: ProgressionRule::TopSetAmrap,
+                weight: 45.0,
+                reps: 15,
+                set_count: 3,
+                amrap_threshold: 25,
+            },
             vec![15, 15, 25],
             true,
-            25,
         );
         let derived = derive_state(regime.as_ref(), &base, &[workout]);
         assert_eq!(
@@ -1123,15 +1142,17 @@ mod tests {
 
         let workout = single_group_workout(
             "w-cycle-end",
-            Exercise::OverheadPress,
-            "MAIN",
-            ProgressionRule::None,
-            60.0,
-            5,
-            3,
+            SingleGroupSpec {
+                exercise: Exercise::OverheadPress,
+                tier: "MAIN",
+                rule: ProgressionRule::None,
+                weight: 60.0,
+                reps: 5,
+                set_count: 3,
+                amrap_threshold: 0,
+            },
             vec![5, 5, 5],
             true,
-            0,
         );
         let derived = derive_state(regime.as_ref(), &base, &[workout]);
         assert_eq!(get_int_or(&derived.effective_state, "cycle", 0), 2);

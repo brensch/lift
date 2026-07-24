@@ -215,13 +215,15 @@ class AppTheme {
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected))
+        if (states.contains(WidgetState.selected)) {
           return const Color(0xFF171717);
+        }
         return const Color(0xFFD4D4D4);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected))
+        if (states.contains(WidgetState.selected)) {
           return const Color(0xFF171717).withValues(alpha: 0.5);
+        }
         return const Color(0xFFE5E5E5);
       }),
     ),
@@ -342,13 +344,15 @@ class AppTheme {
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected))
+        if (states.contains(WidgetState.selected)) {
           return const Color(0xFFFAFAFA);
+        }
         return const Color(0xFF525252);
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected))
+        if (states.contains(WidgetState.selected)) {
           return const Color(0xFFFAFAFA).withValues(alpha: 0.5);
+        }
         return const Color(0xFF262626);
       }),
     ),

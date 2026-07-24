@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod scenario_tests {
+mod tests {
     use crate::program_state::{set_f32, set_int, set_str, FieldVal, ProposeResult, StatePayload};
     use crate::regimes::get_regime;
     use crate::schplanner::{derive_state, SchplannerInsights, SchplannerWorkoutRecord};
@@ -173,7 +173,7 @@ mod scenario_tests {
             interleave_warmups: group.interleave_warmups,
             workout_order: idx as i32,
             exercise_configs: group.exercise_configs.clone(),
-            rest_config: group.rest_config.clone(),
+            rest_config: group.rest_config,
             instruction: String::new(),
             prescribed_by_regime: group.prescribed_by_regime,
         }
