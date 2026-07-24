@@ -114,6 +114,7 @@ web/        React landing / privacy / account-deletion site
 proto/      Protobuf contracts (source of truth for generated code)
 examples/   load_simulation.rs (load test), api_invariant_fuzz.rs (invariant harness)
 scripts/    Release / icon / deploy helper scripts
+make/       Makefile target groups (backend, app, emulators, wear, watch, release, proto)
 deploy/     Production deploy configs (systemd + Caddy)
 docs/       Architecture reference and runbooks
 ```
