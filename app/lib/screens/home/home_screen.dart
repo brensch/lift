@@ -13,7 +13,7 @@ import '../../services/workout_service.dart';
 import '../../logic/exercises.dart';
 import '../../logic/exercise_groups.dart';
 import '../../logic/utils.dart';
-import '../../widgets/workout_modals.dart';
+import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
 import '../workout_start_briefing_screen.dart';
 import '../../widgets/common/section_header.dart';
 import 'group_grid.dart';

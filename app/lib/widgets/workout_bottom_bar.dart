@@ -10,7 +10,9 @@ import '../providers/multiplayer_provider.dart';
 import '../logic/user_profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/participant_ticker.dart';
-import '../widgets/workout_modals.dart';
+import 'dialogs/end_workout_dialog.dart';
+import 'dialogs/health_dialogs.dart';
+import 'dialogs/participant_workout_modal.dart';
 import '../widgets/workout_status_box.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
