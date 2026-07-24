@@ -349,3 +349,155 @@ impl ServerDb {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod account_deletion_tests {
+    use crate::db::ServerDb;
+    use sqlx::Row;
+    use uuid::Uuid;
+
+    async fn temp_db() -> ServerDb {
+        let dir = std::env::temp_dir().join(format!("lift-delete-test-{}", Uuid::new_v4()));
+        ServerDb::new_in_dir(&dir).await.unwrap()
+    }
+
+    /// Every table in the schema carrying a `user_id` column, discovered from
+    /// SQLite itself rather than hardcoded, so a newly added table shows up here
+    /// automatically.
+    async fn tables_with_user_id(db: &ServerDb) -> Vec<String> {
+        let table_names: Vec<String> = sqlx::query(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+        )
+        .fetch_all(&db.read_pool)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|r| r.get::<String, _>("name"))
+        .collect();
+
+        let mut out = Vec::new();
+        for table in table_names {
+            let has_user_id = sqlx::query(&format!("PRAGMA table_info({table})"))
+                .fetch_all(&db.read_pool)
+                .await
+                .unwrap()
+                .into_iter()
+                .any(|c| c.get::<String, _>("name") == "user_id");
+            if has_user_id {
+                out.push(table);
+            }
+        }
+        out.sort();
+        out
+    }
+
+    /// Write one row for `user_id` into every user-keyed table, using raw SQL so
+    /// the test does not depend on which write helpers happen to exist.
+    ///
+    /// Every id is derived from `user_id` so two users can be seeded into the
+    /// same database without colliding on primary keys.
+    async fn seed_all_tables(db: &ServerDb, user_id: &str) {
+        let u = user_id;
+        let stmts: Vec<(&str, String)> = vec![
+            ("users_current", format!("(user_id, user_blob, username_ci, invite_token) VALUES (?, x'00', '{u}-name', '{u}-invite')")),
+            ("auth_sessions", format!("(token, user_id, expires_at) VALUES ('{u}-tok', ?, 9999999999)")),
+            ("passkey_credentials", format!("(credential_id, user_id, credential_json, created_at) VALUES ('{u}-cred', ?, '{{}}', 1)")),
+            ("workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-w1', ?, 'W', 1)")),
+            ("exercise_groups", format!("(id, user_id, workout_id, name, workout_order) VALUES ('{u}-g1', ?, '{u}-w1', 'G', 0)")),
+            ("proposed_sets", format!("(id, user_id, workout_id, exercise_group_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', '{u}-g1', 0, 1, 5, 100.0)")),
+            ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
+            ("active_workout_current", format!("(user_id, workout_id) VALUES (?, '{u}-w1')")),
+            ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
+            ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
+            ("workout_events", format!("(event_id, user_id, workout_id, recorded_at, event_type, payload) VALUES ('{u}-e1', ?, '{u}-w1', 1, 2, x'00')")),
+            ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
+            ("proposed_schedule_cache", "(user_id, response_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
+            ("training_program_state_latest", "(user_id, response_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
+            ("program_progression_applied", format!("(workout_id, user_id, applied_at) VALUES ('{u}-w1', ?, 1)")),
+            ("user_settings_current", "(user_id, setting_type, setting_blob, updated_at) VALUES (?, 'units', x'00', 1)".to_string()),
+            ("workout_drafts_current", "(user_id, draft_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
+            ("profile_exercise_groups", format!("(id, user_id, name, created_at, updated_at) VALUES ('{u}-pg1', ?, 'G', 1, 1)")),
+            ("user_message_events", "(user_id, message_key, created_at, updated_at, message_blob) VALUES (?, 'k', 1, 1, x'00')".to_string()),
+        ];
+
+        for (table, cols) in &stmts {
+            sqlx::query(&format!("INSERT INTO {table} {cols}"))
+                .bind(user_id)
+                .execute(&db.write_pool)
+                .await
+                .unwrap_or_else(|e| panic!("failed seeding {table}: {e}"));
+        }
+    }
+
+    async fn row_count(db: &ServerDb, table: &str, user_id: &str) -> i64 {
+        sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table} WHERE user_id = ?"))
+            .bind(user_id)
+            .fetch_one(&db.read_pool)
+            .await
+            .unwrap()
+    }
+
+    /// `delete_user_account_and_data` lists its tables by hand, and has already
+    /// missed some (workout_events, profile_exercise_groups, user_message_events
+    /// were all left behind). This seeds every user-keyed table, deletes the
+    /// account, and fails naming any table that still holds rows — so adding a
+    /// table without updating the delete path fails here rather than silently
+    /// retaining personal data after an account deletion.
+    #[tokio::test]
+    async fn deleting_an_account_clears_every_user_keyed_table() {
+        let db = temp_db().await;
+        let user_id = "user-under-test";
+
+        seed_all_tables(&db, user_id).await;
+
+        let tables = tables_with_user_id(&db).await;
+        assert!(!tables.is_empty(), "expected to discover user-keyed tables");
+
+        // Sanity check: the seed actually wrote something everywhere.
+        for table in &tables {
+            assert!(
+                row_count(&db, table, user_id).await > 0,
+                "test seed missed {table} — extend seed_all_tables"
+            );
+        }
+
+        db.delete_user_account_and_data(user_id).await.unwrap();
+
+        let mut leftovers = Vec::new();
+        for table in &tables {
+            let remaining = row_count(&db, table, user_id).await;
+            if remaining > 0 {
+                leftovers.push(format!("{table} ({remaining} rows)"));
+            }
+        }
+
+        assert!(
+            leftovers.is_empty(),
+            "account deletion left personal data behind. Add these tables to \
+             delete_user_account_and_data in src/db/auth.rs:\n  {}",
+            leftovers.join("\n  ")
+        );
+    }
+
+    /// Deleting one account must not touch anyone else's rows.
+    #[tokio::test]
+    async fn deleting_an_account_leaves_other_users_untouched() {
+        let db = temp_db().await;
+        seed_all_tables(&db, "victim").await;
+        seed_all_tables(&db, "bystander").await;
+
+        db.delete_user_account_and_data("victim").await.unwrap();
+
+        for table in tables_with_user_id(&db).await {
+            assert_eq!(
+                row_count(&db, &table, "victim").await,
+                0,
+                "{table} still holds the deleted user's rows"
+            );
+            assert!(
+                row_count(&db, &table, "bystander").await > 0,
+                "{table} lost an unrelated user's rows"
+            );
+        }
+    }
+}
