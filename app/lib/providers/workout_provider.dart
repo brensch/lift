@@ -12,7 +12,8 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/weight_units.dart';
-import '../logic/warmup.dart';
+import '../logic/workout_plan_builder.dart';
+import '../logic/workout_reducer.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
@@ -24,9 +25,6 @@ import '../logic/utils.dart';
 import '../services/app_logger.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
-  static const int _defaultSuccessRestSeconds = 180;
-  static const int _defaultFailureRestSeconds = 300;
-  static const int _defaultWarmupRestSeconds = 30;
 
   static const int _maxWearHeartRateSamplesInMemory = 50000;
   static const _localWorkoutCacheKey =
@@ -110,240 +108,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _clock.value = value;
   }
 
-  int _effectiveRestSuccess({
-    required ExerciseTypeConfig config,
-    RestConfig? groupRest,
-    required bool warmup,
-    required bool lastWarmup,
-  }) {
-    final rc = config.hasRestConfig()
-        ? config.restConfig
-        : (groupRest != null && groupRestHasValues(groupRest)
-              ? groupRest
-              : null);
-    final success = (rc != null && rc.restAfterSuccess > 0)
-        ? rc.restAfterSuccess
-        : _defaultSuccessRestSeconds;
-    if (!warmup) return success;
-    if (lastWarmup) return success;
-    return (rc != null && rc.restAfterWarmup > 0)
-        ? rc.restAfterWarmup
-        : _defaultWarmupRestSeconds;
-  }
 
-  int _effectiveRestFailure({
-    required ExerciseTypeConfig config,
-    RestConfig? groupRest,
-    required bool warmup,
-    required bool lastWarmup,
-  }) {
-    final rc = config.hasRestConfig()
-        ? config.restConfig
-        : (groupRest != null && groupRestHasValues(groupRest)
-              ? groupRest
-              : null);
-    final failure = (rc != null && rc.restAfterFailure > 0)
-        ? rc.restAfterFailure
-        : _defaultFailureRestSeconds;
-    if (!warmup) return failure;
-    if (lastWarmup) {
-      final success = (rc != null && rc.restAfterSuccess > 0)
-          ? rc.restAfterSuccess
-          : _defaultSuccessRestSeconds;
-      return success;
-    }
-    final warm = (rc != null && rc.restAfterWarmup > 0)
-        ? rc.restAfterWarmup
-        : _defaultWarmupRestSeconds;
-    return warm;
-  }
 
-  List<WorkingSetSpec> _materializeWorkingSetsForConfig(
-    ExerciseTypeConfig config,
-    int groupSets,
-  ) {
-    if (config.workingSets.isNotEmpty) return config.workingSets.toList();
-    final count = groupSets <= 0 ? 1 : groupSets;
-    final out = <WorkingSetSpec>[];
-    for (var i = 0; i < count; i++) {
-      final isLast = i == count - 1;
-      final weight = count <= 1
-          ? config.startWeight
-          : config.startWeight +
-                (i / (count - 1)) * (config.endWeight - config.startWeight);
-      final rounded = (weight / 5.0).round() * 5.0;
-      out.add(
-        WorkingSetSpec()
-          ..targetWeight = rounded.toDouble()
-          ..targetReps = config.reps
-          ..isAmrap = config.lastSetAmrap && isLast
-          ..instruction = config.lastSetAmrap && isLast
-              ? 'AMRAP - push for max reps'
-              : '',
-      );
-    }
-    return out;
-  }
 
-  List<PlannedGroupSet> _buildPlannedGroupSetsFromConfigs({
-    required int sets,
-    required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
-    RestConfig? restConfig,
-  }) {
-    if (exerciseConfigs.isEmpty) return const [];
 
-    final workingByConfig = exerciseConfigs
-        .map((c) => _materializeWorkingSetsForConfig(c, sets))
-        .toList();
-    final warmupByConfig = <List<WarmupDef>>[];
-    for (var i = 0; i < exerciseConfigs.length; i++) {
-      final c = exerciseConfigs[i];
-      if (!c.includeWarmup) {
-        warmupByConfig.add(const []);
-        continue;
-      }
-      final warmupWeight = workingByConfig[i].isNotEmpty
-          ? workingByConfig[i].first.targetWeight
-          : c.startWeight;
-      warmupByConfig.add(generateWarmupDefs(warmupWeight));
-    }
 
-    final out = <PlannedGroupSet>[];
-
-    void addWarmupSet(int cfgIdx, int warmIdx) {
-      final c = exerciseConfigs[cfgIdx];
-      final warm = warmupByConfig[cfgIdx][warmIdx];
-      final isLastWarmup = warmIdx == warmupByConfig[cfgIdx].length - 1;
-      final planned = PlannedGroupSet()
-        ..exercise = c.exercise
-        ..targetReps = warm.reps
-        ..targetWeight = warm.weight
-        ..warmup = true
-        ..restAfterSuccess = _effectiveRestSuccess(
-          config: c,
-          groupRest: restConfig,
-          warmup: true,
-          lastWarmup: isLastWarmup,
-        )
-        ..restAfterFailure = _effectiveRestFailure(
-          config: c,
-          groupRest: restConfig,
-          warmup: true,
-          lastWarmup: isLastWarmup,
-        )
-        ..clientSetId = _uuid.v4();
-      out.add(planned);
-    }
-
-    if (interleaveWarmups && exerciseConfigs.length > 1) {
-      final maxWarmups = warmupByConfig.fold<int>(
-        0,
-        (m, w) => w.length > m ? w.length : m,
-      );
-      for (var round = 0; round < maxWarmups; round++) {
-        for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
-          if (round < warmupByConfig[cfgIdx].length) {
-            addWarmupSet(cfgIdx, round);
-          }
-        }
-      }
-    } else {
-      for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
-        for (
-          var warmIdx = 0;
-          warmIdx < warmupByConfig[cfgIdx].length;
-          warmIdx++
-        ) {
-          addWarmupSet(cfgIdx, warmIdx);
-        }
-      }
-    }
-
-    final maxWorking = workingByConfig.fold<int>(
-      0,
-      (m, w) => w.length > m ? w.length : m,
-    );
-    for (var round = 0; round < maxWorking; round++) {
-      for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
-        if (round >= workingByConfig[cfgIdx].length) continue;
-        final c = exerciseConfigs[cfgIdx];
-        final ws = workingByConfig[cfgIdx][round];
-        final planned = PlannedGroupSet()
-          ..exercise = c.exercise
-          ..targetReps = ws.targetReps
-          ..targetWeight = ws.targetWeight
-          ..warmup = false
-          ..restAfterSuccess = _effectiveRestSuccess(
-            config: c,
-            groupRest: restConfig,
-            warmup: false,
-            lastWarmup: false,
-          )
-          ..restAfterFailure = _effectiveRestFailure(
-            config: c,
-            groupRest: restConfig,
-            warmup: false,
-            lastWarmup: false,
-          )
-          ..isAmrap = ws.isAmrap
-          ..instruction = ws.instruction
-          ..progressionHint = ws.progressionHint.deepCopy()
-          ..clientSetId = _uuid.v4();
-        out.add(planned);
-      }
-    }
-
-    return out;
-  }
-
-  int _computeGroupWorkingRoundsFromSets(List<PlannedGroupSet> sets) {
-    final counts = <int, int>{};
-    for (final set in sets) {
-      if (set.warmup) continue;
-      counts[set.exercise.value] = (counts[set.exercise.value] ?? 0) + 1;
-    }
-    var maxCount = 0;
-    for (final count in counts.values) {
-      if (count > maxCount) maxCount = count;
-    }
-    return maxCount;
-  }
-
-  List<ProposedSet> _proposedSetsFromPlannedGroupSets({
-    required String workoutId,
-    required String groupId,
-    required List<PlannedGroupSet> sets,
-    required int startOrder,
-  }) {
-    final out = <ProposedSet>[];
-    var order = startOrder;
-    for (final set in sets) {
-      if (set.restAfterSuccess <= 0 || set.restAfterFailure <= 0) {
-        throw StateError(
-          'Workout plan sets must include explicit rest values.',
-        );
-      }
-      out.add(
-        ProposedSet()
-          ..id = set.clientSetId.isNotEmpty ? set.clientSetId : _uuid.v4()
-          ..workoutId = workoutId
-          ..workoutOrder = order++
-          ..exercise = set.exercise
-          ..targetReps = set.targetReps
-          ..targetWeight = set.targetWeight
-          ..warmup = set.warmup
-          ..exerciseGroupId = groupId
-          ..restAfterSuccess = set.restAfterSuccess
-          ..restAfterFailure = set.restAfterFailure
-          ..cancelled = false
-          ..isAmrap = set.isAmrap
-          ..instruction = set.instruction
-          ..progressionHint = set.progressionHint.deepCopy(),
-      );
-    }
-    return out;
-  }
 
   void _resequenceAllProposedSets({
     String? prioritizeCompletedGroupId,
@@ -428,7 +197,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         ..id = groupId
         ..workoutId = workout.id
         ..name = name
-        ..sets = _computeGroupWorkingRoundsFromSets(normalizedSets)
+        ..sets = computeGroupWorkingRoundsFromSets(normalizedSets)
         ..interleaveWarmups = interleaveWarmups
         ..workoutOrder = _activeExerciseGroups.length
         ..instruction = instruction
@@ -439,7 +208,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final startOrder = _activeProposedSets.isEmpty
           ? 0
           : (_activeProposedSets.last.workoutOrder + 1);
-      final generated = _proposedSetsFromPlannedGroupSets(
+      final generated = proposedSetsFromPlannedGroupSets(
         workoutId: workout.id,
         groupId: groupId,
         sets: normalizedSets,
@@ -468,7 +237,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     existing
       ..name = name
       ..interleaveWarmups = interleaveWarmups
-      ..sets = _computeGroupWorkingRoundsFromSets(normalizedSets)
+      ..sets = computeGroupWorkingRoundsFromSets(normalizedSets)
       ..instruction = instruction
       ..exerciseConfigs.clear();
     if (restConfig != null) {
@@ -510,7 +279,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       pendingPlanned.add(set);
     }
 
-    final generated = _proposedSetsFromPlannedGroupSets(
+    final generated = proposedSetsFromPlannedGroupSets(
       workoutId: workout.id,
       groupId: existing.id,
       sets: pendingPlanned,
@@ -1397,27 +1166,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return mutation;
   }
 
+
+
+
+
+  int get _nowSecs => _now.millisecondsSinceEpoch ~/ 1000;
+
   void _applyLocalStartSet(String proposedSetId, {int? startedAt}) {
     if (_activeWorkout == null) return;
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p?.id == proposedSetId && !(p?.cancelled ?? true),
-      orElse: () => null,
-    );
-    if (proposed == null) return;
-    final alreadyActive = _activeCompletedSets.any(
-      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
-    );
-    if (alreadyActive) return;
-    _activeCompletedSets.add(
-      CompletedSet()
-        ..id = _uuid.v4()
-        ..workoutId = _activeWorkout!.id
-        ..proposedSetId = proposedSetId
-        ..actualReps = proposed.targetReps
-        ..actualWeight = proposed.targetWeight
-        ..startedAt = Int64(startedAt ?? (_now.millisecondsSinceEpoch ~/ 1000))
-        ..endedAt = Int64.ZERO
-        ..restUntil = Int64.ZERO,
+    applyLocalStartSet(
+      workoutId: _activeWorkout!.id,
+      proposedSets: _activeProposedSets,
+      completedSets: _activeCompletedSets,
+      proposedSetId: proposedSetId,
+      nowSecs: _nowSecs,
+      startedAt: startedAt,
     );
     _refreshDerivedState();
   }
@@ -1429,67 +1192,32 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     int? completedAt,
   }) {
     if (_activeWorkout == null) return;
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p?.id == proposedSetId && !(p?.cancelled ?? true),
-      orElse: () => null,
+    applyLocalCompleteSet(
+      workoutId: _activeWorkout!.id,
+      proposedSets: _activeProposedSets,
+      completedSets: _activeCompletedSets,
+      proposedSetId: proposedSetId,
+      actualReps: actualReps,
+      actualWeight: actualWeight,
+      nowSecs: _nowSecs,
+      completedAt: completedAt,
     );
-    if (proposed == null) return;
-    final endedAt = completedAt ?? (_now.millisecondsSinceEpoch ~/ 1000);
-    var restSeconds = actualReps >= proposed.targetReps
-        ? proposed.restAfterSuccess
-        : proposed.restAfterFailure;
-    final pendingInGroup = _activeProposedSets.where(
-      (set) =>
-          set.exerciseGroupId == proposed.exerciseGroupId &&
-          !set.cancelled &&
-          set.id != proposed.id &&
-          !_activeCompletedSets.any(
-            (done) =>
-                done.proposedSetId == set.id && done.endedAt != Int64.ZERO,
-          ),
-    );
-    if (pendingInGroup.isEmpty) {
-      restSeconds = 10;
-    }
-
-    final existingIdx = _activeCompletedSets.indexWhere(
-      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
-    );
-    if (existingIdx != -1) {
-      final set = _activeCompletedSets[existingIdx];
-      set
-        ..actualReps = actualReps
-        ..actualWeight = actualWeight
-        ..endedAt = Int64(endedAt)
-        ..restUntil = Int64(endedAt + restSeconds);
-    } else {
-      _activeCompletedSets.add(
-        CompletedSet()
-          ..id = _uuid.v4()
-          ..workoutId = _activeWorkout!.id
-          ..proposedSetId = proposedSetId
-          ..actualReps = actualReps
-          ..actualWeight = actualWeight
-          ..startedAt = Int64(endedAt)
-          ..endedAt = Int64(endedAt)
-          ..restUntil = Int64(endedAt + restSeconds),
-      );
-    }
     _refreshDerivedState();
   }
 
   void _applyLocalDeleteCompletedSet(String completedSetId) {
-    _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
+    applyLocalDeleteCompletedSet(
+      completedSets: _activeCompletedSets,
+      completedSetId: completedSetId,
+    );
     _refreshDerivedState();
   }
 
   void _applyLocalSkipWarmup(String proposedSetId) {
-    final idx = _activeProposedSets.indexWhere(
-      (set) => set.id == proposedSetId,
+    applyLocalSkipWarmup(
+      proposedSets: _activeProposedSets,
+      proposedSetId: proposedSetId,
     );
-    if (idx == -1) return;
-    if (!_activeProposedSets[idx].warmup) return;
-    _activeProposedSets[idx].cancelled = true;
     _refreshDerivedState();
   }
 
@@ -1615,7 +1343,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_activeWorkout == null) return;
     try {
-      final plannedSets = _buildPlannedGroupSetsFromConfigs(
+      final plannedSets = buildPlannedGroupSetsFromConfigs(
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
@@ -1647,7 +1375,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (groupData.group == null) return;
 
     try {
-      final plannedSets = _buildPlannedGroupSetsFromConfigs(
+      final plannedSets = buildPlannedGroupSetsFromConfigs(
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
