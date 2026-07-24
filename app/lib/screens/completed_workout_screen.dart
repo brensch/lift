@@ -16,7 +16,7 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
-import '../widgets/heart_rate_chart.dart';
+import '../widgets/heart_rate/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
 import '../widgets/user_message_chip.dart';
 import '../services/notification_service.dart';
