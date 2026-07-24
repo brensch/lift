@@ -16,7 +16,8 @@ import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/set_log.dart';
 import '../widgets/user_message_chip.dart';
-import '../widgets/workout_modals.dart';
+import '../widgets/dialogs/end_workout_dialog.dart';
+import '../widgets/exercise_editor/exercise_editor_dialogs.dart';
 import '../widgets/heart_rate_chart.dart';
 
 class WorkoutScreen extends StatefulWidget {
