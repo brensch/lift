@@ -331,9 +331,14 @@ impl ServerWorkoutService {
         if !applied {
             return Ok(Vec::new());
         }
+        // Compare against the weights the session was actually performed at, not
+        // the raw stored state. After a layoff deload the two differ, and using
+        // the stored weight would render "180 → 150" (a phantom decrease) when
+        // the user deloaded to 145 and progressed to 150. With no layoff,
+        // adjusted_prev == prev_payload and this is unchanged.
         let messages = completion_messages_for_regime(
             regime_type,
-            &prev_payload,
+            &adjusted_prev,
             &payload,
             &slot_outcomes,
             &workout.workout.id,
