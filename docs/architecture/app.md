@@ -37,7 +37,7 @@ Registered in `app/lib/main.dart`, which also wires the cross-provider callbacks
 | Provider | Owns | Notes |
 |---|---|---|
 | `AuthProvider` | Session token, user id, profile | Gates the whole app |
-| `WorkoutProvider` | The active workout | 1,929 lines — the centre of gravity |
+| `WorkoutProvider` | The active workout | The centre of gravity; pure logic lives in `logic/` |
 | `MultiplayerProvider` | Session + participants | Polls at 1 Hz |
 | `SettingsProvider` | Plate colours, weight unit, program state | Drives onboarding redirect |
 | `ThemeProvider` | Light/dark | Persisted locally |
@@ -136,32 +136,46 @@ Calorie estimation uses a MET-based formula (`_strengthTrainingMet = 3.5`) with 
 flat `_fallbackKcalPerMin = 5.0` when body weight is unknown. Derivation is in
 [`docs/calorie_maths.md`](../calorie_maths.md).
 
-## Known structural issues
+## Component layout
 
-Seven files exceed 1,300 lines:
+Screens with real surface area are folders, one component per file, all public:
 
-| File | Lines | Problem |
+```
+screens/home/          home_screen, home_selection (model), readiness_banner,
+                       group_grid, exercise_config_details
+screens/onboarding/    onboarding_screen + steps/ (one file per step)
+                       + widgets/ (form fields, cards, profile marker)
+screens/workout/       workout_screen, current_exercise_card,
+                       exercise_list_card, exschplanation_page, workout_panels
+widgets/workout_bar/   workout_bottom_bar, bar_controls, session_cards
+widgets/heart_rate/    heart_rate_chart, models (zones/viewport — pure),
+                       zone_summary, trend_painter, legend
+widgets/exercise_editor/  add/edit dialogs, chip selector, per-exercise
+                       config, group settings
+widgets/dialogs/       end-workout, participant viewer, health dialogs
+widgets/common/        section_header, weight_picker, rainbow_shimmer_text,
+                       horizontal_shaker — generic, screen-agnostic
+```
+
+The rule of thumb: a widget goes in `widgets/common/` only when nothing about
+it is specific to one screen; otherwise it lives with its screen.
+
+### Mirrors of the backend
+
+Three `logic/` modules are client-side mirrors of Rust code and must stay in
+lockstep with it:
+
+| Dart | Rust | Pinned by |
 |---|---|---|
-| `screens/onboarding_screen.dart` | 2,067 | 20 private widget classes in one file |
-| `screens/home_screen.dart` | 1,986 | screen + 10 widgets + selection model |
-| `widgets/workout_modals.dart` | 1,943 | 14 unrelated modals |
-| `providers/workout_provider.dart` | 1,929 | transport + mutation + lifecycle + rest timer |
-| `widgets/heart_rate_chart.dart` | 1,459 | chart + painter + zone maths |
-| `screens/workout_screen.dart` | 1,437 | screen + 18 private widgets |
-| `widgets/workout_bottom_bar.dart` | 1,393 | bar + 10 animation widgets |
-
-The recurring pattern is a public widget followed by a long tail of private
-`_Foo` widgets. The fix is a folder per screen with one file per widget, which
-is mechanical and safe.
+| `logic/warmup.dart` | `workout/planning.rs` warmups | `testdata/warmup_golden.json`, both suites |
+| `logic/workout_plan_builder.dart` | `workout/planning.rs` set generation | shares `warmup.dart`'s golden fixture |
+| `logic/workout_reducer.dart` | `workout/reducer.rs` | mirrored test suites on each side |
 
 ### Duplicated logic
 
-`app/lib/logic/warmup.dart` is a line-for-line port of
-`src/workout/planning.rs` — `_roundTo2_5`/`round_to_2_5`,
-`_is25_45PlateCombo`/`is_25_45_plate_combo`,
-`_snapWarmupWeight`/`snap_warmup_weight`. Two implementations of fiddly
-plate-snapping that must agree exactly. They are pinned together by a shared
-golden fixture; if you change one, change both and update the fixture.
+`app/lib/logic/warmup.dart` is a line-for-line port of the warmup maths in
+`src/workout/planning.rs` — plate snapping that must agree exactly. The golden
+fixture pins them together; if you change one, change both and regenerate.
 
 ## Testing
 
