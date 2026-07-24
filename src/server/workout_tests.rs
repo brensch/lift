@@ -666,6 +666,32 @@ mod layoff_deload_tests {
         }
     }
 
+    /// The scheduler loads only a bounded window of recent workouts. This must
+    /// not break `last_session_at` for a user whose history is longer than the
+    /// window: the most recent workout is always inside the window, so the
+    /// layoff deload still fires. Regression guard for the recent-history cap.
+    #[tokio::test]
+    async fn deload_still_fires_with_history_longer_than_the_window() {
+        let (svc, user_id, token) = setup().await;
+        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
+
+        // Far more sessions than RECENT_HISTORY_LIMIT (24), two days apart.
+        let mut ended = 1_000_000;
+        for i in 0..30 {
+            ended = do_squat_session(&svc, &token, 175.0 + (i * 5) as f32, ended + 2 * DAY).await;
+        }
+
+        // 45 days after the newest session, the deload must still apply — proving
+        // the bounded load kept the true last-session timestamp.
+        let stored = stored_squat_weight(&svc, &user_id).await;
+        let deloaded = proposed_squat_weight(&svc, &token, &user_id, ended + 45 * DAY).await;
+        assert!(
+            deloaded < stored,
+            "expected a deload below the stored {stored}, got {deloaded} — the \
+             recent-history cap dropped the most recent session"
+        );
+    }
+
     /// 14 days away drops the proposal to 90%; 30 days drops it to 80%.
     #[tokio::test]
     async fn a_long_layoff_deloads_the_proposal() {

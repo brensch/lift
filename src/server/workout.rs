@@ -87,16 +87,34 @@ impl ServerWorkoutService {
         }
     }
 
-    async fn load_schplanner_history(
+    /// How many recent workouts the scheduler loads for its proposal. The
+    /// proposal only uses history for timing insights and the last-session
+    /// timestamp (see `load_recent_schplanner_history`), and the most recent
+    /// workout — the one that fixes `last_session_at` even after a long layoff —
+    /// is always among the newest, so a fixed cap is safe and keeps the load
+    /// from growing with a user's training history.
+    const RECENT_HISTORY_LIMIT: i64 = 24;
+
+    /// Recent history for the proposal path. Production never replays full
+    /// history (state comes from `training_program_state_latest`); it needs only
+    /// `last_session_at` and recent timing insights, both of which a bounded
+    /// window of the newest workouts satisfies.
+    async fn load_recent_schplanner_history(
         &self,
         user_id: &str,
-        started_since: i64,
     ) -> Result<Vec<SchplannerWorkoutRecord>, Status> {
         let workouts = self
             .db
-            .list_workouts_started_since(user_id, started_since)
+            .list_recent_workouts(user_id, Self::RECENT_HISTORY_LIMIT)
             .await
             .map_err(internal_error)?;
+        self.hydrate_workout_records(workouts).await
+    }
+
+    async fn hydrate_workout_records(
+        &self,
+        workouts: Vec<Workout>,
+    ) -> Result<Vec<SchplannerWorkoutRecord>, Status> {
         let mut history = Vec::with_capacity(workouts.len());
         for workout in workouts {
             let exercise_groups = self
@@ -166,7 +184,7 @@ impl ServerWorkoutService {
         let regime = get_regime(regime_type);
         let stored_payload = payload_from_proto(&state.fields);
         let now = if at_time > 0 { at_time } else { now_unix() };
-        let history = self.load_schplanner_history(user_id, 0).await?;
+        let history = self.load_recent_schplanner_history(user_id).await?;
         let last_session_at = history
             .iter()
             .map(|workout| {
@@ -279,7 +297,7 @@ impl ServerWorkoutService {
             .end_time
             .max(workout.workout.start_time)
             .max(1);
-        let history = self.load_schplanner_history(user_id, 0).await?;
+        let history = self.load_recent_schplanner_history(user_id).await?;
         let last_session_at = history
             .iter()
             .filter(|h| h.workout.id != workout.workout.id)
