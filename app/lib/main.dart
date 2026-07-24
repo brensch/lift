@@ -37,7 +37,7 @@ import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
 import 'screens/maths_screen.dart';
 import 'screens/profile_marker_screen.dart';
-import 'screens/onboarding_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
 import 'screens/regime_settings_screen.dart';
 import 'screens/build_info_screen.dart';
