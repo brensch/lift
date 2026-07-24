@@ -104,6 +104,16 @@ trips. Removing the `DELETE FROM active_workout_current` from
 `ServerDb::end_workout`, for instance, should produce
 `workout is still active after EndWorkout`.
 
+## Mirrored reducers
+
+`app/lib/logic/workout_reducer.dart` and `src/workout/reducer.rs` implement the
+same optimistic set transitions on each side of the wire. Both carry a test
+suite asserting the same behaviours (idempotent start, one-tap completion,
+success/failure/end-of-group rest, warmup-only skipping), so a semantic change
+on either side that is not mirrored fails one of the suites. This has already
+caught a real divergence: the client used a 10-second end-of-group rest against
+the server's 60.
+
 ## Cross-language golden fixtures
 
 `src/workout/planning.rs` and `app/lib/logic/warmup.dart` are independent ports
@@ -128,13 +138,9 @@ f64 — opposite sides of a rounding boundary).
 
 Honest gaps, roughly in priority order:
 
-- **Flutter.** Only `logic/warmup.dart` and the gRPC retry path are covered.
-  `WorkoutProvider`'s optimistic mutation path is the highest-value gap — it
-  mirrors `src/workout/reducer.rs`, and divergence causes visible UI flicker.
-- **`src/workout/reducer.rs`** has no direct unit tests; it is exercised only
-  through handler tests and the fuzz harness.
 - **Multiplayer** has no automated coverage at all. The fuzz harness is
-  single-user per workout and never joins sessions.
+  single-user per workout and never joins sessions — extending it with
+  JoinViaInvite + concurrent session members is the next highest-value step.
 - **Wearable protocol** is untested end to end; the watch companions have no
   automated tests.
 - **`src/db/`** is covered only incidentally, apart from account deletion.
