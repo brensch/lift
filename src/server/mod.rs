@@ -30,11 +30,14 @@ use tracing::info;
 use uuid::Uuid;
 
 mod auth;
+mod messages;
 mod multiplayer;
 mod settings;
 mod support;
 mod user;
 mod workout;
+#[cfg(test)]
+mod workout_tests;
 
 pub use auth::ServerAuthService;
 pub use multiplayer::ServerMultiplayerService;
