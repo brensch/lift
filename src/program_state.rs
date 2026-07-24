@@ -287,3 +287,69 @@ pub fn schema_enum(
 pub fn build_schema(fields: Vec<TrainingProgramStateFieldSchema>) -> TrainingProgramStateSchema {
     TrainingProgramStateSchema { fields }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_payload() -> StatePayload {
+        let mut p = StatePayload::new();
+        set_int(&mut p, "week", 3);
+        set_f32(&mut p, "squat_weight", 172.5);
+        set_str(&mut p, "variant", "B");
+        p.insert("deload_pending".to_string(), FieldVal::Bool(true));
+        p
+    }
+
+    #[test]
+    fn payload_round_trips_through_proto() {
+        let payload = sample_payload();
+        let back = payload_from_proto(&payload_to_proto(&payload));
+        assert_eq!(back, payload);
+    }
+
+    #[test]
+    fn payload_round_trips_through_json() {
+        // State is persisted as JSON via serde untagged — `"B"`, `172.5`, `3`,
+        // `true` must all survive.
+        let payload = sample_payload();
+        let json = serde_json::to_string(&payload).unwrap();
+        let back: StatePayload = serde_json::from_str(&json).unwrap();
+        // Untagged deserialisation may read a whole float as Int; accessors must
+        // still agree even if the variant differs.
+        assert_eq!(get_int(&back, "week"), Some(3));
+        assert_eq!(get_f32(&back, "squat_weight"), Some(172.5));
+        assert_eq!(get_str(&back, "variant"), Some("B"));
+    }
+
+    #[test]
+    fn ints_read_as_floats_but_not_the_reverse() {
+        let mut p = StatePayload::new();
+        set_int(&mut p, "n", 150);
+        // A weight stored as Int (e.g. from JSON `150`) must still read as f32.
+        assert_eq!(get_f32(&p, "n"), Some(150.0));
+
+        set_f32(&mut p, "f", 2.5);
+        // A float never silently truncates to an int.
+        assert_eq!(get_int(&p, "f"), None);
+    }
+
+    #[test]
+    fn missing_keys_fall_back_to_defaults() {
+        let p = StatePayload::new();
+        assert_eq!(get_int_or(&p, "absent", 7), 7);
+        assert_eq!(get_f32_or(&p, "absent", 45.0), 45.0);
+        assert_eq!(get_str_or(&p, "absent", "A"), "A");
+    }
+
+    #[test]
+    fn valueless_proto_fields_are_dropped_not_zeroed() {
+        let mut fields = std::collections::HashMap::new();
+        fields.insert("empty".to_string(), StateFieldValue { value: None });
+        let payload = payload_from_proto(&fields);
+        assert!(
+            !payload.contains_key("empty"),
+            "a field with no value must read as missing, not as 0"
+        );
+    }
+}
