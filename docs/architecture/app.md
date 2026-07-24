@@ -65,18 +65,12 @@ Holds the local `ActiveWorkout` and applies optimistic mutations before the
 server confirms them — see
 [workout-lifecycle.md](workout-lifecycle.md#optimistic-mutations).
 
-Responsibilities currently bundled into this one class:
-
-- Local workout state + derived caches (`_refreshDerivedState`,
-  `_rebuildExerciseGroupsCache`, `_sortState`)
-- Optimistic mutation application and server reconciliation
-- gRPC calls for every workout RPC
-- Rest timer ticking and rest-complete sound
-- App lifecycle observation (`WidgetsBindingObserver`) for backgrounding
-- Wearable snapshot publishing
-
-That is several distinct concerns in one file; see
-[the split plan](#known-structural-issues).
+The provider orchestrates: derived caches, server reconciliation, the rest
+timer, lifecycle observation and wearable snapshot publishing. The pure parts —
+plan building and the optimistic set transitions — live in
+`logic/workout_plan_builder.dart` and `logic/workout_reducer.dart`, where they
+are unit-tested against the Rust mirrors (see
+[Mirrors of the backend](#mirrors-of-the-backend)).
 
 ## Transport
 
@@ -179,14 +173,13 @@ fixture pins them together; if you change one, change both and regenerate.
 
 ## Testing
 
-Existing coverage is thin:
-
+- `test/logic/` — the bulk of coverage: warmup golden parity with the backend,
+  the optimistic workout reducer (mirroring the Rust reducer suite), plate
+  calculator invariants, weight-unit conversion and snapping
 - `test/grpc_recovery_test.dart` — channel reset/retry behaviour
-- `test/widget_test.dart` — a placeholder plus one error-formatting test
 
-`logic/` is pure Dart and should carry the bulk of unit tests. Widget tests are
-most valuable for `WorkoutProvider`'s optimistic mutation path, where a
-divergence from the Rust reducer causes visible UI flicker.
+`logic/` is pure Dart, so it carries unit tests without a widget harness. See
+[testing.md](testing.md) for the full picture and the remaining gaps.
 
 ```bash
 cd app && flutter test
