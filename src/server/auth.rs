@@ -13,6 +13,26 @@ pub struct ServerAuthService {
 
 #[tonic::async_trait]
 impl AuthService for ServerAuthService {
+    /// Development-only login that bypasses WebAuthn entirely.
+    ///
+    /// Gated behind the `test-auth` Cargo feature. Without it this returns
+    /// `permission_denied` unconditionally — production release builds
+    /// (`cargo build --release --bin schlift`) do NOT enable the feature, so the
+    /// bypass is not compiled in. Dev targets in the Makefile pass
+    /// `--features test-auth` explicitly.
+    ///
+    /// This must never be enabled in a build that faces the internet: it issues a
+    /// 30-day session token for any username, taking over the account if it
+    /// already exists.
+    #[cfg(not(feature = "test-auth"))]
+    async fn test_login(
+        &self,
+        _request: Request<TestLoginRequest>,
+    ) -> Result<Response<AuthResponse>, Status> {
+        Err(Status::permission_denied("test login is not enabled"))
+    }
+
+    #[cfg(feature = "test-auth")]
     async fn test_login(
         &self,
         request: Request<TestLoginRequest>,
@@ -269,5 +289,62 @@ impl AuthService for ServerAuthService {
         Ok(Response::new(DeleteAccountResponse {
             deleted_user_id: user_id,
         }))
+    }
+}
+
+#[cfg(test)]
+mod test_login_gate_tests {
+    use super::*;
+    use crate::auth::AuthState;
+    use std::sync::Arc;
+
+    async fn service() -> ServerAuthService {
+        let dir = std::env::temp_dir().join(format!("lift-auth-gate-{}", uuid::Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        ServerAuthService {
+            auth_state: Arc::new(AuthState::new(db.clone())),
+            db,
+        }
+    }
+
+    /// TestLogin bypasses WebAuthn and mints a 30-day session for any username,
+    /// taking over the account if it already exists. It must not exist in a build
+    /// without the `test-auth` feature — production release builds do not enable it.
+    #[cfg(not(feature = "test-auth"))]
+    #[tokio::test]
+    async fn test_login_is_denied_without_the_test_auth_feature() {
+        let svc = service().await;
+
+        // Pre-create the account TestLogin would otherwise hand out a token for.
+        svc.db
+            .get_or_create_user_with_auth_session("victim")
+            .await
+            .unwrap();
+
+        let status = svc
+            .test_login(Request::new(TestLoginRequest {
+                username: "victim".to_string(),
+            }))
+            .await
+            .expect_err("TestLogin must be refused when test-auth is not enabled");
+
+        assert_eq!(status.code(), tonic::Code::PermissionDenied);
+    }
+
+    #[cfg(feature = "test-auth")]
+    #[tokio::test]
+    async fn test_login_issues_a_session_when_the_feature_is_enabled() {
+        let svc = service().await;
+
+        let response = svc
+            .test_login(Request::new(TestLoginRequest {
+                username: "dev-user".to_string(),
+            }))
+            .await
+            .expect("TestLogin should work when test-auth is enabled")
+            .into_inner();
+
+        assert!(!response.session_token.is_empty());
+        assert_eq!(response.username, "dev-user");
     }
 }
