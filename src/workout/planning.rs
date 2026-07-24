@@ -594,3 +594,169 @@ pub(crate) fn apply_reorder_exercise_groups(
     workout_ref.reindex_sets();
     Ok(())
 }
+
+#[cfg(test)]
+mod warmup_tests {
+    use super::*;
+
+    /// A dense sweep of every 2.5 lb increment from 5 to 600, plus sub-increment
+    /// values. Density matters: the Rust/Dart divergence this fixture exists to
+    /// catch came from `175.0 * 0.70` landing on opposite sides of a `.5`
+    /// rounding boundary in f32 vs f64, and a sparse table would have missed it.
+    /// The sweep also covers the branches in `snap_warmup_weight` — sub-bar
+    /// loads, the 45 lb bar boundary, exact 25/45-plate combos (45, 95, 135,
+    /// 185, 225) and the gaps between them where the ±5 lb probe runs.
+    fn golden_working_weights() -> Vec<f32> {
+        let mut weights: Vec<f32> = Vec::new();
+        let mut w = 5.0_f32;
+        while w <= 600.0 {
+            weights.push(w);
+            w += 2.5;
+        }
+        // Values off the 2.5 grid, which users can reach via manual entry.
+        weights.extend_from_slice(&[7.5, 13.0, 33.3, 46.0, 47.5, 101.0, 123.4, 178.9, 249.9]);
+        weights.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        weights.dedup();
+        weights
+    }
+
+    fn golden_path() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/warmup_golden.json")
+    }
+
+    fn current_table() -> serde_json::Value {
+        let cases = golden_working_weights()
+            .iter()
+            .map(|&w| {
+                let warmups = generate_warmup_defs(w)
+                    .into_iter()
+                    .map(|(weight, reps)| serde_json::json!({ "weight": weight, "reps": reps }))
+                    .collect::<Vec<_>>();
+                serde_json::json!({ "working_weight": w, "warmups": warmups })
+            })
+            .collect::<Vec<_>>();
+        serde_json::json!({
+            "comment": "Shared golden fixture. src/workout/planning.rs and \
+                        app/lib/logic/warmup.dart are independent ports of the same \
+                        warmup + plate-snapping maths and must agree exactly. \
+                        Regenerate with LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden, \
+                        then run `cd app && flutter test` to confirm Dart still matches.",
+            "cases": cases,
+        })
+    }
+
+    /// Pins the Rust warmup output. The same file is asserted against by
+    /// `app/test/logic/warmup_golden_test.dart`, so a change to either
+    /// implementation that is not mirrored in the other fails the build.
+    #[test]
+    fn warmup_golden_matches_fixture() {
+        let current = current_table();
+
+        if std::env::var("LIFT_SNAPSHOT_WARMUP").ok().as_deref() == Some("1") {
+            std::fs::create_dir_all(golden_path().parent().unwrap()).unwrap();
+            std::fs::write(
+                golden_path(),
+                format!("{}\n", serde_json::to_string_pretty(&current).unwrap()),
+            )
+            .unwrap();
+            return;
+        }
+
+        let raw = std::fs::read_to_string(golden_path()).expect(
+            "testdata/warmup_golden.json missing — regenerate with \
+             LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden",
+        );
+        let expected: serde_json::Value = serde_json::from_str(&raw).unwrap();
+
+        // Compare numerically rather than by `Value` equality: the fixture is
+        // written from f32 and read back as f64, so `Number` equality is not a
+        // reliable comparison. Reporting per-case also keeps failures readable —
+        // asserting on the whole array dumps hundreds of cases.
+        let expected_cases = expected["cases"].as_array().expect("cases array");
+        let current_cases = current["cases"].as_array().expect("cases array");
+
+        let mut mismatches: Vec<String> = Vec::new();
+
+        if expected_cases.len() != current_cases.len() {
+            mismatches.push(format!(
+                "case count: fixture has {}, code produced {}",
+                expected_cases.len(),
+                current_cases.len()
+            ));
+        }
+
+        for (exp, cur) in expected_cases.iter().zip(current_cases.iter()) {
+            let working = cur["working_weight"].as_f64().unwrap();
+            let exp_working = exp["working_weight"].as_f64().unwrap();
+            if (working - exp_working).abs() > 1e-6 {
+                mismatches.push(format!(
+                    "working weight ordering changed: fixture {exp_working}, code {working}"
+                ));
+                continue;
+            }
+
+            let exp_w = exp["warmups"].as_array().unwrap();
+            let cur_w = cur["warmups"].as_array().unwrap();
+            if exp_w.len() != cur_w.len() {
+                mismatches.push(format!(
+                    "working={working}: fixture has {} warmups, code produced {}",
+                    exp_w.len(),
+                    cur_w.len()
+                ));
+                continue;
+            }
+
+            for (idx, (e, c)) in exp_w.iter().zip(cur_w.iter()).enumerate() {
+                let (ew, cw) = (e["weight"].as_f64().unwrap(), c["weight"].as_f64().unwrap());
+                let (er, cr) = (e["reps"].as_i64().unwrap(), c["reps"].as_i64().unwrap());
+                if (ew - cw).abs() > 1e-6 {
+                    mismatches.push(format!(
+                        "working={working} warmup[{idx}]: fixture weight {ew}, code {cw}"
+                    ));
+                }
+                if er != cr {
+                    mismatches.push(format!(
+                        "working={working} warmup[{idx}]: fixture {er} reps, code {cr}"
+                    ));
+                }
+            }
+        }
+
+        assert!(
+            mismatches.is_empty(),
+            "Rust warmup output drifted from the golden fixture. If this change is \
+             intended, mirror it in app/lib/logic/warmup.dart, regenerate with \
+             LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden, and run flutter test.\n\n{}",
+            mismatches.join("\n")
+        );
+    }
+
+    /// Properties the app relies on regardless of the exact numbers.
+    #[test]
+    fn warmup_defs_are_non_decreasing_and_below_the_working_weight() {
+        for w in golden_working_weights() {
+            let defs = generate_warmup_defs(w);
+            assert_eq!(defs.len(), 4, "expected 4 warmups for {w}");
+
+            let mut prev = 0.0_f32;
+            for (weight, reps) in defs {
+                assert!(weight >= prev, "warmups must not decrease at {w}");
+                assert!(weight < w, "warmup {weight} must be under working {w}");
+                assert!(weight >= 2.5, "warmup {weight} below minimum at {w}");
+                assert!(reps > 0, "warmup reps must be positive at {w}");
+                prev = weight;
+            }
+        }
+    }
+
+    #[test]
+    fn is_25_45_plate_combo_recognises_bar_and_plate_loads() {
+        // 45 bar; +25s add 50; +45s add 90.
+        for good in [45.0, 95.0, 135.0, 145.0, 185.0, 225.0, 235.0] {
+            assert!(is_25_45_plate_combo(good), "{good} should be loadable");
+        }
+        for bad in [0.0, 44.0, 50.0, 65.0, 100.0, 130.0] {
+            assert!(!is_25_45_plate_combo(bad), "{bad} should not be loadable");
+        }
+    }
+}

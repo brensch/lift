@@ -3,8 +3,22 @@ import '../gen/workout/v1/workout.pb.dart';
 
 const _uuid = Uuid();
 
-double _roundTo2_5(double weight) => (weight / 2.5).round() * 2.5;
-double _roundTo5(double weight) => (weight / 5).round() * 5;
+/// Collapse floating-point representation error before rounding.
+///
+/// The backend (`src/workout/planning.rs`) does this maths in `f32`, this file
+/// in `f64`, and the two land on opposite sides of a `.5` boundary for some
+/// weights. At a 175 lb working weight the 70% warmup is `175.0 * 0.7`, which is
+/// exactly `122.5` in f32 but `122.49999999999999` in f64 — so a naive
+/// `(w / 5).round()` gives 125 on the server and 120 in the app, and the user
+/// watches their warmup change when the server responds.
+///
+/// Snapping to 6 decimal places is far below any real weight increment, so it
+/// only ever removes representation noise. Parity is enforced by
+/// `test/logic/warmup_golden_test.dart`.
+double _snapPrecision(double value) => (value * 1e6).roundToDouble() / 1e6;
+
+double _roundTo2_5(double weight) => _snapPrecision(weight / 2.5).round() * 2.5;
+double _roundTo5(double weight) => _snapPrecision(weight / 5).round() * 5;
 
 bool _is25_45PlateCombo(double totalWeight) {
   if (totalWeight < 45) return false;
