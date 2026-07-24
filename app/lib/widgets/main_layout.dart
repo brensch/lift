@@ -9,7 +9,7 @@ import '../providers/multiplayer_provider.dart';
 import '../services/wearable_bridge_service.dart';
 import 'multiplayer_modal.dart';
 import 'wobbly_text.dart';
-import 'workout_bottom_bar.dart';
+import 'workout_bar/workout_bottom_bar.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;

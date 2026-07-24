@@ -2,135 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fixnum/fixnum.dart';
-import '../gen/workout/v1/workout.pb.dart';
-import '../gen/workout/v1/group.pb.dart';
-import '../providers/auth_provider.dart';
-import '../providers/workout_provider.dart';
-import '../providers/multiplayer_provider.dart';
-import '../logic/user_profile.dart';
-import '../theme/app_theme.dart';
-import '../widgets/participant_ticker.dart';
-import 'dialogs/end_workout_dialog.dart';
-import 'dialogs/health_dialogs.dart';
-import 'dialogs/participant_workout_modal.dart';
-import '../widgets/workout_status_box.dart';
+import '../../gen/workout/v1/workout.pb.dart';
+import '../../gen/workout/v1/group.pb.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/workout_provider.dart';
+import '../../providers/multiplayer_provider.dart';
+import '../../logic/user_profile.dart';
+import '../../theme/app_theme.dart';
+import '../participant_ticker.dart';
+import '../dialogs/end_workout_dialog.dart';
+import '../dialogs/participant_workout_modal.dart';
+import '../workout_status_box.dart';
+import '../../logic/session_state.dart';
+import '../common/horizontal_shaker.dart';
+import '../common/rainbow_shimmer_text.dart';
+import 'bar_controls.dart';
+import 'session_cards.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-String _fmt(int seconds) {
-  final m = seconds.abs() ~/ 60;
-  final s = seconds.abs() % 60;
-  return '$m:${s.toString().padLeft(2, '0')}';
-}
-
-String _fmtElapsed(int totalSeconds) {
-  final hours = totalSeconds ~/ 3600;
-  final minutes = (totalSeconds % 3600) ~/ 60;
-  final seconds = totalSeconds % 60;
-  if (hours > 0) {
-    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-  return '$minutes:${seconds.toString().padLeft(2, '0')}';
-}
-
-bool _isAllDoneState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
-bool _isLiftingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
-bool _isRestingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_RESTING.value;
-bool _isReadyState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_READY.value;
-
-int _compareParticipantsByNextWorkout(
-  ParticipantStatus a,
-  ParticipantStatus b, {
-  required int nowUnix,
-}) {
-  final aHasActiveSet =
-      a.hasActiveSet ||
-      a.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
-  final bHasActiveSet =
-      b.hasActiveSet ||
-      b.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
-
-  if (aHasActiveSet != bHasActiveSet) {
-    return aHasActiveSet ? -1 : 1;
-  }
-
-  final aScheduled = participantScheduledStartUnix(a, nowUnix: nowUnix);
-  final bScheduled = participantScheduledStartUnix(b, nowUnix: nowUnix);
-  if (aScheduled != null && bScheduled != null && aScheduled != bScheduled) {
-    return aScheduled.compareTo(bScheduled);
-  }
-  if (aScheduled != null && bScheduled == null) return -1;
-  if (aScheduled == null && bScheduled != null) return 1;
-
-  final nameCompare = participantDisplayName(
-    a,
-  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
-  if (nameCompare != 0) return nameCompare;
-  return a.user.id.compareTo(b.user.id);
-}
-
-int _compareParticipantsStable(ParticipantStatus a, ParticipantStatus b) {
-  final nameCompare = participantDisplayName(
-    a,
-  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
-  if (nameCompare != 0) return nameCompare;
-  return a.user.id.compareTo(b.user.id);
-}
-
-/// Returns the userId of whoever is "next to lift" across all session members.
-/// Tiebreak: earliest scheduledStart, then lexicographic userId.
-String? _computeNextToLiftUserId({
-  required String? myUserId,
-  required List<ParticipantStatus> others,
-  required int nowUnix,
-  required int stateValue,
-  required int restUntil,
-  required int lastRestEnd,
-  required ProposedSet? nextSet,
-}) {
-  String? bestId;
-  int? bestStart;
-
-  bool isCandidate(String uid, int start) {
-    final b = bestId;
-    final bs = bestStart;
-    if (b == null || bs == null) return true;
-    if (start != bs) return start < bs;
-    return uid.compareTo(b) < 0;
-  }
-
-  for (final p in others) {
-    final start = participantScheduledStartUnix(p, nowUnix: nowUnix);
-    if (start == null) continue;
-    if (isCandidate(p.user.id, start)) {
-      bestId = p.user.id;
-      bestStart = start;
-    }
-  }
-
-  if (myUserId != null && myUserId.isNotEmpty) {
-    final myStart =
-        !_isLiftingState(stateValue) &&
-            !_isAllDoneState(stateValue) &&
-            nextSet != null
-        ? (restUntil > 0
-              ? restUntil
-              : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
-        : null;
-    if (myStart != null && isCandidate(myUserId, myStart)) {
-      bestId = myUserId;
-      bestStart = myStart;
-    }
-  }
-
-  return bestId;
-}
-
-// ─── WorkoutBottomBar ─────────────────────────────────────────────────────────
 
 class WorkoutBottomBar extends StatefulWidget {
   const WorkoutBottomBar({super.key});
@@ -147,7 +36,6 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
   static const double _overlap = 16.0;
   static const double _currentUserTopInset = 4.0;
   static const double _handleSlotHeight = 24.0;
-  static const double _handleThickness = 4.0;
 
   // 1.0 = fully expanded, 0.0 = collapsed.  Starts expanded.
   late final AnimationController _animation;
@@ -161,7 +49,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
   double get _panelDragRange =>
       (_panelHeight - _collapsedPeekHeight).clamp(1.0, double.infinity);
 
-  double get _handleToCardGap => (_handleSlotHeight - _handleThickness) / 2;
+  double get _handleToCardGap => (_handleSlotHeight - DragHandle.thickness) / 2;
   // Preserve the original collapsed resting position for the handle, but
   // fully hide the participant layer at the exact collapsed endpoint.
   double get _collapsedPeekHeight => _handleToCardGap;
@@ -275,27 +163,27 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 Color? timerColor;
                 ProposedSet? displaySet;
 
-                if (_isAllDoneState(stateValue)) {
+                if (isAllDoneState(stateValue)) {
                   stateLabel = 'All sets complete';
                   stateColor = AppTheme.successFg;
                   displaySet = null;
-                } else if (_isLiftingState(stateValue)) {
+                } else if (isLiftingState(stateValue)) {
                   final proposed = stateSnapshot?.hasDisplaySet() == true
                       ? stateSnapshot!.displaySet
                       : null;
                   stateLabel = proposed?.warmup == true ? 'Warmup' : 'Lifting';
                   stateColor = AppTheme.workoutLiftingFg;
-                  timerText = _fmt(
+                  timerText = formatRestClock(
                     activeStartedAt > 0 ? (nowUnix - activeStartedAt) : 0,
                   );
                   displaySet = proposed;
-                } else if (_isRestingState(stateValue)) {
+                } else if (isRestingState(stateValue)) {
                   final hasExpiredRest =
                       restUntil > 0 && restUntil <= nowUnix && nextSet != null;
                   if (hasExpiredRest) {
                     stateLabel = 'Yapping';
                     stateColor = AppTheme.workoutYappingFg;
-                    timerText = _fmt(nowUnix - restUntil);
+                    timerText = formatRestClock(nowUnix - restUntil);
                     timerColor = AppTheme.workoutYappingFg;
                     displaySet = stateSnapshot?.hasDisplaySet() == true
                         ? stateSnapshot!.displaySet
@@ -303,12 +191,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   } else {
                     stateLabel = 'Resting';
                     stateColor = AppTheme.workoutRestingFg;
-                    timerText = _fmt(restSeconds);
+                    timerText = formatRestClock(restSeconds);
                     displaySet = stateSnapshot?.hasDisplaySet() == true
                         ? stateSnapshot!.displaySet
                         : nextSet;
                   }
-                } else if (_isReadyState(stateValue) || nextSet != null) {
+                } else if (isReadyState(stateValue) || nextSet != null) {
                   final isYapping =
                       nextSet != null &&
                       lastRestEnd > 0 &&
@@ -317,7 +205,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   stateColor = isYapping
                       ? AppTheme.workoutYappingFg
                       : colorScheme.tertiary;
-                  timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
+                  timerText = isYapping ? formatRestClock(nowUnix - lastRestEnd) : null;
                   timerColor = isYapping ? AppTheme.workoutYappingFg : null;
                   displaySet = stateSnapshot?.hasDisplaySet() == true
                       ? stateSnapshot!.displaySet
@@ -335,9 +223,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                               p.user.id.isNotEmpty && p.user.id != auth.userId,
                         )
                         .toList()
-                      ..sort(_compareParticipantsStable);
+                      ..sort(compareParticipantsStable);
 
-                final nextToLiftUserId = _computeNextToLiftUserId(
+                final nextToLiftUserId = computeNextToLiftUserId(
                   myUserId: auth.userId,
                   others: others,
                   nowUnix: nowUnix,
@@ -376,7 +264,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 24,
                               ),
                               children: [
-                                _HorizontalShaker(
+                                HorizontalShaker(
                                   active: iAmNextToLift,
                                   child: StatusBox(
                                     sideLabel: 'YOU',
@@ -386,7 +274,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                     header: 'You',
                                     showHeader: true,
                                     headerTrailing: iAmNextToLift
-                                        ? const _RainbowShimmerText(
+                                        ? const RainbowShimmerText(
                                             text: 'next to schlift',
                                           )
                                         : null,
@@ -398,14 +286,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                     timerText: timerText,
                                     timerColor: timerColor,
                                     set: displaySet,
-                                    isComplete: _isAllDoneState(stateValue),
+                                    isComplete: isAllDoneState(stateValue),
                                     sideLabelWidth: 44,
                                   ),
                                 ),
                                 if (others.isNotEmpty)
                                   const SizedBox(height: 8),
                                 for (var i = 0; i < others.length; i++) ...[
-                                  _SessionMemberCard(
+                                  SessionMemberCard(
                                     name: participantDisplayName(others[i]),
                                     emoji: participantProfileEmoji(others[i]),
                                     profileColor: participantProfileColor(
@@ -471,7 +359,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             workout != null && workout.startTime != Int64.ZERO
             ? (now.millisecondsSinceEpoch ~/ 1000) - workout.startTime.toInt()
             : 0;
-        final elapsedText = _fmtElapsed(
+        final elapsedText = formatElapsedClock(
           elapsedSeconds < 0 ? 0 : elapsedSeconds,
         );
         final latestHeartRate = wp.wearHeartRateSamples.isNotEmpty
@@ -492,15 +380,15 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         ProposedSet? displaySet;
         Widget actionButton = const SizedBox.shrink();
 
-        if (_isAllDoneState(stateValue)) {
+        if (isAllDoneState(stateValue)) {
           stateLabel = 'All sets complete';
           stateColor = AppTheme.successFg;
           displaySet = null;
-          actionButton = _BigButton(
+          actionButton = BigButton(
             label: 'End Workout',
             onPressed: () => endWorkout(context),
           );
-        } else if (_isLiftingState(stateValue)) {
+        } else if (isLiftingState(stateValue)) {
           final proposed = stateSnapshot?.hasDisplaySet() == true
               ? stateSnapshot!.displaySet
               : null;
@@ -510,9 +398,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
               : 0;
           stateLabel = proposed.warmup ? 'Warmup' : 'Lifting';
           stateColor = AppTheme.workoutLiftingFg;
-          timerText = _fmt(elapsedSecs);
+          timerText = formatRestClock(elapsedSecs);
           displaySet = proposed;
-          actionButton = _RepButtons(
+          actionButton = RepButtons(
             targetReps: proposed.targetReps,
             isAmrap: proposed.isAmrap,
             onComplete: (reps) => wp.completeSet(
@@ -522,19 +410,19 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             ),
             onSkipWarmup: null,
           );
-        } else if (_isRestingState(stateValue)) {
+        } else if (isRestingState(stateValue)) {
           final hasExpiredRest =
               restUntil > 0 && restUntil <= nowUnix && nextSet != null;
           if (hasExpiredRest) {
             stateLabel = 'Yapping';
             stateColor = AppTheme.workoutYappingFg;
-            timerText = _fmt(nowUnix - restUntil);
+            timerText = formatRestClock(nowUnix - restUntil);
             timerColor = AppTheme.workoutYappingFg;
             final ProposedSet actionSet = stateSnapshot?.hasDisplaySet() == true
                 ? stateSnapshot!.displaySet
                 : nextSet;
             displaySet = actionSet;
-            actionButton = _BigButton(
+            actionButton = BigButton(
               label: 'Start Set',
               onPressed: () => wp.startSet(actionSet.id),
               secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
@@ -545,12 +433,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
           } else {
             stateLabel = 'Resting';
             stateColor = AppTheme.workoutRestingFg;
-            timerText = _fmt(restSeconds);
+            timerText = formatRestClock(restSeconds);
             final restingSet = stateSnapshot?.hasDisplaySet() == true
                 ? stateSnapshot!.displaySet
                 : nextSet;
             displaySet = restingSet;
-            actionButton = _BigButton(
+            actionButton = BigButton(
               label: 'Start Early',
               onPressed: () {
                 if (restingSet != null) wp.startSet(restingSet.id);
@@ -564,21 +452,21 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   : null,
             );
           }
-        } else if (_isReadyState(stateValue) || nextSet != null) {
+        } else if (isReadyState(stateValue) || nextSet != null) {
           final isYapping =
               nextSet != null && lastRestEnd > 0 && lastRestEnd <= nowUnix;
           stateLabel = isYapping ? 'Yapping' : 'Next up';
           stateColor = isYapping
               ? AppTheme.workoutYappingFg
               : colorScheme.tertiary;
-          timerText = isYapping ? _fmt(nowUnix - lastRestEnd) : null;
+          timerText = isYapping ? formatRestClock(nowUnix - lastRestEnd) : null;
           timerColor = isYapping ? AppTheme.workoutYappingFg : null;
           displaySet = stateSnapshot?.hasDisplaySet() == true
               ? stateSnapshot!.displaySet
               : nextSet;
           if (displaySet == null) return const SizedBox.shrink();
           final ProposedSet actionSet = displaySet;
-          actionButton = _BigButton(
+          actionButton = BigButton(
             label: 'Start Set',
             onPressed: () => wp.startSet(actionSet.id),
             secondaryLabel: wp.canSkipWarmup(actionSet.id) ? 'Skip' : null,
@@ -595,11 +483,11 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             mp.participants
                 .where((p) => p.user.id.isNotEmpty && p.user.id != auth.userId)
                 .toList()
-              ..sort(_compareParticipantsStable);
+              ..sort(compareParticipantsStable);
         final inSession = others.isNotEmpty;
         final visibleOthers = others.length > 4
             ? (List<ParticipantStatus>.from(others)..sort(
-                    (a, b) => _compareParticipantsByNextWorkout(
+                    (a, b) => compareParticipantsByNextWorkout(
                       a,
                       b,
                       nowUnix: nowUnix,
@@ -614,7 +502,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         );
 
         final nextToLiftUserId = inSession
-            ? _computeNextToLiftUserId(
+            ? computeNextToLiftUserId(
                 myUserId: auth.userId,
                 others: others,
                 nowUnix: nowUnix,
@@ -673,7 +561,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                               child: AnimatedBuilder(
                                 animation: _animation,
                                 builder: (_, __) => Center(
-                                  child: _DragHandle(
+                                  child: DragHandle(
                                     isExpanded: _animation.value >= 0.5,
                                   ),
                                 ),
@@ -725,7 +613,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   if (hiddenOtherCount > 0) ...[
-                                    _MoreParticipantsCard(
+                                    MoreParticipantsCard(
                                       hiddenCount: hiddenOtherCount,
                                       onTap: isOnWorkoutPage
                                           ? _showAllParticipantsSheet
@@ -734,7 +622,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                     const SizedBox(height: 8),
                                   ],
                                   for (final p in visibleOthers) ...[
-                                    _SessionMemberCard(
+                                    SessionMemberCard(
                                       name: participantDisplayName(p),
                                       emoji: participantProfileEmoji(p),
                                       profileColor: participantProfileColor(p),
@@ -784,7 +672,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _HorizontalShaker(
+                          HorizontalShaker(
                             active: iAmNextToLift && !_isDraggingPanel,
                             child: inSession
                                 ? _buildPanelDragTarget(
@@ -796,7 +684,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                       header: 'You',
                                       showHeader: true,
                                       headerTrailing: iAmNextToLift
-                                          ? const _RainbowShimmerText(
+                                          ? const RainbowShimmerText(
                                               text: 'next to schlift',
                                             )
                                           : null,
@@ -808,7 +696,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                       timerText: timerText,
                                       timerColor: timerColor,
                                       set: displaySet,
-                                      isComplete: _isAllDoneState(stateValue),
+                                      isComplete: isAllDoneState(stateValue),
                                       sideLabelWidth: 44,
                                     ),
                                   )
@@ -823,7 +711,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                     timerText: timerText,
                                     timerColor: timerColor,
                                     set: displaySet,
-                                    isComplete: _isAllDoneState(stateValue),
+                                    isComplete: isAllDoneState(stateValue),
                                     sideLabelWidth: 44,
                                   ),
                           ),
@@ -831,7 +719,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              _TimerHeartBox(
+                              TimerHeartBox(
                                 elapsedText: elapsedText,
                                 heartRateText: heartRateText,
                                 heartRateDetected:
@@ -858,538 +746,3 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
 
 // ─── Drag handle ──────────────────────────────────────────────────────────────
 
-class _DragHandle extends StatelessWidget {
-  final bool isExpanded;
-  const _DragHandle({required this.isExpanded});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 36,
-      height: _WorkoutBottomBarState._handleThickness,
-      decoration: BoxDecoration(
-        color: colorScheme.onSecondary.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-}
-
-// ─── Session member card ──────────────────────────────────────────────────────
-
-class _SessionMemberCard extends StatelessWidget {
-  final String name;
-  final String? emoji;
-  final Color profileColor;
-  final ParticipantVisualStatus status;
-  final bool isNextToLift;
-  final bool shakeActive;
-  final VoidCallback? onTap;
-
-  const _SessionMemberCard({
-    required this.name,
-    this.emoji,
-    required this.profileColor,
-    required this.status,
-    required this.isNextToLift,
-    required this.shakeActive,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final card = StatusBox(
-      sideLabel: name,
-      sideBadge: emoji,
-      header: name,
-      showHeader: true,
-      headerTrailing: isNextToLift
-          ? const _RainbowShimmerText(text: 'next to schlift')
-          : null,
-      stateLabel: status.stateLabel,
-      color: status.stateColor,
-      sideColor: profileColor,
-      timerText: status.timerText,
-      timerColor: status.timerColor,
-      set: status.proposedSet,
-      isComplete: status.isComplete,
-      sideLabelWidth: 44,
-    );
-
-    final shaking = _HorizontalShaker(active: shakeActive, child: card);
-
-    if (onTap == null) return shaking;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: shaking,
-      ),
-    );
-  }
-}
-
-class _MoreParticipantsCard extends StatelessWidget {
-  final int hiddenCount;
-  final VoidCallback? onTap;
-
-  const _MoreParticipantsCard({required this.hiddenCount, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.expand_less_rounded,
-              color: colorScheme.onSurface,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '$hiddenCount more',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.3,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (onTap == null) return content;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: content,
-      ),
-    );
-  }
-}
-
-// ─── Rainbow shimmer text ─────────────────────────────────────────────────────
-
-class _RainbowShimmerText extends StatefulWidget {
-  final String text;
-  const _RainbowShimmerText({required this.text});
-
-  @override
-  State<_RainbowShimmerText> createState() => _RainbowShimmerTextState();
-}
-
-class _RainbowShimmerTextState extends State<_RainbowShimmerText>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        return ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: const [
-              Colors.red,
-              Colors.orange,
-              Colors.yellow,
-              Colors.green,
-              Colors.blue,
-              Colors.purple,
-              Colors.red,
-            ],
-            stops: const [0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0],
-            begin: Alignment(-2.0 + 4 * t, 0),
-            end: Alignment(0.0 + 4 * t, 0),
-            tileMode: TileMode.repeated,
-          ).createShader(bounds),
-          blendMode: BlendMode.srcIn,
-          child: child!,
-        );
-      },
-      child: Text(
-        widget.text,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -0.3,
-          color: Colors.white, // overridden by ShaderMask
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Horizontal shake wrapper ─────────────────────────────────────────────────
-
-class _HorizontalShaker extends StatefulWidget {
-  final Widget child;
-  final bool active;
-  const _HorizontalShaker({required this.child, required this.active});
-
-  @override
-  State<_HorizontalShaker> createState() => _HorizontalShakerState();
-}
-
-class _HorizontalShakerState extends State<_HorizontalShaker>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-  bool _cycling = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    _animation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 6.0), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: 6.0, end: -6.0), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: -6.0, end: 6.0), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 6.0, end: 0.0), weight: 1),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    if (widget.active) _startCycle();
-  }
-
-  @override
-  void didUpdateWidget(_HorizontalShaker old) {
-    super.didUpdateWidget(old);
-    if (widget.active && !old.active) _startCycle();
-  }
-
-  Future<void> _startCycle() async {
-    if (_cycling) return;
-    _cycling = true;
-    while (mounted && widget.active) {
-      await Future.delayed(const Duration(seconds: 4));
-      if (mounted && widget.active) await _controller.forward(from: 0);
-    }
-    _cycling = false;
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.active) return widget.child;
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (_, child) => Transform.translate(
-        offset: Offset(_animation.value, 0),
-        child: child,
-      ),
-      child: widget.child,
-    );
-  }
-}
-
-// ─── Timer + heart rate box ───────────────────────────────────────────────────
-
-class _TimerHeartBox extends StatelessWidget {
-  final String elapsedText;
-  final String heartRateText;
-  final bool heartRateDetected;
-  const _TimerHeartBox({
-    required this.elapsedText,
-    required this.heartRateText,
-    required this.heartRateDetected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 64,
-      width: 84,
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.timer_outlined, size: 14, color: colorScheme.tertiary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  elapsedText,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                    color: colorScheme.onSurface,
-                    height: 1.0,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // When no heart rate is detected, tapping shows OS-specific instructions
-          // on enabling live BPM. Once HR is streaming there's nothing to fix, so the
-          // row is just a static readout.
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: heartRateDetected
-                ? null
-                : () => showHeartRateHelpDialog(context),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.favorite, size: 14, color: Color(0xFFE11D48)),
-                const SizedBox(width: 4),
-                Text(
-                  heartRateText,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                    color: colorScheme.onSurface,
-                    height: 1.0,
-                  ),
-                ),
-                if (!heartRateDetected) ...[
-                  const SizedBox(width: 3),
-                  Icon(
-                    Icons.help_outline,
-                    size: 11,
-                    color: colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Big full-width action button ─────────────────────────────────────────────
-
-class _BigButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
-
-  const _BigButton({
-    required this.label,
-    required this.onPressed,
-    this.secondaryLabel,
-    this.onSecondary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      children: [
-        if (secondaryLabel != null && onSecondary != null) ...[
-          SizedBox(
-            height: 64,
-            child: OutlinedButton(
-              onPressed: onSecondary,
-              child: Text(
-                secondaryLabel!,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: colorScheme.tertiary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-        Expanded(
-          child: SizedBox(
-            height: 64,
-            child: FilledButton(
-              onPressed: onPressed,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Rep picker + complete button ─────────────────────────────────────────────
-
-class _RepButtons extends StatefulWidget {
-  final int targetReps;
-  final bool isAmrap;
-  final void Function(int reps) onComplete;
-  final VoidCallback? onSkipWarmup;
-
-  const _RepButtons({
-    required this.targetReps,
-    this.isAmrap = false,
-    required this.onComplete,
-    this.onSkipWarmup,
-  });
-
-  @override
-  State<_RepButtons> createState() => _RepButtonsState();
-}
-
-class _RepButtonsState extends State<_RepButtons> {
-  late final FixedExtentScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = FixedExtentScrollController(
-      initialItem: widget.targetReps.clamp(0, 50),
-    );
-  }
-
-  @override
-  void didUpdateWidget(_RepButtons oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.targetReps != widget.targetReps) {
-      _scrollController.jumpToItem(widget.targetReps.clamp(0, 50));
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Container(
-              height: 64,
-              width: 64,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.outline),
-              ),
-              child: ListWheelScrollView.useDelegate(
-                controller: _scrollController,
-                itemExtent: 24,
-                magnification: 1.5,
-                useMagnifier: true,
-                physics: const FixedExtentScrollPhysics(),
-                diameterRatio: 1.2,
-                perspective: 0.003,
-                childDelegate: ListWheelChildBuilderDelegate(
-                  builder: (context, index) {
-                    if (index < 0 || index > 50) return null;
-                    return Center(
-                      child: Text(
-                        '$index',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    );
-                  },
-                  childCount: 51,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 64,
-                child: FilledButton(
-                  onPressed: () =>
-                      widget.onComplete(_scrollController.selectedItem),
-                  child: const Text(
-                    'Complete Set',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (widget.onSkipWarmup != null) ...[
-          const SizedBox(height: 6),
-          SizedBox(
-            height: 40,
-            child: TextButton(
-              onPressed: widget.onSkipWarmup,
-              child: Text(
-                'Skip',
-                style: TextStyle(fontSize: 13, color: colorScheme.tertiary),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}

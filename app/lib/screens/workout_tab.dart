@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import 'home/home_screen.dart';
-import 'workout_screen.dart';
+import 'workout/workout_screen.dart';
 
 class WorkoutTab extends StatefulWidget {
   const WorkoutTab({super.key});
