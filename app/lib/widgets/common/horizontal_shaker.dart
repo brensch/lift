@@ -38,7 +38,7 @@ class HorizontalShakerState extends State<HorizontalShaker>
   @override
   void didUpdateWidget(HorizontalShaker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !old.active) _startCycle();
+    if (widget.active && !oldWidget.active) _startCycle();
   }
 
   Future<void> _startCycle() async {
