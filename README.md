@@ -16,19 +16,29 @@ Package / bundle ID across platforms: `com.brensch.schlift`.
 
 ## Architecture
 
+Full reference with diagrams: [`docs/architecture/`](docs/architecture/).
+
 - **Backend** — A Rust gRPC server (`src/main.rs`) backed by a single SQLite
-  database (`data/central.sqlite`). The DB layer (`src/db/`) uses a write-worker
-  pattern with a read pool. RPC handlers live in `src/server/`
+  database (`data/server.sqlite`) in WAL mode. The DB layer (`src/db/`) uses a
+  single-connection write pool and a 16-connection read pool, so writes
+  serialise and reads run concurrently. RPC handlers live in `src/server/`
   (`workout`, `multiplayer`, `settings`, `user`, `auth`, `support`).
 - **Adaptive regimes** — `src/regimes/` implements the program state machine
-  (Linear 5×5, GZCLP, Wendler 5/3/1) behind the `WorkoutRegime` trait. Program
-  state is stored as an append-only event log and replayed to a latest snapshot.
-  See [`docs/historised_state_machine.md`](docs/historised_state_machine.md).
+  (Linear 5×5, GZCLP, Wendler 5/3/1) behind the `WorkoutRegime` trait. Each
+  regime's `state_schema()` drives the settings and onboarding UI, so adding a
+  program needs no Flutter changes. One current state snapshot is kept per user
+  in `training_program_state_latest`.
+  See [`docs/architecture/regimes.md`](docs/architecture/regimes.md).
 - **Protobuf** — Contracts in `proto/workout/v1/`. Generated Dart lands in
-  `app/lib/gen/`, generated TypeScript in `web/src/gen/`.
+  `app/lib/gen/`, TypeScript in `web/src/gen/`, Java in
+  `app/android/shared-proto/`, plus Swift for watchOS. Regenerate with
+  `make proto-all`; Rust regenerates via `build.rs`.
 - **Flutter app** — `app/lib/` is organised into `screens/`, `widgets/`,
-  `providers/` (state), `services/` (transport), and `logic/`. The watch
-  companions mirror phone state; the phone remains the source of truth.
+  `providers/` (state), `services/` (transport), and `logic/` (pure functions,
+  no Flutter imports). The watch companions never talk to the backend — they
+  exchange protobuf envelopes with the phone, which remains the source of truth.
+- **Auth** — Passkeys (WebAuthn) only; no passwords. See
+  [`docs/architecture/auth.md`](docs/architecture/auth.md).
 
 ## Getting started
 
@@ -95,8 +105,18 @@ src/        Rust backend (gRPC server, db, regimes, scheduler)
 app/        Flutter app (phone + Wear OS + Apple Watch)
 web/        React landing / privacy / account-deletion site
 proto/      Protobuf contracts (source of truth for generated code)
-examples/   Rust benchmarks and one-off inspection binaries
+examples/   load_simulation.rs — gRPC load test
 scripts/    Release / icon / deploy helper scripts
-deploy/     Deployment configs
-docs/        Architecture notes and runbooks
+deploy/     Production deploy configs (systemd + Caddy)
+docs/       Architecture reference and runbooks
 ```
+
+## Documentation
+
+| Doc | Covers |
+|---|---|
+| [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
+| [`docs/android_dev.md`](docs/android_dev.md) | Emulator + device workflow, Wear OS, screenshot automation |
+| [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
+| [`docs/calorie_maths.md`](docs/calorie_maths.md) | Calorie estimation derivation |
+| [`docs/design-history/`](docs/design-history/) | Superseded design plans, kept for context |
