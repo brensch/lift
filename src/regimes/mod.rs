@@ -1,6 +1,10 @@
 pub mod gzclp;
 pub mod linear_5x5;
 #[cfg(test)]
+pub mod simulator;
+#[cfg(test)]
+mod simulator_tests;
+#[cfg(test)]
 mod temporal_tests;
 pub mod wendler_531;
 
