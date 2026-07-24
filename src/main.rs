@@ -16,6 +16,8 @@ mod regimes;
 #[cfg(test)]
 mod scenario_tests;
 mod schplanner;
+#[cfg(test)]
+mod schplanner_tests;
 mod server;
 mod state;
 mod time;
