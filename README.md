@@ -75,12 +75,19 @@ npm run dev
 ## Tests
 
 ```bash
-cargo test                      # backend + regime scenario tests
-cd app && flutter test          # Flutter unit/widget tests
+cargo test                      # backend: units, regime scenarios, handler tests
+cd app && flutter test          # Flutter: logic + cross-language parity
+make fuzz-api                   # randomised API sequences with invariant checks
 ```
 
-Regime behaviour is covered by JSON scenarios in `src/regimes/scenarios/`,
-driven through the real scheduler and state machine.
+Regime behaviour is covered by JSON scenarios in `src/regimes/scenarios/`, whole
+program timelines in `testdata/regime_timelines.json`, and end-to-end handler
+tests for the seams between RPCs. `make fuzz-api` spawns a throwaway backend and
+drives randomised workout sequences, asserting state invariants after every
+mutation.
+
+See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what each
+layer catches and where coverage is thin.
 
 ## Releasing
 
@@ -116,6 +123,7 @@ docs/       Architecture reference and runbooks
 | Doc | Covers |
 |---|---|
 | [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
+| [`docs/regime-explorer.html`](docs/regime-explorer.html) | Interactive: how each program progresses, stalls and deloads |
 | [`docs/android_dev.md`](docs/android_dev.md) | Emulator + device workflow, Wear OS, screenshot automation |
 | [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
 | [`docs/calorie_maths.md`](docs/calorie_maths.md) | Calorie estimation derivation |

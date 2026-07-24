@@ -64,7 +64,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let server_db = ServerDb::new_in_dir(data_dir).await?;
     let auth_state = std::sync::Arc::new(AuthState::new(server_db.clone()));
 
-    let addr: SocketAddr = "0.0.0.0:50051".parse()?;
+    // PORT lets a throwaway instance (the API invariant harness, a second dev
+    // backend) run alongside the usual one on 50051.
+    let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
+    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
