@@ -18,7 +18,7 @@ This deploy flow builds the backend on a GitHub-hosted ARM64 runner, uploads the
   ...
 ```
 
-The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at `/opt/schlift/shared/data/central.sqlite`.
+The backend runs with `WorkingDirectory=/opt/schlift/shared`, so SQLite lives at `/opt/schlift/shared/data/server.sqlite` (plus the WAL sidecars `server.sqlite-wal` and `server.sqlite-shm` — back up all three, or checkpoint first).
 
 ## One-time server setup
 

@@ -1,5 +1,39 @@
 # Historised Program State Machine Refactor Plan
 
+> ## ⚠️ Historical design plan — not a description of the system
+>
+> This was written *before* the adaptive regime work, in future tense. It is kept
+> for context on why things are shaped the way they are. For how program state
+> actually works today, read
+> [`docs/architecture/regimes.md`](../architecture/regimes.md).
+>
+> Much of this plan shipped: the `WorkoutRegime` trait, typed `StatePayload`
+> state, schema-driven settings and onboarding, per-regime state machines, and
+> progression on `EndWorkout`.
+>
+> **The "historised" part did not.** The plan called for an append-only event log
+> with replay; what was built keeps a single current snapshot per user.
+>
+> | Planned below | Actual |
+> |---|---|
+> | `training_program_state_events` table | Does not exist |
+> | `append_program_state_event` | Does not exist |
+> | `get_program_state_history` | Does not exist |
+> | Replay events → latest snapshot | No replay; `training_program_state_latest` written directly |
+> | `GetTrainingProgramStateHistory` RPC | In the proto, returns `Status::unimplemented` |
+> | `ApplyPendingStateUpdate` RPC | Never added to the proto |
+>
+> Idempotency — a motivation for the event log — is instead handled by the
+> `program_progression_applied` ledger, which claims a `workout_id` in the same
+> transaction that writes the new state.
+>
+> Consequences of the snapshot-only design: program state changes are not
+> auditable, a bad progression cannot be rolled back by replaying, and there is
+> no data to power a "how did my training max get here?" view.
+>
+> Whether to build the event log is still open. If you do, re-derive this against
+> the current code rather than assuming the surrounding details still hold.
+
 ## Goal
 
 Replace the current `UserWorkoutConfig + regime_state_json + history-derived progression` approach with a single backend-owned, historised, editable program state machine per user/program.
