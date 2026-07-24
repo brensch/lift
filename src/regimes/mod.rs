@@ -1,5 +1,7 @@
 pub mod gzclp;
 pub mod linear_5x5;
+#[cfg(test)]
+mod temporal_tests;
 pub mod wendler_531;
 
 use chrono::{Datelike, LocalResult, TimeZone, Utc};
