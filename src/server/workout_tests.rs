@@ -801,6 +801,89 @@ mod layoff_deload_tests {
              to the pre-layoff weight"
         );
     }
+
+    /// The completion message after a deloaded session must describe what the
+    /// user actually did (145 -> 150, an increase), not a phantom 180 -> 150
+    /// decrease against the stale pre-layoff weight.
+    #[tokio::test]
+    async fn completion_message_after_layoff_reflects_the_deloaded_weight() {
+        let (svc, user_id, token) = setup().await;
+        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
+        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
+        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
+
+        let comeback_at = ended + 45 * DAY;
+        let deloaded = proposed_squat_weight(&svc, &token, &user_id, comeback_at).await;
+        assert_eq!(deloaded, 145.0);
+
+        // Perform the deloaded session successfully and capture EndWorkout's messages.
+        let start = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Comeback".to_string(),
+                    exercise_groups: vec![squat_group(deloaded)],
+                    started_at: comeback_at,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+        let mut ts = comeback_at + 60;
+        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
+            svc.complete_set(authed(
+                &token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: deloaded,
+                    completed_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+            ts += 60;
+        }
+        let end = svc
+            .end_workout(authed(
+                &token,
+                EndWorkoutRequest {
+                    workout_id,
+                    ended_at: ts,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let squat_msg = end
+            .user_messages
+            .iter()
+            .filter_map(|m| match m.details.as_ref()?.detail.as_ref()? {
+                user_message_details::Detail::Progression(p)
+                    if m.exercise == Exercise::Squat as i32 =>
+                {
+                    Some(p)
+                }
+                _ => None,
+            })
+            .next()
+            .expect("a squat progression message should be emitted");
+
+        assert_eq!(
+            squat_msg.previous_weight, 145.0,
+            "the message baseline must be the deloaded weight the user lifted, \
+             not the stale pre-layoff 180"
+        );
+        assert_eq!(squat_msg.next_weight, 150.0);
+        assert_eq!(
+            squat_msg.change_kind,
+            ProgressionChangeKind::Increase as i32,
+            "145 -> 150 is an increase, not the deload a 180 baseline would imply"
+        );
+    }
 }
 
 /// A failed session must never make the next session heavier. Complements
