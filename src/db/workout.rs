@@ -345,22 +345,26 @@ impl ServerDb {
         }))
     }
 
-    pub async fn list_workouts_started_since(
+    /// The `limit` most recent workouts, returned oldest-first so callers can iterate chronologically. Uses the `idx_workouts_user_time` index. Bounds the scheduler's
+    /// history load, which would otherwise grow without limit as a user's
+    /// training history accumulates.
+    pub async fn list_recent_workouts(
         &self,
         user_id: &str,
-        started_since: i64,
+        limit: i64,
     ) -> DbResult<Vec<Workout>> {
         let rows = sqlx::query(
             "SELECT id, name, start_time, end_time, session_id
              FROM workouts
-             WHERE user_id = ? AND start_time >= ?
-             ORDER BY start_time ASC, id ASC",
+             WHERE user_id = ?
+             ORDER BY start_time DESC, id DESC
+             LIMIT ?",
         )
         .bind(user_id)
-        .bind(started_since.max(0))
+        .bind(limit.max(0))
         .fetch_all(&self.read_pool)
         .await?;
-        Ok(rows
+        let mut workouts: Vec<Workout> = rows
             .into_iter()
             .map(|r| Workout {
                 id: r.get("id"),
@@ -369,7 +373,9 @@ impl ServerDb {
                 end_time: r.get("end_time"),
                 session_id: r.get("session_id"),
             })
-            .collect())
+            .collect();
+        workouts.reverse();
+        Ok(workouts)
     }
 
     /// Load exercise groups for a workout.
