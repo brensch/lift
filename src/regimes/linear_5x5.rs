@@ -508,6 +508,17 @@ impl WorkoutRegime for Linear5x5Regime {
                     set_f32(state, weight_key(exercise), deloaded);
                     set_int(state, stall_key(exercise), 0);
                 } else {
+                    // A failed session must never raise the next prescription. Holding
+                    // `current_weight` unconditionally would prescribe more than the user
+                    // just missed whenever they attempted less than the stored weight —
+                    // after a layoff deload, or simply by dialling the weight down.
+                    // Attempting *more* than prescribed and failing is not rewarded with a
+                    // higher target either, so take the lower of the two.
+                    set_f32(
+                        state,
+                        weight_key(exercise),
+                        attempted_weight.min(current_weight),
+                    );
                     set_int(state, stall_key(exercise), next_stall);
                 }
             }
