@@ -1,4 +1,4 @@
-.PHONY: run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release android-sdk-check android-phone-avd-create android-phone-play-avd-create android-phone-play-emulator-start android-wear-avd-create android-emulator-start android-emulator-stop android-emulator-wait android-emulator-unlock android-emulator-reverse android-screenshot android-tap android-text android-run-emulator agent-backend-start agent-backend-stop android-agent-start android-agent-stop android-wear-emulator-start android-wear-run-emulator android-wear-pairing-notes watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+.PHONY: fuzz-api fuzz-api-ci run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear build-aabs-release android-sdk-check android-phone-avd-create android-phone-play-avd-create android-phone-play-emulator-start android-wear-avd-create android-emulator-start android-emulator-stop android-emulator-wait android-emulator-unlock android-emulator-reverse android-screenshot android-tap android-text android-run-emulator agent-backend-start agent-backend-stop android-agent-start android-agent-stop android-wear-emulator-start android-wear-run-emulator android-wear-pairing-notes watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
 
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
@@ -548,6 +548,20 @@ run-backend-scratch:
 
 load-test:
 	cargo run --release --example load_simulation -- --duration 3000
+
+# Randomised API sequences against a throwaway backend, with invariant checks
+# after every mutation. Spawns its own server on its own port and SQLite file,
+# so it never touches a dev database. Non-zero exit on any violation.
+fuzz-api:
+	cargo run --release --example api_invariant_fuzz -- \
+		--users $(or $(FUZZ_USERS),10) \
+		--sessions $(or $(FUZZ_SESSIONS),14) \
+		--seed $(or $(FUZZ_SEED),$(shell date +%s))
+
+# A fixed-seed run small enough for CI.
+fuzz-api-ci:
+	cargo run --release --example api_invariant_fuzz -- \
+		--users 6 --sessions 8 --seed 20240101
 
 deploy-android:
 	cd app && $(FLUTTER) build apk --release

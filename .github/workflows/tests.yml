@@ -26,6 +26,11 @@ jobs:
       - name: Run Rust tests
         run: cargo test --all-targets
 
+      # Randomised API sequences against a throwaway backend, checking state
+      # invariants after every mutation. Fixed seed so a failure is reproducible.
+      - name: Run API invariant harness
+        run: make fuzz-api-ci
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

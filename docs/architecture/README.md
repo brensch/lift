@@ -15,6 +15,11 @@ built, it is called out explicitly under "Not implemented".
 | [app.md](app.md) | Flutter layer boundaries, providers, polling and refresh |
 | [wearable.md](wearable.md) | Watch ↔ phone ↔ server protocol for Wear OS and watchOS |
 | [auth.md](auth.md) | Passkey registration and login, session tokens |
+| [testing.md](testing.md) | The five test layers, the API invariant harness, known gaps |
+
+An interactive walkthrough of how the programs progress — including what happens
+after time off — is generated from the engine itself at
+[`docs/regime-explorer.html`](../regime-explorer.html).
 
 ## Conventions used here
 

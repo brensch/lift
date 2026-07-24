@@ -160,12 +160,59 @@ Consequences:
 > exercise, and resolving a warmup's working weight across groups picks the
 > wrong one. See `src/workout/planning.rs`.
 
-## Temporal adjustments
+## Time off: the layoff deload
 
 `apply_temporal_adjustments_for_proposal` lets a regime react to *when* you're
-training, not just what you did — e.g. suggesting a deload after a long layoff.
-`maybe_annotate_temporal_adjustment` (`src/server/workout.rs:480`) surfaces the
-resulting explanation to the user as a message.
+training, not just what you did. All three implement the same policy:
+
+| Gap since last session | Next proposal |
+|---|---|
+| under 14 days | unchanged |
+| 14–29 days | 90% |
+| 30 days or more | 80% |
+
+There is no further step past 30 days, and a user with no previous session is
+never deloaded. `maybe_annotate_temporal_adjustment`
+(`src/server/workout.rs:480`) surfaces the explanation to the user as a message.
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Sched as GetProposedWorkoutSchedule
+    participant End as EndWorkout
+    participant State as training_program_state_latest
+
+    App->>Sched: what should I do?
+    Sched->>State: read stored weights
+    Sched->>Sched: apply_temporal_adjustments_for_proposal<br/>(45 days off -> 80%)
+    Sched-->>App: deloaded proposal
+    Note over App,State: stored state is NOT changed —<br/>viewing a proposal never mutates it
+
+    App->>End: I did that session
+    End->>State: read stored weights
+    End->>End: apply the SAME adjustment
+    End->>End: reconcile the session against it
+    End->>State: write the result
+    Note over State: the deload persists only once<br/>you actually train
+```
+
+Two properties this design gives you, both covered by tests:
+
+- **Viewing is free.** Opening the app after a holiday shows lighter weights but
+  writes nothing. Your program is untouched until you complete a session.
+- **The deload sticks once you train.** Complete the reduced session and you
+  progress from *that* weight, rather than snapping back to your pre-break load.
+
+> **Both handlers must apply the adjustment.** The proposal is built in
+> `get_proposed_workout_schedule` and reconciled in `end_workout`; if only the
+> first applies the deload, a user is graded against work they were never asked
+> to do. Because the regimes' failure branches hold the *state* weight rather
+> than the attempted one, that asymmetry made a failed comeback session
+> prescribe the pre-layoff weight — heavier than what was just missed. Covered
+> by `layoff_deload_tests` in `src/server/workout.rs`.
+
+A failed session can never raise the next prescription: Linear 5×5 holds
+`min(attempted, stored)`.
 
 ## Scheduler integration
 
