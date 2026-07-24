@@ -13,7 +13,7 @@ import '../../providers/multiplayer_provider.dart';
 import '../../widgets/set_log.dart';
 import '../../widgets/dialogs/end_workout_dialog.dart';
 import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
-import '../../widgets/heart_rate_chart.dart';
+import '../../widgets/heart_rate/heart_rate_chart.dart';
 import 'current_exercise_card.dart';
 import 'exercise_list_card.dart';
 import 'exschplanation_page.dart';
