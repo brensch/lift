@@ -70,7 +70,13 @@ void main() async {
 }
 
 class SchliftApp extends StatefulWidget {
-  const SchliftApp({super.key});
+  const SchliftApp({super.key, this.serverHostOverride, this.serverPortOverride});
+
+  /// Point the app at a specific backend, overriding the compile-time
+  /// SERVER_HOST/SERVER_PORT. Used by the end-to-end test harness to connect to
+  /// a backend it spawned on a dynamic port; null in normal builds.
+  final String? serverHostOverride;
+  final int? serverPortOverride;
 
   @override
   State<SchliftApp> createState() => _SchliftAppState();
@@ -105,7 +111,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _grpcClient = GrpcClient(host: serverHost, port: serverPort);
+    _grpcClient = GrpcClient(
+      host: widget.serverHostOverride ?? serverHost,
+      port: widget.serverPortOverride ?? serverPort,
+    );
     _authService = AuthService(grpcClient: _grpcClient);
 
     _authProvider = AuthProvider(
