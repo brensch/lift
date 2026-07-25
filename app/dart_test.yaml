@@ -1,4 +1,0 @@
-tags:
-  e2e:
-    # End-to-end scenarios drive the real app against a real backend and capture
-    # screenshots. They are slower and excluded from the default `flutter test`.
