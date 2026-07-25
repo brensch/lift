@@ -16,6 +16,7 @@ built, it is called out explicitly under "Not implemented".
 | [wearable.md](wearable.md) | Watch ↔ phone ↔ server protocol for Wear OS and watchOS |
 | [auth.md](auth.md) | Passkey registration and login, session tokens |
 | [testing.md](testing.md) | The five test layers, the API invariant harness, known gaps |
+| [training-model.md](training-model.md) | The v2 workout/progression model: three-facet sets, append-only entries, one mutation endpoint |
 
 An interactive walkthrough of how the programs progress — including what happens
 after time off — is generated from the engine itself at
