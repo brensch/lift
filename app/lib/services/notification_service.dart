@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'app_logger.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
@@ -12,7 +13,11 @@ class NotificationService {
   /// Callback for when the "Start Set" notification action is tapped.
   static void Function()? onStartNextSet;
 
-  static Future<void> init() async {
+  /// [requestPermissions] gates the Android runtime prompts (notifications,
+  /// exact alarms). The e2e harness passes false: those prompts are native
+  /// dialogs that pause the Flutter surface and hang an integration_test, and it
+  /// still needs the rest — tz setup and plugin init — so rest scheduling works.
+  static Future<void> init({bool requestPermissions = true}) async {
     tz.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings(
@@ -37,12 +42,14 @@ class NotificationService {
     );
 
     // Request notification permission (Android 13+)
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    await android?.requestNotificationsPermission();
-    await android?.requestExactAlarmsPermission();
+    if (requestPermissions) {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await android?.requestNotificationsPermission();
+      await android?.requestExactAlarmsPermission();
+    }
   }
 
   static void _onNotificationResponse(NotificationResponse response) {
@@ -105,20 +112,36 @@ class NotificationService {
       defaultActionName: 'Start Set',
     );
 
-    await _plugin.zonedSchedule(
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: darwinDetails,
+      linux: linuxDetails,
+    );
+    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
       _restNotificationId,
       'Rest Complete',
       body,
       scheduledTime,
-      NotificationDetails(
-        android: androidDetails,
-        iOS: darwinDetails,
-        linux: linuxDetails,
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      details,
+      androidScheduleMode: mode,
       matchDateTimeComponents: null,
       payload: '$restUntilUnix',
     );
+    // This is fire-and-forget (see workout_provider's unawaited call), so it must
+    // never throw into the void. Exact alarms need a permission the user may not
+    // have granted (common on Android 14+); fall back to inexact rather than
+    // dropping an uncaught async error on the floor.
+    try {
+      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+    } catch (e) {
+      try {
+        await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+      } catch (e2) {
+        AppLogger.instance.warn('Notification', 'scheduleRest failed', {
+          'error': e2.toString(),
+        });
+      }
+    }
   }
 
   /// Cancels any pending or active rest notifications.
