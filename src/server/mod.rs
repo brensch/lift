@@ -34,6 +34,9 @@ mod messages;
 mod multiplayer;
 mod settings;
 mod support;
+mod training;
+#[cfg(test)]
+mod training_tests;
 mod user;
 mod workout;
 #[cfg(test)]
@@ -42,6 +45,7 @@ mod workout_tests;
 pub use auth::ServerAuthService;
 pub use multiplayer::ServerMultiplayerService;
 pub use settings::ServerSettingsService;
+pub use training::ServerTrainingService;
 pub use user::ServerUserService;
 pub use workout::ServerWorkoutService;
 
