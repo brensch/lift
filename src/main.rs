@@ -86,6 +86,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     #[allow(deprecated)]
     let grpc_router = tonic::transport::Server::builder()
+        // Disable Nagle: without this every small RPC response can stall on the
+        // ~40ms TCP delayed-ACK timer, adding that latency to essentially every
+        // request. Standard for a low-latency gRPC service.
+        .tcp_nodelay(true)
         .accept_http1(true)
         .add_service(tonic_web::enable(WorkoutServiceServer::new(
             ServerWorkoutService {
