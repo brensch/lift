@@ -59,6 +59,14 @@ class Scenario {
     await settle();
   }
 
+  /// Re-pump a fresh [SchliftApp] — new providers, new gRPC client — to simulate
+  /// a cold restart. Crash recovery should re-fetch server state (e.g. an active
+  /// workout) on the way back up.
+  Future<void> relaunch() async {
+    await tester.pumpWidget(const SchliftApp());
+    await settle(seconds: 4);
+  }
+
   /// Let real gRPC, timers, and animations resolve. `pumpAndSettle` never
   /// completes here (the app polls every second), so pump in real-time bursts.
   Future<void> settle({int seconds = 3}) async {

@@ -77,6 +77,38 @@ class Peer {
   Future<GetCurrentSessionResponse> currentSession() => _api.multiplayer
       .getCurrentSession(GetCurrentSessionRequest(), options: _opts);
 
+  /// The user's active workout as the backend sees it — used to cross-check that
+  /// UI actions (starting sets, completing them) actually persist.
+  Future<Workout?> activeWorkout() async {
+    final r = await _api.workout
+        .getActiveWorkout(GetActiveWorkoutRequest(), options: _opts);
+    return r.hasWorkout() ? r.workout : null;
+  }
+
+  /// Full detail (proposed + completed sets) for the adopted workout. The bare
+  /// [activeWorkout] Workout carries only ids; GetWorkout carries the sets.
+  Future<GetWorkoutResponse?> workoutDetail() async {
+    if (workoutId == null) return null;
+    return _api.workout
+        .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
+  }
+
+  /// The regime's current program state (weights, stall counts, …).
+  Future<TrainingProgramState?> programState() async {
+    final r = await _api.settings.getActiveTrainingProgramState(
+        GetActiveTrainingProgramStateRequest(),
+        options: _opts);
+    return r.hasState() ? r.state : null;
+  }
+
+  /// The proposed next workout the home screen renders (groups + weights).
+  Future<List<ProposedExerciseGroup>> proposedGroups() async {
+    final r = await _api.workout.getProposedWorkoutSchedule(
+        GetProposedWorkoutScheduleRequest(),
+        options: _opts);
+    return r.proposedGroups;
+  }
+
   /// Start a simple one-exercise workout (used to give a peer visible activity).
   Future<void> startWorkout(
     String name,
@@ -101,6 +133,42 @@ class Peer {
       options: _opts,
     );
     workoutId = resp.workout.id;
+  }
+
+  /// Adopt the user's current active workout (e.g. one the app under test
+  /// started) so this peer can drive it through the API. Shares the same
+  /// user_id, so the backend returns the app's workout.
+  Future<bool> adoptActiveWorkout() async {
+    final w = await activeWorkout();
+    workoutId = w?.id;
+    return workoutId != null;
+  }
+
+  /// Complete every pending working (non-warmup) set at its target — used to log
+  /// a full, successful workout so progression should advance.
+  Future<int> completeAllWorkingSets() async {
+    if (workoutId == null) return 0;
+    var done = 0;
+    for (var i = 0; i < 50; i++) {
+      final w = await _api.workout
+          .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
+      final pending = w.proposedSets.where((set) =>
+          !set.warmup &&
+          !set.cancelled &&
+          !w.completedSets.any((c) => c.proposedSetId == set.id));
+      if (pending.isEmpty) break;
+      final set = pending.first;
+      await _api.workout.completeSet(
+        CompleteSetRequest()
+          ..workoutId = workoutId!
+          ..proposedSetId = set.id
+          ..actualReps = set.targetReps
+          ..actualWeight = set.targetWeight,
+        options: _opts,
+      );
+      done++;
+    }
+    return done;
   }
 
   /// Complete the next pending working set of the peer's workout.
