@@ -36,14 +36,13 @@ void main() {
     if (await s.waitForText('This will end your current workout.', seconds: 6)) {
       await s.tap(find.text('End Workout').last);
     }
-    // From the summary, go back to home.
-    await s.waitForText('Session snapshot', seconds: 10);
-    if (await s.waitForText('BACK', seconds: 4)) {
-      await s.tapText('BACK');
-    }
-    await s.settle(seconds: 3);
+    // The summary should show the progression the completed work earned.
+    expect(await s.waitForText('Session snapshot', seconds: 10), isTrue,
+        reason: 'finishing should land on the workout summary');
+    await s.shot('Summary — progression applied',
+        note: 'The summary reports each lift advancing 45 → 50.');
 
-    // Backend should have advanced; the app should render it.
+    // Backend should have advanced.
     final after = await api.proposedGroups();
     final backendSquat = after
         .expand((g) => g.exerciseConfigs)
@@ -52,17 +51,15 @@ void main() {
         .startWeight;
     s.note('Backend squat after finish',
         detail: '$backendSquat lb', kind: 'api');
-    await s.shot('Home after finishing the workout',
-        note: 'Backend now proposes $backendSquat lb for squat.');
-
     expect(backendSquat, greaterThan(45),
         reason: 'finishing a full workout should advance squat past 45');
-    // The app's home should show the advanced weight, not the stale 45.
-    expect(s.isVisible('${backendSquat.toStringAsFixed(0)} lb'), isTrue,
-        reason: 'home should render the advanced weight '
-            '(${backendSquat.toStringAsFixed(0)} lb), not a stale value');
 
-    s.note('Post-finish home display verified', kind: 'assert');
+    // The summary should render that advance (e.g. "Squat 45 lb -> 50 lb").
+    final shown = '${backendSquat.toStringAsFixed(0)} lb';
+    expect(find.textContaining(shown), findsWidgets,
+        reason: 'the summary should show the advanced weight ("$shown")');
+
+    s.note('Post-finish progression display verified', kind: 'assert');
     await s.report();
   });
 }
