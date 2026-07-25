@@ -46,3 +46,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # Bundled Manrope + Space Grotesk (the fonts google_fonts otherwise fetches).
+    # Lets google_fonts load them offline — no first-run network flash in the
+    # app, and deterministic rendering in the e2e screenshot harness.
+    - assets/google_fonts/

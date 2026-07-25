@@ -226,3 +226,15 @@ deploy-android:
 		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
 		$(ADB) -s "$$SERIAL" install app/build/app/outputs/flutter-apk/app-release.apk || exit 1; \
 	fi
+
+# Headless screenshot harness: drives the real app against a real backend and
+# captures a legible screenshot of each screen into app/test_screenshots/, plus
+# an HTML report. The runner ends via a timeout (a live-gRPC app never lets the
+# fake-async test loop idle) — the artifacts, not the exit code, are the product,
+# so success = a report was produced. See app/test/e2e/README.md.
+e2e-screens:
+	@rm -rf app/test_screenshots
+	-cd app && timeout 120 $(FLUTTER) test test/e2e/ --tags e2e
+	@test -f app/test_screenshots/*/report.html 2>/dev/null && \
+		echo "\n✓ screenshots: app/test_screenshots/*/report.html" || \
+		{ echo "\n✗ no screenshots produced"; exit 1; }
