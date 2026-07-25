@@ -35,6 +35,14 @@ class HealthService {
   static bool _healthPermissionRequestInFlight = false;
   static bool _workoutHealthPermissionsRequested = false;
 
+  /// Set true by the e2e harness before the app launches. When true, the methods
+  /// that proactively prompt for Health permissions no-op: on the emulator those
+  /// requests open the native Health Connect sheet, which pauses the Flutter
+  /// surface and hangs an integration_test. Health isn't under test there, so
+  /// suppressing the prompt is safe. Always false in production.
+  @visibleForTesting
+  static bool suppressPermissionPrompts = false;
+
   /// Requests every Health permission the workout flow uses, in a SINGLE system
   /// sheet, at most once per app run.
   ///
@@ -50,6 +58,7 @@ class HealthService {
   /// `requestAuthorization` is idempotent: on later app runs it presents no sheet for
   /// already-decided types, so calling this again is harmless.
   static Future<void> requestWorkoutHealthPermissions() async {
+    if (suppressPermissionPrompts) return;
     if (_workoutHealthPermissionsRequested) return;
     // Another request is mid-flight; don't stack a competing sheet. Retry next time.
     if (_healthPermissionRequestInFlight) return;
@@ -98,6 +107,8 @@ class HealthService {
   static Future<double?> readLatestBodyWeightKg({
     bool requestPermissions = false,
   }) async {
+    // e2e: never open the native Health sheet (see suppressPermissionPrompts).
+    if (suppressPermissionPrompts && requestPermissions) return null;
     try {
       AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
         'phase': 'start',
