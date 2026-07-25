@@ -43,10 +43,17 @@ echo "=> ${#SCENARIOS[@]} scenario(s): ${SCENARIOS[*]}"
 # the native Health Connect sheet never appears — no permission granting needed.
 
 fail=0
+flake=0
 for f in "${SCENARIOS[@]}"; do
   name="${f%_test.dart}"
   log="$SHOTS/$name.drive.log"
   echo "== running $name =="
+  # The emulator can drop offline during a long run (WSL2 flake). Skip rather
+  # than report a bogus test failure if it's already gone.
+  if [ "$("$ADB" -s "$DEVICE" get-state 2>/dev/null)" != "device" ]; then
+    echo "   SKIP ($name) — $DEVICE is offline; run 'make e2e-up' and retry"; flake=1
+    continue
+  fi
   # Clear this scenario's old screenshots so a rename can't leave stale PNGs.
   rm -f "$SHOTS/${name}_"*.png 2>/dev/null
   flutter drive \
@@ -56,11 +63,17 @@ for f in "${SCENARIOS[@]}"; do
   rc=$?
   if grep -q 'All tests passed' "$log"; then
     echo "   ok ($name)"
+  elif grep -q 'device offline' "$log"; then
+    # The emulator died mid-scenario — an infra flake, not a test failure.
+    echo "   FLAKE ($name) — emulator went offline mid-run; re-run after 'make e2e-up'"
+    flake=1
   else
     echo "   FAIL ($name) rc=$rc — see $log"; fail=1
     grep -E 'Test failed|Exception|Error:|EXCEPTION|failed to' "$log" | head -5 | sed 's/^/     /'
   fi
 done
+
+[ "$flake" -eq 1 ] && echo "NOTE: one or more scenarios were skipped/flaked on emulator health, not test logic."
 
 echo "== building report =="
 python3 "$ROOT/scripts/build_e2e_report.py" "$SHOTS"/*.drive.log
