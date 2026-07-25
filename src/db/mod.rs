@@ -19,7 +19,10 @@ mod auth;
 mod cache;
 mod codec;
 mod session;
+pub mod training;
 mod workout;
+
+pub use training::{TrainingBlockRow, TrainingEntryRow, TrainingSetRow};
 
 const SERVER_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users_current (
@@ -240,6 +243,95 @@ CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
     ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
 "#;
 
+/// Training model v2 schema (blocks → sets → append-only entries + ledger).
+/// Applied alongside SERVER_SCHEMA; coexists with the v1 workout tables.
+const TRAINING_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS t_workouts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    start_time INTEGER NOT NULL,
+    end_time INTEGER NOT NULL DEFAULT 0,
+    session_id TEXT NOT NULL DEFAULT '',
+    active_set_id TEXT NOT NULL DEFAULT '',
+    active_started_at INTEGER NOT NULL DEFAULT 0,
+    from_program INTEGER NOT NULL DEFAULT 1,
+    closed_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_t_workouts_user_time ON t_workouts(user_id, start_time DESC);
+
+CREATE TABLE IF NOT EXISTS t_blocks (
+    id TEXT PRIMARY KEY,
+    workout_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    ord INTEGER NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    interleave_warmups INTEGER NOT NULL DEFAULT 0,
+    rest_success INTEGER NOT NULL DEFAULT 0,
+    rest_failure INTEGER NOT NULL DEFAULT 0,
+    rest_warmup INTEGER NOT NULL DEFAULT 0,
+    rest_last_warmup INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_t_blocks_workout ON t_blocks(workout_id, ord);
+
+CREATE TABLE IF NOT EXISTS t_sets (
+    id TEXT PRIMARY KEY,
+    workout_id TEXT NOT NULL,
+    block_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    ord INTEGER NOT NULL,
+    exercise INTEGER NOT NULL,
+    role INTEGER NOT NULL,
+    proposed_weight REAL NOT NULL DEFAULT 0,
+    proposed_reps INTEGER NOT NULL DEFAULT 0,
+    proposed_duration_s INTEGER NOT NULL DEFAULT 0,
+    proposed_distance_m REAL NOT NULL DEFAULT 0,
+    target_weight REAL NOT NULL DEFAULT 0,
+    target_reps INTEGER NOT NULL DEFAULT 0,
+    target_duration_s INTEGER NOT NULL DEFAULT 0,
+    target_distance_m REAL NOT NULL DEFAULT 0,
+    is_amrap INTEGER NOT NULL DEFAULT 0,
+    instruction TEXT NOT NULL DEFAULT '',
+    skipped INTEGER NOT NULL DEFAULT 0,
+    counts_toward_program INTEGER NOT NULL DEFAULT 0,
+    slot_key TEXT NOT NULL DEFAULT '',
+    removed INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_t_sets_workout ON t_sets(workout_id, ord);
+
+-- Append-only, bitemporal. The newest non-tombstoned row per set is the truth.
+CREATE TABLE IF NOT EXISTS t_entries (
+    entry_id TEXT PRIMARY KEY,
+    set_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    weight REAL NOT NULL DEFAULT 0,
+    reps INTEGER NOT NULL DEFAULT 0,
+    duration_s INTEGER NOT NULL DEFAULT 0,
+    distance_m REAL NOT NULL DEFAULT 0,
+    performed_at INTEGER NOT NULL,  -- valid time: when the set happened (back-datable)
+    recorded_at INTEGER NOT NULL,   -- transaction time: when this row was written
+    tombstone INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_t_entries_set ON t_entries(set_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_t_entries_workout ON t_entries(workout_id);
+
+-- Append-only progression ledger. One row per (user, workout) that advanced the
+-- program. UNIQUE gives idempotency: a re-fired CloseWorkout is a no-op.
+CREATE TABLE IF NOT EXISTS t_progression (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    state_before BLOB,
+    state_after BLOB,
+    changes_blob BLOB,
+    UNIQUE(user_id, workout_id)
+);
+CREATE INDEX IF NOT EXISTS idx_t_progression_user_time ON t_progression(user_id, at DESC);
+"#;
+
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[derive(Clone)]
@@ -268,6 +360,7 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         sqlx::query(SERVER_SCHEMA).execute(&write_pool).await?;
+        sqlx::query(TRAINING_SCHEMA).execute(&write_pool).await?;
         sqlx::query(
             "ALTER TABLE user_message_events ADD COLUMN source_workout_id TEXT NOT NULL DEFAULT ''",
         )

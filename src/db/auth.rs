@@ -341,6 +341,19 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        // Training model v2 tables.
+        for table in [
+            "t_entries",
+            "t_sets",
+            "t_blocks",
+            "t_workouts",
+            "t_progression",
+        ] {
+            sqlx::query(&format!("DELETE FROM {table} WHERE user_id = ?"))
+                .bind(user_id)
+                .execute(&mut *tx)
+                .await?;
+        }
         sqlx::query("DELETE FROM users_current WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -418,6 +431,12 @@ mod account_deletion_tests {
             ("workout_drafts_current", "(user_id, draft_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
             ("profile_exercise_groups", format!("(id, user_id, name, created_at, updated_at) VALUES ('{u}-pg1', ?, 'G', 1, 1)")),
             ("user_message_events", "(user_id, message_key, created_at, updated_at, message_blob) VALUES (?, 'k', 1, 1, x'00')".to_string()),
+            // Training model v2. Ids derived from user_id so two users don't collide.
+            ("t_workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-tw', ?, 'W', 1)")),
+            ("t_blocks", format!("(id, workout_id, user_id, ord) VALUES ('{u}-tb', '{u}-tw', ?, 0)")),
+            ("t_sets", format!("(id, workout_id, block_id, user_id, ord, exercise, role) VALUES ('{u}-ts', '{u}-tw', '{u}-tb', ?, 0, 1, 1)")),
+            ("t_entries", format!("(entry_id, set_id, workout_id, user_id, performed_at, recorded_at) VALUES ('{u}-te', '{u}-ts', '{u}-tw', ?, 1, 1)")),
+            ("t_progression", format!("(id, user_id, workout_id, at) VALUES ('{u}-tp', ?, '{u}-tw', 1)")),
         ];
 
         for (table, cols) in &stmts {

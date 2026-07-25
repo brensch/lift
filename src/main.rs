@@ -2,7 +2,8 @@ use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
-    settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
+    settings_service_server::SettingsServiceServer,
+    training_service_server::TrainingServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
 };
 use std::net::SocketAddr;
@@ -27,8 +28,8 @@ mod workout;
 use auth::AuthState;
 use db::ServerDb;
 use server::{
-    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
-    ServerWorkoutService,
+    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerTrainingService,
+    ServerUserService, ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -109,6 +110,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )))
         .add_service(tonic_web::enable(SettingsServiceServer::new(
             ServerSettingsService {
+                db: server_db.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(TrainingServiceServer::new(
+            ServerTrainingService {
                 db: server_db.clone(),
             },
         )))
