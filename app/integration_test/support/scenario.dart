@@ -171,6 +171,9 @@ class Scenario {
   /// dismiss the one-time passkey notice a brand-new account is shown before it
   /// reaches onboarding.
   Future<void> devLogin(String username) async {
+    // Wait for the login screen — a freshly-booted emulator's first app launch
+    // can render slower than launch()'s settle window.
+    await waitForText('Dev Login', seconds: 15);
     final field = find.widgetWithText(TextField, 'Username');
     final target = field.evaluate().isNotEmpty ? field : find.byType(TextField);
     await typeInto(target, username);
