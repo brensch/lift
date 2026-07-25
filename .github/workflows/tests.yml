@@ -50,4 +50,4 @@ jobs:
 
       - name: Run Flutter tests
         working-directory: app
-        run: flutter test --exclude-tags e2e
+        run: flutter test
