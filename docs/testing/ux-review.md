@@ -107,3 +107,12 @@ duration.
   ("Squat · Bench · Row"), relative day, duration, and volume/sets chips, plus a
   workouts/this-week header. A "👥 group" chip marks sessions trained with others.
 Both are frontend-only (no backend change). Captured by the `history_graphs` e2e.
+
+## Note N1. Skip-warmup investigation — feature works (getWorkout hides cancelled sets)
+
+A skip_warmup e2e initially "failed" asserting the backend showed a cancelled
+set. Investigation (direct SQLite query) confirmed the skip DOES persist —
+`proposed_sets.cancelled = 1` for the skipped warmup — and the UI drops it. The
+subtlety: `GetWorkout` excludes cancelled sets from the returned plan, so a client
+sees the warmup *count decrease* (12 → 11), not a `cancelled=true` flag. The test
+now asserts the reduction. No product bug; worth knowing when reading getWorkout.
