@@ -285,6 +285,10 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        sqlx::query("DELETE FROM session_members WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("DELETE FROM workout_heart_rate_samples WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)

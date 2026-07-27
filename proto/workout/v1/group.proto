@@ -39,6 +39,19 @@ service MultiplayerService {
 
   // Refresh the caller's participant snapshot in the session cache.
   rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
+
+  // People the caller has trained with (shared a session), most-recent first.
+  // Backed by the durable session_members roster, so it survives leaving a
+  // session and doubles as the "recent friends" list for quick re-pairing.
+  rpc GetTrainingPartners(GetTrainingPartnersRequest) returns (GetTrainingPartnersResponse);
+
+  // The sessions the caller shared with one partner (dates + who lifted).
+  rpc GetSharedSessions(GetSharedSessionsRequest) returns (GetSharedSessionsResponse);
+
+  // One-tap re-pair: join the current session of a partner the caller has
+  // trained with before, without needing their QR again. Fails if the partner
+  // isn't in a session right now, or if they've never trained together.
+  rpc JoinPartnerSession(JoinPartnerSessionRequest) returns (JoinPartnerSessionResponse);
 }
 
 message JoinViaInviteRequest {
@@ -128,4 +141,40 @@ message ParticipantStatus {
 
   bool has_active_set = 9;
 
+}
+
+// ── Training-together history ──
+
+// Someone the caller has shared at least one session with.
+message TrainingPartner {
+  User user = 1;
+  int32 sessions_together = 2; // how many distinct sessions they shared
+  int64 last_trained_at = 3;   // unix seconds of the most recent shared session
+}
+
+message GetTrainingPartnersRequest {}
+message GetTrainingPartnersResponse {
+  repeated TrainingPartner partners = 1;
+}
+
+// One session the caller and a partner were both in.
+message SharedSession {
+  string session_id = 1;
+  int64 trained_at = 2;          // when the shared session started (earliest join)
+  bool caller_worked_out = 3;    // did the caller log a workout in it
+  bool partner_worked_out = 4;   // did the partner log a workout in it
+}
+
+message GetSharedSessionsRequest {
+  string partner_user_id = 1;
+}
+message GetSharedSessionsResponse {
+  repeated SharedSession sessions = 1;
+}
+
+message JoinPartnerSessionRequest {
+  string partner_user_id = 1;
+}
+message JoinPartnerSessionResponse {
+  string session_id = 1;
 }

@@ -32,6 +32,8 @@ use uuid::Uuid;
 mod auth;
 mod messages;
 mod multiplayer;
+#[cfg(test)]
+mod multiplayer_tests;
 mod settings;
 mod support;
 mod training;

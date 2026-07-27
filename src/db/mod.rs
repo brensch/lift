@@ -163,6 +163,23 @@ CREATE TABLE IF NOT EXISTS session_participants_current (
 CREATE INDEX IF NOT EXISTS idx_session_participants_current_session
     ON session_participants_current(session_id, updated_at DESC);
 
+-- Durable roster: every (session, user) that ever joined, with join/leave times.
+-- Unlike user_current_session (live, one row per user) and
+-- session_participants_current (live blob cache, pruned on leave), these rows are
+-- never deleted — they are the authoritative record of who trained together.
+CREATE TABLE IF NOT EXISTS session_members (
+    session_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    first_joined_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    left_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(session_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_members_user
+    ON session_members(user_id, first_joined_at DESC);
+CREATE INDEX IF NOT EXISTS idx_session_members_session
+    ON session_members(session_id);
+
 CREATE TABLE IF NOT EXISTS proposed_schedule_cache (
     user_id TEXT PRIMARY KEY,
     response_blob BLOB NOT NULL,

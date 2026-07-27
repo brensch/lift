@@ -116,6 +116,34 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$updateActiveWorkout, request, options: options);
   }
 
+  /// People the caller has trained with (shared a session), most-recent first.
+  /// Backed by the durable session_members roster, so it survives leaving a
+  /// session and doubles as the "recent friends" list for quick re-pairing.
+  $grpc.ResponseFuture<$0.GetTrainingPartnersResponse> getTrainingPartners(
+    $0.GetTrainingPartnersRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getTrainingPartners, request, options: options);
+  }
+
+  /// The sessions the caller shared with one partner (dates + who lifted).
+  $grpc.ResponseFuture<$0.GetSharedSessionsResponse> getSharedSessions(
+    $0.GetSharedSessionsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getSharedSessions, request, options: options);
+  }
+
+  /// One-tap re-pair: join the current session of a partner the caller has
+  /// trained with before, without needing their QR again. Fails if the partner
+  /// isn't in a session right now, or if they've never trained together.
+  $grpc.ResponseFuture<$0.JoinPartnerSessionResponse> joinPartnerSession(
+    $0.JoinPartnerSessionRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$joinPartnerSession, request, options: options);
+  }
+
   // method descriptors
 
   static final _$joinViaInvite =
@@ -163,6 +191,21 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/UpdateActiveWorkout',
       ($0.UpdateActiveWorkoutRequest value) => value.writeToBuffer(),
       $0.UpdateActiveWorkoutResponse.fromBuffer);
+  static final _$getTrainingPartners = $grpc.ClientMethod<
+          $0.GetTrainingPartnersRequest, $0.GetTrainingPartnersResponse>(
+      '/workout.v1.MultiplayerService/GetTrainingPartners',
+      ($0.GetTrainingPartnersRequest value) => value.writeToBuffer(),
+      $0.GetTrainingPartnersResponse.fromBuffer);
+  static final _$getSharedSessions = $grpc.ClientMethod<
+          $0.GetSharedSessionsRequest, $0.GetSharedSessionsResponse>(
+      '/workout.v1.MultiplayerService/GetSharedSessions',
+      ($0.GetSharedSessionsRequest value) => value.writeToBuffer(),
+      $0.GetSharedSessionsResponse.fromBuffer);
+  static final _$joinPartnerSession = $grpc.ClientMethod<
+          $0.JoinPartnerSessionRequest, $0.JoinPartnerSessionResponse>(
+      '/workout.v1.MultiplayerService/JoinPartnerSession',
+      ($0.JoinPartnerSessionRequest value) => value.writeToBuffer(),
+      $0.JoinPartnerSessionResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.MultiplayerService')
@@ -251,6 +294,33 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.UpdateActiveWorkoutRequest.fromBuffer(value),
         ($0.UpdateActiveWorkoutResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetTrainingPartnersRequest,
+            $0.GetTrainingPartnersResponse>(
+        'GetTrainingPartners',
+        getTrainingPartners_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetTrainingPartnersRequest.fromBuffer(value),
+        ($0.GetTrainingPartnersResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetSharedSessionsRequest,
+            $0.GetSharedSessionsResponse>(
+        'GetSharedSessions',
+        getSharedSessions_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetSharedSessionsRequest.fromBuffer(value),
+        ($0.GetSharedSessionsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.JoinPartnerSessionRequest,
+            $0.JoinPartnerSessionResponse>(
+        'JoinPartnerSession',
+        joinPartnerSession_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.JoinPartnerSessionRequest.fromBuffer(value),
+        ($0.JoinPartnerSessionResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.JoinViaInviteResponse> joinViaInvite_Pre(
@@ -333,4 +403,31 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.UpdateActiveWorkoutResponse> updateActiveWorkout(
       $grpc.ServiceCall call, $0.UpdateActiveWorkoutRequest request);
+
+  $async.Future<$0.GetTrainingPartnersResponse> getTrainingPartners_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetTrainingPartnersRequest> $request) async {
+    return getTrainingPartners($call, await $request);
+  }
+
+  $async.Future<$0.GetTrainingPartnersResponse> getTrainingPartners(
+      $grpc.ServiceCall call, $0.GetTrainingPartnersRequest request);
+
+  $async.Future<$0.GetSharedSessionsResponse> getSharedSessions_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetSharedSessionsRequest> $request) async {
+    return getSharedSessions($call, await $request);
+  }
+
+  $async.Future<$0.GetSharedSessionsResponse> getSharedSessions(
+      $grpc.ServiceCall call, $0.GetSharedSessionsRequest request);
+
+  $async.Future<$0.JoinPartnerSessionResponse> joinPartnerSession_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.JoinPartnerSessionRequest> $request) async {
+    return joinPartnerSession($call, await $request);
+  }
+
+  $async.Future<$0.JoinPartnerSessionResponse> joinPartnerSession(
+      $grpc.ServiceCall call, $0.JoinPartnerSessionRequest request);
 }
