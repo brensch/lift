@@ -89,7 +89,7 @@ class GroupChip extends StatelessWidget {
 
   String _formatSetLine(WorkingSetSpec set, WeightUnit unit) {
     final reps = set.isAmrap ? '${set.targetReps}+' : '${set.targetReps}';
-    return '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} x $reps';
+    return '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} × $reps';
   }
 
   List<SetLine> _warmupLinesForConfig(
@@ -106,7 +106,7 @@ class GroupChip extends StatelessWidget {
         (
           index: i + 1,
           text:
-              '${formatWeight(defs[i].weight, unit, includeUnit: true)} x ${defs[i].reps}',
+              '${formatWeight(defs[i].weight, unit, includeUnit: true)} × ${defs[i].reps}',
           note: i == defs.length - 1 ? 'Last warmup before work sets.' : '',
         ),
     ];

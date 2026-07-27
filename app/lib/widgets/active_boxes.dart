@@ -67,8 +67,8 @@ class _NextSetInfo extends StatelessWidget {
           children: [
             Text(
               set.isAmrap
-                  ? 'AMRAP\u00D7$weightText'
-                  : '${set.targetReps}\u00D7$weightText',
+                  ? '$weightText \u00D7 AMRAP'
+                  : '$weightText \u00D7 ${set.targetReps}',
               style: TextStyle(
                 fontSize: large ? 18 : 14,
                 fontWeight: FontWeight.w900,

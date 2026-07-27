@@ -81,7 +81,7 @@ class ExerciseListCard extends StatelessWidget {
                 TextSpan(text: weightLabel),
                 if (repsLabel != null)
                   TextSpan(
-                    text: '  × $repsLabel',
+                    text: ' × $repsLabel',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface.withValues(alpha: 0.4),

@@ -179,7 +179,7 @@ class CurrentSetChip extends StatelessWidget {
 
     // The set you're currently lifting shimmers through a rainbow.
     if (isActive && completed == null) {
-      final base = '$weight · $targetText';
+      final base = '$weight × $targetText';
       return RainbowSetChip(
         text: isSuperset ? '$exerciseMarker $base' : base,
       );
@@ -206,17 +206,17 @@ class CurrentSetChip extends StatelessWidget {
       borderColor = isActive
           ? AppTheme.warmupFg.withValues(alpha: 0.4)
           : colorScheme.outline.withValues(alpha: 0.22);
-      mainText = '$weight · $targetText';
+      mainText = '$weight × $targetText';
     } else if (isActive) {
       bg = AppTheme.workoutLiftingBg;
       fg = AppTheme.workoutLiftingFg;
       borderColor = AppTheme.workoutLiftingFg.withValues(alpha: 0.4);
-      mainText = '$weight · $targetText';
+      mainText = '$weight × $targetText';
     } else {
       bg = colorScheme.surfaceContainerLowest;
       fg = colorScheme.onSurface;
       borderColor = colorScheme.outline.withValues(alpha: 0.22);
-      mainText = '$weight · $targetText';
+      mainText = '$weight × $targetText';
     }
 
     return Container(
