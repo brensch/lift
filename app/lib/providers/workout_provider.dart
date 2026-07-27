@@ -866,11 +866,40 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _startTimer() {
     _timer?.cancel();
+    var tick = 0;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _setNow(DateTime.now());
       unawaited(_checkRestSound());
       unawaited(_flushPendingWearHeartRateUploads());
+      // Every few seconds, reconcile our local active workout against the
+      // backend so a workout ended elsewhere (the watch, another device, or the
+      // server) doesn't leave us showing a stale in-progress workout.
+      if (++tick % 5 == 0) unawaited(_reconcileActiveWorkout());
     });
+  }
+
+  bool _reconciling = false;
+
+  /// If the workout we're displaying no longer matches the backend's active
+  /// workout (ended or replaced by another client), pull fresh state. Skips
+  /// while local mutations are in flight so it can't clobber optimistic edits.
+  Future<void> _reconcileActiveWorkout() async {
+    if (!hasActiveWorkout || _reconciling || _isLoading) return;
+    if (_pendingMutations.isNotEmpty) return;
+    final userId = _lastLoadUserId;
+    if (userId == null) return;
+    _reconciling = true;
+    try {
+      final active = await _service.getActiveWorkout();
+      if (active?.id != _activeWorkout?.id) {
+        // Ended or swapped out from under us — reload (clears to home if gone).
+        await loadActiveWorkout(userId);
+      }
+    } catch (_) {
+      // Transient; try again on the next reconcile tick.
+    } finally {
+      _reconciling = false;
+    }
   }
 
   void _stopTimer() {
