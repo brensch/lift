@@ -143,13 +143,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          for (final item in _items!) ...[
-            _HistoryCard(item: item, unit: unit, cs: cs),
-            const SizedBox(height: 10),
-          ],
+          ..._grouped(cs, unit),
         ],
       ),
     );
+  }
+
+  /// Cards grouped under a month header so a long history stays scannable.
+  List<Widget> _grouped(ColorScheme cs, WeightUnit unit) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    final out = <Widget>[];
+    String? currentMonth;
+    for (final item in _items!) {
+      final label = '${months[item.date.month - 1]} ${item.date.year}';
+      if (label != currentMonth) {
+        if (out.isNotEmpty) out.add(const SizedBox(height: 8));
+        out.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 2),
+          child: Text(label.toUpperCase(),
+              style: TextStyle(
+                  color: cs.tertiary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8)),
+        ));
+        currentMonth = label;
+      }
+      out.add(_HistoryCard(item: item, unit: unit, cs: cs));
+      out.add(const SizedBox(height: 10));
+    }
+    return out;
   }
 
   Widget _headStat(String value, String label, ColorScheme cs) => Column(
