@@ -26,6 +26,7 @@ class ProgressScreen extends StatefulWidget {
 class _ProgressScreenState extends State<ProgressScreen> {
   List<_ExerciseProgress>? _series;
   int _workoutCount = 0;
+  double _totalVolume = 0;
   bool _isLoading = true;
 
   // A calm, distinct colour per exercise (cycled by index).
@@ -55,6 +56,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
       final byExercise = <Exercise, List<_Point>>{};
+      var totalVolume = 0.0;
       for (final workout in workouts) {
         final response = await service.getWorkout(workout.id);
         // Map proposed set id -> proposed set so we can read exercise + warmup.
@@ -65,6 +67,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           final p = proposedById[c.proposedSetId];
           if (p == null || p.warmup) continue;
           final w = c.actualWeight.toDouble();
+          totalVolume += w * c.actualReps;
           final cur = topThisWorkout[p.exercise] ?? 0;
           if (w > cur) topThisWorkout[p.exercise] = w;
         }
@@ -92,6 +95,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       setState(() {
         _series = series;
         _workoutCount = workouts.length;
+        _totalVolume = totalVolume;
         _isLoading = false;
       });
     } catch (e) {
@@ -133,11 +137,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
         children: [
           _SummaryHeader(
             workoutCount: _workoutCount,
-            exerciseCount: _series!.length,
+            totalVolume: _totalVolume,
             since: _series!
                 .expand((s) => s.points)
                 .map((p) => p.date)
                 .reduce((a, b) => a.isBefore(b) ? a : b),
+            unit: unit,
             cs: cs,
           ),
           const SizedBox(height: 16),
@@ -153,28 +158,40 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
 class _SummaryHeader extends StatelessWidget {
   final int workoutCount;
-  final int exerciseCount;
+  final double totalVolume;
   final DateTime since;
+  final WeightUnit unit;
   final ColorScheme cs;
   const _SummaryHeader({
     required this.workoutCount,
-    required this.exerciseCount,
+    required this.totalVolume,
     required this.since,
+    required this.unit,
     required this.cs,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         _headStat('$workoutCount', 'workouts', cs),
         const SizedBox(width: 24),
-        _headStat('$exerciseCount', 'lifts tracked', cs),
+        _headStat(_compactVolume(totalVolume), '${weightUnitSuffix(unit)} lifted', cs),
         const Spacer(),
-        Text('since ${_shortDate(since)}',
-            style: TextStyle(color: cs.tertiary, fontSize: 12)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: Text('since ${_shortDate(since)}',
+              style: TextStyle(color: cs.tertiary, fontSize: 12)),
+        ),
       ],
     );
+  }
+
+  String _compactVolume(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
+    return v.round().toString();
   }
 
   Widget _headStat(String value, String label, ColorScheme cs) => Column(
