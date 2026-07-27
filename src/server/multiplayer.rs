@@ -106,14 +106,10 @@ impl MultiplayerService for ServerMultiplayerService {
                 ));
             }
             (Some(existing), None) | (None, Some(existing)) => existing,
-            (None, None) => {
-                let new_id = Uuid::new_v4().to_string();
-                self.db
-                    .create_session(&new_id, &caller_id)
-                    .await
-                    .map_err(internal_error)?;
-                new_id
-            }
+            // Neither is in a group — mint a fresh session id. The session exists
+            // purely as the shared id on both users' session_members rows; there's
+            // no separate sessions table to seed.
+            (None, None) => Uuid::new_v4().to_string(),
         };
 
         // Both users land in the same session. Upsert is idempotent for whoever was

@@ -145,11 +145,6 @@ CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
 CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
     ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
 
-CREATE TABLE IF NOT EXISTS sessions (
-    session_id TEXT PRIMARY KEY,
-    created_by TEXT NOT NULL,
-    created_at INTEGER NOT NULL
-);
 CREATE INDEX IF NOT EXISTS idx_workouts_session ON workouts(session_id)
     WHERE session_id != '';
 
