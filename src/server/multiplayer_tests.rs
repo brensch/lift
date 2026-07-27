@@ -139,20 +139,19 @@ mod session_history_tests {
         assert!(!shared[0].partner_worked_out);
     }
 
-    /// JoinPartnerSession is gated on a prior pairing and joins the partner's
-    /// current session for a one-tap re-pair.
+    /// Request → approve: gated on a prior pairing; the recipient sees the request
+    /// and approving lands both in a session.
     #[tokio::test]
-    async fn join_partner_session_gates_then_rejoins() {
+    async fn request_then_approve_pairs_both() {
         let svc = setup().await;
         let (alice_id, alice_tok) = user(&svc, "alice").await;
         let (bob_id, bob_tok) = user(&svc, "bob").await;
-        let (carol_id, carol_tok) = user(&svc, "carol").await;
 
-        // Carol has never trained with Bob → cannot one-tap join him.
+        // Stranger gate: Alice can't ping Bob before they've ever trained.
         let err = svc
-            .join_partner_session(authed(
-                &carol_tok,
-                JoinPartnerSessionRequest {
+            .request_join_partner(authed(
+                &alice_tok,
+                RequestJoinPartnerRequest {
                     partner_user_id: bob_id.clone(),
                 },
             ))
@@ -160,7 +159,7 @@ mod session_history_tests {
             .unwrap_err();
         assert_eq!(err.code(), tonic::Code::FailedPrecondition);
 
-        // Alice + Bob train together, then both leave (establishing the relationship).
+        // Alice + Bob train together (via QR), then both leave.
         let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
         svc.join_via_invite(authed(
             &bob_tok,
@@ -177,49 +176,128 @@ mod session_history_tests {
             .await
             .unwrap();
 
-        // Bob is not in any session now. A prior partner tapping "Join" mints a
-        // fresh shared session and pulls Bob in too — one-tap re-pair from cold.
-        let resp = svc
-            .join_partner_session(authed(
+        // Alice asks Bob to train. Bob sees the pending request.
+        let request_id = svc
+            .request_join_partner(authed(
                 &alice_tok,
-                JoinPartnerSessionRequest {
+                RequestJoinPartnerRequest {
                     partner_user_id: bob_id.clone(),
                 },
             ))
             .await
             .unwrap()
-            .into_inner();
-        let alice_session = svc.db.get_user_current_session(&alice_id).await.unwrap();
-        let bob_session = svc.db.get_user_current_session(&bob_id).await.unwrap();
-        assert_eq!(alice_session.as_deref(), Some(resp.session_id.as_str()));
-        assert_eq!(bob_session, alice_session, "both land in the same session");
-
-        // When the partner IS already in a session, Join lands the caller in THAT
-        // one (never yanks the partner out of an existing group).
-        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .into_inner()
+            .request_id;
+        let incoming = svc
+            .get_join_requests(authed(&bob_tok, GetJoinRequestsRequest {}))
             .await
-            .unwrap();
-        let carol_invite = svc.db.get_invite_token(&carol_id).await.unwrap().unwrap();
+            .unwrap()
+            .into_inner()
+            .requests;
+        assert_eq!(incoming.len(), 1);
+        assert_eq!(incoming[0].request_id, request_id);
+        assert_eq!(incoming[0].from_user.as_ref().unwrap().id, alice_id);
+        // Alice (the requester) should not see her own outgoing request as incoming.
+        assert!(svc
+            .get_join_requests(authed(&alice_tok, GetJoinRequestsRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .requests
+            .is_empty());
+
+        // Only Bob may answer it.
+        assert_eq!(
+            svc.respond_join_request(authed(
+                &alice_tok,
+                RespondJoinRequestRequest {
+                    request_id: request_id.clone(),
+                    accept: true,
+                },
+            ))
+            .await
+            .unwrap_err()
+            .code(),
+            tonic::Code::PermissionDenied
+        );
+
+        // Bob approves → both land in the same session, and the request is consumed.
+        let session_id = svc
+            .respond_join_request(authed(
+                &bob_tok,
+                RespondJoinRequestRequest {
+                    request_id: request_id.clone(),
+                    accept: true,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .session_id;
+        assert!(!session_id.is_empty());
+        assert_eq!(
+            svc.db.get_user_current_session(&alice_id).await.unwrap(),
+            Some(session_id.clone())
+        );
+        assert_eq!(
+            svc.db.get_user_current_session(&bob_id).await.unwrap(),
+            Some(session_id)
+        );
+        assert!(svc
+            .get_join_requests(authed(&bob_tok, GetJoinRequestsRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .requests
+            .is_empty());
+    }
+
+    /// Declining a request consumes it without pairing anyone.
+    #[tokio::test]
+    async fn decline_request_does_not_pair() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
         svc.join_via_invite(authed(
             &bob_tok,
             JoinViaInviteRequest {
-                invite_token: carol_invite,
+                invite_token: alice_invite,
             },
         ))
         .await
         .unwrap();
-        let bob_group = svc.db.get_user_current_session(&bob_id).await.unwrap().unwrap();
-        let resp2 = svc
-            .join_partner_session(authed(
+        svc.leave_current_session(authed(&bob_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+
+        let request_id = svc
+            .request_join_partner(authed(
                 &alice_tok,
-                JoinPartnerSessionRequest {
+                RequestJoinPartnerRequest {
                     partner_user_id: bob_id.clone(),
                 },
             ))
             .await
             .unwrap()
+            .into_inner()
+            .request_id;
+        let resp = svc
+            .respond_join_request(authed(
+                &bob_tok,
+                RespondJoinRequestRequest {
+                    request_id,
+                    accept: false,
+                },
+            ))
+            .await
+            .unwrap()
             .into_inner();
-        assert_eq!(resp2.session_id, bob_group, "joins Bob's existing group");
-        let _ = carol_id;
+        assert!(resp.session_id.is_empty());
+        assert!(svc.db.get_user_current_session(&alice_id).await.unwrap().is_none());
+        assert!(svc.db.get_user_current_session(&bob_id).await.unwrap().is_none());
     }
 }

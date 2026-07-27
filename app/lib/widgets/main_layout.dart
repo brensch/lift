@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import 'join_request_banner.dart';
 import '../services/wearable_bridge_service.dart';
 import 'multiplayer_modal.dart';
 import 'wobbly_text.dart';
@@ -221,7 +222,14 @@ class MainLayout extends StatelessWidget {
             ),
           ),
         ),
-        body: child,
+        body: mp.incomingRequests.isEmpty
+            ? child
+            : Column(
+                children: [
+                  JoinRequestBanner(request: mp.incomingRequests.first),
+                  Expanded(child: child),
+                ],
+              ),
         bottomNavigationBar: WorkoutBottomBar(
           key: ValueKey(wp.activeWorkout?.id ?? 'none'),
         ),

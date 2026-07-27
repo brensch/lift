@@ -45,16 +45,24 @@ The summary's "Best 1RM" is the Epley estimate `w·(1+reps/30)`, shown as e.g.
 "Best 1RM 20.4 lb" for a 17.5 lb × 5 set. Standard metric, but consider labelling
 it "Est. 1RM" so it isn't read as a real one-rep max.
 
-## U4. One-tap re-pair now works even if the friend isn't lifting yet — FIX
+## U4. Re-pair with a partner is now request → approve — FIX
 
-`JoinPartnerSession` used to require the partner to already be in a session, so
-two established partners who both just arrived (neither in a session) had to fall
-back to the QR — not "easy pairing". Now tapping a partner joins their session if
-they have one, or mints a fresh shared session and pulls them in if they don't.
-Still gated on a prior pairing (you must have trained together at least once), and
-it never yanks a partner out of an existing group. Trust note: this places a prior
-partner into a session without a real-time accept (same implied-consent model as
-scanning someone's QR) — dial back if that's unwanted.
+Iterated twice here. First pass made the partner "Join" button always pair
+(create a session and pull the friend in). But pulling someone in without their
+say-so is the wrong consent model, so the final design is a **request/approve
+handshake**:
+- The partners list button is now **"Ask"** — it sends a request (gated on a
+  prior pairing), not an instant join.
+- The recipient's app shows a top **banner**: "*name* wants to train with you"
+  with Approve / Decline (polled ~1 Hz, independent of session state).
+- Approving pairs both into a session (the responder's current one, or a fresh
+  one); declining consumes the request. Requests expire after 2 min.
+- The QR scan stays the instant path (scanning is explicit consent by the sharer).
+
+Backend: replaced `JoinPartnerSession` with `RequestJoinPartner` /
+`GetJoinRequests` / `RespondJoinRequest` + a `join_requests` table. Covered by
+`request_then_approve_pairs_both` and `decline_request_does_not_pair` tests and
+the `join_request` e2e scenario.
 
 ## U5. Debug tiles shown in every user's Settings — PROPOSE
 

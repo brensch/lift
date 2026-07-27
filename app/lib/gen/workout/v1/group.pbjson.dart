@@ -483,30 +483,112 @@ final $typed_data.Uint8List getSharedSessionsResponseDescriptor =
         'ChlHZXRTaGFyZWRTZXNzaW9uc1Jlc3BvbnNlEjUKCHNlc3Npb25zGAEgAygLMhkud29ya291dC'
         '52MS5TaGFyZWRTZXNzaW9uUghzZXNzaW9ucw==');
 
-@$core.Deprecated('Use joinPartnerSessionRequestDescriptor instead')
-const JoinPartnerSessionRequest$json = {
-  '1': 'JoinPartnerSessionRequest',
+@$core.Deprecated('Use requestJoinPartnerRequestDescriptor instead')
+const RequestJoinPartnerRequest$json = {
+  '1': 'RequestJoinPartnerRequest',
   '2': [
     {'1': 'partner_user_id', '3': 1, '4': 1, '5': 9, '10': 'partnerUserId'},
   ],
 };
 
-/// Descriptor for `JoinPartnerSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinPartnerSessionRequestDescriptor =
+/// Descriptor for `RequestJoinPartnerRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List requestJoinPartnerRequestDescriptor =
     $convert.base64Decode(
-        'ChlKb2luUGFydG5lclNlc3Npb25SZXF1ZXN0EiYKD3BhcnRuZXJfdXNlcl9pZBgBIAEoCVINcG'
+        'ChlSZXF1ZXN0Sm9pblBhcnRuZXJSZXF1ZXN0EiYKD3BhcnRuZXJfdXNlcl9pZBgBIAEoCVINcG'
         'FydG5lclVzZXJJZA==');
 
-@$core.Deprecated('Use joinPartnerSessionResponseDescriptor instead')
-const JoinPartnerSessionResponse$json = {
-  '1': 'JoinPartnerSessionResponse',
+@$core.Deprecated('Use requestJoinPartnerResponseDescriptor instead')
+const RequestJoinPartnerResponse$json = {
+  '1': 'RequestJoinPartnerResponse',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+  ],
+};
+
+/// Descriptor for `RequestJoinPartnerResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List requestJoinPartnerResponseDescriptor =
+    $convert.base64Decode(
+        'ChpSZXF1ZXN0Sm9pblBhcnRuZXJSZXNwb25zZRIdCgpyZXF1ZXN0X2lkGAEgASgJUglyZXF1ZX'
+        'N0SWQ=');
+
+@$core.Deprecated('Use joinRequestDescriptor instead')
+const JoinRequest$json = {
+  '1': 'JoinRequest',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {
+      '1': 'from_user',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.User',
+      '10': 'fromUser'
+    },
+    {'1': 'created_at', '3': 3, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `JoinRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinRequestDescriptor = $convert.base64Decode(
+    'CgtKb2luUmVxdWVzdBIdCgpyZXF1ZXN0X2lkGAEgASgJUglyZXF1ZXN0SWQSLQoJZnJvbV91c2'
+    'VyGAIgASgLMhAud29ya291dC52MS5Vc2VyUghmcm9tVXNlchIdCgpjcmVhdGVkX2F0GAMgASgD'
+    'UgljcmVhdGVkQXQ=');
+
+@$core.Deprecated('Use getJoinRequestsRequestDescriptor instead')
+const GetJoinRequestsRequest$json = {
+  '1': 'GetJoinRequestsRequest',
+};
+
+/// Descriptor for `GetJoinRequestsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getJoinRequestsRequestDescriptor =
+    $convert.base64Decode('ChZHZXRKb2luUmVxdWVzdHNSZXF1ZXN0');
+
+@$core.Deprecated('Use getJoinRequestsResponseDescriptor instead')
+const GetJoinRequestsResponse$json = {
+  '1': 'GetJoinRequestsResponse',
+  '2': [
+    {
+      '1': 'requests',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.JoinRequest',
+      '10': 'requests'
+    },
+  ],
+};
+
+/// Descriptor for `GetJoinRequestsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getJoinRequestsResponseDescriptor =
+    $convert.base64Decode(
+        'ChdHZXRKb2luUmVxdWVzdHNSZXNwb25zZRIzCghyZXF1ZXN0cxgBIAMoCzIXLndvcmtvdXQudj'
+        'EuSm9pblJlcXVlc3RSCHJlcXVlc3Rz');
+
+@$core.Deprecated('Use respondJoinRequestRequestDescriptor instead')
+const RespondJoinRequestRequest$json = {
+  '1': 'RespondJoinRequestRequest',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'accept', '3': 2, '4': 1, '5': 8, '10': 'accept'},
+  ],
+};
+
+/// Descriptor for `RespondJoinRequestRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List respondJoinRequestRequestDescriptor =
+    $convert.base64Decode(
+        'ChlSZXNwb25kSm9pblJlcXVlc3RSZXF1ZXN0Eh0KCnJlcXVlc3RfaWQYASABKAlSCXJlcXVlc3'
+        'RJZBIWCgZhY2NlcHQYAiABKAhSBmFjY2VwdA==');
+
+@$core.Deprecated('Use respondJoinRequestResponseDescriptor instead')
+const RespondJoinRequestResponse$json = {
+  '1': 'RespondJoinRequestResponse',
   '2': [
     {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
   ],
 };
 
-/// Descriptor for `JoinPartnerSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List joinPartnerSessionResponseDescriptor =
+/// Descriptor for `RespondJoinRequestResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List respondJoinRequestResponseDescriptor =
     $convert.base64Decode(
-        'ChpKb2luUGFydG5lclNlc3Npb25SZXNwb25zZRIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW'
+        'ChpSZXNwb25kSm9pblJlcXVlc3RSZXNwb25zZRIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW'
         '9uSWQ=');

@@ -48,11 +48,18 @@ service MultiplayerService {
   // The sessions the caller shared with one partner (dates + who lifted).
   rpc GetSharedSessions(GetSharedSessionsRequest) returns (GetSharedSessionsResponse);
 
-  // One-tap re-pair with a partner the caller has trained with before, without
-  // needing their QR again: joins the partner's current session, or mints a fresh
-  // shared one and pulls them in if they aren't in a session yet. Gated on a prior
-  // pairing (fails if they've never trained together).
-  rpc JoinPartnerSession(JoinPartnerSessionRequest) returns (JoinPartnerSessionResponse);
+  // Ask a partner the caller has trained with before to train together, without
+  // needing their QR again. Creates a pending request the partner must approve
+  // (see RespondJoinRequest). Gated on a prior pairing.
+  rpc RequestJoinPartner(RequestJoinPartnerRequest) returns (RequestJoinPartnerResponse);
+
+  // The caller's incoming (pending) join requests, to show an approve/decline
+  // prompt. Polled alongside the session.
+  rpc GetJoinRequests(GetJoinRequestsRequest) returns (GetJoinRequestsResponse);
+
+  // Approve or decline an incoming join request. On approve, both users land in a
+  // session together (the responder's current session, or a fresh one).
+  rpc RespondJoinRequest(RespondJoinRequestRequest) returns (RespondJoinRequestResponse);
 }
 
 message JoinViaInviteRequest {
@@ -173,9 +180,29 @@ message GetSharedSessionsResponse {
   repeated SharedSession sessions = 1;
 }
 
-message JoinPartnerSessionRequest {
+message RequestJoinPartnerRequest {
   string partner_user_id = 1;
 }
-message JoinPartnerSessionResponse {
-  string session_id = 1;
+message RequestJoinPartnerResponse {
+  string request_id = 1;
+}
+
+// A pending "train together" request, shown to the recipient.
+message JoinRequest {
+  string request_id = 1;
+  User from_user = 2;   // who wants to train
+  int64 created_at = 3;
+}
+
+message GetJoinRequestsRequest {}
+message GetJoinRequestsResponse {
+  repeated JoinRequest requests = 1;
+}
+
+message RespondJoinRequestRequest {
+  string request_id = 1;
+  bool accept = 2;
+}
+message RespondJoinRequestResponse {
+  string session_id = 1; // set when accepted
 }

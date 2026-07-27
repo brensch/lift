@@ -212,10 +212,26 @@ class Peer {
     return r.partners;
   }
 
-  /// One-tap re-pair: join a known partner's current session.
-  Future<String> joinPartnerSession(String partnerUserId) async {
-    final r = await _api.multiplayer.joinPartnerSession(
-      JoinPartnerSessionRequest(partnerUserId: partnerUserId),
+  /// Ask a known partner to train together (they must approve).
+  Future<String> requestJoinPartner(String partnerUserId) async {
+    final r = await _api.multiplayer.requestJoinPartner(
+      RequestJoinPartnerRequest(partnerUserId: partnerUserId),
+      options: _opts,
+    );
+    return r.requestId;
+  }
+
+  /// Incoming pending join requests for this user.
+  Future<List<JoinRequest>> joinRequests() async {
+    final r = await _api.multiplayer
+        .getJoinRequests(GetJoinRequestsRequest(), options: _opts);
+    return r.requests;
+  }
+
+  /// Approve or decline a join request; returns the session id when accepted.
+  Future<String> respondJoinRequest(String requestId, bool accept) async {
+    final r = await _api.multiplayer.respondJoinRequest(
+      RespondJoinRequestRequest(requestId: requestId, accept: accept),
       options: _opts,
     );
     return r.sessionId;

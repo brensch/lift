@@ -53,6 +53,29 @@ impl ServerMultiplayerService {
         refresh_participant_for_user(&self.db, user_id, session_id, active_workout_id.as_deref())
             .await
     }
+
+    /// If `user_id` is currently in a session other than `target`, cleanly leave
+    /// it (prune the live blob + stamp left_at) so its roster doesn't strand them.
+    async fn leave_other_session(&self, user_id: &str, target: &str) -> Result<(), Status> {
+        if let Some(current) = self
+            .db
+            .get_user_current_session(user_id)
+            .await
+            .map_err(internal_error)?
+        {
+            if current != target {
+                self.db
+                    .prune_session_participant(&current, user_id)
+                    .await
+                    .map_err(internal_error)?;
+                self.db
+                    .mark_session_member_left(&current, user_id)
+                    .await
+                    .map_err(internal_error)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[tonic::async_trait]
@@ -348,10 +371,10 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(GetSharedSessionsResponse { sessions }))
     }
 
-    async fn join_partner_session(
+    async fn request_join_partner(
         &self,
-        request: Request<JoinPartnerSessionRequest>,
-    ) -> Result<Response<JoinPartnerSessionResponse>, Status> {
+        request: Request<RequestJoinPartnerRequest>,
+    ) -> Result<Response<RequestJoinPartnerResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
         let partner_id = req.partner_user_id;
@@ -359,11 +382,11 @@ impl MultiplayerService for ServerMultiplayerService {
             return Err(Status::invalid_argument("partner_user_id is required"));
         }
         if partner_id == caller_id {
-            return Err(Status::invalid_argument("cannot join your own session"));
+            return Err(Status::invalid_argument("cannot request yourself"));
         }
-        info!(rpc = "JoinPartnerSession", %caller_id, %partner_id, "request");
-        // Gate on an existing relationship so this can't be used to jump into
-        // strangers' sessions — you must have paired (trained together) at least once.
+        info!(rpc = "RequestJoinPartner", %caller_id, %partner_id, "request");
+        // Gate on an existing relationship — you must have paired (via QR) at least
+        // once before you can ping someone to train.
         if !self
             .db
             .have_trained_together(&caller_id, &partner_id)
@@ -374,42 +397,82 @@ impl MultiplayerService for ServerMultiplayerService {
                 "You haven't trained with this person yet — scan their code first.",
             ));
         }
-        // Join the partner's current session, or — if they aren't in one — mint a
-        // fresh shared session and pull them in too, so the "Join" is always
-        // one-tap. We only place the partner when creating a new session; if they
-        // already have one we join THAT (never yank them out of an existing group).
-        let (session_id, place_partner) = match self
+        let request_id = Uuid::new_v4().to_string();
+        self.db
+            .create_join_request(&request_id, &caller_id, &partner_id)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(RequestJoinPartnerResponse { request_id }))
+    }
+
+    async fn get_join_requests(
+        &self,
+        request: Request<GetJoinRequestsRequest>,
+    ) -> Result<Response<GetJoinRequestsResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        // Only fresh asks (last 2 minutes) so a stale request doesn't linger.
+        let since = now_unix() - 120;
+        let rows = self
             .db
-            .get_user_current_session(&partner_id)
+            .list_incoming_join_requests(&caller_id, since)
+            .await
+            .map_err(internal_error)?;
+        let mut requests = Vec::with_capacity(rows.len());
+        for (request_id, from_id, created_at) in rows {
+            if let Some(user) = self.db.get_user(&from_id).await.map_err(internal_error)? {
+                requests.push(JoinRequest {
+                    request_id,
+                    from_user: Some(user),
+                    created_at,
+                });
+            }
+        }
+        Ok(Response::new(GetJoinRequestsResponse { requests }))
+    }
+
+    async fn respond_join_request(
+        &self,
+        request: Request<RespondJoinRequestRequest>,
+    ) -> Result<Response<RespondJoinRequestResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        if req.request_id.is_empty() {
+            return Err(Status::invalid_argument("request_id is required"));
+        }
+        let (from_id, to_id) = self
+            .db
+            .get_join_request(&req.request_id)
             .await
             .map_err(internal_error)?
-        {
-            Some(existing) => (existing, false),
-            None => (Uuid::new_v4().to_string(), true),
-        };
-        // If the caller is already in a different session, cleanly leave it first so
-        // its live roster doesn't strand them (same fix as LeaveCurrentSession).
-        if let Some(current) = self
+            .ok_or_else(|| Status::not_found("request not found or already handled"))?;
+        // Only the recipient may answer their own request.
+        if to_id != caller_id {
+            return Err(Status::permission_denied("not your request to answer"));
+        }
+        info!(rpc = "RespondJoinRequest", %caller_id, %from_id, accept = req.accept, "request");
+        self.db
+            .delete_join_request(&req.request_id)
+            .await
+            .map_err(internal_error)?;
+        if !req.accept {
+            return Ok(Response::new(RespondJoinRequestResponse {
+                session_id: String::new(),
+            }));
+        }
+        // Approved: both land in a session — the responder's current one, or a new
+        // one. The requester joins it (leaving any prior session cleanly).
+        let session_id = match self
             .db
             .get_user_current_session(&caller_id)
             .await
             .map_err(internal_error)?
         {
-            if current != session_id {
-                self.db
-                    .prune_session_participant(&current, &caller_id)
-                    .await
-                    .map_err(internal_error)?;
-                self.db
-                    .mark_session_member_left(&current, &caller_id)
-                    .await
-                    .map_err(internal_error)?;
-            }
-        }
-        if place_partner {
-            self.place_user_in_session(&partner_id, &session_id).await?;
-        }
+            Some(existing) => existing,
+            None => Uuid::new_v4().to_string(),
+        };
+        self.leave_other_session(&from_id, &session_id).await?;
+        self.place_user_in_session(&from_id, &session_id).await?;
         self.place_user_in_session(&caller_id, &session_id).await?;
-        Ok(Response::new(JoinPartnerSessionResponse { session_id }))
+        Ok(Response::new(RespondJoinRequestResponse { session_id }))
     }
 }

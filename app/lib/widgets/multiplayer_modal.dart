@@ -39,18 +39,15 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     super.dispose();
   }
 
-  Future<void> _joinPartner(String partnerUserId) async {
+  Future<void> _askPartner(String partnerUserId, String name) async {
     setState(() => _joiningPartnerId = partnerUserId);
     final mp = context.read<MultiplayerProvider>();
-    final error = await mp.joinPartnerSession(partnerUserId);
+    final error = await mp.requestJoinPartner(partnerUserId);
     if (!mounted) return;
     setState(() => _joiningPartnerId = null);
-    if (error == null) {
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
-    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(error ?? 'Asked $name to train — waiting for them to accept'),
+    ));
   }
 
   /// People the caller has trained with before — tap Join to drop straight into
@@ -112,8 +109,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : TextButton(
-                          onPressed: () => _joinPartner(p.user.id),
-                          child: const Text('Join'),
+                          onPressed: () => _askPartner(p.user.id, p.user.name),
+                          child: const Text('Ask'),
                         ),
                 ),
             ],
