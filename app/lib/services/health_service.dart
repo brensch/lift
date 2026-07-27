@@ -254,6 +254,13 @@ class HealthService {
       totalEnergyBurnedUnit: HealthDataUnit.KILOCALORIE,
     );
 
+    // Note: we deliberately do NOT read the workout back in-app to "confirm" it.
+    // The health plugin's workout read pulls associated Distance/Steps/Calories
+    // records too, which would force this strength-training app to request
+    // READ_DISTANCE/READ_STEPS — permissions it has no business asking for. A
+    // successful insert (result=true) is Health Connect's own confirmation that
+    // the record was stored; readability was verified out-of-band via the Health
+    // Connect UI. Sync status is surfaced to the user in Settings instead.
     debugPrint('Health: writeWorkoutData result=$success');
     return success ? HealthWriteResult.success : HealthWriteResult.error;
   }
