@@ -374,14 +374,19 @@ impl MultiplayerService for ServerMultiplayerService {
                 "You haven't trained with this person yet — scan their code first.",
             ));
         }
-        let session_id = self
+        // Join the partner's current session, or — if they aren't in one — mint a
+        // fresh shared session and pull them in too, so the "Join" is always
+        // one-tap. We only place the partner when creating a new session; if they
+        // already have one we join THAT (never yank them out of an existing group).
+        let (session_id, place_partner) = match self
             .db
             .get_user_current_session(&partner_id)
             .await
             .map_err(internal_error)?
-            .ok_or_else(|| {
-                Status::failed_precondition("That friend isn't in a session right now.")
-            })?;
+        {
+            Some(existing) => (existing, false),
+            None => (Uuid::new_v4().to_string(), true),
+        };
         // If the caller is already in a different session, cleanly leave it first so
         // its live roster doesn't strand them (same fix as LeaveCurrentSession).
         if let Some(current) = self
@@ -400,6 +405,9 @@ impl MultiplayerService for ServerMultiplayerService {
                     .await
                     .map_err(internal_error)?;
             }
+        }
+        if place_partner {
+            self.place_user_in_session(&partner_id, &session_id).await?;
         }
         self.place_user_in_session(&caller_id, &session_id).await?;
         Ok(Response::new(JoinPartnerSessionResponse { session_id }))

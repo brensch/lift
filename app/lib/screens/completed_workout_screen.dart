@@ -359,17 +359,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               ),
             ],
             const SizedBox(height: 28),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Exercise totals',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const Text('Records TBD', style: TextStyle(fontSize: 12)),
-              ],
+            Text(
+              'Exercise totals',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 12),
             ...summary.exerciseSummaries.map(
@@ -509,25 +503,13 @@ class _ExerciseSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(exercise.emoji, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
-                  Text(
-                    exercise.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+              Text(exercise.emoji, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
               Text(
-                exercise.recordNote,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w700,
+                exercise.name,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -776,7 +758,6 @@ class ExerciseSummary {
   final double totalVolume;
   final double bestOneRm;
   final double heaviestSetWeight;
-  final String recordNote;
 
   ExerciseSummary({
     required this.unit,
@@ -788,7 +769,6 @@ class ExerciseSummary {
     required this.totalVolume,
     required this.bestOneRm,
     required this.heaviestSetWeight,
-    required this.recordNote,
   });
 
   String get volumeLabel =>
@@ -838,7 +818,6 @@ class ExerciseSummaryBuilder {
       totalVolume: totalVolume,
       bestOneRm: bestOneRm,
       heaviestSetWeight: heaviestSetWeight,
-      recordNote: 'Record tracking soon',
     );
   }
 

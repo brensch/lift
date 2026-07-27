@@ -177,36 +177,8 @@ mod session_history_tests {
             .await
             .unwrap();
 
-        // Bob is not in any session now → re-pair fails cleanly.
-        let err2 = svc
-            .join_partner_session(authed(
-                &alice_tok,
-                JoinPartnerSessionRequest {
-                    partner_user_id: bob_id.clone(),
-                },
-            ))
-            .await
-            .unwrap_err();
-        assert_eq!(err2.code(), tonic::Code::FailedPrecondition);
-
-        // Bob starts a fresh session (pairs with Carol).
-        let carol_invite = svc.db.get_invite_token(&carol_id).await.unwrap().unwrap();
-        svc.join_via_invite(authed(
-            &bob_tok,
-            JoinViaInviteRequest {
-                invite_token: carol_invite,
-            },
-        ))
-        .await
-        .unwrap();
-        let bob_session = svc
-            .db
-            .get_user_current_session(&bob_id)
-            .await
-            .unwrap()
-            .unwrap();
-
-        // Alice (a prior partner) one-tap joins Bob's current session.
+        // Bob is not in any session now. A prior partner tapping "Join" mints a
+        // fresh shared session and pulls Bob in too — one-tap re-pair from cold.
         let resp = svc
             .join_partner_session(authed(
                 &alice_tok,
@@ -217,16 +189,37 @@ mod session_history_tests {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(resp.session_id, bob_session);
-        assert_eq!(
-            svc.db
-                .get_user_current_session(&alice_id)
-                .await
-                .unwrap()
-                .unwrap(),
-            bob_session
-        );
-        // Carol didn't need to know Alice — Alice joined Bob's live session.
+        let alice_session = svc.db.get_user_current_session(&alice_id).await.unwrap();
+        let bob_session = svc.db.get_user_current_session(&bob_id).await.unwrap();
+        assert_eq!(alice_session.as_deref(), Some(resp.session_id.as_str()));
+        assert_eq!(bob_session, alice_session, "both land in the same session");
+
+        // When the partner IS already in a session, Join lands the caller in THAT
+        // one (never yanks the partner out of an existing group).
+        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+        let carol_invite = svc.db.get_invite_token(&carol_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: carol_invite,
+            },
+        ))
+        .await
+        .unwrap();
+        let bob_group = svc.db.get_user_current_session(&bob_id).await.unwrap().unwrap();
+        let resp2 = svc
+            .join_partner_session(authed(
+                &alice_tok,
+                JoinPartnerSessionRequest {
+                    partner_user_id: bob_id.clone(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(resp2.session_id, bob_group, "joins Bob's existing group");
         let _ = carol_id;
     }
 }
