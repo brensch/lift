@@ -144,6 +144,34 @@ class Peer {
     return workoutId != null;
   }
 
+  /// Run a whole workout end to end via the API: start it with the given lifts
+  /// (each `exercise` at `weight`), complete every working set, and end it. Used
+  /// to seed workout history/progress for the app to render.
+  Future<void> doWorkout(
+    String name,
+    List<MapEntry<Exercise, double>> lifts, {
+    int sets = 5,
+    int reps = 5,
+  }) async {
+    final req = StartWorkoutRequest()..name = name;
+    for (var i = 0; i < lifts.length; i++) {
+      req.exerciseGroups.add(ExerciseGroup()
+        ..name = name
+        ..sets = sets
+        ..workoutOrder = i
+        ..exerciseConfigs.add(ExerciseTypeConfig()
+          ..exercise = lifts[i].key
+          ..startWeight = lifts[i].value
+          ..endWeight = lifts[i].value
+          ..reps = reps
+          ..includeWarmup = false));
+    }
+    final resp = await _api.workout.startWorkout(req, options: _opts);
+    workoutId = resp.workout.id;
+    await completeAllWorkingSets();
+    await endWorkout();
+  }
+
   /// Complete every pending working (non-warmup) set at its target — used to log
   /// a full, successful workout so progression should advance.
   Future<int> completeAllWorkingSets() async {
