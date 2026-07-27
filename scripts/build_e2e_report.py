@@ -61,7 +61,20 @@ def parse_logs(paths):
 
 
 def _img_data_uri(png: Path) -> str:
-    return "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode()
+    """Embed a downscaled JPEG thumbnail so the single-file report stays small
+    enough to open (full-res base64 PNGs pushed it past 16 MB). Falls back to the
+    raw PNG if Pillow isn't available."""
+    try:
+        from PIL import Image
+        import io
+
+        im = Image.open(png).convert("RGB")
+        im.thumbnail((420, 900))
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=78, optimize=True)
+        return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        return "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode()
 
 
 def _section(name, steps) -> str:
