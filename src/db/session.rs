@@ -38,22 +38,6 @@ impl ServerDb {
         Ok(user_id)
     }
 
-    // ── Sessions ──
-
-    /// Create a session row if it doesn't already exist. Idempotent.
-    pub async fn create_session(&self, session_id: &str, created_by: &str) -> DbResult<()> {
-        sqlx::query(
-            "INSERT INTO sessions (session_id, created_by, created_at) VALUES (?, ?, ?)
-             ON CONFLICT(session_id) DO NOTHING",
-        )
-        .bind(session_id)
-        .bind(created_by)
-        .bind(now_unix())
-        .execute(&self.write_pool)
-        .await?;
-        Ok(())
-    }
-
     // ── user_current_session: single source of truth for "am I in a group right now?" ──
 
     /// Upsert the caller's current session. Overwrites any prior membership (a user can
@@ -200,11 +184,10 @@ impl ServerDb {
         let rows = sqlx::query(
             "SELECT m2.user_id AS partner_id,
                     COUNT(DISTINCT m1.session_id) AS sessions_together,
-                    MAX(s.created_at) AS last_trained_at
+                    MAX(m1.first_joined_at) AS last_trained_at
              FROM session_members m1
              JOIN session_members m2
                ON m2.session_id = m1.session_id AND m2.user_id != m1.user_id
-             JOIN sessions s ON s.session_id = m1.session_id
              WHERE m1.user_id = ?
              GROUP BY m2.user_id
              ORDER BY last_trained_at DESC",
@@ -233,7 +216,7 @@ impl ServerDb {
     ) -> DbResult<Vec<(String, i64, bool, bool)>> {
         let rows = sqlx::query(
             "SELECT m1.session_id AS session_id,
-                    s.created_at AS trained_at,
+                    m1.first_joined_at AS trained_at,
                     EXISTS(SELECT 1 FROM workouts w
                            WHERE w.session_id = m1.session_id AND w.user_id = ?) AS caller_wo,
                     EXISTS(SELECT 1 FROM workouts w
@@ -241,9 +224,8 @@ impl ServerDb {
              FROM session_members m1
              JOIN session_members m2
                ON m2.session_id = m1.session_id AND m2.user_id = ?
-             JOIN sessions s ON s.session_id = m1.session_id
              WHERE m1.user_id = ?
-             ORDER BY s.created_at DESC",
+             ORDER BY trained_at DESC",
         )
         .bind(user_id)
         .bind(partner_id)

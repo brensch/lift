@@ -65,11 +65,31 @@ summary + progression). This matters for multi-device / mirrored-session stories
 **Fix direction:** on the periodic tick (or a slower one), reconcile the active
 workout id against `getActiveWorkout` and clear/refresh if the server disagrees.
 
-## 3. Health Connect workout writes fail — missing calorie permissions — FIXED
+## 3. Health Connect workout writes fail — missing calorie permissions — FIXED & VERIFIED
 
-**Confirmed (logcat + manifest). Fixed:** declared the calorie permissions the
-app actually uses (`READ/WRITE_ACTIVE_CALORIES_BURNED`,
-`WRITE_TOTAL_CALORIES_BURNED`) in the Android manifest.
+**Confirmed (logcat + manifest). Fixed in two parts:**
+1. Declared the calorie permissions the app actually uses
+   (`READ/WRITE_ACTIVE_CALORIES_BURNED`, `WRITE_TOTAL_CALORIES_BURNED`).
+2. `writeWorkoutData` batches the exercise session + a TotalCaloriesBurned record
+   in one insert, so the app must also *request* `TOTAL_CALORIES_BURNED` write at
+   runtime — declaring it isn't enough. Added that request.
+
+**Verified on the emulator:** with the permissions granted (via `adb pm grant`,
+which Health Connect honors — confirmed by `dumpsys`), a full workout writes
+successfully (`writeWorkoutData result=true`, no SecurityException), and the
+sessions are visible in the Health Connect UI (Data → Activity → Exercise → "See
+all entries" lists the "Squat, Bench, Row, Strength training" sessions attributed
+to *schlift*). So the write half of Health Connect sync works end to end.
+
+**Deliberately not shipped — in-app read-back:** the plugin's workout *read*
+pulls associated Distance/Steps/Calories records, which would force a strength
+app to request `READ_DISTANCE`/`READ_STEPS`. Not worth cluttering the permission
+sheet to confirm our own write when `insertRecords` success already confirms it.
+
+**Follow-up (open):** surface Health-sync status in Settings (connected / last
+saved / grant permissions) so the user has a simple, non-nagging way to see it's
+working — rather than a per-workout toast. Appearing in Fitbit/Google Fit is a
+separate user-side step (connect that app to Health Connect with Exercise read).
 
 On `EndWorkout` the app writes the workout to Health Connect with calories:
 
