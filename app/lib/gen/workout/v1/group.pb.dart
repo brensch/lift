@@ -1186,6 +1186,486 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   void clearHasActiveSet() => $_clearField(9);
 }
 
+/// Someone the caller has shared at least one session with.
+class TrainingPartner extends $pb.GeneratedMessage {
+  factory TrainingPartner({
+    $1.User? user,
+    $core.int? sessionsTogether,
+    $fixnum.Int64? lastTrainedAt,
+  }) {
+    final result = create();
+    if (user != null) result.user = user;
+    if (sessionsTogether != null) result.sessionsTogether = sessionsTogether;
+    if (lastTrainedAt != null) result.lastTrainedAt = lastTrainedAt;
+    return result;
+  }
+
+  TrainingPartner._();
+
+  factory TrainingPartner.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TrainingPartner.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TrainingPartner',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<$1.User>(1, _omitFieldNames ? '' : 'user', subBuilder: $1.User.create)
+    ..aI(2, _omitFieldNames ? '' : 'sessionsTogether')
+    ..aInt64(3, _omitFieldNames ? '' : 'lastTrainedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingPartner clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingPartner copyWith(void Function(TrainingPartner) updates) =>
+      super.copyWith((message) => updates(message as TrainingPartner))
+          as TrainingPartner;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TrainingPartner create() => TrainingPartner._();
+  @$core.override
+  TrainingPartner createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TrainingPartner getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TrainingPartner>(create);
+  static TrainingPartner? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.User get user => $_getN(0);
+  @$pb.TagNumber(1)
+  set user($1.User value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUser() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUser() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $1.User ensureUser() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.int get sessionsTogether => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set sessionsTogether($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSessionsTogether() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSessionsTogether() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lastTrainedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lastTrainedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastTrainedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastTrainedAt() => $_clearField(3);
+}
+
+class GetTrainingPartnersRequest extends $pb.GeneratedMessage {
+  factory GetTrainingPartnersRequest() => create();
+
+  GetTrainingPartnersRequest._();
+
+  factory GetTrainingPartnersRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTrainingPartnersRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTrainingPartnersRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingPartnersRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingPartnersRequest copyWith(
+          void Function(GetTrainingPartnersRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as GetTrainingPartnersRequest))
+          as GetTrainingPartnersRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingPartnersRequest create() => GetTrainingPartnersRequest._();
+  @$core.override
+  GetTrainingPartnersRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingPartnersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTrainingPartnersRequest>(create);
+  static GetTrainingPartnersRequest? _defaultInstance;
+}
+
+class GetTrainingPartnersResponse extends $pb.GeneratedMessage {
+  factory GetTrainingPartnersResponse({
+    $core.Iterable<TrainingPartner>? partners,
+  }) {
+    final result = create();
+    if (partners != null) result.partners.addAll(partners);
+    return result;
+  }
+
+  GetTrainingPartnersResponse._();
+
+  factory GetTrainingPartnersResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTrainingPartnersResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTrainingPartnersResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<TrainingPartner>(1, _omitFieldNames ? '' : 'partners',
+        subBuilder: TrainingPartner.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingPartnersResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingPartnersResponse copyWith(
+          void Function(GetTrainingPartnersResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as GetTrainingPartnersResponse))
+          as GetTrainingPartnersResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingPartnersResponse create() =>
+      GetTrainingPartnersResponse._();
+  @$core.override
+  GetTrainingPartnersResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingPartnersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTrainingPartnersResponse>(create);
+  static GetTrainingPartnersResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<TrainingPartner> get partners => $_getList(0);
+}
+
+/// One session the caller and a partner were both in.
+class SharedSession extends $pb.GeneratedMessage {
+  factory SharedSession({
+    $core.String? sessionId,
+    $fixnum.Int64? trainedAt,
+    $core.bool? callerWorkedOut,
+    $core.bool? partnerWorkedOut,
+  }) {
+    final result = create();
+    if (sessionId != null) result.sessionId = sessionId;
+    if (trainedAt != null) result.trainedAt = trainedAt;
+    if (callerWorkedOut != null) result.callerWorkedOut = callerWorkedOut;
+    if (partnerWorkedOut != null) result.partnerWorkedOut = partnerWorkedOut;
+    return result;
+  }
+
+  SharedSession._();
+
+  factory SharedSession.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SharedSession.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SharedSession',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..aInt64(2, _omitFieldNames ? '' : 'trainedAt')
+    ..aOB(3, _omitFieldNames ? '' : 'callerWorkedOut')
+    ..aOB(4, _omitFieldNames ? '' : 'partnerWorkedOut')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SharedSession clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SharedSession copyWith(void Function(SharedSession) updates) =>
+      super.copyWith((message) => updates(message as SharedSession))
+          as SharedSession;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SharedSession create() => SharedSession._();
+  @$core.override
+  SharedSession createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SharedSession getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SharedSession>(create);
+  static SharedSession? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sessionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sessionId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSessionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSessionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get trainedAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set trainedAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTrainedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTrainedAt() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get callerWorkedOut => $_getBF(2);
+  @$pb.TagNumber(3)
+  set callerWorkedOut($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCallerWorkedOut() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCallerWorkedOut() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get partnerWorkedOut => $_getBF(3);
+  @$pb.TagNumber(4)
+  set partnerWorkedOut($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPartnerWorkedOut() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPartnerWorkedOut() => $_clearField(4);
+}
+
+class GetSharedSessionsRequest extends $pb.GeneratedMessage {
+  factory GetSharedSessionsRequest({
+    $core.String? partnerUserId,
+  }) {
+    final result = create();
+    if (partnerUserId != null) result.partnerUserId = partnerUserId;
+    return result;
+  }
+
+  GetSharedSessionsRequest._();
+
+  factory GetSharedSessionsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetSharedSessionsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetSharedSessionsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'partnerUserId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSharedSessionsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSharedSessionsRequest copyWith(
+          void Function(GetSharedSessionsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetSharedSessionsRequest))
+          as GetSharedSessionsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSharedSessionsRequest create() => GetSharedSessionsRequest._();
+  @$core.override
+  GetSharedSessionsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetSharedSessionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSharedSessionsRequest>(create);
+  static GetSharedSessionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get partnerUserId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set partnerUserId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPartnerUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPartnerUserId() => $_clearField(1);
+}
+
+class GetSharedSessionsResponse extends $pb.GeneratedMessage {
+  factory GetSharedSessionsResponse({
+    $core.Iterable<SharedSession>? sessions,
+  }) {
+    final result = create();
+    if (sessions != null) result.sessions.addAll(sessions);
+    return result;
+  }
+
+  GetSharedSessionsResponse._();
+
+  factory GetSharedSessionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetSharedSessionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetSharedSessionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<SharedSession>(1, _omitFieldNames ? '' : 'sessions',
+        subBuilder: SharedSession.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSharedSessionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSharedSessionsResponse copyWith(
+          void Function(GetSharedSessionsResponse) updates) =>
+      super.copyWith((message) => updates(message as GetSharedSessionsResponse))
+          as GetSharedSessionsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSharedSessionsResponse create() => GetSharedSessionsResponse._();
+  @$core.override
+  GetSharedSessionsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetSharedSessionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSharedSessionsResponse>(create);
+  static GetSharedSessionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<SharedSession> get sessions => $_getList(0);
+}
+
+class JoinPartnerSessionRequest extends $pb.GeneratedMessage {
+  factory JoinPartnerSessionRequest({
+    $core.String? partnerUserId,
+  }) {
+    final result = create();
+    if (partnerUserId != null) result.partnerUserId = partnerUserId;
+    return result;
+  }
+
+  JoinPartnerSessionRequest._();
+
+  factory JoinPartnerSessionRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory JoinPartnerSessionRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JoinPartnerSessionRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'partnerUserId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinPartnerSessionRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinPartnerSessionRequest copyWith(
+          void Function(JoinPartnerSessionRequest) updates) =>
+      super.copyWith((message) => updates(message as JoinPartnerSessionRequest))
+          as JoinPartnerSessionRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static JoinPartnerSessionRequest create() => JoinPartnerSessionRequest._();
+  @$core.override
+  JoinPartnerSessionRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static JoinPartnerSessionRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JoinPartnerSessionRequest>(create);
+  static JoinPartnerSessionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get partnerUserId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set partnerUserId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPartnerUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPartnerUserId() => $_clearField(1);
+}
+
+class JoinPartnerSessionResponse extends $pb.GeneratedMessage {
+  factory JoinPartnerSessionResponse({
+    $core.String? sessionId,
+  }) {
+    final result = create();
+    if (sessionId != null) result.sessionId = sessionId;
+    return result;
+  }
+
+  JoinPartnerSessionResponse._();
+
+  factory JoinPartnerSessionResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory JoinPartnerSessionResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JoinPartnerSessionResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinPartnerSessionResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinPartnerSessionResponse copyWith(
+          void Function(JoinPartnerSessionResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as JoinPartnerSessionResponse))
+          as JoinPartnerSessionResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static JoinPartnerSessionResponse create() => JoinPartnerSessionResponse._();
+  @$core.override
+  JoinPartnerSessionResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static JoinPartnerSessionResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JoinPartnerSessionResponse>(create);
+  static JoinPartnerSessionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sessionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sessionId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSessionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSessionId() => $_clearField(1);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

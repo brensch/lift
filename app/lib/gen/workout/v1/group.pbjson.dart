@@ -364,3 +364,149 @@ final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'bGV0ZWRTZXRSDWNvbXBsZXRlZFNldHMSNwoLbmV4dF91cF9zZXQYByABKAsyFy53b3Jrb3V0Ln'
     'YxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSHQoKcmVzdF91bnRpbBgIIAEoA1IJcmVzdFVudGls'
     'EiQKDmhhc19hY3RpdmVfc2V0GAkgASgIUgxoYXNBY3RpdmVTZXQ=');
+
+@$core.Deprecated('Use trainingPartnerDescriptor instead')
+const TrainingPartner$json = {
+  '1': 'TrainingPartner',
+  '2': [
+    {
+      '1': 'user',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.User',
+      '10': 'user'
+    },
+    {
+      '1': 'sessions_together',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'sessionsTogether'
+    },
+    {'1': 'last_trained_at', '3': 3, '4': 1, '5': 3, '10': 'lastTrainedAt'},
+  ],
+};
+
+/// Descriptor for `TrainingPartner`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List trainingPartnerDescriptor = $convert.base64Decode(
+    'Cg9UcmFpbmluZ1BhcnRuZXISJAoEdXNlchgBIAEoCzIQLndvcmtvdXQudjEuVXNlclIEdXNlch'
+    'IrChFzZXNzaW9uc190b2dldGhlchgCIAEoBVIQc2Vzc2lvbnNUb2dldGhlchImCg9sYXN0X3Ry'
+    'YWluZWRfYXQYAyABKANSDWxhc3RUcmFpbmVkQXQ=');
+
+@$core.Deprecated('Use getTrainingPartnersRequestDescriptor instead')
+const GetTrainingPartnersRequest$json = {
+  '1': 'GetTrainingPartnersRequest',
+};
+
+/// Descriptor for `GetTrainingPartnersRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTrainingPartnersRequestDescriptor =
+    $convert.base64Decode('ChpHZXRUcmFpbmluZ1BhcnRuZXJzUmVxdWVzdA==');
+
+@$core.Deprecated('Use getTrainingPartnersResponseDescriptor instead')
+const GetTrainingPartnersResponse$json = {
+  '1': 'GetTrainingPartnersResponse',
+  '2': [
+    {
+      '1': 'partners',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.TrainingPartner',
+      '10': 'partners'
+    },
+  ],
+};
+
+/// Descriptor for `GetTrainingPartnersResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getTrainingPartnersResponseDescriptor =
+    $convert.base64Decode(
+        'ChtHZXRUcmFpbmluZ1BhcnRuZXJzUmVzcG9uc2USNwoIcGFydG5lcnMYASADKAsyGy53b3Jrb3'
+        'V0LnYxLlRyYWluaW5nUGFydG5lclIIcGFydG5lcnM=');
+
+@$core.Deprecated('Use sharedSessionDescriptor instead')
+const SharedSession$json = {
+  '1': 'SharedSession',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'trained_at', '3': 2, '4': 1, '5': 3, '10': 'trainedAt'},
+    {'1': 'caller_worked_out', '3': 3, '4': 1, '5': 8, '10': 'callerWorkedOut'},
+    {
+      '1': 'partner_worked_out',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '10': 'partnerWorkedOut'
+    },
+  ],
+};
+
+/// Descriptor for `SharedSession`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sharedSessionDescriptor = $convert.base64Decode(
+    'Cg1TaGFyZWRTZXNzaW9uEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZBIdCgp0cmFpbm'
+    'VkX2F0GAIgASgDUgl0cmFpbmVkQXQSKgoRY2FsbGVyX3dvcmtlZF9vdXQYAyABKAhSD2NhbGxl'
+    'cldvcmtlZE91dBIsChJwYXJ0bmVyX3dvcmtlZF9vdXQYBCABKAhSEHBhcnRuZXJXb3JrZWRPdX'
+    'Q=');
+
+@$core.Deprecated('Use getSharedSessionsRequestDescriptor instead')
+const GetSharedSessionsRequest$json = {
+  '1': 'GetSharedSessionsRequest',
+  '2': [
+    {'1': 'partner_user_id', '3': 1, '4': 1, '5': 9, '10': 'partnerUserId'},
+  ],
+};
+
+/// Descriptor for `GetSharedSessionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSharedSessionsRequestDescriptor =
+    $convert.base64Decode(
+        'ChhHZXRTaGFyZWRTZXNzaW9uc1JlcXVlc3QSJgoPcGFydG5lcl91c2VyX2lkGAEgASgJUg1wYX'
+        'J0bmVyVXNlcklk');
+
+@$core.Deprecated('Use getSharedSessionsResponseDescriptor instead')
+const GetSharedSessionsResponse$json = {
+  '1': 'GetSharedSessionsResponse',
+  '2': [
+    {
+      '1': 'sessions',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.SharedSession',
+      '10': 'sessions'
+    },
+  ],
+};
+
+/// Descriptor for `GetSharedSessionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSharedSessionsResponseDescriptor =
+    $convert.base64Decode(
+        'ChlHZXRTaGFyZWRTZXNzaW9uc1Jlc3BvbnNlEjUKCHNlc3Npb25zGAEgAygLMhkud29ya291dC'
+        '52MS5TaGFyZWRTZXNzaW9uUghzZXNzaW9ucw==');
+
+@$core.Deprecated('Use joinPartnerSessionRequestDescriptor instead')
+const JoinPartnerSessionRequest$json = {
+  '1': 'JoinPartnerSessionRequest',
+  '2': [
+    {'1': 'partner_user_id', '3': 1, '4': 1, '5': 9, '10': 'partnerUserId'},
+  ],
+};
+
+/// Descriptor for `JoinPartnerSessionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinPartnerSessionRequestDescriptor =
+    $convert.base64Decode(
+        'ChlKb2luUGFydG5lclNlc3Npb25SZXF1ZXN0EiYKD3BhcnRuZXJfdXNlcl9pZBgBIAEoCVINcG'
+        'FydG5lclVzZXJJZA==');
+
+@$core.Deprecated('Use joinPartnerSessionResponseDescriptor instead')
+const JoinPartnerSessionResponse$json = {
+  '1': 'JoinPartnerSessionResponse',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+  ],
+};
+
+/// Descriptor for `JoinPartnerSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List joinPartnerSessionResponseDescriptor =
+    $convert.base64Decode(
+        'ChpKb2luUGFydG5lclNlc3Npb25SZXNwb25zZRIdCgpzZXNzaW9uX2lkGAEgASgJUglzZXNzaW'
+        '9uSWQ=');

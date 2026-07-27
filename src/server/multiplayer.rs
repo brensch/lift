@@ -13,7 +13,12 @@ use super::*;
 //     (handled in workout.rs).
 //   - Set actions: refresh caller's blob (handled in workout.rs).
 //   - EndWorkout: refresh caller's final blob, then delete caller's row (workout.rs).
-//   - LeaveCurrentSession: delete caller's row. Last blob is retained for peers' history.
+//   - LeaveCurrentSession: delete caller's row, prune their live blob so peers stop
+//     seeing them, and stamp left_at on the durable session_members roster.
+//
+// Durable history: session_members(session_id, user_id, first_joined_at, left_at) is
+// never deleted — it records who trained together and backs GetTrainingPartners /
+// GetSharedSessions / JoinPartnerSession.
 
 #[derive(Clone)]
 pub struct ServerMultiplayerService {
@@ -27,6 +32,11 @@ impl ServerMultiplayerService {
     async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> Result<(), Status> {
         self.db
             .set_user_current_session(user_id, session_id)
+            .await
+            .map_err(internal_error)?;
+        // Durable roster: record that this user was in this session (survives leave).
+        self.db
+            .upsert_session_member(session_id, user_id)
             .await
             .map_err(internal_error)?;
         let active_workout_id = self
@@ -237,10 +247,29 @@ impl MultiplayerService for ServerMultiplayerService {
     ) -> Result<Response<LeaveCurrentSessionResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "LeaveCurrentSession", %caller_id, "request");
+        // Capture which session we're leaving before clearing the live pointer, so
+        // we can prune the live cache and stamp the durable roster.
+        let session_id = self
+            .db
+            .get_user_current_session(&caller_id)
+            .await
+            .map_err(internal_error)?;
         self.db
             .clear_user_current_session(&caller_id)
             .await
             .map_err(internal_error)?;
+        if let Some(session_id) = session_id {
+            // Remove our live snapshot so remaining members stop seeing us as
+            // present (the stale-peer bug), and mark the durable roster row left.
+            self.db
+                .prune_session_participant(&session_id, &caller_id)
+                .await
+                .map_err(internal_error)?;
+            self.db
+                .mark_session_member_left(&session_id, &caller_id)
+                .await
+                .map_err(internal_error)?;
+        }
         Ok(Response::new(LeaveCurrentSessionResponse {}))
     }
 
@@ -268,5 +297,115 @@ impl MultiplayerService for ServerMultiplayerService {
             refresh_participant_for_user(&self.db, &user_id, &session_id, None).await?;
         }
         Ok(Response::new(UpdateActiveWorkoutResponse {}))
+    }
+
+    async fn get_training_partners(
+        &self,
+        request: Request<GetTrainingPartnersRequest>,
+    ) -> Result<Response<GetTrainingPartnersResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "GetTrainingPartners", %caller_id, "request");
+        let rows = self
+            .db
+            .list_training_partners(&caller_id)
+            .await
+            .map_err(internal_error)?;
+        let mut partners = Vec::with_capacity(rows.len());
+        for (partner_id, sessions_together, last_trained_at) in rows {
+            if let Some(user) = self.db.get_user(&partner_id).await.map_err(internal_error)? {
+                partners.push(TrainingPartner {
+                    user: Some(user),
+                    sessions_together: sessions_together as i32,
+                    last_trained_at,
+                });
+            }
+        }
+        Ok(Response::new(GetTrainingPartnersResponse { partners }))
+    }
+
+    async fn get_shared_sessions(
+        &self,
+        request: Request<GetSharedSessionsRequest>,
+    ) -> Result<Response<GetSharedSessionsResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        if req.partner_user_id.is_empty() {
+            return Err(Status::invalid_argument("partner_user_id is required"));
+        }
+        info!(rpc = "GetSharedSessions", %caller_id, partner = %req.partner_user_id, "request");
+        let rows = self
+            .db
+            .list_shared_sessions(&caller_id, &req.partner_user_id)
+            .await
+            .map_err(internal_error)?;
+        let sessions = rows
+            .into_iter()
+            .map(
+                |(session_id, trained_at, caller_wo, partner_wo)| SharedSession {
+                    session_id,
+                    trained_at,
+                    caller_worked_out: caller_wo,
+                    partner_worked_out: partner_wo,
+                },
+            )
+            .collect();
+        Ok(Response::new(GetSharedSessionsResponse { sessions }))
+    }
+
+    async fn join_partner_session(
+        &self,
+        request: Request<JoinPartnerSessionRequest>,
+    ) -> Result<Response<JoinPartnerSessionResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        let partner_id = req.partner_user_id;
+        if partner_id.is_empty() {
+            return Err(Status::invalid_argument("partner_user_id is required"));
+        }
+        if partner_id == caller_id {
+            return Err(Status::invalid_argument("cannot join your own session"));
+        }
+        info!(rpc = "JoinPartnerSession", %caller_id, %partner_id, "request");
+        // Gate on an existing relationship so this can't be used to jump into
+        // strangers' sessions — you must have paired (trained together) at least once.
+        if !self
+            .db
+            .have_trained_together(&caller_id, &partner_id)
+            .await
+            .map_err(internal_error)?
+        {
+            return Err(Status::failed_precondition(
+                "You haven't trained with this person yet — scan their code first.",
+            ));
+        }
+        let session_id = self
+            .db
+            .get_user_current_session(&partner_id)
+            .await
+            .map_err(internal_error)?
+            .ok_or_else(|| {
+                Status::failed_precondition("That friend isn't in a session right now.")
+            })?;
+        // If the caller is already in a different session, cleanly leave it first so
+        // its live roster doesn't strand them (same fix as LeaveCurrentSession).
+        if let Some(current) = self
+            .db
+            .get_user_current_session(&caller_id)
+            .await
+            .map_err(internal_error)?
+        {
+            if current != session_id {
+                self.db
+                    .prune_session_participant(&current, &caller_id)
+                    .await
+                    .map_err(internal_error)?;
+                self.db
+                    .mark_session_member_left(&current, &caller_id)
+                    .await
+                    .map_err(internal_error)?;
+            }
+        }
+        self.place_user_in_session(&caller_id, &session_id).await?;
+        Ok(Response::new(JoinPartnerSessionResponse { session_id }))
     }
 }
