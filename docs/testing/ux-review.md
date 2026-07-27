@@ -92,3 +92,18 @@ derivable from `session_members.first_joined_at`, so the table + its write +
 `create_session()` were removed — 4 session tables → 3. Tests still green.
 
 ---
+
+## U6. Progress & History screens redesigned — FIX
+
+Both were bare: Progress drew flat monochrome lines with no dates/stats and
+plotted *prescribed* weight; History was a plain list showing only name + date +
+duration.
+- **Progress**: now per-exercise cards with a coloured gradient trend chart (dates
+  on the axis, emphasised current point, touch tooltips), the current weight,
+  the gain since you started, and start/best/sessions stats — plus a summary
+  header. Plots the **actual heaviest working-set weight lifted**, not the
+  prescription. Most-improved lift first.
+- **History**: rich cards with a date badge, the lifts you actually did
+  ("Squat · Bench · Row"), relative day, duration, and volume/sets chips, plus a
+  workouts/this-week header. A "👥 group" chip marks sessions trained with others.
+Both are frontend-only (no backend change). Captured by the `history_graphs` e2e.
