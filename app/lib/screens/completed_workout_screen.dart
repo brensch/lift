@@ -528,7 +528,7 @@ class _ExerciseSummaryCard extends StatelessWidget {
               ),
               _ExerciseStatColumn(label: 'Volume', value: exercise.volumeLabel),
               _ExerciseStatColumn(
-                label: 'Best 1RM',
+                label: 'Est. 1RM',
                 value: exercise.formattedOneRm,
               ),
             ],

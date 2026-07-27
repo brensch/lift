@@ -39,7 +39,7 @@ Promising an unbuilt PR feature next to real numbers is contradictory. Removed
 the placeholder labels and the dead `recordNote` plumbing; the real stats (sets,
 reps, volume, best 1RM, heaviest set) stay.
 
-## U3. "Best 1RM" is an estimate, not labelled as one — PROPOSE
+## U3. "Best 1RM" is an estimate, not labelled as one — FIX
 
 The summary's "Best 1RM" is the Epley estimate `w·(1+reps/30)`, shown as e.g.
 "Best 1RM 20.4 lb" for a 17.5 lb × 5 set. Standard metric, but consider labelling
