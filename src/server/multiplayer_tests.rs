@@ -83,6 +83,34 @@ mod session_history_tests {
             );
         }
 
+        // Historical roster survives leaving: GetSessionParticipants (which backs a
+        // past workout's "friends worked out with") still lists both, even though
+        // the live cache was pruned.
+        let shared_session = svc
+            .db
+            .list_shared_sessions(&alice_id, &bob_id)
+            .await
+            .unwrap()[0]
+            .0
+            .clone();
+        let roster = svc
+            .get_session_participants(authed(
+                &alice_tok,
+                GetSessionParticipantsRequest {
+                    session_id: shared_session,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .participants;
+        let roster_ids: Vec<_> = roster
+            .iter()
+            .filter_map(|p| p.user.as_ref().map(|u| u.id.clone()))
+            .collect();
+        assert!(roster_ids.contains(&alice_id));
+        assert!(roster_ids.contains(&bob_id));
+
         // History still records the pairing.
         let partners = svc
             .get_training_partners(authed(&alice_tok, GetTrainingPartnersRequest {}))

@@ -249,11 +249,21 @@ impl MultiplayerService for ServerMultiplayerService {
         if req.session_id.is_empty() {
             return Err(Status::invalid_argument("session_id is required"));
         }
-        let participants = self
+        // Historical roster: read from the durable session_members table, not the
+        // live participant cache (which is pruned when members leave). This is what
+        // backs "who did I train with" on a past workout's summary, so it must
+        // survive everyone leaving. Identity only — live progress isn't retained.
+        let member_ids = self
             .db
-            .get_session_participants(&req.session_id)
+            .list_session_member_ids(&req.session_id)
             .await
             .map_err(internal_error)?;
+        let mut participants = Vec::with_capacity(member_ids.len());
+        for user_id in member_ids {
+            if let Some(user) = self.db.get_user(&user_id).await.map_err(internal_error)? {
+                participants.push(build_participant_status(user, None));
+            }
+        }
         Ok(Response::new(GetSessionParticipantsResponse {
             session_id: req.session_id,
             participants,
