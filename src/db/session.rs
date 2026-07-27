@@ -175,6 +175,20 @@ impl ServerDb {
         Ok(())
     }
 
+    /// The durable roster for a session: every user_id that was ever a member,
+    /// earliest-joined first. Used for the historical "who was in this session"
+    /// view, which must survive members leaving (the live blob cache is pruned).
+    pub async fn list_session_member_ids(&self, session_id: &str) -> DbResult<Vec<String>> {
+        let rows = sqlx::query(
+            "SELECT user_id FROM session_members WHERE session_id = ?
+             ORDER BY first_joined_at ASC",
+        )
+        .bind(session_id)
+        .fetch_all(&self.read_pool)
+        .await?;
+        Ok(rows.into_iter().map(|r| r.get::<String, _>("user_id")).collect())
+    }
+
     /// Everyone the user has shared a session with, aggregated: (partner_id,
     /// distinct sessions together, most-recent shared-session time). Most recent first.
     pub async fn list_training_partners(

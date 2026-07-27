@@ -71,6 +71,17 @@ logs" (→ /debug-logs) to all users, ungated. "Diagnostic logs" is defensible a
 self-service support; "Notification debugging" reads as a developer tool. Consider
 gating behind `kDebugMode` or a hidden gesture to declutter user settings.
 
+## Backend B2. Past group workouts were about to show as "solo" — FIX
+
+The bug-#1 fix (prune the live participant cache when a member leaves) had a
+side effect: the workout summary's "Friends worked out with" reads the *same*
+`GetSessionParticipants` RPC, which read that pruned cache. So once everyone left
+a session, a past workout's summary would show "None (solo session)" — silently
+erasing exactly the training-together history we're building. Fixed by sourcing
+the historical `GetSessionParticipants` from the durable `session_members` roster
+(identity only) while the live view keeps using the pruned cache. Covered by the
+extended `leave_prunes_live_view_but_keeps_history` test.
+
 ## Backend B1. Dropped the redundant `sessions` table — FIX
 
 The session model had four tables: `user_current_session` (live), 
