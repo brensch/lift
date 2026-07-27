@@ -773,7 +773,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefix = next.warmup ? 'Warmup ' : '';
     final w = next.targetWeight.toDouble();
     final weightStr = formatWeight(w, _settingsProvider.weightUnit);
-    return 'Next up: $prefix$name — $weightStr ${weightUnitSuffix(_settingsProvider.weightUnit)} x ${next.targetReps}';
+    return 'Next up: $prefix$name — $weightStr ${weightUnitSuffix(_settingsProvider.weightUnit)} × ${next.targetReps}';
   }
 
   bool isSetDone(String setId) {

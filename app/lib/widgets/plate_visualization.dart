@@ -137,7 +137,7 @@ class PlateVisualization extends StatelessWidget {
               final plateDescription = plateCounts.entries
                   .map(
                     (e) =>
-                        '${e.key % 1 == 0 ? e.key.toInt() : e.key} x ${e.value}',
+                        '${e.key % 1 == 0 ? e.key.toInt() : e.key} × ${e.value}',
                   )
                   .join('\n');
               return Padding(

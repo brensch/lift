@@ -245,6 +245,13 @@ class StatusSetWeightInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final weightText = formatWeight(set.targetWeight.toDouble(), unit);
+    final bigStyle = const TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.w900,
+      fontFamily: 'monospace',
+      letterSpacing: -1.5,
+      height: 1.0,
+    ).copyWith(color: textColor);
     void detailTrigger() {
       showPlateBreakdownDialog(context, weight: set.targetWeight.toDouble());
     }
@@ -255,19 +262,10 @@ class StatusSetWeightInfo extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            set.isAmrap
-                ? 'AMRAP\u00D7$weightText'
-                : '${set.targetReps}\u00D7$weightText',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'monospace',
-              letterSpacing: -1.5,
-              height: 1.0,
-            ).copyWith(color: textColor),
-          ),
-          const SizedBox(width: 6),
+          // Weight \u00D7 reps, with the unit hugging the weight ("17.5 lb \u00D7 5") so
+          // it reads the same way as every other set display in the app.
+          Text(weightText, style: bigStyle),
+          const SizedBox(width: 5),
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
@@ -278,6 +276,11 @@ class StatusSetWeightInfo extends StatelessWidget {
                 color: secondaryTextColor,
               ),
             ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            set.isAmrap ? '\u00D7 AMRAP' : '\u00D7 ${set.targetReps}',
+            style: bigStyle,
           ),
           const SizedBox(width: 8),
           Material(
