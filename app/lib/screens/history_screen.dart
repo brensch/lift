@@ -6,8 +6,10 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
+import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
+import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/top_level_back_scope.dart';
 
@@ -33,6 +35,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     final grpc = context.read<GrpcClient>();
     final service = WorkoutServiceWrapper(grpc);
+    final multiplayer = MultiplayerServiceWrapper(grpc);
+    final selfId = context.read<AuthProvider>().userId ?? '';
     try {
       final workouts = (await service.listWorkouts())
           .where((w) => w.endTime != Int64.ZERO)
@@ -53,12 +57,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
           workingSets++;
           if (!exercises.contains(p.exercise)) exercises.add(p.exercise);
         }
+        // Who you trained with, for group sessions (durable roster, minus you).
+        final partners = <String>[];
+        if (w.sessionId.isNotEmpty) {
+          try {
+            final resp = await multiplayer.getSessionParticipants(w.sessionId);
+            for (final p in resp.participants) {
+              if (p.user.id.isNotEmpty && p.user.id != selfId) {
+                partners.add(p.user.name);
+              }
+            }
+          } catch (_) {}
+        }
         items.add(_HistoryItem(
           workout: w,
           volume: volume,
           workingSets: workingSets,
           exercises: exercises,
-          isGroup: w.sessionId.isNotEmpty,
+          partners: partners,
         ));
       }
       setState(() {
@@ -204,7 +220,8 @@ class _HistoryCard extends StatelessWidget {
                               cs),
                         if (item.workingSets > 0)
                           _chip('${item.workingSets} sets', cs),
-                        if (item.isGroup) _chip('👥 group', cs),
+                        if (item.partners.isNotEmpty)
+                          _chip('👥 with ${_names(item.partners)}', cs),
                       ],
                     ),
                   ],
@@ -287,6 +304,14 @@ class _DateBadge extends StatelessWidget {
   }
 }
 
+String _names(List<String> names) {
+  final clean = names.where((n) => n.isNotEmpty).toList();
+  if (clean.isEmpty) return 'friends';
+  if (clean.length == 1) return clean[0];
+  if (clean.length == 2) return '${clean[0]} & ${clean[1]}';
+  return '${clean[0]}, ${clean[1]} +${clean.length - 2}';
+}
+
 String _relativeDay(DateTime d) {
   final now = DateTime.now();
   final days = DateTime(now.year, now.month, now.day)
@@ -304,13 +329,13 @@ class _HistoryItem {
   final double volume;
   final int workingSets;
   final List<Exercise> exercises;
-  final bool isGroup;
+  final List<String> partners;
   _HistoryItem({
     required this.workout,
     required this.volume,
     required this.workingSets,
     required this.exercises,
-    required this.isGroup,
+    required this.partners,
   });
 
   DateTime get date =>
