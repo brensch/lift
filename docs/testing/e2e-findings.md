@@ -1,13 +1,19 @@
 # Issues surfaced by the e2e scenarios
 
 Findings from building and running the emulator scenario suite. Each is either
-confirmed in code or reproduced on the emulator. These are observations to
-triage — not all are necessarily bugs, but each is a real behaviour the tests
-exposed.
+confirmed in code or reproduced on the emulator.
 
-## 1. A departed peer stays visible to other session members
+**Status:** #1, #2, #3 and #4 are all FIXED on this branch. #1 was fixed as part
+of the durable session-roster redesign (see `docs/architecture/` /
+`session_members`), which also added the training-together history + one-tap
+re-pair feature.
 
-**Confirmed (code + `multiplayer_leave` scenario).**
+## 1. A departed peer stays visible to other session members — FIXED
+
+**Confirmed (code + `multiplayer_leave` scenario). Fixed:** `LeaveCurrentSession`
+now prunes the leaver's live participant blob and stamps `left_at` on the durable
+`session_members` roster, so remaining members stop seeing them while history is
+preserved.
 
 `leave_current_session` (`src/server/multiplayer.rs`) only clears the *leaver's*
 `user_current_session`:
@@ -30,9 +36,12 @@ The `multiplayer_leave` scenario had to be written from the app user's own leave
 `get_session_participants` filter to rows whose `user_current_session` still
 points at the session.
 
-## 2. The phone never reconciles its active workout with the backend
+## 2. The phone never reconciles its active workout with the backend — FIXED
 
-**Confirmed (code + `progression` scenario screenshot).**
+**Confirmed (code + `progression` scenario screenshot). Fixed:** `WorkoutProvider`'s
+1 Hz timer now reconciles the local active workout against `getActiveWorkout`
+every 5s (guarded against in-flight mutations), so a workout ended elsewhere no
+longer lingers as stale in-progress state.
 
 `WorkoutProvider._startTimer` (`app/lib/providers/workout_provider.dart`) runs a
 1 Hz timer that only does:
@@ -56,9 +65,11 @@ summary + progression). This matters for multi-device / mirrored-session stories
 **Fix direction:** on the periodic tick (or a slower one), reconcile the active
 workout id against `getActiveWorkout` and clear/refresh if the server disagrees.
 
-## 3. Health Connect workout writes fail — missing calorie permissions
+## 3. Health Connect workout writes fail — missing calorie permissions — FIXED
 
-**Confirmed (logcat + manifest).**
+**Confirmed (logcat + manifest). Fixed:** declared the calorie permissions the
+app actually uses (`READ/WRITE_ACTIVE_CALORIES_BURNED`,
+`WRITE_TOTAL_CALORIES_BURNED`) in the Android manifest.
 
 On `EndWorkout` the app writes the workout to Health Connect with calories:
 
