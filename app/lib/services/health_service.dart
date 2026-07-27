@@ -80,8 +80,14 @@ class HealthService {
       // Live HR from the watch (read) + saving HR samples into the workout (write).
       want(HealthDataType.HEART_RATE, HealthDataAccess.READ_WRITE);
       want(HealthDataType.ACTIVE_ENERGY_BURNED, HealthDataAccess.READ_WRITE);
-      // Saving the completed workout.
+      // Saving the completed workout. writeWorkoutData batches the exercise
+      // session together with a TotalCaloriesBurned record in a single insert, so
+      // without the total-calories write grant the WHOLE workout write is rejected
+      // (SecurityException) and nothing reaches Health Connect. Request it here so
+      // the user is actually prompted for it — declaring it in the manifest alone
+      // is not enough.
       want(HealthDataType.WORKOUT, HealthDataAccess.WRITE);
+      want(HealthDataType.TOTAL_CALORIES_BURNED, HealthDataAccess.WRITE);
       // Heart-rate zone chart inputs.
       want(HealthDataType.RESTING_HEART_RATE, HealthDataAccess.READ);
       if (Platform.isIOS) {
