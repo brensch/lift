@@ -58,10 +58,30 @@ class MultiplayerServiceWrapper {
     return response.partners;
   }
 
-  /// One-tap re-pair: join a known partner's current session. Returns the session id.
-  Future<String> joinPartnerSession(String partnerUserId) async {
-    final response = await _client.multiplayerService.joinPartnerSession(
-      JoinPartnerSessionRequest()..partnerUserId = partnerUserId,
+  /// Ask a known partner to train together (creates a request they must approve).
+  Future<String> requestJoinPartner(String partnerUserId) async {
+    final response = await _client.multiplayerService.requestJoinPartner(
+      RequestJoinPartnerRequest()..partnerUserId = partnerUserId,
+      options: _defaultCallOptions,
+    );
+    return response.requestId;
+  }
+
+  /// The caller's incoming (pending) join requests, to prompt approve/decline.
+  Future<List<JoinRequest>> getJoinRequests() async {
+    final response = await _client.multiplayerService.getJoinRequests(
+      GetJoinRequestsRequest(),
+      options: _pollCallOptions,
+    );
+    return response.requests;
+  }
+
+  /// Approve or decline a join request. Returns the session id when accepted.
+  Future<String> respondJoinRequest(String requestId, bool accept) async {
+    final response = await _client.multiplayerService.respondJoinRequest(
+      RespondJoinRequestRequest()
+        ..requestId = requestId
+        ..accept = accept,
       options: _defaultCallOptions,
     );
     return response.sessionId;

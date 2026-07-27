@@ -246,6 +246,89 @@ impl ServerDb {
             .collect())
     }
 
+    // ── Join requests (request / approve to train together) ──
+
+    /// Create a pending join request from `from` to `to`, replacing any existing
+    /// pending request in that direction (one live ask per direction).
+    pub async fn create_join_request(
+        &self,
+        request_id: &str,
+        from_user: &str,
+        to_user: &str,
+    ) -> DbResult<()> {
+        sqlx::query("DELETE FROM join_requests WHERE from_user_id = ? AND to_user_id = ?")
+            .bind(from_user)
+            .bind(to_user)
+            .execute(&self.write_pool)
+            .await?;
+        sqlx::query(
+            "INSERT INTO join_requests (request_id, from_user_id, to_user_id, created_at)
+             VALUES (?, ?, ?, ?)",
+        )
+        .bind(request_id)
+        .bind(from_user)
+        .bind(to_user)
+        .bind(now_unix())
+        .execute(&self.write_pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Incoming pending requests for `to_user` newer than `since` (unix seconds):
+    /// (request_id, from_user_id, created_at), most recent first.
+    pub async fn list_incoming_join_requests(
+        &self,
+        to_user: &str,
+        since: i64,
+    ) -> DbResult<Vec<(String, String, i64)>> {
+        let rows = sqlx::query(
+            "SELECT request_id, from_user_id, created_at FROM join_requests
+             WHERE to_user_id = ? AND created_at >= ?
+             ORDER BY created_at DESC",
+        )
+        .bind(to_user)
+        .bind(since)
+        .fetch_all(&self.read_pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| {
+                (
+                    r.get::<String, _>("request_id"),
+                    r.get::<String, _>("from_user_id"),
+                    r.get::<i64, _>("created_at"),
+                )
+            })
+            .collect())
+    }
+
+    /// Look up a request's (from_user_id, to_user_id) for authorization/routing.
+    pub async fn get_join_request(
+        &self,
+        request_id: &str,
+    ) -> DbResult<Option<(String, String)>> {
+        let row = sqlx::query(
+            "SELECT from_user_id, to_user_id FROM join_requests WHERE request_id = ?",
+        )
+        .bind(request_id)
+        .fetch_optional(&self.read_pool)
+        .await?;
+        Ok(row.map(|r| {
+            (
+                r.get::<String, _>("from_user_id"),
+                r.get::<String, _>("to_user_id"),
+            )
+        }))
+    }
+
+    pub async fn delete_join_request(&self, request_id: &str) -> DbResult<()> {
+        sqlx::query("DELETE FROM join_requests WHERE request_id = ?")
+            .bind(request_id)
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
+    }
+
     /// Whether two users have ever shared a session (used to gate partner re-pair).
     pub async fn have_trained_together(&self, a: &str, b: &str) -> DbResult<bool> {
         let n: i64 = sqlx::query_scalar(

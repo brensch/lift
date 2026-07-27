@@ -42,10 +42,14 @@ class Scenario {
   // ── Lifecycle ──
 
   /// Pump the real app. It reaches the backend at localhost:50051 (adb reverse).
-  Future<void> launch() async {
+  /// Pump the real app. [suppressHealth] keeps the native Health Connect sheet
+  /// from appearing (the default — it would hang the test); a health-focused
+  /// scenario can pass false when the permissions are pre-granted via adb so the
+  /// app can actually exercise the Health Connect write path.
+  Future<void> launch({bool suppressHealth = true}) async {
     // Suppress the native Health Connect permission sheet — it would pause the
     // Flutter surface and hang the test. Health isn't under test here.
-    HealthService.suppressPermissionPrompts = true;
+    HealthService.suppressPermissionPrompts = suppressHealth;
     // Mirror main()'s pre-runApp setup that pumpWidget bypasses: tz + plugin
     // init, without which scheduling a rest notification (on set completion)
     // throws a timezone LateInitializationError. Skip the permission prompts —
@@ -106,8 +110,12 @@ class Scenario {
 
   // ── Capture ──
 
-  /// Screenshot the current screen and record a report step.
+  /// Screenshot the current screen and record a report step. Pumps a couple of
+  /// frames first so the captured surface reflects the very latest state (e.g. a
+  /// banner that just appeared via an async poll), not a frame behind.
   Future<void> shot(String title, {String? note}) async {
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
     final base = '${name}_${_n.toString().padLeft(2, '0')}';
     await binding.takeScreenshot(base);
     _steps.add(_Step(_n, title, shot: '$base.png', note: note, kind: 'ui'));

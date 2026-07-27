@@ -1555,8 +1555,8 @@ class GetSharedSessionsResponse extends $pb.GeneratedMessage {
   $pb.PbList<SharedSession> get sessions => $_getList(0);
 }
 
-class JoinPartnerSessionRequest extends $pb.GeneratedMessage {
-  factory JoinPartnerSessionRequest({
+class RequestJoinPartnerRequest extends $pb.GeneratedMessage {
+  factory RequestJoinPartnerRequest({
     $core.String? partnerUserId,
   }) {
     final result = create();
@@ -1564,41 +1564,41 @@ class JoinPartnerSessionRequest extends $pb.GeneratedMessage {
     return result;
   }
 
-  JoinPartnerSessionRequest._();
+  RequestJoinPartnerRequest._();
 
-  factory JoinPartnerSessionRequest.fromBuffer($core.List<$core.int> data,
+  factory RequestJoinPartnerRequest.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory JoinPartnerSessionRequest.fromJson($core.String json,
+  factory RequestJoinPartnerRequest.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'JoinPartnerSessionRequest',
+      _omitMessageNames ? '' : 'RequestJoinPartnerRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'partnerUserId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JoinPartnerSessionRequest clone() => deepCopy();
+  RequestJoinPartnerRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JoinPartnerSessionRequest copyWith(
-          void Function(JoinPartnerSessionRequest) updates) =>
-      super.copyWith((message) => updates(message as JoinPartnerSessionRequest))
-          as JoinPartnerSessionRequest;
+  RequestJoinPartnerRequest copyWith(
+          void Function(RequestJoinPartnerRequest) updates) =>
+      super.copyWith((message) => updates(message as RequestJoinPartnerRequest))
+          as RequestJoinPartnerRequest;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static JoinPartnerSessionRequest create() => JoinPartnerSessionRequest._();
+  static RequestJoinPartnerRequest create() => RequestJoinPartnerRequest._();
   @$core.override
-  JoinPartnerSessionRequest createEmptyInstance() => create();
+  RequestJoinPartnerRequest createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static JoinPartnerSessionRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<JoinPartnerSessionRequest>(create);
-  static JoinPartnerSessionRequest? _defaultInstance;
+  static RequestJoinPartnerRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RequestJoinPartnerRequest>(create);
+  static RequestJoinPartnerRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get partnerUserId => $_getSZ(0);
@@ -1610,8 +1610,302 @@ class JoinPartnerSessionRequest extends $pb.GeneratedMessage {
   void clearPartnerUserId() => $_clearField(1);
 }
 
-class JoinPartnerSessionResponse extends $pb.GeneratedMessage {
-  factory JoinPartnerSessionResponse({
+class RequestJoinPartnerResponse extends $pb.GeneratedMessage {
+  factory RequestJoinPartnerResponse({
+    $core.String? requestId,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    return result;
+  }
+
+  RequestJoinPartnerResponse._();
+
+  factory RequestJoinPartnerResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RequestJoinPartnerResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RequestJoinPartnerResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RequestJoinPartnerResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RequestJoinPartnerResponse copyWith(
+          void Function(RequestJoinPartnerResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as RequestJoinPartnerResponse))
+          as RequestJoinPartnerResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RequestJoinPartnerResponse create() => RequestJoinPartnerResponse._();
+  @$core.override
+  RequestJoinPartnerResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RequestJoinPartnerResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RequestJoinPartnerResponse>(create);
+  static RequestJoinPartnerResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+}
+
+/// A pending "train together" request, shown to the recipient.
+class JoinRequest extends $pb.GeneratedMessage {
+  factory JoinRequest({
+    $core.String? requestId,
+    $1.User? fromUser,
+    $fixnum.Int64? createdAt,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (fromUser != null) result.fromUser = fromUser;
+    if (createdAt != null) result.createdAt = createdAt;
+    return result;
+  }
+
+  JoinRequest._();
+
+  factory JoinRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory JoinRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JoinRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOM<$1.User>(2, _omitFieldNames ? '' : 'fromUser',
+        subBuilder: $1.User.create)
+    ..aInt64(3, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  JoinRequest copyWith(void Function(JoinRequest) updates) =>
+      super.copyWith((message) => updates(message as JoinRequest))
+          as JoinRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static JoinRequest create() => JoinRequest._();
+  @$core.override
+  JoinRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static JoinRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JoinRequest>(create);
+  static JoinRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $1.User get fromUser => $_getN(1);
+  @$pb.TagNumber(2)
+  set fromUser($1.User value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFromUser() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFromUser() => $_clearField(2);
+  @$pb.TagNumber(2)
+  $1.User ensureFromUser() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get createdAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set createdAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCreatedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCreatedAt() => $_clearField(3);
+}
+
+class GetJoinRequestsRequest extends $pb.GeneratedMessage {
+  factory GetJoinRequestsRequest() => create();
+
+  GetJoinRequestsRequest._();
+
+  factory GetJoinRequestsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetJoinRequestsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetJoinRequestsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetJoinRequestsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetJoinRequestsRequest copyWith(
+          void Function(GetJoinRequestsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetJoinRequestsRequest))
+          as GetJoinRequestsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetJoinRequestsRequest create() => GetJoinRequestsRequest._();
+  @$core.override
+  GetJoinRequestsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetJoinRequestsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetJoinRequestsRequest>(create);
+  static GetJoinRequestsRequest? _defaultInstance;
+}
+
+class GetJoinRequestsResponse extends $pb.GeneratedMessage {
+  factory GetJoinRequestsResponse({
+    $core.Iterable<JoinRequest>? requests,
+  }) {
+    final result = create();
+    if (requests != null) result.requests.addAll(requests);
+    return result;
+  }
+
+  GetJoinRequestsResponse._();
+
+  factory GetJoinRequestsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetJoinRequestsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetJoinRequestsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<JoinRequest>(1, _omitFieldNames ? '' : 'requests',
+        subBuilder: JoinRequest.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetJoinRequestsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetJoinRequestsResponse copyWith(
+          void Function(GetJoinRequestsResponse) updates) =>
+      super.copyWith((message) => updates(message as GetJoinRequestsResponse))
+          as GetJoinRequestsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetJoinRequestsResponse create() => GetJoinRequestsResponse._();
+  @$core.override
+  GetJoinRequestsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetJoinRequestsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetJoinRequestsResponse>(create);
+  static GetJoinRequestsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<JoinRequest> get requests => $_getList(0);
+}
+
+class RespondJoinRequestRequest extends $pb.GeneratedMessage {
+  factory RespondJoinRequestRequest({
+    $core.String? requestId,
+    $core.bool? accept,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (accept != null) result.accept = accept;
+    return result;
+  }
+
+  RespondJoinRequestRequest._();
+
+  factory RespondJoinRequestRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RespondJoinRequestRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RespondJoinRequestRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOB(2, _omitFieldNames ? '' : 'accept')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RespondJoinRequestRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RespondJoinRequestRequest copyWith(
+          void Function(RespondJoinRequestRequest) updates) =>
+      super.copyWith((message) => updates(message as RespondJoinRequestRequest))
+          as RespondJoinRequestRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RespondJoinRequestRequest create() => RespondJoinRequestRequest._();
+  @$core.override
+  RespondJoinRequestRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RespondJoinRequestRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RespondJoinRequestRequest>(create);
+  static RespondJoinRequestRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get accept => $_getBF(1);
+  @$pb.TagNumber(2)
+  set accept($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAccept() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAccept() => $_clearField(2);
+}
+
+class RespondJoinRequestResponse extends $pb.GeneratedMessage {
+  factory RespondJoinRequestResponse({
     $core.String? sessionId,
   }) {
     final result = create();
@@ -1619,42 +1913,42 @@ class JoinPartnerSessionResponse extends $pb.GeneratedMessage {
     return result;
   }
 
-  JoinPartnerSessionResponse._();
+  RespondJoinRequestResponse._();
 
-  factory JoinPartnerSessionResponse.fromBuffer($core.List<$core.int> data,
+  factory RespondJoinRequestResponse.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory JoinPartnerSessionResponse.fromJson($core.String json,
+  factory RespondJoinRequestResponse.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'JoinPartnerSessionResponse',
+      _omitMessageNames ? '' : 'RespondJoinRequestResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sessionId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JoinPartnerSessionResponse clone() => deepCopy();
+  RespondJoinRequestResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  JoinPartnerSessionResponse copyWith(
-          void Function(JoinPartnerSessionResponse) updates) =>
+  RespondJoinRequestResponse copyWith(
+          void Function(RespondJoinRequestResponse) updates) =>
       super.copyWith(
-              (message) => updates(message as JoinPartnerSessionResponse))
-          as JoinPartnerSessionResponse;
+              (message) => updates(message as RespondJoinRequestResponse))
+          as RespondJoinRequestResponse;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static JoinPartnerSessionResponse create() => JoinPartnerSessionResponse._();
+  static RespondJoinRequestResponse create() => RespondJoinRequestResponse._();
   @$core.override
-  JoinPartnerSessionResponse createEmptyInstance() => create();
+  RespondJoinRequestResponse createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static JoinPartnerSessionResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<JoinPartnerSessionResponse>(create);
-  static JoinPartnerSessionResponse? _defaultInstance;
+  static RespondJoinRequestResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RespondJoinRequestResponse>(create);
+  static RespondJoinRequestResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sessionId => $_getSZ(0);

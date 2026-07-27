@@ -52,19 +52,50 @@ class MultiplayerProvider extends ChangeNotifier {
     }
   }
 
-  /// One-tap re-pair: join a known partner's current session. Returns null on
-  /// success, or a human-readable message if the partner isn't joinable.
-  Future<String?> joinPartnerSession(String partnerUserId) async {
+  /// Ask a known partner to train together. Returns null on success, or a
+  /// human-readable message on failure. They must approve before you're paired.
+  Future<String?> requestJoinPartner(String partnerUserId) async {
     try {
-      final sessionId = await _service.joinPartnerSession(partnerUserId);
-      _sessionId = sessionId;
-      await checkForSession();
+      await _service.requestJoinPartner(partnerUserId);
       return null;
     } catch (e) {
       AppLogger.instance
-          .warn('Multiplayer', 'joinPartnerSession failed', {'error': '$e'});
+          .warn('Multiplayer', 'requestJoinPartner failed', {'error': '$e'});
       return cleanErrorMessage(e);
     }
+  }
+
+  // ── Incoming "train together" requests ──
+
+  List<JoinRequest> _incomingRequests = [];
+  List<JoinRequest> get incomingRequests => _incomingRequests;
+
+  Future<void> _pollJoinRequests() async {
+    if (_disposed) return;
+    try {
+      final requests = await _service.getJoinRequests();
+      final newIds = requests.map((r) => r.requestId).join(',');
+      final oldIds = _incomingRequests.map((r) => r.requestId).join(',');
+      _incomingRequests = requests;
+      if (newIds != oldIds && !_disposed) notifyListeners();
+    } catch (_) {
+      // Transient; next tick retries.
+    }
+  }
+
+  /// Approve or decline an incoming request. On approve the session poll picks up
+  /// the new shared session on the next tick.
+  Future<void> respondToJoinRequest(String requestId, bool accept) async {
+    try {
+      await _service.respondJoinRequest(requestId, accept);
+    } catch (e) {
+      AppLogger.instance
+          .warn('Multiplayer', 'respondJoinRequest failed', {'error': '$e'});
+    }
+    _incomingRequests =
+        _incomingRequests.where((r) => r.requestId != requestId).toList();
+    if (!_disposed) notifyListeners();
+    if (accept) await checkForSession();
   }
 
   void startSync() {
@@ -243,6 +274,9 @@ class MultiplayerProvider extends ChangeNotifier {
   Future<void> _pollSession() async {
     if (_disposed || _pollInFlight) return;
     _pollInFlight = true;
+    // Incoming "train together" requests can arrive any time, independent of
+    // whether we're in a session — poll them on the same tick.
+    unawaited(_pollJoinRequests());
     try {
       final response = await _service.getCurrentSession();
       if (response.sessionId.isEmpty || !response.hasSessionStatus()) {

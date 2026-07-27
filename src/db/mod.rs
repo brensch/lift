@@ -175,6 +175,17 @@ CREATE INDEX IF NOT EXISTS idx_session_members_user
 CREATE INDEX IF NOT EXISTS idx_session_members_session
     ON session_members(session_id);
 
+-- Pending "train together" requests: from_user asks to_user; to_user approves or
+-- declines. Rows are deleted once answered (or when they expire on read).
+CREATE TABLE IF NOT EXISTS join_requests (
+    request_id TEXT PRIMARY KEY,
+    from_user_id TEXT NOT NULL,
+    to_user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_join_requests_to
+    ON join_requests(to_user_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS proposed_schedule_cache (
     user_id TEXT PRIMARY KEY,
     response_blob BLOB NOT NULL,
