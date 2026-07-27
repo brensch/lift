@@ -31,6 +31,38 @@ the *pending/next-up* weight-and-reps on one order+separator (e.g. `weight × re
 conveys performance). Left as PROPOSE because it's a visible design change and
 worth a deliberate call, not a unilateral edit.
 
+## U2. "Records TBD" / "Record tracking soon" placeholders on the summary — FIX
+
+The workout summary showed "Records TBD" (section header) and "Record tracking
+soon" (per exercise) *next to* real stats including an estimated "Best 1RM".
+Promising an unbuilt PR feature next to real numbers is contradictory. Removed
+the placeholder labels and the dead `recordNote` plumbing; the real stats (sets,
+reps, volume, best 1RM, heaviest set) stay.
+
+## U3. "Best 1RM" is an estimate, not labelled as one — PROPOSE
+
+The summary's "Best 1RM" is the Epley estimate `w·(1+reps/30)`, shown as e.g.
+"Best 1RM 20.4 lb" for a 17.5 lb × 5 set. Standard metric, but consider labelling
+it "Est. 1RM" so it isn't read as a real one-rep max.
+
+## U4. One-tap re-pair now works even if the friend isn't lifting yet — FIX
+
+`JoinPartnerSession` used to require the partner to already be in a session, so
+two established partners who both just arrived (neither in a session) had to fall
+back to the QR — not "easy pairing". Now tapping a partner joins their session if
+they have one, or mints a fresh shared session and pulls them in if they don't.
+Still gated on a prior pairing (you must have trained together at least once), and
+it never yanks a partner out of an existing group. Trust note: this places a prior
+partner into a session without a real-time accept (same implied-consent model as
+scanning someone's QR) — dial back if that's unwanted.
+
+## U5. Debug tiles shown in every user's Settings — PROPOSE
+
+Settings lists "Notification debugging" (→ /debug-notifications) and "Diagnostic
+logs" (→ /debug-logs) to all users, ungated. "Diagnostic logs" is defensible as
+self-service support; "Notification debugging" reads as a developer tool. Consider
+gating behind `kDebugMode` or a hidden gesture to declutter user settings.
+
 ## Backend B1. Dropped the redundant `sessions` table — FIX
 
 The session model had four tables: `user_current_session` (live), 

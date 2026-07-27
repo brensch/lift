@@ -48,9 +48,10 @@ service MultiplayerService {
   // The sessions the caller shared with one partner (dates + who lifted).
   rpc GetSharedSessions(GetSharedSessionsRequest) returns (GetSharedSessionsResponse);
 
-  // One-tap re-pair: join the current session of a partner the caller has
-  // trained with before, without needing their QR again. Fails if the partner
-  // isn't in a session right now, or if they've never trained together.
+  // One-tap re-pair with a partner the caller has trained with before, without
+  // needing their QR again: joins the partner's current session, or mints a fresh
+  // shared one and pulls them in if they aren't in a session yet. Gated on a prior
+  // pairing (fails if they've never trained together).
   rpc JoinPartnerSession(JoinPartnerSessionRequest) returns (JoinPartnerSessionResponse);
 }
 
