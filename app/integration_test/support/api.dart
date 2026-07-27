@@ -204,4 +204,20 @@ class Peer {
     await _api.multiplayer
         .leaveCurrentSession(LeaveCurrentSessionRequest(), options: _opts);
   }
+
+  /// People this user has trained with (durable session history).
+  Future<List<TrainingPartner>> trainingPartners() async {
+    final r = await _api.multiplayer
+        .getTrainingPartners(GetTrainingPartnersRequest(), options: _opts);
+    return r.partners;
+  }
+
+  /// One-tap re-pair: join a known partner's current session.
+  Future<String> joinPartnerSession(String partnerUserId) async {
+    final r = await _api.multiplayer.joinPartnerSession(
+      JoinPartnerSessionRequest(partnerUserId: partnerUserId),
+      options: _opts,
+    );
+    return r.sessionId;
+  }
 }
