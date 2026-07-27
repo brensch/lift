@@ -45,6 +45,28 @@ class MultiplayerServiceWrapper {
     return response.inviteToken;
   }
 
+  /// People the caller has trained with before (durable history), most recent first.
+  Future<List<TrainingPartner>> getTrainingPartners() async {
+    final response = await retryReadAfterReconnect(
+      operation: 'GetTrainingPartners',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.multiplayerService.getTrainingPartners(
+        GetTrainingPartnersRequest(),
+        options: _defaultCallOptions,
+      ),
+    );
+    return response.partners;
+  }
+
+  /// One-tap re-pair: join a known partner's current session. Returns the session id.
+  Future<String> joinPartnerSession(String partnerUserId) async {
+    final response = await _client.multiplayerService.joinPartnerSession(
+      JoinPartnerSessionRequest()..partnerUserId = partnerUserId,
+      options: _defaultCallOptions,
+    );
+    return response.sessionId;
+  }
+
   Future<GetCurrentSessionResponse> getCurrentSession() async {
     return await retryReadAfterReconnect(
       operation: 'GetCurrentSession',

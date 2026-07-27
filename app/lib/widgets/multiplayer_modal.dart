@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:share_plus/share_plus.dart';
+import '../gen/workout/v1/group.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import 'participant_ticker.dart';
@@ -20,12 +21,123 @@ class MultiplayerModal extends StatefulWidget {
 
 class _MultiplayerModalState extends State<MultiplayerModal> {
   bool _isScanning = false;
+  String? _joiningPartnerId;
   final TextEditingController _idController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Populate the "trained with" list for quick re-pairing.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<MultiplayerProvider>().loadTrainingPartners();
+    });
+  }
 
   @override
   void dispose() {
     _idController.dispose();
     super.dispose();
+  }
+
+  Future<void> _joinPartner(String partnerUserId) async {
+    setState(() => _joiningPartnerId = partnerUserId);
+    final mp = context.read<MultiplayerProvider>();
+    final error = await mp.joinPartnerSession(partnerUserId);
+    if (!mounted) return;
+    setState(() => _joiningPartnerId = null);
+    if (error == null) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  /// People the caller has trained with before — tap Join to drop straight into
+  /// a friend's current session without scanning again.
+  Widget _buildTrainedWith(MultiplayerProvider mp, ColorScheme colorScheme) {
+    final partners = mp.trainingPartners;
+    if (partners.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text(
+          'TRAINED WITH',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: colorScheme.tertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              for (final p in partners)
+                ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 12,
+                    child: Text(
+                      p.user.name.isNotEmpty
+                          ? p.user.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    p.user.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  subtitle: Text(
+                    _partnerSubtitle(p),
+                    style: TextStyle(fontSize: 11, color: colorScheme.tertiary),
+                  ),
+                  trailing: _joiningPartnerId == p.user.id
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : TextButton(
+                          onPressed: () => _joinPartner(p.user.id),
+                          child: const Text('Join'),
+                        ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _partnerSubtitle(TrainingPartner p) {
+    final sessions = p.sessionsTogether;
+    final label = sessions == 1 ? '1 session' : '$sessions sessions';
+    return '$label · ${_relativeDay(p.lastTrainedAt.toInt())}';
+  }
+
+  String _relativeDay(int unixSeconds) {
+    if (unixSeconds <= 0) return 'recently';
+    final then = DateTime.fromMillisecondsSinceEpoch(unixSeconds * 1000);
+    final days = DateTime.now().difference(then).inDays;
+    if (days <= 0) return 'today';
+    if (days == 1) return 'yesterday';
+    if (days < 7) return '$days days ago';
+    if (days < 30) return '${(days / 7).floor()}w ago';
+    return '${(days / 30).floor()}mo ago';
   }
 
   void _handleScan(BarcodeCapture capture) {
@@ -432,6 +544,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           ),
                         ],
                       ),
+                      _buildTrainedWith(mp, colorScheme),
                     ],
                   ],
                 ],
