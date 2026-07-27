@@ -37,6 +37,36 @@ class MultiplayerProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get myInviteToken => _myInviteToken;
 
+  List<TrainingPartner> _trainingPartners = [];
+  List<TrainingPartner> get trainingPartners => _trainingPartners;
+
+  /// Load the caller's training-partner history (people they've trained with),
+  /// so the pairing UI can offer familiar faces for a one-tap re-pair.
+  Future<void> loadTrainingPartners() async {
+    try {
+      _trainingPartners = await _service.getTrainingPartners();
+      notifyListeners();
+    } catch (e) {
+      AppLogger.instance
+          .warn('Multiplayer', 'getTrainingPartners failed', {'error': '$e'});
+    }
+  }
+
+  /// One-tap re-pair: join a known partner's current session. Returns null on
+  /// success, or a human-readable message if the partner isn't joinable.
+  Future<String?> joinPartnerSession(String partnerUserId) async {
+    try {
+      final sessionId = await _service.joinPartnerSession(partnerUserId);
+      _sessionId = sessionId;
+      await checkForSession();
+      return null;
+    } catch (e) {
+      AppLogger.instance
+          .warn('Multiplayer', 'joinPartnerSession failed', {'error': '$e'});
+      return cleanErrorMessage(e);
+    }
+  }
+
   void startSync() {
     if (_disposed) return;
     AppLogger.instance.info('Multiplayer', 'startSync');
