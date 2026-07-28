@@ -1116,6 +1116,149 @@ final $typed_data.Uint8List listWorkoutsResponseDescriptor = $convert.base64Deco
     'ChRMaXN0V29ya291dHNSZXNwb25zZRIvCgh3b3Jrb3V0cxgBIAMoCzITLndvcmtvdXQudjEuV2'
     '9ya291dFIId29ya291dHM=');
 
+@$core.Deprecated('Use workoutWithSummaryDescriptor instead')
+const WorkoutWithSummary$json = {
+  '1': 'WorkoutWithSummary',
+  '2': [
+    {
+      '1': 'workout',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.Workout',
+      '10': 'workout'
+    },
+    {
+      '1': 'summary',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WorkoutSummary',
+      '10': 'summary'
+    },
+  ],
+};
+
+/// Descriptor for `WorkoutWithSummary`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workoutWithSummaryDescriptor = $convert.base64Decode(
+    'ChJXb3Jrb3V0V2l0aFN1bW1hcnkSLQoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya2'
+    '91dFIHd29ya291dBI0CgdzdW1tYXJ5GAIgASgLMhoud29ya291dC52MS5Xb3Jrb3V0U3VtbWFy'
+    'eVIHc3VtbWFyeQ==');
+
+@$core.Deprecated('Use listWorkoutSummariesRequestDescriptor instead')
+const ListWorkoutSummariesRequest$json = {
+  '1': 'ListWorkoutSummariesRequest',
+};
+
+/// Descriptor for `ListWorkoutSummariesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWorkoutSummariesRequestDescriptor =
+    $convert.base64Decode('ChtMaXN0V29ya291dFN1bW1hcmllc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use listWorkoutSummariesResponseDescriptor instead')
+const ListWorkoutSummariesResponse$json = {
+  '1': 'ListWorkoutSummariesResponse',
+  '2': [
+    {
+      '1': 'workouts',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.WorkoutWithSummary',
+      '10': 'workouts'
+    },
+  ],
+};
+
+/// Descriptor for `ListWorkoutSummariesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listWorkoutSummariesResponseDescriptor =
+    $convert.base64Decode(
+        'ChxMaXN0V29ya291dFN1bW1hcmllc1Jlc3BvbnNlEjoKCHdvcmtvdXRzGAEgAygLMh4ud29ya2'
+        '91dC52MS5Xb3Jrb3V0V2l0aFN1bW1hcnlSCHdvcmtvdXRz');
+
+@$core.Deprecated('Use exerciseProgressPointDescriptor instead')
+const ExerciseProgressPoint$json = {
+  '1': 'ExerciseProgressPoint',
+  '2': [
+    {'1': 'date', '3': 1, '4': 1, '5': 3, '10': 'date'},
+    {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'top_weight', '3': 3, '4': 1, '5': 2, '10': 'topWeight'},
+    {'1': 'top_reps', '3': 4, '4': 1, '5': 5, '10': 'topReps'},
+    {'1': 'best_one_rep_max', '3': 5, '4': 1, '5': 2, '10': 'bestOneRepMax'},
+    {'1': 'volume', '3': 6, '4': 1, '5': 2, '10': 'volume'},
+    {'1': 'sets', '3': 7, '4': 1, '5': 5, '10': 'sets'},
+  ],
+};
+
+/// Descriptor for `ExerciseProgressPoint`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exerciseProgressPointDescriptor = $convert.base64Decode(
+    'ChVFeGVyY2lzZVByb2dyZXNzUG9pbnQSEgoEZGF0ZRgBIAEoA1IEZGF0ZRIdCgp3b3Jrb3V0X2'
+    'lkGAIgASgJUgl3b3Jrb3V0SWQSHQoKdG9wX3dlaWdodBgDIAEoAlIJdG9wV2VpZ2h0EhkKCHRv'
+    'cF9yZXBzGAQgASgFUgd0b3BSZXBzEicKEGJlc3Rfb25lX3JlcF9tYXgYBSABKAJSDWJlc3RPbm'
+    'VSZXBNYXgSFgoGdm9sdW1lGAYgASgCUgZ2b2x1bWUSEgoEc2V0cxgHIAEoBVIEc2V0cw==');
+
+@$core.Deprecated('Use exerciseProgressDescriptor instead')
+const ExerciseProgress$json = {
+  '1': 'ExerciseProgress',
+  '2': [
+    {
+      '1': 'exercise',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercise'
+    },
+    {
+      '1': 'points',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseProgressPoint',
+      '10': 'points'
+    },
+  ],
+};
+
+/// Descriptor for `ExerciseProgress`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exerciseProgressDescriptor = $convert.base64Decode(
+    'ChBFeGVyY2lzZVByb2dyZXNzEjAKCGV4ZXJjaXNlGAEgASgOMhQud29ya291dC52MS5FeGVyY2'
+    'lzZVIIZXhlcmNpc2USOQoGcG9pbnRzGAIgAygLMiEud29ya291dC52MS5FeGVyY2lzZVByb2dy'
+    'ZXNzUG9pbnRSBnBvaW50cw==');
+
+@$core.Deprecated('Use getExerciseProgressRequestDescriptor instead')
+const GetExerciseProgressRequest$json = {
+  '1': 'GetExerciseProgressRequest',
+};
+
+/// Descriptor for `GetExerciseProgressRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getExerciseProgressRequestDescriptor =
+    $convert.base64Decode('ChpHZXRFeGVyY2lzZVByb2dyZXNzUmVxdWVzdA==');
+
+@$core.Deprecated('Use getExerciseProgressResponseDescriptor instead')
+const GetExerciseProgressResponse$json = {
+  '1': 'GetExerciseProgressResponse',
+  '2': [
+    {
+      '1': 'exercises',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseProgress',
+      '10': 'exercises'
+    },
+    {'1': 'workout_count', '3': 2, '4': 1, '5': 5, '10': 'workoutCount'},
+    {'1': 'total_volume', '3': 3, '4': 1, '5': 2, '10': 'totalVolume'},
+    {'1': 'since', '3': 4, '4': 1, '5': 3, '10': 'since'},
+  ],
+};
+
+/// Descriptor for `GetExerciseProgressResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getExerciseProgressResponseDescriptor = $convert.base64Decode(
+    'ChtHZXRFeGVyY2lzZVByb2dyZXNzUmVzcG9uc2USOgoJZXhlcmNpc2VzGAEgAygLMhwud29ya2'
+    '91dC52MS5FeGVyY2lzZVByb2dyZXNzUglleGVyY2lzZXMSIwoNd29ya291dF9jb3VudBgCIAEo'
+    'BVIMd29ya291dENvdW50EiEKDHRvdGFsX3ZvbHVtZRgDIAEoAlILdG90YWxWb2x1bWUSFAoFc2'
+    'luY2UYBCABKANSBXNpbmNl');
+
 @$core.Deprecated('Use plannedGroupSetDescriptor instead')
 const PlannedGroupSet$json = {
   '1': 'PlannedGroupSet',

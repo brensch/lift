@@ -698,6 +698,23 @@ impl ServerDb {
     }
 
     /// List finished workouts for a user.
+    /// Every finished workout with its proposed + completed sets loaded, newest
+    /// first. Powers the server-side summary/progress rollups so the app never
+    /// fans out getWorkout per row.
+    pub async fn list_finished_workouts_full(
+        &self,
+        user_id: &str,
+    ) -> DbResult<Vec<(Workout, Vec<ProposedSet>, Vec<CompletedSet>)>> {
+        let workouts = self.list_workouts(user_id).await?;
+        let mut out = Vec::with_capacity(workouts.len());
+        for w in workouts {
+            let proposed = self.get_proposed_sets(&w.id).await?;
+            let completed = self.get_completed_sets(&w.id).await?;
+            out.push((w, proposed, completed));
+        }
+        Ok(out)
+    }
+
     pub async fn list_workouts(&self, user_id: &str) -> DbResult<Vec<Workout>> {
         let rows = sqlx::query(
             "SELECT id, name, start_time, end_time, session_id

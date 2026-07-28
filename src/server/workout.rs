@@ -649,6 +649,55 @@ impl WorkoutService for ServerWorkoutService {
         Ok(Response::new(ListWorkoutsResponse { workouts }))
     }
 
+    async fn list_workout_summaries(
+        &self,
+        request: Request<ListWorkoutSummariesRequest>,
+    ) -> Result<Response<ListWorkoutSummariesResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "ListWorkoutSummaries", %user_id, "request");
+        let full = self
+            .db
+            .list_finished_workouts_full(&user_id)
+            .await
+            .map_err(internal_error)?;
+        let workouts = full
+            .into_iter()
+            .map(|(w, proposed, completed)| WorkoutWithSummary {
+                summary: Some(crate::progress::compute_workout_summary(
+                    &w, &proposed, &completed,
+                )),
+                workout: Some(w),
+            })
+            .collect();
+        Ok(Response::new(ListWorkoutSummariesResponse { workouts }))
+    }
+
+    async fn get_exercise_progress(
+        &self,
+        request: Request<GetExerciseProgressRequest>,
+    ) -> Result<Response<GetExerciseProgressResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        info!(rpc = "GetExerciseProgress", %user_id, "request");
+        let full = self
+            .db
+            .list_finished_workouts_full(&user_id)
+            .await
+            .map_err(internal_error)?;
+        let workout_count = full.len() as i32;
+        let since = full.iter().map(|(w, _, _)| w.start_time).min().unwrap_or(0);
+        let total_volume: f32 = full
+            .iter()
+            .map(|(w, p, c)| crate::progress::compute_workout_summary(w, p, c).total_volume)
+            .sum();
+        let exercises = crate::progress::compute_exercise_progress(&full);
+        Ok(Response::new(GetExerciseProgressResponse {
+            exercises,
+            workout_count,
+            total_volume,
+            since,
+        }))
+    }
+
     // ── Individual Set RPCs (targeted single-row SQL operations) ──
 
     async fn start_set(

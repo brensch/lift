@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
@@ -43,46 +42,24 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final grpc = context.read<GrpcClient>();
     final service = WorkoutServiceWrapper(grpc);
     try {
-      final workouts = (await service.listWorkouts())
-          .where((w) => w.endTime != Int64.ZERO)
-          .toList()
-        ..sort((a, b) => a.startTime.compareTo(b.startTime));
-
-      final sessions = <_Session>[];
-      for (final workout in workouts) {
-        final resp = await service.getWorkout(workout.id);
-        final proposedById = {for (final p in resp.proposedSets) p.id: p};
-        double topWeight = 0;
-        var topReps = 0;
-        double bestOneRm = 0;
-        double volume = 0;
-        var sets = 0;
-        for (final c in resp.completedSets) {
-          final p = proposedById[c.proposedSetId];
-          if (p == null || p.warmup || p.exercise != widget.exercise) continue;
-          final w = c.actualWeight.toDouble();
-          final reps = c.actualReps;
-          if (w > topWeight) {
-            topWeight = w;
-            topReps = reps;
-          }
-          final oneRm = w * (1 + reps / 30.0);
-          if (oneRm > bestOneRm) bestOneRm = oneRm;
-          volume += w * reps;
-          sets++;
-        }
-        if (sets > 0) {
-          sessions.add(_Session(
-            date: DateTime.fromMillisecondsSinceEpoch(
-                workout.startTime.toInt() * 1000),
-            topWeight: topWeight,
-            topReps: topReps,
-            bestOneRm: bestOneRm,
-            volume: volume,
-            sets: sets,
-          ));
-        }
-      }
+      // One call: the server returns the per-exercise session series (oldest
+      // first) with top weight/reps, est-1RM, volume and set count precomputed.
+      final resp = await service.getExerciseProgress();
+      final ep = resp.exercises.firstWhere(
+        (e) => e.exercise == widget.exercise,
+        orElse: () => ExerciseProgress(),
+      );
+      final sessions = ep.points
+          .map((p) => _Session(
+                date: DateTime.fromMillisecondsSinceEpoch(
+                    p.date.toInt() * 1000),
+                topWeight: p.topWeight,
+                topReps: p.topReps,
+                bestOneRm: p.bestOneRepMax,
+                volume: p.volume,
+                sets: p.sets,
+              ))
+          .toList();
       setState(() {
         _sessions = sessions;
         _isLoading = false;

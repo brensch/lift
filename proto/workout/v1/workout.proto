@@ -367,6 +367,38 @@ message ListWorkoutsResponse {
   repeated Workout workouts = 1;
 }
 
+message WorkoutWithSummary {
+  Workout workout = 1;
+  WorkoutSummary summary = 2;
+}
+
+message ListWorkoutSummariesRequest {}
+message ListWorkoutSummariesResponse {
+  repeated WorkoutWithSummary workouts = 1; // finished, newest first
+}
+
+// One session's data point for one exercise (working sets only).
+message ExerciseProgressPoint {
+  int64 date = 1;             // workout start_time, unix seconds
+  string workout_id = 2;
+  float top_weight = 3;       // heaviest working set, lb
+  int32 top_reps = 4;         // reps at that heaviest set
+  float best_one_rep_max = 5; // lb, Epley
+  float volume = 6;           // lb
+  int32 sets = 7;
+}
+message ExerciseProgress {
+  Exercise exercise = 1;
+  repeated ExerciseProgressPoint points = 2; // oldest first
+}
+message GetExerciseProgressRequest {}
+message GetExerciseProgressResponse {
+  repeated ExerciseProgress exercises = 1; // most-improved first
+  int32 workout_count = 2;
+  float total_volume = 3;  // lb, all working sets ever
+  int64 since = 4;         // earliest workout start_time (unix seconds)
+}
+
 message PlannedGroupSet {
   Exercise exercise = 1;
   int32 target_reps = 2;
@@ -818,6 +850,11 @@ service WorkoutService {
 
   // List all workouts for the user (user from auth context)
   rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
+
+  // Finished workouts with their server-computed summaries (history screen).
+  rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
+  // Per-exercise progress series, everything precomputed (progress + detail).
+  rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
 
   rpc ReplaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest) returns (ReplaceExerciseGroupPlanResponse);
   rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
