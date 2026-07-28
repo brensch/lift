@@ -431,6 +431,7 @@ mod account_deletion_tests {
             ("active_workout_current", format!("(user_id, workout_id) VALUES (?, '{u}-w1')")),
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
+            ("session_members", format!("(session_id, user_id, first_joined_at, last_seen_at, left_at) VALUES ('{u}-s1', ?, 1, 1, 0)")),
             ("workout_events", format!("(event_id, user_id, workout_id, recorded_at, event_type, payload) VALUES ('{u}-e1', ?, '{u}-w1', 1, 2, x'00')")),
             ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
             ("proposed_schedule_cache", "(user_id, response_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
