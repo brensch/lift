@@ -214,7 +214,12 @@ mod tests {
         let mut proposed_sets = Vec::new();
         let mut order = 0;
         for group in &groups {
-            let generated = generate_sets_for_group(&workout_id, group, order);
+            let generated = generate_sets_for_group(
+                &workout_id,
+                group,
+                order,
+                crate::weight_units::AppWeightUnit::Lb,
+            );
             order += generated.len() as i32;
             proposed_sets.extend(generated);
         }

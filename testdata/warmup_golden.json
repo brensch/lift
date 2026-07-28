@@ -1,6 +1,7 @@
 {
   "cases": [
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -22,6 +23,7 @@
       "working_weight": 5.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -43,6 +45,7 @@
       "working_weight": 7.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -64,6 +67,7 @@
       "working_weight": 10.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -85,6 +89,7 @@
       "working_weight": 12.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -106,6 +111,7 @@
       "working_weight": 13.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -127,6 +133,7 @@
       "working_weight": 15.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -148,6 +155,7 @@
       "working_weight": 17.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -169,6 +177,7 @@
       "working_weight": 20.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -190,6 +199,7 @@
       "working_weight": 22.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -211,6 +221,7 @@
       "working_weight": 25.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -232,6 +243,7 @@
       "working_weight": 27.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -253,6 +265,7 @@
       "working_weight": 30.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -274,6 +287,7 @@
       "working_weight": 32.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -295,6 +309,7 @@
       "working_weight": 33.29999923706055
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -316,6 +331,7 @@
       "working_weight": 35.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -337,6 +353,7 @@
       "working_weight": 37.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -358,6 +375,7 @@
       "working_weight": 40.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -379,6 +397,7 @@
       "working_weight": 42.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -400,6 +419,7 @@
       "working_weight": 45.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -421,6 +441,7 @@
       "working_weight": 46.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -442,6 +463,7 @@
       "working_weight": 47.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -463,6 +485,7 @@
       "working_weight": 50.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -484,6 +507,7 @@
       "working_weight": 52.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -505,6 +529,7 @@
       "working_weight": 55.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -526,6 +551,7 @@
       "working_weight": 57.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -547,6 +573,7 @@
       "working_weight": 60.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -568,6 +595,7 @@
       "working_weight": 62.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -589,6 +617,7 @@
       "working_weight": 65.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -610,6 +639,7 @@
       "working_weight": 67.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -625,12 +655,13 @@
         },
         {
           "reps": 2,
-          "weight": 60.0
+          "weight": 55.0
         }
       ],
       "working_weight": 70.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -646,12 +677,13 @@
         },
         {
           "reps": 2,
-          "weight": 60.0
+          "weight": 65.0
         }
       ],
       "working_weight": 72.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -663,7 +695,7 @@
         },
         {
           "reps": 3,
-          "weight": 55.0
+          "weight": 50.0
         },
         {
           "reps": 2,
@@ -673,6 +705,7 @@
       "working_weight": 75.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -694,6 +727,7 @@
       "working_weight": 77.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -709,12 +743,13 @@
         },
         {
           "reps": 2,
-          "weight": 70.0
+          "weight": 65.0
         }
       ],
       "working_weight": 80.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -726,16 +761,17 @@
         },
         {
           "reps": 3,
-          "weight": 60.0
+          "weight": 55.0
         },
         {
           "reps": 2,
-          "weight": 70.0
+          "weight": 65.0
         }
       ],
       "working_weight": 82.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -747,16 +783,17 @@
         },
         {
           "reps": 3,
-          "weight": 60.0
+          "weight": 55.0
         },
         {
           "reps": 2,
-          "weight": 70.0
+          "weight": 65.0
         }
       ],
       "working_weight": 85.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -768,7 +805,7 @@
         },
         {
           "reps": 3,
-          "weight": 60.0
+          "weight": 65.0
         },
         {
           "reps": 2,
@@ -778,6 +815,7 @@
       "working_weight": 87.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -799,6 +837,7 @@
       "working_weight": 90.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -814,12 +853,13 @@
         },
         {
           "reps": 2,
-          "weight": 80.0
+          "weight": 75.0
         }
       ],
       "working_weight": 92.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -835,12 +875,13 @@
         },
         {
           "reps": 2,
-          "weight": 80.0
+          "weight": 85.0
         }
       ],
       "working_weight": 95.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -852,7 +893,7 @@
         },
         {
           "reps": 3,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 2,
@@ -862,6 +903,7 @@
       "working_weight": 97.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -873,7 +915,7 @@
         },
         {
           "reps": 3,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 2,
@@ -883,6 +925,7 @@
       "working_weight": 100.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -894,7 +937,7 @@
         },
         {
           "reps": 3,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 2,
@@ -904,6 +947,7 @@
       "working_weight": 101.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -915,7 +959,7 @@
         },
         {
           "reps": 3,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 2,
@@ -925,6 +969,7 @@
       "working_weight": 102.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -932,7 +977,7 @@
         },
         {
           "reps": 5,
-          "weight": 60.0
+          "weight": 55.0
         },
         {
           "reps": 3,
@@ -946,6 +991,7 @@
       "working_weight": 105.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -953,7 +999,7 @@
         },
         {
           "reps": 5,
-          "weight": 60.0
+          "weight": 55.0
         },
         {
           "reps": 3,
@@ -967,6 +1013,7 @@
       "working_weight": 107.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -974,7 +1021,7 @@
         },
         {
           "reps": 5,
-          "weight": 60.0
+          "weight": 65.0
         },
         {
           "reps": 3,
@@ -988,6 +1035,7 @@
       "working_weight": 110.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -995,11 +1043,11 @@
         },
         {
           "reps": 5,
-          "weight": 60.0
+          "weight": 65.0
         },
         {
           "reps": 3,
-          "weight": 80.0
+          "weight": 75.0
         },
         {
           "reps": 2,
@@ -1009,6 +1057,7 @@
       "working_weight": 112.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1020,7 +1069,7 @@
         },
         {
           "reps": 3,
-          "weight": 80.0
+          "weight": 85.0
         },
         {
           "reps": 2,
@@ -1030,6 +1079,7 @@
       "working_weight": 115.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1041,7 +1091,7 @@
         },
         {
           "reps": 3,
-          "weight": 80.0
+          "weight": 85.0
         },
         {
           "reps": 2,
@@ -1051,6 +1101,7 @@
       "working_weight": 117.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1072,6 +1123,7 @@
       "working_weight": 120.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1093,6 +1145,7 @@
       "working_weight": 122.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1100,7 +1153,7 @@
         },
         {
           "reps": 5,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 3,
@@ -1114,6 +1167,7 @@
       "working_weight": 123.4000015258789
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1121,7 +1175,7 @@
         },
         {
           "reps": 5,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 3,
@@ -1135,6 +1189,7 @@
       "working_weight": 125.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1142,7 +1197,7 @@
         },
         {
           "reps": 5,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 3,
@@ -1150,12 +1205,13 @@
         },
         {
           "reps": 2,
-          "weight": 110.0
+          "weight": 115.0
         }
       ],
       "working_weight": 127.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1163,7 +1219,7 @@
         },
         {
           "reps": 5,
-          "weight": 70.0
+          "weight": 65.0
         },
         {
           "reps": 3,
@@ -1171,12 +1227,13 @@
         },
         {
           "reps": 2,
-          "weight": 110.0
+          "weight": 115.0
         }
       ],
       "working_weight": 130.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1198,6 +1255,7 @@
       "working_weight": 132.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1219,6 +1277,7 @@
       "working_weight": 135.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1240,6 +1299,7 @@
       "working_weight": 137.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1255,12 +1315,13 @@
         },
         {
           "reps": 2,
-          "weight": 120.0
+          "weight": 115.0
         }
       ],
       "working_weight": 140.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1268,7 +1329,7 @@
         },
         {
           "reps": 5,
-          "weight": 80.0
+          "weight": 75.0
         },
         {
           "reps": 3,
@@ -1276,12 +1337,13 @@
         },
         {
           "reps": 2,
-          "weight": 120.0
+          "weight": 115.0
         }
       ],
       "working_weight": 142.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1289,7 +1351,7 @@
         },
         {
           "reps": 5,
-          "weight": 80.0
+          "weight": 75.0
         },
         {
           "reps": 3,
@@ -1303,6 +1365,7 @@
       "working_weight": 145.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1310,7 +1373,7 @@
         },
         {
           "reps": 5,
-          "weight": 80.0
+          "weight": 85.0
         },
         {
           "reps": 3,
@@ -1324,6 +1387,7 @@
       "working_weight": 147.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1345,6 +1409,7 @@
       "working_weight": 150.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1366,6 +1431,7 @@
       "working_weight": 152.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1377,7 +1443,7 @@
         },
         {
           "reps": 3,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 2,
@@ -1387,6 +1453,7 @@
       "working_weight": 155.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1398,7 +1465,7 @@
         },
         {
           "reps": 3,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 2,
@@ -1408,6 +1475,7 @@
       "working_weight": 157.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1419,7 +1487,7 @@
         },
         {
           "reps": 3,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 2,
@@ -1429,6 +1497,7 @@
       "working_weight": 160.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1450,6 +1519,7 @@
       "working_weight": 162.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1471,6 +1541,7 @@
       "working_weight": 165.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1492,6 +1563,7 @@
       "working_weight": 167.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1503,7 +1575,7 @@
         },
         {
           "reps": 3,
-          "weight": 120.0
+          "weight": 115.0
         },
         {
           "reps": 2,
@@ -1513,6 +1585,29 @@
       "working_weight": 170.0
     },
     {
+      "unit": "lb",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 45.0
+        },
+        {
+          "reps": 5,
+          "weight": 95.0
+        },
+        {
+          "reps": 3,
+          "weight": 115.0
+        },
+        {
+          "reps": 2,
+          "weight": 145.0
+        }
+      ],
+      "working_weight": 172.5
+    },
+    {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1531,30 +1626,10 @@
           "weight": 145.0
         }
       ],
-      "working_weight": 172.5
-    },
-    {
-      "warmups": [
-        {
-          "reps": 5,
-          "weight": 45.0
-        },
-        {
-          "reps": 5,
-          "weight": 95.0
-        },
-        {
-          "reps": 3,
-          "weight": 125.0
-        },
-        {
-          "reps": 2,
-          "weight": 145.0
-        }
-      ],
       "working_weight": 175.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1570,12 +1645,13 @@
         },
         {
           "reps": 2,
-          "weight": 145.0
+          "weight": 155.0
         }
       ],
       "working_weight": 177.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1591,12 +1667,13 @@
         },
         {
           "reps": 2,
-          "weight": 145.0
+          "weight": 155.0
         }
       ],
       "working_weight": 178.89999389648438
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1618,6 +1695,7 @@
       "working_weight": 180.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1639,6 +1717,7 @@
       "working_weight": 182.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1660,6 +1739,7 @@
       "working_weight": 185.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1675,12 +1755,13 @@
         },
         {
           "reps": 2,
-          "weight": 160.0
+          "weight": 155.0
         }
       ],
       "working_weight": 187.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1696,12 +1777,13 @@
         },
         {
           "reps": 2,
-          "weight": 160.0
+          "weight": 155.0
         }
       ],
       "working_weight": 190.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1723,6 +1805,7 @@
       "working_weight": 192.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1744,6 +1827,7 @@
       "working_weight": 195.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1751,7 +1835,7 @@
         },
         {
           "reps": 5,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 3,
@@ -1759,12 +1843,13 @@
         },
         {
           "reps": 2,
-          "weight": 170.0
+          "weight": 165.0
         }
       ],
       "working_weight": 197.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1772,7 +1857,7 @@
         },
         {
           "reps": 5,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 3,
@@ -1780,12 +1865,13 @@
         },
         {
           "reps": 2,
-          "weight": 170.0
+          "weight": 165.0
         }
       ],
       "working_weight": 200.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1793,7 +1879,7 @@
         },
         {
           "reps": 5,
-          "weight": 110.0
+          "weight": 115.0
         },
         {
           "reps": 3,
@@ -1801,12 +1887,13 @@
         },
         {
           "reps": 2,
-          "weight": 170.0
+          "weight": 175.0
         }
       ],
       "working_weight": 202.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1828,6 +1915,7 @@
       "working_weight": 205.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1849,6 +1937,7 @@
       "working_weight": 207.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1870,6 +1959,7 @@
       "working_weight": 210.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1891,6 +1981,7 @@
       "working_weight": 212.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1898,11 +1989,11 @@
         },
         {
           "reps": 5,
-          "weight": 120.0
+          "weight": 115.0
         },
         {
           "reps": 3,
-          "weight": 145.0
+          "weight": 155.0
         },
         {
           "reps": 2,
@@ -1912,6 +2003,7 @@
       "working_weight": 215.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1919,11 +2011,11 @@
         },
         {
           "reps": 5,
-          "weight": 120.0
+          "weight": 115.0
         },
         {
           "reps": 3,
-          "weight": 145.0
+          "weight": 155.0
         },
         {
           "reps": 2,
@@ -1933,6 +2025,7 @@
       "working_weight": 217.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1940,7 +2033,7 @@
         },
         {
           "reps": 5,
-          "weight": 120.0
+          "weight": 115.0
         },
         {
           "reps": 3,
@@ -1954,6 +2047,7 @@
       "working_weight": 220.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1961,7 +2055,7 @@
         },
         {
           "reps": 5,
-          "weight": 120.0
+          "weight": 115.0
         },
         {
           "reps": 3,
@@ -1975,6 +2069,7 @@
       "working_weight": 222.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -1986,7 +2081,7 @@
         },
         {
           "reps": 3,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 2,
@@ -1996,6 +2091,7 @@
       "working_weight": 225.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2007,7 +2103,7 @@
         },
         {
           "reps": 3,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 2,
@@ -2017,6 +2113,7 @@
       "working_weight": 227.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2028,7 +2125,7 @@
         },
         {
           "reps": 3,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 2,
@@ -2038,6 +2135,7 @@
       "working_weight": 230.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2053,12 +2151,13 @@
         },
         {
           "reps": 2,
-          "weight": 195.0
+          "weight": 205.0
         }
       ],
       "working_weight": 232.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2074,12 +2173,13 @@
         },
         {
           "reps": 2,
-          "weight": 195.0
+          "weight": 205.0
         }
       ],
       "working_weight": 235.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2095,12 +2195,13 @@
         },
         {
           "reps": 2,
-          "weight": 195.0
+          "weight": 205.0
         }
       ],
       "working_weight": 237.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2112,7 +2213,7 @@
         },
         {
           "reps": 3,
-          "weight": 170.0
+          "weight": 165.0
         },
         {
           "reps": 2,
@@ -2122,6 +2223,7 @@
       "working_weight": 240.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2133,7 +2235,7 @@
         },
         {
           "reps": 3,
-          "weight": 170.0
+          "weight": 165.0
         },
         {
           "reps": 2,
@@ -2143,6 +2245,7 @@
       "working_weight": 242.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2154,16 +2257,17 @@
         },
         {
           "reps": 3,
-          "weight": 170.0
+          "weight": 175.0
         },
         {
           "reps": 2,
-          "weight": 210.0
+          "weight": 205.0
         }
       ],
       "working_weight": 245.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2179,12 +2283,35 @@
         },
         {
           "reps": 2,
-          "weight": 210.0
+          "weight": 205.0
         }
       ],
       "working_weight": 247.5
     },
     {
+      "unit": "lb",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 45.0
+        },
+        {
+          "reps": 5,
+          "weight": 135.0
+        },
+        {
+          "reps": 3,
+          "weight": 175.0
+        },
+        {
+          "reps": 2,
+          "weight": 205.0
+        }
+      ],
+      "working_weight": 249.89999389648438
+    },
+    {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2203,30 +2330,10 @@
           "weight": 210.0
         }
       ],
-      "working_weight": 249.89999389648438
-    },
-    {
-      "warmups": [
-        {
-          "reps": 5,
-          "weight": 45.0
-        },
-        {
-          "reps": 5,
-          "weight": 135.0
-        },
-        {
-          "reps": 3,
-          "weight": 175.0
-        },
-        {
-          "reps": 2,
-          "weight": 215.0
-        }
-      ],
       "working_weight": 250.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2248,6 +2355,7 @@
       "working_weight": 252.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2269,6 +2377,7 @@
       "working_weight": 255.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2290,6 +2399,7 @@
       "working_weight": 257.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2311,6 +2421,7 @@
       "working_weight": 260.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2332,6 +2443,7 @@
       "working_weight": 262.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2353,6 +2465,7 @@
       "working_weight": 265.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2374,6 +2487,7 @@
       "working_weight": 267.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2395,6 +2509,7 @@
       "working_weight": 270.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2416,6 +2531,7 @@
       "working_weight": 272.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2423,11 +2539,11 @@
         },
         {
           "reps": 5,
-          "weight": 145.0
+          "weight": 155.0
         },
         {
           "reps": 3,
-          "weight": 195.0
+          "weight": 190.0
         },
         {
           "reps": 2,
@@ -2437,6 +2553,7 @@
       "working_weight": 275.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2458,6 +2575,7 @@
       "working_weight": 277.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2479,6 +2597,7 @@
       "working_weight": 280.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2490,16 +2609,17 @@
         },
         {
           "reps": 3,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 2,
-          "weight": 235.0
+          "weight": 245.0
         }
       ],
       "working_weight": 282.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2511,16 +2631,17 @@
         },
         {
           "reps": 3,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 2,
-          "weight": 235.0
+          "weight": 245.0
         }
       ],
       "working_weight": 285.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2528,11 +2649,11 @@
         },
         {
           "reps": 5,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 3,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 2,
@@ -2542,6 +2663,7 @@
       "working_weight": 287.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2549,7 +2671,7 @@
         },
         {
           "reps": 5,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 3,
@@ -2563,6 +2685,7 @@
       "working_weight": 290.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2570,7 +2693,7 @@
         },
         {
           "reps": 5,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 3,
@@ -2584,6 +2707,7 @@
       "working_weight": 292.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2591,7 +2715,7 @@
         },
         {
           "reps": 5,
-          "weight": 160.0
+          "weight": 155.0
         },
         {
           "reps": 3,
@@ -2605,6 +2729,7 @@
       "working_weight": 295.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2616,7 +2741,7 @@
         },
         {
           "reps": 3,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 2,
@@ -2626,6 +2751,7 @@
       "working_weight": 297.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2637,7 +2763,7 @@
         },
         {
           "reps": 3,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 2,
@@ -2647,6 +2773,7 @@
       "working_weight": 300.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2658,7 +2785,7 @@
         },
         {
           "reps": 3,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 2,
@@ -2668,6 +2795,7 @@
       "working_weight": 302.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2675,7 +2803,7 @@
         },
         {
           "reps": 5,
-          "weight": 170.0
+          "weight": 165.0
         },
         {
           "reps": 3,
@@ -2683,12 +2811,13 @@
         },
         {
           "reps": 2,
-          "weight": 260.0
+          "weight": 255.0
         }
       ],
       "working_weight": 305.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2696,7 +2825,7 @@
         },
         {
           "reps": 5,
-          "weight": 170.0
+          "weight": 165.0
         },
         {
           "reps": 3,
@@ -2704,12 +2833,13 @@
         },
         {
           "reps": 2,
-          "weight": 260.0
+          "weight": 265.0
         }
       ],
       "working_weight": 307.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2717,7 +2847,7 @@
         },
         {
           "reps": 5,
-          "weight": 170.0
+          "weight": 175.0
         },
         {
           "reps": 3,
@@ -2731,6 +2861,7 @@
       "working_weight": 310.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2738,7 +2869,7 @@
         },
         {
           "reps": 5,
-          "weight": 170.0
+          "weight": 175.0
         },
         {
           "reps": 3,
@@ -2752,6 +2883,7 @@
       "working_weight": 312.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2773,6 +2905,7 @@
       "working_weight": 315.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2794,6 +2927,7 @@
       "working_weight": 317.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2815,6 +2949,7 @@
       "working_weight": 320.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2836,6 +2971,7 @@
       "working_weight": 322.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2857,6 +2993,7 @@
       "working_weight": 325.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2878,6 +3015,7 @@
       "working_weight": 327.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2899,6 +3037,7 @@
       "working_weight": 330.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2920,6 +3059,7 @@
       "working_weight": 332.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2941,6 +3081,7 @@
       "working_weight": 335.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -2962,48 +3103,7 @@
       "working_weight": 337.5
     },
     {
-      "warmups": [
-        {
-          "reps": 5,
-          "weight": 45.0
-        },
-        {
-          "reps": 5,
-          "weight": 185.0
-        },
-        {
-          "reps": 3,
-          "weight": 235.0
-        },
-        {
-          "reps": 2,
-          "weight": 285.0
-        }
-      ],
-      "working_weight": 340.0
-    },
-    {
-      "warmups": [
-        {
-          "reps": 5,
-          "weight": 45.0
-        },
-        {
-          "reps": 5,
-          "weight": 185.0
-        },
-        {
-          "reps": 3,
-          "weight": 235.0
-        },
-        {
-          "reps": 2,
-          "weight": 285.0
-        }
-      ],
-      "working_weight": 342.5
-    },
-    {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3022,9 +3122,54 @@
           "weight": 295.0
         }
       ],
+      "working_weight": 340.0
+    },
+    {
+      "unit": "lb",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 45.0
+        },
+        {
+          "reps": 5,
+          "weight": 185.0
+        },
+        {
+          "reps": 3,
+          "weight": 235.0
+        },
+        {
+          "reps": 2,
+          "weight": 295.0
+        }
+      ],
+      "working_weight": 342.5
+    },
+    {
+      "unit": "lb",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 45.0
+        },
+        {
+          "reps": 5,
+          "weight": 185.0
+        },
+        {
+          "reps": 3,
+          "weight": 245.0
+        },
+        {
+          "reps": 2,
+          "weight": 295.0
+        }
+      ],
       "working_weight": 345.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3046,6 +3191,7 @@
       "working_weight": 347.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3053,7 +3199,7 @@
         },
         {
           "reps": 5,
-          "weight": 195.0
+          "weight": 190.0
         },
         {
           "reps": 3,
@@ -3067,6 +3213,7 @@
       "working_weight": 350.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3088,6 +3235,7 @@
       "working_weight": 352.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3109,6 +3257,7 @@
       "working_weight": 355.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3130,6 +3279,7 @@
       "working_weight": 357.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3137,7 +3287,7 @@
         },
         {
           "reps": 5,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3151,6 +3301,7 @@
       "working_weight": 360.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3158,7 +3309,7 @@
         },
         {
           "reps": 5,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3172,6 +3323,7 @@
       "working_weight": 362.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3179,7 +3331,7 @@
         },
         {
           "reps": 5,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3193,6 +3345,7 @@
       "working_weight": 365.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3200,7 +3353,7 @@
         },
         {
           "reps": 5,
-          "weight": 195.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3214,6 +3367,7 @@
       "working_weight": 367.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3225,7 +3379,7 @@
         },
         {
           "reps": 3,
-          "weight": 260.0
+          "weight": 255.0
         },
         {
           "reps": 2,
@@ -3235,6 +3389,7 @@
       "working_weight": 370.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3246,7 +3401,7 @@
         },
         {
           "reps": 3,
-          "weight": 260.0
+          "weight": 265.0
         },
         {
           "reps": 2,
@@ -3256,6 +3411,7 @@
       "working_weight": 372.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3277,6 +3433,7 @@
       "working_weight": 375.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3284,7 +3441,7 @@
         },
         {
           "reps": 5,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3298,6 +3455,7 @@
       "working_weight": 377.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3305,7 +3463,7 @@
         },
         {
           "reps": 5,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3319,6 +3477,7 @@
       "working_weight": 380.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3326,7 +3485,7 @@
         },
         {
           "reps": 5,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3340,6 +3499,7 @@
       "working_weight": 382.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3347,7 +3507,7 @@
         },
         {
           "reps": 5,
-          "weight": 210.0
+          "weight": 205.0
         },
         {
           "reps": 3,
@@ -3361,6 +3521,7 @@
       "working_weight": 385.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3382,6 +3543,7 @@
       "working_weight": 387.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3397,12 +3559,13 @@
         },
         {
           "reps": 2,
-          "weight": 325.0
+          "weight": 335.0
         }
       ],
       "working_weight": 390.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3424,6 +3587,7 @@
       "working_weight": 392.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3445,6 +3609,7 @@
       "working_weight": 395.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3466,6 +3631,7 @@
       "working_weight": 397.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3487,6 +3653,7 @@
       "working_weight": 400.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3508,6 +3675,7 @@
       "working_weight": 402.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3529,6 +3697,7 @@
       "working_weight": 405.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3550,6 +3719,7 @@
       "working_weight": 407.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3571,6 +3741,7 @@
       "working_weight": 410.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3582,16 +3753,17 @@
         },
         {
           "reps": 3,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 2,
-          "weight": 345.0
+          "weight": 355.0
         }
       ],
       "working_weight": 412.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3603,7 +3775,7 @@
         },
         {
           "reps": 3,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 2,
@@ -3613,6 +3785,7 @@
       "working_weight": 415.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3624,7 +3797,7 @@
         },
         {
           "reps": 3,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 2,
@@ -3634,6 +3807,7 @@
       "working_weight": 417.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3655,6 +3829,7 @@
       "working_weight": 420.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3676,6 +3851,7 @@
       "working_weight": 422.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3697,6 +3873,7 @@
       "working_weight": 425.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3718,6 +3895,7 @@
       "working_weight": 427.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3739,6 +3917,7 @@
       "working_weight": 430.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3760,6 +3939,7 @@
       "working_weight": 432.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3781,6 +3961,7 @@
       "working_weight": 435.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3788,7 +3969,7 @@
         },
         {
           "reps": 5,
-          "weight": 235.0
+          "weight": 245.0
         },
         {
           "reps": 3,
@@ -3802,6 +3983,7 @@
       "working_weight": 437.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3809,7 +3991,7 @@
         },
         {
           "reps": 5,
-          "weight": 235.0
+          "weight": 245.0
         },
         {
           "reps": 3,
@@ -3823,6 +4005,7 @@
       "working_weight": 440.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3844,6 +4027,7 @@
       "working_weight": 442.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3859,12 +4043,13 @@
         },
         {
           "reps": 2,
-          "weight": 375.0
+          "weight": 385.0
         }
       ],
       "working_weight": 445.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3880,12 +4065,13 @@
         },
         {
           "reps": 2,
-          "weight": 375.0
+          "weight": 385.0
         }
       ],
       "working_weight": 447.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3907,6 +4093,7 @@
       "working_weight": 450.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3928,6 +4115,7 @@
       "working_weight": 452.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3949,6 +4137,7 @@
       "working_weight": 455.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3970,6 +4159,7 @@
       "working_weight": 457.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -3991,6 +4181,7 @@
       "working_weight": 460.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4012,6 +4203,7 @@
       "working_weight": 462.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4033,6 +4225,7 @@
       "working_weight": 465.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4054,6 +4247,7 @@
       "working_weight": 467.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4061,7 +4255,7 @@
         },
         {
           "reps": 5,
-          "weight": 260.0
+          "weight": 255.0
         },
         {
           "reps": 3,
@@ -4069,12 +4263,13 @@
         },
         {
           "reps": 2,
-          "weight": 395.0
+          "weight": 405.0
         }
       ],
       "working_weight": 470.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4082,20 +4277,21 @@
         },
         {
           "reps": 5,
-          "weight": 260.0
+          "weight": 255.0
         },
         {
           "reps": 3,
-          "weight": 325.0
+          "weight": 335.0
         },
         {
           "reps": 2,
-          "weight": 395.0
+          "weight": 405.0
         }
       ],
       "working_weight": 472.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4103,7 +4299,7 @@
         },
         {
           "reps": 5,
-          "weight": 260.0
+          "weight": 265.0
         },
         {
           "reps": 3,
@@ -4117,6 +4313,7 @@
       "working_weight": 475.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4138,6 +4335,7 @@
       "working_weight": 477.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4159,6 +4357,7 @@
       "working_weight": 480.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4180,6 +4379,7 @@
       "working_weight": 482.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4201,6 +4401,7 @@
       "working_weight": 485.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4222,6 +4423,7 @@
       "working_weight": 487.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4243,6 +4445,7 @@
       "working_weight": 490.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4264,6 +4467,7 @@
       "working_weight": 492.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4279,12 +4483,13 @@
         },
         {
           "reps": 2,
-          "weight": 415.0
+          "weight": 425.0
         }
       ],
       "working_weight": 495.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4306,6 +4511,7 @@
       "working_weight": 497.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4327,6 +4533,7 @@
       "working_weight": 500.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4338,7 +4545,7 @@
         },
         {
           "reps": 3,
-          "weight": 345.0
+          "weight": 355.0
         },
         {
           "reps": 2,
@@ -4348,6 +4555,7 @@
       "working_weight": 502.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4369,6 +4577,7 @@
       "working_weight": 505.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4390,6 +4599,7 @@
       "working_weight": 507.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4411,6 +4621,7 @@
       "working_weight": 510.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4432,6 +4643,7 @@
       "working_weight": 512.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4453,6 +4665,7 @@
       "working_weight": 515.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4474,6 +4687,7 @@
       "working_weight": 517.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4489,12 +4703,13 @@
         },
         {
           "reps": 2,
-          "weight": 435.0
+          "weight": 445.0
         }
       ],
       "working_weight": 520.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4516,6 +4731,7 @@
       "working_weight": 522.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4523,7 +4739,7 @@
         },
         {
           "reps": 5,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 3,
@@ -4537,6 +4753,7 @@
       "working_weight": 525.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4544,7 +4761,7 @@
         },
         {
           "reps": 5,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 3,
@@ -4552,12 +4769,13 @@
         },
         {
           "reps": 2,
-          "weight": 445.0
+          "weight": 455.0
         }
       ],
       "working_weight": 527.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4565,7 +4783,7 @@
         },
         {
           "reps": 5,
-          "weight": 285.0
+          "weight": 295.0
         },
         {
           "reps": 3,
@@ -4573,12 +4791,13 @@
         },
         {
           "reps": 2,
-          "weight": 445.0
+          "weight": 455.0
         }
       ],
       "working_weight": 530.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4600,6 +4819,7 @@
       "working_weight": 532.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4621,6 +4841,7 @@
       "working_weight": 535.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4642,6 +4863,7 @@
       "working_weight": 537.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4653,7 +4875,7 @@
         },
         {
           "reps": 3,
-          "weight": 375.0
+          "weight": 385.0
         },
         {
           "reps": 2,
@@ -4663,6 +4885,7 @@
       "working_weight": 540.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4674,7 +4897,7 @@
         },
         {
           "reps": 3,
-          "weight": 375.0
+          "weight": 385.0
         },
         {
           "reps": 2,
@@ -4684,6 +4907,7 @@
       "working_weight": 542.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4695,7 +4919,7 @@
         },
         {
           "reps": 3,
-          "weight": 375.0
+          "weight": 385.0
         },
         {
           "reps": 2,
@@ -4705,6 +4929,7 @@
       "working_weight": 545.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4726,6 +4951,7 @@
       "working_weight": 547.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4733,7 +4959,7 @@
         },
         {
           "reps": 5,
-          "weight": 305.0
+          "weight": 300.0
         },
         {
           "reps": 3,
@@ -4741,12 +4967,13 @@
         },
         {
           "reps": 2,
-          "weight": 465.0
+          "weight": 475.0
         }
       ],
       "working_weight": 550.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4762,12 +4989,13 @@
         },
         {
           "reps": 2,
-          "weight": 465.0
+          "weight": 475.0
         }
       ],
       "working_weight": 552.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4783,12 +5011,13 @@
         },
         {
           "reps": 2,
-          "weight": 465.0
+          "weight": 475.0
         }
       ],
       "working_weight": 555.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4810,6 +5039,7 @@
       "working_weight": 557.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4831,6 +5061,7 @@
       "working_weight": 560.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4852,6 +5083,7 @@
       "working_weight": 562.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4873,6 +5105,7 @@
       "working_weight": 565.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4894,6 +5127,7 @@
       "working_weight": 567.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4905,7 +5139,7 @@
         },
         {
           "reps": 3,
-          "weight": 395.0
+          "weight": 405.0
         },
         {
           "reps": 2,
@@ -4915,6 +5149,7 @@
       "working_weight": 570.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4926,7 +5161,7 @@
         },
         {
           "reps": 3,
-          "weight": 395.0
+          "weight": 405.0
         },
         {
           "reps": 2,
@@ -4936,6 +5171,7 @@
       "working_weight": 572.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4951,12 +5187,13 @@
         },
         {
           "reps": 2,
-          "weight": 485.0
+          "weight": 495.0
         }
       ],
       "working_weight": 575.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4972,12 +5209,13 @@
         },
         {
           "reps": 2,
-          "weight": 485.0
+          "weight": 495.0
         }
       ],
       "working_weight": 577.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -4999,6 +5237,7 @@
       "working_weight": 580.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5020,6 +5259,7 @@
       "working_weight": 582.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5041,6 +5281,7 @@
       "working_weight": 585.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5062,6 +5303,7 @@
       "working_weight": 587.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5083,6 +5325,7 @@
       "working_weight": 590.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5104,6 +5347,7 @@
       "working_weight": 592.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5125,6 +5369,7 @@
       "working_weight": 595.0
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5146,6 +5391,7 @@
       "working_weight": 597.5
     },
     {
+      "unit": "lb",
       "warmups": [
         {
           "reps": 5,
@@ -5162,6 +5408,5418 @@
         {
           "reps": 2,
           "weight": 505.0
+        }
+      ],
+      "working_weight": 600.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 5,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 3,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 2,
+          "weight": 2.7557783126831055
+        }
+      ],
+      "working_weight": 5.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 5,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 3,
+          "weight": 4.7442216873168945
+        },
+        {
+          "reps": 2,
+          "weight": 4.7442216873168945
+        }
+      ],
+      "working_weight": 7.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 2.7557783126831055
+        },
+        {
+          "reps": 5,
+          "weight": 5.511556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 7.244221210479736
+        },
+        {
+          "reps": 2,
+          "weight": 7.244221210479736
+        }
+      ],
+      "working_weight": 10.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 5.511556625366211
+        },
+        {
+          "reps": 5,
+          "weight": 5.511556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 2,
+          "weight": 9.744221687316895
+        }
+      ],
+      "working_weight": 12.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 5.511556625366211
+        },
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 3,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 2,
+          "weight": 10.244221687316895
+        }
+      ],
+      "working_weight": 13.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 5.511556625366211
+        },
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 3,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 12.244221687316895
+        }
+      ],
+      "working_weight": 15.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 3,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 13.778891563415527
+        }
+      ],
+      "working_weight": 17.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 5,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 2,
+          "weight": 16.534669876098633
+        }
+      ],
+      "working_weight": 20.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 8.267334938049316
+        },
+        {
+          "reps": 5,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 2,
+          "weight": 19.290449142456055
+        }
+      ],
+      "working_weight": 22.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 3,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 2,
+          "weight": 22.046226501464844
+        }
+      ],
+      "working_weight": 25.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 3,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 2,
+          "weight": 22.046226501464844
+        }
+      ],
+      "working_weight": 27.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 11.023113250732422
+        },
+        {
+          "reps": 5,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 3,
+          "weight": 22.046226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 24.802005767822266
+        }
+      ],
+      "working_weight": 30.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 5,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 3,
+          "weight": 22.046226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 27.557783126831055
+        }
+      ],
+      "working_weight": 32.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 5,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 3,
+          "weight": 22.046226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 27.557783126831055
+        }
+      ],
+      "working_weight": 33.29999923706055
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 5,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 3,
+          "weight": 24.802005767822266
+        },
+        {
+          "reps": 2,
+          "weight": 30.313562393188477
+        }
+      ],
+      "working_weight": 35.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 13.778891563415527
+        },
+        {
+          "reps": 5,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 3,
+          "weight": 27.557783126831055
+        },
+        {
+          "reps": 2,
+          "weight": 33.069339752197266
+        }
+      ],
+      "working_weight": 37.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 5,
+          "weight": 22.046226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 27.557783126831055
+        },
+        {
+          "reps": 2,
+          "weight": 33.069339752197266
+        }
+      ],
+      "working_weight": 40.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 16.534669876098633
+        },
+        {
+          "reps": 5,
+          "weight": 22.046226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 30.313562393188477
+        },
+        {
+          "reps": 2,
+          "weight": 35.82511901855469
+        }
+      ],
+      "working_weight": 42.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 5,
+          "weight": 24.802005767822266
+        },
+        {
+          "reps": 3,
+          "weight": 30.313562393188477
+        },
+        {
+          "reps": 2,
+          "weight": 38.58089828491211
+        }
+      ],
+      "working_weight": 45.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 19.290449142456055
+        },
+        {
+          "reps": 5,
+          "weight": 24.802005767822266
+        },
+        {
+          "reps": 3,
+          "weight": 33.069339752197266
+        },
+        {
+          "reps": 2,
+          "weight": 38.58089828491211
+        }
+      ],
+      "working_weight": 46.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 47.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 50.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 52.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 55.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 57.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 44.09245300292969
+        }
+      ],
+      "working_weight": 60.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 55.11556625366211
+        }
+      ],
+      "working_weight": 62.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 55.11556625366211
+        }
+      ],
+      "working_weight": 65.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 55.11556625366211
+        }
+      ],
+      "working_weight": 67.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 55.11556625366211
+        }
+      ],
+      "working_weight": 70.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 72.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 75.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 77.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 80.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 82.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 85.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 66.13867950439453
+        }
+      ],
+      "working_weight": 87.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 77.16179656982422
+        }
+      ],
+      "working_weight": 90.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 77.16179656982422
+        }
+      ],
+      "working_weight": 92.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 95.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 97.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 100.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 101.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 102.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 105.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 107.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 55.11556625366211
+        },
+        {
+          "reps": 3,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 110.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 2,
+          "weight": 88.18490600585938
+        }
+      ],
+      "working_weight": 112.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 99.20802307128906
+        }
+      ],
+      "working_weight": 115.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 99.20802307128906
+        }
+      ],
+      "working_weight": 117.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 120.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 122.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 123.4000015258789
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 125.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 127.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 130.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 132.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 66.13867950439453
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 135.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 3,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 2,
+          "weight": 110.23113250732422
+        }
+      ],
+      "working_weight": 137.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 3,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 2,
+          "weight": 121.2542495727539
+        }
+      ],
+      "working_weight": 140.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 3,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 2,
+          "weight": 121.2542495727539
+        }
+      ],
+      "working_weight": 142.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 77.16179656982422
+        },
+        {
+          "reps": 3,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 2,
+          "weight": 121.2542495727539
+        }
+      ],
+      "working_weight": 145.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 147.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 150.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 152.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 155.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 157.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 160.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 162.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 132.27735900878906
+        }
+      ],
+      "working_weight": 165.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 2,
+          "weight": 143.30047607421875
+        }
+      ],
+      "working_weight": 167.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 2,
+          "weight": 143.30047607421875
+        }
+      ],
+      "working_weight": 170.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 172.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 88.18490600585938
+        },
+        {
+          "reps": 3,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 175.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 177.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 178.89999389648438
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 180.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 182.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 99.20802307128906
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 185.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 187.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 154.32359313964844
+        }
+      ],
+      "working_weight": 190.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 165.34669494628906
+        }
+      ],
+      "working_weight": 192.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 165.34669494628906
+        }
+      ],
+      "working_weight": 195.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 165.34669494628906
+        }
+      ],
+      "working_weight": 197.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 2,
+          "weight": 165.34669494628906
+        }
+      ],
+      "working_weight": 200.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 202.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 205.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 207.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 210.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 212.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 110.23113250732422
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 176.36981201171875
+        }
+      ],
+      "working_weight": 215.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 187.39292907714844
+        }
+      ],
+      "working_weight": 217.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 187.39292907714844
+        }
+      ],
+      "working_weight": 220.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 187.39292907714844
+        }
+      ],
+      "working_weight": 222.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 121.2542495727539
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 225.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 227.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 230.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 232.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 235.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 237.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 240.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 2,
+          "weight": 198.41604614257812
+        }
+      ],
+      "working_weight": 242.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 209.43914794921875
+        }
+      ],
+      "working_weight": 245.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 209.43914794921875
+        }
+      ],
+      "working_weight": 247.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 249.89999389648438
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 250.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 252.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 132.27735900878906
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 255.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 257.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 260.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 3,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 262.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 143.30047607421875
+        },
+        {
+          "reps": 3,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 265.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 2,
+          "weight": 220.46226501464844
+        }
+      ],
+      "working_weight": 267.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 2,
+          "weight": 231.48538208007812
+        }
+      ],
+      "working_weight": 270.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 231.48538208007812
+        }
+      ],
+      "working_weight": 272.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 231.48538208007812
+        }
+      ],
+      "working_weight": 275.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 277.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 280.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 282.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 285.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 287.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 290.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 292.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 154.32359313964844
+        },
+        {
+          "reps": 3,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 2,
+          "weight": 242.5084991455078
+        }
+      ],
+      "working_weight": 295.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 2,
+          "weight": 253.53160095214844
+        }
+      ],
+      "working_weight": 297.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 2,
+          "weight": 253.53160095214844
+        }
+      ],
+      "working_weight": 300.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 302.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 305.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 307.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 165.34669494628906
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 310.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 312.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 315.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 317.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 264.5547180175781
+        }
+      ],
+      "working_weight": 320.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 275.57781982421875
+        }
+      ],
+      "working_weight": 322.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 2,
+          "weight": 275.57781982421875
+        }
+      ],
+      "working_weight": 325.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 2,
+          "weight": 275.57781982421875
+        }
+      ],
+      "working_weight": 327.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 2,
+          "weight": 275.57781982421875
+        }
+      ],
+      "working_weight": 330.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 332.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 176.36981201171875
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 335.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 337.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 340.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 342.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 187.39292907714844
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 286.6009521484375
+        }
+      ],
+      "working_weight": 345.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 297.6240539550781
+        }
+      ],
+      "working_weight": 347.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 297.6240539550781
+        }
+      ],
+      "working_weight": 350.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 297.6240539550781
+        }
+      ],
+      "working_weight": 352.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 355.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 357.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 360.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 362.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 365.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 367.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 370.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 308.6471862792969
+        }
+      ],
+      "working_weight": 372.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 198.41604614257812
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 319.6702880859375
+        }
+      ],
+      "working_weight": 375.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 319.6702880859375
+        }
+      ],
+      "working_weight": 377.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 380.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 382.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 209.43914794921875
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 385.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 387.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 390.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 392.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 395.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 2,
+          "weight": 330.6933898925781
+        }
+      ],
+      "working_weight": 397.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 2,
+          "weight": 341.7165222167969
+        }
+      ],
+      "working_weight": 400.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 341.7165222167969
+        }
+      ],
+      "working_weight": 402.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 341.7165222167969
+        }
+      ],
+      "working_weight": 405.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 407.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 410.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 412.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 220.46226501464844
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 415.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 417.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 3,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 420.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 3,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 2,
+          "weight": 352.7396240234375
+        }
+      ],
+      "working_weight": 422.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 231.48538208007812
+        },
+        {
+          "reps": 3,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 2,
+          "weight": 363.7627258300781
+        }
+      ],
+      "working_weight": 425.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 2,
+          "weight": 363.7627258300781
+        }
+      ],
+      "working_weight": 427.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 363.7627258300781
+        }
+      ],
+      "working_weight": 430.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 432.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 435.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 437.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 440.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 442.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 445.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 447.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 374.7858581542969
+        }
+      ],
+      "working_weight": 450.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 2,
+          "weight": 385.8089599609375
+        }
+      ],
+      "working_weight": 452.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 242.5084991455078
+        },
+        {
+          "reps": 3,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 2,
+          "weight": 385.8089599609375
+        }
+      ],
+      "working_weight": 455.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 3,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 2,
+          "weight": 385.8089599609375
+        }
+      ],
+      "working_weight": 457.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 3,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 2,
+          "weight": 385.8089599609375
+        }
+      ],
+      "working_weight": 460.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 462.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 253.53160095214844
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 465.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 467.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 470.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 472.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 396.83209228515625
+        }
+      ],
+      "working_weight": 475.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 407.8551940917969
+        }
+      ],
+      "working_weight": 477.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 407.8551940917969
+        }
+      ],
+      "working_weight": 480.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 2,
+          "weight": 407.8551940917969
+        }
+      ],
+      "working_weight": 482.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 341.7165222167969
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 485.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 341.7165222167969
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 487.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 341.7165222167969
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 490.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 492.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 264.5547180175781
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 495.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 497.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 500.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 418.8782958984375
+        }
+      ],
+      "working_weight": 502.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 429.90142822265625
+        }
+      ],
+      "working_weight": 505.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 429.90142822265625
+        }
+      ],
+      "working_weight": 507.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 275.57781982421875
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 510.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 512.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 352.7396240234375
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 515.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 363.7627258300781
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 517.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 363.7627258300781
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 520.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 363.7627258300781
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 522.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 525.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 440.9245300292969
+        }
+      ],
+      "working_weight": 527.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 451.9476623535156
+        }
+      ],
+      "working_weight": 530.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 451.9476623535156
+        }
+      ],
+      "working_weight": 532.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 286.6009521484375
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 535.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 537.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 540.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 542.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 297.6240539550781
+        },
+        {
+          "reps": 3,
+          "weight": 374.7858581542969
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 545.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 385.8089599609375
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 547.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 385.8089599609375
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 550.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 385.8089599609375
+        },
+        {
+          "reps": 2,
+          "weight": 462.97076416015625
+        }
+      ],
+      "working_weight": 552.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 385.8089599609375
+        },
+        {
+          "reps": 2,
+          "weight": 473.9938659667969
+        }
+      ],
+      "working_weight": 555.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 385.8089599609375
+        },
+        {
+          "reps": 2,
+          "weight": 473.9938659667969
+        }
+      ],
+      "working_weight": 557.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 473.9938659667969
+        }
+      ],
+      "working_weight": 560.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 562.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 565.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 567.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 570.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 572.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 308.6471862792969
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 575.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 3,
+          "weight": 396.83209228515625
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 577.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 3,
+          "weight": 407.8551940917969
+        },
+        {
+          "reps": 2,
+          "weight": 485.0169982910156
+        }
+      ],
+      "working_weight": 580.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 3,
+          "weight": 407.8551940917969
+        },
+        {
+          "reps": 2,
+          "weight": 496.04010009765625
+        }
+      ],
+      "working_weight": 582.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 319.6702880859375
+        },
+        {
+          "reps": 3,
+          "weight": 407.8551940917969
+        },
+        {
+          "reps": 2,
+          "weight": 496.04010009765625
+        }
+      ],
+      "working_weight": 585.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 496.04010009765625
+        }
+      ],
+      "working_weight": 587.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 496.04010009765625
+        }
+      ],
+      "working_weight": 590.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 507.0632019042969
+        }
+      ],
+      "working_weight": 592.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 507.0632019042969
+        }
+      ],
+      "working_weight": 595.0
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 507.0632019042969
+        }
+      ],
+      "working_weight": 597.5
+    },
+    {
+      "unit": "kg",
+      "warmups": [
+        {
+          "reps": 5,
+          "weight": 44.09245300292969
+        },
+        {
+          "reps": 5,
+          "weight": 330.6933898925781
+        },
+        {
+          "reps": 3,
+          "weight": 418.8782958984375
+        },
+        {
+          "reps": 2,
+          "weight": 507.0632019042969
         }
       ],
       "working_weight": 600.0

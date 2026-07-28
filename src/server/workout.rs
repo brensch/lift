@@ -1,5 +1,8 @@
 use super::*;
-use crate::program_state::{FieldVal, ProposalMessage, ProposeResult, StatePayload};
+use crate::program_state::{
+    payload_from_proto, FieldVal, ProposalMessage, ProposeResult, StatePayload,
+};
+use crate::weight_units::{weight_unit_from_state, AppWeightUnit};
 use std::collections::HashMap;
 
 use super::messages::*;
@@ -452,10 +455,20 @@ impl WorkoutService for ServerWorkoutService {
             group.workout_id = workout_id.clone();
             group.workout_order = idx as i32;
         }
+        // Warmups snap to loadable weights in the user's unit, so we need it here.
+        let unit = self
+            .db
+            .get_program_state(&user_id)
+            .await
+            .map_err(internal_error)?
+            .and_then(|resp| resp.state)
+            .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
+            .unwrap_or(AppWeightUnit::Lb);
+
         let mut proposed_sets = Vec::new();
         let mut order = 0;
         for group in &groups {
-            let generated = generate_sets_for_group(&workout_id, group, order);
+            let generated = generate_sets_for_group(&workout_id, group, order, unit);
             order += generated.len() as i32;
             proposed_sets.extend(generated);
         }
