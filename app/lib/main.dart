@@ -28,6 +28,8 @@ import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/exercise_detail_screen.dart';
+import 'gen/workout/v1/workout.pbenum.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
 import 'screens/debug_logs_screen.dart';
@@ -250,6 +252,16 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/history',
               builder: (_, __) => const HistoryScreen(),
+            ),
+            GoRoute(
+              path: '/exercise/:ex',
+              builder: (_, state) {
+                final v = int.tryParse(state.pathParameters['ex'] ?? '') ?? 0;
+                return ExerciseDetailScreen(
+                  exercise:
+                      Exercise.valueOf(v) ?? Exercise.EXERCISE_UNSPECIFIED,
+                );
+              },
             ),
             GoRoute(
               path: '/sound-settings',
