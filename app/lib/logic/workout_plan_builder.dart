@@ -9,6 +9,7 @@ library;
 
 import 'package:uuid/uuid.dart';
 
+import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import 'warmup.dart';
 
@@ -103,6 +104,7 @@ List<PlannedGroupSet> buildPlannedGroupSetsFromConfigs({
   required int sets,
   required bool interleaveWarmups,
   required List<ExerciseTypeConfig> exerciseConfigs,
+  required WeightUnit unit,
   RestConfig? restConfig,
 }) {
   if (exerciseConfigs.isEmpty) return const [];
@@ -120,7 +122,7 @@ List<PlannedGroupSet> buildPlannedGroupSetsFromConfigs({
     final warmupWeight = workingByConfig[i].isNotEmpty
         ? workingByConfig[i].first.targetWeight
         : c.startWeight;
-    warmupByConfig.add(generateWarmupDefs(warmupWeight));
+    warmupByConfig.add(generateWarmupDefs(warmupWeight, unit));
   }
 
   final out = <PlannedGroupSet>[];

@@ -100,7 +100,7 @@ class GroupChip extends StatelessWidget {
     final workingSets = _workingSetsForConfig(cfg);
     if (workingSets.isEmpty) return const [];
     final workingWeight = workingSets.first.targetWeight.toDouble();
-    final defs = generateWarmupDefs(workingWeight);
+    final defs = generateWarmupDefs(workingWeight, unit);
     return [
       for (int i = 0; i < defs.length; i++)
         (
