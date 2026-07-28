@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +37,7 @@ class CompletedWorkoutScreen extends StatefulWidget {
 class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   // Self-contained data — no dependency on WorkoutProvider
   Workout? _workout;
+  WorkoutSummary? _summary;
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
   List<UserMessage> _messages = [];
@@ -75,6 +75,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       if (mounted) {
         setState(() {
           _workout = response.workout;
+          _summary = response.summary;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
           _messages = providerCompletionMessages.isNotEmpty
@@ -238,12 +239,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         .toList();
     final auth = context.watch<AuthProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final summary = WorkoutSummaryData.fromWorkout(
-      workout: workout,
-      proposedSets: ownProposedSets,
-      completedSets: ownCompletedSets,
-      unit: unit,
-    );
+    // The server computes the rollup; this is a thin formatting view over it.
+    final summary = WorkoutSummaryData(_summary ?? WorkoutSummary(), unit);
     final hasHeartRateChart =
         workout.startTime != Int64.ZERO && _heartRateSamples.isNotEmpty;
     final chartNow = workout.endTime != Int64.ZERO
@@ -485,7 +482,7 @@ class _SummaryMetric extends StatelessWidget {
 }
 
 class _ExerciseSummaryCard extends StatelessWidget {
-  final ExerciseSummary exercise;
+  final ExerciseSummaryView exercise;
 
   const _ExerciseSummaryCard({required this.exercise});
 
@@ -574,40 +571,31 @@ class _ExerciseStatColumn extends StatelessWidget {
   }
 }
 
+/// Thin formatting view over the server-computed [WorkoutSummary]. All the
+/// numbers are already rolled up on the backend; this only turns them into
+/// display strings.
 class WorkoutSummaryData {
+  final WorkoutSummary _s;
   final WeightUnit unit;
-  final Duration duration;
-  final double totalVolume;
-  final Duration liftingTime;
-  final Duration restingTime;
-  final Duration yappingTime;
-  final double volumePerMinute;
-  final double workRestRatio;
-  final List<ExerciseSummary> exerciseSummaries;
+  WorkoutSummaryData(this._s, this.unit);
 
-  WorkoutSummaryData({
-    required this.unit,
-    required this.duration,
-    required this.totalVolume,
-    required this.liftingTime,
-    required this.restingTime,
-    required this.yappingTime,
-    required this.volumePerMinute,
-    required this.workRestRatio,
-    required this.exerciseSummaries,
-  });
-
-  String get durationLabel => _formatDuration(duration);
+  String get durationLabel =>
+      _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
   String get volumeLabel =>
-      '${formatWeight(totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get liftingTimeLabel => _formatDuration(liftingTime);
-  String get restingTimeLabel => _formatDuration(restingTime);
-  String get yappingTimeLabel => _formatDuration(yappingTime);
+      '${formatWeight(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+  String get liftingTimeLabel =>
+      _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
+  String get restingTimeLabel =>
+      _formatDuration(Duration(seconds: _s.restingSeconds.toInt()));
+  String get yappingTimeLabel =>
+      _formatDuration(Duration(seconds: _s.yappingSeconds.toInt()));
   String get volumePerMinuteLabel =>
-      '${_formatDecimal(displayWeightFromPounds(volumePerMinute, unit))} ${weightUnitSuffix(unit)}/min';
-  String get workRestRatioLabel => restingTime.inSeconds > 0
-      ? '${_formatDecimal(liftingTime.inSeconds.toDouble() / restingTime.inSeconds.toDouble(), fractionDigits: 2)}x'
+      '${_formatDecimal(displayWeightFromPounds(_s.volumePerMinute, unit))} ${weightUnitSuffix(unit)}/min';
+  String get workRestRatioLabel => _s.restingSeconds > 0
+      ? '${_formatDecimal(_s.workRestRatio, fractionDigits: 2)}x'
       : '—';
+  List<ExerciseSummaryView> get exerciseSummaries =>
+      _s.exercises.map((e) => ExerciseSummaryView(e, unit)).toList();
 
   static String _formatDuration(Duration duration) {
     if (duration == Duration.zero) return '0m';
@@ -627,202 +615,25 @@ class WorkoutSummaryData {
     return formatted;
   }
 
-  factory WorkoutSummaryData.fromWorkout({
-    required Workout workout,
-    required List<ProposedSet> proposedSets,
-    required List<CompletedSet> completedSets,
-    required WeightUnit unit,
-  }) {
-    final completed = completedSets
-        .where((set) => set.endedAt != Int64.ZERO)
-        .toList();
-
-    final Map<String, ProposedSet> proposedById = {
-      for (final set in proposedSets) set.id: set,
-    };
-
-    final Map<Exercise, ExerciseSummaryBuilder> exerciseBuilders = {};
-    double totalVolume = 0;
-    Duration liftingTime = Duration.zero;
-    Duration restingTime = Duration.zero;
-
-    // Sort chronologically so we can cap rest at when the next set started.
-    final ordered =
-        completed.where((set) => set.startedAt != Int64.ZERO).toList()
-          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
-
-    for (var i = 0; i < ordered.length; i++) {
-      final completedSet = ordered[i];
-      final proposed = proposedById[completedSet.proposedSetId];
-      if (proposed == null) continue;
-
-      final setDurationSeconds = completedSet.endedAt > completedSet.startedAt
-          ? (completedSet.endedAt - completedSet.startedAt).toInt()
-          : 0;
-      liftingTime += Duration(seconds: setDurationSeconds);
-
-      // Rest time: cap at when the next set actually started (rest stops
-      // once you begin a new lift) and at workout end if it ended sooner.
-      if (completedSet.restUntil > completedSet.endedAt) {
-        Int64 restEnd = completedSet.restUntil;
-        if (i + 1 < ordered.length && ordered[i + 1].startedAt < restEnd) {
-          restEnd = ordered[i + 1].startedAt;
-        }
-        if (workout.endTime != Int64.ZERO && workout.endTime < restEnd) {
-          restEnd = workout.endTime;
-        }
-        final restSeconds = (restEnd - completedSet.endedAt).toInt();
-        if (restSeconds > 0) {
-          restingTime += Duration(seconds: restSeconds);
-        }
-      }
-
-      final setVolume = completedSet.actualReps * completedSet.actualWeight;
-      if (setVolume.isFinite) {
-        totalVolume += setVolume;
-      }
-
-      final builder = exerciseBuilders.putIfAbsent(
-        proposed.exercise,
-        () => ExerciseSummaryBuilder(proposed.exercise, unit),
-      );
-      builder.addSet(completedSet, proposed);
-    }
-
-    final sortedExercises = exerciseBuilders.values
-        .map((b) => b.build())
-        .toList()
-        .cast<ExerciseSummary>();
-    sortedExercises.sort((a, b) => b.totalVolume.compareTo(a.totalVolume));
-
-    final workRestRatio = restingTime.inSeconds > 0
-        ? liftingTime.inSeconds.toDouble() / restingTime.inSeconds.toDouble()
-        : liftingTime.inSeconds.toDouble();
-
-    final workoutDuration =
-        workout.endTime != Int64.ZERO && workout.startTime != Int64.ZERO
-        ? Duration(seconds: (workout.endTime - workout.startTime).toInt())
-        : Duration.zero;
-
-    final liftingMinutes = math.max<int>(1, liftingTime.inMinutes).toDouble();
-    final volumePerMinute = liftingMinutes > 0.0
-        ? totalVolume / liftingMinutes
-        : 0.0;
-
-    final yappingTime = _calculateYappingTime(ordered, workout);
-
-    return WorkoutSummaryData(
-      unit: unit,
-      duration: workoutDuration,
-      totalVolume: totalVolume,
-      liftingTime: liftingTime,
-      restingTime: restingTime,
-      yappingTime: yappingTime,
-      volumePerMinute: volumePerMinute,
-      workRestRatio: workRestRatio,
-      exerciseSummaries: sortedExercises,
-    );
-  }
-
-  /// Yapping = time between sets that isn't lifting or resting.
-  /// If the user had rest prescribed, yapping starts when rest ends.
-  /// If no rest was prescribed (e.g. warmups), yapping is the full gap.
-  static Duration _calculateYappingTime(
-    List<CompletedSet> orderedSets,
-    Workout workout,
-  ) {
-    int yappingSeconds = 0;
-    for (var i = 0; i < orderedSets.length - 1; i++) {
-      final current = orderedSets[i];
-      final next = orderedSets[i + 1];
-      // Yapping starts after rest ends (or immediately after the set if
-      // no rest was prescribed) and ends when the next set starts.
-      final gapStart = current.restUntil > current.endedAt
-          ? current.restUntil
-          : current.endedAt;
-      if (next.startedAt > gapStart) {
-        yappingSeconds += (next.startedAt - gapStart).toInt();
-      }
-    }
-    return Duration(seconds: yappingSeconds);
-  }
 }
 
-class ExerciseSummary {
+/// Thin formatting view over the server's per-exercise [ExerciseSummary].
+class ExerciseSummaryView {
+  final ExerciseSummary _e;
   final WeightUnit unit;
-  final Exercise exercise;
-  final String name;
-  final String emoji;
-  final int totalSets;
-  final int totalReps;
-  final double totalVolume;
-  final double bestOneRm;
-  final double heaviestSetWeight;
+  ExerciseSummaryView(this._e, this.unit);
 
-  ExerciseSummary({
-    required this.unit,
-    required this.exercise,
-    required this.name,
-    required this.emoji,
-    required this.totalSets,
-    required this.totalReps,
-    required this.totalVolume,
-    required this.bestOneRm,
-    required this.heaviestSetWeight,
-  });
-
+  Exercise get exercise => _e.exercise;
+  int get totalSets => _e.totalSets;
+  int get totalReps => _e.totalReps;
+  String get name => exerciseNames[_e.exercise] ?? 'Unknown';
+  String get emoji => exerciseEmojis[_e.exercise] ?? '?';
   String get volumeLabel =>
-      '${formatWeight(totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get formattedOneRm => bestOneRm > 0
-      ? '${formatWeight(bestOneRm, unit)} ${weightUnitSuffix(unit)}'
+      '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+  String get formattedOneRm => _e.bestOneRepMax > 0
+      ? '${formatWeight(_e.bestOneRepMax, unit)} ${weightUnitSuffix(unit)}'
       : '—';
-  String get heaviestSetWeightLabel => heaviestSetWeight > 0
-      ? '${formatWeight(heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
+  String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
+      ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
       : '—';
-}
-
-class ExerciseSummaryBuilder {
-  final WeightUnit unit;
-  final Exercise exercise;
-  int totalSets = 0;
-  int totalReps = 0;
-  double totalVolume = 0;
-  double bestOneRm = 0;
-  double heaviestSetWeight = 0;
-
-  ExerciseSummaryBuilder(this.exercise, this.unit);
-
-  void addSet(CompletedSet completedSet, ProposedSet proposed) {
-    totalSets += 1;
-    totalReps += completedSet.actualReps;
-    final setVolume = completedSet.actualReps * completedSet.actualWeight;
-    if (setVolume.isFinite) {
-      totalVolume += setVolume;
-    }
-    heaviestSetWeight = math.max(heaviestSetWeight, completedSet.actualWeight);
-    final oneRm = _estimateOneRm(
-      completedSet.actualWeight,
-      completedSet.actualReps,
-    );
-    bestOneRm = math.max(bestOneRm, oneRm);
-  }
-
-  ExerciseSummary build() {
-    return ExerciseSummary(
-      unit: unit,
-      exercise: exercise,
-      name: exerciseNames[exercise] ?? 'Unknown',
-      emoji: exerciseEmojis[exercise] ?? '?',
-      totalSets: totalSets,
-      totalReps: totalReps,
-      totalVolume: totalVolume,
-      bestOneRm: bestOneRm,
-      heaviestSetWeight: heaviestSetWeight,
-    );
-  }
-
-  double _estimateOneRm(double weight, int reps) {
-    if (!weight.isFinite || weight <= 0 || reps <= 0) return 0;
-    return weight * (1 + reps / 30.0);
-  }
 }
