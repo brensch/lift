@@ -148,8 +148,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     SettingsProvider provider,
     WeightUnit unit,
   ) async {
-    await provider.updateWeightUnit(unit);
+    // Capture the entered bodyweight in canonical kg while the OLD unit is still
+    // active. If we changed the unit first, `_parsedBodyWeightKg` would re-read
+    // the same digits as the new unit (180 lb silently becoming 180 kg).
     final currentKg = _parsedBodyWeightKg(provider);
+    await provider.updateWeightUnit(unit);
     if (currentKg != null && currentKg > 0) {
       _setBodyWeightText(currentKg, unit);
     }
