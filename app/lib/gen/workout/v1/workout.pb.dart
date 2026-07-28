@@ -1791,6 +1791,262 @@ class GetWorkoutRequest extends $pb.GeneratedMessage {
   void clearWorkoutId() => $_clearField(1);
 }
 
+/// Server-computed rollup for one exercise within a workout (working sets only).
+class ExerciseSummary extends $pb.GeneratedMessage {
+  factory ExerciseSummary({
+    Exercise? exercise,
+    $core.int? totalSets,
+    $core.int? totalReps,
+    $core.double? totalVolume,
+    $core.double? bestOneRepMax,
+    $core.double? heaviestSetWeight,
+  }) {
+    final result = create();
+    if (exercise != null) result.exercise = exercise;
+    if (totalSets != null) result.totalSets = totalSets;
+    if (totalReps != null) result.totalReps = totalReps;
+    if (totalVolume != null) result.totalVolume = totalVolume;
+    if (bestOneRepMax != null) result.bestOneRepMax = bestOneRepMax;
+    if (heaviestSetWeight != null) result.heaviestSetWeight = heaviestSetWeight;
+    return result;
+  }
+
+  ExerciseSummary._();
+
+  factory ExerciseSummary.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExerciseSummary.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExerciseSummary',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<Exercise>(1, _omitFieldNames ? '' : 'exercise',
+        enumValues: Exercise.values)
+    ..aI(2, _omitFieldNames ? '' : 'totalSets')
+    ..aI(3, _omitFieldNames ? '' : 'totalReps')
+    ..aD(4, _omitFieldNames ? '' : 'totalVolume', fieldType: $pb.PbFieldType.OF)
+    ..aD(5, _omitFieldNames ? '' : 'bestOneRepMax',
+        fieldType: $pb.PbFieldType.OF)
+    ..aD(6, _omitFieldNames ? '' : 'heaviestSetWeight',
+        fieldType: $pb.PbFieldType.OF)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExerciseSummary clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExerciseSummary copyWith(void Function(ExerciseSummary) updates) =>
+      super.copyWith((message) => updates(message as ExerciseSummary))
+          as ExerciseSummary;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExerciseSummary create() => ExerciseSummary._();
+  @$core.override
+  ExerciseSummary createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExerciseSummary getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExerciseSummary>(create);
+  static ExerciseSummary? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Exercise get exercise => $_getN(0);
+  @$pb.TagNumber(1)
+  set exercise(Exercise value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExercise() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExercise() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get totalSets => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set totalSets($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTotalSets() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTotalSets() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get totalReps => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set totalReps($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTotalReps() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalReps() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get totalVolume => $_getN(3);
+  @$pb.TagNumber(4)
+  set totalVolume($core.double value) => $_setFloat(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTotalVolume() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTotalVolume() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get bestOneRepMax => $_getN(4);
+  @$pb.TagNumber(5)
+  set bestOneRepMax($core.double value) => $_setFloat(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasBestOneRepMax() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBestOneRepMax() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.double get heaviestSetWeight => $_getN(5);
+  @$pb.TagNumber(6)
+  set heaviestSetWeight($core.double value) => $_setFloat(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasHeaviestSetWeight() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHeaviestSetWeight() => $_clearField(6);
+}
+
+/// Server-computed rollup for a whole workout. The client renders this directly
+/// instead of aggregating raw sets. Volume/per-exercise cover working sets only;
+/// the time breakdown covers every completed set (warmups included).
+class WorkoutSummary extends $pb.GeneratedMessage {
+  factory WorkoutSummary({
+    $core.double? totalVolume,
+    $fixnum.Int64? durationSeconds,
+    $fixnum.Int64? liftingSeconds,
+    $fixnum.Int64? restingSeconds,
+    $fixnum.Int64? yappingSeconds,
+    $core.double? volumePerMinute,
+    $core.double? workRestRatio,
+    $core.Iterable<ExerciseSummary>? exercises,
+  }) {
+    final result = create();
+    if (totalVolume != null) result.totalVolume = totalVolume;
+    if (durationSeconds != null) result.durationSeconds = durationSeconds;
+    if (liftingSeconds != null) result.liftingSeconds = liftingSeconds;
+    if (restingSeconds != null) result.restingSeconds = restingSeconds;
+    if (yappingSeconds != null) result.yappingSeconds = yappingSeconds;
+    if (volumePerMinute != null) result.volumePerMinute = volumePerMinute;
+    if (workRestRatio != null) result.workRestRatio = workRestRatio;
+    if (exercises != null) result.exercises.addAll(exercises);
+    return result;
+  }
+
+  WorkoutSummary._();
+
+  factory WorkoutSummary.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WorkoutSummary.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WorkoutSummary',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aD(1, _omitFieldNames ? '' : 'totalVolume', fieldType: $pb.PbFieldType.OF)
+    ..aInt64(2, _omitFieldNames ? '' : 'durationSeconds')
+    ..aInt64(3, _omitFieldNames ? '' : 'liftingSeconds')
+    ..aInt64(4, _omitFieldNames ? '' : 'restingSeconds')
+    ..aInt64(5, _omitFieldNames ? '' : 'yappingSeconds')
+    ..aD(6, _omitFieldNames ? '' : 'volumePerMinute',
+        fieldType: $pb.PbFieldType.OF)
+    ..aD(7, _omitFieldNames ? '' : 'workRestRatio',
+        fieldType: $pb.PbFieldType.OF)
+    ..pPM<ExerciseSummary>(8, _omitFieldNames ? '' : 'exercises',
+        subBuilder: ExerciseSummary.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutSummary clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WorkoutSummary copyWith(void Function(WorkoutSummary) updates) =>
+      super.copyWith((message) => updates(message as WorkoutSummary))
+          as WorkoutSummary;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WorkoutSummary create() => WorkoutSummary._();
+  @$core.override
+  WorkoutSummary createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WorkoutSummary getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WorkoutSummary>(create);
+  static WorkoutSummary? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get totalVolume => $_getN(0);
+  @$pb.TagNumber(1)
+  set totalVolume($core.double value) => $_setFloat(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTotalVolume() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTotalVolume() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get durationSeconds => $_getI64(1);
+  @$pb.TagNumber(2)
+  set durationSeconds($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDurationSeconds() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDurationSeconds() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get liftingSeconds => $_getI64(2);
+  @$pb.TagNumber(3)
+  set liftingSeconds($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLiftingSeconds() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLiftingSeconds() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get restingSeconds => $_getI64(3);
+  @$pb.TagNumber(4)
+  set restingSeconds($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRestingSeconds() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRestingSeconds() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get yappingSeconds => $_getI64(4);
+  @$pb.TagNumber(5)
+  set yappingSeconds($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasYappingSeconds() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearYappingSeconds() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.double get volumePerMinute => $_getN(5);
+  @$pb.TagNumber(6)
+  set volumePerMinute($core.double value) => $_setFloat(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasVolumePerMinute() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearVolumePerMinute() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.double get workRestRatio => $_getN(6);
+  @$pb.TagNumber(7)
+  set workRestRatio($core.double value) => $_setFloat(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasWorkRestRatio() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearWorkRestRatio() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<ExerciseSummary> get exercises => $_getList(7);
+}
+
 class GetWorkoutResponse extends $pb.GeneratedMessage {
   factory GetWorkoutResponse({
     Workout? workout,
@@ -1801,6 +2057,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     WorkoutPlanChangeStats? planChangeStats,
     WorkoutStateSnapshot? stateSnapshot,
     $core.Iterable<UserMessage>? userMessages,
+    WorkoutSummary? summary,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
@@ -1811,6 +2068,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (planChangeStats != null) result.planChangeStats = planChangeStats;
     if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     if (userMessages != null) result.userMessages.addAll(userMessages);
+    if (summary != null) result.summary = summary;
     return result;
   }
 
@@ -1843,6 +2101,8 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
         subBuilder: WorkoutStateSnapshot.create)
     ..pPM<UserMessage>(8, _omitFieldNames ? '' : 'userMessages',
         subBuilder: UserMessage.create)
+    ..aOM<WorkoutSummary>(9, _omitFieldNames ? '' : 'summary',
+        subBuilder: WorkoutSummary.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1919,6 +2179,17 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(8)
   $pb.PbList<UserMessage> get userMessages => $_getList(7);
+
+  @$pb.TagNumber(9)
+  WorkoutSummary get summary => $_getN(8);
+  @$pb.TagNumber(9)
+  set summary(WorkoutSummary value) => $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasSummary() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearSummary() => $_clearField(9);
+  @$pb.TagNumber(9)
+  WorkoutSummary ensureSummary() => $_ensure(8);
 }
 
 class WorkoutPlanChangeStats extends $pb.GeneratedMessage {

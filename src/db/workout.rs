@@ -617,6 +617,11 @@ impl ServerDb {
             now,
         ));
         let plan_change_stats = Some(workout_plan_change_stats_from_sets(&proposed_sets));
+        let summary = Some(crate::progress::compute_workout_summary(
+            &workout,
+            &proposed_sets,
+            &completed_sets,
+        ));
 
         Ok(Some(GetWorkoutResponse {
             workout: Some(workout),
@@ -627,6 +632,7 @@ impl ServerDb {
             plan_change_stats,
             state_snapshot,
             user_messages: Vec::new(),
+            summary,
         }))
     }
 

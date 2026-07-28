@@ -135,6 +135,11 @@ pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWor
     ));
     let proposed_active = active_proposed_sets(&active.proposed_sets);
     let next_up_set = compute_next_up_set(&proposed_active, &active.completed_sets);
+    let summary = Some(crate::progress::compute_workout_summary(
+        &active.workout,
+        &active.proposed_sets,
+        &active.completed_sets,
+    ));
     GetWorkoutResponse {
         workout: Some(active.workout.clone()),
         exercise_groups: active.exercise_groups.clone(),
@@ -144,6 +149,7 @@ pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWor
         plan_change_stats: Some(workout_plan_change_stats_from_sets(&active.proposed_sets)),
         state_snapshot,
         user_messages: Vec::new(),
+        summary,
     }
 }
 

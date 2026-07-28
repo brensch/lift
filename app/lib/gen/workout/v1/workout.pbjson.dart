@@ -866,6 +866,72 @@ const GetWorkoutRequest$json = {
 final $typed_data.Uint8List getWorkoutRequestDescriptor = $convert.base64Decode(
     'ChFHZXRXb3Jrb3V0UmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQ=');
 
+@$core.Deprecated('Use exerciseSummaryDescriptor instead')
+const ExerciseSummary$json = {
+  '1': 'ExerciseSummary',
+  '2': [
+    {
+      '1': 'exercise',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercise'
+    },
+    {'1': 'total_sets', '3': 2, '4': 1, '5': 5, '10': 'totalSets'},
+    {'1': 'total_reps', '3': 3, '4': 1, '5': 5, '10': 'totalReps'},
+    {'1': 'total_volume', '3': 4, '4': 1, '5': 2, '10': 'totalVolume'},
+    {'1': 'best_one_rep_max', '3': 5, '4': 1, '5': 2, '10': 'bestOneRepMax'},
+    {
+      '1': 'heaviest_set_weight',
+      '3': 6,
+      '4': 1,
+      '5': 2,
+      '10': 'heaviestSetWeight'
+    },
+  ],
+};
+
+/// Descriptor for `ExerciseSummary`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exerciseSummaryDescriptor = $convert.base64Decode(
+    'Cg9FeGVyY2lzZVN1bW1hcnkSMAoIZXhlcmNpc2UYASABKA4yFC53b3Jrb3V0LnYxLkV4ZXJjaX'
+    'NlUghleGVyY2lzZRIdCgp0b3RhbF9zZXRzGAIgASgFUgl0b3RhbFNldHMSHQoKdG90YWxfcmVw'
+    'cxgDIAEoBVIJdG90YWxSZXBzEiEKDHRvdGFsX3ZvbHVtZRgEIAEoAlILdG90YWxWb2x1bWUSJw'
+    'oQYmVzdF9vbmVfcmVwX21heBgFIAEoAlINYmVzdE9uZVJlcE1heBIuChNoZWF2aWVzdF9zZXRf'
+    'd2VpZ2h0GAYgASgCUhFoZWF2aWVzdFNldFdlaWdodA==');
+
+@$core.Deprecated('Use workoutSummaryDescriptor instead')
+const WorkoutSummary$json = {
+  '1': 'WorkoutSummary',
+  '2': [
+    {'1': 'total_volume', '3': 1, '4': 1, '5': 2, '10': 'totalVolume'},
+    {'1': 'duration_seconds', '3': 2, '4': 1, '5': 3, '10': 'durationSeconds'},
+    {'1': 'lifting_seconds', '3': 3, '4': 1, '5': 3, '10': 'liftingSeconds'},
+    {'1': 'resting_seconds', '3': 4, '4': 1, '5': 3, '10': 'restingSeconds'},
+    {'1': 'yapping_seconds', '3': 5, '4': 1, '5': 3, '10': 'yappingSeconds'},
+    {'1': 'volume_per_minute', '3': 6, '4': 1, '5': 2, '10': 'volumePerMinute'},
+    {'1': 'work_rest_ratio', '3': 7, '4': 1, '5': 2, '10': 'workRestRatio'},
+    {
+      '1': 'exercises',
+      '3': 8,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseSummary',
+      '10': 'exercises'
+    },
+  ],
+};
+
+/// Descriptor for `WorkoutSummary`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workoutSummaryDescriptor = $convert.base64Decode(
+    'Cg5Xb3Jrb3V0U3VtbWFyeRIhCgx0b3RhbF92b2x1bWUYASABKAJSC3RvdGFsVm9sdW1lEikKEG'
+    'R1cmF0aW9uX3NlY29uZHMYAiABKANSD2R1cmF0aW9uU2Vjb25kcxInCg9saWZ0aW5nX3NlY29u'
+    'ZHMYAyABKANSDmxpZnRpbmdTZWNvbmRzEicKD3Jlc3Rpbmdfc2Vjb25kcxgEIAEoA1IOcmVzdG'
+    'luZ1NlY29uZHMSJwoPeWFwcGluZ19zZWNvbmRzGAUgASgDUg55YXBwaW5nU2Vjb25kcxIqChF2'
+    'b2x1bWVfcGVyX21pbnV0ZRgGIAEoAlIPdm9sdW1lUGVyTWludXRlEiYKD3dvcmtfcmVzdF9yYX'
+    'RpbxgHIAEoAlINd29ya1Jlc3RSYXRpbxI5CglleGVyY2lzZXMYCCADKAsyGy53b3Jrb3V0LnYx'
+    'LkV4ZXJjaXNlU3VtbWFyeVIJZXhlcmNpc2Vz');
+
 @$core.Deprecated('Use getWorkoutResponseDescriptor instead')
 const GetWorkoutResponse$json = {
   '1': 'GetWorkoutResponse',
@@ -934,6 +1000,14 @@ const GetWorkoutResponse$json = {
       '6': '.workout.v1.UserMessage',
       '10': 'userMessages'
     },
+    {
+      '1': 'summary',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WorkoutSummary',
+      '10': 'summary'
+    },
   ],
 };
 
@@ -948,7 +1022,8 @@ final $typed_data.Uint8List getWorkoutResponseDescriptor = $convert.base64Decode
     'ZV9zdGF0cxgGIAEoCzIiLndvcmtvdXQudjEuV29ya291dFBsYW5DaGFuZ2VTdGF0c1IPcGxhbk'
     'NoYW5nZVN0YXRzEkcKDnN0YXRlX3NuYXBzaG90GAcgASgLMiAud29ya291dC52MS5Xb3Jrb3V0'
     'U3RhdGVTbmFwc2hvdFINc3RhdGVTbmFwc2hvdBI8Cg11c2VyX21lc3NhZ2VzGAggAygLMhcud2'
-    '9ya291dC52MS5Vc2VyTWVzc2FnZVIMdXNlck1lc3NhZ2Vz');
+    '9ya291dC52MS5Vc2VyTWVzc2FnZVIMdXNlck1lc3NhZ2VzEjQKB3N1bW1hcnkYCSABKAsyGi53'
+    'b3Jrb3V0LnYxLldvcmtvdXRTdW1tYXJ5UgdzdW1tYXJ5');
 
 @$core.Deprecated('Use workoutPlanChangeStatsDescriptor instead')
 const WorkoutPlanChangeStats$json = {

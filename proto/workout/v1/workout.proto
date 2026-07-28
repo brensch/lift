@@ -303,6 +303,30 @@ message StartWorkoutResponse {
 message GetWorkoutRequest {
   string workout_id = 1;
 }
+// Server-computed rollup for one exercise within a workout (working sets only).
+message ExerciseSummary {
+  Exercise exercise = 1;
+  int32 total_sets = 2;
+  int32 total_reps = 3;
+  float total_volume = 4;        // lb (reps * weight, summed)
+  float best_one_rep_max = 5;    // lb, Epley estimate
+  float heaviest_set_weight = 6; // lb
+}
+
+// Server-computed rollup for a whole workout. The client renders this directly
+// instead of aggregating raw sets. Volume/per-exercise cover working sets only;
+// the time breakdown covers every completed set (warmups included).
+message WorkoutSummary {
+  float total_volume = 1;         // lb
+  int64 duration_seconds = 2;
+  int64 lifting_seconds = 3;
+  int64 resting_seconds = 4;
+  int64 yapping_seconds = 5;      // between-set time that isn't lifting or resting
+  float volume_per_minute = 6;    // lb per lifting-minute
+  float work_rest_ratio = 7;
+  repeated ExerciseSummary exercises = 8; // sorted by volume, heaviest first
+}
+
 message GetWorkoutResponse {
   Workout workout = 1;
   repeated ExerciseGroup exercise_groups = 2;
@@ -312,6 +336,7 @@ message GetWorkoutResponse {
   WorkoutPlanChangeStats plan_change_stats = 6;
   WorkoutStateSnapshot state_snapshot = 7;
   repeated UserMessage user_messages = 8;
+  WorkoutSummary summary = 9;
 }
 
 message WorkoutPlanChangeStats {
