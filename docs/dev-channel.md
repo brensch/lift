@@ -11,8 +11,8 @@ plugging into a computer.
 | Backend instance | `/opt/schlift`, `schlift.service`, port `50051` | `/opt/schlift-dev`, `schlift-dev.service`, port `50052` |
 | Database | `/opt/schlift/shared/data` | `/opt/schlift-dev/shared/data` (separate, starts empty) |
 | WebAuthn RP | `schlift.com` | `dev.schlift.com` (separate passkeys) |
-| App build | prod release (tag `v*`) → internal/alpha/beta | `Android Dev Nightly` → **internal** only |
-| Backend code | `main` (`Backend Deploy`) | any branch (`Dev Backend Deploy`) |
+| App build | tag `v*` → internal/alpha/beta | tag `dev-*` → **internal** only |
+| Backend code | `main` (`Backend Deploy`) | tag `dev-*`, or any branch on demand (`Dev Backend Deploy`) |
 
 Both instances live on the same box, fronted by the same Caddy. The dev vhost
 just reverse-proxies to `:50052`. TLS is automatic because `*.schlift.com`
@@ -45,12 +45,21 @@ track if you want the real backend; use internal for dogfooding.
 
 ## Routine
 
-- **Ship a dev app to your phone:** run **Android Dev Nightly**
-  (`gh workflow run android-dev-nightly.yml`). It builds a signed AAB compiled
-  with `--dart-define=SERVER_HOST=dev.schlift.com` and publishes to the internal
-  track. Installs/updates on enrolled devices within minutes.
-- **Update the dev backend** (new server code): run **Dev Backend Deploy** on the
-  branch you want (`--ref <branch>`). Prod is untouched.
+Dev releases are tag-driven, same as prod's `v*` — just a `dev-*` prefix so the
+two can never collide.
+
+- **Cut a dev release (backend + app from one commit):**
+  ```
+  T=dev-$(date +%Y%m%d-%H%M); git tag "$T" && git push origin "$T"
+  ```
+  A `dev-*` tag fires **both** `Dev Backend Deploy` (redeploys `:50052` from that
+  commit) and `Android Dev Release` (publishes the phone app to internal), so the
+  app and the backend it talks to stay in lockstep. Lands on enrolled devices
+  within minutes. Prod is untouched.
+- **No-tag fallbacks** (`workflow_dispatch`):
+  - `gh workflow run dev-backend-deploy.yml --ref <branch>` — redeploy an
+    arbitrary WIP branch to the dev backend without a tag.
+  - `gh workflow run android-dev-release.yml` — build a dev app without a tag.
 - **Which backend am I on?** The in-app build-info screen shows `SERVER_HOST` and
   `GIT_HASH`.
 
