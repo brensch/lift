@@ -1376,6 +1376,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
+        unit: _settingsProvider.weightUnit,
         restConfig: restConfig,
       );
       await _replaceExerciseGroupPlan(
@@ -1408,6 +1409,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: sets,
         interleaveWarmups: interleaveWarmups,
         exerciseConfigs: exerciseConfigs,
+        unit: _settingsProvider.weightUnit,
         restConfig: restConfig,
       );
       await _replaceExerciseGroupPlan(

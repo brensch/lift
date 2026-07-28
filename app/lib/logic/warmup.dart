@@ -1,56 +1,9 @@
 import 'package:uuid/uuid.dart';
+import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import 'weight_units.dart';
 
 const _uuid = Uuid();
-
-/// Collapse floating-point representation error before rounding.
-///
-/// The backend (`src/workout/planning.rs`) does this maths in `f32`, this file
-/// in `f64`, and the two land on opposite sides of a `.5` boundary for some
-/// weights. At a 175 lb working weight the 70% warmup is `175.0 * 0.7`, which is
-/// exactly `122.5` in f32 but `122.49999999999999` in f64 — so a naive
-/// `(w / 5).round()` gives 125 on the server and 120 in the app, and the user
-/// watches their warmup change when the server responds.
-///
-/// Snapping to 6 decimal places is far below any real weight increment, so it
-/// only ever removes representation noise. Parity is enforced by
-/// `test/logic/warmup_golden_test.dart`.
-double _snapPrecision(double value) => (value * 1e6).roundToDouble() / 1e6;
-
-double _roundTo2_5(double weight) => _snapPrecision(weight / 2.5).round() * 2.5;
-double _roundTo5(double weight) => _snapPrecision(weight / 5).round() * 5;
-
-bool _is25_45PlateCombo(double totalWeight) {
-  if (totalWeight < 45) return false;
-  final rem = (totalWeight - 45).round();
-  if (rem < 0 || rem % 10 != 0) return false;
-  for (int b = 0; b <= rem ~/ 90; b++) {
-    final rest = rem - (90 * b);
-    if (rest >= 0 && rest % 50 == 0) return true;
-  }
-  return false;
-}
-
-double _snapWarmupWeight(double weight, double maxWarmupWeight) {
-  if (maxWarmupWeight < 45) {
-    return _roundTo2_5(weight).clamp(2.5, maxWarmupWeight).toDouble();
-  }
-
-  final candidate = _roundTo5(weight).clamp(45, maxWarmupWeight).toDouble();
-  if (_is25_45PlateCombo(candidate)) return candidate;
-
-  double best = candidate;
-  double bestDiff = double.infinity;
-  for (double probe = 45; probe <= maxWarmupWeight; probe += 5) {
-    if (!_is25_45PlateCombo(probe)) continue;
-    final diff = (probe - candidate).abs();
-    if (diff <= 5 && (diff < bestDiff || (diff == bestDiff && probe < best))) {
-      best = probe;
-      bestDiff = diff;
-    }
-  }
-  return best;
-}
 
 class WarmupDef {
   final double weight;
@@ -64,22 +17,34 @@ bool groupRestHasValues(RestConfig rc) =>
     rc.restAfterWarmup > 0 ||
     rc.restAfterLastWarmup > 0;
 
-List<WarmupDef> generateWarmupDefs(double workingWeight) {
-  // Always produce 4 warmups (5/5/3/2), even below 45 lbs, rounded to 2.5.
+/// Four warmups (5/5/3/2) climbing to the working weight, each the simplest
+/// plate step-up in [unit] — empty bar first, then loads that prefer one big
+/// plate over several small. Working weight is in pounds (storage); warmups
+/// snap in the display unit and are returned in pounds. A direct port of
+/// `generate_warmup_defs` in src/workout/planning.rs; parity is pinned by
+/// `test/logic/warmup_golden_test.dart`.
+List<WarmupDef> generateWarmupDefs(double workingWeightLb, WeightUnit unit) {
   const reps = [5, 5, 3, 2];
   const pcts = [0.40, 0.55, 0.70, 0.85];
-  final out = <WarmupDef>[];
-  double prev = 0;
-  final maxWarmupWeight = (workingWeight - 2.5).clamp(2.5, double.infinity);
+  final bar = standardBarWeight(unit);
+  final plates = standardPlates(unit);
+  final smallest = plates.last;
 
+  final working = displayWeightFromPounds(workingWeightLb, unit);
+  // Warmups sit below the working weight by at least one small plate.
+  final rawMax = working - smallest;
+  final max = rawMax < smallest ? smallest : rawMax;
+
+  final out = <WarmupDef>[];
+  double prev = 0; // display units
   for (int i = 0; i < pcts.length; i++) {
-    final desired = _snapWarmupWeight(workingWeight * pcts[i], maxWarmupWeight);
-    var chosen = (i == 0 && maxWarmupWeight >= 45)
-        ? 45.0
-        : desired.clamp(2.5, maxWarmupWeight).toDouble();
+    final target = working * pcts[i];
+    var chosen = (i == 0 && max >= bar)
+        ? bar // empty bar first
+        : simplestLoadableNear(target, bar, plates, smallest, max);
     if (chosen < prev) chosen = prev;
     prev = chosen;
-    out.add(WarmupDef(chosen, reps[i]));
+    out.add(WarmupDef(poundsFromDisplayWeight(chosen, unit), reps[i]));
   }
 
   return out;
@@ -90,6 +55,7 @@ List<WarmupDef> generateWarmupDefs(double workingWeight) {
 List<ProposedSet> rebuildExerciseSets(
   List<ProposedSet> existingSets, {
   required double targetWeight,
+  required WeightUnit unit,
   bool? warmups,
   int? setCount,
   required bool Function(String setId) isSetDone,
@@ -114,7 +80,7 @@ List<ProposedSet> rebuildExerciseSets(
   if (!wantWarmups) {
     warmupSets = completedWarmups;
   } else {
-    final defs = generateWarmupDefs(targetWeight);
+    final defs = generateWarmupDefs(targetWeight, unit);
     final pendingNeeded = (defs.length - completedWarmups.length).clamp(
       0,
       defs.length,

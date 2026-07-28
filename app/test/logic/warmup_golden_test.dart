@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/logic/warmup.dart';
+
+WeightUnit _unitFromLabel(String label) =>
+    label == 'kg' ? WeightUnit.WEIGHT_UNIT_KG : WeightUnit.WEIGHT_UNIT_LB;
 
 /// `app/lib/logic/warmup.dart` and `src/workout/planning.rs` are independent
 /// ports of the same warmup and plate-snapping maths. The app generates warmups
@@ -41,15 +45,16 @@ void main() {
       for (final entry in cases) {
         final c = entry as Map<String, dynamic>;
         final workingWeight = (c['working_weight'] as num).toDouble();
+        final unit = _unitFromLabel(c['unit'] as String? ?? 'lb');
         final expected = (c['warmups'] as List<dynamic>)
             .map((w) => (w as Map<String, dynamic>))
             .toList();
 
-        final actual = generateWarmupDefs(workingWeight);
+        final actual = generateWarmupDefs(workingWeight, unit);
 
         if (actual.length != expected.length) {
           mismatches.add(
-            'working=$workingWeight: expected ${expected.length} warmups, got ${actual.length}',
+            'working=$workingWeight ($unit): expected ${expected.length} warmups, got ${actual.length}',
           );
           continue;
         }
@@ -89,10 +94,12 @@ void main() {
 
     test('warmups are non-decreasing and below the working weight', () {
       for (final entry in cases) {
-        final workingWeight = ((entry as Map<String, dynamic>)['working_weight'] as num).toDouble();
-        final defs = generateWarmupDefs(workingWeight);
+        final map = entry as Map<String, dynamic>;
+        final workingWeight = (map['working_weight'] as num).toDouble();
+        final unit = _unitFromLabel(map['unit'] as String? ?? 'lb');
+        final defs = generateWarmupDefs(workingWeight, unit);
 
-        expect(defs, hasLength(4), reason: 'working=$workingWeight');
+        expect(defs, hasLength(4), reason: 'working=$workingWeight ($unit)');
 
         var prev = 0.0;
         for (final def in defs) {
