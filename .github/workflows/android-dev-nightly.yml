@@ -1,0 +1,123 @@
+name: Android Dev Nightly
+
+# On-demand dev build for dogfooding on a real phone. Same signing key and
+# package as prod (com.brensch.schlift), but the app is compiled to talk to the
+# dev backend (dev.schlift.com) and is published ONLY to the Play *internal*
+# track. Trigger this yourself (Actions tab or `gh workflow run`) at the end of
+# an overnight session.
+#
+# NOTE: because it is the same package, any device enrolled in the internal
+# testing track will receive this dev build and point at dev.schlift.com (a
+# separate, initially-empty DB with its own passkeys). Keep your day-to-day
+# phone on the production/beta track if you want the real backend.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: android-dev-nightly
+  cancel-in-progress: true
+
+jobs:
+  build-dev-nightly:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('app/android/**/*.gradle*', 'app/android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Install Google Play upload dependencies
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3-pip
+          pip3 install --break-system-packages httplib2 google-api-python-client google-auth google-auth-httplib2
+
+      - name: Install Flutter dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Prepare signing files
+        working-directory: app/android
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in RELEASE_KEYSTORE_BASE64 RELEASE_KEYSTORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "Missing secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release-keystore.jks
+          cat > key.properties <<EOF
+          storeFile=release-keystore.jks
+          storePassword=$RELEASE_KEYSTORE_PASSWORD
+          keyAlias=$RELEASE_KEY_ALIAS
+          keyPassword=$RELEASE_KEY_PASSWORD
+          EOF
+
+      - name: Validate Google Play credentials
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
+
+      - name: Resolve dev version
+        working-directory: app
+        run: |
+          # versionName is a fixed dev marker; the build is identified precisely
+          # by GIT_HASH on the in-app build-info screen. versionCode is offset far
+          # from prod (1000+run) and wear (~1,001,000+) so Play never sees a
+          # duplicate across channels.
+          CODE=$((500000 + GITHUB_RUN_NUMBER))
+          NAME="0.0.0-dev"
+          sed -i -E "s|^version:.*|version: ${NAME}+${CODE}|" pubspec.yaml
+          echo "dev version=${NAME}+${CODE}"
+          grep -E '^version:' pubspec.yaml
+
+      - name: Build phone app bundle (.aab) pointed at dev backend
+        working-directory: app
+        run: |
+          flutter build appbundle --release \
+            --dart-define=GIT_HASH=$(git rev-parse --short HEAD) \
+            --dart-define=SERVER_HOST=dev.schlift.com \
+            --dart-define=SERVER_PORT=443
+
+      - name: Upload phone dev artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phone-dev-nightly-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Publish to Google Play internal track
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          scripts/upload_google_play.py \
+            --package-name com.brensch.schlift \
+            --status completed \
+            --phone-aab app/build/app/outputs/bundle/release/app-release.aab \
+            --phone-release-name "dev-${GITHUB_RUN_NUMBER}-$(git rev-parse --short HEAD)" \
+            --phone-tracks internal
