@@ -68,6 +68,22 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$listWorkouts, request, options: options);
   }
 
+  /// Finished workouts with their server-computed summaries (history screen).
+  $grpc.ResponseFuture<$0.ListWorkoutSummariesResponse> listWorkoutSummaries(
+    $0.ListWorkoutSummariesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listWorkoutSummaries, request, options: options);
+  }
+
+  /// Per-exercise progress series, everything precomputed (progress + detail).
+  $grpc.ResponseFuture<$0.GetExerciseProgressResponse> getExerciseProgress(
+    $0.GetExerciseProgressRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getExerciseProgress, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.ReplaceExerciseGroupPlanResponse>
       replaceExerciseGroupPlan(
     $0.ReplaceExerciseGroupPlanRequest request, {
@@ -222,6 +238,16 @@ class WorkoutServiceClient extends $grpc.Client {
           '/workout.v1.WorkoutService/ListWorkouts',
           ($0.ListWorkoutsRequest value) => value.writeToBuffer(),
           $0.ListWorkoutsResponse.fromBuffer);
+  static final _$listWorkoutSummaries = $grpc.ClientMethod<
+          $0.ListWorkoutSummariesRequest, $0.ListWorkoutSummariesResponse>(
+      '/workout.v1.WorkoutService/ListWorkoutSummaries',
+      ($0.ListWorkoutSummariesRequest value) => value.writeToBuffer(),
+      $0.ListWorkoutSummariesResponse.fromBuffer);
+  static final _$getExerciseProgress = $grpc.ClientMethod<
+          $0.GetExerciseProgressRequest, $0.GetExerciseProgressResponse>(
+      '/workout.v1.WorkoutService/GetExerciseProgress',
+      ($0.GetExerciseProgressRequest value) => value.writeToBuffer(),
+      $0.GetExerciseProgressResponse.fromBuffer);
   static final _$replaceExerciseGroupPlan = $grpc.ClientMethod<
           $0.ReplaceExerciseGroupPlanRequest,
           $0.ReplaceExerciseGroupPlanResponse>(
@@ -355,6 +381,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.ListWorkoutsRequest.fromBuffer(value),
             ($0.ListWorkoutsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListWorkoutSummariesRequest,
+            $0.ListWorkoutSummariesResponse>(
+        'ListWorkoutSummaries',
+        listWorkoutSummaries_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ListWorkoutSummariesRequest.fromBuffer(value),
+        ($0.ListWorkoutSummariesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetExerciseProgressRequest,
+            $0.GetExerciseProgressResponse>(
+        'GetExerciseProgress',
+        getExerciseProgress_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetExerciseProgressRequest.fromBuffer(value),
+        ($0.GetExerciseProgressResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ReplaceExerciseGroupPlanRequest,
             $0.ReplaceExerciseGroupPlanResponse>(
         'ReplaceExerciseGroupPlan',
@@ -544,6 +588,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.ListWorkoutsResponse> listWorkouts(
       $grpc.ServiceCall call, $0.ListWorkoutsRequest request);
+
+  $async.Future<$0.ListWorkoutSummariesResponse> listWorkoutSummaries_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ListWorkoutSummariesRequest> $request) async {
+    return listWorkoutSummaries($call, await $request);
+  }
+
+  $async.Future<$0.ListWorkoutSummariesResponse> listWorkoutSummaries(
+      $grpc.ServiceCall call, $0.ListWorkoutSummariesRequest request);
+
+  $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetExerciseProgressRequest> $request) async {
+    return getExerciseProgress($call, await $request);
+  }
+
+  $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress(
+      $grpc.ServiceCall call, $0.GetExerciseProgressRequest request);
 
   $async.Future<$0.ReplaceExerciseGroupPlanResponse>
       replaceExerciseGroupPlan_Pre($grpc.ServiceCall $call,

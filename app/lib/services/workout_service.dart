@@ -53,6 +53,19 @@ class WorkoutServiceWrapper {
     return response.workouts;
   }
 
+  Future<List<WorkoutWithSummary>> listWorkoutSummaries() async {
+    final response = await _client.workoutService.listWorkoutSummaries(
+      ListWorkoutSummariesRequest(),
+    );
+    return response.workouts;
+  }
+
+  Future<GetExerciseProgressResponse> getExerciseProgress() async {
+    return await _client.workoutService.getExerciseProgress(
+      GetExerciseProgressRequest(),
+    );
+  }
+
   Future<StartSetResponse> startSet(
     String workoutId,
     String proposedSetId,

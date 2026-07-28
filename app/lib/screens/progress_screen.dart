@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
@@ -50,52 +49,27 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final grpc = context.read<GrpcClient>();
     final service = WorkoutServiceWrapper(grpc);
     try {
-      final workouts = (await service.listWorkouts())
-          .where((w) => w.endTime != Int64.ZERO)
-          .toList()
-        ..sort((a, b) => a.startTime.compareTo(b.startTime));
-
-      final byExercise = <Exercise, List<_Point>>{};
-      var totalVolume = 0.0;
-      for (final workout in workouts) {
-        final response = await service.getWorkout(workout.id);
-        // Map proposed set id -> proposed set so we can read exercise + warmup.
-        final proposedById = {for (final p in response.proposedSets) p.id: p};
-        // Heaviest actual working-set weight per exercise this workout.
-        final topThisWorkout = <Exercise, double>{};
-        for (final c in response.completedSets) {
-          final p = proposedById[c.proposedSetId];
-          if (p == null || p.warmup) continue;
-          final w = c.actualWeight.toDouble();
-          totalVolume += w * c.actualReps;
-          final cur = topThisWorkout[p.exercise] ?? 0;
-          if (w > cur) topThisWorkout[p.exercise] = w;
-        }
-        final date = DateTime.fromMillisecondsSinceEpoch(
-          workout.startTime.toInt() * 1000,
-        );
-        topThisWorkout.forEach((ex, w) {
-          byExercise.putIfAbsent(ex, () => []).add(_Point(date, w));
-        });
-      }
-
+      // One call: the server returns the per-exercise series (most-improved
+      // first) plus the header totals, all precomputed.
+      final resp = await service.getExerciseProgress();
       final series = <_ExerciseProgress>[];
-      var i = 0;
-      byExercise.forEach((ex, points) {
+      for (var i = 0; i < resp.exercises.length; i++) {
+        final ep = resp.exercises[i];
         series.add(_ExerciseProgress(
-          exercise: ex,
-          points: points,
+          exercise: ep.exercise,
+          points: ep.points
+              .map((p) => _Point(
+                    DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
+                    p.topWeight,
+                  ))
+              .toList(),
           color: _palette[i % _palette.length],
         ));
-        i++;
-      });
-      // Most-improved first.
-      series.sort((a, b) => b.gain.compareTo(a.gain));
-
+      }
       setState(() {
         _series = series;
-        _workoutCount = workouts.length;
-        _totalVolume = totalVolume;
+        _workoutCount = resp.workoutCount;
+        _totalVolume = resp.totalVolume;
         _isLoading = false;
       });
     } catch (e) {

@@ -1,5 +1,6 @@
 use schlift::workout::v1::{
-    CompletedSet, ExerciseSummary, ProposedSet, Workout, WorkoutSummary,
+    CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
+    WorkoutSummary,
 };
 use std::collections::HashMap;
 
@@ -139,6 +140,96 @@ pub fn compute_workout_summary(
         work_rest_ratio,
         exercises,
     }
+}
+
+/// Per-exercise progress series built from every finished workout's working
+/// sets. Points are oldest-first per exercise; exercises are ordered
+/// most-improved first (by top-weight gain). One point per workout the exercise
+/// appears in.
+pub fn compute_exercise_progress(
+    workouts: &[(Workout, Vec<ProposedSet>, Vec<CompletedSet>)],
+) -> Vec<ExerciseProgress> {
+    struct Acc {
+        top_weight: f32,
+        top_reps: i32,
+        best_1rm: f32,
+        volume: f32,
+        sets: i32,
+    }
+
+    let mut index: HashMap<i32, usize> = HashMap::new();
+    let mut series: Vec<ExerciseProgress> = Vec::new();
+
+    let mut ordered: Vec<&(Workout, Vec<ProposedSet>, Vec<CompletedSet>)> =
+        workouts.iter().collect();
+    ordered.sort_by_key(|(w, _, _)| w.start_time);
+
+    for (workout, proposed, completed) in ordered {
+        let proposed_by_id: HashMap<&str, &ProposedSet> =
+            proposed.iter().map(|p| (p.id.as_str(), p)).collect();
+
+        let mut per_ex: HashMap<i32, Acc> = HashMap::new();
+        for c in completed {
+            if c.ended_at == 0 {
+                continue;
+            }
+            let p = match proposed_by_id.get(c.proposed_set_id.as_str()) {
+                Some(p) => *p,
+                None => continue,
+            };
+            if p.warmup {
+                continue;
+            }
+            let a = per_ex.entry(p.exercise).or_insert(Acc {
+                top_weight: 0.0,
+                top_reps: 0,
+                best_1rm: 0.0,
+                volume: 0.0,
+                sets: 0,
+            });
+            a.sets += 1;
+            a.volume += c.actual_reps as f32 * c.actual_weight;
+            if c.actual_weight > a.top_weight {
+                a.top_weight = c.actual_weight;
+                a.top_reps = c.actual_reps;
+            }
+            let rm = estimate_one_rep_max(c.actual_weight, c.actual_reps);
+            if rm > a.best_1rm {
+                a.best_1rm = rm;
+            }
+        }
+
+        for (ex, a) in per_ex {
+            let idx = *index.entry(ex).or_insert_with(|| {
+                series.push(ExerciseProgress {
+                    exercise: ex,
+                    points: Vec::new(),
+                });
+                series.len() - 1
+            });
+            series[idx].points.push(ExerciseProgressPoint {
+                date: workout.start_time,
+                workout_id: workout.id.clone(),
+                top_weight: a.top_weight,
+                top_reps: a.top_reps,
+                best_one_rep_max: a.best_1rm,
+                volume: a.volume,
+                sets: a.sets,
+            });
+        }
+    }
+
+    series.sort_by(|a, b| {
+        let gain = |s: &ExerciseProgress| match (s.points.first(), s.points.last()) {
+            (Some(f), Some(l)) => l.top_weight - f.top_weight,
+            _ => 0.0,
+        };
+        gain(b)
+            .partial_cmp(&gain(a))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    series
 }
 
 #[cfg(test)]

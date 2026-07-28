@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
@@ -38,25 +37,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final multiplayer = MultiplayerServiceWrapper(grpc);
     final selfId = context.read<AuthProvider>().userId ?? '';
     try {
-      final workouts = (await service.listWorkouts())
-          .where((w) => w.endTime != Int64.ZERO)
-          .toList()
-        ..sort((a, b) => b.startTime.compareTo(a.startTime));
+      // One call: the server returns each finished workout with its computed
+      // summary (volume, working sets, exercises). Newest first already.
+      final summaries = await service.listWorkoutSummaries();
 
       final items = <_HistoryItem>[];
-      for (final w in workouts) {
-        final detail = await service.getWorkout(w.id);
-        final proposedById = {for (final p in detail.proposedSets) p.id: p};
-        double volume = 0;
-        var workingSets = 0;
-        final exercises = <Exercise>[];
-        for (final c in detail.completedSets) {
-          final p = proposedById[c.proposedSetId];
-          if (p == null || p.warmup) continue;
-          volume += c.actualWeight.toDouble() * c.actualReps;
-          workingSets++;
-          if (!exercises.contains(p.exercise)) exercises.add(p.exercise);
-        }
+      for (final ws in summaries) {
+        final w = ws.workout;
+        final s = ws.summary;
         // Who you trained with, for group sessions (durable roster, minus you).
         final partners = <String>[];
         if (w.sessionId.isNotEmpty) {
@@ -71,9 +59,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         }
         items.add(_HistoryItem(
           workout: w,
-          volume: volume,
-          workingSets: workingSets,
-          exercises: exercises,
+          volume: s.totalVolume,
+          workingSets: s.exercises.fold(0, (a, e) => a + e.totalSets),
+          exercises: s.exercises.map((e) => e.exercise).toList(),
           partners: partners,
         ));
       }
