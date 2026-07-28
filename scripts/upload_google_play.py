@@ -50,10 +50,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--phone-aab", required=True, type=Path)
     parser.add_argument("--phone-release-name", required=True)
     parser.add_argument("--phone-tracks", required=True, nargs="+")
-    parser.add_argument("--wear-aab", required=True, type=Path)
-    parser.add_argument("--wear-release-name", required=True)
-    parser.add_argument("--wear-tracks", required=True, nargs="+")
-    return parser.parse_args()
+    # Wear is optional: the dev nightly ships the phone app only.
+    parser.add_argument("--wear-aab", type=Path)
+    parser.add_argument("--wear-release-name")
+    parser.add_argument("--wear-tracks", nargs="+")
+    args = parser.parse_args()
+    if any((args.wear_aab, args.wear_release_name, args.wear_tracks)) and not all(
+        (args.wear_aab, args.wear_release_name, args.wear_tracks)
+    ):
+        parser.error(
+            "--wear-aab, --wear-release-name and --wear-tracks must be given together"
+        )
+    return args
 
 
 def load_service_account_info(args: argparse.Namespace) -> dict:
@@ -201,13 +209,16 @@ def main() -> int:
             tracks=args.phone_tracks,
             release_name=args.phone_release_name,
         ),
-        Artifact(
-            label="wear",
-            path=args.wear_aab,
-            tracks=args.wear_tracks,
-            release_name=args.wear_release_name,
-        ),
     ]
+    if args.wear_aab:
+        artifacts.append(
+            Artifact(
+                label="wear",
+                path=args.wear_aab,
+                tracks=args.wear_tracks,
+                release_name=args.wear_release_name,
+            )
+        )
     validate_artifacts(artifacts)
 
     service_account_info = load_service_account_info(args)

@@ -1,0 +1,82 @@
+name: Dev Backend Deploy
+
+# Deploys a second schlift instance (dev.schlift.com) onto the same box as prod,
+# built from whatever branch you dispatch this on — so you can dogfood WIP
+# server code without touching production. Prod (schlift.com / :50051 /
+# /opt/schlift) is never modified; the dev instance lives at :50052 /
+# /opt/schlift-dev with its own DB.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: backend-dev
+  cancel-in-progress: false
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend release binary
+        run: cargo build --release --bin schlift
+
+      - name: Package backend artifact
+        run: |
+          mkdir -p dist
+          cp target/release/schlift dist/schlift
+          chmod 755 dist/schlift
+          printf '%s\n' "${GITHUB_SHA}" > dist/release.txt
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-backend-linux-arm64
+          path: dist/
+          if-no-files-found: error
+
+  deploy-backend:
+    needs: build-backend
+    runs-on:
+      - self-hosted
+      - linux
+      - ARM64
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync repo to stable dev deploy path
+        run: |
+          sudo mkdir -p /opt/repo-schlift-dev-current
+          sudo rsync -a --delete --exclude .git ./ /opt/repo-schlift-dev-current/
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dev-backend-linux-arm64
+          path: dist/dev-backend-linux-arm64
+
+      - name: Deploy dev release
+        run: |
+          ARTIFACT_DIR="${PWD}/dist/dev-backend-linux-arm64" \
+          RELEASE_ID="dev-${GITHUB_SHA}" \
+          sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
+            /opt/repo-schlift-dev-current/scripts/deploy_schlift_dev.sh
+
+      - name: Show deployed status
+        run: |
+          sudo systemctl status --no-pager schlift-dev.service | head -20
+          curl -fsS https://dev.schlift.com/.well-known/assetlinks.json | head -c 400 || true
