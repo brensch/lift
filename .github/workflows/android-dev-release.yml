@@ -1,18 +1,18 @@
 name: Android Dev Release
 
-# Dev build for dogfooding on a real phone. Same signing key and package as prod
-# (com.brensch.schlift), but the app is compiled to talk to the dev backend
-# (dev.schlift.com) and is published ONLY to the Play *internal* track.
+# Side-by-side dev build for dogfooding on a real phone. Distinct applicationId
+# (com.brensch.schlift.dev, "Schlift Dev" in the launcher) so it installs
+# alongside the prod app, signed with the same key, compiled to talk to the dev
+# backend (dev.schlift.com). Published as a signed APK hosted at
+# https://dev.schlift.com/schlift-dev.apk — open that on your phone to install.
 #
-# Triggers, mirroring the prod v* release model:
-#   - push a `dev-*` tag (the coherent, traceable path; also deploys the dev
-#     backend from the same commit via dev-backend-deploy.yml)
-#   - workflow_dispatch (no-tag fallback: `gh workflow run android-dev-release.yml`)
+# Not a Play upload: a different applicationId is a different Play app, and the
+# whole point here is running dev + prod at once. Passkeys still work because the
+# dev backend's assetlinks lists the .dev package (ANDROID_PACKAGE_NAMES).
 #
-# NOTE: because it is the same package, any device enrolled in the internal
-# testing track will receive this dev build and point at dev.schlift.com (a
-# separate, initially-empty DB with its own passkeys). Keep your day-to-day
-# phone on the production/beta track if you want the real backend.
+# Triggers, mirroring the prod v* model:
+#   - push a `dev-*` tag (also deploys the dev backend from the same commit)
+#   - workflow_dispatch (no-tag fallback)
 on:
   workflow_dispatch:
   push:
@@ -24,14 +24,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-dev-nightly:
+  build-dev-apk:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
     defaults:
       run:
         shell: bash
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,11 +43,6 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('app/android/**/*.gradle*', 'app/android/**/gradle-wrapper.properties') }}
           restore-keys: gradle-
-
-      - name: Install Google Play upload dependencies
-        run: |
-          apt-get update -qq && apt-get install -y -qq python3-pip
-          pip3 install --break-system-packages httplib2 google-api-python-client google-auth google-auth-httplib2
 
       - name: Install Flutter dependencies
         working-directory: app
@@ -80,57 +74,62 @@ jobs:
           keyPassword=$RELEASE_KEY_PASSWORD
           EOF
 
-      - name: Validate Google Play credentials
-        env:
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
-            exit 1
-          fi
-
       - name: Resolve dev version
         working-directory: app
         run: |
-          # versionName is a fixed dev marker; the build is identified precisely
-          # by GIT_HASH on the in-app build-info screen. versionCode is offset far
-          # from prod (1000+run) and wear (~1,001,000+) so Play never sees a
-          # duplicate across channels.
+          # gradle appends versionNameSuffix "-dev" (SCHLIFT_DEV=1), so the base
+          # name stays plain here. versionCode is offset far from prod (1000+run)
+          # and wear (~1,001,000+) so an in-place upgrade never goes backwards.
           CODE=$((500000 + GITHUB_RUN_NUMBER))
-          NAME="0.0.0-dev"
-          sed -i -E "s|^version:.*|version: ${NAME}+${CODE}|" pubspec.yaml
-          echo "dev version=${NAME}+${CODE}"
+          sed -i -E "s|^version:.*|version: 0.0.0+${CODE}|" pubspec.yaml
           grep -E '^version:' pubspec.yaml
-          # Play release name: the tag when tag-triggered, else a run+sha marker.
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            REL="${GITHUB_REF_NAME}"
-          else
-            REL="dev-${GITHUB_RUN_NUMBER}-$(git rev-parse --short HEAD)"
-          fi
-          echo "REL_NAME=${REL}" >> "$GITHUB_ENV"
 
-      - name: Build phone app bundle (.aab) pointed at dev backend
+      - name: Build signed dev APK (com.brensch.schlift.dev)
         working-directory: app
+        env:
+          SCHLIFT_DEV: "1"
         run: |
-          flutter build appbundle --release \
+          flutter build apk --release \
             --dart-define=GIT_HASH=$(git rev-parse --short HEAD) \
             --dart-define=SERVER_HOST=dev.schlift.com \
             --dart-define=SERVER_PORT=443
+          cp build/app/outputs/flutter-apk/app-release.apk "${GITHUB_WORKSPACE}/schlift-dev.apk"
 
-      - name: Upload phone dev artifact
+      - name: Print APK signing cert (for assetlinks cross-check)
+        working-directory: app
+        run: |
+          # The installed APK's SHA-256 must appear in dev's assetlinks or passkeys
+          # fail. Log it so babysitting can verify against dev.schlift.com.
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs \
+            build/app/outputs/flutter-apk/app-release.apk | grep -i "SHA-256" || true
+
+      - name: Upload dev APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: phone-dev-nightly-aab
-          path: app/build/app/outputs/bundle/release/app-release.aab
+          name: schlift-dev-apk
+          path: schlift-dev.apk
           if-no-files-found: error
 
-      - name: Publish to Google Play internal track
-        env:
-          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+  publish-dev-apk:
+    needs: build-dev-apk
+    runs-on:
+      - self-hosted
+      - linux
+      - ARM64
+    permissions:
+      contents: read
+    steps:
+      - name: Download dev APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: schlift-dev-apk
+          path: dist
+
+      - name: Host APK at dev.schlift.com/schlift-dev.apk
         run: |
-          scripts/upload_google_play.py \
-            --package-name com.brensch.schlift \
-            --status completed \
-            --phone-aab app/build/app/outputs/bundle/release/app-release.aab \
-            --phone-release-name "${REL_NAME}" \
-            --phone-tracks internal
+          # /opt/schlift/web is the shared static root Caddy serves for both
+          # hosts; dropping the APK there makes it reachable at
+          # https://dev.schlift.com/schlift-dev.apk with no auth. `install` is
+          # already whitelisted for the runner's sudo.
+          sudo install -m 0644 dist/schlift-dev.apk /opt/schlift/web/schlift-dev.apk
+          echo "published https://dev.schlift.com/schlift-dev.apk"
