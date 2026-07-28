@@ -1,83 +1,58 @@
 use super::*;
+use crate::weight_units::{
+    bar_weight, kg_to_pounds, loadable_step, plates, pounds_to_kg, simplest_loadable_near,
+    AppWeightUnit,
+};
 
 const DEFAULT_SUCCESS_REST_SECONDS: i32 = 180;
 const DEFAULT_FAILURE_REST_SECONDS: i32 = 300;
 const DEFAULT_WARMUP_REST_SECONDS: i32 = 30;
 
-fn round_to_2_5(weight: f32) -> f32 {
-    (weight / 2.5).round() * 2.5
+/// Stored weights are pounds; warmup snapping happens in the caller's display
+/// unit so the numbers are actually loadable there. These convert at the edges.
+fn to_display(weight_lb: f32, unit: AppWeightUnit) -> f32 {
+    match unit {
+        AppWeightUnit::Lb => weight_lb,
+        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
+    }
+}
+fn to_pounds(display: f32, unit: AppWeightUnit) -> f32 {
+    match unit {
+        AppWeightUnit::Lb => display,
+        AppWeightUnit::Kg => kg_to_pounds(display),
+    }
 }
 
-fn round_to_5(weight: f32) -> f32 {
-    (weight / 5.0).round() * 5.0
-}
-
-fn is_25_45_plate_combo(total_weight: f32) -> bool {
-    if total_weight < 45.0 {
-        return false;
-    }
-    let rem = (total_weight - 45.0).round() as i32;
-    if rem < 0 || rem % 10 != 0 {
-        return false;
-    }
-    // total = 45 + 50*a + 90*b
-    for b in 0..=(rem / 90) {
-        let rest = rem - (90 * b);
-        if rest >= 0 && rest % 50 == 0 {
-            return true;
-        }
-    }
-    false
-}
-
-fn snap_warmup_weight(weight: f32, max_warmup_weight: f32) -> f32 {
-    if max_warmup_weight < 45.0 {
-        return round_to_2_5(weight).clamp(2.5, max_warmup_weight);
-    }
-
-    let candidate = round_to_5(weight).clamp(45.0, max_warmup_weight);
-    if is_25_45_plate_combo(candidate) {
-        return candidate;
-    }
-
-    // Prefer a nearby 45/25-plate-only load if it's within 5 lb.
-    let mut best = candidate;
-    let mut best_diff = f32::INFINITY;
-    let mut probe = 45.0;
-    while probe <= max_warmup_weight {
-        if is_25_45_plate_combo(probe) {
-            let diff = (probe - candidate).abs();
-            if diff <= 5.0 && (diff < best_diff || (diff == best_diff && probe < best)) {
-                best = probe;
-                best_diff = diff;
-            }
-        }
-        probe += 5.0;
-    }
-    best
-}
-
-fn generate_warmup_defs(working_weight: f32) -> Vec<(f32, i32)> {
-    // Always produce 4 warmup sets (5/5/3/2) and allow sub-45 weights.
-    // Use percentages of the working weight, rounded to 2.5-lb increments.
+/// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
+/// simplest plate step-up in `unit` — empty bar first, then loads that prefer
+/// one big plate over several small ones. Computed in the display unit and
+/// returned in pounds (storage). Mirrored by app/lib/logic/warmup.dart; parity
+/// is pinned by the shared golden fixture.
+fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32, i32)> {
     let reps = [5, 5, 3, 2];
     let pcts = [0.40_f32, 0.55_f32, 0.70_f32, 0.85_f32];
-    let max_warmup_weight = (working_weight - 2.5).max(2.5);
+    let bar = bar_weight(unit);
+    let pl = plates(unit);
+    let smallest = pl.last().copied().unwrap_or(2.5);
+
+    let working = to_display(working_weight_lb, unit);
+    // Warmups must sit below the working weight by at least one small plate.
+    let max = (working - smallest).max(smallest);
 
     let mut out = Vec::with_capacity(4);
-    let mut prev = 0.0_f32;
+    let mut prev = 0.0_f32; // in display units
     for (idx, pct) in pcts.iter().enumerate() {
-        let desired = snap_warmup_weight(working_weight * pct, max_warmup_weight);
-        let mut chosen = if idx == 0 && max_warmup_weight >= 45.0 {
-            45.0
+        let target = working * pct;
+        let mut chosen = if idx == 0 && max >= bar {
+            bar // start with the empty bar
         } else {
-            desired.clamp(2.5, max_warmup_weight)
+            simplest_loadable_near(target, bar, pl, smallest, max)
         };
         if chosen < prev {
             chosen = prev;
         }
         prev = chosen;
-        out.push((chosen, reps[idx]));
+        out.push((to_pounds(chosen, unit), reps[idx]));
     }
 
     out
@@ -89,6 +64,7 @@ pub(crate) fn generate_sets_for_group(
     workout_id: &str,
     group: &ExerciseGroup,
     start_order: i32,
+    unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
     let mut sets = Vec::new();
     let mut order = start_order;
@@ -114,7 +90,7 @@ pub(crate) fn generate_sets_for_group(
                 .map(|ws| ws.target_weight)
                 .unwrap_or(c.start_weight);
             if c.include_warmup {
-                generate_warmup_defs(warmup_weight)
+                generate_warmup_defs(warmup_weight, unit)
             } else {
                 Vec::new()
             }
@@ -625,16 +601,20 @@ mod warmup_tests {
     }
 
     fn current_table() -> serde_json::Value {
-        let cases = golden_working_weights()
-            .iter()
-            .map(|&w| {
-                let warmups = generate_warmup_defs(w)
+        // Every working weight is generated in BOTH units, so drift in either the
+        // lb or kg warmup path fails the build on both sides.
+        let mut cases = Vec::new();
+        for (unit, label) in [(AppWeightUnit::Lb, "lb"), (AppWeightUnit::Kg, "kg")] {
+            for &w in golden_working_weights().iter() {
+                let warmups = generate_warmup_defs(w, unit)
                     .into_iter()
                     .map(|(weight, reps)| serde_json::json!({ "weight": weight, "reps": reps }))
                     .collect::<Vec<_>>();
-                serde_json::json!({ "working_weight": w, "warmups": warmups })
-            })
-            .collect::<Vec<_>>();
+                cases.push(
+                    serde_json::json!({ "working_weight": w, "unit": label, "warmups": warmups }),
+                );
+            }
+        }
         serde_json::json!({
             "comment": "Shared golden fixture. src/workout/planning.rs and \
                         app/lib/logic/warmup.dart are independent ports of the same \
@@ -731,32 +711,49 @@ mod warmup_tests {
         );
     }
 
-    /// Properties the app relies on regardless of the exact numbers.
+    /// Properties the app relies on regardless of the exact numbers — in BOTH units.
     #[test]
     fn warmup_defs_are_non_decreasing_and_below_the_working_weight() {
-        for w in golden_working_weights() {
-            let defs = generate_warmup_defs(w);
-            assert_eq!(defs.len(), 4, "expected 4 warmups for {w}");
+        for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
+            for w in golden_working_weights() {
+                let defs = generate_warmup_defs(w, unit);
+                assert_eq!(defs.len(), 4, "expected 4 warmups for {w} ({unit:?})");
 
-            let mut prev = 0.0_f32;
-            for (weight, reps) in defs {
-                assert!(weight >= prev, "warmups must not decrease at {w}");
-                assert!(weight < w, "warmup {weight} must be under working {w}");
-                assert!(weight >= 2.5, "warmup {weight} below minimum at {w}");
-                assert!(reps > 0, "warmup reps must be positive at {w}");
-                prev = weight;
+                let mut prev = 0.0_f32;
+                for (weight_lb, reps) in defs {
+                    assert!(weight_lb >= prev, "warmups must not decrease at {w} ({unit:?})");
+                    assert!(weight_lb < w + 1e-3, "warmup {weight_lb} must be under {w} ({unit:?})");
+                    assert!(reps > 0, "warmup reps must be positive at {w} ({unit:?})");
+                    prev = weight_lb;
+                }
             }
         }
     }
 
+    /// The whole point: every warmup is a weight you can actually load in the
+    /// caller's unit (no junk decimals after the kg conversion).
     #[test]
-    fn is_25_45_plate_combo_recognises_bar_and_plate_loads() {
-        // 45 bar; +25s add 50; +45s add 90.
-        for good in [45.0, 95.0, 135.0, 145.0, 185.0, 225.0, 235.0] {
-            assert!(is_25_45_plate_combo(good), "{good} should be loadable");
-        }
-        for bad in [0.0, 44.0, 50.0, 65.0, 100.0, 130.0] {
-            assert!(!is_25_45_plate_combo(bad), "{bad} should not be loadable");
+    fn warmups_are_exactly_loadable_in_their_unit() {
+        use crate::weight_units::{bar_weight, plate_count_per_side, plates, pounds_to_kg};
+        for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
+            let (bar, pl) = (bar_weight(unit), plates(unit));
+            for w in golden_working_weights() {
+                for (weight_lb, _) in generate_warmup_defs(w, unit) {
+                    let display = match unit {
+                        AppWeightUnit::Lb => weight_lb,
+                        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
+                    };
+                    // Sub-bar warmups (very light working weights) fall on the
+                    // smallest-plate grid rather than a barbell load; skip those.
+                    if display < bar {
+                        continue;
+                    }
+                    assert!(
+                        plate_count_per_side(display, bar, pl).is_finite(),
+                        "warmup {display} ({unit:?}) from working {w} isn't loadable"
+                    );
+                }
+            }
         }
     }
 }
