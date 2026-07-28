@@ -5,8 +5,16 @@ name: Dev Backend Deploy
 # server code without touching production. Prod (schlift.com / :50051 /
 # /opt/schlift) is never modified; the dev instance lives at :50052 /
 # /opt/schlift-dev with its own DB.
+#
+# Triggers:
+#   - push a `dev-*` tag: deploys that commit (pairs with android-dev-release.yml
+#     so the phone build and the backend it talks to come from one tagged commit)
+#   - workflow_dispatch: deploy any branch's WIP without cutting a tag
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "dev-*"
 
 concurrency:
   group: backend-dev
@@ -71,8 +79,14 @@ jobs:
 
       - name: Deploy dev release
         run: |
+          # Release id = the tag when tag-triggered, else dev-<sha> for a branch.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            RID="${GITHUB_REF_NAME}"
+          else
+            RID="dev-${GITHUB_SHA}"
+          fi
           ARTIFACT_DIR="${PWD}/dist/dev-backend-linux-arm64" \
-          RELEASE_ID="dev-${GITHUB_SHA}" \
+          RELEASE_ID="${RID}" \
           sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
             /opt/repo-schlift-dev-current/scripts/deploy_schlift_dev.sh
 

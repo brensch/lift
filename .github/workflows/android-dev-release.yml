@@ -1,10 +1,13 @@
-name: Android Dev Nightly
+name: Android Dev Release
 
-# On-demand dev build for dogfooding on a real phone. Same signing key and
-# package as prod (com.brensch.schlift), but the app is compiled to talk to the
-# dev backend (dev.schlift.com) and is published ONLY to the Play *internal*
-# track. Trigger this yourself (Actions tab or `gh workflow run`) at the end of
-# an overnight session.
+# Dev build for dogfooding on a real phone. Same signing key and package as prod
+# (com.brensch.schlift), but the app is compiled to talk to the dev backend
+# (dev.schlift.com) and is published ONLY to the Play *internal* track.
+#
+# Triggers, mirroring the prod v* release model:
+#   - push a `dev-*` tag (the coherent, traceable path; also deploys the dev
+#     backend from the same commit via dev-backend-deploy.yml)
+#   - workflow_dispatch (no-tag fallback: `gh workflow run android-dev-release.yml`)
 #
 # NOTE: because it is the same package, any device enrolled in the internal
 # testing track will receive this dev build and point at dev.schlift.com (a
@@ -12,9 +15,12 @@ name: Android Dev Nightly
 # phone on the production/beta track if you want the real backend.
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - "dev-*"
 
 concurrency:
-  group: android-dev-nightly
+  group: android-dev-release
   cancel-in-progress: true
 
 jobs:
@@ -95,6 +101,13 @@ jobs:
           sed -i -E "s|^version:.*|version: ${NAME}+${CODE}|" pubspec.yaml
           echo "dev version=${NAME}+${CODE}"
           grep -E '^version:' pubspec.yaml
+          # Play release name: the tag when tag-triggered, else a run+sha marker.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            REL="${GITHUB_REF_NAME}"
+          else
+            REL="dev-${GITHUB_RUN_NUMBER}-$(git rev-parse --short HEAD)"
+          fi
+          echo "REL_NAME=${REL}" >> "$GITHUB_ENV"
 
       - name: Build phone app bundle (.aab) pointed at dev backend
         working-directory: app
@@ -119,5 +132,5 @@ jobs:
             --package-name com.brensch.schlift \
             --status completed \
             --phone-aab app/build/app/outputs/bundle/release/app-release.aab \
-            --phone-release-name "dev-${GITHUB_RUN_NUMBER}-$(git rev-parse --short HEAD)" \
+            --phone-release-name "${REL_NAME}" \
             --phone-tracks internal
