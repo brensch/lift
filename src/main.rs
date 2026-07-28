@@ -161,14 +161,35 @@ async fn assetlinks_handler() -> Json<serde_json::Value> {
             fingerprints.push(env_fp.to_string());
         }
     }
-    Json(serde_json::json!([{
-        "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.brensch.schlift",
-            "sha256_cert_fingerprints": fingerprints
-        }
-    }]))
+    // One statement per package. The dev backend sets ANDROID_PACKAGE_NAMES to
+    // include com.brensch.schlift.dev so the side-by-side dev app (a different
+    // applicationId, same signing key) can associate passkeys on dev.schlift.com.
+    let packages: Vec<String> = std::env::var("ANDROID_PACKAGE_NAMES")
+        .ok()
+        .map(|s| {
+            s.split(',')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| vec!["com.brensch.schlift".to_string()]);
+
+    let statements: Vec<serde_json::Value> = packages
+        .iter()
+        .map(|pkg| {
+            serde_json::json!({
+                "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
+                "target": {
+                    "namespace": "android_app",
+                    "package_name": pkg,
+                    "sha256_cert_fingerprints": fingerprints
+                }
+            })
+        })
+        .collect();
+    Json(serde_json::json!(statements))
 }
 
 async fn apple_app_site_association_handler() -> Json<serde_json::Value> {

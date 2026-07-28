@@ -12,6 +12,11 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
+// Dev channel: SCHLIFT_DEV=1 produces a side-by-side build (com.brensch.schlift.dev,
+// "Schlift Dev" in the launcher) so it installs alongside the prod app. Prod
+// builds leave the env unset and are byte-for-byte unaffected.
+val isDevChannel = System.getenv("SCHLIFT_DEV") == "1"
+
 val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
 if (isReleaseTask && !keystorePropertiesFile.exists()) {
     throw GradleException(
@@ -41,6 +46,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = if (isDevChannel) "Schlift Dev" else "schlift"
+        if (isDevChannel) {
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+        }
     }
 
     signingConfigs {
