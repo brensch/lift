@@ -223,7 +223,12 @@ class _ExerciseCard extends StatelessWidget {
         ? 'no change yet'
         : '${gain > 0 ? '+' : ''}${formatWeight(gain, unit)} $suffix';
 
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/exercise/${series.exercise.value}'),
+        child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -279,6 +284,8 @@ class _ExerciseCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }
