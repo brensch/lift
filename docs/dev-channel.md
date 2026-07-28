@@ -44,7 +44,10 @@ with the same signing fingerprints.
 5. **Verify:** `curl https://dev.schlift.com/.well-known/assetlinks.json` returns
    two statements (`com.brensch.schlift` and `com.brensch.schlift.dev`).
 6. **Phone:** allow installing unknown apps for your browser, then open
-   `https://dev.schlift.com/schlift-dev.apk`.
+   `https://dev.schlift.com/schlift-dev.apk`. (The APK lives in the shared web
+   root, so until the DNS record exists it's also reachable at
+   `https://schlift.com/schlift-dev.apk` — but the app inside points at
+   `dev.schlift.com`, so it won't connect until that name resolves.)
 
 ## Routine
 
