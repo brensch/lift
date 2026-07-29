@@ -647,6 +647,10 @@ message ProposedExerciseGroup {
 
   int64 estimated_duration_seconds = 8; // server-estimated time for this group
 
+  // Server-materialized display sets (warmups + working sets, plate-snapped) so
+  // the preview renders them directly instead of expanding client-side.
+  repeated ProposedSet materialized_sets = 9;
+
 }
 
 

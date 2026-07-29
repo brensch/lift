@@ -4908,6 +4908,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? tags,
     $core.bool? prescribedByRegime,
     $fixnum.Int64? estimatedDurationSeconds,
+    $core.Iterable<ProposedSet>? materializedSets,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -4920,6 +4921,8 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
       result.prescribedByRegime = prescribedByRegime;
     if (estimatedDurationSeconds != null)
       result.estimatedDurationSeconds = estimatedDurationSeconds;
+    if (materializedSets != null)
+      result.materializedSets.addAll(materializedSets);
     return result;
   }
 
@@ -4946,6 +4949,8 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     ..pPS(6, _omitFieldNames ? '' : 'tags')
     ..aOB(7, _omitFieldNames ? '' : 'prescribedByRegime')
     ..aInt64(8, _omitFieldNames ? '' : 'estimatedDurationSeconds')
+    ..pPM<ProposedSet>(9, _omitFieldNames ? '' : 'materializedSets',
+        subBuilder: ProposedSet.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5029,6 +5034,11 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
   $core.bool hasEstimatedDurationSeconds() => $_has(7);
   @$pb.TagNumber(8)
   void clearEstimatedDurationSeconds() => $_clearField(8);
+
+  /// Server-materialized display sets (warmups + working sets, plate-snapped) so
+  /// the preview renders them directly instead of expanding client-side.
+  @$pb.TagNumber(9)
+  $pb.PbList<ProposedSet> get materializedSets => $_getList(8);
 }
 
 class SlotTrainingStatus extends $pb.GeneratedMessage {

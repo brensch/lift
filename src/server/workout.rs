@@ -234,9 +234,25 @@ impl ServerWorkoutService {
             .unwrap_or_default();
 
         let mut proposed_groups = proposal.proposed_groups;
-        for g in &mut proposed_groups {
+        let unit = weight_unit_from_state(&effective_state);
+        for (i, g) in proposed_groups.iter_mut().enumerate() {
             g.estimated_duration_seconds =
                 crate::workout::estimate_group_duration_seconds(g);
+            // Materialize the display sets (warmups + working sets) server-side.
+            let eg = ExerciseGroup {
+                id: format!("preview-{i}"),
+                workout_id: String::new(),
+                name: g.name.clone(),
+                sets: g.sets,
+                interleave_warmups: g.interleave_warmups,
+                workout_order: i as i32,
+                exercise_configs: g.exercise_configs.clone(),
+                rest_config: g.rest_config.clone(),
+                instruction: String::new(),
+                prescribed_by_regime: g.prescribed_by_regime,
+            };
+            g.materialized_sets =
+                crate::workout::generate_sets_for_group("", &eg, 0, unit);
         }
 
         let response = GetProposedWorkoutScheduleResponse {
