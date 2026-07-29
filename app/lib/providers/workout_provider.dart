@@ -552,7 +552,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (response.userMessages.isNotEmpty || !isSameWorkout) {
       _workoutMessages = List<UserMessage>.from(response.userMessages);
     }
-    _refreshDerivedState();
+    // Authoritative state comes from the server — don't recompute it locally.
+    _sortState();
+    _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
+    if (response.hasStateSnapshot()) {
+      _applyStateSnapshot(response.stateSnapshot);
+    } else {
+      _applyStateSnapshot(_computeStateSnapshot());
+    }
+    _rebuildExerciseGroupsCache();
   }
 
   String? _workoutIdForMutation(WorkoutMutation mutation) {
