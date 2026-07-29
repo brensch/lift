@@ -1,7 +1,7 @@
 use super::*;
 use schlift::workout::v1::ProposedExerciseGroup;
 use crate::weight_units::{
-    bar_weight, kg_to_pounds, loadable_step, plates, pounds_to_kg, simplest_loadable_near,
+    bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near,
     AppWeightUnit,
 };
 
@@ -65,8 +65,8 @@ pub(crate) fn estimate_group_duration_seconds(group: &ProposedExerciseGroup) -> 
 /// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
 /// simplest plate step-up in `unit` — empty bar first, then loads that prefer
 /// one big plate over several small ones. Computed in the display unit and
-/// returned in pounds (storage). Mirrored by app/lib/logic/warmup.dart; parity
-/// is pinned by the shared golden fixture.
+/// returned in pounds (storage). The single source of warmup generation — the
+/// app renders these, it no longer computes them.
 fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32, i32)> {
     let reps = [5, 5, 3, 2];
     let pcts = [0.40_f32, 0.55_f32, 0.70_f32, 0.85_f32];
@@ -637,120 +637,8 @@ mod warmup_tests {
         weights
     }
 
-    fn golden_path() -> std::path::PathBuf {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("testdata/warmup_golden.json")
-    }
-
-    fn current_table() -> serde_json::Value {
-        // Every working weight is generated in BOTH units, so drift in either the
-        // lb or kg warmup path fails the build on both sides.
-        let mut cases = Vec::new();
-        for (unit, label) in [(AppWeightUnit::Lb, "lb"), (AppWeightUnit::Kg, "kg")] {
-            for &w in golden_working_weights().iter() {
-                let warmups = generate_warmup_defs(w, unit)
-                    .into_iter()
-                    .map(|(weight, reps)| serde_json::json!({ "weight": weight, "reps": reps }))
-                    .collect::<Vec<_>>();
-                cases.push(
-                    serde_json::json!({ "working_weight": w, "unit": label, "warmups": warmups }),
-                );
-            }
-        }
-        serde_json::json!({
-            "comment": "Shared golden fixture. src/workout/planning.rs and \
-                        app/lib/logic/warmup.dart are independent ports of the same \
-                        warmup + plate-snapping maths and must agree exactly. \
-                        Regenerate with LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden, \
-                        then run `cd app && flutter test` to confirm Dart still matches.",
-            "cases": cases,
-        })
-    }
-
-    /// Pins the Rust warmup output. The same file is asserted against by
-    /// `app/test/logic/warmup_golden_test.dart`, so a change to either
-    /// implementation that is not mirrored in the other fails the build.
-    #[test]
-    fn warmup_golden_matches_fixture() {
-        let current = current_table();
-
-        if std::env::var("LIFT_SNAPSHOT_WARMUP").ok().as_deref() == Some("1") {
-            std::fs::create_dir_all(golden_path().parent().unwrap()).unwrap();
-            std::fs::write(
-                golden_path(),
-                format!("{}\n", serde_json::to_string_pretty(&current).unwrap()),
-            )
-            .unwrap();
-            return;
-        }
-
-        let raw = std::fs::read_to_string(golden_path()).expect(
-            "testdata/warmup_golden.json missing — regenerate with \
-             LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden",
-        );
-        let expected: serde_json::Value = serde_json::from_str(&raw).unwrap();
-
-        // Compare numerically rather than by `Value` equality: the fixture is
-        // written from f32 and read back as f64, so `Number` equality is not a
-        // reliable comparison. Reporting per-case also keeps failures readable —
-        // asserting on the whole array dumps hundreds of cases.
-        let expected_cases = expected["cases"].as_array().expect("cases array");
-        let current_cases = current["cases"].as_array().expect("cases array");
-
-        let mut mismatches: Vec<String> = Vec::new();
-
-        if expected_cases.len() != current_cases.len() {
-            mismatches.push(format!(
-                "case count: fixture has {}, code produced {}",
-                expected_cases.len(),
-                current_cases.len()
-            ));
-        }
-
-        for (exp, cur) in expected_cases.iter().zip(current_cases.iter()) {
-            let working = cur["working_weight"].as_f64().unwrap();
-            let exp_working = exp["working_weight"].as_f64().unwrap();
-            if (working - exp_working).abs() > 1e-6 {
-                mismatches.push(format!(
-                    "working weight ordering changed: fixture {exp_working}, code {working}"
-                ));
-                continue;
-            }
-
-            let exp_w = exp["warmups"].as_array().unwrap();
-            let cur_w = cur["warmups"].as_array().unwrap();
-            if exp_w.len() != cur_w.len() {
-                mismatches.push(format!(
-                    "working={working}: fixture has {} warmups, code produced {}",
-                    exp_w.len(),
-                    cur_w.len()
-                ));
-                continue;
-            }
-
-            for (idx, (e, c)) in exp_w.iter().zip(cur_w.iter()).enumerate() {
-                let (ew, cw) = (e["weight"].as_f64().unwrap(), c["weight"].as_f64().unwrap());
-                let (er, cr) = (e["reps"].as_i64().unwrap(), c["reps"].as_i64().unwrap());
-                if (ew - cw).abs() > 1e-6 {
-                    mismatches.push(format!(
-                        "working={working} warmup[{idx}]: fixture weight {ew}, code {cw}"
-                    ));
-                }
-                if er != cr {
-                    mismatches.push(format!(
-                        "working={working} warmup[{idx}]: fixture {er} reps, code {cr}"
-                    ));
-                }
-            }
-        }
-
-        assert!(
-            mismatches.is_empty(),
-            "Rust warmup output drifted from the golden fixture. If this change is \
-             intended, mirror it in app/lib/logic/warmup.dart, regenerate with \
-             LIFT_SNAPSHOT_WARMUP=1 cargo test warmup_golden, and run flutter test.\n\n{}",
-            mismatches.join("\n")
-        );
-    }
+    // The Dart warmup mirror + its golden fixture are gone — the server owns
+    // warmup generation, so only these properties matter now.
 
     /// Properties the app relies on regardless of the exact numbers — in BOTH units.
     #[test]
