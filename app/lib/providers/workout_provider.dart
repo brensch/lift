@@ -13,7 +13,6 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_groups.dart';
 import '../logic/weight_units.dart';
 import '../logic/workout_plan_builder.dart';
-import '../logic/workout_reducer.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
@@ -405,7 +404,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return sets;
   }
 
-  ProposedSet? _computeNextUpSet() {
+  ProposedSet? _firstUncompletedSet() {
     final completedIds = _activeCompletedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .map((c) => c.proposedSetId)
@@ -416,89 +415,40 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return null;
   }
 
-  WorkoutStateSnapshot _computeStateSnapshot({DateTime? now}) {
-    final nowUnix = (now ?? _now).millisecondsSinceEpoch ~/ 1000;
-    final visibleSets = _visibleProposedSetsSorted();
-    final nextUpSet = _computeNextUpSet();
-    final activeSets = _activeCompletedSets.where(
-      (s) => s.endedAt == Int64.ZERO,
-    );
-    CompletedSet? activeSet;
-    for (final set in activeSets) {
-      if (activeSet == null || set.startedAt > activeSet.startedAt) {
-        activeSet = set;
-      }
-    }
-    if (activeSet != null) {
-      final displaySet = visibleSets.cast<ProposedSet?>().firstWhere(
-        (set) => set?.id == activeSet!.proposedSetId,
-        orElse: () => null,
-      );
-      return WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_LIFTING,
-        displaySet: displaySet,
-        activeStartedAt: activeSet.startedAt,
-        restUntil: Int64.ZERO,
-        lastRestEnd: Int64.ZERO,
-      );
-    }
-
-    final allDone =
-        visibleSets.isEmpty ||
-        visibleSets.every(
-          (set) => _activeCompletedSets.any(
-            (done) =>
-                done.proposedSetId == set.id && done.endedAt != Int64.ZERO,
-          ),
-        );
-    var lastRestEnd = 0;
-    for (final set in _activeCompletedSets) {
-      if (set.endedAt == Int64.ZERO || set.restUntil == Int64.ZERO) continue;
-      if (lastRestEnd == 0 || set.endedAt > Int64(lastRestEnd)) {
-        lastRestEnd = set.restUntil.toInt();
-      }
-    }
-    if (allDone) {
-      return WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_ALL_DONE,
-        activeStartedAt: Int64.ZERO,
-        restUntil: Int64.ZERO,
-        lastRestEnd: Int64(lastRestEnd),
-      );
-    }
-
-    CompletedSet? restingSet;
-    for (final set in _activeCompletedSets) {
-      if (set.endedAt == Int64.ZERO || set.restUntil.toInt() <= nowUnix) {
-        continue;
-      }
-      if (restingSet == null || set.endedAt > restingSet.endedAt) {
-        restingSet = set;
-      }
-    }
-    if (restingSet != null) {
-      return WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_RESTING,
-        displaySet: nextUpSet,
-        activeStartedAt: Int64.ZERO,
-        restUntil: restingSet.restUntil,
-        lastRestEnd: Int64.ZERO,
-      );
-    }
-
-    return WorkoutStateSnapshot(
-      state: WorkoutState.WORKOUT_STATE_READY,
-      displaySet: nextUpSet,
-      activeStartedAt: Int64.ZERO,
-      restUntil: Int64.ZERO,
-      lastRestEnd: Int64(lastRestEnd),
-    );
-  }
-
+  /// The tiny optimistic layer: after a local set change, reflect a set in
+  /// progress (LIFTING) or advance the highlight to the next set. The
+  /// authoritative snapshot — crucially the rest timer — comes from the server
+  /// response a beat later, so no rest maths is duplicated here.
   void _refreshDerivedState() {
     _sortState();
-    _backendNextUpSet = _computeNextUpSet();
-    _applyStateSnapshot(_computeStateSnapshot());
+    final nextUp = _firstUncompletedSet();
+    _backendNextUpSet = nextUp;
+
+    CompletedSet? active;
+    for (final s in _activeCompletedSets) {
+      if (s.endedAt == Int64.ZERO &&
+          (active == null || s.startedAt > active.startedAt)) {
+        active = s;
+      }
+    }
+    if (active != null) {
+      final displaySet = _visibleProposedSetsSorted()
+          .cast<ProposedSet?>()
+          .firstWhere((p) => p?.id == active!.proposedSetId,
+              orElse: () => null);
+      _applyStateSnapshot(WorkoutStateSnapshot(
+        state: WorkoutState.WORKOUT_STATE_LIFTING,
+        displaySet: displaySet,
+        activeStartedAt: active.startedAt,
+      ));
+    } else {
+      _applyStateSnapshot(WorkoutStateSnapshot(
+        state: nextUp == null
+            ? WorkoutState.WORKOUT_STATE_ALL_DONE
+            : WorkoutState.WORKOUT_STATE_READY,
+        displaySet: nextUp,
+      ));
+    }
     _rebuildExerciseGroupsCache();
   }
 
@@ -552,13 +502,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (response.userMessages.isNotEmpty || !isSameWorkout) {
       _workoutMessages = List<UserMessage>.from(response.userMessages);
     }
-    // Authoritative state comes from the server — don't recompute it locally.
+    // Authoritative state comes from the server — never recomputed locally.
     _sortState();
     _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
     if (response.hasStateSnapshot()) {
       _applyStateSnapshot(response.stateSnapshot);
-    } else {
-      _applyStateSnapshot(_computeStateSnapshot());
     }
     _rebuildExerciseGroupsCache();
   }
@@ -1116,10 +1064,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void _queueMutation(WorkoutMutation mutation) {
+  void _queueMutation(WorkoutMutation mutation, {bool immediate = false}) {
     _pendingMutations.add(mutation);
     unawaited(_persistLocalCache());
-    _scheduleMutationFlush(_mutationFlushDebounce);
+    // Set actions flush immediately so the server-computed rest timer / state
+    // lands promptly; edits stay debounced so a drag-reorder batches.
+    _scheduleMutationFlush(immediate ? Duration.zero : _mutationFlushDebounce);
   }
 
   void _scheduleMutationFlush(Duration delay) {
@@ -1209,15 +1159,30 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   int get _nowSecs => _now.millisecondsSinceEpoch ~/ 1000;
 
+  // Tiny optimistic set edits: mutate the local lists so the tap registers
+  // instantly, then _refreshDerivedState advances the highlight. Rest timing and
+  // the authoritative state come from the server response — no rest maths here.
   void _applyLocalStartSet(String proposedSetId, {int? startedAt}) {
     if (_activeWorkout == null) return;
-    applyLocalStartSet(
-      workoutId: _activeWorkout!.id,
-      proposedSets: _activeProposedSets,
-      completedSets: _activeCompletedSets,
-      proposedSetId: proposedSetId,
-      nowSecs: _nowSecs,
-      startedAt: startedAt,
+    final alreadyActive = _activeCompletedSets.any(
+      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
+    );
+    if (alreadyActive) return;
+    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
+      (p) => p?.id == proposedSetId && !(p?.cancelled ?? true),
+      orElse: () => null,
+    );
+    if (proposed == null) return;
+    _activeCompletedSets.add(
+      CompletedSet()
+        ..id = _uuid.v4()
+        ..workoutId = _activeWorkout!.id
+        ..proposedSetId = proposedSetId
+        ..actualReps = proposed.targetReps
+        ..actualWeight = proposed.targetWeight
+        ..startedAt = Int64(startedAt ?? _nowSecs)
+        ..endedAt = Int64.ZERO
+        ..restUntil = Int64.ZERO,
     );
     _refreshDerivedState();
   }
@@ -1229,32 +1194,41 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     int? completedAt,
   }) {
     if (_activeWorkout == null) return;
-    applyLocalCompleteSet(
-      workoutId: _activeWorkout!.id,
-      proposedSets: _activeProposedSets,
-      completedSets: _activeCompletedSets,
-      proposedSetId: proposedSetId,
-      actualReps: actualReps,
-      actualWeight: actualWeight,
-      nowSecs: _nowSecs,
-      completedAt: completedAt,
+    final endedAt = Int64(completedAt ?? _nowSecs);
+    final idx = _activeCompletedSets.indexWhere(
+      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
     );
+    if (idx != -1) {
+      _activeCompletedSets[idx]
+        ..actualReps = actualReps
+        ..actualWeight = actualWeight
+        ..endedAt = endedAt
+        ..restUntil = Int64.ZERO;
+    } else {
+      _activeCompletedSets.add(
+        CompletedSet()
+          ..id = _uuid.v4()
+          ..workoutId = _activeWorkout!.id
+          ..proposedSetId = proposedSetId
+          ..actualReps = actualReps
+          ..actualWeight = actualWeight
+          ..startedAt = endedAt
+          ..endedAt = endedAt
+          ..restUntil = Int64.ZERO,
+      );
+    }
     _refreshDerivedState();
   }
 
   void _applyLocalDeleteCompletedSet(String completedSetId) {
-    applyLocalDeleteCompletedSet(
-      completedSets: _activeCompletedSets,
-      completedSetId: completedSetId,
-    );
+    _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
     _refreshDerivedState();
   }
 
   void _applyLocalSkipWarmup(String proposedSetId) {
-    applyLocalSkipWarmup(
-      proposedSets: _activeProposedSets,
-      proposedSetId: proposedSetId,
-    );
+    final idx = _activeProposedSets.indexWhere((s) => s.id == proposedSetId);
+    if (idx == -1 || !_activeProposedSets[idx].warmup) return;
+    _activeProposedSets[idx].cancelled = true;
     _refreshDerivedState();
   }
 
@@ -1292,6 +1266,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..proposedSetId = proposedSetId
           ..startedAt = Int64(startedAt),
       ),
+      immediate: true,
     );
     await _persistLocalCache();
     notifyListeners();
@@ -1323,6 +1298,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..actualWeight = actualWeight
           ..completedAt = Int64(endedAt),
       ),
+      immediate: true,
     );
     await _persistLocalCache();
     notifyListeners();
@@ -1341,6 +1317,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..workoutId = _activeWorkout!.id
           ..completedSetId = completedSetId,
       ),
+      immediate: true,
     );
     await _persistLocalCache();
     notifyListeners();
@@ -1365,6 +1342,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..workoutId = _activeWorkout!.id
           ..proposedSetId = proposedSetId,
       ),
+      immediate: true,
     );
     await _persistLocalCache();
     notifyListeners();
