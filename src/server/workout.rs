@@ -233,10 +233,16 @@ impl ServerWorkoutService {
             .map_err(internal_error)?
             .unwrap_or_default();
 
+        let mut proposed_groups = proposal.proposed_groups;
+        for g in &mut proposed_groups {
+            g.estimated_duration_seconds =
+                crate::workout::estimate_group_duration_seconds(g);
+        }
+
         let response = GetProposedWorkoutScheduleResponse {
             exercise_statuses: Vec::new(),
             active_workout_id,
-            proposed_groups: proposal.proposed_groups,
+            proposed_groups,
             regime_context: Some(proposal.regime_context),
             training_status: Some(training_status),
             suggested_workout_name: proposal.suggested_workout_name,

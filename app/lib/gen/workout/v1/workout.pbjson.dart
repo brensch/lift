@@ -1998,6 +1998,13 @@ const ProposedExerciseGroup$json = {
       '5': 8,
       '10': 'prescribedByRegime'
     },
+    {
+      '1': 'estimated_duration_seconds',
+      '3': 8,
+      '4': 1,
+      '5': 3,
+      '10': 'estimatedDurationSeconds'
+    },
   ],
 };
 
@@ -2008,7 +2015,8 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'SQoQZXhlcmNpc2VfY29uZmlncxgEIAMoCzIeLndvcmtvdXQudjEuRXhlcmNpc2VUeXBlQ29uZm'
     'lnUg9leGVyY2lzZUNvbmZpZ3MSNwoLcmVzdF9jb25maWcYBSABKAsyFi53b3Jrb3V0LnYxLlJl'
     'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncxIwChRwcmVzY3JpYmVkX2'
-    'J5X3JlZ2ltZRgHIAEoCFIScHJlc2NyaWJlZEJ5UmVnaW1l');
+    'J5X3JlZ2ltZRgHIAEoCFIScHJlc2NyaWJlZEJ5UmVnaW1lEjwKGmVzdGltYXRlZF9kdXJhdGlv'
+    'bl9zZWNvbmRzGAggASgDUhhlc3RpbWF0ZWREdXJhdGlvblNlY29uZHM=');
 
 @$core.Deprecated('Use slotTrainingStatusDescriptor instead')
 const SlotTrainingStatus$json = {

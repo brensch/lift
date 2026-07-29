@@ -13,7 +13,8 @@ mod planning;
 mod reducer;
 
 pub(crate) use planning::{
-    apply_reorder_exercise_groups, apply_replace_exercise_group_plan, generate_sets_for_group,
+    apply_reorder_exercise_groups, apply_replace_exercise_group_plan,
+    estimate_group_duration_seconds, generate_sets_for_group,
 };
 pub(crate) use reducer::{
     active_from_get_workout_response, active_proposed_sets, apply_cancel_proposed_set_to_active,

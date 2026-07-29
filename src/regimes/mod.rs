@@ -505,5 +505,6 @@ pub fn build_single_group_amrap(
         rest_config: options.rest_config,
         tags: options.tags,
         prescribed_by_regime: false,
+                estimated_duration_seconds: 0,
     }
 }
