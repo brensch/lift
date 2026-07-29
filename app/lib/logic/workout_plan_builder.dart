@@ -11,7 +11,12 @@ import 'package:uuid/uuid.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import 'warmup.dart';
+
+bool groupRestHasValues(RestConfig rc) =>
+    rc.restAfterSuccess > 0 ||
+    rc.restAfterFailure > 0 ||
+    rc.restAfterWarmup > 0 ||
+    rc.restAfterLastWarmup > 0;
 
 const _uuid = Uuid();
 
@@ -112,69 +117,11 @@ List<PlannedGroupSet> buildPlannedGroupSetsFromConfigs({
   final workingByConfig = exerciseConfigs
       .map((c) => materializeWorkingSetsForConfig(c, sets))
       .toList();
-  final warmupByConfig = <List<WarmupDef>>[];
-  for (var i = 0; i < exerciseConfigs.length; i++) {
-    final c = exerciseConfigs[i];
-    if (!c.includeWarmup) {
-      warmupByConfig.add(const []);
-      continue;
-    }
-    final warmupWeight = workingByConfig[i].isNotEmpty
-        ? workingByConfig[i].first.targetWeight
-        : c.startWeight;
-    warmupByConfig.add(generateWarmupDefs(warmupWeight, unit));
-  }
 
+  // Warmups are materialized server-side on the edit round-trip: the optimistic
+  // update shows the working sets immediately, and the warmups fill in when the
+  // server responds. Nothing to generate here.
   final out = <PlannedGroupSet>[];
-
-  void addWarmupSet(int cfgIdx, int warmIdx) {
-    final c = exerciseConfigs[cfgIdx];
-    final warm = warmupByConfig[cfgIdx][warmIdx];
-    final isLastWarmup = warmIdx == warmupByConfig[cfgIdx].length - 1;
-    final planned = PlannedGroupSet()
-      ..exercise = c.exercise
-      ..targetReps = warm.reps
-      ..targetWeight = warm.weight
-      ..warmup = true
-      ..restAfterSuccess = effectiveRestSuccess(
-        config: c,
-        groupRest: restConfig,
-        warmup: true,
-        lastWarmup: isLastWarmup,
-      )
-      ..restAfterFailure = effectiveRestFailure(
-        config: c,
-        groupRest: restConfig,
-        warmup: true,
-        lastWarmup: isLastWarmup,
-      )
-      ..clientSetId = _uuid.v4();
-    out.add(planned);
-  }
-
-  if (interleaveWarmups && exerciseConfigs.length > 1) {
-    final maxWarmups = warmupByConfig.fold<int>(
-      0,
-      (m, w) => w.length > m ? w.length : m,
-    );
-    for (var round = 0; round < maxWarmups; round++) {
-      for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
-        if (round < warmupByConfig[cfgIdx].length) {
-          addWarmupSet(cfgIdx, round);
-        }
-      }
-    }
-  } else {
-    for (var cfgIdx = 0; cfgIdx < exerciseConfigs.length; cfgIdx++) {
-      for (
-        var warmIdx = 0;
-        warmIdx < warmupByConfig[cfgIdx].length;
-        warmIdx++
-      ) {
-        addWarmupSet(cfgIdx, warmIdx);
-      }
-    }
-  }
 
   final maxWorking = workingByConfig.fold<int>(
     0,
