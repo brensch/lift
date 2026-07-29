@@ -8,7 +8,6 @@ import '../../gen/workout/v1/settings.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
-import '../../logic/warmup.dart';
 import '../../logic/weight_units.dart';
 import '../../widgets/user_message_chip.dart';
 import 'exercise_config_details.dart';
@@ -72,42 +71,30 @@ class GroupChip extends StatelessWidget {
     this.onDelete,
   });
 
-  List<WorkingSetSpec> _workingSetsForConfig(ExerciseTypeConfig cfg) {
-    if (cfg.workingSets.isNotEmpty) return cfg.workingSets;
-    final count = group.sets <= 0 ? 1 : group.sets;
-    return List.generate(
-      count,
-      (i) => WorkingSetSpec()
-        ..targetWeight = count <= 1
-            ? cfg.startWeight
-            : (cfg.startWeight +
-                  (i / (count - 1)) * (cfg.endWeight - cfg.startWeight))
-        ..targetReps = cfg.reps
-        ..isAmrap = cfg.lastSetAmrap && i == count - 1,
-    );
-  }
+  // The server materializes each group's sets (warmups + working, plate-snapped);
+  // the chip just filters and formats them — no client-side generation.
+  List<ProposedSet> _setsForConfig(ExerciseTypeConfig cfg, {required bool warmup}) =>
+      group.materializedSets
+          .where((s) =>
+              s.exercise == cfg.exercise && s.warmup == warmup && !s.cancelled)
+          .toList();
 
-  String _formatSetLine(WorkingSetSpec set, WeightUnit unit) {
-    final reps = set.isAmrap ? '${set.targetReps}+' : '${set.targetReps}';
-    return '${formatWeight(set.targetWeight.toDouble(), unit, includeUnit: true)} × $reps';
+  String _formatProposedSetLine(ProposedSet s, WeightUnit unit) {
+    final reps = s.isAmrap ? '${s.targetReps}+' : '${s.targetReps}';
+    return '${formatWeight(s.targetWeight.toDouble(), unit, includeUnit: true)} × $reps';
   }
 
   List<SetLine> _warmupLinesForConfig(
     ExerciseTypeConfig cfg,
     WeightUnit unit,
   ) {
-    if (!cfg.includeWarmup) return const [];
-    final workingSets = _workingSetsForConfig(cfg);
-    if (workingSets.isEmpty) return const [];
-    final workingWeight = workingSets.first.targetWeight.toDouble();
-    final defs = generateWarmupDefs(workingWeight, unit);
+    final warmups = _setsForConfig(cfg, warmup: true);
     return [
-      for (int i = 0; i < defs.length; i++)
+      for (int i = 0; i < warmups.length; i++)
         (
           index: i + 1,
-          text:
-              '${formatWeight(defs[i].weight, unit, includeUnit: true)} × ${defs[i].reps}',
-          note: i == defs.length - 1 ? 'Last warmup before work sets.' : '',
+          text: _formatProposedSetLine(warmups[i], unit),
+          note: i == warmups.length - 1 ? 'Last warmup before work sets.' : '',
         ),
     ];
   }
@@ -116,33 +103,28 @@ class GroupChip extends StatelessWidget {
     ExerciseTypeConfig cfg,
     WeightUnit unit,
   ) {
-    final workingSets = _workingSetsForConfig(cfg);
+    final working = _setsForConfig(cfg, warmup: false);
     return [
-      for (int i = 0; i < workingSets.length; i++)
+      for (int i = 0; i < working.length; i++)
         (
           index: i + 1,
-          text: _formatSetLine(workingSets[i], unit),
-          note: workingSets[i].instruction,
+          text: _formatProposedSetLine(working[i], unit),
+          note: working[i].instruction,
         ),
     ];
   }
 
   double? _maxWorkingWeight() {
     double? maxWeight;
-    for (final cfg in group.exerciseConfigs) {
-      for (final set in _workingSetsForConfig(cfg)) {
-        final weight = set.targetWeight.toDouble();
-        if (maxWeight == null || weight > maxWeight) {
-          maxWeight = weight;
-        }
-      }
+    for (final s in group.materializedSets.where((s) => !s.warmup && !s.cancelled)) {
+      final weight = s.targetWeight.toDouble();
+      if (maxWeight == null || weight > maxWeight) maxWeight = weight;
     }
     return maxWeight;
   }
 
-  int _workingSetCount() => group.exerciseConfigs
-      .map(_workingSetsForConfig)
-      .fold(0, (total, sets) => total + sets.length);
+  int _workingSetCount() =>
+      group.materializedSets.where((s) => !s.warmup && !s.cancelled).length;
 
   int _exerciseCount() => group.exerciseConfigs.length;
 
