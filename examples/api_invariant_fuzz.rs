@@ -589,6 +589,7 @@ fn random_group(rng: &mut StdRng, order: i32) -> ExerciseGroup {
         rest_config: None,
         instruction: String::new(),
         prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
     }
 }
 

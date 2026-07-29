@@ -91,6 +91,7 @@ fn v1_groups(blocks: usize, sets_per: i32) -> Vec<ExerciseGroup> {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
         })
         .collect()
 }
