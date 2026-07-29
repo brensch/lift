@@ -66,6 +66,21 @@ class WorkoutServiceWrapper {
     );
   }
 
+  /// Recommended starting weights (field key -> pounds) for onboarding.
+  /// [experienceValue] is the proto ExperienceLevel enum value.
+  Future<Map<String, double>> getRecommendedStartingWeights(
+    double bodyweightKg,
+    int experienceValue,
+  ) async {
+    final resp = await _client.workoutService.getRecommendedStartingWeights(
+      GetRecommendedStartingWeightsRequest()
+        ..bodyweightKg = bodyweightKg
+        ..experience = ExperienceLevel.valueOf(experienceValue) ??
+            ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
+    );
+    return {for (final w in resp.weights) w.fieldKey: w.pounds};
+  }
+
   Future<StartSetResponse> startSet(
     String workoutId,
     String proposedSetId,

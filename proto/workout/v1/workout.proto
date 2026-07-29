@@ -391,6 +391,27 @@ message ExerciseProgress {
   Exercise exercise = 1;
   repeated ExerciseProgressPoint points = 2; // oldest first
 }
+// Lifting experience, used to scale recommended starting weights.
+enum ExperienceLevel {
+  EXPERIENCE_LEVEL_UNSPECIFIED = 0;
+  EXPERIENCE_LEVEL_CUTE = 1;         // brand new
+  EXPERIENCE_LEVEL_BEGINNER = 2;
+  EXPERIENCE_LEVEL_INTERMEDIATE = 3;
+  EXPERIENCE_LEVEL_EXPERT = 4;
+}
+
+message RecommendedWeight {
+  string field_key = 1; // program state field, e.g. "squat_weight" / "bench_press_tm"
+  float pounds = 2;     // recommended starting value, unclamped (client clamps to schema)
+}
+message GetRecommendedStartingWeightsRequest {
+  double bodyweight_kg = 1;
+  ExperienceLevel experience = 2;
+}
+message GetRecommendedStartingWeightsResponse {
+  repeated RecommendedWeight weights = 1;
+}
+
 message GetExerciseProgressRequest {}
 message GetExerciseProgressResponse {
   repeated ExerciseProgress exercises = 1; // most-improved first
@@ -855,6 +876,8 @@ service WorkoutService {
   rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
   // Per-exercise progress series, everything precomputed (progress + detail).
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
+  // Recommended starting weights from bodyweight + experience (onboarding).
+  rpc GetRecommendedStartingWeights(GetRecommendedStartingWeightsRequest) returns (GetRecommendedStartingWeightsResponse);
 
   rpc ReplaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest) returns (ReplaceExerciseGroupPlanResponse);
   rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
