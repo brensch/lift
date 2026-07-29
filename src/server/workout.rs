@@ -250,9 +250,20 @@ impl ServerWorkoutService {
                 rest_config: g.rest_config.clone(),
                 instruction: String::new(),
                 prescribed_by_regime: g.prescribed_by_regime,
+                materialized_sets: Vec::new(),
             };
             g.materialized_sets =
                 crate::workout::generate_sets_for_group("", &eg, 0, unit);
+        }
+
+        let mut saved_exercise_groups = self
+            .db
+            .list_profile_exercise_groups(user_id)
+            .await
+            .map_err(internal_error)?;
+        for g in &mut saved_exercise_groups {
+            g.materialized_sets =
+                crate::workout::generate_sets_for_group(&g.id, g, 0, unit);
         }
 
         let response = GetProposedWorkoutScheduleResponse {
@@ -267,11 +278,7 @@ impl ServerWorkoutService {
                 .get_workout_draft(user_id)
                 .await
                 .map_err(internal_error)?,
-            saved_exercise_groups: self
-                .db
-                .list_profile_exercise_groups(user_id)
-                .await
-                .map_err(internal_error)?,
+            saved_exercise_groups,
             user_messages: schedule_messages,
         };
         self.db

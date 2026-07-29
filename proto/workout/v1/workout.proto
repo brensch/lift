@@ -171,6 +171,9 @@ message ExerciseGroup {
   RestConfig rest_config = 8;
   string instruction = 9;        // regime coaching note, e.g. "T1 — max effort" (not persisted to DB)
   bool prescribed_by_regime = 10; // immutable in UI once created from a regime suggestion
+  // Server-materialized display sets, populated only in the schedule response so
+  // the home preview renders them directly. Not persisted / not sent on mutations.
+  repeated ProposedSet materialized_sets = 11;
 }
 
 message ProposedSet {

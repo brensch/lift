@@ -581,6 +581,7 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     RestConfig? restConfig,
     $core.String? instruction,
     $core.bool? prescribedByRegime,
+    $core.Iterable<ProposedSet>? materializedSets,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -594,6 +595,8 @@ class ExerciseGroup extends $pb.GeneratedMessage {
     if (instruction != null) result.instruction = instruction;
     if (prescribedByRegime != null)
       result.prescribedByRegime = prescribedByRegime;
+    if (materializedSets != null)
+      result.materializedSets.addAll(materializedSets);
     return result;
   }
 
@@ -622,6 +625,8 @@ class ExerciseGroup extends $pb.GeneratedMessage {
         subBuilder: RestConfig.create)
     ..aOS(9, _omitFieldNames ? '' : 'instruction')
     ..aOB(10, _omitFieldNames ? '' : 'prescribedByRegime')
+    ..pPM<ProposedSet>(11, _omitFieldNames ? '' : 'materializedSets',
+        subBuilder: ProposedSet.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -728,6 +733,11 @@ class ExerciseGroup extends $pb.GeneratedMessage {
   $core.bool hasPrescribedByRegime() => $_has(9);
   @$pb.TagNumber(10)
   void clearPrescribedByRegime() => $_clearField(10);
+
+  /// Server-materialized display sets, populated only in the schedule response so
+  /// the home preview renders them directly. Not persisted / not sent on mutations.
+  @$pb.TagNumber(11)
+  $pb.PbList<ProposedSet> get materializedSets => $_getList(10);
 }
 
 class ProposedSet extends $pb.GeneratedMessage {
