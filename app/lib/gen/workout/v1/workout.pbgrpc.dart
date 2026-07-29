@@ -84,6 +84,16 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getExerciseProgress, request, options: options);
   }
 
+  /// Recommended starting weights from bodyweight + experience (onboarding).
+  $grpc.ResponseFuture<$0.GetRecommendedStartingWeightsResponse>
+      getRecommendedStartingWeights(
+    $0.GetRecommendedStartingWeightsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getRecommendedStartingWeights, request,
+        options: options);
+  }
+
   $grpc.ResponseFuture<$0.ReplaceExerciseGroupPlanResponse>
       replaceExerciseGroupPlan(
     $0.ReplaceExerciseGroupPlanRequest request, {
@@ -248,6 +258,12 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetExerciseProgress',
       ($0.GetExerciseProgressRequest value) => value.writeToBuffer(),
       $0.GetExerciseProgressResponse.fromBuffer);
+  static final _$getRecommendedStartingWeights = $grpc.ClientMethod<
+          $0.GetRecommendedStartingWeightsRequest,
+          $0.GetRecommendedStartingWeightsResponse>(
+      '/workout.v1.WorkoutService/GetRecommendedStartingWeights',
+      ($0.GetRecommendedStartingWeightsRequest value) => value.writeToBuffer(),
+      $0.GetRecommendedStartingWeightsResponse.fromBuffer);
   static final _$replaceExerciseGroupPlan = $grpc.ClientMethod<
           $0.ReplaceExerciseGroupPlanRequest,
           $0.ReplaceExerciseGroupPlanResponse>(
@@ -399,6 +415,16 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetExerciseProgressRequest.fromBuffer(value),
         ($0.GetExerciseProgressResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetRecommendedStartingWeightsRequest,
+            $0.GetRecommendedStartingWeightsResponse>(
+        'GetRecommendedStartingWeights',
+        getRecommendedStartingWeights_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetRecommendedStartingWeightsRequest.fromBuffer(value),
+        ($0.GetRecommendedStartingWeightsResponse value) =>
+            value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.ReplaceExerciseGroupPlanRequest,
             $0.ReplaceExerciseGroupPlanResponse>(
         'ReplaceExerciseGroupPlan',
@@ -606,6 +632,18 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress(
       $grpc.ServiceCall call, $0.GetExerciseProgressRequest request);
+
+  $async.Future<$0.GetRecommendedStartingWeightsResponse>
+      getRecommendedStartingWeights_Pre(
+          $grpc.ServiceCall $call,
+          $async.Future<$0.GetRecommendedStartingWeightsRequest>
+              $request) async {
+    return getRecommendedStartingWeights($call, await $request);
+  }
+
+  $async.Future<$0.GetRecommendedStartingWeightsResponse>
+      getRecommendedStartingWeights($grpc.ServiceCall call,
+          $0.GetRecommendedStartingWeightsRequest request);
 
   $async.Future<$0.ReplaceExerciseGroupPlanResponse>
       replaceExerciseGroupPlan_Pre($grpc.ServiceCall $call,

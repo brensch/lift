@@ -12,6 +12,7 @@ import '../../logic/weight_units.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/grpc_client.dart';
+import '../../services/workout_service.dart';
 import '../../services/app_logger.dart';
 import '../../services/health_service.dart';
 import '../../services/user_service.dart';
@@ -48,6 +49,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _bodyWeightHint =
       'We use your bodyweight to estimate calories burned for each workout.';
   ExperienceLevel _experienceLevel = ExperienceLevel.intermediate;
+  // Server-recommended starting weights (field key -> pounds), fetched from
+  // bodyweight + experience. The client only clamps/snaps/formats for display.
+  Map<String, double> _recommendedPounds = {};
+  Timer? _recDebounce;
   late List<String> _emojiChoices;
 
   @override
@@ -73,6 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   void dispose() {
+    _recDebounce?.cancel();
     for (final c in _controllers.values) {
       c.dispose();
     }
@@ -167,13 +173,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _onBodyWeightChanged() {
     if (_syncingBodyWeightText || !mounted) return;
-    final provider = context.read<SettingsProvider>();
-    final program = _selectedRegimeType == null
-        ? null
-        : provider.trainingProgramFor(_selectedRegimeType!);
-    if (program != null) {
-      _applyRecommendedWeights(provider, program);
-    }
+    // Debounce: don't fire the recommendation RPC on every keystroke.
+    _recDebounce?.cancel();
+    _recDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      final provider = context.read<SettingsProvider>();
+      final program = _selectedRegimeType == null
+          ? null
+          : provider.trainingProgramFor(_selectedRegimeType!);
+      if (program != null) {
+        _applyRecommendedWeights(provider, program);
+      }
+    });
   }
 
   double? _parsedBodyWeightKg(SettingsProvider provider) {
@@ -250,64 +261,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _applyRecommendedWeights(provider, program);
   }
 
-  double _experienceMultiplier(ExperienceLevel level) {
-    switch (level) {
-      case ExperienceLevel.cute:
-        return 0.40;
-      case ExperienceLevel.beginner:
-        return 0.85;
-      case ExperienceLevel.intermediate:
-        return 1.0;
-      case ExperienceLevel.expert:
-        return 1.15;
-    }
-  }
-
-  double? _ratioForFieldKey(String key) {
-    switch (key) {
-      case 'squat_weight':
-      case 'squat_t1_weight':
-        return 0.95;
-      case 'bench_press_weight':
-      case 'bench_press_t2_weight':
-        return 0.70;
-      case 'barbell_row_weight':
-      case 'barbell_row_t2_weight':
-        return 0.75;
-      case 'overhead_press_weight':
-      case 'overhead_press_t2_weight':
-        return 0.50;
-      case 'deadlift_weight':
-      case 'deadlift_t1_weight':
-        return 1.15;
-      case 'squat_tm':
-        return 1.10;
-      case 'bench_press_tm':
-        return 0.80;
-      case 'deadlift_tm':
-        return 1.35;
-      case 'overhead_press_tm':
-        return 0.55;
-      default:
-        return null;
-    }
-  }
-
   String _formattedRecommendedValue(
     TrainingProgramStateFieldSchema field,
     SettingsProvider provider,
     double bodyWeightKg,
   ) {
-    final bodyWeightLb = kilogramsToPounds(bodyWeightKg);
-    final baseRatio = _ratioForFieldKey(field.key);
-    if (baseRatio == null) {
+    final recommended = _recommendedPounds[field.key];
+    if (recommended == null) {
       return _defaultTextForField(field);
     }
 
+    // Server gives the raw recommendation; we clamp to this field's range and
+    // snap/format for display.
     final targetPounds =
-        (bodyWeightLb * baseRatio * _experienceMultiplier(_experienceLevel))
-            .clamp(field.minValue, field.maxValue)
-            .toDouble();
+        recommended.clamp(field.minValue, field.maxValue).toDouble();
     final snappedPounds = snapPoundsForUnit(
       targetPounds,
       provider.weightUnit,
@@ -323,12 +290,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         : display.toStringAsFixed(1);
   }
 
-  void _applyRecommendedWeights(
+  Future<void> _applyRecommendedWeights(
     SettingsProvider provider,
     TrainingProgramDefinition program,
-  ) {
+  ) async {
     final bodyWeightKg = _parsedBodyWeightKg(provider);
     if (bodyWeightKg == null || bodyWeightKg <= 0) return;
+
+    // The server owns the recommendation (bodyweight x lift ratio x experience).
+    try {
+      final service = WorkoutServiceWrapper(context.read<GrpcClient>());
+      _recommendedPounds = await service.getRecommendedStartingWeights(
+        bodyWeightKg,
+        _experienceLevel.index + 1, // local enum -> proto value (Cute = 1)
+      );
+    } catch (_) {
+      // Keep whatever we had; fields fall back to schema defaults.
+    }
+    if (!mounted) return;
 
     final onboardingFields = program.stateSchema.fields
         .where((f) => f.onboardingField)

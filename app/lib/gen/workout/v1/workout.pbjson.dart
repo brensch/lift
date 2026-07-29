@@ -302,6 +302,25 @@ final $typed_data.Uint8List workoutStateDescriptor = $convert.base64Decode(
     'RfU1RBVEVfQUxMX0RPTkUQARIZChVXT1JLT1VUX1NUQVRFX0xJRlRJTkcQAhIZChVXT1JLT1VU'
     'X1NUQVRFX1JFU1RJTkcQAxIXChNXT1JLT1VUX1NUQVRFX1JFQURZEAU=');
 
+@$core.Deprecated('Use experienceLevelDescriptor instead')
+const ExperienceLevel$json = {
+  '1': 'ExperienceLevel',
+  '2': [
+    {'1': 'EXPERIENCE_LEVEL_UNSPECIFIED', '2': 0},
+    {'1': 'EXPERIENCE_LEVEL_CUTE', '2': 1},
+    {'1': 'EXPERIENCE_LEVEL_BEGINNER', '2': 2},
+    {'1': 'EXPERIENCE_LEVEL_INTERMEDIATE', '2': 3},
+    {'1': 'EXPERIENCE_LEVEL_EXPERT', '2': 4},
+  ],
+};
+
+/// Descriptor for `ExperienceLevel`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List experienceLevelDescriptor = $convert.base64Decode(
+    'Cg9FeHBlcmllbmNlTGV2ZWwSIAocRVhQRVJJRU5DRV9MRVZFTF9VTlNQRUNJRklFRBAAEhkKFU'
+    'VYUEVSSUVOQ0VfTEVWRUxfQ1VURRABEh0KGUVYUEVSSUVOQ0VfTEVWRUxfQkVHSU5ORVIQAhIh'
+    'Ch1FWFBFUklFTkNFX0xFVkVMX0lOVEVSTUVESUFURRADEhsKF0VYUEVSSUVOQ0VfTEVWRUxfRV'
+    'hQRVJUEAQ=');
+
 @$core.Deprecated('Use progressionRuleDescriptor instead')
 const ProgressionRule$json = {
   '1': 'ProgressionRule',
@@ -1224,6 +1243,64 @@ final $typed_data.Uint8List exerciseProgressDescriptor = $convert.base64Decode(
     'ChBFeGVyY2lzZVByb2dyZXNzEjAKCGV4ZXJjaXNlGAEgASgOMhQud29ya291dC52MS5FeGVyY2'
     'lzZVIIZXhlcmNpc2USOQoGcG9pbnRzGAIgAygLMiEud29ya291dC52MS5FeGVyY2lzZVByb2dy'
     'ZXNzUG9pbnRSBnBvaW50cw==');
+
+@$core.Deprecated('Use recommendedWeightDescriptor instead')
+const RecommendedWeight$json = {
+  '1': 'RecommendedWeight',
+  '2': [
+    {'1': 'field_key', '3': 1, '4': 1, '5': 9, '10': 'fieldKey'},
+    {'1': 'pounds', '3': 2, '4': 1, '5': 2, '10': 'pounds'},
+  ],
+};
+
+/// Descriptor for `RecommendedWeight`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recommendedWeightDescriptor = $convert.base64Decode(
+    'ChFSZWNvbW1lbmRlZFdlaWdodBIbCglmaWVsZF9rZXkYASABKAlSCGZpZWxkS2V5EhYKBnBvdW'
+    '5kcxgCIAEoAlIGcG91bmRz');
+
+@$core.Deprecated('Use getRecommendedStartingWeightsRequestDescriptor instead')
+const GetRecommendedStartingWeightsRequest$json = {
+  '1': 'GetRecommendedStartingWeightsRequest',
+  '2': [
+    {'1': 'bodyweight_kg', '3': 1, '4': 1, '5': 1, '10': 'bodyweightKg'},
+    {
+      '1': 'experience',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ExperienceLevel',
+      '10': 'experience'
+    },
+  ],
+};
+
+/// Descriptor for `GetRecommendedStartingWeightsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getRecommendedStartingWeightsRequestDescriptor =
+    $convert.base64Decode(
+        'CiRHZXRSZWNvbW1lbmRlZFN0YXJ0aW5nV2VpZ2h0c1JlcXVlc3QSIwoNYm9keXdlaWdodF9rZx'
+        'gBIAEoAVIMYm9keXdlaWdodEtnEjsKCmV4cGVyaWVuY2UYAiABKA4yGy53b3Jrb3V0LnYxLkV4'
+        'cGVyaWVuY2VMZXZlbFIKZXhwZXJpZW5jZQ==');
+
+@$core.Deprecated('Use getRecommendedStartingWeightsResponseDescriptor instead')
+const GetRecommendedStartingWeightsResponse$json = {
+  '1': 'GetRecommendedStartingWeightsResponse',
+  '2': [
+    {
+      '1': 'weights',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.RecommendedWeight',
+      '10': 'weights'
+    },
+  ],
+};
+
+/// Descriptor for `GetRecommendedStartingWeightsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getRecommendedStartingWeightsResponseDescriptor =
+    $convert.base64Decode(
+        'CiVHZXRSZWNvbW1lbmRlZFN0YXJ0aW5nV2VpZ2h0c1Jlc3BvbnNlEjcKB3dlaWdodHMYASADKA'
+        'syHS53b3Jrb3V0LnYxLlJlY29tbWVuZGVkV2VpZ2h0Ugd3ZWlnaHRz');
 
 @$core.Deprecated('Use getExerciseProgressRequestDescriptor instead')
 const GetExerciseProgressRequest$json = {

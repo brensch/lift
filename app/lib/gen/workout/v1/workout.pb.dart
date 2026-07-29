@@ -2820,6 +2820,198 @@ class ExerciseProgress extends $pb.GeneratedMessage {
   $pb.PbList<ExerciseProgressPoint> get points => $_getList(1);
 }
 
+class RecommendedWeight extends $pb.GeneratedMessage {
+  factory RecommendedWeight({
+    $core.String? fieldKey,
+    $core.double? pounds,
+  }) {
+    final result = create();
+    if (fieldKey != null) result.fieldKey = fieldKey;
+    if (pounds != null) result.pounds = pounds;
+    return result;
+  }
+
+  RecommendedWeight._();
+
+  factory RecommendedWeight.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecommendedWeight.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecommendedWeight',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fieldKey')
+    ..aD(2, _omitFieldNames ? '' : 'pounds', fieldType: $pb.PbFieldType.OF)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecommendedWeight clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecommendedWeight copyWith(void Function(RecommendedWeight) updates) =>
+      super.copyWith((message) => updates(message as RecommendedWeight))
+          as RecommendedWeight;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecommendedWeight create() => RecommendedWeight._();
+  @$core.override
+  RecommendedWeight createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecommendedWeight getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecommendedWeight>(create);
+  static RecommendedWeight? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fieldKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fieldKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFieldKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFieldKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get pounds => $_getN(1);
+  @$pb.TagNumber(2)
+  set pounds($core.double value) => $_setFloat(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPounds() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPounds() => $_clearField(2);
+}
+
+class GetRecommendedStartingWeightsRequest extends $pb.GeneratedMessage {
+  factory GetRecommendedStartingWeightsRequest({
+    $core.double? bodyweightKg,
+    ExperienceLevel? experience,
+  }) {
+    final result = create();
+    if (bodyweightKg != null) result.bodyweightKg = bodyweightKg;
+    if (experience != null) result.experience = experience;
+    return result;
+  }
+
+  GetRecommendedStartingWeightsRequest._();
+
+  factory GetRecommendedStartingWeightsRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetRecommendedStartingWeightsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetRecommendedStartingWeightsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aD(1, _omitFieldNames ? '' : 'bodyweightKg')
+    ..aE<ExperienceLevel>(2, _omitFieldNames ? '' : 'experience',
+        enumValues: ExperienceLevel.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecommendedStartingWeightsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecommendedStartingWeightsRequest copyWith(
+          void Function(GetRecommendedStartingWeightsRequest) updates) =>
+      super.copyWith((message) =>
+              updates(message as GetRecommendedStartingWeightsRequest))
+          as GetRecommendedStartingWeightsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetRecommendedStartingWeightsRequest create() =>
+      GetRecommendedStartingWeightsRequest._();
+  @$core.override
+  GetRecommendedStartingWeightsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetRecommendedStartingWeightsRequest getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+          GetRecommendedStartingWeightsRequest>(create);
+  static GetRecommendedStartingWeightsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get bodyweightKg => $_getN(0);
+  @$pb.TagNumber(1)
+  set bodyweightKg($core.double value) => $_setDouble(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasBodyweightKg() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBodyweightKg() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ExperienceLevel get experience => $_getN(1);
+  @$pb.TagNumber(2)
+  set experience(ExperienceLevel value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExperience() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExperience() => $_clearField(2);
+}
+
+class GetRecommendedStartingWeightsResponse extends $pb.GeneratedMessage {
+  factory GetRecommendedStartingWeightsResponse({
+    $core.Iterable<RecommendedWeight>? weights,
+  }) {
+    final result = create();
+    if (weights != null) result.weights.addAll(weights);
+    return result;
+  }
+
+  GetRecommendedStartingWeightsResponse._();
+
+  factory GetRecommendedStartingWeightsResponse.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetRecommendedStartingWeightsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetRecommendedStartingWeightsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<RecommendedWeight>(1, _omitFieldNames ? '' : 'weights',
+        subBuilder: RecommendedWeight.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecommendedStartingWeightsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecommendedStartingWeightsResponse copyWith(
+          void Function(GetRecommendedStartingWeightsResponse) updates) =>
+      super.copyWith((message) =>
+              updates(message as GetRecommendedStartingWeightsResponse))
+          as GetRecommendedStartingWeightsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetRecommendedStartingWeightsResponse create() =>
+      GetRecommendedStartingWeightsResponse._();
+  @$core.override
+  GetRecommendedStartingWeightsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetRecommendedStartingWeightsResponse getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+          GetRecommendedStartingWeightsResponse>(create);
+  static GetRecommendedStartingWeightsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<RecommendedWeight> get weights => $_getList(0);
+}
+
 class GetExerciseProgressRequest extends $pb.GeneratedMessage {
   factory GetExerciseProgressRequest() => create();
 

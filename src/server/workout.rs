@@ -698,6 +698,21 @@ impl WorkoutService for ServerWorkoutService {
         }))
     }
 
+    async fn get_recommended_starting_weights(
+        &self,
+        request: Request<GetRecommendedStartingWeightsRequest>,
+    ) -> Result<Response<GetRecommendedStartingWeightsResponse>, Status> {
+        let _user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        let experience = ExperienceLevel::try_from(req.experience)
+            .unwrap_or(ExperienceLevel::Unspecified);
+        let weights = crate::onboarding::recommended_starting_weights(
+            req.bodyweight_kg as f32,
+            experience,
+        );
+        Ok(Response::new(GetRecommendedStartingWeightsResponse { weights }))
+    }
+
     // ── Individual Set RPCs (targeted single-row SQL operations) ──
 
     async fn start_set(

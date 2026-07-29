@@ -13,6 +13,7 @@ mod auth;
 mod db;
 mod program_state;
 mod progress;
+mod onboarding;
 mod regimes;
 #[cfg(test)]
 mod scenario_tests;

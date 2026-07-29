@@ -551,6 +551,36 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
+/// Lifting experience, used to scale recommended starting weights.
+class ExperienceLevel extends $pb.ProtobufEnum {
+  static const ExperienceLevel EXPERIENCE_LEVEL_UNSPECIFIED = ExperienceLevel._(
+      0, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_UNSPECIFIED');
+  static const ExperienceLevel EXPERIENCE_LEVEL_CUTE =
+      ExperienceLevel._(1, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_CUTE');
+  static const ExperienceLevel EXPERIENCE_LEVEL_BEGINNER =
+      ExperienceLevel._(2, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_BEGINNER');
+  static const ExperienceLevel EXPERIENCE_LEVEL_INTERMEDIATE =
+      ExperienceLevel._(
+          3, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_INTERMEDIATE');
+  static const ExperienceLevel EXPERIENCE_LEVEL_EXPERT =
+      ExperienceLevel._(4, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_EXPERT');
+
+  static const $core.List<ExperienceLevel> values = <ExperienceLevel>[
+    EXPERIENCE_LEVEL_UNSPECIFIED,
+    EXPERIENCE_LEVEL_CUTE,
+    EXPERIENCE_LEVEL_BEGINNER,
+    EXPERIENCE_LEVEL_INTERMEDIATE,
+    EXPERIENCE_LEVEL_EXPERT,
+  ];
+
+  static final $core.List<ExperienceLevel?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static ExperienceLevel? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ExperienceLevel._(super.value, super.name);
+}
+
 class ProgressionRule extends $pb.ProtobufEnum {
   static const ProgressionRule PROGRESSION_RULE_UNSPECIFIED = ProgressionRule._(
       0, _omitEnumNames ? '' : 'PROGRESSION_RULE_UNSPECIFIED');
