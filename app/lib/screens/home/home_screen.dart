@@ -358,40 +358,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _estimatedWorkoutMinutes() {
     if (_selectableGroups == null || _selectedGroupIndices.isEmpty) return 0;
-
-    const workingSetSeconds = 45;
-    const warmupSetSeconds = 30;
-    const setupSecondsPerExercise = 75;
-    const transitionSecondsPerGroup = 90;
-    const defaultWorkingRest = 180;
-    const defaultWarmupRest = 30;
-
-    int totalSeconds = 0;
-
-    for (final idx in _selectedGroupIndices.toList()..sort()) {
-      final group = _selectableGroups![idx];
-      totalSeconds += transitionSecondsPerGroup;
-
-      for (final cfg in group.exerciseConfigs) {
-        totalSeconds += setupSecondsPerExercise;
-
-        final workingSets = cfg.workingSets.isNotEmpty
-            ? cfg.workingSets.length
-            : (group.sets <= 0 ? 1 : group.sets);
-        final warmupSets = cfg.includeWarmup ? 2 : 0;
-        final restConfig = cfg.hasRestConfig()
-            ? cfg.restConfig
-            : group.restConfig;
-        final workingRest = restConfig?.restAfterSuccess ?? defaultWorkingRest;
-        final warmupRest = restConfig?.restAfterWarmup ?? defaultWarmupRest;
-
-        totalSeconds += workingSets * workingSetSeconds;
-        totalSeconds += warmupSets * warmupSetSeconds;
-        totalSeconds += (workingSets > 0 ? workingSets - 1 : 0) * workingRest;
-        totalSeconds += warmupSets * warmupRest;
-      }
+    // The server estimates each group's duration; we just sum the selected ones.
+    var totalSeconds = 0;
+    for (final idx in _selectedGroupIndices) {
+      totalSeconds += _selectableGroups![idx].estimatedDurationSeconds.toInt();
     }
-
     return (totalSeconds / 60).ceil();
   }
 

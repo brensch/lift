@@ -4907,6 +4907,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     RestConfig? restConfig,
     $core.Iterable<$core.String>? tags,
     $core.bool? prescribedByRegime,
+    $fixnum.Int64? estimatedDurationSeconds,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -4917,6 +4918,8 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
     if (tags != null) result.tags.addAll(tags);
     if (prescribedByRegime != null)
       result.prescribedByRegime = prescribedByRegime;
+    if (estimatedDurationSeconds != null)
+      result.estimatedDurationSeconds = estimatedDurationSeconds;
     return result;
   }
 
@@ -4942,6 +4945,7 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
         subBuilder: RestConfig.create)
     ..pPS(6, _omitFieldNames ? '' : 'tags')
     ..aOB(7, _omitFieldNames ? '' : 'prescribedByRegime')
+    ..aInt64(8, _omitFieldNames ? '' : 'estimatedDurationSeconds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5016,6 +5020,15 @@ class ProposedExerciseGroup extends $pb.GeneratedMessage {
   $core.bool hasPrescribedByRegime() => $_has(6);
   @$pb.TagNumber(7)
   void clearPrescribedByRegime() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get estimatedDurationSeconds => $_getI64(7);
+  @$pb.TagNumber(8)
+  set estimatedDurationSeconds($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasEstimatedDurationSeconds() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearEstimatedDurationSeconds() => $_clearField(8);
 }
 
 class SlotTrainingStatus extends $pb.GeneratedMessage {

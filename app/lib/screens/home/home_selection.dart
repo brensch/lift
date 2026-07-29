@@ -77,6 +77,7 @@ class HomeSelectableGroup {
   final String explanation;
   final bool prescribedByRegime;
   final bool useScheduleWeights;
+  final int estimatedDurationSeconds; // server estimate; 0 for saved groups
 
   const HomeSelectableGroup({
     required this.selectionKey,
@@ -90,6 +91,7 @@ class HomeSelectableGroup {
     required this.explanation,
     required this.prescribedByRegime,
     required this.useScheduleWeights,
+    this.estimatedDurationSeconds = 0,
   });
 
   factory HomeSelectableGroup.fromProposed(
@@ -112,6 +114,7 @@ class HomeSelectableGroup {
       explanation: '',
       prescribedByRegime: group.prescribedByRegime,
       useScheduleWeights: true,
+      estimatedDurationSeconds: group.estimatedDurationSeconds.toInt(),
     );
   }
 

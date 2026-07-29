@@ -645,6 +645,8 @@ message ProposedExerciseGroup {
 
   bool prescribed_by_regime = 7;
 
+  int64 estimated_duration_seconds = 8; // server-estimated time for this group
+
 }
 
 

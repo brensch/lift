@@ -1,4 +1,5 @@
 use super::*;
+use schlift::workout::v1::ProposedExerciseGroup;
 use crate::weight_units::{
     bar_weight, kg_to_pounds, loadable_step, plates, pounds_to_kg, simplest_loadable_near,
     AppWeightUnit,
@@ -21,6 +22,44 @@ fn to_pounds(display: f32, unit: AppWeightUnit) -> f32 {
         AppWeightUnit::Lb => display,
         AppWeightUnit::Kg => kg_to_pounds(display),
     }
+}
+
+/// Rough time estimate for one proposed group, so the home screen can show a
+/// predicted workout length without doing the maths itself. A heuristic, but the
+/// single source of it. Mirrors what the app used to compute in
+/// `_estimatedWorkoutMinutes`.
+pub(crate) fn estimate_group_duration_seconds(group: &ProposedExerciseGroup) -> i64 {
+    const TRANSITION: i64 = 90;
+    const SETUP: i64 = 75;
+    const WORKING_SET: i64 = 45;
+    const WARMUP_SET: i64 = 30;
+    const DEFAULT_WORKING_REST: i64 = 180;
+    const DEFAULT_WARMUP_REST: i64 = 30;
+
+    let mut total = TRANSITION;
+    for cfg in &group.exercise_configs {
+        total += SETUP;
+        let working_sets = if !cfg.working_sets.is_empty() {
+            cfg.working_sets.len() as i64
+        } else if group.sets <= 0 {
+            1
+        } else {
+            group.sets as i64
+        };
+        let warmup_sets: i64 = if cfg.include_warmup { 2 } else { 0 };
+        let rest = cfg.rest_config.as_ref().or(group.rest_config.as_ref());
+        let working_rest = rest
+            .map(|r| r.rest_after_success as i64)
+            .unwrap_or(DEFAULT_WORKING_REST);
+        let warmup_rest = rest
+            .map(|r| r.rest_after_warmup as i64)
+            .unwrap_or(DEFAULT_WARMUP_REST);
+        total += working_sets * WORKING_SET;
+        total += warmup_sets * WARMUP_SET;
+        total += (working_sets - 1).max(0) * working_rest;
+        total += warmup_sets * warmup_rest;
+    }
+    total
 }
 
 /// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the

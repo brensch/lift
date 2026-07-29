@@ -417,6 +417,7 @@ impl WorkoutRegime for GzclpRegime {
                 rest_config: rest_cfg(180, 300),
                 tags: vec!["recommended".to_string(), "T1".to_string()],
                 prescribed_by_regime: false,
+                estimated_duration_seconds: 0,
             });
         }
 
@@ -457,6 +458,7 @@ impl WorkoutRegime for GzclpRegime {
                 rest_config: rest_cfg(90, 120),
                 tags: vec!["recommended".to_string(), "T2".to_string()],
                 prescribed_by_regime: false,
+                estimated_duration_seconds: 0,
             });
         }
 
@@ -520,6 +522,7 @@ impl WorkoutRegime for GzclpRegime {
                 rest_config: rest_cfg(60, 60),
                 tags: vec!["auxiliary".to_string(), "T3".to_string()],
                 prescribed_by_regime: false,
+                estimated_duration_seconds: 0,
             });
         }
 
