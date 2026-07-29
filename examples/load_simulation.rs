@@ -705,6 +705,7 @@ fn build_start_workout_groups(
                 interleave_warmups: proposed.interleave_warmups,
                 workout_order: idx as i32,
                 prescribed_by_regime: proposed.prescribed_by_regime,
+            materialized_sets: Vec::new(),
                 exercise_configs: proposed.exercise_configs.clone(),
                 instruction: String::new(),
                 rest_config: proposed.rest_config,
@@ -724,6 +725,7 @@ fn build_start_workout_groups(
             interleave_warmups: false,
             workout_order: 0,
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
             exercise_configs: vec![ExerciseTypeConfig {
                 exercise: Exercise::Squat as i32,
                 start_weight: 135.0,
@@ -745,6 +747,7 @@ fn build_start_workout_groups(
             interleave_warmups: false,
             workout_order: 1,
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
             exercise_configs: vec![ExerciseTypeConfig {
                 exercise: Exercise::BenchPress as i32,
                 start_weight: 95.0,
