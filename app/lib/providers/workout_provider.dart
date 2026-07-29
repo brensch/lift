@@ -441,14 +441,37 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         displaySet: displaySet,
         activeStartedAt: active.startedAt,
       ));
-    } else {
-      _applyStateSnapshot(WorkoutStateSnapshot(
-        state: nextUp == null
-            ? WorkoutState.WORKOUT_STATE_ALL_DONE
-            : WorkoutState.WORKOUT_STATE_READY,
-        displaySet: nextUp,
-      ));
+      _rebuildExerciseGroupsCache();
+      return;
     }
+
+    // Resting: the most-recently-finished set still has a rest target in the
+    // future. The target was stored locally on completion, so the countdown
+    // keeps running off the device clock even with no connection.
+    CompletedSet? lastDone;
+    for (final s in _activeCompletedSets) {
+      if (s.endedAt != Int64.ZERO &&
+          (lastDone == null || s.endedAt > lastDone.endedAt)) {
+        lastDone = s;
+      }
+    }
+    if (lastDone != null && lastDone.restUntil > Int64(_nowSecs)) {
+      _applyStateSnapshot(WorkoutStateSnapshot(
+        state: WorkoutState.WORKOUT_STATE_RESTING,
+        displaySet: nextUp,
+        restUntil: lastDone.restUntil,
+      ));
+      _rebuildExerciseGroupsCache();
+      return;
+    }
+
+    // Ready for the next set, or all done.
+    _applyStateSnapshot(WorkoutStateSnapshot(
+      state: nextUp == null
+          ? WorkoutState.WORKOUT_STATE_ALL_DONE
+          : WorkoutState.WORKOUT_STATE_READY,
+      displaySet: nextUp,
+    ));
     _rebuildExerciseGroupsCache();
   }
 
@@ -1198,12 +1221,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final idx = _activeCompletedSets.indexWhere(
       (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
     );
+    final restUntil = _localRestUntil(proposedSetId, actualReps, endedAt);
     if (idx != -1) {
       _activeCompletedSets[idx]
         ..actualReps = actualReps
         ..actualWeight = actualWeight
         ..endedAt = endedAt
-        ..restUntil = Int64.ZERO;
+        ..restUntil = restUntil;
     } else {
       _activeCompletedSets.add(
         CompletedSet()
@@ -1214,10 +1238,51 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..actualWeight = actualWeight
           ..startedAt = endedAt
           ..endedAt = endedAt
-          ..restUntil = Int64.ZERO,
+          ..restUntil = restUntil,
       );
     }
     _refreshDerivedState();
+  }
+
+  /// The rest-timer target for a just-completed set, computed locally so the
+  /// countdown starts on the transition and survives signal loss — it's a
+  /// stored target time (endedAt + rest), not a per-request server value. Mirrors
+  /// `complete_set` in `src/workout/reducer.rs`: the rest *durations* are
+  /// server-provided on the proposed set (`restAfterSuccess`/`restAfterFailure`);
+  /// the last set in a group uses the end-of-group rest. The server reconciles
+  /// with an identical target when the mutation lands.
+  static const int _endOfExerciseGroupRestSeconds = 60; // END_OF_EXERCISE_GROUP_REST_SECONDS
+
+  Int64 _localRestUntil(String proposedSetId, int actualReps, Int64 endedAt) {
+    final proposed = _activeProposedSets
+        .cast<ProposedSet?>()
+        .firstWhere((p) => p?.id == proposedSetId && !p!.cancelled,
+            orElse: () => null);
+    if (proposed == null) return Int64.ZERO;
+    var restSeconds = actualReps >= proposed.targetReps
+        ? proposed.restAfterSuccess
+        : proposed.restAfterFailure;
+    if (_isFinalSetInGroupAfterCompletion(proposed)) {
+      restSeconds = _endOfExerciseGroupRestSeconds;
+    }
+    return endedAt + Int64(restSeconds);
+  }
+
+  /// True when every other live set in this set's group is already completed —
+  /// so finishing this one ends the group. Mirrors
+  /// `is_final_set_in_exercise_group_after_completion` in the Rust reducer.
+  bool _isFinalSetInGroupAfterCompletion(ProposedSet current) {
+    final groupId = current.exerciseGroupId;
+    for (final set in _activeProposedSets) {
+      if (set.exerciseGroupId != groupId || set.cancelled || set.id == current.id) {
+        continue;
+      }
+      final done = _activeCompletedSets.any(
+        (c) => c.proposedSetId == set.id && c.endedAt != Int64.ZERO,
+      );
+      if (!done) return false;
+    }
+    return true;
   }
 
   void _applyLocalDeleteCompletedSet(String completedSetId) {

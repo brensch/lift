@@ -8,8 +8,13 @@
 > fixtures + parity tests + `LIFT_SNAPSHOT_*` harness, and ~1,300 lines of client
 > logic. The "mirror this in two places / regenerate the golden" workflow is gone.
 > Kept client-side: rendering/formatting, the plate-visualization breakdown (for
-> arbitrary weights), a ~15-line optimistic "mark-done + advance" layer, and the
-> weight-picker display snapping.
+> arbitrary weights), the weight-picker display snapping, and a small optimistic
+> layer that mirrors the reducer's *state transitions* only — mark-done, advance
+> the highlight, and compute the rest-timer **target** (`restUntil = endedAt +
+> rest`) locally on set-complete. That target is stored, so the countdown runs off
+> the device clock and survives signal loss; the server reconciles it (identical
+> value) when the mutation lands. The rest *durations* stay server-owned (they ride
+> on each proposed set); the client only picks success/failure/end-of-group.
 
 
 Goal: the Flutter app becomes an **extremely thin wrapper** — it renders server
@@ -79,9 +84,17 @@ latency-sensitive interaction in the app (mid-set, phone in hand). Options:
 2. Keep a *tiny* optimistic "mark done + advance highlight" and derive nothing
    else from it. ~15 lines instead of ~280.
 
-**Decision: option 2** — keep a ~15-line optimistic "mark tapped set done +
-advance highlight" for set-logging feel; delete the rest of the reducer/state
-machine and render `state_snapshot`/`next_up_set` from responses.
+**Decision: option 2** — keep a small optimistic layer for set-logging feel and
+render `state_snapshot`/`next_up_set` from responses. The layer mirrors the
+reducer's **state transitions** (mark done, advance highlight, LIFTING/RESTING/
+READY/ALL_DONE derivation) and, critically, computes the rest-timer **target**
+locally on set-complete (`restUntil = endedAt + rest`, mirroring
+`reducer.rs::complete_set`). This is not "rest maths every second" — the target is
+stored once on the transition and the countdown ticks off the device clock, so it
+starts instantly and survives signal loss. The rest *durations* remain server-
+owned (they ride on each `ProposedSet`); the client only selects
+success/failure/end-of-group. The server's `state_snapshot` reconciles to an
+identical target when the mutation lands.
 
 ---
 
