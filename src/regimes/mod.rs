@@ -506,5 +506,6 @@ pub fn build_single_group_amrap(
         tags: options.tags,
         prescribed_by_regime: false,
                 estimated_duration_seconds: 0,
+                materialized_sets: Vec::new(),
     }
 }

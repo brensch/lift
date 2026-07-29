@@ -2005,6 +2005,14 @@ const ProposedExerciseGroup$json = {
       '5': 3,
       '10': 'estimatedDurationSeconds'
     },
+    {
+      '1': 'materialized_sets',
+      '3': 9,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'materializedSets'
+    },
   ],
 };
 
@@ -2016,7 +2024,8 @@ final $typed_data.Uint8List proposedExerciseGroupDescriptor = $convert.base64Dec
     'lnUg9leGVyY2lzZUNvbmZpZ3MSNwoLcmVzdF9jb25maWcYBSABKAsyFi53b3Jrb3V0LnYxLlJl'
     'c3RDb25maWdSCnJlc3RDb25maWcSEgoEdGFncxgGIAMoCVIEdGFncxIwChRwcmVzY3JpYmVkX2'
     'J5X3JlZ2ltZRgHIAEoCFIScHJlc2NyaWJlZEJ5UmVnaW1lEjwKGmVzdGltYXRlZF9kdXJhdGlv'
-    'bl9zZWNvbmRzGAggASgDUhhlc3RpbWF0ZWREdXJhdGlvblNlY29uZHM=');
+    'bl9zZWNvbmRzGAggASgDUhhlc3RpbWF0ZWREdXJhdGlvblNlY29uZHMSRAoRbWF0ZXJpYWxpem'
+    'VkX3NldHMYCSADKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0UhBtYXRlcmlhbGl6ZWRTZXRz');
 
 @$core.Deprecated('Use slotTrainingStatusDescriptor instead')
 const SlotTrainingStatus$json = {

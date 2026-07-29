@@ -418,6 +418,7 @@ impl WorkoutRegime for GzclpRegime {
                 tags: vec!["recommended".to_string(), "T1".to_string()],
                 prescribed_by_regime: false,
                 estimated_duration_seconds: 0,
+                materialized_sets: Vec::new(),
             });
         }
 
@@ -459,6 +460,7 @@ impl WorkoutRegime for GzclpRegime {
                 tags: vec!["recommended".to_string(), "T2".to_string()],
                 prescribed_by_regime: false,
                 estimated_duration_seconds: 0,
+                materialized_sets: Vec::new(),
             });
         }
 
@@ -523,6 +525,7 @@ impl WorkoutRegime for GzclpRegime {
                 tags: vec!["auxiliary".to_string(), "T3".to_string()],
                 prescribed_by_regime: false,
                 estimated_duration_seconds: 0,
+                materialized_sets: Vec::new(),
             });
         }
 

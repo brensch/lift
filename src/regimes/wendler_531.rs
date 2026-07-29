@@ -408,6 +408,7 @@ impl WorkoutRegime for Wendler531Regime {
                 tags: vec!["recommended".to_string(), "compound".to_string()],
                 prescribed_by_regime: false,
                 estimated_duration_seconds: 0,
+                materialized_sets: Vec::new(),
             });
         }
 
