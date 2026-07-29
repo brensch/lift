@@ -1,5 +1,17 @@
 # Thin-client migration: move all logic to the backend
 
+> **Status: COMPLETE.** All five slices shipped and e2e-verified. The app no
+> longer computes workout summaries, 1RM/volume, progress series, workout
+> duration, onboarding weights, live-workout state, or warmups/plate-snapping —
+> the server owns all of it and the app renders it. Deleted: `workout_reducer.dart`,
+> `warmup.dart`, the plate-snapping half of `weight_units.dart`, the golden
+> fixtures + parity tests + `LIFT_SNAPSHOT_*` harness, and ~1,300 lines of client
+> logic. The "mirror this in two places / regenerate the golden" workflow is gone.
+> Kept client-side: rendering/formatting, the plate-visualization breakdown (for
+> arbitrary weights), a ~15-line optimistic "mark-done + advance" layer, and the
+> weight-picker display snapping.
+
+
 Goal: the Flutter app becomes an **extremely thin wrapper** — it renders server
 responses, formats strings, plays sounds, and sends user intents. All business
 logic lives in Rust. No app↔server duplication, no parity fixtures, no
@@ -66,6 +78,10 @@ latency-sensitive interaction in the app (mid-set, phone in hand). Options:
 1. **Drop it entirely** (purest thin client; ~one-tenth-second set-logging lag).
 2. Keep a *tiny* optimistic "mark done + advance highlight" and derive nothing
    else from it. ~15 lines instead of ~280.
+
+**Decision: option 2** — keep a ~15-line optimistic "mark tapped set done +
+advance highlight" for set-logging feel; delete the rest of the reducer/state
+machine and render `state_snapshot`/`next_up_set` from responses.
 
 ---
 
