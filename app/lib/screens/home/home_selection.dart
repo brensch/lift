@@ -78,6 +78,7 @@ class HomeSelectableGroup {
   final bool prescribedByRegime;
   final bool useScheduleWeights;
   final int estimatedDurationSeconds; // server estimate; 0 for saved groups
+  final List<ProposedSet> materializedSets; // server-expanded warmup+working sets
 
   const HomeSelectableGroup({
     required this.selectionKey,
@@ -92,6 +93,7 @@ class HomeSelectableGroup {
     required this.prescribedByRegime,
     required this.useScheduleWeights,
     this.estimatedDurationSeconds = 0,
+    this.materializedSets = const [],
   });
 
   factory HomeSelectableGroup.fromProposed(
@@ -115,6 +117,7 @@ class HomeSelectableGroup {
       prescribedByRegime: group.prescribedByRegime,
       useScheduleWeights: true,
       estimatedDurationSeconds: group.estimatedDurationSeconds.toInt(),
+      materializedSets: group.materializedSets,
     );
   }
 
@@ -131,6 +134,7 @@ class HomeSelectableGroup {
       explanation: group.instruction,
       prescribedByRegime: group.prescribedByRegime,
       useScheduleWeights: false,
+      materializedSets: group.materializedSets,
     );
   }
 
