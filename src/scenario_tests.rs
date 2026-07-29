@@ -176,6 +176,7 @@ mod tests {
             rest_config: group.rest_config,
             instruction: String::new(),
             prescribed_by_regime: group.prescribed_by_regime,
+            materialized_sets: Vec::new(),
         }
     }
 

@@ -51,6 +51,7 @@ fn linear_workout(success: bool) -> SchplannerWorkoutRecord {
         rest_config: None,
         instruction: String::new(),
         prescribed_by_regime: true,
+            materialized_sets: Vec::new(),
     };
     let proposed_sets = (0..5)
         .map(|idx| ProposedSet {
@@ -162,6 +163,7 @@ fn single_group_workout(
         rest_config: None,
         instruction: String::new(),
         prescribed_by_regime: true,
+            materialized_sets: Vec::new(),
     };
     let proposed_sets = (0..set_count)
         .map(|idx| ProposedSet {
@@ -315,6 +317,7 @@ fn edited_workout_without_hints_still_progresses_by_exercise() {
         rest_config: None,
         instruction: String::new(),
         prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
     };
     let proposed_sets = (0..5)
         .map(|idx| ProposedSet {

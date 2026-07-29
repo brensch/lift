@@ -93,6 +93,7 @@ mod live_progression_tests {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
         };
         let start = svc
             .start_workout(authed(
@@ -245,6 +246,7 @@ mod live_progression_tests {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
         };
         let start = svc
             .start_workout(authed(
@@ -397,6 +399,7 @@ mod live_progression_tests {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
         };
         let start = svc
             .start_workout(authed(
@@ -561,6 +564,7 @@ mod layoff_deload_tests {
             rest_config: None,
             instruction: String::new(),
             prescribed_by_regime: true,
+            materialized_sets: Vec::new(),
         }
     }
 

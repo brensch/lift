@@ -435,6 +435,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
             rest_config: normalize_rest_config(req.rest_config),
             instruction: req.instruction.clone(),
             prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
         };
         let set_order = workout_ref
             .proposed_sets
@@ -472,6 +473,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
                 rest_config: normalize_rest_config(req.rest_config),
                 instruction: req.instruction.clone(),
                 prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
             };
             let set_order = workout_ref
                 .proposed_sets

@@ -25,6 +25,7 @@ impl ServerDb {
             }),
             instruction: r.get("instruction"),
             prescribed_by_regime: r.get::<i32, _>("prescribed_by_regime") != 0,
+            materialized_sets: Vec::new(),
         }
     }
 
@@ -510,6 +511,7 @@ impl ServerDb {
             rest_config: group.rest_config,
             instruction: group.instruction.clone(),
             prescribed_by_regime: group.prescribed_by_regime,
+            materialized_sets: Vec::new(),
         })
     }
 

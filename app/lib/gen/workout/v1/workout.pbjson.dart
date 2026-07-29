@@ -524,6 +524,14 @@ const ExerciseGroup$json = {
       '5': 8,
       '10': 'prescribedByRegime'
     },
+    {
+      '1': 'materialized_sets',
+      '3': 11,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ProposedSet',
+      '10': 'materializedSets'
+    },
   ],
 };
 
@@ -536,7 +544,8 @@ final $typed_data.Uint8List exerciseGroupDescriptor = $convert.base64Decode(
     'LnYxLkV4ZXJjaXNlVHlwZUNvbmZpZ1IPZXhlcmNpc2VDb25maWdzEjcKC3Jlc3RfY29uZmlnGA'
     'ggASgLMhYud29ya291dC52MS5SZXN0Q29uZmlnUgpyZXN0Q29uZmlnEiAKC2luc3RydWN0aW9u'
     'GAkgASgJUgtpbnN0cnVjdGlvbhIwChRwcmVzY3JpYmVkX2J5X3JlZ2ltZRgKIAEoCFIScHJlc2'
-    'NyaWJlZEJ5UmVnaW1l');
+    'NyaWJlZEJ5UmVnaW1lEkQKEW1hdGVyaWFsaXplZF9zZXRzGAsgAygLMhcud29ya291dC52MS5Q'
+    'cm9wb3NlZFNldFIQbWF0ZXJpYWxpemVkU2V0cw==');
 
 @$core.Deprecated('Use proposedSetDescriptor instead')
 const ProposedSet$json = {
