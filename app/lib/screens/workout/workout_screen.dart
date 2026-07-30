@@ -109,6 +109,37 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
     final overallProgress = totalWorking == 0 ? 0.0 : doneWorking / totalWorking;
 
+    // Compose the session-strip header out of the "YYYY/MM/DD - Name" workout
+    // name: bold title, a faded exercise summary, and the date pulled to the side.
+    var sessionTitle = wp.workout!.name;
+    var sessionDate = '';
+    final nameMatch = RegExp(
+      r'^(\d{4})/(\d{2})/(\d{2})\s*[-–—]\s*(.*)$',
+    ).firstMatch(wp.workout!.name);
+    if (nameMatch != null) {
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      final mo = int.tryParse(nameMatch.group(2)!) ?? 0;
+      final day = int.tryParse(nameMatch.group(3)!) ?? 0;
+      if (mo >= 1 && mo <= 12) sessionDate = '${months[mo - 1]} $day';
+      sessionTitle = nameMatch.group(4)!.trim();
+    }
+    final seenExercises = <int>{};
+    final exerciseShort = <String>[];
+    for (final g in groups) {
+      final exs = g.exercises.isNotEmpty ? g.exercises : [g.exercise];
+      for (final ex in exs) {
+        if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
+        if (seenExercises.add(ex.value)) {
+          final s = shortNames[ex] ?? exerciseNames[ex];
+          if (s != null && s.isNotEmpty) exerciseShort.add(s);
+        }
+      }
+    }
+    final sessionSubtitle = exerciseShort.join(' · ');
+
     final loggedCount = wp.completedSets
         .where((c) => c.endedAt != Int64.ZERO)
         .length;
@@ -125,7 +156,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       children: [
         // ── Session strip: workout name + one slim overall-progress bar ──
         const SizedBox(height: 8),
-        SessionStrip(name: workout.name, progress: overallProgress),
+        SessionStrip(
+          title: sessionTitle,
+          subtitle: sessionSubtitle,
+          dateLabel: sessionDate,
+          progress: overallProgress,
+        ),
         const SizedBox(height: 8),
         // ── Named, swipeable page tabs ──
         PageTabs(
@@ -327,15 +363,18 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               ],
                             ),
                             // ── Connector: links the Current detail card to the first
-                            // unfinished item. Each list card is a fixed 52px tall with
-                            // an 8px gap, so it tracks down past any completed cards.
+                            // unfinished item. Each list card is ExerciseListCard.height
+                            // tall with an 8px gap, so it tracks down past completed cards.
                             if (showBracket)
                               Positioned(
                                 // Overlap both card edges by 1px so the line meets their
                                 // borders and reads as a single continuous outline.
                                 left: leftWidth - 1,
                                 width: gutter + 2,
-                                top: 47.0 + completedGroups.length * 60.0,
+                                top: 21.0 +
+                                    ExerciseListCard.height / 2 +
+                                    completedGroups.length *
+                                        (ExerciseListCard.height + 8.0),
                                 height: 1.5,
                                 child: BracketConnector(
                                   color: colorScheme.outline.withValues(

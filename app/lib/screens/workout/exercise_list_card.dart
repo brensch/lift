@@ -13,7 +13,7 @@ import '../../providers/settings_provider.dart';
 import '../../theme/app_theme.dart';
 
 class ExerciseListCard extends StatelessWidget {
-  static const double height = 52;
+  static const double height = 62;
 
   final ExerciseGroupData group;
   final List<CompletedSet> completedSets;
