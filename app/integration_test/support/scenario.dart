@@ -108,6 +108,82 @@ class Scenario {
     print('E2E|end|$name');
   }
 
+  /// Run the scenario [body] with explicit failure capture. On ANY error —
+  /// a failed expect, a tap that missed, a timeout — this prints a loud,
+  /// self-contained failure block (the error, the last step reached, and every
+  /// text on screen at the moment of failure) and saves a FAILURE screenshot,
+  /// then rethrows. So a red run says exactly what broke and where, instead of
+  /// leaving a wall of framework log to reverse-engineer. Always emits the
+  /// report. Scenarios that use run() must NOT also call report() themselves.
+  Future<void> run(Future<void> Function() body) async {
+    try {
+      await body();
+    } catch (error) {
+      await _captureFailure(error);
+      rethrow;
+    } finally {
+      await report();
+    }
+  }
+
+  Future<void> _captureFailure(Object error) async {
+    final lastStep = _steps.isNotEmpty ? _steps.last.title : '(no steps yet)';
+    List<String> onScreen;
+    try {
+      onScreen = visibleTexts();
+    } catch (_) {
+      onScreen = const ['<could not read the widget tree>'];
+    }
+    try {
+      final base = '${name}_FAILURE';
+      await binding.takeScreenshot(base);
+      _steps.add(_Step(_n, 'FAILURE: $error',
+          shot: '$base.png', note: error.toString(), kind: 'assert'));
+      _n++;
+    } catch (_) {
+      // Screenshot can fail if the surface is gone; the printed block still lands.
+    }
+    // A loud, greppable block on the one channel that survives teardown (stdout).
+    void say(String line) => debugPrint(line); // ignore: avoid_print
+    say('');
+    say('════════════════ SCENARIO FAILED: $name ════════════════');
+    say('LAST STEP OK : $lastStep');
+    say('ERROR        : $error');
+    say('ON SCREEN NOW: ${onScreen.isEmpty ? '(nothing)' : onScreen.join(' | ')}');
+    say('════════════════════════════════════════════════════════');
+    say('');
+    // Machine-readable twin for the host report builder.
+    // ignore: avoid_print
+    print('E2E|failure|${jsonEncode({
+          'scenario': name,
+          'lastStep': lastStep,
+          'error': error.toString(),
+          'onScreen': onScreen,
+        })}');
+  }
+
+  /// Every non-empty text string currently in the widget tree — the ground truth
+  /// for "what screen am I actually on" when an expectation fails.
+  List<String> visibleTexts() {
+    final out = <String>[];
+    for (final element in find.byType(Text).evaluate()) {
+      final widget = element.widget;
+      if (widget is Text) {
+        final text = widget.data ?? widget.textSpan?.toPlainText();
+        if (text != null && text.trim().isNotEmpty) out.add(text.trim());
+      }
+    }
+    return out;
+  }
+
+  /// Wait for [text] and throw an explicit error if it never appears. Prefer
+  /// this over `expect(isVisible(...), isTrue)` at scenario gates: paired with
+  /// run(), a miss reports what text WAS on screen instead of a bare `false`.
+  Future<void> mustSee(String text, {int seconds = 8}) async {
+    if (await waitForText(text, seconds: seconds)) return;
+    throw StateError('expected "$text" on screen within ${seconds}s — not found');
+  }
+
   // ── Capture ──
 
   /// Screenshot the current screen and record a report step. Pumps a couple of
@@ -158,7 +234,14 @@ class Scenario {
     await _reveal(field);
     await tester.tap(field.first);
     await tester.enterText(field.first, text);
-    await tester.pump(const Duration(milliseconds: 200));
+    // Drop the soft keyboard before we move on — left up, it covers the button
+    // below the field (e.g. Dev Login), and the next tap silently misses. Use
+    // plain pump, not pumpAndSettle: login/onboarding animate continuously (the
+    // creature/marker), so pumpAndSettle would block waiting to settle.
+    FocusManager.instance.primaryFocus?.unfocus();
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 
   /// Scroll [within] (default: the first Scrollable) by [dy] logical pixels
