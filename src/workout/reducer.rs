@@ -93,10 +93,17 @@ pub(crate) fn workout_state_snapshot_from_state(
 
     if let Some(last) = last_set {
         if last.rest_until > now {
-            let display_set = proposed_active
-                .iter()
-                .find(|set| set.id == last.proposed_set_id)
-                .cloned();
+            // Resting *before* the next set. `display_set` is what the user acts
+            // on next — every consumer (phone bar, watch, workout screen) uses it
+            // as the set its Start button targets, so it must be the upcoming set,
+            // consistent with READY/LIFTING. Only fall back to the set just
+            // finished at end-of-workout, when there is no next set to show.
+            let display_set = next_up_set.clone().or_else(|| {
+                proposed_active
+                    .iter()
+                    .find(|set| set.id == last.proposed_set_id)
+                    .cloned()
+            });
             return WorkoutStateSnapshot {
                 state: STATE_RESTING,
                 display_set,
@@ -600,6 +607,29 @@ mod tests {
     }
 
     // ── Snapshot state machine ──────────────────────────────────────────────
+
+    #[test]
+    fn resting_snapshot_focuses_the_next_set_not_the_finished_one() {
+        // Two sets in one group. Finish the first; while resting, the snapshot
+        // must point display_set at the SECOND set — that's the set every UI's
+        // Start button acts on. Pointing it back at the finished set restarts it
+        // in an infinite loop (dev regression: a warmup completed 6× in 40s and
+        // the workout never advanced past set 0).
+        let mut active =
+            active_with(vec![proposed("s1", 0, true), proposed("s2", 1, false)]);
+        complete(&mut active, "s1", 5, 2_000);
+        let snap = workout_state_snapshot_from_state(
+            &active.proposed_sets,
+            &active.completed_sets,
+            2_050,
+        );
+        assert_eq!(snap.state, STATE_RESTING);
+        assert_eq!(
+            snap.display_set.unwrap().id,
+            "s2",
+            "resting must focus the upcoming set, not the one just finished"
+        );
+    }
 
     #[test]
     fn snapshot_walks_ready_lifting_resting_done() {
