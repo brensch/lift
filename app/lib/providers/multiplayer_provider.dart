@@ -166,18 +166,6 @@ class MultiplayerProvider extends ChangeNotifier {
 
   Future<String?> refreshInviteToken() => _ensureInviteToken();
 
-  Future<String?> rotateInviteToken() async {
-    try {
-      final token = await _service.rotateInviteToken();
-      _myInviteToken = token;
-      if (!_disposed) notifyListeners();
-      return token;
-    } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'rotateInviteToken failed', {'error': e.toString()});
-      return null;
-    }
-  }
-
   /// Accepts either a raw invite token or a share URL containing `?join=<token>`.
   Future<String?> joinViaInvite(String tokenOrUrl) async {
     final token = _extractToken(tokenOrUrl);

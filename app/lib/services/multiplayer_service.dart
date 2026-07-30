@@ -37,14 +37,6 @@ class MultiplayerServiceWrapper {
     return response.inviteToken;
   }
 
-  Future<String> rotateInviteToken() async {
-    final response = await _client.multiplayerService.rotateInviteToken(
-      RotateInviteTokenRequest(),
-      options: _defaultCallOptions,
-    );
-    return response.inviteToken;
-  }
-
   /// People the caller has trained with before (durable history), most recent first.
   Future<List<TrainingPartner>> getTrainingPartners() async {
     final response = await retryReadAfterReconnect(
