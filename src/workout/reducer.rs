@@ -86,6 +86,24 @@ pub(crate) fn workout_state_snapshot_from_state(
         };
     }
 
+    // Nothing left to do: the workout is finished. Resting only matters when
+    // there is a next set to rest *before* — after the final set there is no set
+    // to start, so we must not linger in RESTING/READY (which would offer a Start
+    // button pointing at the just-finished set and re-open it in a loop).
+    let Some(next) = next_up_set else {
+        return WorkoutStateSnapshot {
+            state: STATE_ALL_DONE,
+            display_set: None,
+            active_started_at: 0,
+            rest_until: 0,
+            last_rest_end: 0,
+        };
+    };
+
+    // A set is up next. If the previous set's rest is still running we're resting
+    // before it; otherwise it's ready now. Either way `display_set` is that next
+    // set — every consumer (phone bar, watch, workout screen) uses display_set as
+    // the set its Start button targets, so it must be the upcoming one.
     let last_set = completed_sets
         .iter()
         .filter(|set| set.ended_at != 0)
@@ -93,20 +111,9 @@ pub(crate) fn workout_state_snapshot_from_state(
 
     if let Some(last) = last_set {
         if last.rest_until > now {
-            // Resting *before* the next set. `display_set` is what the user acts
-            // on next — every consumer (phone bar, watch, workout screen) uses it
-            // as the set its Start button targets, so it must be the upcoming set,
-            // consistent with READY/LIFTING. Only fall back to the set just
-            // finished at end-of-workout, when there is no next set to show.
-            let display_set = next_up_set.clone().or_else(|| {
-                proposed_active
-                    .iter()
-                    .find(|set| set.id == last.proposed_set_id)
-                    .cloned()
-            });
             return WorkoutStateSnapshot {
                 state: STATE_RESTING,
-                display_set,
+                display_set: Some(next),
                 active_started_at: 0,
                 rest_until: last.rest_until,
                 last_rest_end: last.ended_at,
@@ -114,19 +121,9 @@ pub(crate) fn workout_state_snapshot_from_state(
         }
     }
 
-    if let Some(next) = next_up_set {
-        return WorkoutStateSnapshot {
-            state: STATE_READY,
-            display_set: Some(next),
-            active_started_at: 0,
-            rest_until: 0,
-            last_rest_end: 0,
-        };
-    }
-
     WorkoutStateSnapshot {
-        state: STATE_ALL_DONE,
-        display_set: None,
+        state: STATE_READY,
+        display_set: Some(next),
         active_started_at: 0,
         rest_until: 0,
         last_rest_end: 0,
@@ -633,25 +630,39 @@ mod tests {
 
     #[test]
     fn snapshot_walks_ready_lifting_resting_done() {
-        let mut active = active_with(vec![proposed("s1", 0, false)]);
+        // Two sets so RESTING is genuinely reachable (rest happens *before* the
+        // next set). A single-set workout would jump straight to ALL_DONE after
+        // the last set — there is nothing to rest for.
+        let mut active =
+            active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
 
         let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 1_000);
         assert_eq!(snap.state, STATE_READY);
+        assert_eq!(snap.display_set.unwrap().id, "s1");
 
         start(&mut active, "s1", 2_000);
         let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_010);
         assert_eq!(snap.state, STATE_LIFTING);
         assert_eq!(snap.active_started_at, 2_000);
 
+        // Finish set 1: resting before set 2, focused on set 2.
         complete(&mut active, "s1", 5, 2_040);
-        // Mid-rest (rest_until = 2_040 + 60, final set of group).
         let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_050);
         assert_eq!(snap.state, STATE_RESTING);
-        assert_eq!(snap.rest_until, 2_040 + END_OF_EXERCISE_GROUP_REST_SECONDS);
+        assert_eq!(snap.display_set.unwrap().id, "s2");
 
-        // After the rest expires there is nothing left.
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 3_000);
-        assert_eq!(snap.state, STATE_ALL_DONE);
+        // Rest expires: set 2 is ready.
+        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_000);
+        assert_eq!(snap.state, STATE_READY);
+        assert_eq!(snap.display_set.unwrap().id, "s2");
+
+        // Finish the final set: done immediately, no lingering rest state that
+        // could re-offer the just-finished set (dev regression: the last set was
+        // logged 10× because rest fell back to it).
+        start(&mut active, "s2", 9_100);
+        complete(&mut active, "s2", 5, 9_140);
+        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_150);
+        assert_eq!(snap.state, STATE_ALL_DONE, "after the final set there is nothing to rest for");
         assert!(snap.display_set.is_none());
     }
 

@@ -455,7 +455,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         lastDone = s;
       }
     }
-    if (lastDone != null && lastDone.restUntil > Int64(_nowSecs)) {
+    // Only rest when there's a next set to rest *before*. After the final set
+    // there's nothing to start, so fall through to ALL_DONE rather than showing a
+    // rest state whose Start button would re-open the just-finished set. Mirrors
+    // workout_state_snapshot_from_state in src/workout/reducer.rs.
+    if (nextUp != null &&
+        lastDone != null &&
+        lastDone.restUntil > Int64(_nowSecs)) {
       _applyStateSnapshot(WorkoutStateSnapshot(
         state: WorkoutState.WORKOUT_STATE_RESTING,
         displaySet: nextUp,
