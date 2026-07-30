@@ -370,4 +370,66 @@ mod session_history_tests {
         let c = svc.db.get_user_current_session(&carol_id).await.unwrap();
         assert!(a.is_some() && a == b && b == c, "all three in one session: {a:?} {b:?} {c:?}");
     }
+
+    /// Asking several people via the request/accept flow gathers them all into the
+    /// asker's session — the bug was each accept pulling the asker into a fresh 1:1
+    /// and abandoning the previous person.
+    #[tokio::test]
+    async fn asking_two_partners_gathers_them_into_the_askers_session() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let (carol_id, carol_tok) = user(&svc, "carol").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+
+        // Alice trains with each once (clears the stranger gate), then all go solo.
+        for tok in [&bob_tok, &carol_tok] {
+            svc.join_via_invite(authed(
+                tok,
+                JoinViaInviteRequest { invite_token: alice_invite.clone() },
+            ))
+            .await
+            .unwrap();
+            svc.leave_current_session(authed(tok, LeaveCurrentSessionRequest {}))
+                .await
+                .unwrap();
+        }
+        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+
+        // Alice asks both; both accept.
+        for (id, tok) in [(&bob_id, &bob_tok), (&carol_id, &carol_tok)] {
+            let req = svc
+                .request_join_partner(authed(
+                    &alice_tok,
+                    RequestJoinPartnerRequest { partner_user_id: id.clone() },
+                ))
+                .await
+                .unwrap()
+                .into_inner()
+                .request_id;
+            svc.respond_join_request(authed(
+                tok,
+                RespondJoinRequestRequest { request_id: req, accept: true },
+            ))
+            .await
+            .unwrap();
+        }
+
+        // All three share Alice's one session, and Alice sees both.
+        let a = svc.db.get_user_current_session(&alice_id).await.unwrap();
+        let b = svc.db.get_user_current_session(&bob_id).await.unwrap();
+        let c = svc.db.get_user_current_session(&carol_id).await.unwrap();
+        assert!(a.is_some() && a == b && b == c, "all three in one session: {a:?} {b:?} {c:?}");
+
+        let sess = svc
+            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let status = sess.session_status.as_ref().unwrap();
+        assert!(has_participant(status, &bob_id), "alice should see bob");
+        assert!(has_participant(status, &carol_id), "alice should see carol");
+    }
 }
