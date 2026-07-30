@@ -225,6 +225,9 @@ impl ServerWorkoutService {
         schedule_messages.dedup_by(|a, b| a.message_key == b.message_key);
         let training_status =
             regime.derive_training_status(&effective_state, &history, last_session_at, now);
+        // Offer the A/B (or session) swap from the home prompt. Read from stored
+        // state — the temporal-adjustment copy doesn't change the selector.
+        let selectable_next_sessions = regime.selectable_next_sessions(&stored_payload);
 
         let active_workout_id = self
             .db
@@ -280,6 +283,7 @@ impl ServerWorkoutService {
                 .map_err(internal_error)?,
             saved_exercise_groups,
             user_messages: schedule_messages,
+            selectable_next_sessions,
         };
         self.db
             .put_schedule_cache(user_id, &response)
@@ -1454,6 +1458,49 @@ impl WorkoutService for ServerWorkoutService {
         info!(rpc = "GetProposedWorkoutSchedule", %user_id, "request");
         let response = self.generate_schedule(&user_id, req.at_time).await?;
         Ok(Response::new(response))
+    }
+
+    async fn set_next_workout(
+        &self,
+        request: Request<SetNextWorkoutRequest>,
+    ) -> Result<Response<SetNextWorkoutResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "SetNextWorkout", %user_id, key = %req.session_key, "request");
+
+        let mut state_resp = self
+            .db
+            .get_program_state(&user_id)
+            .await
+            .map_err(internal_error)?
+            .and_then(|r| r.state)
+            .ok_or_else(|| Status::failed_precondition("no active training program"))?;
+
+        let regime_type =
+            RegimeType::try_from(state_resp.regime_type).unwrap_or(RegimeType::Linear5x5);
+        let regime = get_regime(regime_type);
+        let mut payload = payload_from_proto(&state_resp.fields);
+        if !regime.set_next_session(&mut payload, &req.session_key) {
+            return Err(Status::invalid_argument(format!(
+                "'{}' is not a selectable next session for this program",
+                req.session_key
+            )));
+        }
+        state_resp.fields = payload_to_proto(&payload);
+        state_resp.source = "manual".to_string();
+        self.db
+            .put_program_state(
+                &user_id,
+                &GetActiveTrainingProgramStateResponse {
+                    state: Some(state_resp),
+                    schema: Some(regime.state_schema()),
+                },
+            )
+            .await
+            .map_err(internal_error)?;
+        // Refresh the cached schedule so a re-fetch reflects the swap immediately.
+        let _ = self.generate_schedule(&user_id, 0).await;
+        Ok(Response::new(SetNextWorkoutResponse {}))
     }
 
     async fn dismiss_user_messages(

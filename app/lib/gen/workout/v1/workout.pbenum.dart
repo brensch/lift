@@ -608,5 +608,38 @@ class ProgressionRule extends $pb.ProtobufEnum {
   const ProgressionRule._(super.value, super.name);
 }
 
+/// Recovery- and frequency-aware readiness for the home hero. Replaces the flat
+/// "last session + 24h" signal with a per-muscle recovery model.
+class ReadinessState extends $pb.ProtobufEnum {
+  static const ReadinessState READINESS_STATE_UNSPECIFIED =
+      ReadinessState._(0, _omitEnumNames ? '' : 'READINESS_STATE_UNSPECIFIED');
+  static const ReadinessState READINESS_STATE_FIRST_TIME =
+      ReadinessState._(1, _omitEnumNames ? '' : 'READINESS_STATE_FIRST_TIME');
+  static const ReadinessState READINESS_STATE_READY =
+      ReadinessState._(2, _omitEnumNames ? '' : 'READINESS_STATE_READY');
+  static const ReadinessState READINESS_STATE_RECOVERING =
+      ReadinessState._(3, _omitEnumNames ? '' : 'READINESS_STATE_RECOVERING');
+  static const ReadinessState READINESS_STATE_OVERDUE =
+      ReadinessState._(4, _omitEnumNames ? '' : 'READINESS_STATE_OVERDUE');
+  static const ReadinessState READINESS_STATE_AHEAD =
+      ReadinessState._(5, _omitEnumNames ? '' : 'READINESS_STATE_AHEAD');
+
+  static const $core.List<ReadinessState> values = <ReadinessState>[
+    READINESS_STATE_UNSPECIFIED,
+    READINESS_STATE_FIRST_TIME,
+    READINESS_STATE_READY,
+    READINESS_STATE_RECOVERING,
+    READINESS_STATE_OVERDUE,
+    READINESS_STATE_AHEAD,
+  ];
+
+  static final $core.List<ReadinessState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static ReadinessState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ReadinessState._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

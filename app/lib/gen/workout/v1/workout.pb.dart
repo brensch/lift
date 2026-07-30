@@ -5221,6 +5221,144 @@ class SlotTrainingStatus extends $pb.GeneratedMessage {
   void clearStatusLabel() => $_clearField(10);
 }
 
+class MuscleRecoveryStatus extends $pb.GeneratedMessage {
+  factory MuscleRecoveryStatus({
+    $core.String? muscleKey,
+    $core.String? label,
+    $fixnum.Int64? lastTrainedAt,
+    $fixnum.Int64? recoveredAt,
+    $core.double? fraction,
+    $fixnum.Int64? hoursRemaining,
+    $core.bool? recovered,
+    $core.bool? inNextWorkout,
+  }) {
+    final result = create();
+    if (muscleKey != null) result.muscleKey = muscleKey;
+    if (label != null) result.label = label;
+    if (lastTrainedAt != null) result.lastTrainedAt = lastTrainedAt;
+    if (recoveredAt != null) result.recoveredAt = recoveredAt;
+    if (fraction != null) result.fraction = fraction;
+    if (hoursRemaining != null) result.hoursRemaining = hoursRemaining;
+    if (recovered != null) result.recovered = recovered;
+    if (inNextWorkout != null) result.inNextWorkout = inNextWorkout;
+    return result;
+  }
+
+  MuscleRecoveryStatus._();
+
+  factory MuscleRecoveryStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MuscleRecoveryStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MuscleRecoveryStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'muscleKey')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..aInt64(3, _omitFieldNames ? '' : 'lastTrainedAt')
+    ..aInt64(4, _omitFieldNames ? '' : 'recoveredAt')
+    ..aD(5, _omitFieldNames ? '' : 'fraction', fieldType: $pb.PbFieldType.OF)
+    ..aInt64(6, _omitFieldNames ? '' : 'hoursRemaining')
+    ..aOB(7, _omitFieldNames ? '' : 'recovered')
+    ..aOB(8, _omitFieldNames ? '' : 'inNextWorkout')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MuscleRecoveryStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MuscleRecoveryStatus copyWith(void Function(MuscleRecoveryStatus) updates) =>
+      super.copyWith((message) => updates(message as MuscleRecoveryStatus))
+          as MuscleRecoveryStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MuscleRecoveryStatus create() => MuscleRecoveryStatus._();
+  @$core.override
+  MuscleRecoveryStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MuscleRecoveryStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MuscleRecoveryStatus>(create);
+  static MuscleRecoveryStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get muscleKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set muscleKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMuscleKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMuscleKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lastTrainedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lastTrainedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastTrainedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastTrainedAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get recoveredAt => $_getI64(3);
+  @$pb.TagNumber(4)
+  set recoveredAt($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRecoveredAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRecoveredAt() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get fraction => $_getN(4);
+  @$pb.TagNumber(5)
+  set fraction($core.double value) => $_setFloat(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasFraction() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFraction() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get hoursRemaining => $_getI64(5);
+  @$pb.TagNumber(6)
+  set hoursRemaining($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasHoursRemaining() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHoursRemaining() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get recovered => $_getBF(6);
+  @$pb.TagNumber(7)
+  set recovered($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasRecovered() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearRecovered() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get inNextWorkout => $_getBF(7);
+  @$pb.TagNumber(8)
+  set inNextWorkout($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasInNextWorkout() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearInNextWorkout() => $_clearField(8);
+}
+
 class TrainingStatus extends $pb.GeneratedMessage {
   factory TrainingStatus({
     $fixnum.Int64? nextSessionAt,
@@ -5235,6 +5373,13 @@ class TrainingStatus extends $pb.GeneratedMessage {
     $core.int? completedSetsPer7Days,
     $core.int? remainingSetsPer7Days,
     $core.Iterable<SlotTrainingStatus>? slotStatuses,
+    ReadinessState? readinessState,
+    $fixnum.Int64? nextReadyAt,
+    $core.Iterable<MuscleRecoveryStatus>? muscleRecovery,
+    $core.Iterable<$core.String>? blockingMuscles,
+    $core.int? avgGapHours,
+    $core.int? sessionsLast7Days,
+    $core.String? nextWorkoutLabel,
   }) {
     final result = create();
     if (nextSessionAt != null) result.nextSessionAt = nextSessionAt;
@@ -5255,6 +5400,13 @@ class TrainingStatus extends $pb.GeneratedMessage {
     if (remainingSetsPer7Days != null)
       result.remainingSetsPer7Days = remainingSetsPer7Days;
     if (slotStatuses != null) result.slotStatuses.addAll(slotStatuses);
+    if (readinessState != null) result.readinessState = readinessState;
+    if (nextReadyAt != null) result.nextReadyAt = nextReadyAt;
+    if (muscleRecovery != null) result.muscleRecovery.addAll(muscleRecovery);
+    if (blockingMuscles != null) result.blockingMuscles.addAll(blockingMuscles);
+    if (avgGapHours != null) result.avgGapHours = avgGapHours;
+    if (sessionsLast7Days != null) result.sessionsLast7Days = sessionsLast7Days;
+    if (nextWorkoutLabel != null) result.nextWorkoutLabel = nextWorkoutLabel;
     return result;
   }
 
@@ -5290,6 +5442,16 @@ class TrainingStatus extends $pb.GeneratedMessage {
         protoName: 'remaining_sets_per_7_days')
     ..pPM<SlotTrainingStatus>(12, _omitFieldNames ? '' : 'slotStatuses',
         subBuilder: SlotTrainingStatus.create)
+    ..aE<ReadinessState>(13, _omitFieldNames ? '' : 'readinessState',
+        enumValues: ReadinessState.values)
+    ..aInt64(14, _omitFieldNames ? '' : 'nextReadyAt')
+    ..pPM<MuscleRecoveryStatus>(15, _omitFieldNames ? '' : 'muscleRecovery',
+        subBuilder: MuscleRecoveryStatus.create)
+    ..pPS(16, _omitFieldNames ? '' : 'blockingMuscles')
+    ..aI(17, _omitFieldNames ? '' : 'avgGapHours')
+    ..aI(18, _omitFieldNames ? '' : 'sessionsLast7Days',
+        protoName: 'sessions_last_7_days')
+    ..aOS(19, _omitFieldNames ? '' : 'nextWorkoutLabel')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5412,6 +5574,58 @@ class TrainingStatus extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(12)
   $pb.PbList<SlotTrainingStatus> get slotStatuses => $_getList(11);
+
+  /// Readiness redesign (recovery + frequency model).
+  @$pb.TagNumber(13)
+  ReadinessState get readinessState => $_getN(12);
+  @$pb.TagNumber(13)
+  set readinessState(ReadinessState value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasReadinessState() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearReadinessState() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $fixnum.Int64 get nextReadyAt => $_getI64(13);
+  @$pb.TagNumber(14)
+  set nextReadyAt($fixnum.Int64 value) => $_setInt64(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasNextReadyAt() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearNextReadyAt() => $_clearField(14);
+
+  @$pb.TagNumber(15)
+  $pb.PbList<MuscleRecoveryStatus> get muscleRecovery => $_getList(14);
+
+  @$pb.TagNumber(16)
+  $pb.PbList<$core.String> get blockingMuscles => $_getList(15);
+
+  @$pb.TagNumber(17)
+  $core.int get avgGapHours => $_getIZ(16);
+  @$pb.TagNumber(17)
+  set avgGapHours($core.int value) => $_setSignedInt32(16, value);
+  @$pb.TagNumber(17)
+  $core.bool hasAvgGapHours() => $_has(16);
+  @$pb.TagNumber(17)
+  void clearAvgGapHours() => $_clearField(17);
+
+  @$pb.TagNumber(18)
+  $core.int get sessionsLast7Days => $_getIZ(17);
+  @$pb.TagNumber(18)
+  set sessionsLast7Days($core.int value) => $_setSignedInt32(17, value);
+  @$pb.TagNumber(18)
+  $core.bool hasSessionsLast7Days() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearSessionsLast7Days() => $_clearField(18);
+
+  @$pb.TagNumber(19)
+  $core.String get nextWorkoutLabel => $_getSZ(18);
+  @$pb.TagNumber(19)
+  set nextWorkoutLabel($core.String value) => $_setString(18, value);
+  @$pb.TagNumber(19)
+  $core.bool hasNextWorkoutLabel() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearNextWorkoutLabel() => $_clearField(19);
 }
 
 class RegimeContext extends $pb.GeneratedMessage {
@@ -5505,6 +5719,7 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     WorkoutDraft? draft,
     $core.Iterable<ExerciseGroup>? savedExerciseGroups,
     $core.Iterable<UserMessage>? userMessages,
+    $core.Iterable<NextSessionOption>? selectableNextSessions,
   }) {
     final result = create();
     if (exerciseStatuses != null)
@@ -5519,6 +5734,8 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
     if (savedExerciseGroups != null)
       result.savedExerciseGroups.addAll(savedExerciseGroups);
     if (userMessages != null) result.userMessages.addAll(userMessages);
+    if (selectableNextSessions != null)
+      result.selectableNextSessions.addAll(selectableNextSessions);
     return result;
   }
 
@@ -5552,6 +5769,9 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
         subBuilder: ExerciseGroup.create)
     ..pPM<UserMessage>(9, _omitFieldNames ? '' : 'userMessages',
         subBuilder: UserMessage.create)
+    ..pPM<NextSessionOption>(
+        10, _omitFieldNames ? '' : 'selectableNextSessions',
+        subBuilder: NextSessionOption.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5639,6 +5859,183 @@ class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(9)
   $pb.PbList<UserMessage> get userMessages => $_getList(8);
+
+  /// Selectable next-session choices (e.g. Linear 5×5 Workout A / B) so the home
+  /// prompt can offer a one-tap swap. Empty when the regime has no choice.
+  @$pb.TagNumber(10)
+  $pb.PbList<NextSessionOption> get selectableNextSessions => $_getList(9);
+}
+
+class NextSessionOption extends $pb.GeneratedMessage {
+  factory NextSessionOption({
+    $core.String? key,
+    $core.String? label,
+    $core.bool? isCurrent,
+  }) {
+    final result = create();
+    if (key != null) result.key = key;
+    if (label != null) result.label = label;
+    if (isCurrent != null) result.isCurrent = isCurrent;
+    return result;
+  }
+
+  NextSessionOption._();
+
+  factory NextSessionOption.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory NextSessionOption.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NextSessionOption',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'key')
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..aOB(3, _omitFieldNames ? '' : 'isCurrent')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NextSessionOption clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  NextSessionOption copyWith(void Function(NextSessionOption) updates) =>
+      super.copyWith((message) => updates(message as NextSessionOption))
+          as NextSessionOption;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static NextSessionOption create() => NextSessionOption._();
+  @$core.override
+  NextSessionOption createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static NextSessionOption getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NextSessionOption>(create);
+  static NextSessionOption? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get key => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set key($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get isCurrent => $_getBF(2);
+  @$pb.TagNumber(3)
+  set isCurrent($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasIsCurrent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIsCurrent() => $_clearField(3);
+}
+
+class SetNextWorkoutRequest extends $pb.GeneratedMessage {
+  factory SetNextWorkoutRequest({
+    $core.String? sessionKey,
+  }) {
+    final result = create();
+    if (sessionKey != null) result.sessionKey = sessionKey;
+    return result;
+  }
+
+  SetNextWorkoutRequest._();
+
+  factory SetNextWorkoutRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetNextWorkoutRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetNextWorkoutRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionKey')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetNextWorkoutRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetNextWorkoutRequest copyWith(
+          void Function(SetNextWorkoutRequest) updates) =>
+      super.copyWith((message) => updates(message as SetNextWorkoutRequest))
+          as SetNextWorkoutRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetNextWorkoutRequest create() => SetNextWorkoutRequest._();
+  @$core.override
+  SetNextWorkoutRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetNextWorkoutRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetNextWorkoutRequest>(create);
+  static SetNextWorkoutRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sessionKey => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sessionKey($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSessionKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSessionKey() => $_clearField(1);
+}
+
+class SetNextWorkoutResponse extends $pb.GeneratedMessage {
+  factory SetNextWorkoutResponse() => create();
+
+  SetNextWorkoutResponse._();
+
+  factory SetNextWorkoutResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetNextWorkoutResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetNextWorkoutResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetNextWorkoutResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetNextWorkoutResponse copyWith(
+          void Function(SetNextWorkoutResponse) updates) =>
+      super.copyWith((message) => updates(message as SetNextWorkoutResponse))
+          as SetNextWorkoutResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetNextWorkoutResponse create() => SetNextWorkoutResponse._();
+  @$core.override
+  SetNextWorkoutResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetNextWorkoutResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetNextWorkoutResponse>(create);
+  static SetNextWorkoutResponse? _defaultInstance;
 }
 
 class SaveProfileExerciseGroupRequest extends $pb.GeneratedMessage {

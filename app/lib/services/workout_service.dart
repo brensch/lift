@@ -222,6 +222,13 @@ class WorkoutServiceWrapper {
     );
   }
 
+  Future<void> setNextWorkout(String sessionKey) async {
+    await _client.workoutService.setNextWorkout(
+      SetNextWorkoutRequest()..sessionKey = sessionKey,
+      options: _defaultCallOptions,
+    );
+  }
+
   Future<List<String>> dismissUserMessages(List<String> messageKeys) async {
     final response = await _client.workoutService.dismissUserMessages(
       DismissUserMessagesRequest()..messageKeys.addAll(messageKeys),

@@ -10,7 +10,8 @@ pub mod wendler_531;
 
 use chrono::{Datelike, LocalResult, TimeZone, Utc};
 use schlift::workout::v1::{
-    Exercise, ProgressionHint, ProgressionRule, ProposedExerciseGroup, RegimeType, RestConfig,
+    Exercise, MuscleRecoveryStatus, NextSessionOption, ProgressionHint, ProgressionRule,
+    ProposedExerciseGroup, ReadinessState as ProtoReadinessState, RegimeType, RestConfig,
     SlotTrainingStatus, TrainingProgramAtAGlance, TrainingProgramDefinition, TrainingProgramLink,
     TrainingStatus, WorkingSetSpec, Workout,
 };
@@ -152,6 +153,19 @@ pub trait WorkoutRegime: Send + Sync {
         _workout: &SchplannerWorkoutRecord,
         _slot_outcomes: &HashMap<String, SchplannerSlotOutcome>,
     ) {
+    }
+
+    /// The selectable "next session" options this regime offers (e.g. Linear 5×5
+    /// Workout A / B). Lets the home prompt present a one-tap swap. Default: no
+    /// choice. Each option carries `is_current` for the one presently queued.
+    fn selectable_next_sessions(&self, _state: &StatePayload) -> Vec<NextSessionOption> {
+        Vec::new()
+    }
+
+    /// Point the regime at the chosen next session, mutating program state.
+    /// Returns false if `key` isn't a recognized option (leaves state untouched).
+    fn set_next_session(&self, _state: &mut StatePayload, _key: &str) -> bool {
+        false
     }
 
     fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {
@@ -302,6 +316,7 @@ pub fn slot_status_label(
     }
 }
 
+#[allow(dead_code)] // kept as a formatting helper; readiness headline no longer uses it
 pub fn format_time_until(target_ts: i64, now_ts: i64) -> String {
     let delta = target_ts - now_ts;
     if delta <= 0 {
@@ -360,17 +375,89 @@ pub fn build_training_status(
     let remaining_sessions_per_7_days =
         (target_sessions_per_7_days - window.completed_sessions).max(0);
     let remaining_sets_per_7_days = (target_sets_per_7_days - window.completed_sets).max(0);
-    let should_train_now = now_ts >= next_session_at;
 
-    let headline = if last_session_at == 0 {
-        "First Schlift ready".to_string()
-    } else if should_train_now {
-        "Schlift today".to_string()
+    // ── Recovery + frequency readiness ────────────────────────────────────────
+    // The next workout's exercises are the slots that appear in it; recovery is
+    // computed per muscle from real completed-set timestamps in `history`.
+    let next_exercises: Vec<Exercise> = target_slot_sets
+        .iter()
+        .filter(|(k, _)| next_workout_slots.contains(*k))
+        .map(|(_, t)| t.exercise)
+        .collect();
+    let next_muscles = crate::recovery::muscles_for_exercises(&next_exercises);
+    let recovery = crate::recovery::per_muscle_recovery(history, now_ts);
+    let cadence = crate::recovery::cadence(history, now_ts);
+    // The regime's own prescribed gap is the minimum rest floor (fallback 24h).
+    let min_rest_hours = if next_session_at > last_session_at && last_session_at > 0 {
+        ((next_session_at - last_session_at) / 3600).max(1)
     } else {
-        format!(
-            "Next Schlift {}",
-            format_time_until(next_session_at, now_ts)
-        )
+        24
+    };
+    let readiness = crate::recovery::compute_readiness(
+        &next_muscles,
+        &recovery,
+        &cadence,
+        last_session_at,
+        min_rest_hours,
+        target_sessions_per_7_days,
+        now_ts,
+    );
+
+    let next_workout_label = {
+        let mut names: Vec<String> = target_slot_sets
+            .iter()
+            .filter(|(k, _)| next_workout_slots.contains(*k))
+            .map(|(_, t)| exercise_display_name(t.exercise))
+            .collect();
+        names.sort();
+        names.dedup();
+        names.join(" · ")
+    };
+
+    let muscle_recovery: Vec<MuscleRecoveryStatus> = recovery
+        .iter()
+        .map(|r| MuscleRecoveryStatus {
+            muscle_key: r.group.key().to_string(),
+            label: r.group.label().to_string(),
+            last_trained_at: r.last_trained_at,
+            recovered_at: r.recovered_at,
+            fraction: r.fraction,
+            hours_remaining: r.hours_remaining(now_ts),
+            recovered: r.is_recovered(now_ts),
+            in_next_workout: next_muscles.contains(&r.group),
+        })
+        .collect();
+    let blocking_muscles: Vec<String> = readiness
+        .blocking
+        .iter()
+        .map(|m| m.label().to_string())
+        .collect();
+    let readiness_state = match readiness.state {
+        crate::recovery::ReadinessState::FirstTime => ProtoReadinessState::FirstTime,
+        crate::recovery::ReadinessState::Ready => ProtoReadinessState::Ready,
+        crate::recovery::ReadinessState::Recovering => ProtoReadinessState::Recovering,
+        crate::recovery::ReadinessState::Overdue => ProtoReadinessState::Overdue,
+        crate::recovery::ReadinessState::Ahead => ProtoReadinessState::Ahead,
+    };
+
+    // "Train now" now means readiness says go (recovered), not a flat clock gap.
+    let should_train_now = matches!(
+        readiness.state,
+        crate::recovery::ReadinessState::FirstTime
+            | crate::recovery::ReadinessState::Ready
+            | crate::recovery::ReadinessState::Overdue
+            | crate::recovery::ReadinessState::Ahead
+    );
+
+    let headline = match readiness.state {
+        crate::recovery::ReadinessState::FirstTime => "First Schlift ready".to_string(),
+        crate::recovery::ReadinessState::Recovering => "Still recovering".to_string(),
+        crate::recovery::ReadinessState::Overdue => {
+            let days = ((now_ts - last_session_at).max(0) / (24 * 3600)).max(1);
+            format!("It's been {days} days")
+        }
+        _ if !next_workout_label.is_empty() => next_workout_label.clone(),
+        _ => "Schlift today".to_string(),
     };
 
     let mut slot_statuses = target_slot_sets
@@ -428,6 +515,13 @@ pub fn build_training_status(
         completed_sets_per_7_days: window.completed_sets,
         remaining_sets_per_7_days,
         slot_statuses,
+        readiness_state: readiness_state as i32,
+        next_ready_at: readiness.next_ready_at,
+        muscle_recovery,
+        blocking_muscles,
+        avg_gap_hours: cadence.avg_gap_hours.unwrap_or(0) as i32,
+        sessions_last_7_days: cadence.sessions_last_7d,
+        next_workout_label,
     }
 }
 
