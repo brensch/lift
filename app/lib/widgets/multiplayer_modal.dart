@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/multiplayer_provider.dart';
+import 'participant_ticker.dart';
 
 String _shareUrl(String inviteToken) =>
     'https://schlift.com/?join=$inviteToken';
@@ -83,10 +84,86 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return '${(days / 30).floor()}mo ago';
   }
 
-  /// The friends section — people you've trained with. Always shown (with a hint
-  /// when empty) so it's a first-class part of the screen, not a footnote.
-  Widget _friends(MultiplayerProvider mp, ColorScheme cs) {
-    final partners = mp.trainingPartners;
+  /// Who's currently in your session, with their live status. Hidden when you're
+  /// training solo.
+  Widget _currentSession(MultiplayerProvider mp, ColorScheme cs) {
+    final participants = mp.participants;
+    if (participants.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'IN YOUR SESSION',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.5,
+            color: cs.tertiary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              for (final p in participants)
+                Builder(
+                  builder: (_) {
+                    final status = describeParticipantStatus(p);
+                    final name = participantDisplayName(p);
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: status.stateColor,
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color:
+                                ThemeData.estimateBrightnessForColor(
+                                      status.stateColor,
+                                    ) ==
+                                    Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      trailing: Text(
+                        status.stateLabel,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: status.stateColor,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  /// The friends section — people you've trained with (minus whoever is already
+  /// in your session). Always shown (with a hint when empty) so it's a
+  /// first-class part of the screen, not a footnote.
+  Widget _friends(List<TrainingPartner> partners, ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -192,6 +269,11 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final cs = Theme.of(context).colorScheme;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final inviteToken = mp.myInviteToken;
+    // Don't offer to invite someone who's already in the session.
+    final sessionMemberIds = mp.participants.map((p) => p.user.id).toSet();
+    final invitablePartners = mp.trainingPartners
+        .where((p) => !sessionMemberIds.contains(p.user.id))
+        .toList();
 
     final modalSurface = cs.brightness == Brightness.dark
         ? cs.surfaceContainerHigh
@@ -302,7 +384,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   ),
                 ),
                 const SizedBox(height: 26),
-                _friends(mp, cs),
+                _currentSession(mp, cs),
+                _friends(invitablePartners, cs),
               ],
             ],
           ),
