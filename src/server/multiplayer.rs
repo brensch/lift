@@ -83,6 +83,27 @@ impl ServerMultiplayerService {
         }
         Ok(())
     }
+
+    /// The single session-placement path for both invite-accept and
+    /// request-accept: `joiner` joins `anchor`'s session, creating one if the
+    /// anchor has none, and leaving whatever session `joiner` was in. Because
+    /// everyone gathers into the *anchor* (invite owner / requester), one host
+    /// pulling in several people forms one group — not a chain of 1:1s. Serialised
+    /// behind a global lock so two people joining the same anchor at once can't
+    /// each mint a separate session and orphan one of them.
+    async fn gather_into_session(&self, anchor: &str, joiner: &str) -> Result<String, Status> {
+        let _guard = JOIN_LOCK.lock().await;
+        let session_id = self
+            .db
+            .get_user_current_session(anchor)
+            .await
+            .map_err(internal_error)?
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        self.leave_other_session(joiner, &session_id).await?;
+        self.place_user_in_session(anchor, &session_id).await?;
+        self.place_user_in_session(joiner, &session_id).await?;
+        Ok(session_id)
+    }
 }
 
 #[tonic::async_trait]
@@ -113,44 +134,10 @@ impl MultiplayerService for ServerMultiplayerService {
             ));
         }
 
-        // Held through the read-decide-write below so concurrent joins to the same
-        // inviter serialise: the second one sees the session the first just made.
-        let _join_guard = JOIN_LOCK.lock().await;
-
-        // Pick the session to use based on existing memberships:
-        //   - neither in a group → mint a new one
-        //   - exactly one in a group → the other joins it
-        //   - both already in (different) groups → error; one must leave first
-        //   - both in the same group → no-op
-        let caller_session = self
-            .db
-            .get_user_current_session(&caller_id)
-            .await
-            .map_err(internal_error)?;
-        let target_session = self
-            .db
-            .get_user_current_session(&target_id)
-            .await
-            .map_err(internal_error)?;
-        let session_id = match (caller_session, target_session) {
-            (Some(a), Some(b)) if a == b => a,
-            (Some(_), Some(_)) => {
-                return Err(Status::failed_precondition(
-                    "You're both already in groups. One of you needs to leave their group first.",
-                ));
-            }
-            (Some(existing), None) | (None, Some(existing)) => existing,
-            // Neither is in a group — mint a fresh session id. The session exists
-            // purely as the shared id on both users' session_members rows; there's
-            // no separate sessions table to seed.
-            (None, None) => Uuid::new_v4().to_string(),
-        };
-
-        // Both users land in the same session. Upsert is idempotent for whoever was
-        // already there.
-        self.place_user_in_session(&caller_id, &session_id).await?;
-        self.place_user_in_session(&target_id, &session_id).await?;
-
+        // The invite owner is the host; the scanner joins their session. Same path
+        // the request-accept flow uses, so several people scanning one code gather
+        // into that one group.
+        let session_id = self.gather_into_session(&target_id, &caller_id).await?;
         Ok(Response::new(JoinViaInviteResponse { session_id }))
     }
 
@@ -480,20 +467,11 @@ impl MultiplayerService for ServerMultiplayerService {
                 session_id: String::new(),
             }));
         }
-        // Approved: both land in a session — the responder's current one, or a new
-        // one. The requester joins it (leaving any prior session cleanly).
-        let session_id = match self
-            .db
-            .get_user_current_session(&caller_id)
-            .await
-            .map_err(internal_error)?
-        {
-            Some(existing) => existing,
-            None => Uuid::new_v4().to_string(),
-        };
-        self.leave_other_session(&from_id, &session_id).await?;
-        self.place_user_in_session(&from_id, &session_id).await?;
-        self.place_user_in_session(&caller_id, &session_id).await?;
+        // Approved: everyone gathers into the *requester's* session — the person
+        // who sent the asks is the host, so asking several people forms one group
+        // instead of pulling the requester into a fresh 1:1 per accept. Same helper
+        // the invite flow uses.
+        let session_id = self.gather_into_session(&from_id, &caller_id).await?;
         Ok(Response::new(RespondJoinRequestResponse { session_id }))
     }
 }
