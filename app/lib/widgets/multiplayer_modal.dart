@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:share_plus/share_plus.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/auth_provider.dart';
@@ -20,9 +19,7 @@ class MultiplayerModal extends StatefulWidget {
 }
 
 class _MultiplayerModalState extends State<MultiplayerModal> {
-  bool _isScanning = false;
   String? _joiningPartnerId;
-  final TextEditingController _idController = TextEditingController();
 
   @override
   void initState() {
@@ -31,12 +28,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<MultiplayerProvider>().loadTrainingPartners();
     });
-  }
-
-  @override
-  void dispose() {
-    _idController.dispose();
-    super.dispose();
   }
 
   Future<void> _askPartner(String partnerUserId, String name) async {
@@ -50,8 +41,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     ));
   }
 
-  /// People the caller has trained with before — tap Join to drop straight into
-  /// a friend's current session without scanning again.
+  /// People the caller has trained with before — tap Ask to request a spot in a
+  /// partner's current session without needing a fresh link.
   Widget _buildTrainedWith(MultiplayerProvider mp, ColorScheme colorScheme) {
     final partners = mp.trainingPartners;
     if (partners.isEmpty) return const SizedBox.shrink();
@@ -137,25 +128,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return '${(days / 30).floor()}mo ago';
   }
 
-  void _handleScan(BarcodeCapture capture) {
-    for (final barcode in capture.barcodes) {
-      final raw = barcode.rawValue;
-      if (raw == null || raw.isEmpty) continue;
-      _joinViaInvite(raw);
-      return;
-    }
-  }
-
-  Future<void> _joinViaInvite(String tokenOrUrl) async {
-    if (!mounted) return;
-    setState(() => _isScanning = false);
-    final mp = context.read<MultiplayerProvider>();
-    final error = await mp.joinViaInvite(tokenOrUrl);
-    if (error == null && mounted) {
-      Navigator.pop(context);
-    }
-  }
-
   Future<void> _shareInvite(String inviteToken) async {
     try {
       await Share.share(
@@ -190,7 +162,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Invite code rotated — old QR no longer works'),
+          content: Text('Invite link rotated — old link no longer works'),
         ),
       );
     }
@@ -212,341 +184,232 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
     return SafeArea(
       top: false,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Container(
-          constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
-          decoration: BoxDecoration(
-            color: modalSurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.25),
-            ),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
+        decoration: BoxDecoration(
+          color: modalSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.25),
           ),
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        ),
+        padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Multiplayer',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (mp.isLoading || inviteToken == null)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colorScheme.outline),
+                  ),
+                  child: Center(
+                    child: QrImageView(
+                      data: _shareUrl(inviteToken),
+                      version: QrVersions.auto,
+                      size: 200.0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Share your link. Opening it on their phone drops them straight '
+                  'into your session — or point their camera at this code.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Multiplayer',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _copyInviteLink(inviteToken),
+                          icon: const Icon(Icons.link_rounded, size: 18),
+                          label: const Text('Copy link'),
+                        ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 46,
+                        child: FilledButton.icon(
+                          onPressed: () => _shareInvite(inviteToken),
+                          icon: const Icon(Icons.ios_share_rounded, size: 18),
+                          label: const Text('Share'),
+                        ),
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _rotateInvite,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Rotate link'),
+                  ),
+                ),
                 const SizedBox(height: 24),
-                if (mp.isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
+                if (sessionId != null) ...[
+                  Text(
+                    'SESSION MEMBERS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: colorScheme.tertiary,
                     ),
-                  )
-                else ...[
-                  if (_isScanning)
-                    Column(
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.5),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                          height: 300,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: MobileScanner(onDetect: _handleScan),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => setState(() => _isScanning = false),
-                          child: const Text('Cancel Scan'),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    if (inviteToken == null)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colorScheme.outline),
-                        ),
-                        child: Center(
-                          child: QrImageView(
-                            data: _shareUrl(inviteToken),
-                            version: QrVersions.auto,
-                            size: 200.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Your invite code',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        inviteToken,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 44,
-                              child: OutlinedButton.icon(
-                                onPressed: () =>
-                                    setState(() => _isScanning = true),
-                                icon: const Icon(
-                                  Icons.qr_code_scanner,
-                                  size: 18,
-                                ),
-                                label: const Text('Scan'),
+                        ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: colorScheme.secondary,
+                            child: Text(
+                              username != null && username.isNotEmpty
+                                  ? username[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSecondary,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SizedBox(
-                              height: 44,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _copyInviteLink(inviteToken),
-                                icon: const Icon(Icons.copy, size: 16),
-                                label: const Text('Copy'),
-                              ),
+                          title: Text(
+                            username != null && username.isNotEmpty
+                                ? '$username (You)'
+                                : 'You',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SizedBox(
-                              height: 44,
-                              child: FilledButton.icon(
-                                onPressed: () => _shareInvite(inviteToken),
-                                icon: const Icon(Icons.share, size: 16),
-                                label: const Text('Share'),
-                              ),
-                            ),
+                        ),
+                        if (mp.participants.isNotEmpty) ...[
+                          Divider(
+                            height: 1,
+                            color: colorScheme.outline.withValues(alpha: 0.3),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: _rotateInvite,
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('Rotate code'),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    if (sessionId != null) ...[
-                      Text(
-                        'ACTIVE SESSION',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        sessionId,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Session Members',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: colorScheme.outline.withValues(alpha: 0.5),
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              dense: true,
-                              leading: CircleAvatar(
-                                radius: 12,
-                                backgroundColor: colorScheme.secondary,
-                                child: Text(
-                                  username != null && username.isNotEmpty
-                                      ? username[0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.onSecondary,
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                username != null && username.isNotEmpty
-                                    ? '$username (You)'
-                                    : 'You',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: screenHeight * 0.3,
                             ),
-                            if (mp.participants.isNotEmpty) ...[
-                              Divider(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: mp.participants.length,
+                              separatorBuilder: (_, __) => Divider(
                                 height: 1,
                                 color: colorScheme.outline.withValues(
-                                  alpha: 0.3,
+                                  alpha: 0.2,
                                 ),
                               ),
-                              ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxHeight: screenHeight * 0.3,
-                                ),
-                                child: ListView.separated(
-                                  shrinkWrap: true,
-                                  itemCount: mp.participants.length,
-                                  separatorBuilder: (_, __) => Divider(
-                                    height: 1,
-                                    color: colorScheme.outline.withValues(
-                                      alpha: 0.2,
+                              itemBuilder: (context, index) {
+                                final participant = mp.participants[index];
+                                final status = describeParticipantStatus(
+                                  participant,
+                                );
+                                final displayName = participantDisplayName(
+                                  participant,
+                                );
+                                return ListTile(
+                                  dense: true,
+                                  leading: CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: status.stateColor,
+                                    child: Text(
+                                      displayName.isNotEmpty
+                                          ? displayName[0].toUpperCase()
+                                          : '?',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            ThemeData.estimateBrightnessForColor(
+                                                  status.stateColor,
+                                                ) ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
                                     ),
                                   ),
-                                  itemBuilder: (context, index) {
-                                    final participant = mp.participants[index];
-                                    final status = describeParticipantStatus(
-                                      participant,
-                                    );
-                                    final displayName = participantDisplayName(
-                                      participant,
-                                    );
-                                    return ListTile(
-                                      dense: true,
-                                      leading: CircleAvatar(
-                                        radius: 12,
-                                        backgroundColor: status.stateColor,
-                                        child: Text(
-                                          displayName.isNotEmpty
-                                              ? displayName[0].toUpperCase()
-                                              : '?',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color:
-                                                ThemeData.estimateBrightnessForColor(
-                                                      status.stateColor,
-                                                    ) ==
-                                                    Brightness.dark
-                                                ? Colors.white
-                                                : Colors.black,
-                                          ),
-                                        ),
-                                      ),
-                                      title: Text(
-                                        displayName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      trailing: Text(
-                                        status.stateLabel,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: status.stateColor,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _idController,
-                              decoration: InputDecoration(
-                                hintText: 'Paste Join ID',
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 12,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              style: const TextStyle(fontSize: 13),
+                                  title: Text(
+                                    displayName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  trailing: Text(
+                                    status.stateLabel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: status.stateColor,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: () {
-                              if (_idController.text.isNotEmpty) {
-                                _joinViaInvite(_idController.text.trim());
-                              }
-                            },
-                            child: const Text('Join'),
-                          ),
                         ],
-                      ),
-                      _buildTrainedWith(mp, colorScheme),
-                    ],
-                  ],
-                ],
+                      ],
+                    ),
+                  ),
+                ] else
+                  _buildTrainedWith(mp, colorScheme),
               ],
-            ),
+            ],
           ),
         ),
       ),
