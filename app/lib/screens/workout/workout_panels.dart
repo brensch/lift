@@ -50,17 +50,25 @@ class NoHeartRateMonitor extends StatelessWidget {
 // ─── Session strip (top block: workout name + a single slim progress bar) ────
 
 class SessionStrip extends StatelessWidget {
-  final String name;
+  final String title; // e.g. "5×5 Workout A"
+  final String subtitle; // faded, e.g. "Squat · Bench · Row"
+  final String dateLabel; // e.g. "Jul 30"
   final double progress; // 0..1 across all working sets
 
-  const SessionStrip({super.key, required this.name, required this.progress});
+  const SessionStrip({
+    super.key,
+    required this.title,
+    this.subtitle = '',
+    this.dateLabel = '',
+    required this.progress,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      padding: const EdgeInsets.fromLTRB(15, 11, 15, 12),
+      padding: const EdgeInsets.fromLTRB(15, 12, 15, 13),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
@@ -69,19 +77,56 @@ class SessionStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.4,
-              height: 1.0,
-              color: cs.onSurface,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.4,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      if (subtitle.isNotEmpty)
+                        TextSpan(
+                          text: '   $subtitle',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.1,
+                            color: cs.onSurface.withValues(alpha: 0.38),
+                          ),
+                        ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (dateLabel.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(
+                    dateLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.1,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: cs.onSurface.withValues(alpha: 0.42),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 11),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
