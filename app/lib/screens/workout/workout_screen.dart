@@ -316,8 +316,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                         const EmptyPanel(
                                           text: 'No exercises remaining.',
                                         ),
-                                      if (unfinishedGroups.length >= 2)
-                                        const ReorderHint(),
                                       if (!isEnded) ...[
                                         const SizedBox(height: 8),
                                         AddExerciseButton(
