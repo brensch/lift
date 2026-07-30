@@ -14,6 +14,7 @@ mod db;
 mod program_state;
 mod progress;
 mod onboarding;
+mod recovery;
 mod regimes;
 #[cfg(test)]
 mod scenario_tests;

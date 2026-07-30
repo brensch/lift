@@ -1,4 +1,4 @@
-use schlift::workout::v1::{Exercise, RegimeContext, TrainingProgramStateSchema};
+use schlift::workout::v1::{Exercise, NextSessionOption, RegimeContext, TrainingProgramStateSchema};
 
 use crate::program_state::{
     build_schema, get_f32_or, get_int_or, get_str_or, schema_enum, schema_float, schema_int,
@@ -529,5 +529,74 @@ impl WorkoutRegime for Linear5x5Regime {
             "B"
         };
         set_str(state, KEY_VARIANT, next);
+    }
+
+    fn selectable_next_sessions(&self, state: &StatePayload) -> Vec<NextSessionOption> {
+        let current = get_str_or(state, KEY_VARIANT, "A");
+        ["A", "B"]
+            .iter()
+            .map(|&v| {
+                let lifts = workout_variant_exercises(v)
+                    .iter()
+                    .map(|&e| exercise_display_name(e))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                NextSessionOption {
+                    key: v.to_string(),
+                    label: format!("Workout {v} · {lifts}"),
+                    is_current: current.eq_ignore_ascii_case(v),
+                }
+            })
+            .collect()
+    }
+
+    fn set_next_session(&self, state: &mut StatePayload, key: &str) -> bool {
+        if key.eq_ignore_ascii_case("A") || key.eq_ignore_ascii_case("B") {
+            set_str(state, KEY_VARIANT, &key.to_uppercase());
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+mod swap_tests {
+    use super::*;
+    use crate::program_state::get_str_or;
+
+    #[test]
+    fn selectable_sessions_report_ab_and_flag_current() {
+        let regime = Linear5x5Regime;
+        let state = regime.default_state(); // defaults to variant A
+        let opts = regime.selectable_next_sessions(&state);
+        assert_eq!(opts.len(), 2);
+        assert_eq!(opts[0].key, "A");
+        assert_eq!(opts[1].key, "B");
+        assert!(opts[0].is_current, "A is queued by default");
+        assert!(!opts[1].is_current);
+        // Labels name the lifts so the prompt can show them.
+        assert!(opts[0].label.contains("Squat"));
+        assert!(opts[1].label.contains("Overhead") || opts[1].label.contains("OHP"));
+    }
+
+    #[test]
+    fn set_next_session_swaps_the_variant() {
+        let regime = Linear5x5Regime;
+        let mut state = regime.default_state();
+        assert_eq!(get_str_or(&state, KEY_VARIANT, "A"), "A");
+
+        assert!(regime.set_next_session(&mut state, "b")); // case-insensitive
+        assert_eq!(get_str_or(&state, KEY_VARIANT, "A"), "B");
+        let opts = regime.selectable_next_sessions(&state);
+        assert!(!opts[0].is_current);
+        assert!(opts[1].is_current, "B is now current");
+
+        assert!(regime.set_next_session(&mut state, "A"));
+        assert_eq!(get_str_or(&state, KEY_VARIANT, "A"), "A");
+
+        // Unknown key is rejected and leaves state untouched.
+        assert!(!regime.set_next_session(&mut state, "C"));
+        assert_eq!(get_str_or(&state, KEY_VARIANT, "A"), "A");
     }
 }

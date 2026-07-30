@@ -985,3 +985,191 @@ mod failed_session_never_raises_weight_tests {
         assert_eq!(squat_weight_after(180.0, 2, outcome(5, 2, 180.0)), 160.0);
     }
 }
+
+/// End-to-end readiness over time: complete real sets against a real DB, then
+/// query the schedule handler at successively later mocked `at_time`s and watch
+/// the readiness state machine move recovering → ready. This proves the whole
+/// path (completed sets → history → per-muscle recovery → TrainingStatus proto),
+/// not just the pure recovery module.
+#[cfg(test)]
+mod readiness_transition_tests {
+    use super::*;
+
+    const HOUR: i64 = 3600;
+    const DAY: i64 = 24 * HOUR;
+
+    fn authed<T>(token: &str, msg: T) -> Request<T> {
+        let mut req = Request::new(msg);
+        req.metadata_mut()
+            .insert("x-session-token", token.parse().unwrap());
+        req
+    }
+
+    async fn setup() -> (ServerWorkoutService, String, String) {
+        let dir = std::env::temp_dir().join(format!("lift-readiness-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let (user, token) = db
+            .get_or_create_user_with_auth_session("tester")
+            .await
+            .unwrap();
+        (ServerWorkoutService { db }, user.id, token)
+    }
+
+    /// Start a one-group session for `exercise`, complete every set at `weight`,
+    /// and end the workout at `ended_at`.
+    async fn train(
+        svc: &ServerWorkoutService,
+        token: &str,
+        exercise: Exercise,
+        started_at: i64,
+        ended_at: i64,
+    ) {
+        let working_sets = (0..3)
+            .map(|_| WorkingSetSpec {
+                target_weight: 100.0,
+                target_reps: 5,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+            })
+            .collect::<Vec<_>>();
+        let group = ExerciseGroup {
+            id: String::new(),
+            workout_id: String::new(),
+            name: "G".to_string(),
+            sets: 3,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![ExerciseTypeConfig {
+                exercise: exercise as i32,
+                start_weight: 100.0,
+                end_weight: 100.0,
+                reps: 5,
+                include_warmup: false,
+                rest_config: None,
+                last_set_amrap: false,
+                working_sets,
+            }],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
+        };
+        let start = svc
+            .start_workout(authed(
+                token,
+                StartWorkoutRequest {
+                    name: "S".to_string(),
+                    exercise_groups: vec![group],
+                    started_at,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+        let mut ts = started_at + 60;
+        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
+            svc.complete_set(authed(
+                token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: 100.0,
+                    completed_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+            ts += 10;
+        }
+        svc.end_workout(authed(
+            token,
+            EndWorkoutRequest {
+                workout_id,
+                ended_at,
+            },
+        ))
+        .await
+        .unwrap();
+    }
+
+    async fn readiness_at(
+        svc: &ServerWorkoutService,
+        user_id: &str,
+        token: &str,
+        at_time: i64,
+    ) -> TrainingStatus {
+        svc.get_proposed_workout_schedule(authed(
+            token,
+            GetProposedWorkoutScheduleRequest {
+                user_id: user_id.to_string(),
+                at_time,
+            },
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+        .training_status
+        .expect("training_status present")
+    }
+
+    #[tokio::test]
+    async fn recovering_then_ready_after_a_squat_session() {
+        let (svc, user_id, token) = setup().await;
+        let t0 = 1_700_000_000i64;
+
+        // Complete a heavy squat session (legs + ass, bumped to 72h recovery).
+        train(&svc, &token, Exercise::Squat, t0 - 40 * 60, t0).await;
+
+        // +1h: legs still deep in recovery → RECOVERING, legs listed as blocking.
+        let just_after = readiness_at(&svc, &user_id, &token, t0 + HOUR).await;
+        assert_eq!(
+            just_after.readiness_state,
+            ReadinessState::Recovering as i32,
+            "an hour after squats you should be recovering"
+        );
+        assert!(
+            just_after.blocking_muscles.iter().any(|m| m == "Legs"),
+            "legs should block the next session, got {:?}",
+            just_after.blocking_muscles
+        );
+        assert!(
+            !just_after.muscle_recovery.is_empty(),
+            "muscle recovery strip should be populated"
+        );
+        assert_eq!(just_after.last_session_at, t0);
+
+        // +2 days (48h): legs (72h) still not recovered → still RECOVERING.
+        let two_days = readiness_at(&svc, &user_id, &token, t0 + 2 * DAY).await;
+        assert_eq!(
+            two_days.readiness_state,
+            ReadinessState::Recovering as i32,
+            "legs need 72h; at 48h you're still recovering"
+        );
+
+        // +73h: legs recovered → READY (not overdue: under the ~4-day nag floor).
+        let three_days = readiness_at(&svc, &user_id, &token, t0 + 3 * DAY + HOUR).await;
+        assert_eq!(
+            three_days.readiness_state,
+            ReadinessState::Ready as i32,
+            "after 73h legs are recovered and you should be ready"
+        );
+        assert!(
+            three_days.blocking_muscles.is_empty(),
+            "nothing should block once recovered, got {:?}",
+            three_days.blocking_muscles
+        );
+        assert!(three_days.should_train_now, "ready means train now");
+    }
+
+    #[tokio::test]
+    async fn a_first_time_user_is_ready_immediately() {
+        let (svc, user_id, token) = setup().await;
+        let ts = readiness_at(&svc, &user_id, &token, 1_700_000_000).await;
+        assert_eq!(ts.readiness_state, ReadinessState::FirstTime as i32);
+        assert!(ts.should_train_now);
+        assert_eq!(ts.last_session_at, 0);
+    }
+}

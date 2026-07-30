@@ -34,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<HomeSelectableGroup>? _selectableGroups;
   RegimeContext? _regimeContext;
   TrainingStatus? _trainingStatus;
+  List<NextSessionOption> _selectableNextSessions = [];
+  bool _isSwappingSession = false;
   List<UserMessage> _scheduleMessages = [];
   String _suggestedWorkoutBaseName = '';
   Set<int> _selectedGroupIndices = {};
@@ -119,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _trainingStatus = scheduleRes.hasTrainingStatus()
             ? scheduleRes.trainingStatus
             : null;
+        _selectableNextSessions = scheduleRes.selectableNextSessions;
         _scheduleMessages = scheduleRes.userMessages;
         _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
         _selectedGroupIndices = selectedFromDraft.isNotEmpty
@@ -269,6 +272,27 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       debugPrint('Auto watch launch failed: $e');
+    }
+  }
+
+  Future<void> _swapNextSession(String sessionKey) async {
+    if (_isSwappingSession) return;
+    setState(() => _isSwappingSession = true);
+    try {
+      final grpc = context.read<GrpcClient>();
+      await WorkoutServiceWrapper(grpc).setNextWorkout(sessionKey);
+      if (!mounted) return;
+      // Reload so the proposed groups, recovery strip and readiness all reflect
+      // the newly-queued session.
+      await _loadData(refreshOnly: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Couldn\'t swap: ${cleanErrorMessage(e)}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSwappingSession = false);
     }
   }
 
@@ -682,6 +706,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ReadinessBanner(
                     trainingStatus: _trainingStatus,
                     regimeContext: _regimeContext,
+                    selectableNextSessions: _selectableNextSessions,
+                    isSwapping: _isSwappingSession,
+                    onSwapSession: _swapNextSession,
                   ),
                 ),
               ),

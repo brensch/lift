@@ -671,6 +671,28 @@ message SlotTrainingStatus {
   string status_label = 10;
 }
 
+// Recovery- and frequency-aware readiness for the home hero. Replaces the flat
+// "last session + 24h" signal with a per-muscle recovery model.
+enum ReadinessState {
+  READINESS_STATE_UNSPECIFIED = 0;
+  READINESS_STATE_FIRST_TIME = 1;   // never trained — ready immediately
+  READINESS_STATE_READY = 2;        // next workout's muscles recovered — train
+  READINESS_STATE_RECOVERING = 3;   // some targeted muscles still recovering
+  READINESS_STATE_OVERDUE = 4;      // recovered + behind weekly target (gentle nudge)
+  READINESS_STATE_AHEAD = 5;        // recovered + already met weekly target (bonus)
+}
+
+message MuscleRecoveryStatus {
+  string muscle_key = 1;      // "legs", "chest", "arms", ...
+  string label = 2;           // "Legs"
+  int64 last_trained_at = 3;  // 0 = never
+  int64 recovered_at = 4;     // last_trained_at + window (0 = never trained)
+  float fraction = 5;         // 0.0 (just trained) → 1.0 (recovered)
+  int64 hours_remaining = 6;  // hours until recovered (0 if recovered)
+  bool recovered = 7;
+  bool in_next_workout = 8;   // targeted by the upcoming session
+}
+
 message TrainingStatus {
   int64 next_session_at = 1;    // Unix timestamp for the regime-recommended next workout
   int64 last_session_at = 2;    // When the last workout ended (0 if never)
@@ -684,6 +706,15 @@ message TrainingStatus {
   int32 completed_sets_per_7_days = 10;
   int32 remaining_sets_per_7_days = 11;
   repeated SlotTrainingStatus slot_statuses = 12;
+
+  // Readiness redesign (recovery + frequency model).
+  ReadinessState readiness_state = 13;
+  int64 next_ready_at = 14;                       // when the next workout's muscles recover (floored by min rest)
+  repeated MuscleRecoveryStatus muscle_recovery = 15;
+  repeated string blocking_muscles = 16;          // labels of next-workout muscles still recovering
+  int32 avg_gap_hours = 17;                        // learned cadence between sessions (0 = unknown)
+  int32 sessions_last_7_days = 18;                 // rolling 7-day session count
+  string next_workout_label = 19;                  // "Squat · Bench · Row"
 }
 
 message RegimeContext {
@@ -712,7 +743,22 @@ message GetProposedWorkoutScheduleResponse {
 
   repeated UserMessage user_messages = 9;
 
+  // Selectable next-session choices (e.g. Linear 5×5 Workout A / B) so the home
+  // prompt can offer a one-tap swap. Empty when the regime has no choice.
+  repeated NextSessionOption selectable_next_sessions = 10;
+
 }
+
+message NextSessionOption {
+  string key = 1;        // regime-specific selector, e.g. "A" / "B"
+  string label = 2;      // "Workout A · Squat, Bench, Row"
+  bool is_current = 3;   // the option currently queued as next
+}
+
+message SetNextWorkoutRequest {
+  string session_key = 1;  // one of NextSessionOption.key
+}
+message SetNextWorkoutResponse {}
 
 message SaveProfileExerciseGroupRequest {
   ExerciseGroup group = 1;
@@ -902,6 +948,7 @@ service WorkoutService {
 
   // Get the next scheduled workouts for the user according to preferences and weight progression etc
   rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);
+  rpc SetNextWorkout(SetNextWorkoutRequest) returns (SetNextWorkoutResponse);
   rpc DismissUserMessages(DismissUserMessagesRequest) returns (DismissUserMessagesResponse);
   rpc SaveWorkoutDraft(SaveWorkoutDraftRequest) returns (SaveWorkoutDraftResponse);
   rpc ClearWorkoutDraft(ClearWorkoutDraftRequest) returns (ClearWorkoutDraftResponse);
