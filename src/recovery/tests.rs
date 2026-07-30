@@ -62,7 +62,10 @@ fn readiness_at(
     weekly_target: i32,
     now: i64,
 ) -> Readiness {
-    let rec = per_muscle_recovery(history, now);
+    // These pure tests use the default (regime-agnostic) profile: 48h large
+    // muscles, 24h core, no heavy-compound penalty.
+    let profile = RecoveryProfile::default();
+    let rec = per_muscle_recovery(history, now, &profile);
     let cad = cadence(history, now);
     let last = history.iter().map(|r| r.workout.end_time).max().unwrap_or(0);
     let muscles = muscles_for_exercises(next);
@@ -90,16 +93,26 @@ fn muscle_map_parity() {
 }
 
 #[test]
-fn heavy_compounds_recover_slower_than_isolation() {
+fn recovery_window_comes_from_the_profile_not_the_exercise() {
     let base = 1_000_000_000i64;
-    // Squat (heavy) trains legs; leg curl (not heavy) also trains legs.
-    let squat = per_muscle_recovery(&[workout(base, &[Exercise::Squat])], base);
-    let curl = per_muscle_recovery(&[workout(base, &[Exercise::LegCurl])], base);
+    // The window is whatever the profile says for the muscle — the same for squat
+    // and leg curl (both train legs). A program-defined profile, not a fixed
+    // "heavy compound = 72h" rule.
+    let profile = RecoveryProfile::new(&[(MuscleGroup::Legs, 40)], 48);
+    let squat = per_muscle_recovery(&[workout(base, &[Exercise::Squat])], base, &profile);
+    let curl = per_muscle_recovery(&[workout(base, &[Exercise::LegCurl])], base, &profile);
     let legs_squat = squat.iter().find(|r| r.group == MuscleGroup::Legs).unwrap();
     let legs_curl = curl.iter().find(|r| r.group == MuscleGroup::Legs).unwrap();
-    // Squat pushes legs to 72h; leg curl leaves the 60h baseline.
-    assert_eq!(legs_squat.recovered_at - base, 72 * HOUR);
-    assert_eq!(legs_curl.recovered_at - base, 60 * HOUR);
+    assert_eq!(legs_squat.recovered_at - base, 40 * HOUR);
+    assert_eq!(legs_curl.recovered_at - base, 40 * HOUR);
+
+    // A different program can prescribe a longer leg window off the same history.
+    let slow = RecoveryProfile::new(&[(MuscleGroup::Legs, 72)], 48);
+    let legs_slow = per_muscle_recovery(&[workout(base, &[Exercise::Squat])], base, &slow);
+    assert_eq!(
+        legs_slow.iter().find(|r| r.group == MuscleGroup::Legs).unwrap().recovered_at - base,
+        72 * HOUR
+    );
 }
 
 // ── The transition over time (the whole point) ──────────────────────────────
@@ -117,21 +130,23 @@ fn just_trained_then_recovers_then_ready() {
     let history = vec![workout(t0, &[Exercise::Squat, Exercise::BenchPress])];
     let next = &[Exercise::Squat, Exercise::BenchPress]; // same muscles next
 
-    // Right after finishing: recovering, legs are the blocker (squat = 72h).
+    // Right after finishing: recovering, legs are the blocker. Default profile is
+    // 48h for legs (no heavy penalty), so ready is one day sooner than the old 72h.
     let just_after = readiness_at(&history, next, 3, t0 + HOUR);
     assert_eq!(just_after.state, ReadinessState::Recovering);
     assert!(just_after.blocking.contains(&MuscleGroup::Legs));
-    assert_eq!(just_after.next_ready_at, t0 + 72 * HOUR);
+    assert_eq!(just_after.next_ready_at, t0 + 48 * HOUR);
 
-    // +2 days: chest (48h) is back but the squat's legs + ass (72h) still cook.
-    let two_days = readiness_at(&history, next, 3, t0 + 2 * DAY);
-    assert_eq!(two_days.state, ReadinessState::Recovering);
-    assert_eq!(two_days.blocking, vec![MuscleGroup::Legs, MuscleGroup::Ass]);
+    // +36h: still inside the 48h leg window → recovering.
+    let day_and_half = readiness_at(&history, next, 3, t0 + 36 * HOUR);
+    assert_eq!(day_and_half.state, ReadinessState::Recovering);
+    assert!(day_and_half.blocking.contains(&MuscleGroup::Legs));
 
-    // +3 days: legs recovered → ready to train.
-    let three_days = readiness_at(&history, next, 3, t0 + 3 * DAY + HOUR);
-    assert_eq!(three_days.state, ReadinessState::Ready);
-    assert!(three_days.blocking.is_empty());
+    // +2 days (48h): legs recovered → ready to train again. This is the case that
+    // matters for someone squatting every other session.
+    let two_days = readiness_at(&history, next, 3, t0 + 2 * DAY + HOUR);
+    assert_eq!(two_days.state, ReadinessState::Ready);
+    assert!(two_days.blocking.is_empty());
 }
 
 #[test]

@@ -62,17 +62,56 @@ impl MuscleGroup {
         }
     }
 
-    /// Baseline recovery window (hours) by muscle size / typical fatigue. Large
-    /// muscles (legs, back, glutes) sit at the top of the 48–72h band, small
-    /// muscles (arms, delts) lower, core lowest. Heavy axial compounds push their
-    /// muscles higher — see `recovery_hours_for`.
-    fn base_recovery_hours(self) -> i64 {
-        match self {
-            MuscleGroup::Legs | MuscleGroup::Back | MuscleGroup::Ass => 60,
-            MuscleGroup::Chest => 48,
-            MuscleGroup::Shoulders | MuscleGroup::Arms => 36,
-            MuscleGroup::Core => 24,
+}
+
+/// A regime's recovery model: how many hours each muscle group needs before the
+/// program wants to train it again. First-class and regime-owned — the program
+/// that prescribes the work decides how long recovery takes, so a program built
+/// around squatting every session (Stronglifts) reports legs ready far sooner
+/// than a once-a-week-per-lift program. Muscles absent from the map fall back to
+/// `default_hours`.
+#[derive(Clone, Debug)]
+pub struct RecoveryProfile {
+    per_muscle: std::collections::HashMap<MuscleGroup, i64>,
+    default_hours: i64,
+}
+
+impl RecoveryProfile {
+    /// Build from an explicit `(muscle, hours)` list plus a fallback.
+    pub fn new(entries: &[(MuscleGroup, i64)], default_hours: i64) -> Self {
+        RecoveryProfile {
+            per_muscle: entries.iter().copied().collect(),
+            default_hours,
         }
+    }
+
+    pub fn hours_for(&self, muscle: MuscleGroup) -> i64 {
+        self.per_muscle
+            .get(&muscle)
+            .copied()
+            .unwrap_or(self.default_hours)
+    }
+}
+
+impl Default for RecoveryProfile {
+    /// Frequency-friendly heuristic for regimes that don't specify their own:
+    /// large muscles ~2 days, small muscles ~1.5, core ~1. No heavy-compound
+    /// penalty — the old "+72h for any squat/deadlift" rule wrongly modelled a
+    /// submaximal 5×5 squat like a max single and is gone.
+    fn default() -> Self {
+        use MuscleGroup::*;
+        RecoveryProfile::new(
+            &[
+                (Legs, 48),
+                (Back, 48),
+                (Ass, 48),
+                (Chest, 48),
+                (Shoulders, 36),
+                (Arms, 36),
+                (Core, 24),
+            ],
+            48,
+        )
     }
 }
 
@@ -162,32 +201,6 @@ pub fn muscle_groups(ex: Exercise) -> &'static [MuscleGroup] {
     }
 }
 
-/// Heavy axial / systemically-fatiguing compounds — their muscles take longer.
-fn is_heavy_compound(ex: Exercise) -> bool {
-    use Exercise as E;
-    matches!(
-        ex,
-        E::Squat
-            | E::Deadlift
-            | E::FrontSquat
-            | E::RomanianDeadlift
-            | E::SumoDeadlift
-            | E::HackSquat
-            | E::GoodMorning
-    )
-}
-
-/// Recovery window for `muscle` when it was trained via `exercise` — the baseline,
-/// pushed toward 72h if that training was a heavy compound.
-fn recovery_hours_for(muscle: MuscleGroup, via_heavy: bool) -> i64 {
-    let base = muscle.base_recovery_hours();
-    if via_heavy {
-        base.max(72)
-    } else {
-        base
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct MuscleRecovery {
     pub group: MuscleGroup,
@@ -240,12 +253,16 @@ fn trained_exercises(rec: &SchplannerWorkoutRecord) -> Vec<Exercise> {
     out
 }
 
-/// Per-muscle recovery from history. For each group, the most recent workout that
-/// trained it sets `last_trained_at`; the window is bumped if that work involved a
-/// heavy compound for the group.
-pub fn per_muscle_recovery(history: &[SchplannerWorkoutRecord], now: i64) -> Vec<MuscleRecovery> {
-    // group -> (last_trained_at, via_heavy at that time)
-    let mut latest: std::collections::HashMap<MuscleGroup, (i64, bool)> =
+/// Per-muscle recovery from history, using the active regime's `profile` for the
+/// window. For each group the most recent workout that trained it sets
+/// `last_trained_at`; `recovered_at = last + profile.hours_for(group)`.
+pub fn per_muscle_recovery(
+    history: &[SchplannerWorkoutRecord],
+    now: i64,
+    profile: &RecoveryProfile,
+) -> Vec<MuscleRecovery> {
+    // group -> last_trained_at
+    let mut latest: std::collections::HashMap<MuscleGroup, i64> =
         std::collections::HashMap::new();
 
     for rec in history {
@@ -254,13 +271,10 @@ pub fn per_muscle_recovery(history: &[SchplannerWorkoutRecord], now: i64) -> Vec
             continue;
         }
         for ex in trained_exercises(rec) {
-            let heavy = is_heavy_compound(ex);
             for &m in muscle_groups(ex) {
-                let entry = latest.entry(m).or_insert((0, false));
-                if t > entry.0 {
-                    *entry = (t, heavy);
-                } else if t == entry.0 {
-                    entry.1 = entry.1 || heavy;
+                let entry = latest.entry(m).or_insert(0);
+                if t > *entry {
+                    *entry = t;
                 }
             }
         }
@@ -269,7 +283,7 @@ pub fn per_muscle_recovery(history: &[SchplannerWorkoutRecord], now: i64) -> Vec
     MuscleGroup::ALL
         .iter()
         .map(|&group| {
-            let (last, heavy) = latest.get(&group).copied().unwrap_or((0, false));
+            let last = latest.get(&group).copied().unwrap_or(0);
             if last == 0 {
                 return MuscleRecovery {
                     group,
@@ -278,7 +292,7 @@ pub fn per_muscle_recovery(history: &[SchplannerWorkoutRecord], now: i64) -> Vec
                     fraction: 1.0,
                 };
             }
-            let window = recovery_hours_for(group, heavy) * HOUR;
+            let window = profile.hours_for(group) * HOUR;
             let recovered_at = last + window;
             let elapsed = (now - last).max(0) as f32;
             let fraction = (elapsed / window as f32).clamp(0.0, 1.0);
