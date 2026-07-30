@@ -11,6 +11,10 @@ import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../theme/app_theme.dart';
 
+/// Fixed width for every set chip so "45 × 5" and "355 × 5" line up in a tidy
+/// grid instead of each chip sizing to its own content and jumping around.
+const double _kChipWidth = 84;
+
 class CurrentExerciseCard extends StatelessWidget {
   final ExerciseGroupData group;
   final List<CompletedSet> completedSets;
@@ -180,8 +184,11 @@ class CurrentSetChip extends StatelessWidget {
     // The set you're currently lifting shimmers through a rainbow.
     if (isActive && completed == null) {
       final base = '$weight × $targetText';
-      return RainbowSetChip(
-        text: isSuperset ? '$exerciseMarker $base' : base,
+      return SizedBox(
+        width: _kChipWidth,
+        child: RainbowSetChip(
+          text: isSuperset ? '$exerciseMarker $base' : base,
+        ),
       );
     }
 
@@ -220,7 +227,8 @@ class CurrentSetChip extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      width: _kChipWidth,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(14),
@@ -298,7 +306,7 @@ class RainbowSetChipState extends State<RainbowSetChip>
             borderRadius: BorderRadius.circular(14),
           ),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
             decoration: BoxDecoration(
               color: colorScheme.surface,
               borderRadius: BorderRadius.circular(12.5),

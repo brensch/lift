@@ -93,46 +93,43 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final hasExschplanation = exschplanationSections.isNotEmpty;
     final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
+    // Overall progress across every working set, for the session strip's bar.
+    var totalWorking = 0;
+    var doneWorking = 0;
+    for (final g in groups) {
+      final working = g.sets.where((s) => !s.warmup);
+      totalWorking += working.length;
+      doneWorking += working
+          .where(
+            (s) => wp.completedSets.any(
+              (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+            ),
+          )
+          .length;
+    }
+    final overallProgress = totalWorking == 0 ? 0.0 : doneWorking / totalWorking;
+
+    final loggedCount = wp.completedSets
+        .where((c) => c.endedAt != Int64.ZERO)
+        .length;
+    final pageTabs = <PageTabItem>[
+      const PageTabItem('Workout'),
+      PageTabItem('Log', count: loggedCount > 0 ? loggedCount : null),
+      const PageTabItem('Heart'),
+      if (hasExschplanation) const PageTabItem('Schplan'),
+    ];
+
     final workout = wp.workout!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Fixed header ──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            workout.name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1.0,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        PageDots(
-          // Workout + Completed + Heart rate are always present; Exschplanation
-          // only when the schplanner has notes.
-          count: 3 + (hasExschplanation ? 1 : 0),
+        // ── Session strip: workout name + one slim overall-progress bar ──
+        const SizedBox(height: 8),
+        SessionStrip(name: workout.name, progress: overallProgress),
+        const SizedBox(height: 8),
+        // ── Named, swipeable page tabs ──
+        PageTabs(
+          tabs: pageTabs,
           index: _page,
           onTap: (i) => _pageController.animateToPage(
             i,
@@ -140,7 +137,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             curve: Curves.easeOut,
           ),
         ),
-        const SizedBox(height: 12),
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
         // ── Swipeable pages ──
@@ -221,6 +217,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                           ),
                                           child: ExerciseListCard(
                                             group: group,
+                                            completedSets: wp.completedSets,
                                             completed: true,
                                             draggable: false,
                                           ),
@@ -300,6 +297,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                               ),
                                               child: ExerciseListCard(
                                                 group: group,
+                                                completedSets: wp.completedSets,
                                                 completed: false,
                                                 draggable: true,
                                                 dragIndex: idx,
@@ -351,25 +349,30 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     ),
                   ),
 
+                  // End workout — a rare, one-way action, so demoted to a quiet
+                  // link rather than a full-width button competing mid-screen.
                   if (!isEnded)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: OutlinedButton(
+                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
+                      child: Center(
+                        child: TextButton(
                           onPressed: () => endWorkout(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colorScheme.error,
-                            side: BorderSide(
-                              color: colorScheme.error.withValues(alpha: 0.5),
+                          style: TextButton.styleFrom(
+                            foregroundColor: colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
                             ),
                           ),
                           child: const Text(
-                            'End Workout',
+                            'End workout',
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: 13,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
