@@ -193,6 +193,15 @@ pub trait WorkoutRegime: Send + Sync {
         false
     }
 
+    /// The regime's recovery model — how many hours each muscle needs before the
+    /// program wants to train it again. First-class per regime: a program built
+    /// around squatting every session shortens the leg window so that cadence
+    /// reads as recovered, rather than inheriting a generic table. Default is a
+    /// frequency-friendly heuristic (~48h large muscles, no heavy-compound penalty).
+    fn recovery_profile(&self) -> crate::recovery::RecoveryProfile {
+        crate::recovery::RecoveryProfile::default()
+    }
+
     /// Explain a comeback (return-from-layoff) adjustment in the regime's own
     /// terms, given the `stored` state, the `adjusted` proposal-time state, and
     /// how many `days_off` elapsed. Returns None when nothing was adjusted. The
@@ -407,6 +416,7 @@ pub fn build_training_status(
     target_sessions_per_7_days: i32,
     next_workout_slots: &HashSet<String>,
     target_slot_sets: HashMap<String, ProposedSlotTarget>,
+    recovery_profile: &crate::recovery::RecoveryProfile,
 ) -> TrainingStatus {
     let (window_start, window_end) = this_week_bounds(now_ts);
     let window = summarize_history_window(history, window_start, window_end);
@@ -427,7 +437,7 @@ pub fn build_training_status(
         .map(|(_, t)| t.exercise)
         .collect();
     let next_muscles = crate::recovery::muscles_for_exercises(&next_exercises);
-    let recovery = crate::recovery::per_muscle_recovery(history, now_ts);
+    let recovery = crate::recovery::per_muscle_recovery(history, now_ts, recovery_profile);
     let cadence = crate::recovery::cadence(history, now_ts);
     // The regime's own prescribed gap is the minimum rest floor (fallback 24h).
     let min_rest_hours = if next_session_at > last_session_at && last_session_at > 0 {

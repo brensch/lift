@@ -708,6 +708,7 @@ impl WorkoutRegime for GzclpRegime {
             target_sessions,
             &next_workout_slots,
             target_slot_sets,
+            &self.recovery_profile(),
         )
     }
 

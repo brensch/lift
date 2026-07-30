@@ -427,6 +427,26 @@ impl WorkoutRegime for Linear5x5Regime {
         }
     }
 
+    fn recovery_profile(&self) -> crate::recovery::RecoveryProfile {
+        use crate::recovery::MuscleGroup::*;
+        // Stronglifts squats (and pulls) every session, ~48h apart, at submaximal
+        // 5×5 loads — so the big muscles are meant to be ready inside two days.
+        // Windows sit just under a 48h cadence so training every other day reads
+        // as recovered, not perpetually amber.
+        crate::recovery::RecoveryProfile::new(
+            &[
+                (Legs, 44),
+                (Ass, 44),
+                (Back, 44),
+                (Chest, 44),
+                (Shoulders, 30),
+                (Arms, 30),
+                (Core, 24),
+            ],
+            44,
+        )
+    }
+
     fn describe_comeback(
         &self,
         stored: &StatePayload,
@@ -502,6 +522,7 @@ impl WorkoutRegime for Linear5x5Regime {
             3,
             &next_workout_slots,
             target_slot_sets,
+            &self.recovery_profile(),
         )
     }
 

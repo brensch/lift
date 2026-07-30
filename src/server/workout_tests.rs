@@ -1141,27 +1141,28 @@ mod readiness_transition_tests {
         );
         assert_eq!(just_after.last_session_at, t0);
 
-        // +2 days (48h): legs (72h) still not recovered → still RECOVERING.
+        // +36h: still inside Stronglifts' ~44h leg window → RECOVERING.
+        let day_and_half = readiness_at(&svc, &user_id, &token, t0 + 36 * HOUR).await;
+        assert_eq!(
+            day_and_half.readiness_state,
+            ReadinessState::Recovering as i32,
+            "at 36h legs are still recovering"
+        );
+
+        // +2 days (48h): legs recovered → READY. Stronglifts squats every session,
+        // so training every other day must read as ready, not perpetually amber.
         let two_days = readiness_at(&svc, &user_id, &token, t0 + 2 * DAY).await;
         assert_eq!(
             two_days.readiness_state,
-            ReadinessState::Recovering as i32,
-            "legs need 72h; at 48h you're still recovering"
-        );
-
-        // +73h: legs recovered → READY (not overdue: under the ~4-day nag floor).
-        let three_days = readiness_at(&svc, &user_id, &token, t0 + 3 * DAY + HOUR).await;
-        assert_eq!(
-            three_days.readiness_state,
             ReadinessState::Ready as i32,
-            "after 73h legs are recovered and you should be ready"
+            "squatting every other day should read as ready by 48h"
         );
         assert!(
-            three_days.blocking_muscles.is_empty(),
+            two_days.blocking_muscles.is_empty(),
             "nothing should block once recovered, got {:?}",
-            three_days.blocking_muscles
+            two_days.blocking_muscles
         );
-        assert!(three_days.should_train_now, "ready means train now");
+        assert!(two_days.should_train_now, "ready means train now");
     }
 
     #[tokio::test]
