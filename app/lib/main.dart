@@ -97,6 +97,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   late final WearableSyncCoordinator _wearableSyncCoordinator;
   late final GoRouter _router;
   StreamSubscription? _linkSubscription;
+  // A join token from a link tapped before login/signup — held until auth lands,
+  // then completed. Lets an invite work on a cold first open, not just when
+  // already signed in.
+  String? _pendingJoinToken;
   bool _wasLoggedIn = false;
 
   Future<void> _syncBodyWeightOnAppLoad() async {
@@ -172,6 +176,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         }
         unawaited(_syncBodyWeightOnAppLoad());
         _multiplayerProvider.startSync();
+        // Complete a join from a link tapped before this login/signup.
+        if (_pendingJoinToken != null) {
+          final token = _pendingJoinToken!;
+          _pendingJoinToken = null;
+          _multiplayerProvider.joinViaInvite(token);
+        }
       } else if (!isLoggedIn && _wasLoggedIn) {
         _settingsProvider.clear();
         unawaited(_soundProvider.reset());
@@ -323,8 +333,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
   void _handleDeepLink(Uri uri) {
     final joinToken = uri.queryParameters['join'];
-    if (joinToken != null && joinToken.isNotEmpty && _authProvider.isLoggedIn) {
+    if (joinToken == null || joinToken.isEmpty) return;
+    if (_authProvider.isLoggedIn) {
       _multiplayerProvider.joinViaInvite(joinToken);
+    } else {
+      // Not signed in yet (cold open from the link) — remember it; the auth
+      // listener joins as soon as login/signup completes.
+      _pendingJoinToken = joinToken;
     }
   }
 
