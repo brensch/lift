@@ -79,6 +79,23 @@ class _ProgressionMessageChip extends StatelessWidget {
     return '';
   }
 
+  /// The direction icon for this progression, driven by the delivered
+  /// [ProgressionChangeKind] enum (not a hardcoded info glyph): up for a weight
+  /// increase or cycle advance, flat for a hold, down for a deload.
+  IconData _icon() {
+    switch (details.changeKind) {
+      case ProgressionChangeKind.PROGRESSION_CHANGE_KIND_INCREASE:
+      case ProgressionChangeKind.PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE:
+        return Icons.trending_up_rounded;
+      case ProgressionChangeKind.PROGRESSION_CHANGE_KIND_DELOAD:
+        return Icons.trending_down_rounded;
+      case ProgressionChangeKind.PROGRESSION_CHANGE_KIND_HOLD:
+      case ProgressionChangeKind.PROGRESSION_CHANGE_KIND_UNSPECIFIED:
+        return Icons.trending_flat_rounded;
+    }
+    return Icons.trending_flat_rounded;
+  }
+
   _ChipPalette _palette(ColorScheme colorScheme) {
     final neutralBackground = colorScheme.surfaceContainerHigh;
     switch (details.changeKind) {
@@ -177,6 +194,7 @@ class _ProgressionMessageChip extends StatelessWidget {
       accent: palette.accent,
       background: palette.background,
       border: palette.border,
+      icon: _icon(),
       compact: compact,
       onDismiss: onDismiss,
       child: Column(
@@ -235,6 +253,7 @@ class _FallbackMessageChip extends StatelessWidget {
       accent: colorScheme.primary,
       background: colorScheme.surfaceContainerHigh,
       border: colorScheme.outlineVariant,
+      icon: Icons.notes_rounded,
       compact: compact,
       onDismiss: onDismiss,
       child: Text(
@@ -256,6 +275,7 @@ class _MessageShell extends StatelessWidget {
   final Color accent;
   final Color background;
   final Color border;
+  final IconData icon;
   final bool compact;
   final VoidCallback? onDismiss;
   final Widget child;
@@ -264,6 +284,7 @@ class _MessageShell extends StatelessWidget {
     required this.accent,
     required this.background,
     required this.border,
+    required this.icon,
     required this.compact,
     required this.onDismiss,
     required this.child,
@@ -292,19 +313,10 @@ class _MessageShell extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: compact ? 26 : 28,
-            height: compact ? 26 : 28,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: accent.withValues(alpha: 0.22)),
-            ),
-            child: Icon(
-              Icons.info_outline_rounded,
-              color: accent,
-              size: compact ? 16 : 17,
-            ),
+          Icon(
+            icon,
+            color: accent,
+            size: compact ? 20 : 22,
           ),
           const SizedBox(width: 10),
           Expanded(child: child),
