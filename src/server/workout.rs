@@ -1108,8 +1108,19 @@ impl WorkoutService for ServerWorkoutService {
             .ok_or_else(|| Status::not_found("Workout not found"))?;
         let mut active = active_from_get_workout_response(resp)?;
 
+        // Warmups snap to loadable weights in the user's unit when regenerated.
+        let unit = self
+            .db
+            .get_program_state(&user_id)
+            .await
+            .map_err(internal_error)?
+            .and_then(|resp| resp.state)
+            .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
+            .unwrap_or(AppWeightUnit::Lb);
+
         // Apply the complex group plan replacement
-        let (group, generated_sets) = apply_replace_exercise_group_plan(&mut active, &req)?;
+        let (group, generated_sets) =
+            apply_replace_exercise_group_plan(&mut active, &req, unit)?;
 
         // Persist the full updated state back to real tables
         self.db
@@ -1233,6 +1244,25 @@ impl WorkoutService for ServerWorkoutService {
         let mut applied = Vec::with_capacity(req.mutations.len());
         let mut generated_messages = Vec::<UserMessage>::new();
 
+        // A plan edit regenerates warmups, which snap to the user's unit — but the
+        // common batch (start/complete a set) doesn't, so only pay the settings
+        // read when a replace is actually present.
+        let unit = if req
+            .mutations
+            .iter()
+            .any(|m| matches!(&m.mutation, Some(Mutation::ReplaceExerciseGroupPlan(_))))
+        {
+            self.db
+                .get_program_state(&user_id)
+                .await
+                .map_err(internal_error)?
+                .and_then(|resp| resp.state)
+                .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
+                .unwrap_or(AppWeightUnit::Lb)
+        } else {
+            AppWeightUnit::Lb
+        };
+
         for mutation in req.mutations {
             let event_id = if mutation.event_id.is_empty() {
                 Uuid::new_v4().to_string()
@@ -1298,7 +1328,7 @@ impl WorkoutService for ServerWorkoutService {
                     events.push((event_id.clone(), recorded_at, 6, req.encode_to_vec()));
                 }
                 Mutation::ReplaceExerciseGroupPlan(req) => {
-                    apply_replace_exercise_group_plan(&mut active, &req)?;
+                    apply_replace_exercise_group_plan(&mut active, &req, unit)?;
                     events.push((event_id.clone(), recorded_at, 7, req.encode_to_vec()));
                 }
                 Mutation::ReorderExerciseGroups(req) => {

@@ -400,9 +400,104 @@ fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<Propose
     sets
 }
 
+/// Rebuild a group's full planned set list — warmups regenerated for the new
+/// working weights — from the working sets the client sent. The app is a thin
+/// client and no longer generates warmups, so an edit round-trip arrives as
+/// working sets only. Exercises in `warmup_exercises` (those that had warmups
+/// before the edit) get a fresh warmup ladder off their top working weight, via
+/// the same `generate_sets_for_group` the initial plan uses — so there's no
+/// second warmup implementation to keep in sync. The caller reconciles this
+/// against completed sets: N completed warmups consume the first N of the new
+/// ladder, leaving the top (4−N) as the recalculated pending warmups.
+fn rematerialize_group_plan_with_warmups(
+    workout_id: &str,
+    group_id: &str,
+    working_sets: &[PlannedGroupSet],
+    warmup_exercises: &std::collections::HashSet<i32>,
+    interleave_warmups: bool,
+    rest_config: Option<RestConfig>,
+    unit: AppWeightUnit,
+) -> Vec<PlannedGroupSet> {
+    // Group the working sets by exercise, preserving first-appearance order.
+    let mut exercise_order: Vec<i32> = Vec::new();
+    let mut by_exercise: std::collections::HashMap<i32, Vec<&PlannedGroupSet>> =
+        std::collections::HashMap::new();
+    for set in working_sets.iter().filter(|s| !s.warmup) {
+        by_exercise
+            .entry(set.exercise)
+            .or_insert_with(|| {
+                exercise_order.push(set.exercise);
+                Vec::new()
+            })
+            .push(set);
+    }
+    if exercise_order.is_empty() {
+        // No working sets (e.g. a warmup-only or empty plan) — nothing to rebuild.
+        return working_sets.to_vec();
+    }
+
+    let configs: Vec<ExerciseTypeConfig> = exercise_order
+        .iter()
+        .map(|exercise| {
+            let working = &by_exercise[exercise];
+            let working_specs: Vec<WorkingSetSpec> = working
+                .iter()
+                .map(|s| WorkingSetSpec {
+                    target_weight: s.target_weight,
+                    target_reps: s.target_reps,
+                    is_amrap: s.is_amrap,
+                    instruction: s.instruction.clone(),
+                    progression_hint: s.progression_hint.clone(),
+                })
+                .collect();
+            ExerciseTypeConfig {
+                exercise: *exercise,
+                start_weight: working_specs.first().map(|w| w.target_weight).unwrap_or(0.0),
+                end_weight: working_specs.last().map(|w| w.target_weight).unwrap_or(0.0),
+                reps: working_specs.first().map(|w| w.target_reps).unwrap_or(0),
+                include_warmup: warmup_exercises.contains(exercise),
+                rest_config: None,
+                last_set_amrap: working_specs.last().map(|w| w.is_amrap).unwrap_or(false),
+                working_sets: working_specs,
+            }
+        })
+        .collect();
+
+    let group = ExerciseGroup {
+        id: group_id.to_string(),
+        workout_id: workout_id.to_string(),
+        name: String::new(),
+        sets: compute_group_working_rounds_from_sets(working_sets),
+        interleave_warmups,
+        workout_order: 0,
+        exercise_configs: configs,
+        rest_config,
+        instruction: String::new(),
+        prescribed_by_regime: false,
+        materialized_sets: Vec::new(),
+    };
+
+    generate_sets_for_group(workout_id, &group, 0, unit)
+        .into_iter()
+        .map(|p| PlannedGroupSet {
+            exercise: p.exercise,
+            target_reps: p.target_reps,
+            target_weight: p.target_weight,
+            warmup: p.warmup,
+            rest_after_success: p.rest_after_success,
+            rest_after_failure: p.rest_after_failure,
+            is_amrap: p.is_amrap,
+            instruction: p.instruction,
+            progression_hint: p.progression_hint,
+            client_set_id: p.id,
+        })
+        .collect()
+}
+
 pub(crate) fn apply_replace_exercise_group_plan(
     workout_ref: &mut ActiveWorkout,
     req: &ReplaceExerciseGroupPlanRequest,
+    unit: AppWeightUnit,
 ) -> Result<(Option<ExerciseGroup>, Vec<ProposedSet>), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
@@ -525,7 +620,7 @@ pub(crate) fn apply_replace_exercise_group_plan(
         group.instruction = req.instruction.clone();
     }
 
-    // Preserve completed-associated proposed sets, cancel remaining pending
+    // Preserve completed-associated proposed sets.
     let mut completed_group_sets: Vec<ProposedSet> = workout_ref
         .proposed_sets
         .iter()
@@ -534,6 +629,38 @@ pub(crate) fn apply_replace_exercise_group_plan(
         .collect();
     completed_group_sets.sort_by_key(|s| s.workout_order);
 
+    // Regenerate warmups server-side for the new working weights — the thin client
+    // sends working sets only. Only for exercises that already had warmups, so we
+    // don't invent them where the group never wanted them.
+    let warmup_exercises: std::collections::HashSet<i32> = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|p| p.exercise_group_id == req.exercise_group_id && p.warmup)
+        .map(|p| p.exercise)
+        .collect();
+    // Heaviest warmup already completed per exercise. A recalculated warmup at or
+    // below this is one you've effectively already done (a big *downward* edit), so
+    // it's dropped rather than handed back to you.
+    let mut max_done_warmup: std::collections::HashMap<i32, f32> =
+        std::collections::HashMap::new();
+    for set in completed_group_sets.iter().filter(|s| s.warmup) {
+        let entry = max_done_warmup.entry(set.exercise).or_insert(f32::MIN);
+        if set.target_weight > *entry {
+            *entry = set.target_weight;
+        }
+    }
+    let normalized_sets = rematerialize_group_plan_with_warmups(
+        &req.workout_id,
+        &req.exercise_group_id,
+        &normalized_sets,
+        &warmup_exercises,
+        req.interleave_warmups,
+        normalize_rest_config(req.rest_config),
+        unit,
+    );
+
+    // The edit replaces the pending plan: cancel every pending set (warmups and
+    // working); completed sets are kept and consume matching slots below.
     for set in workout_ref
         .proposed_sets
         .iter_mut()
@@ -544,7 +671,9 @@ pub(crate) fn apply_replace_exercise_group_plan(
         }
     }
 
-    // Consume completed slots by (exercise, warmup) count, then append remaining pending in request order.
+    // Reconcile by (exercise, warmup) count: N completed warmups consume the first
+    // (lightest) N of the regenerated ladder, leaving the top (4−N) as the
+    // recalculated pending warmups. Same for working sets.
     let mut completed_slots_by_key: std::collections::HashMap<(i32, bool), usize> =
         std::collections::HashMap::new();
     for set in &completed_group_sets {
@@ -560,6 +689,14 @@ pub(crate) fn apply_replace_exercise_group_plan(
                 if *remaining > 0 {
                     *remaining -= 1;
                     return false;
+                }
+            }
+            // Downward-edit guard: never hand back a warmup you've already surpassed.
+            if set.warmup {
+                if let Some(done) = max_done_warmup.get(&set.exercise) {
+                    if set.target_weight <= *done + 1e-3 {
+                        return false;
+                    }
                 }
             }
             true
@@ -684,5 +821,185 @@ mod warmup_tests {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod replace_plan_tests {
+    use super::*;
+    use schlift::workout::v1::Workout;
+
+    fn pset(id: &str, order: i32, warmup: bool, weight: f32) -> ProposedSet {
+        ProposedSet {
+            id: id.to_string(),
+            workout_id: "w1".to_string(),
+            workout_order: order,
+            exercise: 1,
+            target_reps: 5,
+            target_weight: weight,
+            warmup,
+            exercise_group_id: "g1".to_string(),
+            rest_after_success: 180,
+            rest_after_failure: 300,
+            cancelled: false,
+            is_amrap: false,
+            instruction: String::new(),
+            progression_hint: None,
+        }
+    }
+
+    fn planned_working(weight: f32) -> PlannedGroupSet {
+        PlannedGroupSet {
+            exercise: 1,
+            target_reps: 5,
+            target_weight: weight,
+            warmup: false,
+            rest_after_success: 180,
+            rest_after_failure: 300,
+            is_amrap: false,
+            instruction: String::new(),
+            progression_hint: None,
+            client_set_id: String::new(),
+        }
+    }
+
+    fn completed(proposed_id: &str) -> CompletedSet {
+        CompletedSet {
+            id: format!("c_{proposed_id}"),
+            workout_id: "w1".to_string(),
+            proposed_set_id: proposed_id.to_string(),
+            actual_reps: 5,
+            actual_weight: 0.0,
+            started_at: 100,
+            ended_at: 200,
+            rest_until: 0,
+        }
+    }
+
+    // A Squat group: 4 warmups climbing to a 200 working weight, 2 working sets.
+    fn squat_workout(completed_sets: Vec<CompletedSet>) -> ActiveWorkout {
+        let group = ExerciseGroup {
+            id: "g1".to_string(),
+            workout_id: "w1".to_string(),
+            name: "Squat".to_string(),
+            sets: 2,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+            materialized_sets: vec![],
+        };
+        let proposed = vec![
+            pset("wu1", 0, true, 45.0),
+            pset("wu2", 1, true, 95.0),
+            pset("wu3", 2, true, 135.0),
+            pset("wu4", 3, true, 165.0),
+            pset("wk1", 4, false, 200.0),
+            pset("wk2", 5, false, 200.0),
+        ];
+        ActiveWorkout::new(
+            Workout {
+                id: "w1".to_string(),
+                name: "T".to_string(),
+                start_time: 1,
+                end_time: 0,
+                session_id: String::new(),
+            },
+            vec![group],
+            proposed,
+            completed_sets,
+        )
+    }
+
+    fn edit_to(active: &mut ActiveWorkout, weight: f32) {
+        let req = ReplaceExerciseGroupPlanRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: "g1".to_string(),
+            name: "Squat".to_string(),
+            interleave_warmups: false,
+            sets: vec![planned_working(weight), planned_working(weight)],
+            rest_config: None,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+            create_if_missing: false,
+        };
+        apply_replace_exercise_group_plan(active, &req, AppWeightUnit::Lb).unwrap();
+    }
+
+    fn active_warmups(active: &ActiveWorkout) -> Vec<f32> {
+        let mut w: Vec<f32> = active
+            .proposed_sets
+            .iter()
+            .filter(|p| p.warmup && !p.cancelled)
+            .map(|p| p.target_weight)
+            .collect();
+        w.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        w
+    }
+
+    /// Nothing warmed up yet: editing the weight recalculates the whole ladder.
+    #[test]
+    fn editing_a_weight_recalculates_warmups() {
+        let mut active = squat_workout(vec![]);
+        let before = active_warmups(&active);
+        edit_to(&mut active, 300.0);
+
+        let warmups = active_warmups(&active);
+        assert_eq!(warmups.len(), 4, "a fresh ladder is 4 warmups");
+        assert_ne!(warmups, before, "warmups should follow the new weight");
+        assert!(
+            warmups.iter().all(|&w| w < 300.0),
+            "every warmup stays below the working weight"
+        );
+        let working: Vec<_> = active
+            .proposed_sets
+            .iter()
+            .filter(|p| !p.warmup && !p.cancelled)
+            .collect();
+        assert!(
+            working.iter().all(|p| (p.target_weight - 300.0).abs() < 1e-3),
+            "working sets carry the edited weight"
+        );
+    }
+
+    /// Two warmups already done: keep them, recalculate the remaining two at the
+    /// new weight (count reconciliation — 4 warmups total, not 6).
+    #[test]
+    fn completed_warmups_are_kept_and_the_rest_recalculated() {
+        let mut active = squat_workout(vec![completed("wu1"), completed("wu2")]);
+        edit_to(&mut active, 300.0);
+
+        let warmups = active_warmups(&active);
+        assert_eq!(warmups.len(), 4, "2 done + 2 recalculated = 4, never doubled");
+        // The two you did are untouched.
+        assert!(warmups.contains(&45.0) && warmups.contains(&95.0));
+        // The two pending ones climbed for the new weight (heavier than what you did).
+        let pending: Vec<f32> = warmups.iter().copied().filter(|&w| w > 95.0).collect();
+        assert_eq!(pending.len(), 2, "the top two warmups were recalculated");
+        assert!(pending.iter().all(|&w| w < 300.0));
+    }
+
+    /// Warm up heavy, then drop the weight a lot: don't hand back warmups you've
+    /// already surpassed.
+    #[test]
+    fn a_large_downward_edit_drops_warmups_youve_passed() {
+        let mut active =
+            squat_workout(vec![completed("wu1"), completed("wu2"), completed("wu3")]);
+        edit_to(&mut active, 100.0);
+
+        // The 135 warmup is already done; no recalculated warmup should sit at or
+        // below it.
+        let pending: Vec<f32> = active
+            .proposed_sets
+            .iter()
+            .filter(|p| p.warmup && !p.cancelled && !p.id.starts_with("wu"))
+            .map(|p| p.target_weight)
+            .collect();
+        assert!(
+            pending.iter().all(|&w| w > 135.0),
+            "no warmup at/below one already completed: {pending:?}"
+        );
     }
 }
