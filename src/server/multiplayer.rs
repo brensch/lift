@@ -20,6 +20,13 @@ use super::*;
 // never deleted — it records who trained together and backs GetTrainingPartners /
 // GetSharedSessions / JoinPartnerSession.
 
+/// Serialises the JoinViaInvite read-decide-write so two people joining the same
+/// inviter at once can't each read "no session yet", mint separate sessions, and
+/// leave the inviter in only one of them (orphaning the other joiner). Joins are
+/// rare, so a single global lock is simpler than per-target locking and just as
+/// correct for a single backend instance.
+static JOIN_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[derive(Clone)]
 pub struct ServerMultiplayerService {
     pub db: ServerDb,
@@ -105,6 +112,10 @@ impl MultiplayerService for ServerMultiplayerService {
                 "cannot join via your own invite token",
             ));
         }
+
+        // Held through the read-decide-write below so concurrent joins to the same
+        // inviter serialise: the second one sees the session the first just made.
+        let _join_guard = JOIN_LOCK.lock().await;
 
         // Pick the session to use based on existing memberships:
         //   - neither in a group → mint a new one
