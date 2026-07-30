@@ -269,9 +269,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   height: 60,
                   child: FilledButton.icon(
                     onPressed: () => setState(() => _isScanning = true),
-                    icon: const Icon(Icons.qr_code_scanner_rounded, size: 26),
+                    icon: const Icon(Icons.photo_camera_rounded, size: 24),
                     label: const Text(
-                      'Scan a friend’s code',
+                      'Scan',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -293,17 +293,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  'Or let them scan you — or send your link.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Center(
                   child: TextButton.icon(
                     onPressed: () => _shareInvite(inviteToken),
