@@ -121,12 +121,16 @@ pub(crate) fn workout_state_snapshot_from_state(
         }
     }
 
+    // Ready for the next set. Carry the moment the previous set's rest ended
+    // (its rest_until) as last_rest_end so the client keeps showing the "yapping"
+    // count-up after the rest expires — without it, reloading state (e.g. on app
+    // focus-regain) drops from "Yapping 0:12" back to a bare "Next up".
     WorkoutStateSnapshot {
         state: STATE_READY,
         display_set: Some(next),
         active_started_at: 0,
         rest_until: 0,
-        last_rest_end: 0,
+        last_rest_end: last_set.map(|l| l.rest_until).unwrap_or(0),
     }
 }
 
@@ -626,6 +630,30 @@ mod tests {
             "s2",
             "resting must focus the upcoming set, not the one just finished"
         );
+    }
+
+    #[test]
+    fn ready_after_rest_carries_the_rest_end_for_the_yapping_timer() {
+        // Finish set 1; once its rest expires the snapshot is READY for set 2, and
+        // must report last_rest_end = set 1's rest_until so the UI keeps the
+        // "yapping" count-up. Dropping it to 0 (as it did) made the state revert
+        // from "Yapping 0:12" to a bare "Next up" whenever state was reloaded
+        // (e.g. on app focus-regain).
+        let mut active =
+            active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+        complete(&mut active, "s1", 5, 2_000);
+        let rest_until = active.completed_sets[0].rest_until;
+        assert!(rest_until > 2_000, "the completed set should carry a rest");
+        // Well past the rest.
+        let snap = workout_state_snapshot_from_state(
+            &active.proposed_sets,
+            &active.completed_sets,
+            rest_until + 500,
+        );
+        assert_eq!(snap.state, STATE_READY);
+        assert_eq!(snap.display_set.unwrap().id, "s2");
+        assert_eq!(snap.last_rest_end, rest_until,
+            "READY must carry the rest-end so yapping persists across reloads");
     }
 
     #[test]
