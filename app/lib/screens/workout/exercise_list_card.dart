@@ -2,6 +2,7 @@
 library;
 
 import 'dart:math' as math;
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
@@ -15,13 +16,19 @@ class ExerciseListCard extends StatelessWidget {
   static const double height = 52;
 
   final ExerciseGroupData group;
+  final List<CompletedSet> completedSets;
   final bool completed;
   final bool draggable;
   final int dragIndex;
+
+  /// Tapping the row opens the edit modal (there's no pencil any more — the row
+  /// itself is the target). The left rail is the drag handle for reordering.
   final VoidCallback? onEdit;
 
-  const ExerciseListCard({super.key, 
+  const ExerciseListCard({
+    super.key,
     required this.group,
+    this.completedSets = const [],
     required this.completed,
     required this.draggable,
     this.dragIndex = 0,
@@ -36,6 +43,22 @@ class ExerciseListCard extends StatelessWidget {
       }
     }
     return top;
+  }
+
+  /// Completed vs total working *rounds* (a round is one set of every exercise,
+  /// so supersets count once per pass, not per exercise).
+  (int, int) _workingProgress() {
+    final rounds = group.rounds.where((r) => !r.isWarmup).toList();
+    var done = 0;
+    for (final round in rounds) {
+      final allDone = round.sets.every(
+        (s) => completedSets.any(
+          (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+        ),
+      );
+      if (allDone) done++;
+    }
+    return (done, rounds.length);
   }
 
   @override
@@ -53,79 +76,54 @@ class ExerciseListCard extends StatelessWidget {
         : (topSet.isAmrap ? '${topSet.targetReps}+' : '${topSet.targetReps}');
     final contentColor = completed ? AppTheme.successFg : colorScheme.onSurface;
 
-    Widget content = Container(
-      color: Colors.transparent,
-      padding: EdgeInsets.fromLTRB(draggable ? 2 : 12, 0, 4, 0),
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 14,
-              letterSpacing: -0.3,
-              height: 1.05,
-              color: contentColor,
-            ),
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: -0.3,
+            height: 1.05,
+            color: contentColor,
           ),
-          const SizedBox(height: 3),
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(text: weightLabel),
-                if (repsLabel != null)
-                  TextSpan(
-                    text: ' × $repsLabel',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                  ),
-              ],
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.2,
-              color: contentColor.withValues(alpha: completed ? 0.85 : 1),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    // Draggable rows carry a grip on the left so they read as grabbable at a
-    // glance. The whole body (grip + content) is the drag target — you can grab
-    // anywhere — but the handle is the visible cue. Completed rows have no grip
-    // (they show a ✓ and don't move), which separates movable from pinned.
-    Widget body = content;
-    if (draggable) {
-      body = ReorderableDragStartListener(
-        index: dragIndex,
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Icon(
-                Icons.drag_indicator,
-                size: 20,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
-              ),
-            ),
-            Expanded(child: content),
-          ],
         ),
-      );
-    }
+        const SizedBox(height: 2),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: weightLabel),
+              if (repsLabel != null)
+                TextSpan(
+                  text: ' × $repsLabel',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+            ],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.2,
+            color: contentColor.withValues(alpha: completed ? 0.85 : 1),
+          ),
+        ),
+        if (!completed) ...[
+          const SizedBox(height: 4),
+          _ProgressDots(progress: _workingProgress()),
+        ],
+      ],
+    );
 
     return SizedBox(
       height: height,
@@ -141,37 +139,121 @@ class ExerciseListCard extends StatelessWidget {
                 : colorScheme.outline.withValues(alpha: 0.45),
           ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: body),
-            if (completed)
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Icon(
-                  Icons.check_circle_rounded,
-                  size: 18,
-                  color: AppTheme.successFg,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The grab rail: a faint recessed strip down the left edge, so the
+              // whole edge reads as the handle rather than a floating icon.
+              if (draggable)
+                ReorderableDragStartListener(
+                  index: dragIndex,
+                  child: _GrabRail(color: colorScheme.onSurfaceVariant),
                 ),
-              )
-            else ...[
-              IconButton(
-                onPressed: onEdit,
-                tooltip: 'Edit exercise',
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: Icon(
-                  Icons.edit_outlined,
-                  size: 18,
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+              // Tap the body to edit (no pencil); drag the rail to reorder.
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: completed ? null : onEdit,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(draggable ? 10 : 12, 0, 8, 0),
+                    child: Align(alignment: Alignment.centerLeft, child: body),
+                  ),
                 ),
               ),
-              const SizedBox(width: 2),
+              if (completed)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    size: 18,
+                    color: AppTheme.successFg,
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// The slim grab rail — a recessed strip with a subtle 6-dot grip.
+class _GrabRail extends StatelessWidget {
+  final Color color;
+  const _GrabRail({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dotColor = color.withValues(alpha: 0.5);
+    Widget dot() => Container(
+      width: 2.4,
+      height: 2.4,
+      decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+    );
+    Widget pair() => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [dot(), const SizedBox(width: 3), dot()],
+    );
+    return Container(
+      width: 18,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        border: Border(
+          right: BorderSide(color: cs.outline.withValues(alpha: 0.22)),
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [pair(), const SizedBox(height: 3), pair(), const SizedBox(height: 3), pair()],
+        ),
+      ),
+    );
+  }
+}
+
+/// One dot per working round, filled up to the number completed. Falls back to
+/// a compact "3 / 12" for high set counts where a dot row would be too wide.
+class _ProgressDots extends StatelessWidget {
+  final (int, int) progress;
+  const _ProgressDots({required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final (done, total) = progress;
+    if (total == 0) return const SizedBox.shrink();
+    final offColor = cs.onSurface.withValues(alpha: 0.16);
+    if (total > 6) {
+      return Text(
+        '$done / $total',
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.1,
+          color: cs.onSurface.withValues(alpha: 0.5),
+        ),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < total; i++)
+          Padding(
+            padding: EdgeInsets.only(right: i < total - 1 ? 4 : 0),
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: i < done ? AppTheme.successFg : offColor,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
