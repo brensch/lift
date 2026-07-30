@@ -5633,6 +5633,8 @@ class RegimeContext extends $pb.GeneratedMessage {
     $core.String? regimeDisplayName,
     $core.String? sessionDescription,
     $core.String? nextSessionPreview,
+    $core.String? phaseNarrative,
+    $core.String? lastSessionSummary,
   }) {
     final result = create();
     if (regimeDisplayName != null) result.regimeDisplayName = regimeDisplayName;
@@ -5640,6 +5642,9 @@ class RegimeContext extends $pb.GeneratedMessage {
       result.sessionDescription = sessionDescription;
     if (nextSessionPreview != null)
       result.nextSessionPreview = nextSessionPreview;
+    if (phaseNarrative != null) result.phaseNarrative = phaseNarrative;
+    if (lastSessionSummary != null)
+      result.lastSessionSummary = lastSessionSummary;
     return result;
   }
 
@@ -5659,6 +5664,8 @@ class RegimeContext extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'regimeDisplayName')
     ..aOS(2, _omitFieldNames ? '' : 'sessionDescription')
     ..aOS(3, _omitFieldNames ? '' : 'nextSessionPreview')
+    ..aOS(4, _omitFieldNames ? '' : 'phaseNarrative')
+    ..aOS(5, _omitFieldNames ? '' : 'lastSessionSummary')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5706,6 +5713,28 @@ class RegimeContext extends $pb.GeneratedMessage {
   $core.bool hasNextSessionPreview() => $_has(2);
   @$pb.TagNumber(3)
   void clearNextSessionPreview() => $_clearField(3);
+
+  /// Phase explanation ("why today looks like this"). phase_narrative describes
+  /// where you are in the cycle and what this session is (from program state);
+  /// last_session_summary recaps what changed since last time (e.g. "Squat +5,
+  /// Bench held") and is filled server-side from the progression messages.
+  @$pb.TagNumber(4)
+  $core.String get phaseNarrative => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set phaseNarrative($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPhaseNarrative() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPhaseNarrative() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get lastSessionSummary => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set lastSessionSummary($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLastSessionSummary() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLastSessionSummary() => $_clearField(5);
 }
 
 class GetProposedWorkoutScheduleResponse extends $pb.GeneratedMessage {

@@ -721,6 +721,12 @@ message RegimeContext {
   string regime_display_name = 1;   // e.g. "Wendler 5/3/1"
   string session_description = 2;   // e.g. "Cycle 1, Week 2 — Intensity Week"
   string next_session_preview = 3;  // e.g. "Next: Week 3 — Peak Week (1-rep sets)"
+  // Phase explanation ("why today looks like this"). phase_narrative describes
+  // where you are in the cycle and what this session is (from program state);
+  // last_session_summary recaps what changed since last time (e.g. "Squat +5,
+  // Bench held") and is filled server-side from the progression messages.
+  string phase_narrative = 4;
+  string last_session_summary = 5;
 }
 
 message GetProposedWorkoutScheduleResponse {

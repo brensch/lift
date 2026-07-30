@@ -90,7 +90,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final logCompletedSets = sessionLedgerCompleted;
 
     final exschplanationSections = _buildExschplanationSections(wp);
-    final hasExschplanation = exschplanationSections.isNotEmpty;
+    // Show the Schplan tab when there are per-lift notes OR a cycle-phase
+    // explanation to surface.
+    final hasExschplanation =
+        exschplanationSections.isNotEmpty || wp.regimeContext != null;
     final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
     // Overall progress across every working set, for the session strip's bar.
@@ -465,7 +468,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 const NoHeartRateMonitor(),
               // ════ PAGE 4 — exschplanation ════
               if (hasExschplanation)
-                ExschplanationPage(sections: exschplanationSections),
+                ExschplanationPage(
+                  sections: exschplanationSections,
+                  regimeContext: wp.regimeContext,
+                ),
             ],
           ),
         ),

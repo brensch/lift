@@ -1277,3 +1277,241 @@ mod readiness_transition_tests {
         );
     }
 }
+
+/// Regime-native comeback (return-from-layoff) behaviour, end-to-end through the
+/// schedule handler with mocked time: Wendler resets to Week 1 (Volume) and eases
+/// the Training Max; GZCLP resets T1 back to Stage 1 (5×3). Each also surfaces a
+/// program-specific explanation message.
+#[cfg(test)]
+mod regime_comeback_tests {
+    use super::*;
+    use crate::program_state::{set_f32, set_int, set_str};
+
+    const DAY: i64 = 24 * 3600;
+
+    fn authed<T>(token: &str, msg: T) -> Request<T> {
+        let mut req = Request::new(msg);
+        req.metadata_mut()
+            .insert("x-session-token", token.parse().unwrap());
+        req
+    }
+
+    async fn setup() -> (ServerWorkoutService, String, String) {
+        let dir = std::env::temp_dir().join(format!("lift-comeback-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let (user, token) = db
+            .get_or_create_user_with_auth_session("tester")
+            .await
+            .unwrap();
+        (ServerWorkoutService { db }, user.id, token)
+    }
+
+    /// Establish `last_session_at` by starting + completing + ending a trivial
+    /// workout at `at`. (The regime reconciliation it triggers is irrelevant — we
+    /// overwrite program state right after.)
+    async fn record_history(svc: &ServerWorkoutService, token: &str, at: i64) {
+        let group = ExerciseGroup {
+            id: String::new(),
+            workout_id: String::new(),
+            name: "H".to_string(),
+            sets: 1,
+            interleave_warmups: false,
+            workout_order: 0,
+            exercise_configs: vec![ExerciseTypeConfig {
+                exercise: Exercise::Squat as i32,
+                start_weight: 100.0,
+                end_weight: 100.0,
+                reps: 5,
+                include_warmup: false,
+                rest_config: None,
+                last_set_amrap: false,
+                working_sets: vec![WorkingSetSpec {
+                    target_weight: 100.0,
+                    target_reps: 5,
+                    is_amrap: false,
+                    instruction: String::new(),
+                    progression_hint: None,
+                }],
+            }],
+            rest_config: None,
+            instruction: String::new(),
+            prescribed_by_regime: false,
+            materialized_sets: Vec::new(),
+        };
+        let start = svc
+            .start_workout(authed(
+                token,
+                StartWorkoutRequest {
+                    name: "H".to_string(),
+                    exercise_groups: vec![group],
+                    started_at: at - 1800,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
+            svc.complete_set(authed(
+                token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 5,
+                    actual_weight: 100.0,
+                    completed_at: at - 60,
+                },
+            ))
+            .await
+            .unwrap();
+        }
+        svc.end_workout(authed(
+            token,
+            EndWorkoutRequest {
+                workout_id,
+                ended_at: at,
+            },
+        ))
+        .await
+        .unwrap();
+    }
+
+    async fn seed_state(
+        svc: &ServerWorkoutService,
+        user_id: &str,
+        regime_type: RegimeType,
+        mutate: impl FnOnce(&mut crate::program_state::StatePayload),
+    ) {
+        let regime = get_regime(regime_type);
+        let mut payload = regime.default_state();
+        mutate(&mut payload);
+        svc.db
+            .put_program_state(
+                user_id,
+                &GetActiveTrainingProgramStateResponse {
+                    state: Some(TrainingProgramState {
+                        regime_type: regime_type as i32,
+                        fields: payload_to_proto(&payload),
+                        updated_at: 2,
+                        source: "test".to_string(),
+                    }),
+                    schema: Some(regime.state_schema()),
+                },
+            )
+            .await
+            .unwrap();
+    }
+
+    async fn schedule_at(
+        svc: &ServerWorkoutService,
+        user_id: &str,
+        token: &str,
+        at_time: i64,
+    ) -> GetProposedWorkoutScheduleResponse {
+        svc.get_proposed_workout_schedule(authed(
+            token,
+            GetProposedWorkoutScheduleRequest {
+                user_id: user_id.to_string(),
+                at_time,
+            },
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+    }
+
+    #[tokio::test]
+    async fn wendler_comeback_restarts_at_week1_and_eases_the_training_max() {
+        let (svc, user_id, token) = setup().await;
+        let t0 = 1_700_000_000i64;
+
+        record_history(&svc, &token, t0).await;
+        // Was deep in the cycle at Week 3 (Peak) with a known squat TM.
+        seed_state(&svc, &user_id, RegimeType::Wendler531, |s| {
+            set_int(s, "week", 3);
+            set_int(s, "session_in_week", 0);
+            set_f32(s, "squat_tm", 200.0);
+        })
+        .await;
+
+        // 20 days off → comeback. Proposal should be a Volume (Week 1) session, the
+        // TM eased ~10%, and a 5/3/1-specific explanation attached.
+        let sched = schedule_at(&svc, &user_id, &token, t0 + 20 * DAY).await;
+        let name = sched.suggested_workout_name.clone();
+        assert!(
+            name.contains("Week 1") && name.contains("Volume"),
+            "comeback should restart at Week 1 Volume, got {name:?}"
+        );
+        let ctx = sched.regime_context.as_ref().unwrap();
+        assert!(
+            ctx.session_description.contains("Week 1")
+                || ctx.session_description.contains("Volume"),
+            "session_description should reflect Week 1, got {:?}",
+            ctx.session_description
+        );
+        // The eased training max shows up on the proposed squat working weights
+        // (Week 1 top set is 85% of TM; 85% of an eased ~180 < 85% of 200).
+        let squat_top = sched
+            .proposed_groups
+            .iter()
+            .flat_map(|g| g.exercise_configs.iter())
+            .find(|c| c.exercise == Exercise::Squat as i32)
+            .map(|c| c.end_weight)
+            .expect("squat in proposal");
+        assert!(
+            squat_top < 200.0 * 0.85,
+            "eased TM should lower the top set below 85% of the old TM, got {squat_top}"
+        );
+        // Program-specific comeback explanation is present.
+        let has_note = sched.user_messages.iter().any(|m| {
+            m.body.contains("training max") || m.body.contains("Week 1")
+        });
+        assert!(has_note, "a 5/3/1 comeback explanation should be attached");
+    }
+
+    #[tokio::test]
+    async fn gzclp_comeback_resets_t1_to_stage_one() {
+        let (svc, user_id, token) = setup().await;
+        let t0 = 1_700_000_000i64;
+
+        record_history(&svc, &token, t0).await;
+        // Had ground up to Stage 3 (10×1) on squat before the break.
+        seed_state(&svc, &user_id, RegimeType::Gzclp, |s| {
+            set_str(s, "squat_t1_stage", "stage_3_10x1");
+            set_f32(s, "squat_t1_weight", 200.0);
+        })
+        .await;
+
+        let sched = schedule_at(&svc, &user_id, &token, t0 + 20 * DAY).await;
+        // Squat T1 should be back to 5×3 (Stage 1): five working sets of 3 reps.
+        let squat = sched
+            .proposed_groups
+            .iter()
+            .find(|g| {
+                g.exercise_configs
+                    .iter()
+                    .any(|c| c.exercise == Exercise::Squat as i32)
+            })
+            .expect("squat group in proposal");
+        let cfg = squat
+            .exercise_configs
+            .iter()
+            .find(|c| c.exercise == Exercise::Squat as i32)
+            .unwrap();
+        assert_eq!(
+            cfg.working_sets.len(),
+            5,
+            "Stage 1 is 5×3 → five working sets, got {}",
+            cfg.working_sets.len()
+        );
+        assert!(
+            cfg.working_sets.iter().all(|s| s.target_reps == 3),
+            "Stage 1 sets are 3 reps each"
+        );
+        let has_note = sched
+            .user_messages
+            .iter()
+            .any(|m| m.body.contains("Stage 1") || m.body.contains("5×3"));
+        assert!(has_note, "a GZCLP comeback explanation should mention Stage 1");
+    }
+}

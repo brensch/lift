@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../widgets/phase_explanation.dart';
 
 // Fixed accent palette (the hero is a dark card in both themes, like the mockup).
 const _green = Color(0xFF3AD98B);
@@ -150,6 +151,18 @@ class ReadinessBanner extends StatelessWidget {
                 height: 1.35,
                 color: mutedColor,
               ),
+            ),
+          ],
+
+          // Compact cycle-phase line: where you are + what changed last time.
+          if (rc != null) ...[
+            const SizedBox(height: 12),
+            PhaseExplanation(
+              context: rc,
+              compact: true,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              accentColor: style.accent,
             ),
           ],
 

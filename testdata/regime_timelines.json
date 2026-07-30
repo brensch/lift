@@ -21222,6 +21222,181 @@
                 "deloaded": true,
                 "exercises": [
                   {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 105.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 120.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 135.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {
+                  "bench_press_tm": 130.0,
+                  "deadlift_tm": 220.0,
+                  "overhead_press_tm": 80.0,
+                  "squat_tm": 160.0
+                },
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
+              },
+              {
+                "day": 55,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Bench Press",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 85.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 100.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 110.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 57,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Deadlift",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 145.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 165.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 185.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
+              },
+              {
+                "day": 59,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "OHP",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 50.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 60.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 70.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 61,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 110.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 130.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 3,
+                        "weight": 145.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
+              },
+              {
+                "day": 63,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
                     "exercise": "Bench Press",
                     "sets": [
                       {
@@ -21247,16 +21422,11 @@
                   }
                 ],
                 "result": "hit",
-                "weight_changes": {
-                  "bench_press_tm": 130.0,
-                  "deadlift_tm": 220.0,
-                  "overhead_press_tm": 80.0,
-                  "squat_tm": 160.0
-                },
+                "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Bench Press"
               },
               {
-                "day": 55,
+                "day": 65,
                 "days_since_previous": 2,
                 "deloaded": false,
                 "exercises": [
@@ -21288,176 +21458,6 @@
                 "result": "hit",
                 "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Deadlift"
-              },
-              {
-                "day": 57,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 55.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 65.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 70.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), OHP"
-              },
-              {
-                "day": 59,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Squat",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 120.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 135.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 150.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Squat"
-              },
-              {
-                "day": 61,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 100.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 110.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 125.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Bench Press"
-              },
-              {
-                "day": 63,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Deadlift",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 165.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 185.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 210.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Deadlift"
-              },
-              {
-                "day": 65,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 60.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 70.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 75.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), OHP"
               }
             ],
             "occasional_misses": [
@@ -22858,6 +22858,147 @@
                       {
                         "count": 1,
                         "is_amrap": false,
+                        "reps": 5,
+                        "weight": 115.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 135.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 155.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {
+                  "bench_press_tm": 150.0,
+                  "deadlift_tm": 250.0,
+                  "overhead_press_tm": 90.0,
+                  "squat_tm": 180.0
+                },
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
+              },
+              {
+                "day": 24,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Bench Press",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 100.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 115.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 130.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 26,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Deadlift",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 165.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 190.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 215.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
+              },
+              {
+                "day": 28,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "OHP",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 60.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 70.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 75.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 30,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
                         "reps": 3,
                         "weight": 125.0
                       },
@@ -22878,120 +23019,13 @@
                   }
                 ],
                 "result": "hit",
-                "weight_changes": {
-                  "bench_press_tm": 150.0,
-                  "deadlift_tm": 250.0,
-                  "overhead_press_tm": 90.0,
-                  "squat_tm": 180.0
-                },
+                "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
               },
               {
-                "day": 24,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 105.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 120.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 135.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Bench Press"
-              },
-              {
-                "day": 26,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Deadlift",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 175.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 200.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 225.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Deadlift"
-              },
-              {
-                "day": 28,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 65.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 70.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 80.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), OHP"
-              },
-              {
-                "day": 30,
-                "days_since_previous": 2,
-                "deloaded": false,
+                "day": 90,
+                "days_since_previous": 60,
+                "deloaded": true,
                 "exercises": [
                   {
                     "exercise": "Squat",
@@ -23000,53 +23034,19 @@
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 135.0
+                        "weight": 95.0
                       },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 155.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 170.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Squat"
-              },
-              {
-                "day": 90,
-                "days_since_previous": 60,
-                "deloaded": true,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
                       {
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 90.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 100.0
+                        "weight": 110.0
                       },
                       {
                         "count": 1,
                         "is_amrap": true,
-                        "reps": 1,
-                        "weight": 115.0
+                        "reps": 5,
+                        "weight": 125.0
                       }
                     ],
                     "tier": "MAIN"
@@ -23059,112 +23059,10 @@
                   "overhead_press_tm": 70.0,
                   "squat_tm": 145.0
                 },
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Bench Press"
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
               },
               {
                 "day": 92,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Deadlift",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 150.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 170.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 190.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Deadlift"
-              },
-              {
-                "day": 94,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 55.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 60.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 65.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), OHP"
-              },
-              {
-                "day": 96,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Squat",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 60.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 75.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 85.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 4 — Deload, Squat"
-              },
-              {
-                "day": 98,
                 "days_since_previous": 2,
                 "deloaded": false,
                 "exercises": [
@@ -23175,19 +23073,19 @@
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 50.0
+                        "weight": 80.0
                       },
                       {
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 60.0
+                        "weight": 90.0
                       },
                       {
                         "count": 1,
-                        "is_amrap": false,
+                        "is_amrap": true,
                         "reps": 5,
-                        "weight": 70.0
+                        "weight": 100.0
                       }
                     ],
                     "tier": "MAIN"
@@ -23195,7 +23093,109 @@
                 ],
                 "result": "hit",
                 "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 4 — Deload, Bench Press"
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 94,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Deadlift",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 130.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 150.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 170.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
+              },
+              {
+                "day": 96,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "OHP",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 45.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 55.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 60.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 98,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 100.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 115.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 3,
+                        "weight": 130.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
               }
             ]
           }
@@ -23390,6 +23390,181 @@
                 "deloaded": true,
                 "exercises": [
                   {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 150.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 175.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 195.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {
+                  "bench_press_tm": 160.0,
+                  "deadlift_tm": 270.0,
+                  "overhead_press_tm": 105.0,
+                  "squat_tm": 230.0
+                },
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
+              },
+              {
+                "day": 55,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Bench Press",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 105.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 120.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 135.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 57,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Deadlift",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 175.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 205.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 230.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
+              },
+              {
+                "day": 59,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "OHP",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 70.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 80.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 90.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 61,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 160.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 185.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 3,
+                        "weight": 205.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
+              },
+              {
+                "day": 63,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
                     "exercise": "Bench Press",
                     "sets": [
                       {
@@ -23415,16 +23590,11 @@
                   }
                 ],
                 "result": "hit",
-                "weight_changes": {
-                  "bench_press_tm": 160.0,
-                  "deadlift_tm": 270.0,
-                  "overhead_press_tm": 105.0,
-                  "squat_tm": 230.0
-                },
+                "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Bench Press"
               },
               {
-                "day": 55,
+                "day": 65,
                 "days_since_previous": 2,
                 "deloaded": false,
                 "exercises": [
@@ -23456,176 +23626,6 @@
                 "result": "hit",
                 "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Deadlift"
-              },
-              {
-                "day": 57,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 75.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 85.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 95.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), OHP"
-              },
-              {
-                "day": 59,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Squat",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 175.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 195.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 220.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Squat"
-              },
-              {
-                "day": 61,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 120.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 135.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 150.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Bench Press"
-              },
-              {
-                "day": 63,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Deadlift",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 205.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 230.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 255.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Deadlift"
-              },
-              {
-                "day": 65,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 80.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 90.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 100.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), OHP"
               }
             ],
             "occasional_misses": [
@@ -25026,6 +25026,147 @@
                       {
                         "count": 1,
                         "is_amrap": false,
+                        "reps": 5,
+                        "weight": 170.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 195.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 220.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {
+                  "bench_press_tm": 180.0,
+                  "deadlift_tm": 305.0,
+                  "overhead_press_tm": 115.0,
+                  "squat_tm": 260.0
+                },
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
+              },
+              {
+                "day": 24,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Bench Press",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 115.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 135.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 155.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 26,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Deadlift",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 200.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 230.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 260.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
+              },
+              {
+                "day": 28,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "OHP",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 75.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 85.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 100.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 30,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
                         "reps": 3,
                         "weight": 180.0
                       },
@@ -25046,120 +25187,13 @@
                   }
                 ],
                 "result": "hit",
-                "weight_changes": {
-                  "bench_press_tm": 180.0,
-                  "deadlift_tm": 305.0,
-                  "overhead_press_tm": 115.0,
-                  "squat_tm": 260.0
-                },
+                "weight_changes": {},
                 "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
               },
               {
-                "day": 24,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 125.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 145.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 160.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Bench Press"
-              },
-              {
-                "day": 26,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Deadlift",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 215.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 245.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 275.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Deadlift"
-              },
-              {
-                "day": 28,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 80.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 90.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 3,
-                        "weight": 105.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), OHP"
-              },
-              {
-                "day": 30,
-                "days_since_previous": 2,
-                "deloaded": false,
+                "day": 90,
+                "days_since_previous": 60,
+                "deloaded": true,
                 "exercises": [
                   {
                     "exercise": "Squat",
@@ -25168,53 +25202,19 @@
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 195.0
+                        "weight": 135.0
                       },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 220.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 245.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Squat"
-              },
-              {
-                "day": 90,
-                "days_since_previous": 60,
-                "deloaded": true,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
-                    "sets": [
                       {
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 110.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 125.0
+                        "weight": 160.0
                       },
                       {
                         "count": 1,
                         "is_amrap": true,
-                        "reps": 1,
-                        "weight": 140.0
+                        "reps": 5,
+                        "weight": 180.0
                       }
                     ],
                     "tier": "MAIN"
@@ -25227,10 +25227,44 @@
                   "overhead_press_tm": 90.0,
                   "squat_tm": 210.0
                 },
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Bench Press"
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Squat"
               },
               {
                 "day": 92,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Bench Press",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 95.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 5,
+                        "weight": 110.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 5,
+                        "weight": 125.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Bench Press"
+              },
+              {
+                "day": 94,
                 "days_since_previous": 2,
                 "deloaded": false,
                 "exercises": [
@@ -25241,53 +25275,19 @@
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 185.0
+                        "weight": 160.0
                       },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 210.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": true,
-                        "reps": 1,
-                        "weight": 235.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), Deadlift"
-              },
-              {
-                "day": 94,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "OHP",
-                    "sets": [
                       {
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 70.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 3,
-                        "weight": 75.0
+                        "weight": 185.0
                       },
                       {
                         "count": 1,
                         "is_amrap": true,
-                        "reps": 1,
-                        "weight": 85.0
+                        "reps": 5,
+                        "weight": 210.0
                       }
                     ],
                     "tier": "MAIN"
@@ -25295,7 +25295,7 @@
                 ],
                 "result": "hit",
                 "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 3 — Peak (5/3/1+), OHP"
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), Deadlift"
               },
               {
                 "day": 96,
@@ -25303,41 +25303,7 @@
                 "deloaded": false,
                 "exercises": [
                   {
-                    "exercise": "Squat",
-                    "sets": [
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 85.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 105.0
-                      },
-                      {
-                        "count": 1,
-                        "is_amrap": false,
-                        "reps": 5,
-                        "weight": 125.0
-                      }
-                    ],
-                    "tier": "MAIN"
-                  }
-                ],
-                "result": "hit",
-                "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 4 — Deload, Squat"
-              },
-              {
-                "day": 98,
-                "days_since_previous": 2,
-                "deloaded": false,
-                "exercises": [
-                  {
-                    "exercise": "Bench Press",
+                    "exercise": "OHP",
                     "sets": [
                       {
                         "count": 1,
@@ -25349,13 +25315,13 @@
                         "count": 1,
                         "is_amrap": false,
                         "reps": 5,
-                        "weight": 75.0
+                        "weight": 70.0
                       },
                       {
                         "count": 1,
-                        "is_amrap": false,
+                        "is_amrap": true,
                         "reps": 5,
-                        "weight": 85.0
+                        "weight": 75.0
                       }
                     ],
                     "tier": "MAIN"
@@ -25363,7 +25329,41 @@
                 ],
                 "result": "hit",
                 "weight_changes": {},
-                "workout_name": "5/3/1 — Cycle 1, Week 4 — Deload, Bench Press"
+                "workout_name": "5/3/1 — Cycle 1, Week 1 — Volume (5/5/5+), OHP"
+              },
+              {
+                "day": 98,
+                "days_since_previous": 2,
+                "deloaded": false,
+                "exercises": [
+                  {
+                    "exercise": "Squat",
+                    "sets": [
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 145.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": false,
+                        "reps": 3,
+                        "weight": 170.0
+                      },
+                      {
+                        "count": 1,
+                        "is_amrap": true,
+                        "reps": 3,
+                        "weight": 190.0
+                      }
+                    ],
+                    "tier": "MAIN"
+                  }
+                ],
+                "result": "hit",
+                "weight_changes": {},
+                "workout_name": "5/3/1 — Cycle 1, Week 2 — Intensity (3/3/3+), Squat"
               }
             ]
           }
