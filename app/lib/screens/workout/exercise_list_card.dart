@@ -55,7 +55,7 @@ class ExerciseListCard extends StatelessWidget {
 
     Widget content = Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
+      padding: EdgeInsets.fromLTRB(draggable ? 2 : 12, 0, 4, 0),
       alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,9 +103,28 @@ class ExerciseListCard extends StatelessWidget {
       ),
     );
 
-    // The whole tile is the drag target, except the trailing control.
+    // Draggable rows carry a grip on the left so they read as grabbable at a
+    // glance. The whole body (grip + content) is the drag target — you can grab
+    // anywhere — but the handle is the visible cue. Completed rows have no grip
+    // (they show a ✓ and don't move), which separates movable from pinned.
+    Widget body = content;
     if (draggable) {
-      content = ReorderableDragStartListener(index: dragIndex, child: content);
+      body = ReorderableDragStartListener(
+        index: dragIndex,
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Icon(
+                Icons.drag_indicator,
+                size: 20,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+              ),
+            ),
+            Expanded(child: content),
+          ],
+        ),
+      );
     }
 
     return SizedBox(
@@ -125,7 +144,7 @@ class ExerciseListCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(child: content),
+            Expanded(child: body),
             if (completed)
               Padding(
                 padding: const EdgeInsets.only(right: 10),
