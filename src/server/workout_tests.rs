@@ -1172,4 +1172,108 @@ mod readiness_transition_tests {
         assert!(ts.should_train_now);
         assert_eq!(ts.last_session_at, 0);
     }
+
+    async fn schedule_at(
+        svc: &ServerWorkoutService,
+        user_id: &str,
+        token: &str,
+        at_time: i64,
+    ) -> GetProposedWorkoutScheduleResponse {
+        svc.get_proposed_workout_schedule(authed(
+            token,
+            GetProposedWorkoutScheduleRequest {
+                user_id: user_id.to_string(),
+                at_time,
+            },
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+    }
+
+    fn squat_weight(sched: &GetProposedWorkoutScheduleResponse) -> f32 {
+        sched
+            .proposed_groups
+            .iter()
+            .flat_map(|g| g.exercise_configs.iter())
+            .find(|c| c.exercise == Exercise::Squat as i32)
+            .map(|c| c.start_weight)
+            .expect("squat should be in the proposal")
+    }
+
+    fn round5(x: f32) -> f32 {
+        (x / 5.0).round() * 5.0
+    }
+
+    /// The "what happens if you stop working out" story, as one timeline. Train
+    /// once, then never again, and query the schedule further and further out:
+    /// the banner should drift Recovering → Ready → Overdue, and past the layoff
+    /// thresholds the proposed weights should deload (×0.9 at 14d, ×0.8 at 30d)
+    /// so you come back to a manageable weight instead of your old max.
+    #[tokio::test]
+    async fn stopping_training_drifts_the_banner_and_deloads_the_weights() {
+        let (svc, user_id, token) = setup().await;
+        let t0 = 1_700_000_000i64;
+
+        // One squat session, then silence. (Hint-less sets don't progress the
+        // stored weight, so the proposal weight is a stable baseline to deload from.)
+        train(&svc, &token, Exercise::Squat, t0 - 40 * 60, t0).await;
+
+        // Baseline: right after, recovering, weight at its normal value.
+        let base_sched = schedule_at(&svc, &user_id, &token, t0 + HOUR).await;
+        let base_status = base_sched.training_status.clone().unwrap();
+        assert_eq!(base_status.readiness_state, ReadinessState::Recovering as i32);
+        let base_weight = squat_weight(&base_sched);
+        assert!(base_weight > 0.0);
+
+        // +4 days: recovered but idle past the ~4-day nag floor and behind the
+        // weekly target → OVERDUE. No deload yet (under 14 days), weight unchanged.
+        let four_days = schedule_at(&svc, &user_id, &token, t0 + 4 * DAY + HOUR).await;
+        assert_eq!(
+            four_days.training_status.as_ref().unwrap().readiness_state,
+            ReadinessState::Overdue as i32,
+            "4 days idle and behind target should read as overdue"
+        );
+        assert_eq!(
+            squat_weight(&four_days),
+            base_weight,
+            "no deload before 14 days"
+        );
+
+        // +14 days: still overdue, and now the layoff deload kicks in at 90%.
+        let two_weeks = schedule_at(&svc, &user_id, &token, t0 + 14 * DAY).await;
+        assert_eq!(
+            two_weeks.training_status.as_ref().unwrap().readiness_state,
+            ReadinessState::Overdue as i32,
+        );
+        assert_eq!(
+            squat_weight(&two_weeks),
+            round5(base_weight * 0.9),
+            "at 14 days off, squat should deload to 90%"
+        );
+
+        // +30 days: deeper deload to 80% so a long break doesn't dump you back on
+        // your old max cold.
+        let one_month = schedule_at(&svc, &user_id, &token, t0 + 30 * DAY).await;
+        assert_eq!(
+            one_month.training_status.as_ref().unwrap().readiness_state,
+            ReadinessState::Overdue as i32,
+        );
+        assert_eq!(
+            squat_weight(&one_month),
+            round5(base_weight * 0.8),
+            "at 30 days off, squat should deload further to 80%"
+        );
+
+        // The deload is a proposal-time view, not a silent rewrite of your saved
+        // program: the stored weight is untouched, so if you *had* trained the
+        // baseline would still be there. Prove it by reading a fresh short-gap
+        // proposal — it's back at the full baseline weight.
+        let recovered_view = schedule_at(&svc, &user_id, &token, t0 + HOUR).await;
+        assert_eq!(
+            squat_weight(&recovered_view),
+            base_weight,
+            "deload must not have mutated stored program state"
+        );
+    }
 }
