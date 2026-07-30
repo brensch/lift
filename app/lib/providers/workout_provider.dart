@@ -471,12 +471,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    // Ready for the next set, or all done.
+    // Ready for the next set, or all done. When a set is up next, carry the
+    // previous rest's end (its restUntil) as lastRestEnd so the "yapping" count-up
+    // survives a re-derive — mirrors the READY branch in reducer.rs.
     _applyStateSnapshot(WorkoutStateSnapshot(
       state: nextUp == null
           ? WorkoutState.WORKOUT_STATE_ALL_DONE
           : WorkoutState.WORKOUT_STATE_READY,
       displaySet: nextUp,
+      lastRestEnd: nextUp != null && lastDone != null
+          ? lastDone.restUntil
+          : Int64.ZERO,
     ));
     _rebuildExerciseGroupsCache();
   }
