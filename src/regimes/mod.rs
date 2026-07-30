@@ -106,6 +106,31 @@ pub struct ProgramAtAGlanceMeta {
 
 // ─── Trait ────────────────────────────────────────────────────────────────────
 
+/// Compare two program states and report how far numeric weight-like fields were
+/// lowered by a comeback adjustment: `(count_lowered, representative_percent)`.
+/// Returns None when nothing was reduced. Shared by the regimes' comeback copy.
+pub fn comeback_weight_ratio(stored: &StatePayload, adjusted: &StatePayload) -> Option<(usize, i64)> {
+    use crate::program_state::FieldVal;
+    let as_num = |v: &FieldVal| match v {
+        FieldVal::Float(f) => Some(*f),
+        FieldVal::Int(i) => Some(*i as f64),
+        _ => None,
+    };
+    let mut lowered = 0;
+    let mut ratio_pct = 100i64;
+    for (key, adj) in adjusted.iter() {
+        let (Some(adj_num), Some(stored_num)) = (as_num(adj), stored.get(key).and_then(as_num))
+        else {
+            continue;
+        };
+        if adj_num + 0.001 < stored_num && stored_num > 0.0 {
+            lowered += 1;
+            ratio_pct = (adj_num / stored_num * 100.0).round() as i64;
+        }
+    }
+    (lowered > 0).then_some((lowered, ratio_pct))
+}
+
 pub trait WorkoutRegime: Send + Sync {
     fn display_name(&self) -> &'static str;
     fn catalog_meta(&self) -> ProgramCatalogMeta;
@@ -166,6 +191,23 @@ pub trait WorkoutRegime: Send + Sync {
     /// Returns false if `key` isn't a recognized option (leaves state untouched).
     fn set_next_session(&self, _state: &mut StatePayload, _key: &str) -> bool {
         false
+    }
+
+    /// Explain a comeback (return-from-layoff) adjustment in the regime's own
+    /// terms, given the `stored` state, the `adjusted` proposal-time state, and
+    /// how many `days_off` elapsed. Returns None when nothing was adjusted. The
+    /// default gives a generic weight-reduction summary; regimes override to
+    /// describe program-native resets (Wendler TM + week reset, GZCLP stage reset).
+    fn describe_comeback(
+        &self,
+        stored: &StatePayload,
+        adjusted: &StatePayload,
+        days_off: i64,
+    ) -> Option<String> {
+        let (_, ratio_pct) = comeback_weight_ratio(stored, adjusted)?;
+        Some(format!(
+            "Comeback deload: after {days_off} days away, today's weights were eased to about {ratio_pct}% so you rebuild over a session or two rather than grinding your old max cold."
+        ))
     }
 
     fn training_program_definition(&self, regime_type: RegimeType) -> TrainingProgramDefinition {

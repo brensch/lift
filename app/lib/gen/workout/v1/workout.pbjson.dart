@@ -2279,6 +2279,14 @@ const RegimeContext$json = {
       '5': 9,
       '10': 'nextSessionPreview'
     },
+    {'1': 'phase_narrative', '3': 4, '4': 1, '5': 9, '10': 'phaseNarrative'},
+    {
+      '1': 'last_session_summary',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '10': 'lastSessionSummary'
+    },
   ],
 };
 
@@ -2286,7 +2294,9 @@ const RegimeContext$json = {
 final $typed_data.Uint8List regimeContextDescriptor = $convert.base64Decode(
     'Cg1SZWdpbWVDb250ZXh0Ei4KE3JlZ2ltZV9kaXNwbGF5X25hbWUYASABKAlSEXJlZ2ltZURpc3'
     'BsYXlOYW1lEi8KE3Nlc3Npb25fZGVzY3JpcHRpb24YAiABKAlSEnNlc3Npb25EZXNjcmlwdGlv'
-    'bhIwChRuZXh0X3Nlc3Npb25fcHJldmlldxgDIAEoCVISbmV4dFNlc3Npb25QcmV2aWV3');
+    'bhIwChRuZXh0X3Nlc3Npb25fcHJldmlldxgDIAEoCVISbmV4dFNlc3Npb25QcmV2aWV3EicKD3'
+    'BoYXNlX25hcnJhdGl2ZRgEIAEoCVIOcGhhc2VOYXJyYXRpdmUSMAoUbGFzdF9zZXNzaW9uX3N1'
+    'bW1hcnkYBSABKAlSEmxhc3RTZXNzaW9uU3VtbWFyeQ==');
 
 @$core.Deprecated('Use getProposedWorkoutScheduleResponseDescriptor instead')
 const GetProposedWorkoutScheduleResponse$json = {

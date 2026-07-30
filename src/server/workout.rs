@@ -1,6 +1,6 @@
 use super::*;
 use crate::program_state::{
-    payload_from_proto, FieldVal, ProposalMessage, ProposeResult, StatePayload,
+    payload_from_proto, ProposalMessage, ProposeResult, StatePayload,
 };
 use crate::weight_units::{weight_unit_from_state, AppWeightUnit};
 use std::collections::HashMap;
@@ -16,6 +16,7 @@ pub struct ServerWorkoutService {
 
 impl ServerWorkoutService {
     fn maybe_annotate_temporal_adjustment(
+        regime: &dyn crate::regimes::WorkoutRegime,
         stored_payload: &StatePayload,
         effective_payload: &StatePayload,
         last_session_at: i64,
@@ -26,50 +27,14 @@ impl ServerWorkoutService {
             return;
         }
 
-        let changed_numeric = effective_payload
-            .iter()
-            .filter_map(|(key, effective)| {
-                let stored = stored_payload.get(key)?;
-                let stored_num = match stored {
-                    FieldVal::Float(v) => Some(v.to_owned()),
-                    FieldVal::Int(v) => Some(v.to_owned() as f64),
-                    _ => None,
-                }?;
-                let effective_num = match effective {
-                    FieldVal::Float(v) => Some(v.to_owned()),
-                    FieldVal::Int(v) => Some(v.to_owned() as f64),
-                    _ => None,
-                }?;
-                if (stored_num - effective_num).abs() < 0.001 {
-                    return None;
-                }
-                Some((key.as_str(), stored_num, effective_num))
-            })
-            .collect::<Vec<_>>();
-
-        if changed_numeric.is_empty() {
-            return;
-        }
-
         let days_since = ((now - last_session_at) / (24 * 3600)).max(0);
-        let ratio_pct = changed_numeric
-            .first()
-            .and_then(|(_, stored, effective)| {
-                if *stored > 0.0 {
-                    Some((effective / stored * 100.0).round() as i64)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(100);
-        let lowered_fields = changed_numeric.len();
-        let note = format!(
-            "Comeback deload applied: after {} days away, today's programmed weights were reduced to about {}% across {} setting{}.",
-            days_since,
-            ratio_pct,
-            lowered_fields,
-            if lowered_fields == 1 { "" } else { "s" }
-        );
+        // The regime describes its own comeback in program-native terms (Linear
+        // weight backoff, Wendler TM + Week-1 reset, GZCLP Stage-1 reset).
+        let Some(note) =
+            regime.describe_comeback(stored_payload, effective_payload, days_since)
+        else {
+            return;
+        };
         let already_present = proposal
             .schedule_messages
             .iter()
@@ -205,6 +170,7 @@ impl ServerWorkoutService {
         let mut proposal =
             regime.propose_from_state(&effective_state, last_session_at, now, &insights);
         Self::maybe_annotate_temporal_adjustment(
+            regime.as_ref(),
             &stored_payload,
             &effective_state,
             last_session_at,
@@ -217,6 +183,9 @@ impl ServerWorkoutService {
             .get_pending_workout_briefing_messages(user_id)
             .await
             .map_err(internal_error)?;
+        // Recap of last session's progression for the phase header.
+        proposal.regime_context.last_session_summary =
+            summarize_last_session(&pending_messages);
         schedule_messages.extend(pending_briefing_messages_for_proposal(
             &pending_messages,
             &proposal.proposed_groups,

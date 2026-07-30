@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../widgets/user_message_chip.dart';
+import '../../widgets/phase_explanation.dart';
 
 /// One titled section of the Exschplanation sheet — a session-wide or
 /// per-exercise group of schplanner messages.
@@ -16,8 +17,13 @@ class ExschplanationSection {
 /// PAGE 3 — the schplanner's reasoning for today's workout.
 class ExschplanationPage extends StatelessWidget {
   final List<ExschplanationSection> sections;
+  final RegimeContext? regimeContext;
 
-  const ExschplanationPage({super.key, required this.sections});
+  const ExschplanationPage({
+    super.key,
+    required this.sections,
+    this.regimeContext,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +60,23 @@ class ExschplanationPage extends StatelessWidget {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 20),
-        if (sections.isEmpty)
+        const SizedBox(height: 18),
+        // Where you are in the cycle + how you got here.
+        if (regimeContext != null) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: PhaseExplanation(context: regimeContext!),
+          ),
+          const SizedBox(height: 22),
+        ],
+        if (sections.isEmpty && regimeContext == null)
           Text(
             'No notes for this workout.',
             style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),

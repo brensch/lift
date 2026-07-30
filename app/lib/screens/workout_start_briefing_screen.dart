@@ -7,6 +7,7 @@ import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/user_message_chip.dart';
+import '../widgets/phase_explanation.dart';
 
 List<String> _slotKeysForStartConfig(ExerciseTypeConfig config) {
   final keys = <String>{};
@@ -217,6 +218,27 @@ class _WorkoutStartBriefingScreenState
                 ),
             ],
           ),
+
+          // ── Where you are in the cycle ────────────────────────────────────
+          if (regimeContext != null) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: PhaseExplanation(
+                context: regimeContext,
+                showHeadline: false,
+              ),
+            ),
+          ],
 
           // ── The plan ──────────────────────────────────────────────────────
           const SizedBox(height: 24),

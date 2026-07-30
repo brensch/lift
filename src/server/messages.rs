@@ -222,6 +222,51 @@ pub(super) fn pending_briefing_messages_for_proposal(
     out
 }
 
+/// One-line recap of what the progression did last session, built from the same
+/// progression messages that render as per-lift chips — e.g. "Since last time:
+/// Squat +5, Bench held". Empty when there's nothing to say.
+pub(super) fn summarize_last_session(pending_messages: &[UserMessage]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut seen: Vec<i32> = Vec::new();
+    for message in pending_messages {
+        let Some(details) = message.details.as_ref().and_then(|d| match &d.detail {
+            Some(user_message_details::Detail::Progression(p)) => Some(p),
+            _ => None,
+        }) else {
+            continue;
+        };
+        // One phrase per lift (the newest message per exercise wins; list is
+        // already newest-first from the caller).
+        if seen.contains(&message.exercise) {
+            continue;
+        }
+        seen.push(message.exercise);
+        let name = exercise_display_name(message.exercise());
+        let delta = details.next_weight - details.previous_weight;
+        let phrase = match details.change_kind() {
+            ProgressionChangeKind::Increase => format!("{name} +{}", trim_num(delta)),
+            ProgressionChangeKind::Deload => format!("{name} −{}", trim_num(delta.abs())),
+            ProgressionChangeKind::Hold => format!("{name} held"),
+            ProgressionChangeKind::CycleAdvance => format!("{name} TM +{}", trim_num(delta)),
+            ProgressionChangeKind::Unspecified => continue,
+        };
+        parts.push(phrase);
+    }
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!("Since last time: {}.", parts.join(", "))
+    }
+}
+
+fn trim_num(v: f32) -> String {
+    if (v - v.round()).abs() < 0.05 {
+        format!("{}", v.round() as i64)
+    } else {
+        format!("{v:.1}")
+    }
+}
+
 pub(super) fn attachable_briefing_messages_for_workout(
     pending_messages: &[UserMessage],
     groups: &[ExerciseGroup],

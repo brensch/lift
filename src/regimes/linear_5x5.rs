@@ -388,6 +388,35 @@ impl WorkoutRegime for Linear5x5Regime {
                 "Next: Workout {}. Alternate A/B each session; add weight after successful lifts.",
                 other_variant
             ),
+            phase_narrative: {
+                let lifts = workout_variant_exercises(next_variant_label)
+                    .iter()
+                    .map(|&ex| exercise_display_name(ex))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let mut s = format!(
+                    "Workout {next_variant_label} of the A/B rotation — {lifts}. Clear every set and each lift climbs next time; miss reps and it holds, then deloads 10% after three misses in a row.",
+                );
+                let stalls = workout_variant_exercises(next_variant_label)
+                    .iter()
+                    .filter_map(|&ex| {
+                        let n = get_int_or(state, stall_key(ex), 0);
+                        (n > 0).then(|| {
+                            format!(
+                                "{} is at {} miss{} (deloads at 3)",
+                                exercise_display_name(ex).to_lowercase(),
+                                n,
+                                if n == 1 { "" } else { "es" }
+                            )
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                if !stalls.is_empty() {
+                    s.push_str(&format!(" Heads up: {}.", stalls.join("; ")));
+                }
+                s
+            },
+            last_session_summary: String::new(),
         };
 
         ProposeResult {
@@ -396,6 +425,18 @@ impl WorkoutRegime for Linear5x5Regime {
             suggested_workout_name: format!("5×5 Workout {}", next_variant_label),
             schedule_messages: Vec::new(),
         }
+    }
+
+    fn describe_comeback(
+        &self,
+        stored: &StatePayload,
+        adjusted: &StatePayload,
+        days_off: i64,
+    ) -> Option<String> {
+        let (_, pct) = super::comeback_weight_ratio(stored, adjusted)?;
+        Some(format!(
+            "Back after {days_off} days off — following Stronglifts' comeback rule, today's working weights are eased to about {pct}% of where you left them. Clean sessions will climb you back in a week or two.",
+        ))
     }
 
     fn apply_temporal_adjustments_for_proposal(

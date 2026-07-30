@@ -427,6 +427,19 @@ impl WorkoutRegime for Wendler531Regime {
                     .join("/")
             ),
             next_session_preview: week_def.preview.to_string(),
+            phase_narrative: {
+                let role = match week {
+                    1 => "the base-building volume week; the last set is max reps",
+                    2 => "a heavier intensity week; the last set is max reps",
+                    3 => "your peak week — the top set is an all-out single",
+                    _ => "a light deload week before your training maxes go up",
+                };
+                format!(
+                    "Cycle {cycle} · {} — {role}. Everything is a percentage of your training max, not your true max, which is why it should feel doable.",
+                    week_def.name
+                )
+            },
+            last_session_summary: String::new(),
         };
 
         ProposeResult {
@@ -455,6 +468,9 @@ impl WorkoutRegime for Wendler531Regime {
         if days_since < 14 {
             return state.clone();
         }
+        // 5/3/1's own comeback: don't ad-hoc scale mid-cycle. Reset the Training
+        // Max (the one knob Wendler tunes) to a conservative level and restart the
+        // wave at Week 1 (Volume) so you re-enter on the lightest week.
         let pct = if days_since >= 30 { 0.8 } else { 0.9 };
         let unit = weight_unit_from_state(state);
         let mut adjusted = state.clone();
@@ -464,7 +480,28 @@ impl WorkoutRegime for Wendler531Regime {
                 .max(min_weight_lb(unit, 45.0, 20.0));
             set_f32(&mut adjusted, tm_key(ex), deloaded);
         }
+        set_int(&mut adjusted, KEY_WEEK, 1);
+        set_int(&mut adjusted, KEY_SESSION, 0);
         adjusted
+    }
+
+    fn describe_comeback(
+        &self,
+        stored: &StatePayload,
+        adjusted: &StatePayload,
+        days_off: i64,
+    ) -> Option<String> {
+        let (_, pct) = super::comeback_weight_ratio(stored, adjusted)?;
+        let was_week = get_int_or(stored, KEY_WEEK, 1);
+        let restarted = was_week != 1;
+        let mut s = format!(
+            "Back after {days_off} days off. The 5/3/1 way to return is to reset the training max, so yours is trimmed to about {pct}% of where it was",
+        );
+        if restarted {
+            s.push_str(" and the cycle restarts at Week 1 (Volume)");
+        }
+        s.push_str(" — you re-enter on the lightest week and the maxes climb again from there.");
+        Some(s)
     }
 
     fn derive_training_status(

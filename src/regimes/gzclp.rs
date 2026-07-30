@@ -561,6 +561,30 @@ impl WorkoutRegime for GzclpRegime {
                 idx + 1,
                 session_count
             ),
+            phase_narrative: {
+                let t1_desc = tmpl
+                    .t1
+                    .iter()
+                    .map(|&ex| {
+                        let stage = stage_str_to_u8_t1(get_str_or(
+                            state,
+                            t1_stage_key(ex),
+                            "stage_1_5x3",
+                        ));
+                        let (sets, reps) = t1_stage_prescription(stage);
+                        format!(
+                            "{} at Stage {stage} ({sets}×{reps})",
+                            exercise_display_name(ex)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" and ");
+                format!(
+                    "Session {} — your heavy T1 lift is {t1_desc}. Hit every rep and the weight climbs; miss and you cycle the scheme 5×3 → 6×2 → 10×1, then reset heavier. T2 is lighter volume behind it, T3 is the arms/abs finisher.",
+                    idx + 1
+                )
+            },
+            last_session_summary: String::new(),
         };
 
         ProposeResult {
@@ -599,6 +623,9 @@ impl WorkoutRegime for GzclpRegime {
         if days_since < 14 {
             return state.clone();
         }
+        // GZCLP's comeback: reset every T1 back to Stage 1 (5×3) — the safe rebuild
+        // scheme — and ease the loads, rather than returning to heavy 10×1 singles
+        // cold. T2 likewise resets to its first stage (3×10).
         let pct = if days_since >= 30 { 0.8 } else { 0.9 };
         let unit = weight_unit_from_state(state);
         let mut adjusted = state.clone();
@@ -609,6 +636,7 @@ impl WorkoutRegime for GzclpRegime {
                 t1_weight_key(ex),
                 round_to_unit_increment(w * pct, unit, 5.0, 2.5),
             );
+            set_str(&mut adjusted, t1_stage_key(ex), "stage_1_5x3");
         }
         for ex in [
             Exercise::BenchPress,
@@ -621,8 +649,29 @@ impl WorkoutRegime for GzclpRegime {
                 t2_weight_key(ex),
                 round_to_unit_increment(w * pct, unit, 5.0, 2.5),
             );
+            set_str(&mut adjusted, t2_stage_key(ex), "stage_1_3x10");
         }
         adjusted
+    }
+
+    fn describe_comeback(
+        &self,
+        stored: &StatePayload,
+        adjusted: &StatePayload,
+        days_off: i64,
+    ) -> Option<String> {
+        let (_, pct) = super::comeback_weight_ratio(stored, adjusted)?;
+        let was_advanced = [Exercise::Squat, Exercise::Deadlift].iter().any(|&ex| {
+            stage_str_to_u8_t1(get_str_or(stored, t1_stage_key(ex), "stage_1_5x3")) > 1
+        });
+        let mut s = format!(
+            "Back after {days_off} days off. Today eases the loads to about {pct}%",
+        );
+        if was_advanced {
+            s.push_str(" and resets your T1 lifts to Stage 1 (5×3)");
+        }
+        s.push_str(" — the safe rebuild scheme, rather than dropping you back onto heavy singles cold.");
+        Some(s)
     }
 
     fn derive_training_status(
