@@ -213,6 +213,20 @@ async fn apple_app_site_association_handler() -> Json<serde_json::Value> {
     };
 
     Json(serde_json::json!({
+        // Universal Links: open the app for join links (schlift.com/?join=…) and
+        // leave every other path to the website.
+        "applinks": {
+            "apps": [],
+            "details": [{
+                "appIDs": apps.clone(),
+                "components": [{
+                    "/": "/",
+                    "?": { "join": "?*" },
+                    "comment": "Open Schlift and join the multiplayer session"
+                }]
+            }]
+        },
+        // Passkeys.
         "webcredentials": {
             "apps": apps
         }

@@ -313,25 +313,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       if (uri != null) _handleDeepLink(uri);
     });
 
-    // Subscribed deep links
+    // Subscribed deep links. Joining is link-only: an https://schlift.com/?join=…
+    // App Link / Universal Link opens the app straight into the session. No
+    // clipboard scan, no manual paste.
     _linkSubscription = app_links.AppLinks().uriLinkStream.listen((uri) {
       _handleDeepLink(uri);
     });
-
-    // Deferred join check via clipboard
-    _checkClipboardForJoin();
-  }
-
-  Future<void> _checkClipboardForJoin() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && data!.text!.startsWith('schlift-join:')) {
-      final joinToken = data.text!.replaceFirst('schlift-join:', '');
-      // Clear clipboard so we don't keep joining
-      await Clipboard.setData(const ClipboardData(text: ''));
-      if (joinToken.isNotEmpty && _authProvider.isLoggedIn) {
-        _multiplayerProvider.joinViaInvite(joinToken);
-      }
-    }
   }
 
   void _handleDeepLink(Uri uri) {

@@ -48,12 +48,15 @@
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
 
-            <!-- Deep linking for workout sessions -->
+            <!-- Deep linking for workout sessions: tapping an invite link
+                 (https://schlift.com/?join=…) opens the app straight into the
+                 session. dev.schlift.com covers the side-by-side dev channel. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="schlift.com" />
+                <data android:scheme="https" android:host="dev.schlift.com" />
             </intent-filter>
         </activity>
         <activity-alias
