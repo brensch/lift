@@ -255,8 +255,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             .toList()
           ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
 
+    // Cancel the pending *working* sets optimistically — the edit replaces those.
+    // Leave the existing warmups on screen: the client no longer generates them,
+    // so cancelling here would blink them out until the server's recalculated
+    // warmups arrive. They stay at the old weight for ~one round-trip, then the
+    // response swaps in the new ladder in place — no disappear/reappear jump.
     for (final set in _activeProposedSets.where(
-      (p) => p.exerciseGroupId == existing.id && !completedIds.contains(p.id),
+      (p) =>
+          p.exerciseGroupId == existing.id &&
+          !completedIds.contains(p.id) &&
+          !p.warmup,
     )) {
       set.cancelled = true;
     }
