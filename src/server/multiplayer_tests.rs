@@ -328,4 +328,46 @@ mod session_history_tests {
         assert!(svc.db.get_user_current_session(&alice_id).await.unwrap().is_none());
         assert!(svc.db.get_user_current_session(&bob_id).await.unwrap().is_none());
     }
+
+    /// Two people joining the same inviter's link at the same time must both land
+    /// in the one session — not race into separate sessions that leave the inviter
+    /// with only one of them.
+    #[tokio::test]
+    async fn two_people_joining_one_inviter_land_in_the_same_session() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let (carol_id, carol_tok) = user(&svc, "carol").await;
+        let invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+
+        // Bob and Carol both accept Alice's invite concurrently.
+        let (r1, r2) = tokio::join!(
+            svc.join_via_invite(authed(
+                &bob_tok,
+                JoinViaInviteRequest { invite_token: invite.clone() },
+            )),
+            svc.join_via_invite(authed(
+                &carol_tok,
+                JoinViaInviteRequest { invite_token: invite.clone() },
+            )),
+        );
+        r1.unwrap();
+        r2.unwrap();
+
+        // Alice sees both of them in her single session.
+        let sess = svc
+            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let status = sess.session_status.as_ref().unwrap();
+        assert!(has_participant(status, &bob_id), "alice should see bob");
+        assert!(has_participant(status, &carol_id), "alice should see carol");
+
+        // And all three share one session id.
+        let a = svc.db.get_user_current_session(&alice_id).await.unwrap();
+        let b = svc.db.get_user_current_session(&bob_id).await.unwrap();
+        let c = svc.db.get_user_current_session(&carol_id).await.unwrap();
+        assert!(a.is_some() && a == b && b == c, "all three in one session: {a:?} {b:?} {c:?}");
+    }
 }
