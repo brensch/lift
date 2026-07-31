@@ -280,7 +280,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isSwappingSession = true);
     try {
       final grpc = context.read<GrpcClient>();
-      await WorkoutServiceWrapper(grpc).setNextWorkout(sessionKey);
+      final ws = WorkoutServiceWrapper(grpc);
+      await ws.setNextWorkout(sessionKey);
+      // Drop the saved draft: it holds the *previous* session's selection, which
+      // would otherwise partially re-match (e.g. squat is in both A and B) and
+      // leave the wrong exercises ticked. Clearing it makes the reload auto-select
+      // the newly-recommended exercises.
+      await ws.clearWorkoutDraft();
       if (!mounted) return;
       // Reload so the proposed groups, recovery strip and readiness all reflect
       // the newly-queued session.
