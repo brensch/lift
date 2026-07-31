@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../gen/workout/v1/workout.pbenum.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';

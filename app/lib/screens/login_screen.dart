@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/wobbly_text.dart';
+import '../widgets/common/primary_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -351,24 +352,11 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 56,
-          child: FilledButton.icon(
-            onPressed: auth.isLoading ? null : () => _createAccount(),
-            icon: const Icon(Icons.fingerprint, size: 24),
-            label: auth.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('CREATE ACCOUNT'),
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              side: BorderSide(color: colorScheme.primary, width: 1.0),
-            ),
-          ),
+        PrimaryButton(
+          label: 'Create account',
+          icon: Icons.fingerprint,
+          loading: auth.isLoading,
+          onPressed: auth.isLoading ? null : () => _createAccount(),
         ),
       ],
     );
@@ -395,24 +383,11 @@ class _LoginScreenState extends State<LoginScreen>
               textAlign: TextAlign.left,
             ),
           ),
-        SizedBox(
-          height: 56,
-          child: FilledButton.icon(
-            onPressed: auth.isLoading ? null : _passkeyLogin,
-            icon: const Icon(Icons.fingerprint, size: 24),
-            label: auth.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('SIGN IN'),
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              side: BorderSide(color: colorScheme.primary, width: 1.0),
-            ),
-          ),
+        PrimaryButton(
+          label: 'Sign in',
+          icon: Icons.fingerprint,
+          loading: auth.isLoading,
+          onPressed: auth.isLoading ? null : _passkeyLogin,
         ),
       ],
     );

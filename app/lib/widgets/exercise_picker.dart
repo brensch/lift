@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
+import '../theme/app_theme.dart';
 import 'exercise_graphic.dart';
 
 /// Per-body-part accent colour, used for both the filter chips and the row tags.
@@ -112,21 +113,15 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            color: AppTheme.sheetColor(context),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTheme.radiusLg),
+            ),
           ),
           child: Column(
             children: [
               // grab handle
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 4),
-                width: 56,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: colorScheme.outline.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
+              AppTheme.sheetHandle(context),
               // header
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 12, 4),
@@ -134,11 +129,11 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'ADD EXERCISE',
+                        'Add exercise',
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
                       ),
                     ),

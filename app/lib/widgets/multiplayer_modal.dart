@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/multiplayer_provider.dart';
+import '../theme/app_theme.dart';
 import 'participant_ticker.dart';
 
 String _shareUrl(String inviteToken) =>
@@ -275,17 +276,15 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         .where((p) => !sessionMemberIds.contains(p.user.id))
         .toList();
 
-    final modalSurface = cs.brightness == Brightness.dark
-        ? cs.surfaceContainerHigh
-        : cs.surfaceContainerLow;
-
     return SafeArea(
       top: false,
       child: Container(
         constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
         decoration: BoxDecoration(
-          color: modalSurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          color: AppTheme.sheetColor(context),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTheme.radiusLg),
+          ),
           border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
         ),
         padding: const EdgeInsets.all(24),
@@ -294,6 +293,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(child: AppTheme.sheetHandle(context)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

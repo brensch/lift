@@ -6,6 +6,7 @@ import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../logic/user_profile.dart';
 import '../../../logic/weight_units.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../widgets/common/primary_button.dart';
 
 class ConfirmStep extends StatelessWidget {
   final TrainingProgramDefinition program;
@@ -209,28 +210,11 @@ class ConfirmStep extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: onSave,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: accent,
-                      foregroundColor: onAccent,
-                    ),
-                    child: isSaving
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: onAccent,
-                            ),
-                          )
-                        : const Text(
-                            'START',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                  ),
+                child: PrimaryButton(
+                  label: 'Start',
+                  accent: accent,
+                  loading: isSaving,
+                  onPressed: onSave,
                 ),
               ),
             ],

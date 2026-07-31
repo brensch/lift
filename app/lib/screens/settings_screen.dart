@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/top_level_back_scope.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -202,6 +203,7 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              AppTheme.sheetHandle(context),
               ListTile(
                 title: const Text('Pounds (🦅)'),
                 subtitle: const Text('Standard US gym loading'),
@@ -297,6 +299,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(child: AppTheme.sheetHandle(context)),
               const Text(
                 'Body weight',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
