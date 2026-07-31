@@ -28,6 +28,32 @@ class _ProgressScreenState extends State<ProgressScreen> {
   double _totalVolume = 0;
   bool _isLoading = true;
 
+  // Time-scale filter for the charts. null = all time.
+  static const _windows = <({String label, int? days})>[
+    (label: '1M', days: 31),
+    (label: '3M', days: 92),
+    (label: '6M', days: 183),
+    (label: '1Y', days: 365),
+    (label: 'All', days: null),
+  ];
+  int _windowIdx = _windows.length - 1; // default: All
+
+  /// Filter each series to the selected window, dropping exercises with nothing
+  /// in range. Getters (current/best/1RM/gain) then read the windowed points.
+  List<_ExerciseProgress> _windowed(List<_ExerciseProgress> all) {
+    final days = _windows[_windowIdx].days;
+    if (days == null) return all;
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    final out = <_ExerciseProgress>[];
+    for (final s in all) {
+      final pts = s.points.where((p) => p.date.isAfter(cutoff)).toList();
+      if (pts.isEmpty) continue;
+      out.add(_ExerciseProgress(
+          exercise: s.exercise, points: pts, color: s.color));
+    }
+    return out;
+  }
+
   // A calm, distinct colour per exercise (cycled by index).
   static const _palette = [
     Color(0xFF60A5FA), // blue
@@ -106,6 +132,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
       return scaffold(_EmptyState(cs: cs));
     }
 
+    final shown = _windowed(_series!);
+
     return scaffold(
       ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -120,11 +148,27 @@ class _ProgressScreenState extends State<ProgressScreen> {
             unit: unit,
             cs: cs,
           ),
-          const SizedBox(height: 16),
-          for (final s in _series!) ...[
-            _ExerciseCard(series: s, unit: unit, cs: cs),
-            const SizedBox(height: 10),
-          ],
+          const SizedBox(height: 14),
+          _WindowSelector(
+            labels: [for (final w in _windows) w.label],
+            selected: _windowIdx,
+            onSelect: (i) => setState(() => _windowIdx = i),
+            cs: cs,
+          ),
+          const SizedBox(height: 14),
+          if (shown.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: Center(
+                child: Text('No lifts in the last ${_windows[_windowIdx].label}.',
+                    style: TextStyle(color: cs.tertiary, fontSize: 14)),
+              ),
+            )
+          else
+            for (final s in shown) ...[
+              _ExerciseCard(series: s, unit: unit, cs: cs),
+              const SizedBox(height: 10),
+            ],
         ],
       ),
     );
@@ -178,6 +222,73 @@ class _SummaryHeader extends StatelessWidget {
           Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
         ],
       );
+}
+
+/// Segmented control for the chart time-scale (1M / 3M / 6M / 1Y / All).
+class _WindowSelector extends StatelessWidget {
+  final List<String> labels;
+  final int selected;
+  final ValueChanged<int> onSelect;
+  final ColorScheme cs;
+  const _WindowSelector({
+    required this.labels,
+    required this.selected,
+    required this.onSelect,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelect(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  decoration: BoxDecoration(
+                    color: i == selected ? cs.surface : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: i == selected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      labels[i],
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight:
+                            i == selected ? FontWeight.w900 : FontWeight.w700,
+                        color: i == selected
+                            ? cs.onSurface
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ExerciseCard extends StatelessWidget {
