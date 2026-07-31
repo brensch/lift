@@ -17,6 +17,9 @@ class PhaseExplanation extends StatelessWidget {
   /// the surrounding screen already shows it (e.g. the briefing subtitle).
   final bool showHeadline;
 
+  /// When false, the "Next: …" preview line is omitted (keeps the home hero clean).
+  final bool showNext;
+
   /// Optional color overrides for dark surfaces (e.g. the home readiness hero);
   /// defaults to the theme's on-surface colors.
   final Color? textColor;
@@ -28,6 +31,7 @@ class PhaseExplanation extends StatelessWidget {
     required this.context,
     this.compact = false,
     this.showHeadline = true,
+    this.showNext = true,
     this.textColor,
     this.mutedColor,
     this.accentColor,
@@ -105,7 +109,7 @@ class PhaseExplanation extends StatelessWidget {
       );
     }
 
-    if (!compact && next.isNotEmpty) {
+    if (!compact && showNext && next.isNotEmpty) {
       children.add(const SizedBox(height: 10));
       children.add(
         Row(
