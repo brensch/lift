@@ -61,6 +61,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               .map((p) => _Point(
                     DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
                     p.topWeight,
+                    p.bestOneRepMax,
                   ))
               .toList(),
           color: _palette[i % _palette.length],
@@ -190,102 +191,149 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = exerciseNames[series.exercise] ?? '?';
     final emoji = exerciseEmojis[series.exercise] ?? '🏋️';
-    final suffix = weightUnitSuffix(unit);
     final gain = series.gain;
     final gainColor = gain > 0 ? const Color(0xFF34D399) : cs.tertiary;
     final gainText = gain == 0
-        ? 'no change yet'
-        : '${gain > 0 ? '+' : ''}${formatWeight(gain, unit)} $suffix';
+        ? ''
+        : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+            color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
+          ),
+          child: Row(
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        letterSpacing: -0.3)),
+              // LEFT — name + current (with gain)
+              SizedBox(
+                width: 104,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(emoji, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13.5,
+                                  letterSpacing: -0.2)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Flexible(
+                          child: Text(formatWeight(series.current, unit),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                  letterSpacing: -0.3,
+                                  color: series.color,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ])),
+                        ),
+                        if (gainText.isNotEmpty) ...[
+                          const SizedBox(width: 5),
+                          Text(gainText,
+                              style: TextStyle(
+                                  color: gainColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 10),
+              // MIDDLE — bounded trend graph (not full width)
+              Expanded(
+                child: SizedBox(
+                  height: 38,
+                  child: series.points.length >= 2
+                      ? _Chart(
+                          series: series, unit: unit, cs: cs, compact: true)
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('1 session',
+                              style:
+                                  TextStyle(color: cs.tertiary, fontSize: 11)),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // RIGHT — 1RM + best, stacked tight
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('${formatWeight(series.current, unit)} $suffix',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 20,
-                          color: series.color)),
-                  Text(gainText,
-                      style: TextStyle(
-                          color: gainColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700)),
+                  _rightStat('1RM', formatWeight(series.bestOneRm, unit), cs),
+                  const SizedBox(height: 4),
+                  _rightStat('BEST', formatWeight(series.best, unit), cs),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          if (series.points.length >= 2)
-            SizedBox(height: 88, child: _Chart(series: series, unit: unit, cs: cs))
-          else
-            Text('One session so far — keep going to see a trend.',
-                style: TextStyle(color: cs.tertiary, fontSize: 13)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _footStat('Start', '${formatWeight(series.start, unit)} $suffix', cs),
-              const SizedBox(width: 20),
-              _footStat('Best', '${formatWeight(series.best, unit)} $suffix', cs),
-              const SizedBox(width: 20),
-              _footStat('Sessions', '${series.points.length}', cs),
-            ],
-          ),
-        ],
-      ),
         ),
       ),
     );
   }
 
-  Widget _footStat(String label, String value, ColorScheme cs) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _rightStat(String label, String value, ColorScheme cs) => Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: [
-          Text(label.toUpperCase(),
+          Text(label,
               style: TextStyle(
-                  color: cs.tertiary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5)),
-          const SizedBox(height: 2),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: cs.tertiary)),
+          const SizedBox(width: 6),
           Text(value,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  fontFeatures: [FontFeature.tabularFigures()])),
         ],
       );
+
 }
 
 class _Chart extends StatelessWidget {
   final _ExerciseProgress series;
   final WeightUnit unit;
   final ColorScheme cs;
-  const _Chart({required this.series, required this.unit, required this.cs});
+
+  /// Compact strips axes, grid, labels and touch — a bare inline sparkline for
+  /// the slim card row. The card's InkWell owns the tap.
+  final bool compact;
+  const _Chart({
+    required this.series,
+    required this.unit,
+    required this.cs,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -297,6 +345,49 @@ class _Chart extends StatelessWidget {
     final minW = pts.map((p) => p.weight).reduce((a, b) => a < b ? a : b);
     final maxW = pts.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
     final pad = ((maxW - minW) * 0.25).clamp(2.0, double.infinity);
+
+    if (compact) {
+      return LineChart(
+        LineChartData(
+          minY: minW - pad,
+          maxY: maxW + pad,
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(show: false),
+          borderData: FlBorderData(show: false),
+          lineTouchData: const LineTouchData(enabled: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              curveSmoothness: 0.2,
+              color: series.color,
+              barWidth: 2.5,
+              dotData: FlDotData(
+                show: true,
+                checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
+                getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
+                  radius: 3,
+                  color: series.color,
+                  strokeWidth: 0,
+                  strokeColor: series.color,
+                ),
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    series.color.withValues(alpha: 0.22),
+                    series.color.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return LineChart(
       LineChartData(
@@ -423,7 +514,8 @@ String _shortDate(DateTime d) {
 class _Point {
   final DateTime date;
   final double weight;
-  _Point(this.date, this.weight);
+  final double oneRm;
+  _Point(this.date, this.weight, this.oneRm);
 }
 
 class _ExerciseProgress {
@@ -436,5 +528,7 @@ class _ExerciseProgress {
   double get start => points.first.weight;
   double get current => points.last.weight;
   double get best => points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
+  double get bestOneRm =>
+      points.map((p) => p.oneRm).reduce((a, b) => a > b ? a : b);
   double get gain => current - start;
 }
