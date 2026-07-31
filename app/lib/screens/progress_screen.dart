@@ -122,7 +122,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           const SizedBox(height: 16),
           for (final s in _series!) ...[
             _ExerciseCard(series: s, unit: unit, cs: cs),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
           ],
         ],
       ),
@@ -203,7 +203,7 @@ class _ExerciseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
@@ -241,13 +241,13 @@ class _ExerciseCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           if (series.points.length >= 2)
-            SizedBox(height: 140, child: _Chart(series: series, unit: unit, cs: cs))
+            SizedBox(height: 88, child: _Chart(series: series, unit: unit, cs: cs))
           else
             Text('One session so far — keep going to see a trend.',
                 style: TextStyle(color: cs.tertiary, fontSize: 13)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               _footStat('Start', '${formatWeight(series.start, unit)} $suffix', cs),
