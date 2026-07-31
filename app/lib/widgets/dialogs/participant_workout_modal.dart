@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../gen/workout/v1/group.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_groups.dart';
+import '../../theme/app_theme.dart';
 import '../exercise_group_widget.dart';
 
 Future<void> showParticipantWorkoutModal(
@@ -30,21 +31,24 @@ Future<void> showParticipantWorkoutModal(
 
       return Container(
         decoration: BoxDecoration(
-          color: colorScheme.secondary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: AppTheme.sheetColor(ctx),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTheme.radiusLg),
+          ),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
         ),
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           left: 24,
           right: 24,
-          top: 24,
+          top: 8,
         ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Center(child: AppTheme.sheetHandle(ctx)),
               Row(
                 children: [
                   Expanded(

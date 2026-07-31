@@ -10,6 +10,7 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/top_level_back_scope.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
@@ -303,7 +304,7 @@ class _ExerciseCard extends StatelessWidget {
     final name = exerciseNames[series.exercise] ?? '?';
     final emoji = exerciseEmojis[series.exercise] ?? '🏋️';
     final gain = series.gain;
-    final gainColor = gain > 0 ? const Color(0xFF34D399) : cs.tertiary;
+    final gainColor = gain > 0 ? AppTheme.accentGreen : cs.tertiary;
     final gainText = gain == 0
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
@@ -311,12 +312,12 @@ class _ExerciseCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppTheme.brMd,
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: AppTheme.brMd,
             border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
           ),

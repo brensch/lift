@@ -7,12 +7,50 @@ class AppTheme {
   AppTheme._();
 
   // ─── Shared constants ───────────────────────────────────────────────
-  static const _radius = 8.0;
+  static const _radius = radiusSm;
   static const _fontScale = 1.06;
   static final _borderRadius = BorderRadius.circular(_radius);
   static final _buttonShape = RoundedRectangleBorder(
     borderRadius: _borderRadius,
   );
+
+  // ─── Radius scale (one system) ──────────────────────────────────────
+  static const radiusSm = 10.0; // chips, inputs, segmented, small buttons
+  static const radiusMd = 16.0; // cards, primary CTAs
+  static const radiusLg = 24.0; // sheets, dialogs
+  static final brSm = BorderRadius.circular(radiusSm);
+  static final brMd = BorderRadius.circular(radiusMd);
+  static final brLg = BorderRadius.circular(radiusLg);
+
+  // ─── Accent / status — one value per role, used app-wide ────────────
+  static const accentGreen = Color(0xFF3AD98B); // ready / success
+  static const accentBlue = Color(0xFF6EA8FF); // rest / info
+  static const accentAmber = Color(0xFFF5B544); // overdue / warning
+  static const accentRed = Color(0xFFEF4444); // destructive / error
+
+  // ─── Elevated panel (sheets / dialogs / solid cards) ────────────────
+  static const panelDark = Color(0xFF161619);
+  static const panelLight = Colors.white;
+
+  /// Standard grab handle for bottom sheets (36×4, outlineVariant).
+  static Widget sheetHandle(BuildContext context) => Container(
+        width: 36,
+        height: 4,
+        margin: const EdgeInsets.only(top: 8, bottom: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+
+  /// Translucent card fill used on the dark ground (white @ ~4%).
+  static Color cardFill(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04);
+
+  /// Canonical elevated surface for a bottom sheet / dialog body (panel).
+  static Color sheetColor(BuildContext context) =>
+      Theme.of(context).bottomSheetTheme.backgroundColor ??
+      Theme.of(context).colorScheme.surface;
 
   static TextTheme _themedTextTheme(TextTheme base) {
     final bodyText = GoogleFonts.manropeTextTheme(base);
@@ -38,37 +76,37 @@ class AppTheme {
     return bodyText.copyWith(
       displayLarge: heading(
         scaled(bodyText.displayLarge),
-        weight: FontWeight.w700,
+        weight: FontWeight.w900,
         letterSpacing: -0.8,
       ),
       displayMedium: heading(
         scaled(bodyText.displayMedium),
-        weight: FontWeight.w700,
+        weight: FontWeight.w900,
         letterSpacing: -0.6,
       ),
       displaySmall: heading(
         scaled(bodyText.displaySmall),
-        weight: FontWeight.w700,
+        weight: FontWeight.w900,
         letterSpacing: -0.4,
       ),
       headlineLarge: heading(
         scaled(bodyText.headlineLarge),
-        weight: FontWeight.w700,
+        weight: FontWeight.w800,
         letterSpacing: -0.4,
       ),
       headlineMedium: heading(
         scaled(bodyText.headlineMedium),
-        weight: FontWeight.w700,
+        weight: FontWeight.w800,
         letterSpacing: -0.3,
       ),
       headlineSmall: heading(
         scaled(bodyText.headlineSmall),
-        weight: FontWeight.w700,
+        weight: FontWeight.w800,
         letterSpacing: -0.2,
       ),
       titleLarge: heading(
         scaled(bodyText.titleLarge),
-        weight: FontWeight.w700,
+        weight: FontWeight.w800,
         letterSpacing: -0.2,
       ),
       titleMedium: heading(
@@ -104,6 +142,8 @@ class AppTheme {
   static const activeBg = Color(0x1AF97316); // orange-500 @ 10%
   static const activeFg = Color(0xFFEA580C); // orange-600
   static const destructive = Color(0xFFDC2626); // red-600
+  // Workout-state colours — intentionally distinct from the accent trio and
+  // kept stable (lifting green, resting blue, yapping pink). Do not remap.
   static const workoutLiftingBg = successBg;
   static const workoutLiftingFg = successFg;
   static const workoutRestingBg = Color(0x1A3B82F6);
@@ -143,7 +183,7 @@ class AppTheme {
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: _borderRadius,
+        borderRadius: brMd,
         side: const BorderSide(color: Color(0xFFE5E5E5)),
       ),
       margin: EdgeInsets.zero,
@@ -197,7 +237,7 @@ class AppTheme {
     dialogTheme: DialogThemeData(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: brLg),
     ),
     drawerTheme: const DrawerThemeData(
       backgroundColor: Colors.white,
@@ -208,8 +248,8 @@ class AppTheme {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+          topLeft: Radius.circular(radiusLg),
+          topRight: Radius.circular(radiusLg),
         ),
       ),
     ),
@@ -269,10 +309,10 @@ class AppTheme {
       surfaceTintColor: Colors.transparent,
     ),
     cardTheme: CardThemeData(
-      color: const Color(0xFF141414),
+      color: panelDark,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: _borderRadius,
+        borderRadius: brMd,
         side: const BorderSide(color: Color(0xFF262626)),
       ),
       margin: EdgeInsets.zero,
@@ -324,21 +364,21 @@ class AppTheme {
       labelStyle: const TextStyle(color: Color(0xFFA3A3A3)),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: const Color(0xFF141414),
+      backgroundColor: panelDark,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: brLg),
     ),
     drawerTheme: const DrawerThemeData(
       backgroundColor: Color(0xFF0A0A0A),
       surfaceTintColor: Colors.transparent,
     ),
     bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Color(0xFF141414),
+      backgroundColor: panelDark,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+          topLeft: Radius.circular(radiusLg),
+          topRight: Radius.circular(radiusLg),
         ),
       ),
     ),

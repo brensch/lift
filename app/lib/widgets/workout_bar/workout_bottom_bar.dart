@@ -244,9 +244,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   builder: (context, scrollController) {
                     return Container(
                       decoration: BoxDecoration(
-                        color: colorScheme.secondary,
+                        color: AppTheme.sheetColor(sheetContext),
                         borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(28),
+                          top: Radius.circular(AppTheme.radiusLg),
                         ),
                         border: Border.all(
                           color: colorScheme.outline.withValues(alpha: 0.5),
@@ -254,6 +254,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       ),
                       child: Column(
                         children: [
+                          Center(child: AppTheme.sheetHandle(sheetContext)),
                           Expanded(
                             child: ListView(
                               controller: scrollController,

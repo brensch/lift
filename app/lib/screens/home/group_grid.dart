@@ -9,6 +9,7 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
 import '../../logic/weight_units.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/user_message_chip.dart';
 import 'exercise_config_details.dart';
 import 'home_selection.dart';
@@ -176,7 +177,6 @@ class GroupChip extends StatelessWidget {
 
   Future<void> _showDetails(BuildContext context) {
     final unit = context.read<SettingsProvider>().weightUnit;
-    final colorScheme = Theme.of(context).colorScheme;
     final groupMessages = messagesForHomeGroup(group, scheduleMessages);
 
     return showModalBottomSheet<void>(
@@ -187,8 +187,10 @@ class GroupChip extends StatelessWidget {
       builder: (sheetContext) => SafeArea(
         child: Container(
           decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            color: AppTheme.sheetColor(context),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTheme.radiusLg),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.12),

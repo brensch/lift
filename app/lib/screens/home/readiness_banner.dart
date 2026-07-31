@@ -7,12 +7,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/phase_explanation.dart';
 
 // Fixed accent palette (the hero is a dark card in both themes, like the mockup).
-const _green = Color(0xFF3AD98B);
-const _amber = Color(0xFFF5B544);
-const _blue = Color(0xFF6EA8FF);
+const _green = AppTheme.accentGreen;
+const _amber = AppTheme.accentAmber;
+const _blue = AppTheme.accentBlue;
 
 class _StateStyle {
   final Color accent;

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../logic/exercise_groups.dart';
+import '../../theme/app_theme.dart';
 import 'compact_exercise_config.dart';
 import 'editable_config.dart';
 import 'exercise_chip_selector.dart';
@@ -149,9 +150,9 @@ Future<void> showEditExerciseDialog(
 
           return Container(
             decoration: BoxDecoration(
-              color: colorScheme.secondary,
+              color: AppTheme.sheetColor(ctx),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
+                top: Radius.circular(AppTheme.radiusLg),
               ),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.5),
@@ -161,13 +162,14 @@ Future<void> showEditExerciseDialog(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
               left: 24,
               right: 24,
-              top: 24,
+              top: 8,
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(child: AppTheme.sheetHandle(ctx)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -175,9 +177,9 @@ Future<void> showEditExerciseDialog(
                         child: Text(
                           'Edit ${group.group?.name ?? exerciseNames[group.exercise] ?? 'Unknown'}',
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
                           ),
                         ),
                       ),
@@ -398,9 +400,9 @@ Future<void> showAddExerciseDialog(
 
           return Container(
             decoration: BoxDecoration(
-              color: colorScheme.secondary,
+              color: AppTheme.sheetColor(ctx),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
+                top: Radius.circular(AppTheme.radiusLg),
               ),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.5),
@@ -410,22 +412,23 @@ Future<void> showAddExerciseDialog(
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
               left: 24,
               right: 24,
-              top: 24,
+              top: 8,
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(child: AppTheme.sheetHandle(ctx)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'ADD EXERCISE GROUP',
+                        'Add exercise group',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       IconButton(

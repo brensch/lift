@@ -16,9 +16,10 @@ import '../../logic/exercises.dart';
 import '../../logic/exercise_groups.dart';
 import '../../logic/utils.dart';
 import '../../logic/weight_units.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/common/primary_button.dart';
 import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
 import '../../widgets/phase_explanation.dart';
-import '../workout_start_briefing_screen.dart';
 import 'home_selection.dart';
 
 
@@ -156,6 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _startWorkout() async {
     if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
 
+    // Refresh the schedule so the workout starts from the latest weights, then
+    // start immediately — the home screen now carries the context the old
+    // pre-workout briefing used to show, so there's nothing left to preview.
     final auth = context.read<AuthProvider>();
     final grpc = context.read<GrpcClient>();
     final workoutService = WorkoutServiceWrapper(grpc);
@@ -163,20 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
       auth.userId!,
     );
     if (!mounted) return;
-
-    final freshStatusMap = <int, ExerciseStatus>{
-      for (final status in freshSchedule.exerciseStatuses)
-        status.exercise.value: status,
-    };
-    final selectedGroups = (_selectedGroupIndices.toList()..sort())
-        .map(
-          (idx) => _selectableGroups![idx].toWorkoutGroup(
-            workoutOrder: idx,
-            statusMap: freshStatusMap,
-            forWorkoutStart: false,
-          ),
-        )
-        .toList(growable: false);
 
     setState(() {
       _schedule = freshSchedule.exerciseStatuses;
@@ -189,32 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _suggestedWorkoutBaseName = freshSchedule.suggestedWorkoutName.trim();
     });
 
-    final workoutName = _buildWorkoutName(
-      freshSchedule.suggestedWorkoutName.trim().isNotEmpty
-          ? freshSchedule.suggestedWorkoutName.trim()
-          : (freshSchedule.hasRegimeContext() &&
-                    freshSchedule.regimeContext.regimeDisplayName
-                        .trim()
-                        .isNotEmpty
-                ? freshSchedule.regimeContext.regimeDisplayName.trim()
-                : _currentWorkoutBaseName()),
-    );
-    if (!mounted) return;
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => WorkoutStartBriefingScreen(
-          workoutName: workoutName,
-          regimeContext: freshSchedule.hasRegimeContext()
-              ? freshSchedule.regimeContext
-              : null,
-          scheduleMessages: freshSchedule.userMessages,
-          selectedGroups: selectedGroups,
-          estimatedTimeLabel: _predictedWorkoutTimeLabel(),
-          onStartWorkout: _performWorkoutStart,
-        ),
-      ),
-    );
+    await _performWorkoutStart();
   }
 
   Future<void> _performWorkoutStart() async {
@@ -874,54 +839,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          SizedBox(
-            width: double.infinity,
-            height: 58,
-            child: FilledButton(
-              onPressed: canStart ? _startWorkout : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: style.accent,
-                foregroundColor: Colors.black,
-                disabledBackgroundColor:
-                    cs.surfaceContainerHighest.withValues(alpha: 0.4),
-                disabledForegroundColor: cs.onSurfaceVariant,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-              child: _isStarting
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.black),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Start workout',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        if (est != '--') ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '· $est',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                              color: Colors.black.withValues(alpha: 0.55),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-            ),
+          PrimaryButton(
+            label: 'Start workout',
+            trailing: est != '--' ? '· $est' : null,
+            accent: style.accent,
+            loading: _isStarting,
+            onPressed: canStart ? _startWorkout : null,
           ),
         ],
       ),
@@ -938,20 +861,17 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => _EditSheet(
         groups: groups,
-        initialSelected: _selectedGroupIndices,
+        currentSelection: () => _selectedGroupIndices,
         unit: unit,
         statusMap: _statusMap(),
         resolveWeight: _resolveWeight,
         onToggle: _toggleGroup,
-        onEdit: (i) {
-          Navigator.of(sheetCtx).pop();
-          _editGroup(i);
-        },
+        // These open a dialog on TOP of the sheet (root navigator) and complete
+        // when it closes — the sheet stays put and refreshes itself, instead of
+        // being dismissed.
+        onEdit: _editGroup,
         onDelete: _deleteSavedGroup,
-        onAddSaved: () {
-          Navigator.of(sheetCtx).pop();
-          _showAddSavedGroupDialog();
-        },
+        onAddSaved: _showAddSavedGroupDialog,
       ),
     );
   }
@@ -959,9 +879,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // ─── Concept B home widgets ───────────────────────────────────────────────────
 
-const Color _kGreen = Color(0xFF3AD98B);
-const Color _kAmber = Color(0xFFF5B544);
-const Color _kBlue = Color(0xFF6EA8FF);
+const Color _kGreen = AppTheme.accentGreen;
+const Color _kAmber = AppTheme.accentAmber;
+const Color _kBlue = AppTheme.accentBlue;
 
 class _ReadinessStyle {
   final String headline; // may contain a newline for the big two-line title
@@ -1217,19 +1137,19 @@ class _SessionSwapToggle extends StatelessWidget {
 /// Ticking includes it in today; tapping the row opens the exercise editor.
 class _EditSheet extends StatefulWidget {
   final List<HomeSelectableGroup> groups;
-  final Set<int> initialSelected;
+  final Set<int> Function() currentSelection;
   final WeightUnit unit;
   final Map<int, ExerciseStatus> statusMap;
   final double Function(
       HomeSelectableGroup, ExerciseTypeConfig, Map<int, ExerciseStatus>) resolveWeight;
   final ValueChanged<int> onToggle;
-  final ValueChanged<int> onEdit;
-  final ValueChanged<int> onDelete;
-  final VoidCallback onAddSaved;
+  final Future<void> Function(int) onEdit;
+  final Future<void> Function(int) onDelete;
+  final Future<void> Function() onAddSaved;
 
   const _EditSheet({
     required this.groups,
-    required this.initialSelected,
+    required this.currentSelection,
     required this.unit,
     required this.statusMap,
     required this.resolveWeight,
@@ -1244,17 +1164,17 @@ class _EditSheet extends StatefulWidget {
 }
 
 class _EditSheetState extends State<_EditSheet> {
-  late final Set<int> _selected = {...widget.initialSelected};
-
+  // No local selection copy — read the live selection from the parent so the
+  // sheet always reflects the truth (edits/adds/deletes mutate it underneath).
   void _toggle(int i) {
-    setState(() {
-      if (_selected.contains(i)) {
-        _selected.remove(i);
-      } else {
-        _selected.add(i);
-      }
-    });
     widget.onToggle(i);
+    setState(() {});
+  }
+
+  /// Run a parent action that opens a dialog over the sheet, then refresh.
+  Future<void> _thenRefresh(Future<void> Function() action) async {
+    await action();
+    if (mounted) setState(() {});
   }
 
   List<int> _indicesFor(HomeGroupSection section) => [
@@ -1276,22 +1196,15 @@ class _EditSheetState extends State<_EditSheet> {
       expand: false,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: AppTheme.sheetColor(context),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLg)),
           border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
         ),
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
         child: Column(
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: cs.outlineVariant,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
+            AppTheme.sheetHandle(context),
             Row(
               children: [
                 const Text('Customize workout',
@@ -1309,7 +1222,7 @@ class _EditSheetState extends State<_EditSheet> {
             ),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Toggle what’s in today. Tap a lift to adjust it.',
+              child: Text('Tap to add or drop a lift. Use the sliders to change sets & weight.',
                   style: TextStyle(
                       fontSize: 12, color: cs.onSurfaceVariant, height: 1.3)),
             ),
@@ -1350,7 +1263,7 @@ class _EditSheetState extends State<_EditSheet> {
             const Spacer(),
             if (showAdd)
               GestureDetector(
-                onTap: widget.onAddSaved,
+                onTap: () => _thenRefresh(widget.onAddSaved),
                 child: Row(
                   children: [
                     Icon(Icons.add_rounded, size: 15, color: cs.primary),
@@ -1383,7 +1296,7 @@ class _EditSheetState extends State<_EditSheet> {
 
   Widget _groupRow(ColorScheme cs, int i) {
     final g = widget.groups[i];
-    final on = _selected.contains(i);
+    final on = widget.currentSelection().contains(i);
     final lifts = g.exerciseConfigs
         .map((c) => exerciseNames[c.exercise] ?? '')
         .where((s) => s.isNotEmpty)
@@ -1449,7 +1362,7 @@ class _EditSheetState extends State<_EditSheet> {
                     fontWeight: FontWeight.w700,
                     color: cs.onSurfaceVariant)),
             IconButton(
-              onPressed: () => widget.onEdit(i),
+              onPressed: () => _thenRefresh(() => widget.onEdit(i)),
               icon: Icon(Icons.tune_rounded, size: 17, color: cs.tertiary),
               visualDensity: VisualDensity.compact,
               constraints: const BoxConstraints(),
@@ -1457,7 +1370,7 @@ class _EditSheetState extends State<_EditSheet> {
             ),
             if (g.section == HomeGroupSection.saved)
               IconButton(
-                onPressed: () => widget.onDelete(i),
+                onPressed: () => _thenRefresh(() => widget.onDelete(i)),
                 icon: Icon(Icons.delete_outline_rounded,
                     size: 17, color: cs.error.withValues(alpha: 0.8)),
                 visualDensity: VisualDensity.compact,
