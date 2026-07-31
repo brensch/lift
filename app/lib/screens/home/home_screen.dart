@@ -4,7 +4,9 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../gen/workout/v1/settings.pbenum.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../services/grpc_client.dart';
 import '../../services/health_service.dart';
@@ -13,12 +15,11 @@ import '../../services/workout_service.dart';
 import '../../logic/exercises.dart';
 import '../../logic/exercise_groups.dart';
 import '../../logic/utils.dart';
+import '../../logic/weight_units.dart';
 import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
+import '../../widgets/phase_explanation.dart';
 import '../workout_start_briefing_screen.dart';
-import '../../widgets/common/section_header.dart';
-import 'group_grid.dart';
 import 'home_selection.dart';
-import 'readiness_banner.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -36,7 +37,6 @@ class _HomeScreenState extends State<HomeScreen> {
   TrainingStatus? _trainingStatus;
   List<NextSessionOption> _selectableNextSessions = [];
   bool _isSwappingSession = false;
-  List<UserMessage> _scheduleMessages = [];
   String _suggestedWorkoutBaseName = '';
   Set<int> _selectedGroupIndices = {};
   bool _isLoading = true;
@@ -122,7 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ? scheduleRes.trainingStatus
             : null;
         _selectableNextSessions = scheduleRes.selectableNextSessions;
-        _scheduleMessages = scheduleRes.userMessages;
         _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
         _selectedGroupIndices = selectedFromDraft.isNotEmpty
             ? selectedFromDraft
@@ -187,7 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _trainingStatus = freshSchedule.hasTrainingStatus()
           ? freshSchedule.trainingStatus
           : null;
-      _scheduleMessages = freshSchedule.userMessages;
       _suggestedWorkoutBaseName = freshSchedule.suggestedWorkoutName.trim();
     });
 
@@ -368,23 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<int> _buildVisibleGroupIndices() {
-    final groups = _selectableGroups;
-    if (groups == null) return [];
-    final recommended = <int>[];
-    final saved = <int>[];
-    final rest = <int>[];
-    for (int i = 0; i < groups.length; i++) {
-      if (groups[i].section == HomeGroupSection.recommended) {
-        recommended.add(i);
-      } else if (groups[i].section == HomeGroupSection.saved) {
-        saved.add(i);
-      } else {
-        rest.add(i);
-      }
-    }
-    return [...recommended, ...saved, ...rest];
-  }
 
   int _estimatedWorkoutMinutes() {
     if (_selectableGroups == null || _selectedGroupIndices.isEmpty) return 0;
@@ -671,248 +652,679 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final visibleGroupIndices = _buildVisibleGroupIndices();
-    final recommendedGroupIndices = visibleGroupIndices
-        .where(
-          (index) =>
-              _selectableGroups![index].section ==
-              HomeGroupSection.recommended,
-        )
-        .toList(growable: false);
-    final savedGroupIndices = visibleGroupIndices
-        .where(
-          (index) =>
-              _selectableGroups![index].section == HomeGroupSection.saved,
-        )
-        .toList(growable: false);
-    final otherGroupIndices = visibleGroupIndices
-        .where(
-          (index) =>
-              _selectableGroups![index].section == HomeGroupSection.planLater,
-        )
-        .toList(growable: false);
+    final ts = _trainingStatus;
+    final rc = _regimeContext;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final style = _readinessStyle(ts?.readinessState);
+    final liftRows = _selectedLiftRows(unit);
+    final canStart = _selectedGroupIndices.isNotEmpty && !_isStarting;
 
-    final workoutPanelColor = colorScheme.brightness == Brightness.dark
-        ? const Color(0xFF222222)
-        : const Color(0xFFF0F0F0);
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: () => _loadData(refreshOnly: true),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: ClampingScrollPhysics(),
-          ),
-          slivers: [
-            if (_trainingStatus != null || _regimeContext != null)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                sliver: SliverToBoxAdapter(
-                  child: ReadinessBanner(
-                    trainingStatus: _trainingStatus,
-                    regimeContext: _regimeContext,
-                    selectableNextSessions: _selectableNextSessions,
-                    isSwapping: _isSwappingSession,
-                    onSwapSession: _swapNextSession,
-                  ),
-                ),
+    return RefreshIndicator(
+      onRefresh: () => _loadData(refreshOnly: true),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: ClampingScrollPhysics(),
               ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                (_trainingStatus != null || _regimeContext != null) ? 12 : 20,
-                20,
-                0,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: SectionHeader(
-                    title: 'Schplanner recommends',
-                    trailing: _isRefreshing
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.tertiary,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Column(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Readiness headline ─────────────────────────────────
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (recommendedGroupIndices.isNotEmpty)
-                        GroupGrid(
-                          indices: recommendedGroupIndices,
-                          groups: _selectableGroups!,
-                          scheduleMessages: _scheduleMessages,
-                          selectedIndices: _selectedGroupIndices,
-                          onToggle: _toggleGroup,
-                          onEdit: _editGroup,
-                        ),
-                      if (recommendedGroupIndices.isEmpty)
-                        const EmptySectionText(
-                          text: 'Nothing is recommended right now.',
-                        ),
-                      const SizedBox(height: 18),
-                      SectionHeader(
-                        title: 'Your saved ones',
-                        trailing: IconButton(
-                          onPressed: _showAddSavedGroupDialog,
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(32, 32),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            padding: EdgeInsets.zero,
-                          ),
-                          icon: const Icon(Icons.add_rounded, size: 20),
-                          tooltip: 'Save a workout group',
-                        ),
-                      ),
-                      if (savedGroupIndices.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        GroupGrid(
-                          indices: savedGroupIndices,
-                          groups: _selectableGroups!,
-                          scheduleMessages: _scheduleMessages,
-                          selectedIndices: _selectedGroupIndices,
-                          onToggle: _toggleGroup,
-                          onEdit: _editGroup,
-                          onDelete: _deleteSavedGroup,
-                        ),
-                      ] else
-                        const Padding(
-                          padding: EdgeInsets.only(top: 10),
-                          child: EmptySectionText(
-                            text:
-                                'Save a group here to reuse it whenever you want.',
+                      Expanded(
+                        child: Text(
+                          style.headline,
+                          style: TextStyle(
+                            fontSize: 34,
+                            height: 0.98,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.4,
+                            color: colorScheme.onSurface,
                           ),
                         ),
-                      const SizedBox(height: 18),
-                      const SectionHeader(
-                        title: 'Not today but in your schplan',
                       ),
-                      if (otherGroupIndices.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        GroupGrid(
-                          indices: otherGroupIndices,
-                          groups: _selectableGroups!,
-                          scheduleMessages: _scheduleMessages,
-                          selectedIndices: _selectedGroupIndices,
-                          onToggle: _toggleGroup,
-                          onEdit: _editGroup,
+                      const SizedBox(width: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child:
+                            _StateTagChip(label: style.tag, accent: style.accent),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // ── Session line + Edit ────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _sessionLine(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            height: 1.25,
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.82),
+                          ),
                         ),
-                      ] else
-                        const Padding(
-                          padding: EdgeInsets.only(top: 10),
-                          child: EmptySectionText(
-                            text:
-                                'Everything in your plan is already recommended today.',
+                      ),
+                      const SizedBox(width: 10),
+                      _EditButton(
+                          onTap: _showEditSheet, accent: colorScheme.tertiary),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // ── Recovery strip ─────────────────────────────────────
+                  if (ts != null && ts.muscleRecovery.isNotEmpty)
+                    _RecoveryStripRow(muscles: _stripMuscles(ts)),
+                  // ── Phase explanation (clean) ──────────────────────────
+                  if (rc != null) ...[
+                    const SizedBox(height: 16),
+                    PhaseExplanation(
+                        context: rc, showHeadline: false, showNext: false),
+                  ],
+                  const SizedBox(height: 20),
+                  // ── Today's lifts ──────────────────────────────────────
+                  Row(
+                    children: [
+                      Text(
+                        'TODAY’S LIFTS',
+                        style: TextStyle(
+                          fontSize: 10,
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_isRefreshing)
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.tertiary,
                           ),
                         ),
                     ],
                   ),
+                  const SizedBox(height: 2),
+                  if (liftRows.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(
+                        'No exercises selected — tap Edit to add some.',
+                        style:
+                            TextStyle(color: colorScheme.tertiary, fontSize: 13),
+                      ),
+                    )
+                  else
+                    ...liftRows,
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+          // ── Start area: swap toggle + inset rounded Start button ───────
+          _buildStartArea(colorScheme, style, canStart),
+        ],
+      ),
+    );
+  }
+
+  // ── Readiness presentation ───────────────────────────────────────────────
+  _ReadinessStyle _readinessStyle(ReadinessState? state) {
+    switch (state) {
+      case ReadinessState.READINESS_STATE_RECOVERING:
+        return const _ReadinessStyle('Rest\nday.', 'Recovering', _kBlue);
+      case ReadinessState.READINESS_STATE_OVERDUE:
+        return const _ReadinessStyle('Been a\nwhile.', 'Overdue', _kAmber);
+      case ReadinessState.READINESS_STATE_AHEAD:
+        return const _ReadinessStyle('Bonus\nround.', 'Ahead', _kGreen);
+      case ReadinessState.READINESS_STATE_FIRST_TIME:
+        return const _ReadinessStyle('Ready\nto lift.', 'Ready', _kGreen);
+      case ReadinessState.READINESS_STATE_READY:
+      default:
+        return const _ReadinessStyle('Train\ntoday.', 'Train today', _kGreen);
+    }
+  }
+
+  /// The session line reflects the currently-selected exercises so it stays
+  /// accurate after an edit, e.g. "Squat · Bench Press · Barbell Row".
+  String _sessionLine() {
+    final groups = _selectableGroups;
+    if (groups == null) return '';
+    final names = <String>[];
+    for (final i in _selectedGroupIndices.toList()..sort()) {
+      if (i < 0 || i >= groups.length) continue;
+      for (final c in groups[i].exerciseConfigs) {
+        final n = exerciseNames[c.exercise] ?? '';
+        if (n.isNotEmpty && !names.contains(n)) names.add(n);
+      }
+    }
+    if (names.isEmpty) return _trainingStatus?.nextWorkoutLabel ?? '';
+    return names.join('  ·  ');
+  }
+
+  /// Next-workout muscles first (recovering ones lead), for the strip.
+  List<MuscleRecoveryStatus> _stripMuscles(TrainingStatus ts) {
+    final inNext = ts.muscleRecovery.where((m) => m.inNextWorkout).toList();
+    final list = inNext.isNotEmpty ? inNext : ts.muscleRecovery.toList();
+    list.sort((a, b) {
+      final ar = a.recovered ? 1 : 0;
+      final br = b.recovered ? 1 : 0;
+      if (ar != br) return ar - br;
+      return a.label.compareTo(b.label);
+    });
+    return list;
+  }
+
+  double _resolveWeight(
+    HomeSelectableGroup g,
+    ExerciseTypeConfig c,
+    Map<int, ExerciseStatus> statusMap,
+  ) {
+    if (g.useScheduleWeights) {
+      return statusMap[c.exercise.value]?.targetWeight ?? c.startWeight;
+    }
+    return c.startWeight;
+  }
+
+  /// One row per exercise across the currently-selected groups.
+  List<Widget> _selectedLiftRows(WeightUnit unit) {
+    final groups = _selectableGroups;
+    if (groups == null) return const [];
+    final statusMap = _statusMap();
+    final rows = <Widget>[];
+    for (final i in _selectedGroupIndices.toList()..sort()) {
+      if (i < 0 || i >= groups.length) continue;
+      final g = groups[i];
+      for (final c in g.exerciseConfigs) {
+        final w = _resolveWeight(g, c, statusMap);
+        rows.add(_LiftRow(
+          emoji: exerciseEmojis[c.exercise] ?? '🏋️',
+          name: exerciseNames[c.exercise] ?? g.name,
+          scheme: '${g.sets}×${c.reps}',
+          weight: w > 0 ? formatWeight(w, unit) : '—',
+        ));
+      }
+    }
+    return rows;
+  }
+
+  Widget _buildStartArea(ColorScheme cs, _ReadinessStyle style, bool canStart) {
+    final est = _predictedWorkoutTimeLabel();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_selectableNextSessions.length >= 2) ...[
+            _SessionSwapToggle(
+              options: _selectableNextSessions,
+              isSwapping: _isSwappingSession,
+              onSwap: _swapNextSession,
+              accent: style.accent,
+            ),
+            const SizedBox(height: 12),
+          ],
+          SizedBox(
+            width: double.infinity,
+            height: 58,
+            child: FilledButton(
+              onPressed: canStart ? _startWorkout : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: style.accent,
+                foregroundColor: Colors.black,
+                disabledBackgroundColor:
+                    cs.surfaceContainerHighest.withValues(alpha: 0.4),
+                disabledForegroundColor: cs.onSurfaceVariant,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: _isStarting
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Start workout',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        if (est != '--') ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '· $est',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: Colors.black.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showEditSheet() async {
+    final groups = _selectableGroups;
+    if (groups == null) return;
+    final unit = context.read<SettingsProvider>().weightUnit;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _EditSheet(
+        groups: groups,
+        initialSelected: _selectedGroupIndices,
+        unit: unit,
+        statusMap: _statusMap(),
+        resolveWeight: _resolveWeight,
+        onToggle: _toggleGroup,
+        onEdit: (i) {
+          Navigator.of(sheetCtx).pop();
+          _editGroup(i);
+        },
+        onDelete: _deleteSavedGroup,
+        onAddSaved: () {
+          Navigator.of(sheetCtx).pop();
+          _showAddSavedGroupDialog();
+        },
+      ),
+    );
+  }
+}
+
+// ─── Concept B home widgets ───────────────────────────────────────────────────
+
+const Color _kGreen = Color(0xFF3AD98B);
+const Color _kAmber = Color(0xFFF5B544);
+const Color _kBlue = Color(0xFF6EA8FF);
+
+class _ReadinessStyle {
+  final String headline; // may contain a newline for the big two-line title
+  final String tag;
+  final Color accent;
+  const _ReadinessStyle(this.headline, this.tag, this.accent);
+}
+
+class _StateTagChip extends StatelessWidget {
+  final String label;
+  final Color accent;
+  const _StateTagChip({required this.label, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.34)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.9,
+              color: accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color accent;
+  const _EditButton({required this.onTap, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune_rounded, size: 14, color: accent),
+              const SizedBox(width: 5),
+              Text('Edit',
+                  style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w900, color: accent)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecoveryStripRow extends StatelessWidget {
+  final List<MuscleRecoveryStatus> muscles;
+  const _RecoveryStripRow({required this.muscles});
+
+  static String _hoursLabel(int hours) {
+    if (hours >= 24) {
+      final days = (hours / 24).round();
+      return days <= 1 ? '1d' : '${days}d';
+    }
+    return '${hours}h';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final m in muscles)
+          Builder(builder: (context) {
+            final accent = m.recovered ? _kGreen : _kAmber;
+            final hours = m.hoursRemaining.toInt();
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(9),
+                border:
+                    Border.all(color: Colors.white.withValues(alpha: 0.09)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration:
+                        BoxDecoration(color: accent, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(m.label,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: accent)),
+                  if (!m.recovered && hours > 0) ...[
+                    const SizedBox(width: 5),
+                    Text(_hoursLabel(hours),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withValues(alpha: 0.45))),
+                  ],
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
+}
+
+class _LiftRow extends StatelessWidget {
+  final String emoji;
+  final String name;
+  final String scheme;
+  final String weight;
+  const _LiftRow({
+    required this.emoji,
+    required this.name,
+    required this.scheme,
+    required this.weight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: cs.outline.withValues(alpha: 0.25)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 15)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 14)),
+          ),
+          Text(scheme,
+              style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(width: 12),
+          Text(weight,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  fontFeatures: [FontFeature.tabularFigures()])),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionSwapToggle extends StatelessWidget {
+  final List<NextSessionOption> options;
+  final bool isSwapping;
+  final ValueChanged<String> onSwap;
+  final Color accent;
+  const _SessionSwapToggle({
+    required this.options,
+    required this.isSwapping,
+    required this.onSwap,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        children: [
+          for (final o in options)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: (o.isCurrent || isSwapping) ? null : () => onSwap(o.key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: o.isCurrent ? accent.withValues(alpha: 0.18) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      // "Workout A · Squat, Bench, Row" → "Workout A"
+                      o.label.split('·').first.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: o.isCurrent
+                            ? accent
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
-          ],
-        ),
+        ],
       ),
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          20 + MediaQuery.of(context).padding.bottom,
-        ),
+    );
+  }
+}
+
+/// The edit sheet: a checklist of every group (recommended / later / saved).
+/// Ticking includes it in today; tapping the row opens the exercise editor.
+class _EditSheet extends StatefulWidget {
+  final List<HomeSelectableGroup> groups;
+  final Set<int> initialSelected;
+  final WeightUnit unit;
+  final Map<int, ExerciseStatus> statusMap;
+  final double Function(
+      HomeSelectableGroup, ExerciseTypeConfig, Map<int, ExerciseStatus>) resolveWeight;
+  final ValueChanged<int> onToggle;
+  final ValueChanged<int> onEdit;
+  final ValueChanged<int> onDelete;
+  final VoidCallback onAddSaved;
+
+  const _EditSheet({
+    required this.groups,
+    required this.initialSelected,
+    required this.unit,
+    required this.statusMap,
+    required this.resolveWeight,
+    required this.onToggle,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onAddSaved,
+  });
+
+  @override
+  State<_EditSheet> createState() => _EditSheetState();
+}
+
+class _EditSheetState extends State<_EditSheet> {
+  late final Set<int> _selected = {...widget.initialSelected};
+
+  void _toggle(int i) {
+    setState(() {
+      if (_selected.contains(i)) {
+        _selected.remove(i);
+      } else {
+        _selected.add(i);
+      }
+    });
+    widget.onToggle(i);
+  }
+
+  List<int> _indicesFor(HomeGroupSection section) => [
+        for (int i = 0; i < widget.groups.length; i++)
+          if (widget.groups[i].section == section) i,
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final recommended = _indicesFor(HomeGroupSection.recommended);
+    final later = _indicesFor(HomeGroupSection.planLater);
+    final saved = _indicesFor(HomeGroupSection.saved);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.45,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
-          color: workoutPanelColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(
-            top: BorderSide(
-              color: colorScheme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.14)
-                  : Colors.black.withValues(alpha: 0.10),
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 20,
-              offset: const Offset(0, -6),
-            ),
-          ],
+          color: cs.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
         ),
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: cs.outlineVariant,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             Row(
               children: [
-                Text(
-                  'Predicted workout time:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                    color: colorScheme.onSurface.withValues(alpha: 0.68),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _predictedWorkoutTimeLabel(),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.4,
-                    color: colorScheme.onSurface,
-                  ),
+                const Text('Customize workout',
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Done',
+                      style: TextStyle(fontWeight: FontWeight.w900)),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-
-            // Start button
-            SizedBox(
-              width: double.infinity,
-              height: 62,
-              child: FilledButton(
-                onPressed: _selectedGroupIndices.isEmpty || _isStarting
-                    ? null
-                    : _startWorkout,
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: _isStarting
-                    ? SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colorScheme.onPrimary,
-                        ),
-                      )
-                    : const Text(
-                        'START WORKOUT',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 17,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Toggle what’s in today. Tap a lift to adjust it.',
+                  style: TextStyle(
+                      fontSize: 12, color: cs.onSurfaceVariant, height: 1.3)),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  if (recommended.isNotEmpty)
+                    _section(cs, 'Recommended today', recommended),
+                  if (later.isNotEmpty)
+                    _section(cs, 'Later in your plan', later),
+                  _section(cs, 'Saved', saved, showAdd: true),
+                ],
               ),
             ),
           ],
@@ -920,7 +1332,142 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
 
-// ─── Readiness banner ─────────────────────────────────────────────────────────
+  Widget _section(ColorScheme cs, String title, List<int> indices,
+      {bool showAdd = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Text(title.toUpperCase(),
+                style: TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w800,
+                    color: cs.tertiary)),
+            const Spacer(),
+            if (showAdd)
+              GestureDetector(
+                onTap: widget.onAddSaved,
+                child: Row(
+                  children: [
+                    Icon(Icons.add_rounded, size: 15, color: cs.primary),
+                    const SizedBox(width: 3),
+                    Text('New',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            color: cs.primary)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (indices.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+                showAdd
+                    ? 'Save a group to reuse it any time.'
+                    : 'Nothing here.',
+                style: TextStyle(color: cs.tertiary, fontSize: 12.5)),
+          )
+        else
+          for (final i in indices) _groupRow(cs, i),
+      ],
+    );
+  }
+
+  Widget _groupRow(ColorScheme cs, int i) {
+    final g = widget.groups[i];
+    final on = _selected.contains(i);
+    final lifts = g.exerciseConfigs
+        .map((c) => exerciseNames[c.exercise] ?? '')
+        .where((s) => s.isNotEmpty)
+        .join(', ');
+    final firstCfg = g.exerciseConfigs.isNotEmpty ? g.exerciseConfigs.first : null;
+    final weight = firstCfg == null
+        ? ''
+        : formatWeight(
+            widget.resolveWeight(g, firstCfg, widget.statusMap), widget.unit);
+
+    return InkWell(
+      onTap: () => _toggle(i),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: on ? _kGreen : Colors.transparent,
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                    color: on ? _kGreen : cs.outlineVariant, width: 2),
+              ),
+              child: on
+                  ? const Icon(Icons.check_rounded,
+                      size: 15, color: Color(0xFF04120B))
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(g.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: on ? cs.onSurface : cs.onSurfaceVariant)),
+                  if (lifts.isNotEmpty && lifts != g.name)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(lifts,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              color: cs.onSurfaceVariant
+                                  .withValues(alpha: 0.7))),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('${g.sets}×${firstCfg?.reps ?? 5}${weight.isNotEmpty ? ' · $weight' : ''}',
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurfaceVariant)),
+            IconButton(
+              onPressed: () => widget.onEdit(i),
+              icon: Icon(Icons.tune_rounded, size: 17, color: cs.tertiary),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.only(left: 10, right: 2),
+            ),
+            if (g.section == HomeGroupSection.saved)
+              IconButton(
+                onPressed: () => widget.onDelete(i),
+                icon: Icon(Icons.delete_outline_rounded,
+                    size: 17, color: cs.error.withValues(alpha: 0.8)),
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.only(left: 6),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
