@@ -195,8 +195,18 @@ impl ServerWorkoutService {
         let training_status =
             regime.derive_training_status(&effective_state, &history, last_session_at, now);
         // Offer the A/B (or session) swap from the home prompt. Read from stored
-        // state — the temporal-adjustment copy doesn't change the selector.
-        let selectable_next_sessions = regime.selectable_next_sessions(&stored_payload);
+        // state — the temporal-adjustment copy doesn't change the selector. Mark
+        // the program's natural rotation pick (from history) separately from the
+        // currently-selected one, so the UI can show "what the schplanner was
+        // going to do" even after a manual swap.
+        let mut selectable_next_sessions = regime.selectable_next_sessions(&stored_payload);
+        if let Some(recommended) =
+            regime.recommended_next_session(&stored_payload, &history)
+        {
+            for opt in &mut selectable_next_sessions {
+                opt.is_recommended = opt.key.eq_ignore_ascii_case(&recommended);
+            }
+        }
 
         let active_workout_id = self
             .db

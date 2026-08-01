@@ -756,9 +756,12 @@ message GetProposedWorkoutScheduleResponse {
 }
 
 message NextSessionOption {
-  string key = 1;        // regime-specific selector, e.g. "A" / "B"
-  string label = 2;      // "Workout A · Squat, Bench, Row"
-  bool is_current = 3;   // the option currently queued as next
+  string key = 1;          // regime-specific selector, e.g. "A" / "B"
+  string label = 2;        // "Workout A · Squat, Bench, Row"
+  bool is_current = 3;     // the option currently queued/selected (what Start runs)
+  bool is_recommended = 4; // the program's natural rotation pick from history
+                           // (e.g. last did A → recommends B), independent of any
+                           // manual override — "what the schplanner was going to do".
 }
 
 message SetNextWorkoutRequest {

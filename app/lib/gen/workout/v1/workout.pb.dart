@@ -5900,11 +5900,13 @@ class NextSessionOption extends $pb.GeneratedMessage {
     $core.String? key,
     $core.String? label,
     $core.bool? isCurrent,
+    $core.bool? isRecommended,
   }) {
     final result = create();
     if (key != null) result.key = key;
     if (label != null) result.label = label;
     if (isCurrent != null) result.isCurrent = isCurrent;
+    if (isRecommended != null) result.isRecommended = isRecommended;
     return result;
   }
 
@@ -5924,6 +5926,7 @@ class NextSessionOption extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'key')
     ..aOS(2, _omitFieldNames ? '' : 'label')
     ..aOB(3, _omitFieldNames ? '' : 'isCurrent')
+    ..aOB(4, _omitFieldNames ? '' : 'isRecommended')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5971,6 +5974,15 @@ class NextSessionOption extends $pb.GeneratedMessage {
   $core.bool hasIsCurrent() => $_has(2);
   @$pb.TagNumber(3)
   void clearIsCurrent() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get isRecommended => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isRecommended($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasIsRecommended() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsRecommended() => $_clearField(4);
 }
 
 class SetNextWorkoutRequest extends $pb.GeneratedMessage {

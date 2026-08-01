@@ -823,6 +823,75 @@ class _HomeScreenState extends State<HomeScreen> {
     return rows;
   }
 
+  /// Label above the A/B toggle. Names the schplanner's rotation pick, and calls
+  /// out when the user has manually switched away from it.
+  Widget _swapLabel(ColorScheme cs, Color accent) {
+    String recName = '';
+    String curName = '';
+    bool haveRec = false, haveCur = false, mismatch = false;
+    for (final o in _selectableNextSessions) {
+      final short = o.label.split('·').first.trim();
+      if (o.isRecommended) {
+        recName = short;
+        haveRec = true;
+      }
+      if (o.isCurrent) {
+        curName = short;
+        haveCur = true;
+      }
+    }
+    mismatch = haveRec && haveCur && recName != curName;
+
+    final Widget text = mismatch
+        ? RichText(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant.withValues(alpha: 0.75),
+              ),
+              children: [
+                TextSpan(
+                  text: 'Schplanner’s next is $recName',
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                ),
+                TextSpan(text: '  ·  you’ve switched to $curName'),
+              ],
+            ),
+          )
+        : Text(
+            haveRec
+                ? '· $recName is the schplanner’s pick'
+                : '· tap to switch',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      child: Row(
+        children: [
+          Text('UP NEXT',
+              style: TextStyle(
+                fontSize: 10,
+                letterSpacing: 1.4,
+                fontWeight: FontWeight.w800,
+                color: cs.onSurfaceVariant,
+              )),
+          const SizedBox(width: 6),
+          Expanded(child: text),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStartArea(ColorScheme cs, _ReadinessStyle style, bool canStart) {
     final est = _predictedWorkoutTimeLabel();
     // The app tab bar collapses on the home screen, so this Start area is the
@@ -836,27 +905,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_selectableNextSessions.length >= 2) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 6),
-              child: Row(
-                children: [
-                  Text('UP NEXT',
-                      style: TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 1.4,
-                        fontWeight: FontWeight.w800,
-                        color: cs.onSurfaceVariant,
-                      )),
-                  const SizedBox(width: 6),
-                  Text('· ✓ is queued — tap the other to switch',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                      )),
-                ],
-              ),
-            ),
+            _swapLabel(cs, style.accent),
             _SessionSwapToggle(
               options: _selectableNextSessions,
               isSwapping: _isSwappingSession,
@@ -1139,9 +1188,11 @@ class _SessionSwapToggle extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (o.isCurrent) ...[
-                          Icon(Icons.check_circle_rounded,
-                              size: 14, color: accent),
+                        // Sparkle marks the schplanner's rotation pick (what it
+                        // was going to do), regardless of what's selected.
+                        if (o.isRecommended) ...[
+                          Icon(Icons.auto_awesome_rounded,
+                              size: 13, color: accent),
                           const SizedBox(width: 5),
                         ],
                         Flexible(
@@ -1154,7 +1205,11 @@ class _SessionSwapToggle extends StatelessWidget {
                               fontSize: 12,
                               fontWeight:
                                   o.isCurrent ? FontWeight.w800 : FontWeight.w700,
-                              color: o.isCurrent ? accent : cs.onSurfaceVariant,
+                              color: o.isCurrent
+                                  ? accent
+                                  : (o.isRecommended
+                                      ? accent.withValues(alpha: 0.85)
+                                      : cs.onSurfaceVariant),
                             ),
                           ),
                         ),

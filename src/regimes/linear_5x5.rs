@@ -607,6 +607,7 @@ impl WorkoutRegime for Linear5x5Regime {
                     key: v.to_string(),
                     label: format!("Workout {v} · {lifts}"),
                     is_current: current.eq_ignore_ascii_case(v),
+                    is_recommended: false, // set by the handler from history
                 }
             })
             .collect()
@@ -619,6 +620,57 @@ impl WorkoutRegime for Linear5x5Regime {
         } else {
             false
         }
+    }
+
+    fn recommended_next_session(
+        &self,
+        _state: &StatePayload,
+        history: &[SchplannerWorkoutRecord],
+    ) -> Option<String> {
+        // The A/B rotation's natural next is the opposite of what you last did —
+        // derived from history so it survives a manual swap of KEY_VARIANT.
+        // A fresh lifter (no completed A/B session yet) starts at A.
+        let next = match last_completed_variant(history) {
+            Some("A") => "B",
+            Some(_) => "A",
+            None => "A",
+        };
+        Some(next.to_string())
+    }
+}
+
+/// Which variant the most recently completed workout was: "A" if it trained the
+/// row, "B" if it trained OHP or deadlift. None if no A/B session is in history.
+fn last_completed_variant(history: &[SchplannerWorkoutRecord]) -> Option<&'static str> {
+    let last = history
+        .iter()
+        .filter(|r| r.completed_sets.iter().any(|c| c.ended_at != 0))
+        .max_by_key(|r| r.workout.end_time.max(r.workout.start_time))?;
+    let mut trained_a = false;
+    let mut trained_b = false;
+    for p in &last.proposed_sets {
+        if p.warmup {
+            continue;
+        }
+        let done = last
+            .completed_sets
+            .iter()
+            .any(|c| c.proposed_set_id == p.id && c.ended_at != 0);
+        if !done {
+            continue;
+        }
+        match Exercise::try_from(p.exercise).unwrap_or(Exercise::Unspecified) {
+            Exercise::BarbellRow => trained_a = true,
+            Exercise::OverheadPress | Exercise::Deadlift => trained_b = true,
+            _ => {}
+        }
+    }
+    if trained_b {
+        Some("B")
+    } else if trained_a {
+        Some("A")
+    } else {
+        None
     }
 }
 
@@ -660,5 +712,91 @@ mod swap_tests {
         // Unknown key is rejected and leaves state untouched.
         assert!(!regime.set_next_session(&mut state, "C"));
         assert_eq!(get_str_or(&state, KEY_VARIANT, "A"), "A");
+    }
+
+    // A completed workout that trained `exercises`, at time `at`.
+    fn completed_workout(at: i64, exercises: &[Exercise]) -> SchplannerWorkoutRecord {
+        use schlift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, Workout};
+        let mut proposed = Vec::new();
+        let mut completed = Vec::new();
+        for (i, &ex) in exercises.iter().enumerate() {
+            let id = format!("p{i}");
+            proposed.push(ProposedSet {
+                id: id.clone(),
+                workout_id: "w".into(),
+                workout_order: i as i32,
+                exercise: ex as i32,
+                target_reps: 5,
+                target_weight: 100.0,
+                warmup: false,
+                exercise_group_id: "g".into(),
+                rest_after_success: 180,
+                rest_after_failure: 300,
+                cancelled: false,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+            });
+            completed.push(CompletedSet {
+                id: format!("c{i}"),
+                workout_id: "w".into(),
+                proposed_set_id: id,
+                actual_reps: 5,
+                actual_weight: 100.0,
+                started_at: at - 60,
+                ended_at: at,
+                rest_until: 0,
+            });
+        }
+        SchplannerWorkoutRecord {
+            workout: Workout {
+                id: format!("w{at}"),
+                name: "T".into(),
+                start_time: at - 1800,
+                end_time: at,
+                session_id: String::new(),
+            },
+            exercise_groups: vec![ExerciseGroup::default()],
+            proposed_sets: proposed,
+            completed_sets: completed,
+        }
+    }
+
+    #[test]
+    fn recommended_next_is_the_rotation_opposite_of_last_done() {
+        let regime = Linear5x5Regime;
+        let state = regime.default_state();
+
+        // No history → recommend A (fresh start).
+        assert_eq!(
+            regime.recommended_next_session(&state, &[]).as_deref(),
+            Some("A")
+        );
+
+        // Last completed Workout A (has Barbell Row) → recommend B.
+        let did_a = vec![completed_workout(
+            1000,
+            &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow],
+        )];
+        assert_eq!(
+            regime.recommended_next_session(&state, &did_a).as_deref(),
+            Some("B")
+        );
+
+        // Last completed Workout B (has OHP + Deadlift) → recommend A, and this
+        // holds even if the user has manually swapped KEY_VARIANT to B.
+        let did_b = vec![completed_workout(
+            2000,
+            &[Exercise::Squat, Exercise::OverheadPress, Exercise::Deadlift],
+        )];
+        let mut overridden = regime.default_state();
+        regime.set_next_session(&mut overridden, "B"); // manual override to B
+        assert_eq!(
+            regime
+                .recommended_next_session(&overridden, &did_b)
+                .as_deref(),
+            Some("A"),
+            "recommendation follows history, not the manual override"
+        );
     }
 }

@@ -2400,13 +2400,15 @@ const NextSessionOption$json = {
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
     {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
     {'1': 'is_current', '3': 3, '4': 1, '5': 8, '10': 'isCurrent'},
+    {'1': 'is_recommended', '3': 4, '4': 1, '5': 8, '10': 'isRecommended'},
   ],
 };
 
 /// Descriptor for `NextSessionOption`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List nextSessionOptionDescriptor = $convert.base64Decode(
     'ChFOZXh0U2Vzc2lvbk9wdGlvbhIQCgNrZXkYASABKAlSA2tleRIUCgVsYWJlbBgCIAEoCVIFbG'
-    'FiZWwSHQoKaXNfY3VycmVudBgDIAEoCFIJaXNDdXJyZW50');
+    'FiZWwSHQoKaXNfY3VycmVudBgDIAEoCFIJaXNDdXJyZW50EiUKDmlzX3JlY29tbWVuZGVkGAQg'
+    'ASgIUg1pc1JlY29tbWVuZGVk');
 
 @$core.Deprecated('Use setNextWorkoutRequestDescriptor instead')
 const SetNextWorkoutRequest$json = {
