@@ -269,17 +269,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                               const NeverScrollableScrollPhysics(),
                                           buildDefaultDragHandles: false,
                                           itemCount: unfinishedGroups.length,
-                                          // onReorderItem (its replacement) is
-                                          // newer-Flutter-only; keep onReorder so
-                                          // every SDK on CI compiles.
-                                          // ignore: deprecated_member_use
-                                          onReorder: (oldIndex, newIndex) {
+                                          // onReorderItem hands back a newIndex
+                                          // already adjusted for the removed item,
+                                          // so no manual `newIndex -= 1`.
+                                          onReorderItem: (oldIndex, newIndex) {
                                             if (isEnded ||
                                                 unfinishedGroups.length < 2) {
                                               return;
-                                            }
-                                            if (oldIndex < newIndex) {
-                                              newIndex -= 1;
                                             }
                                             HapticFeedback.mediumImpact();
                                             final items =
