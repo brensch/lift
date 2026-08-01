@@ -193,6 +193,18 @@ pub trait WorkoutRegime: Send + Sync {
         false
     }
 
+    /// The program's *natural* next session key from history (the rotation pick,
+    /// e.g. "last workout was A, so recommend B"), independent of any manual
+    /// override on the stored state. Drives the "what the schplanner was going to
+    /// do" marker. None when the regime has no A/B-style rotation.
+    fn recommended_next_session(
+        &self,
+        _state: &StatePayload,
+        _history: &[SchplannerWorkoutRecord],
+    ) -> Option<String> {
+        None
+    }
+
     /// The regime's recovery model — how many hours each muscle needs before the
     /// program wants to train it again. First-class per regime: a program built
     /// around squatting every session shortens the leg window so that cadence
