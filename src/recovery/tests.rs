@@ -178,7 +178,7 @@ fn met_weekly_target_reads_as_ahead() {
     let history = vec![
         workout(now - 5 * DAY, &[Exercise::Squat]),
         workout(now - 3 * DAY, &[Exercise::BenchPress]),
-        workout(now - 1 * DAY - 12 * HOUR, &[Exercise::OverheadPress]),
+        workout(now - DAY - 12 * HOUR, &[Exercise::OverheadPress]),
     ];
     // Next hits arms (recovered) — not blocked.
     let r = readiness_at(&history, &[Exercise::BarbellCurl], 3, now);

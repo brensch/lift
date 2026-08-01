@@ -171,6 +171,7 @@ pub fn simplest_loadable_near(
 /// Snap a stored pound weight to the nearest weight that is exactly loadable in
 /// the user's display unit, returned in pounds. This is the "snap to real
 /// values" primitive: display(this) is always a clean, loadable number.
+#[allow(dead_code)] // rounding primitive kept for callers/tests
 pub fn snap_loadable_lb(weight_lb: f32, unit: AppWeightUnit) -> f32 {
     let display = match unit {
         AppWeightUnit::Lb => weight_lb,

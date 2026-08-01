@@ -229,7 +229,7 @@ impl ServerWorkoutService {
                 interleave_warmups: g.interleave_warmups,
                 workout_order: i as i32,
                 exercise_configs: g.exercise_configs.clone(),
-                rest_config: g.rest_config.clone(),
+                rest_config: g.rest_config,
                 instruction: String::new(),
                 prescribed_by_regime: g.prescribed_by_regime,
                 materialized_sets: Vec::new(),

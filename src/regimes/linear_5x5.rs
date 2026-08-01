@@ -615,7 +615,7 @@ impl WorkoutRegime for Linear5x5Regime {
 
     fn set_next_session(&self, state: &mut StatePayload, key: &str) -> bool {
         if key.eq_ignore_ascii_case("A") || key.eq_ignore_ascii_case("B") {
-            set_str(state, KEY_VARIANT, &key.to_uppercase());
+            set_str(state, KEY_VARIANT, key.to_uppercase());
             true
         } else {
             false

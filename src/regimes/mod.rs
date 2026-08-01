@@ -420,6 +420,7 @@ fn this_week_bounds(now_ts: i64) -> (i64, i64) {
     (start_ts, end_ts)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_training_status(
     history: &[SchplannerWorkoutRecord],
     now_ts: i64,
