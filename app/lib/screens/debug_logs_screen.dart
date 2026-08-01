@@ -47,7 +47,7 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
       );
       return;
     }
-    Share.share(text);
+    SharePlus.instance.share(ShareParams(text: text));
   }
 
   void _copyLogs() {
