@@ -269,6 +269,20 @@ impl ServerDb {
 
     pub async fn delete_user_account_and_data(&self, user_id: &str) -> DbResult<()> {
         let mut tx = self.write_pool.begin().await?;
+        // v2 training-model tables (t_*). Dormant today but user-keyed, so wipe
+        // them here too — a new user-keyed table that skips this orphans rows.
+        for table in [
+            "t_workouts",
+            "t_blocks",
+            "t_sets",
+            "t_entries",
+            "t_progression",
+        ] {
+            sqlx::query(&format!("DELETE FROM {table} WHERE user_id = ?"))
+                .bind(user_id)
+                .execute(&mut *tx)
+                .await?;
+        }
         sqlx::query("DELETE FROM auth_sessions WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
