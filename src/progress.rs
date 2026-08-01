@@ -232,6 +232,21 @@ pub fn compute_exercise_progress(
     series
 }
 
+pub fn compute_next_up_set(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+) -> Option<ProposedSet> {
+    // Find first proposed set that doesn't have a matching completed set
+    proposed_sets
+        .iter()
+        .find(|p| {
+            !completed_sets
+                .iter()
+                .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
+        })
+        .cloned()
+}
+
 #[cfg(test)]
 mod summary_tests {
     use super::*;
@@ -309,19 +324,4 @@ mod summary_tests {
         assert!(s.exercises.is_empty());
         assert_eq!(s.lifting_seconds, 0);
     }
-}
-
-pub fn compute_next_up_set(
-    proposed_sets: &[ProposedSet],
-    completed_sets: &[CompletedSet],
-) -> Option<ProposedSet> {
-    // Find first proposed set that doesn't have a matching completed set
-    proposed_sets
-        .iter()
-        .find(|p| {
-            !completed_sets
-                .iter()
-                .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
-        })
-        .cloned()
 }
