@@ -51,7 +51,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
   Future<void> _shareInvite(String inviteToken) async {
     try {
-      await Share.share('Join my workout on Schlift: ${_shareUrl(inviteToken)}');
+      await SharePlus.instance.share(
+        ShareParams(text: 'Join my workout on Schlift: ${_shareUrl(inviteToken)}'),
+      );
     } catch (e) {
       debugPrint('Error sharing: $e');
     }

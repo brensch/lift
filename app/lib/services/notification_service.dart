@@ -37,7 +37,7 @@ class NotificationService {
       linux: linuxSettings,
     );
     await _plugin.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
 
@@ -118,11 +118,11 @@ class NotificationService {
       linux: linuxDetails,
     );
     Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
-      _restNotificationId,
-      'Rest Complete',
-      body,
-      scheduledTime,
-      details,
+      id: _restNotificationId,
+      title: 'Rest Complete',
+      body: body,
+      scheduledDate: scheduledTime,
+      notificationDetails: details,
       androidScheduleMode: mode,
       matchDateTimeComponents: null,
       payload: '$restUntilUnix',
@@ -146,7 +146,7 @@ class NotificationService {
 
   /// Cancels any pending or active rest notifications.
   static Future<void> cancelRest() async {
-    await _plugin.cancel(_restNotificationId);
+    await _plugin.cancel(id: _restNotificationId);
   }
 
   /// Plays an in-app haptic when rest finishes while the app is active.
@@ -188,11 +188,14 @@ class NotificationService {
     );
 
     await _plugin.zonedSchedule(
-      _nextWorkoutNotificationId,
-      'Time to lift!',
-      'Your $regimeName session is ready.',
-      scheduledTime,
-      const NotificationDetails(android: androidDetails, iOS: darwinDetails),
+      id: _nextWorkoutNotificationId,
+      title: 'Time to lift!',
+      body: 'Your $regimeName session is ready.',
+      scheduledDate: scheduledTime,
+      notificationDetails: const NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: null,
     );
@@ -200,7 +203,7 @@ class NotificationService {
 
   /// Cancels any pending next-workout notification.
   static Future<void> cancelNextWorkout() async {
-    await _plugin.cancel(_nextWorkoutNotificationId);
+    await _plugin.cancel(id: _nextWorkoutNotificationId);
   }
 
   /// Comprehensive cleanup of all notifications.

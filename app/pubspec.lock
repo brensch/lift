@@ -125,34 +125,42 @@ packages:
     dependency: "direct main"
     description:
       name: credential_manager
-      sha256: "3d09d3a753e9975f07dd8d4ba777ce33dbd0269d5196fc1bc3c349da84b1ff5b"
+      sha256: "217ebc8c9dab3b4649f39a64696b0e2b1a436b460e82ab4cbf9d5f8a79b52081"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "4.1.0"
   credential_manager_android:
     dependency: transitive
     description:
       name: credential_manager_android
-      sha256: cac9b34efc2629fb927ed565795d1e324dbd942d7e6c39e97ed090b5f0ce5f3e
+      sha256: "69108f021ed3a383ae84c311aecda17d1b89aa177769614f77aebfb14965ec82"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "3.1.0"
   credential_manager_ios:
     dependency: transitive
     description:
       name: credential_manager_ios
-      sha256: f174ec4b9a98c893ed79fc2149e4d703b3c04ba2168ba7d8e06b9715ff52f154
+      sha256: "066bbd35241fcc6842fc3f68dce267c3778c9b01e3a8a3e5c64fc599a7e9676a"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "3.1.0"
   credential_manager_platform_interface:
     dependency: transitive
     description:
       name: credential_manager_platform_interface
-      sha256: e36781cc73dee360853275cd2fc7a535305d7368b5c3c7be7fb38f4be6bec3e7
+      sha256: "5a52d914b9797a3635632917b2558b9e3c54d8d56749064fb0af22788d45de4c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "3.0.0"
+  credential_manager_web:
+    dependency: transitive
+    description:
+      name: credential_manager_web
+      sha256: "0406ad54158f1697ae8bc3074b97334fc8e7bd0450e01068c47ccb197d594e01"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
   cross_file:
     dependency: transitive
     description:
@@ -245,10 +253,10 @@ packages:
     dependency: "direct main"
     description:
       name: fl_chart
-      sha256: "5276944c6ffc975ae796569a826c38a62d2abcf264e26b88fa6f482e107f4237"
+      sha256: b938f77d042cbcd822936a7a359a7235bad8bd72070de1f827efc2cc297ac888
       url: "https://pub.dev"
     source: hosted
-    version: "0.70.2"
+    version: "1.2.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -271,34 +279,42 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_local_notifications
-      sha256: "19ffb0a8bb7407875555e5e98d7343a633bb73707bae6c6a5f37c90014077875"
+      sha256: "9375211fd7df9c070504ac4db7047c7fae857e238291433b770cfe696b5c357a"
       url: "https://pub.dev"
     source: hosted
-    version: "19.5.0"
+    version: "22.2.0"
   flutter_local_notifications_linux:
     dependency: transitive
     description:
       name: flutter_local_notifications_linux
-      sha256: e3c277b2daab8e36ac5a6820536668d07e83851aeeb79c446e525a70710770a5
+      sha256: "9ca97e63776f29ab1b955725c09999fc2c150523269db150c39274f2a43c5a8b"
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.0"
+    version: "8.0.1"
   flutter_local_notifications_platform_interface:
     dependency: transitive
     description:
       name: flutter_local_notifications_platform_interface
-      sha256: "277d25d960c15674ce78ca97f57d0bae2ee401c844b6ac80fcd972a9c99d09fe"
+      sha256: "945a438a4779f3aca3a948718d8a4048cbe9f9c8c797492c00abd5d39112bf37"
       url: "https://pub.dev"
     source: hosted
-    version: "9.1.0"
+    version: "12.1.0"
+  flutter_local_notifications_web:
+    dependency: transitive
+    description:
+      name: flutter_local_notifications_web
+      sha256: "516afaf97a2d1e67a036c6617321b00d205d72f7a67b6eccf936cd565f985878"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   flutter_local_notifications_windows:
     dependency: transitive
     description:
       name: flutter_local_notifications_windows
-      sha256: "8d658f0d367c48bd420e7cf2d26655e2d1130147bca1eea917e576ca76668aaf"
+      sha256: "6f43bdd03b171b7a90f22647506fea33e2bb12294b7c7c7a3d690e960a382945"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.3"
+    version: "3.1.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -326,10 +342,10 @@ packages:
     dependency: "direct main"
     description:
       name: go_router
-      sha256: f02fd7d2a4dc512fec615529824fdd217fecb3a3d3de68360293a551f21634b3
+      sha256: "5922b2861e2235a3504896f0d6fa07d84141b480cf52eecd2f42cd25585a9e8a"
       url: "https://pub.dev"
     source: hosted
-    version: "14.8.1"
+    version: "17.3.0"
   google_cloud:
     dependency: transitive
     description:
@@ -571,10 +587,10 @@ packages:
     dependency: "direct main"
     description:
       name: mobile_scanner
-      sha256: "0b466a0a8a211b366c2e87f3345715faef9b6011c7147556ad22f37de6ba3173"
+      sha256: ce3f059ebd6dbfab7292bba0e893e354b46730636820d3c9ef69005ce2d55bce
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.11"
+    version: "7.4.0"
   nested:
     dependency: transitive
     description:
@@ -619,10 +635,10 @@ packages:
     dependency: "direct main"
     description:
       name: passkeys
-      sha256: "075a5dbaa16b76b10219cd1d9665bc9235d15eb218ac3c329560cf7b31d43640"
+      sha256: c403ac1af65d94f508d4ae4de7c5af0179201e1de466f8f182a015fdaece8172
       url: "https://pub.dev"
     source: hosted
-    version: "2.8.2"
+    version: "2.22.0"
   passkeys_android:
     dependency: transitive
     description:
@@ -631,14 +647,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.0"
-  passkeys_ios:
+  passkeys_darwin:
     dependency: transitive
     description:
-      name: passkeys_ios
-      sha256: "5c1423c3ce6c76ff181538e3bc1f66b5eaf9bc6f2d372dc85694f11a54e58d3f"
+      name: passkeys_darwin
+      sha256: "32077a8fcda5f52338dd430ed854b05cf131bbb0df7ee7027ca4e43400164779"
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.0"
+    version: "0.4.2+2"
+  passkeys_doctor:
+    dependency: transitive
+    description:
+      name: passkeys_doctor
+      sha256: e8c9285f36ef0161c865e268f4f2873b9d5826fcf8fb6b418bcf28243483463e
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
   passkeys_platform_interface:
     dependency: transitive
     description:
@@ -655,6 +679,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.10.0"
+  passkeys_windows:
+    dependency: transitive
+    description:
+      name: passkeys_windows
+      sha256: c2f8551d9ae773ab7f6c0a9d4632ea7d63dd8832ed0873e90d2d6987e650247a
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.3+2"
   path:
     dependency: transitive
     description:
@@ -803,18 +835,18 @@ packages:
     dependency: "direct main"
     description:
       name: share_plus
-      sha256: fce43200aa03ea87b91ce4c3ac79f0cecd52e2a7a56c7a4185023c271fbfa6da
+      sha256: "223873d106614442ea6f20db5a038685cc5b32a2fba81cdecaefbbae0523f7fa"
       url: "https://pub.dev"
     source: hosted
-    version: "10.1.4"
+    version: "12.0.2"
   share_plus_platform_interface:
     dependency: transitive
     description:
       name: share_plus_platform_interface
-      sha256: cc012a23fc2d479854e6c80150696c4a5f5bb62cb89af4de1c505cf78d0a5d0b
+      sha256: "88023e53a13429bd65d8e85e11a9b484f49d4c190abbd96c7932b74d6927cc9a"
       url: "https://pub.dev"
     source: hosted
-    version: "5.0.2"
+    version: "6.1.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -944,10 +976,10 @@ packages:
     dependency: "direct main"
     description:
       name: timezone
-      sha256: dd14a3b83cfd7cb19e7888f1cbc20f258b8d71b54c06f79ac585f14093a287d1
+      sha256: "981d1020d6ef8fe1e7b3de5054e5b25579ae7c403d7734adc508ffc47668e9cb"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.1"
+    version: "0.11.1"
   typed_data:
     dependency: transitive
     description:
