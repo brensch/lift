@@ -825,8 +825,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStartArea(ColorScheme cs, _ReadinessStyle style, bool canStart) {
     final est = _predictedWorkoutTimeLabel();
+    // The app tab bar collapses on the home screen, so this Start area is the
+    // bottom-most element — lift it clear of the gesture bar / curved corners.
+    final safeBottom = MediaQuery.of(context).viewPadding.bottom;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+      padding: EdgeInsets.fromLTRB(20, 6, 20, 14 + safeBottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -901,7 +904,7 @@ class _StateTagChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppTheme.brSm,
         border: Border.all(color: accent.withValues(alpha: 0.34)),
       ),
       child: Row(
@@ -988,7 +991,7 @@ class _RecoveryStripRow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: AppTheme.brSm,
                 border:
                     Border.all(color: Colors.white.withValues(alpha: 0.09)),
               ),
@@ -1093,7 +1096,7 @@ class _SessionSwapToggle extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: AppTheme.brSm,
       ),
       child: Row(
         children: [
@@ -1107,7 +1110,7 @@ class _SessionSwapToggle extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
                     color: o.isCurrent ? accent.withValues(alpha: 0.18) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppTheme.brSm,
                   ),
                   child: Center(
                     child: Text(
@@ -1309,7 +1312,7 @@ class _EditSheetState extends State<_EditSheet> {
 
     return InkWell(
       onTap: () => _toggle(i),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppTheme.brMd,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         child: Row(

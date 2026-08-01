@@ -106,7 +106,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppTheme.brMd,
           ),
           child: Column(
             children: [
@@ -194,7 +194,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppTheme.brMd,
               border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
             ),
             child: Text(
@@ -213,7 +213,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppTheme.brMd,
             ),
             child: Column(
               children: [
@@ -318,7 +318,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     SizedBox(
                       height: 320,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppTheme.brMd,
                         child: MobileScanner(onDetect: _handleScan),
                       ),
                     ),
@@ -365,7 +365,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppTheme.brMd,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(

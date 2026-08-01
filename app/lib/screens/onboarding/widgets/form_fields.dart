@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../theme/app_theme.dart';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../logic/weight_units.dart';
 import '../../../providers/settings_provider.dart';
@@ -182,10 +183,10 @@ class StepperFieldState extends State<StepperField> {
               ),
               suffixText: widget.suffixText,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppTheme.brSm,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppTheme.brSm,
                 borderSide: BorderSide(
                   color: cs.outline.withValues(alpha: 0.5),
                 ),
@@ -211,13 +212,13 @@ class StepperButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: AppTheme.brSm,
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
           color: cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: AppTheme.brSm,
           border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
         ),
         child: Icon(icon, size: 18),
@@ -357,10 +358,10 @@ class StateFieldInputState extends State<StateFieldInput> {
                     ),
                     suffixText: suffix,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: AppTheme.brSm,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: AppTheme.brSm,
                       borderSide: BorderSide(
                         color: cs.outline.withValues(alpha: 0.5),
                       ),

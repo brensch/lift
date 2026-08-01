@@ -3,6 +3,7 @@ library;
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../common/weight_picker.dart';
@@ -86,7 +87,7 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
     final hasEndWeight = widget.config.differentEndWeight;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppTheme.brMd,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -99,7 +100,7 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
                 ? colorScheme.primary.withValues(alpha: 0.5)
                 : colorScheme.outline.withValues(alpha: 0.5),
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppTheme.brMd,
         ),
         child: Column(
           children: [
@@ -107,8 +108,8 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
             InkWell(
               onTap: widget.onTap,
               borderRadius: BorderRadius.vertical(
-                top: const Radius.circular(12),
-                bottom: Radius.circular(widget.isExpanded ? 0 : 12),
+                top: const Radius.circular(AppTheme.radiusMd),
+                bottom: Radius.circular(widget.isExpanded ? 0 : AppTheme.radiusMd),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -161,7 +162,7 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
                       height: 48,
                       width: 48,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppTheme.brSm,
                         border: Border.all(
                           color: colorScheme.outline.withValues(alpha: 0.5),
                         ),
@@ -208,7 +209,7 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(8),
+                                  top: Radius.circular(AppTheme.radiusSm),
                                 ),
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
@@ -229,7 +230,7 @@ class CompactExerciseConfigState extends State<CompactExerciseConfig> {
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: const BorderRadius.vertical(
-                                  bottom: Radius.circular(8),
+                                  bottom: Radius.circular(AppTheme.radiusSm),
                                 ),
                                 gradient: LinearGradient(
                                   begin: Alignment.bottomCenter,
@@ -368,13 +369,13 @@ class CountButton extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppTheme.brSm,
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
           border: Border.all(color: colorScheme.outline),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppTheme.brSm,
         ),
         child: Icon(icon, size: 20),
       ),

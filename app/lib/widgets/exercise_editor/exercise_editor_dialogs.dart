@@ -448,7 +448,7 @@ Future<void> showAddExerciseDialog(
                         vertical: 12,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppTheme.brSm,
                       ),
                     ),
                     style: const TextStyle(

@@ -66,9 +66,9 @@ class PrimaryButton extends StatelessWidget {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      letterSpacing: 0.2,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15.5,
+                      letterSpacing: -0.1,
                     ),
                   ),
                   if (trailing != null && trailing!.isNotEmpty) ...[
@@ -76,7 +76,7 @@ class PrimaryButton extends StatelessWidget {
                     Text(
                       trailing!,
                       style: TextStyle(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                         fontSize: 13,
                         color: fg.withValues(alpha: 0.55),
                       ),

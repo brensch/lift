@@ -104,7 +104,7 @@ class ReadinessBanner extends StatelessWidget {
           end: Alignment.bottomLeft,
           colors: style.gradient,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: AppTheme.brMd,
         border: Border.all(color: style.accent.withValues(alpha: 0.32)),
         boxShadow: [
           BoxShadow(
@@ -347,7 +347,7 @@ class _MuscleChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: AppTheme.brSm,
         border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
       ),
       child: Row(
@@ -443,14 +443,14 @@ class _SwapPill extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: disabled ? null : onTap,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: AppTheme.brSm,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           decoration: BoxDecoration(
             color: current
                 ? accent.withValues(alpha: 0.14)
                 : Colors.white.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: AppTheme.brSm,
             border: Border.all(
               color: current
                   ? accent.withValues(alpha: 0.45)

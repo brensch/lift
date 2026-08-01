@@ -71,7 +71,7 @@ class SessionStrip extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(15, 12, 15, 13),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppTheme.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -328,7 +328,7 @@ class EmptyPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppTheme.brMd,
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
       ),
       child: Text(

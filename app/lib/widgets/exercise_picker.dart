@@ -158,7 +158,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                       alpha: 0.3,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: AppTheme.brSm,
                       borderSide: BorderSide(color: colorScheme.outline),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -300,7 +300,7 @@ class _ExerciseRow extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppTheme.brMd,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -313,7 +313,7 @@ class _ExerciseRow extends StatelessWidget {
                 color: colorScheme.surfaceContainerHighest.withValues(
                   alpha: 0.25,
                 ),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: AppTheme.brMd,
               ),
               alignment: Alignment.center,
               child: ExerciseGraphic(exercise: info.exercise, size: 60),
