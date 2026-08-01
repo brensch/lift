@@ -826,14 +826,37 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStartArea(ColorScheme cs, _ReadinessStyle style, bool canStart) {
     final est = _predictedWorkoutTimeLabel();
     // The app tab bar collapses on the home screen, so this Start area is the
-    // bottom-most element — lift it clear of the gesture bar / curved corners.
-    final safeBottom = MediaQuery.of(context).viewPadding.bottom;
+    // bottom-most element. The Scaffold zeroes viewPadding for the body when a
+    // bottom bar exists, so read the raw window inset to actually clear the
+    // gesture bar / curved corners, and add generous fixed padding on top.
+    final safeBottom = MediaQueryData.fromView(View.of(context)).padding.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 6, 20, 14 + safeBottom),
+      padding: EdgeInsets.fromLTRB(20, 6, 20, 24 + safeBottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_selectableNextSessions.length >= 2) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 6),
+              child: Row(
+                children: [
+                  Text('UP NEXT',
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w800,
+                        color: cs.onSurfaceVariant,
+                      )),
+                  const SizedBox(width: 6),
+                  Text('· ✓ is queued — tap the other to switch',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                      )),
+                ],
+              ),
+            ),
             _SessionSwapToggle(
               options: _selectableNextSessions,
               isSwapping: _isSwappingSession,
@@ -1113,18 +1136,29 @@ class _SessionSwapToggle extends StatelessWidget {
                     borderRadius: AppTheme.brSm,
                   ),
                   child: Center(
-                    child: Text(
-                      // "Workout A · Squat, Bench, Row" → "Workout A"
-                      o.label.split('·').first.trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: o.isCurrent
-                            ? accent
-                            : cs.onSurfaceVariant,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (o.isCurrent) ...[
+                          Icon(Icons.check_circle_rounded,
+                              size: 14, color: accent),
+                          const SizedBox(width: 5),
+                        ],
+                        Flexible(
+                          child: Text(
+                            // "Workout A · Squat, Bench, Row" → "Workout A"
+                            o.label.split('·').first.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  o.isCurrent ? FontWeight.w800 : FontWeight.w700,
+                              color: o.isCurrent ? accent : cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
