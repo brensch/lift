@@ -269,6 +269,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                               const NeverScrollableScrollPhysics(),
                                           buildDefaultDragHandles: false,
                                           itemCount: unfinishedGroups.length,
+                                          // onReorderItem (its replacement) is
+                                          // newer-Flutter-only; keep onReorder so
+                                          // every SDK on CI compiles.
+                                          // ignore: deprecated_member_use
                                           onReorder: (oldIndex, newIndex) {
                                             if (isEnded ||
                                                 unfinishedGroups.length < 2) {
