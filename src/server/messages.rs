@@ -218,7 +218,7 @@ pub(super) fn pending_briefing_messages_for_proposal(
             seen.push(message.message_key.clone());
         }
     }
-    out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    out.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
     out
 }
 

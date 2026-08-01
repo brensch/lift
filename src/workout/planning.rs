@@ -359,10 +359,9 @@ fn proposed_sets_from_planned_group_sets(
     planned_sets: &[PlannedGroupSet],
     start_order: i32,
 ) -> Vec<ProposedSet> {
-    let mut order = start_order;
     let mut out = Vec::with_capacity(planned_sets.len());
     let mut seen_ids = std::collections::HashSet::new();
-    for s in planned_sets {
+    for (i, s) in planned_sets.iter().enumerate() {
         let id = if s.client_set_id.is_empty() || !seen_ids.insert(s.client_set_id.clone()) {
             Uuid::new_v4().to_string()
         } else {
@@ -371,7 +370,7 @@ fn proposed_sets_from_planned_group_sets(
         out.push(ProposedSet {
             id,
             workout_id: workout_id.to_string(),
-            workout_order: order,
+            workout_order: start_order + i as i32,
             exercise: s.exercise,
             target_reps: s.target_reps,
             target_weight: s.target_weight,
@@ -384,7 +383,6 @@ fn proposed_sets_from_planned_group_sets(
             instruction: s.instruction.clone(),
             progression_hint: s.progression_hint.clone(),
         });
-        order += 1;
     }
     out
 }

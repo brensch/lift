@@ -311,12 +311,12 @@ mod tests {
                 }
             }
 
-            if workout.start.is_some() {
+            if let Some(start) = workout.start.as_ref() {
                 let derivation = derive_state(regime.as_ref(), &base_state, &history);
                 let proposal = regime.propose_from_state(
                     &derivation.effective_state,
                     derivation.last_session_at,
-                    parse_ts(&workout.start.as_ref().unwrap().at),
+                    parse_ts(&start.at),
                     &SchplannerInsights::default(),
                 );
                 history.push(build_workout_record(idx, workout, &proposal));
