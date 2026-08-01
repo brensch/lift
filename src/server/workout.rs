@@ -190,7 +190,7 @@ impl ServerWorkoutService {
             &pending_messages,
             &proposal.proposed_groups,
         ));
-        schedule_messages.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        schedule_messages.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
         schedule_messages.dedup_by(|a, b| a.message_key == b.message_key);
         let training_status =
             regime.derive_training_status(&effective_state, &history, last_session_at, now);
