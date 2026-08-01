@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../theme/app_theme.dart';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../logic/user_profile.dart';
 import '../../../logic/weight_units.dart';
@@ -75,7 +76,7 @@ class ConfirmStep extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color: cs.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppTheme.brMd,
               border: Border.all(
                 color: accent,
                 width: 2,

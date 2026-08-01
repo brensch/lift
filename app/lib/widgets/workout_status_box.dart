@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_theme.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
@@ -63,10 +64,10 @@ class StatusBox extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppTheme.brMd,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppTheme.brMd,
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -104,7 +105,7 @@ class StatusBox extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(12),
+                      right: Radius.circular(AppTheme.radiusMd),
                     ),
                   ),
                   child: Padding(

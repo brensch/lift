@@ -273,7 +273,7 @@ class GroupChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppTheme.brMd,
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
@@ -284,7 +284,7 @@ class GroupChip extends StatelessWidget {
             color: isSelected
                 ? colorScheme.primary.withValues(alpha: 0.1)
                 : colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: AppTheme.brMd,
             border: Border.all(
               color: isSelected
                   ? colorScheme.primary

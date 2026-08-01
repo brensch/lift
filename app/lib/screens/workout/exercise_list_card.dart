@@ -132,7 +132,7 @@ class ExerciseListCard extends StatelessWidget {
           color: completed
               ? AppTheme.successBg
               : colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppTheme.brMd,
           border: Border.all(
             color: completed
                 ? AppTheme.successFg.withValues(alpha: 0.35)
@@ -140,7 +140,7 @@ class ExerciseListCard extends StatelessWidget {
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppTheme.brMd,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -274,7 +274,7 @@ class AddExerciseButton extends StatelessWidget {
       child: CustomPaint(
         painter: DashedRRectPainter(
           color: color,
-          radius: 14,
+          radius: AppTheme.radiusMd,
           strokeWidth: 1.5,
           dash: 5,
           gap: 4,
@@ -282,7 +282,7 @@ class AddExerciseButton extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: AppTheme.brMd,
             onTap: onTap,
             child: Center(
               child: Row(

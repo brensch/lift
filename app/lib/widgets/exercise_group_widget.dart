@@ -42,9 +42,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: AppTheme.brSm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppTheme.brSm,
         onTap: onTap,
         child: SizedBox(
           width: 30,

@@ -367,7 +367,7 @@ class _SettingsTile extends StatelessWidget {
 
     return Material(
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppTheme.brMd,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

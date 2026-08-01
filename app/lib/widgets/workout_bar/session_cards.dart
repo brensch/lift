@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import '../participant_ticker.dart';
 import '../workout_status_box.dart';
 import '../common/horizontal_shaker.dart';
@@ -52,7 +53,7 @@ class SessionMemberCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppTheme.brMd,
         onTap: onTap,
         child: shaking,
       ),
@@ -73,7 +74,7 @@ class MoreParticipantsCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppTheme.brMd,
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
       ),
       child: Row(
@@ -83,7 +84,7 @@ class MoreParticipantsCard extends StatelessWidget {
             height: 30,
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppTheme.brSm,
             ),
             child: Icon(
               Icons.expand_less_rounded,
@@ -111,7 +112,7 @@ class MoreParticipantsCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppTheme.brMd,
         onTap: onTap,
         child: content,
       ),

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../widgets/user_message_chip.dart';
 import '../../widgets/phase_explanation.dart';
@@ -67,7 +68,7 @@ class ExschplanationPage extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: AppTheme.brMd,
               border: Border.all(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),

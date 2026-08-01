@@ -579,7 +579,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                   height: 56,
                   width: 56,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppTheme.brSm,
                     border: Border.all(color: colorScheme.outline),
                   ),
                   child: ListWheelScrollView.useDelegate(

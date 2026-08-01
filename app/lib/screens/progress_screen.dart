@@ -244,7 +244,7 @@ class _WindowSelector extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: AppTheme.brSm,
       ),
       child: Row(
         children: [
@@ -259,7 +259,7 @@ class _WindowSelector extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: i == selected ? cs.surface : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppTheme.brSm,
                     boxShadow: i == selected
                         ? [
                             BoxShadow(
