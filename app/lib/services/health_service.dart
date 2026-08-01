@@ -79,7 +79,9 @@ class HealthService {
 
       // Live HR from the watch (read) + saving HR samples into the workout (write).
       want(HealthDataType.HEART_RATE, HealthDataAccess.READ_WRITE);
-      want(HealthDataType.ACTIVE_ENERGY_BURNED, HealthDataAccess.READ_WRITE);
+      // WRITE-only: we save energy burned onto the workout record but never read
+      // active calories back (no getHealthDataFromTypes for this type anywhere).
+      want(HealthDataType.ACTIVE_ENERGY_BURNED, HealthDataAccess.WRITE);
       // Saving the completed workout. writeWorkoutData batches the exercise
       // session together with a TotalCaloriesBurned record in a single insert, so
       // without the total-calories write grant the WHOLE workout write is rejected

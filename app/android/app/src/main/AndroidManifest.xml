@@ -11,10 +11,10 @@
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_WEIGHT"/>
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY"/>
-    <!-- Calorie burn: the app requests ACTIVE_ENERGY_BURNED (read+write) and writes a
-         workout with total energy burned. Without these declarations Health Connect
-         rejects the workout write (SecurityException on WRITE_TOTAL_CALORIES_BURNED). -->
-    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
+    <!-- Calorie burn: the app only WRITES energy burned onto the workout record; it
+         never reads calories back (see health_service.dart). Without the write
+         declarations Health Connect rejects the workout write (SecurityException on
+         WRITE_TOTAL_CALORIES_BURNED). -->
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED"/>
     <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED"/>
     <application
