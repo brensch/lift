@@ -144,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Step 2: Browser passkey ceremony
       const parsedOptions = JSON.parse(startResp.optionsJson) as {
         publicKey?: unknown;
-        mediation?: CredentialMediationRequirement;
       };
       const publicKeyJson = parsedOptions.publicKey ?? parsedOptions;
       const publicKey = (
@@ -155,10 +154,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       ).parseRequestOptionsFromJSON(publicKeyJson);
 
-      const credential = await navigator.credentials.get({
-        publicKey,
-        mediation: parsedOptions.mediation,
-      });
+      // The server hints mediation: "conditional" (autofill UI), but that
+      // only works with an <input autocomplete="webauthn"> and otherwise
+      // pends forever with no visible prompt. This flow starts from an
+      // explicit button press, so always use the modal ceremony.
+      let credential: Credential | null;
+      try {
+        credential = await navigator.credentials.get({ publicKey });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "NotAllowedError") {
+          throw new Error("Passkey prompt was cancelled or timed out.");
+        }
+        throw err;
+      }
       if (!credential) throw new Error("No passkey response was returned.");
       if (!(credential instanceof PublicKeyCredential)) {
         throw new Error("Unexpected passkey credential type.");
