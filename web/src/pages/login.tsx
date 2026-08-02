@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/use-auth";
@@ -93,6 +93,13 @@ export function LoginPage() {
 
         <p className="text-sm text-muted/70">
           You'll need a passkey created in the Schlift app.
+        </p>
+
+        <p className="text-sm text-muted">
+          No account yet?{" "}
+          <Link to="/demo" className="text-text font-semibold hover:underline">
+            Peek at a sample dashboard
+          </Link>
         </p>
 
         {import.meta.env.DEV && devLogin && (
