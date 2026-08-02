@@ -18,6 +18,7 @@ export default function App() {
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/demo" element={<DashboardPage demo />} />
           </Route>
         </Routes>
       </AuthProvider>

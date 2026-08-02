@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import {
@@ -406,6 +407,94 @@ export function HomePage() {
               </div>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* Companion dashboard */}
+      <section className="border-t border-border/50 bg-surface/30 py-24 px-5">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <Reveal>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted/60 mb-3">
+              Companion
+            </p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight m-0">
+              Your progress.
+              <br />
+              <span className="text-muted">On the big screen.</span>
+            </h2>
+            <p className="mt-5 text-muted leading-relaxed max-w-md">
+              The phone runs your workout — schlift.com tells the story.
+              Estimated 1RM trends, weekly volume, and an honest accounting of
+              how much gym time was actually yapping. Sign in with the same
+              passkey as the app.
+            </p>
+            <div className="mt-7 flex gap-3 flex-wrap">
+              <Link to="/demo" className="no-underline">
+                <Button variant="primary" className="group">
+                  View sample dashboard
+                  <ArrowRight
+                    size={16}
+                    className="ml-2 transition-transform group-hover:translate-x-0.5"
+                  />
+                </Button>
+              </Link>
+              <Link to="/login" className="no-underline">
+                <Button>Sign in</Button>
+              </Link>
+            </div>
+          </Reveal>
+
+          <Reveal delay={120}>
+            {/* Decorative dashboard vignette */}
+            <div
+              aria-hidden="true"
+              className="border border-border rounded-2xl bg-surface p-6 select-none"
+            >
+              <div className="flex items-baseline justify-between mb-4">
+                <div>
+                  <p className="text-xs text-muted m-0">Bench Press</p>
+                  <p className="font-display text-2xl font-bold m-0 mt-0.5">
+                    225 lb
+                  </p>
+                </div>
+                <span className="text-xs text-muted flex items-center gap-1.5">
+                  <span className="inline-block w-3.5 h-0.5 rounded-full bg-[#3987e5]" />
+                  Est. 1RM
+                </span>
+              </div>
+              <svg viewBox="0 0 400 160" className="w-full h-auto block">
+                {[20, 60, 100, 140].map((y) => (
+                  <line
+                    key={y}
+                    x1="0"
+                    x2="400"
+                    y1={y}
+                    y2={y}
+                    stroke="#262626"
+                    strokeWidth="1"
+                  />
+                ))}
+                <path
+                  d="M8,132 L44,126 L80,120 L116,122 L152,110 L188,102 L224,96 L260,99 L296,84 L332,72 L368,58"
+                  fill="none"
+                  stroke="#8f8f8f"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8,118 L44,112 L80,104 L116,107 L152,92 L188,82 L224,74 L260,78 L296,60 L332,46 L368,30"
+                  fill="none"
+                  stroke="#3987e5"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="368" cy="30" r="6" fill="#141414" />
+                <circle cx="368" cy="30" r="4" fill="#3987e5" />
+              </svg>
+            </div>
+          </Reveal>
         </div>
       </section>
 
