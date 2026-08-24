@@ -6,9 +6,8 @@ use schlift::workout::v1::{
     settings_service_client::SettingsServiceClient, workout_mutation,
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
-    ExerciseTypeConfig, GetActiveTrainingProgramStateRequest, GetActiveWorkoutRequest,
-    GetCurrentSessionRequest, GetMyInviteTokenRequest, GetProposedWorkoutScheduleRequest,
-    GetSettingsRequest, GetTrainingProgramCatalogRequest, GetWorkoutRequest, JoinViaInviteRequest,
+    ExerciseTypeConfig, GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest,
+    GetMyInviteTokenRequest, GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest,
     StartSetRequest, StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest,
     WorkoutHeartRatePoint, WorkoutMutation,
 };
@@ -306,7 +305,7 @@ async fn run_user_simulation(
 
     let mut workout_client = WorkoutServiceClient::new(channel.clone());
     let mut multiplayer_client = MultiplayerServiceClient::new(channel.clone());
-    let mut settings_client = SettingsServiceClient::new(channel.clone());
+    let settings_client = SettingsServiceClient::new(channel.clone());
 
     if is_leader {
         let mut req = Request::new(GetMyInviteTokenRequest {});
@@ -331,27 +330,9 @@ async fn run_user_simulation(
                 &mut client,
                 &token,
                 &stats,
-                "GetTrainingProgramCatalog",
-                |c, req| Box::pin(c.get_training_program_catalog(req)),
-                GetTrainingProgramCatalogRequest {},
-            )
-            .await?;
-            timed_call(
-                &mut client,
-                &token,
-                &stats,
                 "GetSettings",
                 |c, req| Box::pin(c.get_settings(req)),
                 GetSettingsRequest {},
-            )
-            .await?;
-            timed_call(
-                &mut client,
-                &token,
-                &stats,
-                "GetActiveTrainingProgramState",
-                |c, req| Box::pin(c.get_active_training_program_state(req)),
-                GetActiveTrainingProgramStateRequest {},
             )
             .await?;
             Ok::<(), Status>(())
@@ -386,19 +367,17 @@ async fn run_user_simulation(
                 )
                 .await?;
             }
-            let proposed_schedule = timed_call(
+            let _ = &user_id;
+            let home = timed_call(
                 &mut client,
                 &token,
                 &stats,
-                "GetProposedSchedule",
-                |c, req| Box::pin(c.get_proposed_workout_schedule(req)),
-                GetProposedWorkoutScheduleRequest {
-                    user_id,
-                    at_time: 0,
-                },
+                "GetHome",
+                |c, req| Box::pin(c.get_home(req)),
+                GetHomeRequest {},
             )
             .await?;
-            Ok::<_, Status>(proposed_schedule)
+            Ok::<_, Status>(home)
         })
     };
 
@@ -486,22 +465,30 @@ async fn run_user_simulation(
 
         random_sleep(500, 1500).await;
 
-        let proposed_schedule = timed_call(
+        let home = timed_call(
             &mut workout_client,
             &token,
             &stats,
-            "GetProposedSchedule",
-            |c, req| Box::pin(c.get_proposed_workout_schedule(req)),
-            GetProposedWorkoutScheduleRequest {
-                user_id: user_id.clone(),
-                at_time: 0,
-            },
+            "GetHome",
+            |c, req| Box::pin(c.get_home(req)),
+            GetHomeRequest {},
         )
         .await?;
 
         random_sleep(500, 1500).await;
 
-        let start_groups = build_start_workout_groups(&proposed_schedule);
+        // Start from the suggested template when there is one; fall back to
+        // the first template, then to an explicit group.
+        let template_id = if !home.suggested_template_id.is_empty() {
+            home.suggested_template_id.clone()
+        } else {
+            home.templates.first().map(|t| t.id.clone()).unwrap_or_default()
+        };
+        let start_groups = if template_id.is_empty() {
+            build_fallback_groups()
+        } else {
+            Vec::new()
+        };
         let start_resp = timed_call(
             &mut workout_client,
             &token,
@@ -512,20 +499,11 @@ async fn run_user_simulation(
                 name: "Simulated Workout".to_string(),
                 exercise_groups: start_groups,
                 started_at: 0,
+                template_id,
             },
         )
         .await?;
         let workout_id = start_resp.id;
-
-        timed_call(
-            &mut workout_client,
-            &token,
-            &stats,
-            "ClearWorkoutDraft",
-            |c, req| Box::pin(c.clear_workout_draft(req)),
-            schlift::workout::v1::ClearWorkoutDraftRequest {},
-        )
-        .await?;
 
         if current_session_id.is_some() {
             timed_call(
@@ -630,15 +608,6 @@ async fn run_user_simulation(
         .await?;
 
         timed_call(
-            &mut settings_client,
-            &token,
-            &stats,
-            "GetActiveTrainingProgramState",
-            |c, req| Box::pin(c.get_active_training_program_state(req)),
-            GetActiveTrainingProgramStateRequest {},
-        )
-        .await?;
-        timed_call(
             &mut workout_client,
             &token,
             &stats,
@@ -666,12 +635,9 @@ async fn run_user_simulation(
             &mut workout_client,
             &token,
             &stats,
-            "GetProposedSchedule",
-            |c, req| Box::pin(c.get_proposed_workout_schedule(req)),
-            GetProposedWorkoutScheduleRequest {
-                user_id: user_id.clone(),
-                at_time: 0,
-            },
+            "GetHome",
+            |c, req| Box::pin(c.get_home(req)),
+            GetHomeRequest {},
         )
         .await?;
 
@@ -691,31 +657,7 @@ async fn random_sleep(min_ms: u64, max_ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
-fn build_start_workout_groups(
-    schedule: &schlift::workout::v1::GetProposedWorkoutScheduleResponse,
-) -> Vec<ExerciseGroup> {
-    if !schedule.proposed_groups.is_empty() {
-        let mut groups = Vec::new();
-        for (idx, proposed) in schedule.proposed_groups.iter().take(2).enumerate() {
-            groups.push(ExerciseGroup {
-                id: uuid::Uuid::new_v4().to_string(),
-                workout_id: String::new(),
-                name: proposed.name.clone(),
-                sets: proposed.sets,
-                interleave_warmups: proposed.interleave_warmups,
-                workout_order: idx as i32,
-                prescribed_by_regime: proposed.prescribed_by_regime,
-            materialized_sets: Vec::new(),
-                exercise_configs: proposed.exercise_configs.clone(),
-                instruction: String::new(),
-                rest_config: proposed.rest_config,
-            });
-        }
-        if !groups.is_empty() {
-            return groups;
-        }
-    }
-
+fn build_fallback_groups() -> Vec<ExerciseGroup> {
     vec![
         ExerciseGroup {
             id: uuid::Uuid::new_v4().to_string(),
@@ -724,8 +666,6 @@ fn build_start_workout_groups(
             sets: 3,
             interleave_warmups: false,
             workout_order: 0,
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
             exercise_configs: vec![ExerciseTypeConfig {
                 exercise: Exercise::Squat as i32,
                 start_weight: 135.0,
@@ -746,8 +686,6 @@ fn build_start_workout_groups(
             sets: 3,
             interleave_warmups: false,
             workout_order: 1,
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
             exercise_configs: vec![ExerciseTypeConfig {
                 exercise: Exercise::BenchPress as i32,
                 start_weight: 95.0,

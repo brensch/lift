@@ -1,76 +1,128 @@
-//! Per-exercise-type progression.
+//! Per-exercise trackers and the one progression rule: double progression.
 //!
-//! The regimes progress the handful of lifts they prescribe. This progresses
-//! *everything else* — every exercise you've actually performed gets a tracked
-//! working weight that climbs when you clear it, holds when you miss, and
-//! deloads when you keep missing. That number is what the app prefills when you
-//! add the exercise to a workout, so a group added mid-session resumes from
-//! where you left off rather than from a generic default.
+//! A tracker holds, per user per exercise, the working weight, the current
+//! rep target inside the prescription's range, and the miss streak. After
+//! a workout the tracker advances: reps first, then load.
 //!
-//! It's derived from workout history rather than stored, so there's no second
-//! source of truth to keep in sync with the sets you actually logged: edit or
-//! delete a set and the progression follows. The regimes stay authoritative for
-//! the lifts they program — see `exercise_statuses_for_schedule`, which layers
-//! the two.
+//! | Outcome | Next state |
+//! |---|---|
+//! | Every planned set hit its target, lowest reps `m >= range top` | weight + one equipment step, reps back to the range bottom |
+//! | Every planned set hit its target, `m < top` | rep target becomes `m + 1` |
+//! | A set missed or was skipped | hold; two misses running → weight × 0.9, reps to the bottom |
+//! | No load (bodyweight) | reps only, weight stays 0 |
+//!
+//! The weight basis is always the weight you *performed* (the last working
+//! set you completed), not the stored weight — a mid-session edit carries
+//! through. All weights are stored in pounds and snapped to loadable
+//! values in the user's display unit.
 
 use std::collections::HashMap;
 
 use crate::exercise_catalog::{
-    all_exercises, category, default_reps, default_sets, progression_increment_lb, snap_weight_lb,
-    starting_weight_lb,
+    prescription, progression_increment_lb, snap_weight_lb, starting_weight_lb, Prescription,
 };
-use crate::recovery::{muscle_groups, MuscleRecovery};
-use crate::schplanner::SchplannerWorkoutRecord;
+use crate::history::{workout_time, WorkoutRecord};
 use crate::weight_units::AppWeightUnit;
-use schlift::workout::v1::{
-    Exercise, ExerciseStatus, ProposedExerciseGroup, ProposedSet,
-};
+use schlift::workout::v1::{Exercise, ProposedSet};
 
-/// How many misses at a weight before we back off it.
+/// How many misses at a weight before backing off it.
 const MISSES_BEFORE_DELOAD: i32 = 2;
-/// How far back a deload drops you.
+/// How far a deload drops.
 const DELOAD_FACTOR: f32 = 0.9;
-/// Cap on the returned weight series (the client charts a recent window).
-const WEIGHT_HISTORY_LIMIT: usize = 12;
+/// Rep ceiling for bodyweight moves, which progress by reps alone.
+const BODYWEIGHT_REP_CAP: i32 = 30;
+/// Cap on the derived weight series (the client charts a recent window).
+pub const WEIGHT_HISTORY_LIMIT: usize = 12;
 
-/// What we know about one exercise from the user's own history.
-#[derive(Clone, Debug)]
-pub struct ExerciseProgression {
-    /// The weight to prescribe next time, in pounds.
-    pub target_weight: f32,
-    pub target_reps: i32,
-    pub target_sets: i32,
+/// The stored state of one tracker. `working_weight <= 0` and
+/// `current_reps <= 0` mean "never set"; resolution fills them from the
+/// catalog. Overrides of 0 mean "derived".
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct TrackerState {
+    pub working_weight: f32, // lb
+    pub current_reps: i32,
+    pub consecutive_misses: i32,
     pub last_performed_at: i64,
-    /// Top working weight per session, oldest first.
-    pub weight_history: Vec<f32>,
+    pub override_sets: i32,
+    pub override_rep_low: i32,
+    pub override_rep_high: i32,
 }
 
-/// One session's worth of one exercise, reduced to the facts progression needs.
-struct SessionOutcome {
-    at: i64,
-    /// Non-cancelled working sets that were prescribed.
-    planned_sets: usize,
-    /// Completed working sets that met their own rep target.
-    successful_sets: usize,
-    /// The weight of the last set you actually finished — progression follows
-    /// what you did, not what was planned, so a mid-session weight edit counts.
-    performed_weight: f32,
-    top_weight: f32,
-    target_reps: i32,
+/// A tracker with every value filled in: what the next workout will use.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ResolvedTracker {
+    pub working_weight: f32, // lb, snapped
+    pub sets: i32,
+    pub target_reps: i32,
+    pub rep_low: i32,
+    pub rep_high: i32,
+    pub rest_seconds: i32,
+    pub rest_seconds_failure: i32,
+    pub include_warmup: bool,
+    pub last_performed_at: i64,
+    pub overridden: bool,
 }
 
-fn workout_time(record: &SchplannerWorkoutRecord) -> i64 {
-    if record.workout.end_time > 0 {
-        record.workout.end_time
+/// The prescription with the tracker's overrides folded in.
+pub fn effective_prescription(ex: Exercise, state: &TrackerState) -> Prescription {
+    let mut p = prescription(ex);
+    if state.override_sets > 0 {
+        p.sets = state.override_sets;
+    }
+    if state.override_rep_low > 0 && state.override_rep_high >= state.override_rep_low {
+        p.rep_low = state.override_rep_low;
+        p.rep_high = state.override_rep_high;
+    }
+    p
+}
+
+pub fn resolve_tracker(
+    ex: Exercise,
+    state: Option<&TrackerState>,
+    unit: AppWeightUnit,
+) -> ResolvedTracker {
+    let default_state = TrackerState::default();
+    let state = state.unwrap_or(&default_state);
+    let p = effective_prescription(ex, state);
+    let weight = if state.working_weight > 0.0 {
+        snap_weight_lb(ex, state.working_weight, unit)
     } else {
-        record.workout.start_time
+        starting_weight_lb(ex, unit)
+    };
+    let target_reps = state.current_reps.clamp(p.rep_low, p.rep_high);
+    ResolvedTracker {
+        working_weight: weight,
+        sets: p.sets,
+        target_reps,
+        rep_low: p.rep_low,
+        rep_high: p.rep_high,
+        rest_seconds: p.rest_seconds,
+        rest_seconds_failure: p.rest_seconds_failure,
+        include_warmup: p.include_warmup,
+        last_performed_at: state.last_performed_at,
+        overridden: state.override_sets > 0 || state.override_rep_low > 0,
     }
 }
 
-/// Reduce one workout to per-exercise outcomes. Warmups, cancelled sets and
-/// sets that were never finished are all excluded — they say nothing about
-/// whether you cleared the work.
-fn session_outcomes(record: &SchplannerWorkoutRecord) -> HashMap<i32, SessionOutcome> {
+/// One session's worth of one exercise, reduced to what progression needs.
+#[derive(Clone, Copy, Debug)]
+pub struct SessionOutcome {
+    pub at: i64,
+    /// Lowest actual reps across completed planned working sets.
+    pub min_reps: i32,
+    /// Weight of the last working set actually finished (wall-clock).
+    pub performed_weight: f32,
+    /// Heaviest completed working set (for the weight-history series).
+    pub top_weight: f32,
+    /// Whether every planned set was completed at its target.
+    pub cleared: bool,
+}
+
+/// Reduce one workout to per-exercise outcomes. Warmups, cancelled sets
+/// and sets never finished are excluded — they say nothing about whether
+/// you cleared the work. Judgement uses the target stamped on each set,
+/// so an edited session is judged by what was attempted.
+pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> {
     let proposed_by_id: HashMap<&str, &ProposedSet> = record
         .proposed_sets
         .iter()
@@ -78,20 +130,22 @@ fn session_outcomes(record: &SchplannerWorkoutRecord) -> HashMap<i32, SessionOut
         .collect();
 
     let mut planned: HashMap<i32, usize> = HashMap::new();
-    let mut target_reps: HashMap<i32, i32> = HashMap::new();
     for set in record
         .proposed_sets
         .iter()
         .filter(|set| !set.warmup && !set.cancelled)
     {
         *planned.entry(set.exercise).or_insert(0) += 1;
-        target_reps.entry(set.exercise).or_insert(set.target_reps);
     }
 
-    let mut successful: HashMap<i32, usize> = HashMap::new();
-    // (ended_at, weight) of the last finished set, and the heaviest.
-    let mut last_done: HashMap<i32, (i64, f32)> = HashMap::new();
-    let mut top: HashMap<i32, f32> = HashMap::new();
+    struct Acc {
+        successful: usize,
+        completed: usize,
+        min_reps: i32,
+        last_done: (i64, f32),
+        top_weight: f32,
+    }
+    let mut acc: HashMap<i32, Acc> = HashMap::new();
     for completed in record.completed_sets.iter().filter(|set| set.ended_at > 0) {
         let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
             continue;
@@ -99,261 +153,158 @@ fn session_outcomes(record: &SchplannerWorkoutRecord) -> HashMap<i32, SessionOut
         if proposed.warmup || proposed.cancelled {
             continue;
         }
-        let exercise = proposed.exercise;
-        if completed.actual_reps >= proposed.target_reps && proposed.target_reps > 0 {
-            *successful.entry(exercise).or_insert(0) += 1;
+        let entry = acc.entry(proposed.exercise).or_insert(Acc {
+            successful: 0,
+            completed: 0,
+            min_reps: i32::MAX,
+            last_done: (0, 0.0),
+            top_weight: 0.0,
+        });
+        entry.completed += 1;
+        entry.min_reps = entry.min_reps.min(completed.actual_reps);
+        if proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps {
+            entry.successful += 1;
         }
-        let entry = last_done.entry(exercise).or_insert((0, 0.0));
-        if completed.ended_at >= entry.0 {
-            *entry = (completed.ended_at, completed.actual_weight);
+        if completed.ended_at >= entry.last_done.0 {
+            entry.last_done = (completed.ended_at, completed.actual_weight);
         }
-        let best = top.entry(exercise).or_insert(0.0);
-        if completed.actual_weight > *best {
-            *best = completed.actual_weight;
+        if completed.actual_weight > entry.top_weight {
+            entry.top_weight = completed.actual_weight;
         }
     }
 
     let at = workout_time(record);
-    last_done
-        .into_iter()
-        .map(|(exercise, (_, performed_weight))| {
+    acc.into_iter()
+        .map(|(exercise, a)| {
+            let planned_sets = planned.get(&exercise).copied().unwrap_or(0);
             (
                 exercise,
                 SessionOutcome {
                     at,
-                    planned_sets: planned.get(&exercise).copied().unwrap_or(0),
-                    successful_sets: successful.get(&exercise).copied().unwrap_or(0),
-                    performed_weight,
-                    top_weight: top.get(&exercise).copied().unwrap_or(performed_weight),
-                    target_reps: target_reps.get(&exercise).copied().unwrap_or(0),
+                    min_reps: if a.min_reps == i32::MAX { 0 } else { a.min_reps },
+                    performed_weight: a.last_done.1,
+                    top_weight: a.top_weight,
+                    cleared: planned_sets > 0
+                        && a.completed >= planned_sets
+                        && a.successful >= planned_sets,
                 },
             )
         })
         .collect()
 }
 
-/// Replay history and land on the next weight for every exercise that appears
-/// in it.
-///
-/// The rule is deliberately the same shape as linear progression, because that's
-/// what an accessory wants: clear every prescribed set and you go up by one
-/// equipment step; miss and you repeat the weight; miss twice running and you
-/// drop 10% to build back into it.
-pub fn derive_exercise_progressions(
-    history: &[SchplannerWorkoutRecord],
+/// Advance one tracker by one session — the double-progression rule.
+pub fn advance_tracker(
+    ex: Exercise,
+    state: &TrackerState,
+    outcome: &SessionOutcome,
     unit: AppWeightUnit,
-) -> HashMap<i32, ExerciseProgression> {
-    let mut ordered: Vec<&SchplannerWorkoutRecord> = history
+) -> TrackerState {
+    let p = effective_prescription(ex, state);
+    let mut next = *state;
+    next.last_performed_at = outcome.at;
+
+    // Bodyweight (or a set logged with no load): reps are the only lever.
+    if outcome.performed_weight <= 0.0 {
+        next.working_weight = 0.0;
+        next.consecutive_misses = 0;
+        if outcome.cleared {
+            next.current_reps = (outcome.min_reps + 1).clamp(p.rep_low, BODYWEIGHT_REP_CAP);
+        }
+        return next;
+    }
+
+    if outcome.cleared {
+        next.consecutive_misses = 0;
+        if outcome.min_reps >= p.rep_high {
+            // Range topped out on every set: add one equipment step and
+            // drop back to the bottom of the range.
+            let step = progression_increment_lb(ex, unit);
+            next.working_weight =
+                snap_weight_lb(ex, outcome.performed_weight + step, unit);
+            next.current_reps = p.rep_low;
+        } else {
+            // Progress by reps: next target follows the worst set + 1, so
+            // beating the target by more moves the target by more.
+            next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
+            next.current_reps = (outcome.min_reps + 1).clamp(p.rep_low, p.rep_high);
+        }
+    } else {
+        next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
+        next.consecutive_misses = state.consecutive_misses + 1;
+        if next.consecutive_misses >= MISSES_BEFORE_DELOAD {
+            // Two misses running: back off a tenth and rebuild through the
+            // rep range rather than grinding the same weight forever.
+            next.working_weight =
+                snap_weight_lb(ex, outcome.performed_weight * DELOAD_FACTOR, unit);
+            next.current_reps = p.rep_low;
+            next.consecutive_misses = 0;
+        }
+    }
+    next
+}
+
+/// Replay history into trackers. Seeds the migration and can repair a
+/// tracker table; live updates go through `advance_tracker` at
+/// EndWorkout.
+pub fn derive_trackers_from_history(
+    history: &[WorkoutRecord],
+    unit: AppWeightUnit,
+) -> HashMap<i32, TrackerState> {
+    let mut ordered: Vec<&WorkoutRecord> = history
         .iter()
         .filter(|record| workout_time(record) > 0)
         .collect();
     ordered.sort_by_key(|record| workout_time(record));
 
-    struct Acc {
-        weight: f32,
-        reps: i32,
-        sets: i32,
-        last_at: i64,
-        misses: i32,
-        history: Vec<f32>,
-    }
-    let mut acc: HashMap<i32, Acc> = HashMap::new();
-
+    let mut trackers: HashMap<i32, TrackerState> = HashMap::new();
     for record in ordered {
         for (exercise_value, outcome) in session_outcomes(record) {
-            let exercise = Exercise::try_from(exercise_value).unwrap_or(Exercise::Unspecified);
-            if exercise == Exercise::Unspecified {
+            let Ok(ex) = Exercise::try_from(exercise_value) else {
+                continue;
+            };
+            if ex == Exercise::Unspecified {
                 continue;
             }
-            let entry = acc.entry(exercise_value).or_insert(Acc {
-                weight: 0.0,
-                reps: 0,
-                sets: 0,
-                last_at: 0,
-                misses: 0,
-                history: Vec::new(),
-            });
+            let state = trackers.entry(exercise_value).or_default();
+            *state = advance_tracker(ex, state, &outcome, unit);
+        }
+    }
+    trackers
+}
 
-            // Without a rep target there's nothing to have hit or missed, so
-            // such a session neither advances nor counts against you.
-            let judged = outcome.planned_sets > 0 && outcome.target_reps > 0;
-            let cleared = judged && outcome.successful_sets >= outcome.planned_sets;
-            let increment = progression_increment_lb(exercise, unit);
-            let next = if outcome.performed_weight <= 0.0 {
-                // Bodyweight work (or a set logged with no load): there's no
-                // weight to move, so the prescription just repeats.
-                entry.misses = 0;
-                0.0
-            } else if !judged {
-                outcome.performed_weight
-            } else if cleared {
-                entry.misses = 0;
-                outcome.performed_weight + increment
-            } else {
-                entry.misses += 1;
-                if entry.misses >= MISSES_BEFORE_DELOAD {
-                    entry.misses = 0;
-                    outcome.performed_weight * DELOAD_FACTOR
-                } else {
-                    outcome.performed_weight
-                }
-            };
+/// Top working weight per session per exercise, oldest first, capped at
+/// `WEIGHT_HISTORY_LIMIT` — the little sparkline series on a tracker.
+pub fn weight_history(history: &[WorkoutRecord]) -> HashMap<i32, Vec<f32>> {
+    let mut ordered: Vec<&WorkoutRecord> = history
+        .iter()
+        .filter(|record| workout_time(record) > 0)
+        .collect();
+    ordered.sort_by_key(|record| workout_time(record));
 
-            entry.weight = snap_weight_lb(exercise, next, unit);
-            if outcome.target_reps > 0 {
-                entry.reps = outcome.target_reps;
-            }
-            if outcome.planned_sets > 0 {
-                entry.sets = outcome.planned_sets as i32;
-            }
-            entry.last_at = outcome.at;
-            entry.history.push(outcome.top_weight);
-            if entry.history.len() > WEIGHT_HISTORY_LIMIT {
-                let overflow = entry.history.len() - WEIGHT_HISTORY_LIMIT;
-                entry.history.drain(0..overflow);
+    let mut out: HashMap<i32, Vec<f32>> = HashMap::new();
+    for record in ordered {
+        for (exercise, outcome) in session_outcomes(record) {
+            let series = out.entry(exercise).or_default();
+            series.push(outcome.top_weight);
+            if series.len() > WEIGHT_HISTORY_LIMIT {
+                let overflow = series.len() - WEIGHT_HISTORY_LIMIT;
+                series.drain(0..overflow);
             }
         }
     }
-
-    acc.into_iter()
-        .map(|(exercise_value, entry)| {
-            let exercise = Exercise::try_from(exercise_value).unwrap_or(Exercise::Unspecified);
-            (
-                exercise_value,
-                ExerciseProgression {
-                    target_weight: entry.weight,
-                    target_reps: if entry.reps > 0 {
-                        entry.reps
-                    } else {
-                        default_reps(exercise)
-                    },
-                    target_sets: if entry.sets > 0 {
-                        entry.sets
-                    } else {
-                        default_sets(exercise)
-                    },
-                    last_performed_at: entry.last_at,
-                    weight_history: entry.history,
-                },
-            )
-        })
-        .collect()
-}
-
-/// The weight you finished each exercise at in one workout — the last working
-/// set you actually completed, by wall-clock. Pairs with a derived progression
-/// to say "you did X, next time do Y".
-pub fn performed_working_weights(record: &SchplannerWorkoutRecord) -> HashMap<i32, f32> {
-    session_outcomes(record)
-        .into_iter()
-        .map(|(exercise, outcome)| (exercise, outcome.performed_weight))
-        .collect()
-}
-
-/// The weight/reps/sets the regime is prescribing for an exercise in today's
-/// proposal, if it's in there at all.
-fn regime_prescription(
-    proposed_groups: &[ProposedExerciseGroup],
-    exercise_value: i32,
-) -> Option<(f32, i32, i32)> {
-    for group in proposed_groups {
-        for config in &group.exercise_configs {
-            if config.exercise != exercise_value {
-                continue;
-            }
-            let (weight, reps) = match config.working_sets.first() {
-                Some(set) => (set.target_weight, set.target_reps),
-                None => (config.start_weight, config.reps),
-            };
-            let sets = if config.working_sets.is_empty() {
-                group.sets.max(1)
-            } else {
-                config.working_sets.len() as i32
-            };
-            return Some((weight, reps, sets));
-        }
-    }
-    None
-}
-
-/// The per-exercise status the client prefills "add exercise" from.
-///
-/// Precedence for the weight, most authoritative first:
-/// 1. what the regime is prescribing today — the program owns its own lifts,
-///    and the home screen renders this same number, so disagreeing here would
-///    show one weight and start the workout at another;
-/// 2. the progression derived from your history;
-/// 3. a sane opener from the catalogue for something you've never done.
-pub fn exercise_statuses_for_schedule(
-    history: &[SchplannerWorkoutRecord],
-    proposed_groups: &[ProposedExerciseGroup],
-    recovery: &[MuscleRecovery],
-    unit: AppWeightUnit,
-    now: i64,
-) -> Vec<ExerciseStatus> {
-    let progressions = derive_exercise_progressions(history, unit);
-
-    all_exercises()
-        .into_iter()
-        .map(|exercise| {
-            let value = exercise as i32;
-            let progression = progressions.get(&value);
-            let prescribed = regime_prescription(proposed_groups, value);
-
-            let target_weight = prescribed
-                .map(|(weight, _, _)| weight)
-                .or_else(|| progression.map(|p| p.target_weight))
-                .unwrap_or_else(|| starting_weight_lb(exercise, unit));
-            let default_reps_value = prescribed
-                .map(|(_, reps, _)| reps)
-                .or_else(|| progression.map(|p| p.target_reps))
-                .unwrap_or_else(|| default_reps(exercise));
-            let default_sets_value = prescribed
-                .map(|(_, _, sets)| sets)
-                .or_else(|| progression.map(|p| p.target_sets))
-                .unwrap_or_else(|| default_sets(exercise));
-
-            // Recovered when every muscle it trains is. Never-trained muscles
-            // report recovered, so an untouched exercise is ready by default.
-            let recovered = muscle_groups(exercise).iter().all(|muscle| {
-                recovery
-                    .iter()
-                    .find(|entry| entry.group == *muscle)
-                    .map(|entry| entry.is_recovered(now))
-                    .unwrap_or(true)
-            });
-
-            ExerciseStatus {
-                exercise: value,
-                target_weight,
-                last_performed_at: progression.map(|p| p.last_performed_at).unwrap_or(0),
-                weight_history: progression
-                    .map(|p| p.weight_history.clone())
-                    .unwrap_or_default(),
-                // Left empty on purpose: the proto's MuscleGroup enum (quads /
-                // hamstrings / biceps / …) doesn't line up with the recovery
-                // model's groups, and no client reads this field. Populating it
-                // would mean inventing a lossy mapping.
-                muscle_groups: Vec::new(),
-                default_sets: default_sets_value,
-                default_reps: default_reps_value,
-                recovered,
-                always_include: prescribed.is_some(),
-                category: category(exercise) as i32,
-            }
-        })
-        .collect()
+    out
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use schlift::workout::v1::{CompletedSet, ExerciseTypeConfig, Workout, WorkingSetSpec};
+    use schlift::workout::v1::{CompletedSet, Workout};
 
-    fn proposed(id: &str, exercise: Exercise, weight: f32, reps: i32, warmup: bool) -> ProposedSet {
+    fn proposed(id: &str, ex: Exercise, weight: f32, reps: i32, warmup: bool) -> ProposedSet {
         ProposedSet {
             id: id.to_string(),
-            exercise: exercise as i32,
+            exercise: ex as i32,
             target_weight: weight,
             target_reps: reps,
             warmup,
@@ -372,25 +323,24 @@ mod tests {
         }
     }
 
-    /// One session of `sets` × `reps` at `weight`, of which `hit` met the target.
+    /// One session: `sets` sets at `weight`, targets `target` reps, and
+    /// the actual reps given per set.
     fn session(
         id: &str,
         at: i64,
-        exercise: Exercise,
+        ex: Exercise,
         weight: f32,
-        reps: i32,
-        sets: usize,
-        hit: usize,
-    ) -> SchplannerWorkoutRecord {
+        target: i32,
+        actuals: &[i32],
+    ) -> WorkoutRecord {
         let mut proposed_sets = Vec::new();
         let mut completed_sets = Vec::new();
-        for i in 0..sets {
+        for (i, actual) in actuals.iter().enumerate() {
             let set_id = format!("{id}_s{i}");
-            proposed_sets.push(proposed(&set_id, exercise, weight, reps, false));
-            let actual = if i < hit { reps } else { reps - 1 };
-            completed_sets.push(completed(&set_id, actual, weight, at - (sets - i) as i64));
+            proposed_sets.push(proposed(&set_id, ex, weight, target, false));
+            completed_sets.push(completed(&set_id, *actual, weight, at - (actuals.len() - i) as i64));
         }
-        SchplannerWorkoutRecord {
+        WorkoutRecord {
             workout: Workout {
                 id: id.to_string(),
                 start_time: at - 3600,
@@ -403,202 +353,189 @@ mod tests {
         }
     }
 
-    fn weight_for(history: &[SchplannerWorkoutRecord], exercise: Exercise) -> f32 {
-        derive_exercise_progressions(history, AppWeightUnit::Lb)
-            .get(&(exercise as i32))
-            .expect("exercise should have a progression")
-            .target_weight
+    fn advance(ex: Exercise, state: TrackerState, record: &WorkoutRecord) -> TrackerState {
+        let outcomes = session_outcomes(record);
+        let outcome = outcomes.get(&(ex as i32)).expect("exercise in session");
+        advance_tracker(ex, &state, outcome, AppWeightUnit::Lb)
     }
 
-    /// The headline behaviour: an accessory the regime knows nothing about still
-    /// goes up when you clear it.
+    /// The everyday case: clear the target below the top of the range and
+    /// the reps move, not the weight.
     #[test]
-    fn clearing_every_set_adds_a_step() {
-        let history = vec![session(
-            "w1",
-            1000,
-            Exercise::LateralRaise,
-            20.0,
-            10,
-            3,
-            3,
-        )];
-        assert_eq!(weight_for(&history, Exercise::LateralRaise), 25.0);
+    fn clearing_mid_range_adds_a_rep() {
+        // Lateral raise 10–15. Target 10, did 11/10/10 → next target 11.
+        let record = session("w1", 1000, Exercise::LateralRaise, 20.0, 10, &[11, 10, 10]);
+        let next = advance(Exercise::LateralRaise, TrackerState::default(), &record);
+        assert_eq!(next.current_reps, 11);
+        assert_eq!(next.working_weight, 20.0, "weight holds while reps climb");
+        assert_eq!(next.consecutive_misses, 0);
     }
 
+    /// Beating the target by more moves the target by more: the next
+    /// target follows the worst set.
     #[test]
-    fn missing_reps_repeats_the_weight() {
-        let history = vec![session("w1", 1000, Exercise::LateralRaise, 20.0, 10, 3, 2)];
-        assert_eq!(weight_for(&history, Exercise::LateralRaise), 20.0);
+    fn the_next_target_follows_the_worst_set() {
+        let record = session("w1", 1000, Exercise::LateralRaise, 20.0, 10, &[14, 13, 13]);
+        let next = advance(Exercise::LateralRaise, TrackerState::default(), &record);
+        assert_eq!(next.current_reps, 14, "13 everywhere → target 14");
     }
 
-    /// Two misses running and you back off rather than grinding the same weight
-    /// forever.
+    /// Top of the range on every set: one equipment step up, reps reset.
+    #[test]
+    fn topping_the_range_adds_load_and_resets_reps() {
+        let record = session("w1", 1000, Exercise::LateralRaise, 20.0, 15, &[15, 15, 15]);
+        let next = advance(Exercise::LateralRaise, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 25.0, "one dumbbell step");
+        assert_eq!(next.current_reps, 10, "back to the range bottom");
+    }
+
+    /// A barbell step lands on a loadable weight.
+    #[test]
+    fn barbell_load_bump_snaps_loadable() {
+        let record = session("w1", 1000, Exercise::Squat, 137.0, 10, &[10, 10, 10]);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(
+            next.working_weight,
+            crate::weight_units::snap_loadable_lb(142.0, AppWeightUnit::Lb)
+        );
+        assert_eq!(next.current_reps, 6, "squat range bottom");
+    }
+
+    /// One miss holds everything; the second miss running deloads 10%.
     #[test]
     fn two_misses_running_deload() {
-        let history = vec![
-            session("w1", 1000, Exercise::LatPulldown, 100.0, 10, 3, 2),
-            session("w2", 2000, Exercise::LatPulldown, 100.0, 10, 3, 2),
-        ];
-        // 100 * 0.9 = 90, already a clean stack step.
-        assert_eq!(weight_for(&history, Exercise::LatPulldown), 90.0);
+        let miss = session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 7, 6]);
+        let s1 = advance(Exercise::Squat, TrackerState::default(), &miss);
+        assert_eq!(s1.consecutive_misses, 1);
+        assert_eq!(s1.working_weight, 200.0, "first miss holds the weight");
+
+        let miss2 = session("w2", 2000, Exercise::Squat, 200.0, 8, &[8, 7, 7]);
+        let s2 = advance(Exercise::Squat, s1, &miss2);
+        assert_eq!(s2.consecutive_misses, 0);
+        assert_eq!(
+            s2.working_weight,
+            crate::weight_units::snap_loadable_lb(180.0, AppWeightUnit::Lb),
+            "second miss deloads a tenth"
+        );
+        assert_eq!(s2.current_reps, 6);
     }
 
-    /// A miss between two clears doesn't count toward a deload — the streak
-    /// resets, which is what stops a single bad day from unwinding progress.
+    /// A clear between misses resets the streak — one bad day never
+    /// compounds into a deload.
     #[test]
     fn a_clear_resets_the_miss_streak() {
-        let history = vec![
-            session("w1", 1000, Exercise::LatPulldown, 100.0, 10, 3, 2),
-            session("w2", 2000, Exercise::LatPulldown, 100.0, 10, 3, 3),
-            session("w3", 3000, Exercise::LatPulldown, 105.0, 10, 3, 2),
-        ];
-        assert_eq!(
-            weight_for(&history, Exercise::LatPulldown),
-            105.0,
-            "held, not deloaded"
-        );
+        let miss = session("w1", 1000, Exercise::Squat, 200.0, 8, &[7, 7, 7]);
+        let s1 = advance(Exercise::Squat, TrackerState::default(), &miss);
+        let clear = session("w2", 2000, Exercise::Squat, 200.0, 8, &[8, 8, 8]);
+        let s2 = advance(Exercise::Squat, s1, &clear);
+        assert_eq!(s2.consecutive_misses, 0);
+        let miss3 = session("w3", 3000, Exercise::Squat, 200.0, 9, &[8, 8, 8]);
+        let s3 = advance(Exercise::Squat, s2, &miss3);
+        assert_eq!(s3.consecutive_misses, 1, "streak restarted, no deload");
+        assert_eq!(s3.working_weight, 200.0);
     }
 
-    /// Progression follows the weight you actually lifted, so editing a set
-    /// mid-workout carries through.
+    /// Progression follows the weight you performed, not the plan — a
+    /// mid-session edit carries through.
     #[test]
-    fn progression_follows_the_weight_you_performed() {
-        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 5, 3, 3);
-        // You dropped to 185 for every set but still hit the reps.
+    fn progression_follows_the_performed_weight() {
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 10, &[10, 10, 10]);
         for set in &mut record.completed_sets {
             set.actual_weight = 185.0;
         }
-        assert_eq!(weight_for(&[record], Exercise::Squat), 190.0);
-    }
-
-    #[test]
-    fn bodyweight_work_stays_unweighted() {
-        let history = vec![session("w1", 1000, Exercise::PushUp, 0.0, 15, 3, 3)];
-        assert_eq!(weight_for(&history, Exercise::PushUp), 0.0);
-    }
-
-    /// Barbell results stay loadable — a raw +5 on an unloadable weight would
-    /// prescribe a bar you can't build.
-    #[test]
-    fn barbell_progression_snaps_to_a_loadable_weight() {
-        let history = vec![session("w1", 1000, Exercise::Squat, 137.0, 5, 3, 3)];
-        let next = weight_for(&history, Exercise::Squat);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
         assert_eq!(
-            next,
-            crate::weight_units::snap_loadable_lb(142.0, AppWeightUnit::Lb)
+            next.working_weight,
+            crate::weight_units::snap_loadable_lb(190.0, AppWeightUnit::Lb),
+            "185 performed + 5, not 205"
         );
     }
 
+    /// Bodyweight: reps climb without a cap at the range top, weight
+    /// stays zero.
     #[test]
-    fn warmups_dont_count_toward_clearing_a_session() {
-        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 5, 3, 3);
+    fn bodyweight_progresses_by_reps_alone() {
+        let record = session("w1", 1000, Exercise::PullUp, 0.0, 15, &[16, 15, 15]);
+        let next = advance(Exercise::PullUp, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 0.0);
+        assert_eq!(next.current_reps, 16, "past the range top is fine");
+    }
+
+    /// Warmups say nothing about clearing the work.
+    #[test]
+    fn warmups_are_ignored() {
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 8, 8]);
         record
             .proposed_sets
             .push(proposed("warm", Exercise::Squat, 95.0, 5, true));
         record.completed_sets.push(completed("warm", 5, 95.0, 900));
-        // The warmup is the lightest set but must not become the performed weight.
-        assert_eq!(weight_for(&[record], Exercise::Squat), 205.0);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 200.0, "warmup weight never leaks in");
+        assert_eq!(next.current_reps, 9);
     }
 
-    /// A set with no rep target can't be judged, so it must not read as a miss —
-    /// otherwise repeating it would deload a weight you never failed.
+    /// A set with no rep target cannot be judged; it neither advances nor
+    /// counts as a miss.
     #[test]
-    fn a_session_with_no_rep_target_holds_rather_than_deloads() {
-        let mut first = session("w1", 1000, Exercise::CableCrunch, 60.0, 0, 3, 0);
-        let mut second = session("w2", 2000, Exercise::CableCrunch, 60.0, 0, 3, 0);
-        for record in [&mut first, &mut second] {
-            for set in &mut record.proposed_sets {
-                set.target_reps = 0;
-            }
-            for set in &mut record.completed_sets {
-                set.actual_reps = 12;
-            }
-        }
-        assert_eq!(weight_for(&[first, second], Exercise::CableCrunch), 60.0);
+    fn a_targetless_session_holds() {
+        let record = session("w1", 1000, Exercise::CableCrunch, 60.0, 0, &[12, 12, 12]);
+        let next = advance(Exercise::CableCrunch, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 60.0);
+        assert_eq!(next.consecutive_misses, 1, "counts as not-cleared, held");
     }
 
+    /// Overrides move the goalposts everywhere: a 5-set 6–8 override on
+    /// the tracker drives both resolution and progression.
     #[test]
-    fn an_exercise_youve_never_done_isnt_in_the_progressions() {
-        let history = vec![session("w1", 1000, Exercise::Squat, 200.0, 5, 3, 3)];
-        let progressions = derive_exercise_progressions(&history, AppWeightUnit::Lb);
-        assert!(!progressions.contains_key(&(Exercise::PecDeck as i32)));
-    }
-
-    // ── exercise_statuses_for_schedule ──
-
-    fn regime_group(exercise: Exercise, weight: f32, reps: i32) -> ProposedExerciseGroup {
-        ProposedExerciseGroup {
-            sets: 5,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: exercise as i32,
-                start_weight: weight,
-                end_weight: weight,
-                reps,
-                working_sets: vec![
-                    WorkingSetSpec {
-                        target_weight: weight,
-                        target_reps: reps,
-                        ..Default::default()
-                    };
-                    5
-                ],
-                ..Default::default()
-            }],
+    fn overrides_change_the_range() {
+        let state = TrackerState {
+            override_sets: 5,
+            override_rep_low: 6,
+            override_rep_high: 8,
             ..Default::default()
-        }
+        };
+        let resolved = resolve_tracker(Exercise::LateralRaise, Some(&state), AppWeightUnit::Lb);
+        assert_eq!(resolved.sets, 5);
+        assert_eq!((resolved.rep_low, resolved.rep_high), (6, 8));
+        assert!(resolved.overridden);
+
+        let record = session("w1", 1000, Exercise::LateralRaise, 20.0, 8, &[8, 8, 8, 8, 8]);
+        let next = advance(Exercise::LateralRaise, state, &record);
+        assert_eq!(next.working_weight, 25.0, "topped the overridden range");
+        assert_eq!(next.current_reps, 6, "reset to the overridden bottom");
     }
 
-    fn status_for(statuses: &[ExerciseStatus], exercise: Exercise) -> &ExerciseStatus {
-        statuses
-            .iter()
-            .find(|status| status.exercise == exercise as i32)
-            .expect("every exercise has a status")
-    }
-
-    /// Every exercise gets an entry, so "add exercise" always has a number to
-    /// prefill.
+    /// Resolution with no tracker row: catalog opener, range bottom.
     #[test]
-    fn every_exercise_gets_a_status() {
-        let statuses =
-            exercise_statuses_for_schedule(&[], &[], &[], AppWeightUnit::Lb, 10_000);
-        assert_eq!(statuses.len(), all_exercises().len());
-        assert_eq!(status_for(&statuses, Exercise::Squat).target_weight, 45.0);
-        assert_eq!(
-            status_for(&statuses, Exercise::LateralRaise).target_weight,
-            20.0
-        );
+    fn a_fresh_exercise_resolves_to_the_opener() {
+        let resolved = resolve_tracker(Exercise::Squat, None, AppWeightUnit::Lb);
+        assert_eq!(resolved.working_weight, 45.0);
+        assert_eq!(resolved.target_reps, 6);
+        assert_eq!(resolved.sets, 3);
+        assert!(resolved.include_warmup);
     }
 
-    /// What the user asked for: add an exercise mid-workout and it resumes from
-    /// your current weight, not a generic default.
+    /// Replay: two cleared sessions land where live advancement would.
     #[test]
-    fn a_performed_exercise_resumes_from_its_progression() {
-        let history = vec![session("w1", 1000, Exercise::LateralRaise, 20.0, 10, 3, 3)];
-        let statuses =
-            exercise_statuses_for_schedule(&history, &[], &[], AppWeightUnit::Lb, 10_000);
-        let status = status_for(&statuses, Exercise::LateralRaise);
-        assert_eq!(status.target_weight, 25.0);
-        assert_eq!(status.default_reps, 10);
-        assert_eq!(status.default_sets, 3);
-        assert_eq!(status.last_performed_at, 1000);
-        assert_eq!(status.weight_history, vec![20.0]);
+    fn derive_replays_history() {
+        let history = vec![
+            session("w1", 1000, Exercise::LateralRaise, 20.0, 15, &[15, 15, 15]),
+            session("w2", 2000, Exercise::LateralRaise, 25.0, 10, &[11, 11, 11]),
+        ];
+        let trackers = derive_trackers_from_history(&history, AppWeightUnit::Lb);
+        let state = trackers[&(Exercise::LateralRaise as i32)];
+        assert_eq!(state.working_weight, 25.0);
+        assert_eq!(state.current_reps, 12);
+        assert_eq!(state.last_performed_at, 2000);
     }
 
-    /// The program owns the lifts it prescribes: the home screen renders the
-    /// status weight for those, so it has to match what the regime proposes.
     #[test]
-    fn the_regime_wins_for_the_lifts_it_prescribes() {
-        let history = vec![session("w1", 1000, Exercise::Squat, 200.0, 5, 3, 3)];
-        let groups = vec![regime_group(Exercise::Squat, 185.0, 5)];
-        let statuses =
-            exercise_statuses_for_schedule(&history, &groups, &[], AppWeightUnit::Lb, 10_000);
-        let status = status_for(&statuses, Exercise::Squat);
-        assert_eq!(
-            status.target_weight, 185.0,
-            "the regime's prescription, not the 205 the history would suggest"
-        );
-        assert_eq!(status.default_sets, 5);
-        assert!(status.always_include);
+    fn weight_history_is_per_session_tops_oldest_first() {
+        let history = vec![
+            session("w2", 2000, Exercise::Squat, 205.0, 8, &[8, 8, 8]),
+            session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 8, 8]),
+        ];
+        let series = weight_history(&history);
+        assert_eq!(series[&(Exercise::Squat as i32)], vec![200.0, 205.0]);
     }
 }

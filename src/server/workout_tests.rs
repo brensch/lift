@@ -1,581 +1,484 @@
-//! Tests for the workout service that exercise real RPC handlers against a
-//! real `ServerDb` on a temp directory. Split from `workout.rs` to keep the
-//! handler file focused on production code.
+//! API-level tests for the composable-workout loop, against a real
+//! `ServerDb` in a temp directory and the real RPC handlers. These are the
+//! seams unit tests miss: onboarding → home → start-from-template →
+//! complete → end → tracker advanced → next home reflects it.
 
-use super::messages::slot_key_for_exercise;
 use super::*;
+use crate::db::ServerDb;
+use schlift::workout::v1::{
+    CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
+    ExperienceLevel, GetHomeRequest, ReorderTemplatesRequest, SaveTemplateRequest,
+    SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutTemplate,
+};
 
-#[cfg(test)]
-mod live_progression_tests {
+fn authed<T>(token: &str, msg: T) -> Request<T> {
+    let mut req = Request::new(msg);
+    req.metadata_mut()
+        .insert("x-session-token", token.parse().unwrap());
+    req
+}
+
+async fn setup() -> (ServerWorkoutService, String, String) {
+    let dir = std::env::temp_dir().join(format!("lift-live-test-{}", Uuid::new_v4()));
+    let db = ServerDb::new_in_dir(&dir).await.unwrap();
+    let (user, token) = db
+        .get_or_create_user_with_auth_session("tester")
+        .await
+        .unwrap();
+    (ServerWorkoutService { db }, user.id, token)
+}
+
+async fn onboard(svc: &ServerWorkoutService, token: &str, unit: WeightUnit) -> GetHomeResponse {
+    svc.complete_onboarding(authed(
+        token,
+        CompleteOnboardingRequest {
+            body_weight_kg: 0.0,
+            experience: ExperienceLevel::Unspecified as i32,
+            unit: unit as i32,
+        },
+    ))
+    .await
+    .unwrap()
+    .into_inner()
+    .home
+    .unwrap()
+}
+
+async fn home(svc: &ServerWorkoutService, token: &str) -> GetHomeResponse {
+    svc.get_home(authed(token, GetHomeRequest {}))
+        .await
+        .unwrap()
+        .into_inner()
+}
+
+fn tracker(home: &GetHomeResponse, exercise: Exercise) -> ExerciseTracker {
+    home.trackers
+        .iter()
+        .find(|t| t.exercise == exercise as i32)
+        .cloned()
+        .expect("every exercise has a tracker")
+}
+
+/// Complete every working set of a workout at exactly the given reps.
+async fn complete_all_working_sets(
+    svc: &ServerWorkoutService,
+    token: &str,
+    workout_id: &str,
+    sets: &[ProposedSet],
+    reps_for: impl Fn(&ProposedSet) -> i32,
+    weight_for: impl Fn(&ProposedSet) -> f32,
+    start_ts: i64,
+) -> i64 {
+    let mut ts = start_ts;
+    for set in sets.iter().filter(|s| !s.warmup && !s.cancelled) {
+        svc.complete_set(authed(
+            token,
+            CompleteSetRequest {
+                workout_id: workout_id.to_string(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: reps_for(set),
+                actual_weight: weight_for(set),
+                completed_at: ts,
+            },
+        ))
+        .await
+        .unwrap();
+        ts += 60;
+    }
+    ts
+}
+
+mod home_and_onboarding {
     use super::*;
 
-    fn authed<T>(token: &str, msg: T) -> Request<T> {
-        let mut req = Request::new(msg);
-        req.metadata_mut()
-            .insert("x-session-token", token.parse().unwrap());
-        req
-    }
-
-    async fn setup() -> (ServerWorkoutService, String, String) {
-        let dir = std::env::temp_dir().join(format!("lift-live-test-{}", Uuid::new_v4()));
-        let db = ServerDb::new_in_dir(&dir).await.unwrap();
-        let (user, token) = db
-            .get_or_create_user_with_auth_session("tester")
-            .await
-            .unwrap();
-        (ServerWorkoutService { db }, user.id, token)
-    }
-
-    /// End-to-end through the real RPCs: start a Linear 5x5 squat session, then edit
-    /// the weight mid-workout exactly as the app does (ReplaceExerciseGroupPlan with the
-    /// progression hints stripped off), complete it heavier, end the workout, and confirm
-    /// the next proposal increments from the weight actually lifted. This exercises the
-    /// live EndWorkout glue (propose_from_state -> prescribed_slots_from_groups -> reconcile)
-    /// that the replay-based unit/scenario tests don't cover.
+    /// A brand-new user gets a complete home: a tracker for every exercise
+    /// with a sane opener, ten volume rows, ten recovery rows, and
+    /// onboarded = false so the app can route to setup.
     #[tokio::test]
-    async fn edited_weight_progresses_through_live_end_workout_path() {
-        let (svc, user_id, token) = setup().await;
+    async fn a_fresh_user_gets_a_full_home() {
+        let (svc, _user_id, token) = setup().await;
+        let response = home(&svc, &token).await;
 
-        // Seed Linear 5x5 program state with squat at 175.
-        let regime = get_regime(RegimeType::Linear5x5);
-        let mut payload = regime.default_state();
-        crate::program_state::set_f32(&mut payload, "squat_weight", 175.0);
-        svc.db
-            .put_program_state(
-                &user_id,
-                &GetActiveTrainingProgramStateResponse {
-                    state: Some(TrainingProgramState {
-                        regime_type: RegimeType::Linear5x5 as i32,
-                        fields: payload_to_proto(&payload),
-                        updated_at: 1,
-                        source: "test".to_string(),
-                    }),
-                    schema: Some(regime.state_schema()),
+        assert!(!response.onboarded);
+        assert!(response.templates.is_empty());
+        assert_eq!(response.volume.len(), 10);
+        assert_eq!(response.recovery.len(), 10);
+        assert_eq!(
+            response.trackers.len(),
+            crate::exercise_catalog::all_exercises().len()
+        );
+
+        let squat = tracker(&response, Exercise::Squat);
+        assert_eq!(squat.working_weight, 45.0, "empty bar opener");
+        assert_eq!((squat.rep_range_low, squat.rep_range_high), (6, 10));
+        assert_eq!(squat.target_reps, 6, "range bottom");
+        assert!(squat.include_warmup);
+        assert_eq!(squat.sets, 3);
+
+        let raise = tracker(&response, Exercise::LateralRaise);
+        assert_eq!(raise.working_weight, 20.0);
+        assert!(!raise.include_warmup);
+        assert_eq!(
+            raise.equipment,
+            EquipmentKind::Dumbbell as i32,
+            "the picker's filter runs off this"
+        );
+        assert_eq!(raise.primary_muscle, MuscleGroup::Shoulders as i32);
+    }
+
+    /// Onboarding seeds the six defaults and bodyweight-scaled main lifts,
+    /// and does nothing on a second call.
+    #[tokio::test]
+    async fn onboarding_seeds_defaults_once() {
+        let (svc, _user_id, token) = setup().await;
+        let response = svc
+            .complete_onboarding(authed(
+                &token,
+                CompleteOnboardingRequest {
+                    body_weight_kg: 100.0,
+                    experience: ExperienceLevel::Intermediate as i32,
+                    unit: WeightUnit::Lb as i32,
                 },
-            )
+            ))
             .await
+            .unwrap()
+            .into_inner()
+            .home
             .unwrap();
 
-        // Start a squat 5x5 @175 group WITH hints, as the app does from the proposal.
-        let hint = ProgressionHint {
-            slot_key: slot_key_for_exercise(Exercise::Squat),
-            tier: "MAIN".to_string(),
-            rule: ProgressionRule::AllSetsMatchTarget as i32,
-            amrap_success_threshold: 0,
-            counts_toward_program: true,
-        };
-        let working_sets = (0..5)
-            .map(|_| WorkingSetSpec {
-                target_weight: 175.0,
-                target_reps: 5,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: Some(hint.clone()),
-            })
-            .collect::<Vec<_>>();
-        let group = ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "Squat".to_string(),
-            sets: 5,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: 175.0,
-                end_weight: 175.0,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets,
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let start = svc
-            .start_workout(authed(
-                &token,
-                StartWorkoutRequest {
-                    name: "Workout A".to_string(),
-                    exercise_groups: vec![group],
-                    started_at: 1000,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        let group_id = start.exercise_groups[0].id.clone();
+        assert!(response.onboarded);
+        assert_eq!(response.templates.len(), 6);
+        let names: Vec<&str> = response
+            .templates
+            .iter()
+            .map(|t| t.name.as_str())
+            .collect();
+        assert!(names.contains(&"Full Body") && names.contains(&"Push"));
 
-        // Edit the weight mid-workout the way the app does: replace the group's plan with
-        // 5 sets @185 and NO progression hints.
-        let planned = (0..5)
-            .map(|_| PlannedGroupSet {
-                exercise: Exercise::Squat as i32,
-                target_reps: 5,
-                target_weight: 185.0,
-                warmup: false,
-                rest_after_success: 180,
-                rest_after_failure: 300,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: None,
-                client_set_id: String::new(),
-            })
-            .collect::<Vec<_>>();
-        let replaced = svc
-            .replace_exercise_group_plan(authed(
-                &token,
-                ReplaceExerciseGroupPlanRequest {
-                    workout_id: workout_id.clone(),
-                    exercise_group_id: group_id.clone(),
-                    name: "Squat".to_string(),
-                    interleave_warmups: false,
-                    sets: planned,
-                    rest_config: None,
-                    delete_group_if_empty: false,
-                    instruction: String::new(),
-                    create_if_missing: false,
-                    warmup_plan: None,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-
-        // The edit really did strip the hints (the bug condition).
+        // 100 kg ≈ 220 lb × 0.95 squat ratio ≈ 210, snapped loadable.
+        let squat = tracker(&response, Exercise::Squat);
         assert!(
-            replaced
-                .generated_sets
-                .iter()
-                .all(|s| s.progression_hint.is_none()),
-            "edit should leave the working sets hint-less, like the real app"
+            (squat.working_weight - 210.0).abs() <= 5.0,
+            "bodyweight-scaled: {}",
+            squat.working_weight
         );
-        assert_eq!(replaced.generated_sets.len(), 5);
 
-        // Complete all 5 working sets at the heavier 185x5.
-        let mut ts = 1100;
-        for set in &replaced.generated_sets {
-            svc.complete_set(authed(
-                &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: 185.0,
-                    completed_at: ts,
-                },
-            ))
-            .await
-            .unwrap();
-            ts += 10;
-        }
-
-        // End the workout: this runs the live reconciliation against program state.
-        svc.end_workout(authed(
-            &token,
-            EndWorkoutRequest {
-                workout_id: workout_id.clone(),
-                ended_at: ts,
-            },
-        ))
-        .await
-        .unwrap();
-
-        // The next proposal should put squat at 190 (185 lifted + 5), proving progression
-        // tracked the edited weight even though the hints were gone.
-        let sched = svc
-            .get_proposed_workout_schedule(authed(
-                &token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: user_id.clone(),
-                    at_time: ts + 100,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-
-        let squat_cfg = sched
-            .proposed_groups
-            .iter()
-            .flat_map(|g| g.exercise_configs.iter())
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .expect("squat should appear in the next proposal");
-        assert_eq!(
-            squat_cfg.start_weight, 190.0,
-            "next squat weight should increment from the edited 185"
-        );
+        // Repeat call: idempotent, nothing duplicated.
+        let again = onboard(&svc, &token, WeightUnit::Lb).await;
+        assert_eq!(again.templates.len(), 6);
     }
 
-    /// The full loop for an exercise the program knows nothing about: add a group
-    /// for it mid-workout, get warmups for it, lift it, and find the next weight
-    /// waiting for you the next time you go to add it.
-    ///
-    /// This is the path the app takes when you tap "add exercise group" during a
-    /// session — the client sends working sets only, so both the warmups and the
-    /// progression have to come from the server.
+    /// A kilogram user's weights land on the kilogram grid — the defect the
+    /// old program-state unit read shipped for months.
     #[tokio::test]
-    async fn an_accessory_added_mid_workout_gets_warmups_and_progresses() {
-        let (svc, user_id, token) = setup().await;
-
-        let start = svc
-            .start_workout(authed(
+    async fn a_kg_user_gets_kg_loadable_weights() {
+        let (svc, _user_id, token) = setup().await;
+        let response = svc
+            .complete_onboarding(authed(
                 &token,
-                StartWorkoutRequest {
-                    name: "Workout A".to_string(),
-                    exercise_groups: vec![],
-                    started_at: 1000,
+                CompleteOnboardingRequest {
+                    body_weight_kg: 90.0,
+                    experience: ExperienceLevel::Intermediate as i32,
+                    unit: WeightUnit::Kg as i32,
                 },
             ))
             .await
             .unwrap()
-            .into_inner();
-        let workout_id = start.workout.unwrap().id;
-
-        // Add a lateral raise group at 20 lb with warmups on, the way the editor
-        // does: working sets only, plus the warmup intent.
-        let planned = (0..3)
-            .map(|_| PlannedGroupSet {
-                exercise: Exercise::LateralRaise as i32,
-                target_reps: 10,
-                target_weight: 20.0,
-                warmup: false,
-                rest_after_success: 90,
-                rest_after_failure: 120,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: None,
-                client_set_id: String::new(),
-            })
-            .collect::<Vec<_>>();
-        let added = svc
-            .replace_exercise_group_plan(authed(
-                &token,
-                ReplaceExerciseGroupPlanRequest {
-                    workout_id: workout_id.clone(),
-                    exercise_group_id: String::new(),
-                    name: "Lateral Raise".to_string(),
-                    interleave_warmups: false,
-                    sets: planned,
-                    rest_config: None,
-                    delete_group_if_empty: false,
-                    instruction: String::new(),
-                    create_if_missing: true,
-                    warmup_plan: Some(GroupWarmupPlan {
-                        exercises: vec![Exercise::LateralRaise as i32],
-                    }),
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-
-        let warmups: Vec<&ProposedSet> =
-            added.generated_sets.iter().filter(|s| s.warmup).collect();
-        assert_eq!(
-            warmups.len(),
-            4,
-            "a group added mid-workout gets the same warmup ladder a planned one does: {:?}",
-            added.generated_sets
-        );
-        assert!(warmups.iter().all(|s| s.target_weight < 20.0));
-
-        // Clear every working set.
-        let mut ts = 1100;
-        for set in added.generated_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 10,
-                    actual_weight: 20.0,
-                    completed_at: ts,
-                },
-            ))
-            .await
+            .into_inner()
+            .home
             .unwrap();
-            ts += 10;
+
+        let squat = tracker(&response, Exercise::Squat);
+        let kg = crate::weight_units::pounds_to_kg(squat.working_weight);
+        let on_grid = (kg / 2.5 - (kg / 2.5).round()).abs() < 0.01
+            || ((kg - 20.0) / 2.5 - ((kg - 20.0) / 2.5).round()).abs() < 0.01;
+        assert!(on_grid, "squat resolves to a loadable kg value: {kg} kg");
+    }
+}
+
+mod templates {
+    use super::*;
+
+    fn template(name: &str, exercises: &[Exercise]) -> WorkoutTemplate {
+        WorkoutTemplate {
+            name: name.to_string(),
+            exercises: exercises.iter().map(|e| *e as i32).collect(),
+            ..Default::default()
         }
-
-        svc.end_workout(authed(
-            &token,
-            EndWorkoutRequest {
-                workout_id: workout_id.clone(),
-                ended_at: ts,
-            },
-        ))
-        .await
-        .unwrap();
-
-        let sched = svc
-            .get_proposed_workout_schedule(authed(
-                &token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: user_id.clone(),
-                    at_time: ts + 100,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-
-        let status = sched
-            .exercise_statuses
-            .iter()
-            .find(|s| s.exercise == Exercise::LateralRaise as i32)
-            .expect("every exercise gets a status to prefill from");
-        assert_eq!(
-            status.target_weight, 25.0,
-            "you cleared 20, so next time starts at 25"
-        );
-        assert_eq!(status.default_reps, 10, "and at the reps you actually did");
-        assert_eq!(status.default_sets, 3);
-        assert_eq!(status.last_performed_at, ts);
-
-        // An exercise never performed still has something sane to prefill.
-        let untouched = sched
-            .exercise_statuses
-            .iter()
-            .find(|s| s.exercise == Exercise::PecDeck as i32)
-            .expect("statuses cover the whole catalogue");
-        assert!(untouched.target_weight > 0.0);
-        assert_eq!(untouched.last_performed_at, 0);
     }
 
-    /// Editing a group's weight after completing some sets must keep completed sets first
-    /// and the regenerated pending sets after them — not interleave them (the "jump around"
-    /// bug from a colliding workout_order on the regenerated sets).
     #[tokio::test]
-    async fn editing_weight_after_completing_sets_keeps_order_stable() {
+    async fn save_edit_reorder_delete() {
         let (svc, _user_id, token) = setup().await;
 
-        let working_sets = (0..5)
-            .map(|_| WorkingSetSpec {
-                target_weight: 175.0,
-                target_reps: 5,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: None,
-            })
-            .collect::<Vec<_>>();
-        let group = ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "Squat".to_string(),
-            sets: 5,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: 175.0,
-                end_weight: 175.0,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets,
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let start = svc
+        let saved = svc
+            .save_template(authed(
+                &token,
+                SaveTemplateRequest {
+                    template: Some(template("Arms", &[Exercise::BarbellCurl, Exercise::SkullCrusher])),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .template
+            .unwrap();
+        assert!(!saved.id.is_empty());
+
+        // Edit keeps the id and order.
+        let mut edited = saved.clone();
+        edited.exercises.push(Exercise::HammerCurl as i32);
+        let edited = svc
+            .save_template(authed(&token, SaveTemplateRequest { template: Some(edited) }))
+            .await
+            .unwrap()
+            .into_inner()
+            .template
+            .unwrap();
+        assert_eq!(edited.id, saved.id);
+        assert_eq!(edited.exercises.len(), 3);
+
+        let second = svc
+            .save_template(authed(
+                &token,
+                SaveTemplateRequest {
+                    template: Some(template("Legs", &[Exercise::Squat])),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .template
+            .unwrap();
+
+        // Reorder: Legs first.
+        svc.reorder_templates(authed(
+            &token,
+            ReorderTemplatesRequest {
+                template_ids: vec![second.id.clone(), saved.id.clone()],
+            },
+        ))
+        .await
+        .unwrap();
+        let listed = home(&svc, &token).await.templates;
+        assert_eq!(listed[0].name, "Legs");
+        assert_eq!(listed[1].name, "Arms");
+
+        svc.delete_template(authed(
+            &token,
+            DeleteTemplateRequest {
+                template_id: saved.id.clone(),
+            },
+        ))
+        .await
+        .unwrap();
+        assert_eq!(home(&svc, &token).await.templates.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn an_empty_template_is_rejected() {
+        let (svc, _user_id, token) = setup().await;
+        let err = svc
+            .save_template(authed(
+                &token,
+                SaveTemplateRequest {
+                    template: Some(template("Empty", &[])),
+                },
+            ))
+            .await
+            .unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+}
+
+mod template_workout_loop {
+    use super::*;
+
+    /// The whole point of the refactor, end to end: start from a template
+    /// (server resolves weights + prescription + warmups), top the rep
+    /// range, end the workout, and the next home shows the increased
+    /// weight — on every template containing the exercise.
+    #[tokio::test]
+    async fn topping_the_range_moves_the_weight_for_next_time() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let lower = before
+            .templates
+            .iter()
+            .find(|t| t.name == "Lower")
+            .unwrap()
+            .clone();
+        let squat_before = tracker(&before, Exercise::Squat).working_weight;
+
+        let started = svc
             .start_workout(authed(
                 &token,
                 StartWorkoutRequest {
-                    name: "Workout A".to_string(),
-                    exercise_groups: vec![group],
-                    started_at: 1000,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: 1_000,
+                    template_id: lower.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        let group_id = start.exercise_groups[0].id.clone();
-        let working: Vec<_> = start.proposed_sets.iter().filter(|s| !s.warmup).collect();
-        assert_eq!(working.len(), 5);
+        let workout = started.workout.unwrap();
+        assert_eq!(workout.name, "Lower", "named after the template");
 
-        // Complete the first two working sets at the original 175.
-        for (i, set) in working.iter().take(2).enumerate() {
-            svc.complete_set(authed(
-                &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: 175.0,
-                    completed_at: 1100 + i as i64 * 10,
-                },
-            ))
-            .await
-            .unwrap();
-        }
+        // The squat group: tracker weight, prescription reps, a warmup
+        // ladder (barbell compound). The crunch group: no warmups.
+        let squat_sets: Vec<&ProposedSet> = started
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32)
+            .collect();
+        assert_eq!(squat_sets.iter().filter(|s| s.warmup).count(), 4);
+        let squat_working: Vec<&&ProposedSet> =
+            squat_sets.iter().filter(|s| !s.warmup).collect();
+        assert_eq!(squat_working.len(), 3);
+        assert!(squat_working
+            .iter()
+            .all(|s| s.target_weight == squat_before && s.target_reps == 6));
+        assert!(started
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Crunch as i32)
+            .all(|s| !s.warmup));
 
-        // Edit the whole group up to 185 (like the app: no hints).
-        let planned = (0..5)
-            .map(|_| PlannedGroupSet {
-                exercise: Exercise::Squat as i32,
-                target_reps: 5,
-                target_weight: 185.0,
-                warmup: false,
-                rest_after_success: 180,
-                rest_after_failure: 300,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: None,
-                client_set_id: String::new(),
-            })
-            .collect::<Vec<_>>();
-        svc.replace_exercise_group_plan(authed(
+        // Clear everything at the top of each range.
+        let home_ref = &before;
+        let ts = complete_all_working_sets(
+            &svc,
             &token,
-            ReplaceExerciseGroupPlanRequest {
-                workout_id: workout_id.clone(),
-                exercise_group_id: group_id.clone(),
-                name: "Squat".to_string(),
-                interleave_warmups: false,
-                sets: planned,
-                rest_config: None,
-                delete_group_if_empty: false,
-                instruction: String::new(),
-                create_if_missing: false,
-                warmup_plan: None,
+            &workout.id,
+            &started.proposed_sets,
+            |set| {
+                home_ref
+                    .trackers
+                    .iter()
+                    .find(|t| t.exercise == set.exercise)
+                    .map(|t| t.rep_range_high)
+                    .unwrap()
+            },
+            |set| set.target_weight,
+            2_000,
+        )
+        .await;
+
+        svc.end_workout(authed(
+            &token,
+            EndWorkoutRequest {
+                workout_id: workout.id.clone(),
+                ended_at: ts,
             },
         ))
         .await
         .unwrap();
 
-        // Read back the active (non-cancelled) working sets in order.
-        let wk = svc
-            .get_workout(authed(
-                &token,
-                GetWorkoutRequest {
-                    workout_id: workout_id.clone(),
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-        let mut active: Vec<_> = wk
-            .proposed_sets
-            .iter()
-            .filter(|s| !s.warmup && !s.cancelled)
-            .collect();
-        active.sort_by_key(|s| s.workout_order);
-        let weights: Vec<f32> = active.iter().map(|s| s.target_weight).collect();
+        let after = home(&svc, &token).await;
+        let squat_after = tracker(&after, Exercise::Squat);
         assert_eq!(
-            weights,
-            vec![175.0, 175.0, 185.0, 185.0, 185.0],
-            "completed sets must stay first, then the new heavier sets — no interleaving"
+            squat_after.working_weight,
+            squat_before + 5.0,
+            "one barbell step up"
         );
+        assert_eq!(squat_after.target_reps, 6, "reps reset to the bottom");
+        assert_eq!(squat_after.last_performed_at, ts, "stamped with the end time");
+
+        // Bodyweight-free check on a dumbbell move from the same session:
+        // calf raise topped its range too, so it took a dumbbell step.
+        let calf_after = tracker(&after, Exercise::CalfRaise);
+        assert_eq!(calf_after.working_weight, 25.0, "20 + one dumbbell step");
     }
 
-    /// EndWorkout must be idempotent: a retry / double-fire on the same workout must not
-    /// advance the program twice (175 -> 180, never 175 -> 180 -> 185).
+    /// Clearing below the top of the range moves the rep target, not the
+    /// weight.
     #[tokio::test]
-    async fn end_workout_is_idempotent_and_does_not_double_progress() {
-        let (svc, user_id, token) = setup().await;
+    async fn clearing_mid_range_moves_reps_not_weight() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
 
-        let regime = get_regime(RegimeType::Linear5x5);
-        let mut payload = regime.default_state();
-        crate::program_state::set_f32(&mut payload, "squat_weight", 175.0);
-        svc.db
-            .put_program_state(
-                &user_id,
-                &GetActiveTrainingProgramStateResponse {
-                    state: Some(TrainingProgramState {
-                        regime_type: RegimeType::Linear5x5 as i32,
-                        fields: payload_to_proto(&payload),
-                        updated_at: 1,
-                        source: "test".to_string(),
-                    }),
-                    schema: Some(regime.state_schema()),
-                },
-            )
-            .await
-            .unwrap();
-
-        let hint = ProgressionHint {
-            slot_key: slot_key_for_exercise(Exercise::Squat),
-            tier: "MAIN".to_string(),
-            rule: ProgressionRule::AllSetsMatchTarget as i32,
-            amrap_success_threshold: 0,
-            counts_toward_program: true,
-        };
-        let working_sets = (0..5)
-            .map(|_| WorkingSetSpec {
-                target_weight: 175.0,
-                target_reps: 5,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: Some(hint.clone()),
-            })
-            .collect::<Vec<_>>();
-        let group = ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "Squat".to_string(),
-            sets: 5,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: 175.0,
-                end_weight: 175.0,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets,
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let start = svc
+        let started = svc
             .start_workout(authed(
                 &token,
                 StartWorkoutRequest {
-                    name: "Workout A".to_string(),
-                    exercise_groups: vec![group],
-                    started_at: 1000,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: 1_000,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
+        let workout = started.workout.unwrap();
 
-        let mut ts = 1100;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
+        // Exactly the target on every set (target = range bottom on day 1).
+        let ts = complete_all_working_sets(
+            &svc,
+            &token,
+            &workout.id,
+            &started.proposed_sets,
+            |set| set.target_reps,
+            |set| set.target_weight,
+            2_000,
+        )
+        .await;
+        svc.end_workout(authed(
+            &token,
+            EndWorkoutRequest {
+                workout_id: workout.id.clone(),
+                ended_at: ts,
+            },
+        ))
+        .await
+        .unwrap();
+
+        let after = home(&svc, &token).await;
+        let squat = tracker(&after, Exercise::Squat);
+        assert_eq!(squat.working_weight, 45.0, "weight holds");
+        assert_eq!(squat.target_reps, 7, "6 cleared → aim 7");
+    }
+
+    /// A re-fired EndWorkout must not advance a tracker twice.
+    #[tokio::test]
+    async fn end_workout_is_idempotent() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+
+        let started = svc
+            .start_workout(authed(
                 &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: 175.0,
-                    completed_at: ts,
+                StartWorkoutRequest {
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: 1_000,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
-            .unwrap();
-            ts += 10;
-        }
+            .unwrap()
+            .into_inner();
+        let workout = started.workout.unwrap();
+        let ts = complete_all_working_sets(
+            &svc,
+            &token,
+            &workout.id,
+            &started.proposed_sets,
+            |set| set.target_reps,
+            |set| set.target_weight,
+            2_000,
+        )
+        .await;
 
-        // End it twice — second call is the retry / double-fire.
         for _ in 0..2 {
             svc.end_workout(authed(
                 &token,
                 EndWorkoutRequest {
-                    workout_id: workout_id.clone(),
+                    workout_id: workout.id.clone(),
                     ended_at: ts,
                 },
             ))
@@ -583,1074 +486,219 @@ mod live_progression_tests {
             .unwrap();
         }
 
-        let sched = svc
-            .get_proposed_workout_schedule(authed(
-                &token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: user_id.clone(),
-                    at_time: ts + 100,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-        let squat_cfg = sched
-            .proposed_groups
-            .iter()
-            .flat_map(|g| g.exercise_configs.iter())
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .expect("squat should appear in the next proposal");
+        let after = home(&svc, &token).await;
         assert_eq!(
-            squat_cfg.start_weight, 180.0,
-            "ending twice must progress 175 -> 180 only once, not 175 -> 180 -> 185"
-        );
-        // The A/B variant must advance exactly once. A double-apply would flip A->B->A and
-        // the next proposal would come back as Workout A; the guard keeps it on B.
-        assert!(
-            sched.suggested_workout_name.contains('B'),
-            "variant should advance exactly once (next session is Workout B), got {:?}",
-            sched.suggested_workout_name
+            tracker(&after, Exercise::Squat).target_reps,
+            7,
+            "advanced exactly once"
         );
     }
-}
 
-/// End-to-end coverage of the layoff deload path: a proposal after time away is
-/// reduced, and completing that reduced workout must progress from what was
-/// actually lifted rather than snapping back to the pre-layoff weight.
-///
-/// These go through the real RPCs because the deload lives in
-/// `get_proposed_workout_schedule` (via `apply_temporal_adjustments_for_proposal`)
-/// while reconciliation lives in `end_workout` — the scenario tests in
-/// `src/scenario_tests.rs` call the regime directly and so exercise neither.
-#[cfg(test)]
-mod layoff_deload_tests {
-    use super::*;
+    /// A manual tracker write sticks and drives the next start.
+    #[tokio::test]
+    async fn a_manual_override_drives_the_next_start() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
 
-    const DAY: i64 = 24 * 3600;
-
-    fn authed<T>(token: &str, msg: T) -> Request<T> {
-        let mut req = Request::new(msg);
-        req.metadata_mut()
-            .insert("x-session-token", token.parse().unwrap());
-        req
-    }
-
-    async fn setup() -> (ServerWorkoutService, String, String) {
-        let dir = std::env::temp_dir().join(format!("lift-layoff-test-{}", Uuid::new_v4()));
-        let db = ServerDb::new_in_dir(&dir).await.unwrap();
-        let (user, token) = db
-            .get_or_create_user_with_auth_session("layoff-tester")
-            .await
-            .unwrap();
-        (ServerWorkoutService { db }, user.id, token)
-    }
-
-    async fn seed_linear_5x5_squat(svc: &ServerWorkoutService, user_id: &str, weight: f32) {
-        let regime = get_regime(RegimeType::Linear5x5);
-        let mut payload = regime.default_state();
-        crate::program_state::set_f32(&mut payload, "squat_weight", weight);
-        svc.db
-            .put_program_state(
-                user_id,
-                &GetActiveTrainingProgramStateResponse {
-                    state: Some(TrainingProgramState {
-                        regime_type: RegimeType::Linear5x5 as i32,
-                        fields: payload_to_proto(&payload),
-                        updated_at: 1,
-                        source: "test".to_string(),
-                    }),
-                    schema: Some(regime.state_schema()),
+        let set_response = svc
+            .set_exercise_tracker(authed(
+                &token,
+                SetExerciseTrackerRequest {
+                    exercise: Exercise::Squat as i32,
+                    working_weight: 225.0,
+                    override_sets: 5,
+                    override_rep_low: 5,
+                    override_rep_high: 8,
                 },
-            )
+            ))
             .await
+            .unwrap()
+            .into_inner()
+            .tracker
             .unwrap();
-    }
+        assert_eq!(set_response.working_weight, 225.0);
+        assert_eq!(set_response.sets, 5);
+        assert!(set_response.overridden);
 
-    fn squat_group(weight: f32) -> ExerciseGroup {
-        let hint = ProgressionHint {
-            slot_key: slot_key_for_exercise(Exercise::Squat),
-            tier: "MAIN".to_string(),
-            rule: ProgressionRule::AllSetsMatchTarget as i32,
-            amrap_success_threshold: 0,
-            counts_toward_program: true,
-        };
-        ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "Squat".to_string(),
-            sets: 5,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: weight,
-                end_weight: weight,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets: (0..5)
-                    .map(|_| WorkingSetSpec {
-                        target_weight: weight,
-                        target_reps: 5,
-                        is_amrap: false,
-                        instruction: String::new(),
-                        progression_hint: Some(hint.clone()),
-                    })
-                    .collect(),
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: true,
-            materialized_sets: Vec::new(),
-        }
-    }
-
-    /// Perform a full successful squat session at `weight`, starting at `at`.
-    /// Returns the timestamp the workout ended.
-    async fn do_squat_session(
-        svc: &ServerWorkoutService,
-        token: &str,
-        weight: f32,
-        at: i64,
-    ) -> i64 {
-        let start = svc
+        let started = svc
             .start_workout(authed(
-                token,
+                &token,
                 StartWorkoutRequest {
-                    name: "Workout A".to_string(),
-                    exercise_groups: vec![squat_group(weight)],
-                    started_at: at,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: 1_000,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
+        let squat_working: Vec<&ProposedSet> = started
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32 && !s.warmup)
+            .collect();
+        assert_eq!(squat_working.len(), 5, "the override's set count");
+        assert!(squat_working
+            .iter()
+            .all(|s| s.target_weight == 225.0 && s.target_reps == 5));
+    }
 
-        let mut ts = at + 60;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: weight,
-                    completed_at: ts,
-                },
-            ))
-            .await
-            .unwrap();
-            ts += 60;
-        }
+    /// Time away reduces the weights offered at start — 80% after 30 days —
+    /// without ever writing the reduction to the tracker.
+    #[tokio::test]
+    async fn a_layoff_reduces_the_start_weight_only() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        let day = 24 * 3600;
+        let long_ago = 1_000_000;
 
-        svc.end_workout(authed(
-            token,
-            EndWorkoutRequest {
-                workout_id,
-                ended_at: ts,
+        svc.set_exercise_tracker(authed(
+            &token,
+            SetExerciseTrackerRequest {
+                exercise: Exercise::Squat as i32,
+                working_weight: 200.0,
+                override_sets: 0,
+                override_rep_low: 0,
+                override_rep_high: 0,
             },
         ))
         .await
         .unwrap();
-        ts
-    }
-
-    async fn proposed_squat_weight(
-        svc: &ServerWorkoutService,
-        token: &str,
-        user_id: &str,
-        at: i64,
-    ) -> f32 {
-        let sched = svc
-            .get_proposed_workout_schedule(authed(
-                token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: user_id.to_string(),
-                    at_time: at,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-        sched
-            .proposed_groups
-            .iter()
-            .flat_map(|g| g.exercise_configs.iter())
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .expect("squat should appear in the proposal")
-            .start_weight
-    }
-
-    async fn stored_squat_weight(svc: &ServerWorkoutService, user_id: &str) -> f32 {
-        let resp = svc.db.get_program_state(user_id).await.unwrap().unwrap();
-        let payload = payload_from_proto(&resp.state.unwrap().fields);
-        crate::program_state::get_f32(&payload, "squat_weight").unwrap()
-    }
-
-    /// Baseline: a normal gap between sessions must not reduce anything.
-    #[tokio::test]
-    async fn a_short_gap_does_not_deload() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-        // 175 completed successfully -> next session prescribes 180.
-        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
-
-        for days in [0, 1, 3, 7, 13] {
-            let proposed = proposed_squat_weight(&svc, &token, &user_id, ended + days * DAY).await;
-            assert_eq!(
-                proposed, 180.0,
-                "a {days}-day gap is under the 14-day threshold and must not deload"
-            );
-        }
-    }
-
-    /// The scheduler loads only a bounded window of recent workouts. This must
-    /// not break `last_session_at` for a user whose history is longer than the
-    /// window: the most recent workout is always inside the window, so the
-    /// layoff deload still fires. Regression guard for the recent-history cap.
-    #[tokio::test]
-    async fn deload_still_fires_with_history_longer_than_the_window() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-
-        // Far more sessions than RECENT_HISTORY_LIMIT (24), two days apart.
-        let mut ended = 1_000_000;
-        for i in 0..30 {
-            ended = do_squat_session(&svc, &token, 175.0 + (i * 5) as f32, ended + 2 * DAY).await;
-        }
-
-        // 45 days after the newest session, the deload must still apply — proving
-        // the bounded load kept the true last-session timestamp.
-        let stored = stored_squat_weight(&svc, &user_id).await;
-        let deloaded = proposed_squat_weight(&svc, &token, &user_id, ended + 45 * DAY).await;
-        assert!(
-            deloaded < stored,
-            "expected a deload below the stored {stored}, got {deloaded} — the \
-             recent-history cap dropped the most recent session"
-        );
-    }
-
-    /// 14 days away drops the proposal to 90%; 30 days drops it to 80%.
-    #[tokio::test]
-    async fn a_long_layoff_deloads_the_proposal() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
-
-        // 90% of 180 = 162, rounded to the nearest 5 lb.
-        let at_14 = proposed_squat_weight(&svc, &token, &user_id, ended + 14 * DAY).await;
-        assert_eq!(at_14, 160.0, "14 days away should propose 90% of 180");
-
-        let at_29 = proposed_squat_weight(&svc, &token, &user_id, ended + 29 * DAY).await;
-        assert_eq!(at_29, 160.0, "29 days is still in the 90% band");
-
-        // 80% of 180 = 144, rounded to the nearest 5 lb.
-        let at_30 = proposed_squat_weight(&svc, &token, &user_id, ended + 30 * DAY).await;
-        assert_eq!(at_30, 145.0, "30 days away should propose 80% of 180");
-
-        let at_90 = proposed_squat_weight(&svc, &token, &user_id, ended + 90 * DAY).await;
-        assert_eq!(at_90, 145.0, "the 80% band has no further steps");
-    }
-
-    /// The deload is advisory: it changes what is proposed, not what is stored.
-    /// Until a workout is actually completed the program state is untouched, so
-    /// simply opening the app after a holiday does not lose your progress.
-    #[tokio::test]
-    async fn viewing_a_deloaded_proposal_does_not_mutate_stored_state() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
-
-        for _ in 0..3 {
-            let proposed =
-                proposed_squat_weight(&svc, &token, &user_id, ended + 60 * DAY).await;
-            assert_eq!(proposed, 145.0);
-        }
-
-        assert_eq!(
-            stored_squat_weight(&svc, &user_id).await,
-            180.0,
-            "repeatedly viewing a deloaded proposal must not write the deload to state"
-        );
-    }
-
-    /// The important one. After a layoff the app proposes a reduced weight; when
-    /// the user completes exactly that, progression must continue from the weight
-    /// they actually lifted. Reconciliation in `end_workout` builds its
-    /// prescription WITHOUT the temporal adjustment, so this pins the behaviour
-    /// at the seam between the two.
-    #[tokio::test]
-    async fn completing_a_deloaded_workout_progresses_from_the_deloaded_weight() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
-
-        let comeback_at = ended + 45 * DAY;
-        let deloaded = proposed_squat_weight(&svc, &token, &user_id, comeback_at).await;
-        assert_eq!(deloaded, 145.0, "45 days away should propose 80%");
-
-        // Do exactly what the app proposed, successfully.
-        let comeback_ended = do_squat_session(&svc, &token, deloaded, comeback_at).await;
-
-        assert_eq!(
-            stored_squat_weight(&svc, &user_id).await,
-            150.0,
-            "a successful comeback session at 145 must progress to 150, not jump \
-             back to 185 as if the pre-layoff 180 had been lifted"
-        );
-
-        let next = proposed_squat_weight(&svc, &token, &user_id, comeback_ended + DAY).await;
-        assert_eq!(next, 150.0, "the next proposal should follow the new weight");
-    }
-
-    /// A failed comeback session must stall from the deloaded weight, not the
-    /// pre-layoff one.
-    #[tokio::test]
-    async fn failing_a_deloaded_workout_holds_the_deloaded_weight() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-
-        let comeback_at = ended + 45 * DAY;
-        let deloaded = proposed_squat_weight(&svc, &token, &user_id, comeback_at).await;
-        assert_eq!(deloaded, 145.0);
-
-        // Start the deloaded session but miss reps on every set.
-        let start = svc
+        // Backdate the squat's last performance by writing a finished
+        // session through the real loop at `long_ago`.
+        let started = svc
             .start_workout(authed(
                 &token,
                 StartWorkoutRequest {
-                    name: "Comeback".to_string(),
-                    exercise_groups: vec![squat_group(deloaded)],
-                    started_at: comeback_at,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: long_ago,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        let mut ts = comeback_at + 60;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 3, // missed the target of 5
-                    actual_weight: deloaded,
-                    completed_at: ts,
-                },
-            ))
-            .await
-            .unwrap();
-            ts += 60;
-        }
+        let first = started.workout.unwrap();
+        let ts = complete_all_working_sets(
+            &svc,
+            &token,
+            &first.id,
+            &started.proposed_sets,
+            |set| set.target_reps,
+            |set| set.target_weight,
+            long_ago + 60,
+        )
+        .await;
         svc.end_workout(authed(
             &token,
             EndWorkoutRequest {
-                workout_id,
+                workout_id: first.id.clone(),
                 ended_at: ts,
             },
         ))
         .await
         .unwrap();
 
-        assert_eq!(
-            stored_squat_weight(&svc, &user_id).await,
-            145.0,
-            "a failed comeback holds the deloaded weight rather than reverting \
-             to the pre-layoff weight"
-        );
-    }
+        let mid = home(&svc, &token).await;
+        let squat_weight = tracker(&mid, Exercise::Squat).working_weight;
+        assert_eq!(squat_weight, 200.0, "held after a bottom-of-range clear");
 
-    /// The completion message after a deloaded session must describe what the
-    /// user actually did (145 -> 150, an increase), not a phantom 180 -> 150
-    /// decrease against the stale pre-layoff weight.
-    #[tokio::test]
-    async fn completion_message_after_layoff_reflects_the_deloaded_weight() {
-        let (svc, user_id, token) = setup().await;
-        seed_linear_5x5_squat(&svc, &user_id, 175.0).await;
-        let ended = do_squat_session(&svc, &token, 175.0, 1_000_000).await;
-        assert_eq!(stored_squat_weight(&svc, &user_id).await, 180.0);
-
-        let comeback_at = ended + 45 * DAY;
-        let deloaded = proposed_squat_weight(&svc, &token, &user_id, comeback_at).await;
-        assert_eq!(deloaded, 145.0);
-
-        // Perform the deloaded session successfully and capture EndWorkout's messages.
-        let start = svc
+        // 40 days later: the offered weight is 80%, snapped; the tracker
+        // itself is untouched.
+        let resumed = svc
             .start_workout(authed(
                 &token,
                 StartWorkoutRequest {
-                    name: "Comeback".to_string(),
-                    exercise_groups: vec![squat_group(deloaded)],
-                    started_at: comeback_at,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: ts + 40 * day,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        let mut ts = comeback_at + 60;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                &token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: deloaded,
-                    completed_at: ts,
-                },
-            ))
-            .await
-            .unwrap();
-            ts += 60;
-        }
-        let end = svc
-            .end_workout(authed(
-                &token,
-                EndWorkoutRequest {
-                    workout_id,
-                    ended_at: ts,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-
-        let squat_msg = end
-            .user_messages
+        let offered = resumed
+            .proposed_sets
             .iter()
-            .filter_map(|m| match m.details.as_ref()?.detail.as_ref()? {
-                user_message_details::Detail::Progression(p)
-                    if m.exercise == Exercise::Squat as i32 =>
-                {
-                    Some(p)
-                }
-                _ => None,
-            })
-            .next()
-            .expect("a squat progression message should be emitted");
-
+            .find(|s| s.exercise == Exercise::Squat as i32 && !s.warmup)
+            .unwrap()
+            .target_weight;
         assert_eq!(
-            squat_msg.previous_weight, 145.0,
-            "the message baseline must be the deloaded weight the user lifted, \
-             not the stale pre-layoff 180"
+            offered,
+            crate::weight_units::snap_loadable_lb(160.0, crate::weight_units::AppWeightUnit::Lb),
+            "80% after 30+ days away"
         );
-        assert_eq!(squat_msg.next_weight, 150.0);
         assert_eq!(
-            squat_msg.change_kind,
-            ProgressionChangeKind::Increase as i32,
-            "145 -> 150 is an increase, not the deload a 180 baseline would imply"
+            tracker(&home(&svc, &token).await, Exercise::Squat).working_weight,
+            200.0,
+            "looking never writes"
         );
     }
-}
 
-/// A failed session must never make the next session heavier. Complements
-/// `layoff_deload_tests`: the layoff case is fixed at the reconciliation seam,
-/// these cover a user simply dialling the weight up or down themselves.
-#[cfg(test)]
-mod failed_session_never_raises_weight_tests {
-    use super::*;
-    use crate::schplanner::SchplannerSlotOutcome;
-    use std::collections::HashMap;
-
-    fn outcome(planned: usize, successful: usize, attempted: f32) -> SchplannerSlotOutcome {
-        SchplannerSlotOutcome {
-            slot_key: slot_key_for_exercise(Exercise::Squat),
-            exercise: Exercise::Squat,
-            tier: "MAIN".to_string(),
-            rule: ProgressionRule::AllSetsMatchTarget,
-            planned_sets: planned,
-            completed_sets: planned,
-            successful_sets: successful,
-            last_completed_actual_weight: Some(attempted),
-            last_successful_actual_weight: if successful > 0 { Some(attempted) } else { None },
-            top_set_target_reps: 5,
-            top_set_actual_reps: if successful > 0 { 5 } else { 3 },
-            amrap_success_threshold: 0,
-            workout_ended: true,
-        }
-    }
-
-    fn squat_weight_after(stored: f32, stalls: i64, outcome: SchplannerSlotOutcome) -> f32 {
-        let regime = get_regime(RegimeType::Linear5x5);
-        let mut state = regime.default_state();
-        crate::program_state::set_f32(&mut state, "squat_weight", stored);
-        crate::program_state::set_int(&mut state, "squat_stall_count", stalls);
-
-        let mut outcomes = HashMap::new();
-        outcomes.insert(slot_key_for_exercise(Exercise::Squat), outcome);
-
-        let record = crate::regimes::fake_completed_workout(1_000);
-        regime.transition_state_on_workout_completed(&mut state, &record, &outcomes);
-        crate::program_state::get_f32(&state, "squat_weight").unwrap()
-    }
-
+    /// The suggestion points at the template covering the most-behind
+    /// muscles, and names them.
     #[tokio::test]
-    async fn failing_below_the_stored_weight_holds_the_attempted_weight() {
-        // Stored 180, user dialled down to 145 and missed reps.
-        assert_eq!(squat_weight_after(180.0, 0, outcome(5, 2, 145.0)), 145.0);
-    }
+    async fn the_suggestion_chases_the_deficit() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
 
-    #[tokio::test]
-    async fn failing_above_the_stored_weight_does_not_raise_the_target() {
-        // Stored 180, user tried 200 and missed. Next session must not be 200.
-        assert_eq!(squat_weight_after(180.0, 0, outcome(5, 2, 200.0)), 180.0);
-    }
-
-    #[tokio::test]
-    async fn failing_at_the_stored_weight_is_unchanged() {
-        assert_eq!(squat_weight_after(180.0, 0, outcome(5, 2, 180.0)), 180.0);
-    }
-
-    #[tokio::test]
-    async fn succeeding_still_progresses_from_what_was_lifted() {
-        assert_eq!(squat_weight_after(180.0, 0, outcome(5, 5, 185.0)), 190.0);
-    }
-
-    #[tokio::test]
-    async fn third_consecutive_stall_deloads_from_the_attempted_weight() {
-        // Two stalls already recorded; this failure is the third -> 10% deload.
-        assert_eq!(squat_weight_after(180.0, 2, outcome(5, 2, 180.0)), 160.0);
-    }
-}
-
-/// End-to-end readiness over time: complete real sets against a real DB, then
-/// query the schedule handler at successively later mocked `at_time`s and watch
-/// the readiness state machine move recovering → ready. This proves the whole
-/// path (completed sets → history → per-muscle recovery → TrainingStatus proto),
-/// not just the pure recovery module.
-#[cfg(test)]
-mod readiness_transition_tests {
-    use super::*;
-
-    const HOUR: i64 = 3600;
-    const DAY: i64 = 24 * HOUR;
-
-    fn authed<T>(token: &str, msg: T) -> Request<T> {
-        let mut req = Request::new(msg);
-        req.metadata_mut()
-            .insert("x-session-token", token.parse().unwrap());
-        req
-    }
-
-    async fn setup() -> (ServerWorkoutService, String, String) {
-        let dir = std::env::temp_dir().join(format!("lift-readiness-test-{}", Uuid::new_v4()));
-        let db = ServerDb::new_in_dir(&dir).await.unwrap();
-        let (user, token) = db
-            .get_or_create_user_with_auth_session("tester")
-            .await
-            .unwrap();
-        (ServerWorkoutService { db }, user.id, token)
-    }
-
-    /// Start a one-group session for `exercise`, complete every set at `weight`,
-    /// and end the workout at `ended_at`.
-    async fn train(
-        svc: &ServerWorkoutService,
-        token: &str,
-        exercise: Exercise,
-        started_at: i64,
-        ended_at: i64,
-    ) {
-        let working_sets = (0..3)
-            .map(|_| WorkingSetSpec {
-                target_weight: 100.0,
-                target_reps: 5,
-                is_amrap: false,
-                instruction: String::new(),
-                progression_hint: None,
-            })
-            .collect::<Vec<_>>();
-        let group = ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "G".to_string(),
-            sets: 3,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: exercise as i32,
-                start_weight: 100.0,
-                end_weight: 100.0,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets,
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let start = svc
+        // Train legs now; every other muscle is behind.
+        let started = svc
             .start_workout(authed(
-                token,
+                &token,
                 StartWorkoutRequest {
-                    name: "S".to_string(),
-                    exercise_groups: vec![group],
-                    started_at,
+                    name: String::new(),
+                    exercise_groups: vec![],
+                    started_at: now_unix() - 3600,
+                    template_id: legs.id.clone(),
                 },
             ))
             .await
             .unwrap()
             .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        let mut ts = started_at + 60;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: 100.0,
-                    completed_at: ts,
-                },
-            ))
-            .await
-            .unwrap();
-            ts += 10;
-        }
+        let workout = started.workout.unwrap();
+        let ts = complete_all_working_sets(
+            &svc,
+            &token,
+            &workout.id,
+            &started.proposed_sets,
+            |set| set.target_reps,
+            |set| set.target_weight,
+            now_unix() - 3000,
+        )
+        .await;
         svc.end_workout(authed(
-            token,
+            &token,
             EndWorkoutRequest {
-                workout_id,
-                ended_at,
+                workout_id: workout.id.clone(),
+                ended_at: ts,
             },
         ))
         .await
         .unwrap();
-    }
 
-    async fn readiness_at(
-        svc: &ServerWorkoutService,
-        user_id: &str,
-        token: &str,
-        at_time: i64,
-    ) -> TrainingStatus {
-        svc.get_proposed_workout_schedule(authed(
-            token,
-            GetProposedWorkoutScheduleRequest {
-                user_id: user_id.to_string(),
-                at_time,
-            },
-        ))
-        .await
-        .unwrap()
-        .into_inner()
-        .training_status
-        .expect("training_status present")
-    }
-
-    #[tokio::test]
-    async fn recovering_then_ready_after_a_squat_session() {
-        let (svc, user_id, token) = setup().await;
-        let t0 = 1_700_000_000i64;
-
-        // Complete a heavy squat session (legs + ass, bumped to 72h recovery).
-        train(&svc, &token, Exercise::Squat, t0 - 40 * 60, t0).await;
-
-        // +1h: legs still deep in recovery → RECOVERING, legs listed as blocking.
-        let just_after = readiness_at(&svc, &user_id, &token, t0 + HOUR).await;
-        assert_eq!(
-            just_after.readiness_state,
-            ReadinessState::Recovering as i32,
-            "an hour after squats you should be recovering"
-        );
-        assert!(
-            just_after.blocking_muscles.iter().any(|m| m == "Legs"),
-            "legs should block the next session, got {:?}",
-            just_after.blocking_muscles
-        );
-        assert!(
-            !just_after.muscle_recovery.is_empty(),
-            "muscle recovery strip should be populated"
-        );
-        assert_eq!(just_after.last_session_at, t0);
-
-        // +36h: still inside Stronglifts' ~44h leg window → RECOVERING.
-        let day_and_half = readiness_at(&svc, &user_id, &token, t0 + 36 * HOUR).await;
-        assert_eq!(
-            day_and_half.readiness_state,
-            ReadinessState::Recovering as i32,
-            "at 36h legs are still recovering"
-        );
-
-        // +2 days (48h): legs recovered → READY. Stronglifts squats every session,
-        // so training every other day must read as ready, not perpetually amber.
-        let two_days = readiness_at(&svc, &user_id, &token, t0 + 2 * DAY).await;
-        assert_eq!(
-            two_days.readiness_state,
-            ReadinessState::Ready as i32,
-            "squatting every other day should read as ready by 48h"
-        );
-        assert!(
-            two_days.blocking_muscles.is_empty(),
-            "nothing should block once recovered, got {:?}",
-            two_days.blocking_muscles
-        );
-        assert!(two_days.should_train_now, "ready means train now");
-    }
-
-    #[tokio::test]
-    async fn a_first_time_user_is_ready_immediately() {
-        let (svc, user_id, token) = setup().await;
-        let ts = readiness_at(&svc, &user_id, &token, 1_700_000_000).await;
-        assert_eq!(ts.readiness_state, ReadinessState::FirstTime as i32);
-        assert!(ts.should_train_now);
-        assert_eq!(ts.last_session_at, 0);
-    }
-
-    async fn schedule_at(
-        svc: &ServerWorkoutService,
-        user_id: &str,
-        token: &str,
-        at_time: i64,
-    ) -> GetProposedWorkoutScheduleResponse {
-        svc.get_proposed_workout_schedule(authed(
-            token,
-            GetProposedWorkoutScheduleRequest {
-                user_id: user_id.to_string(),
-                at_time,
-            },
-        ))
-        .await
-        .unwrap()
-        .into_inner()
-    }
-
-    fn squat_weight(sched: &GetProposedWorkoutScheduleResponse) -> f32 {
-        sched
-            .proposed_groups
+        let after = home(&svc, &token).await;
+        assert!(!after.suggested_template_id.is_empty());
+        let suggested = after
+            .templates
             .iter()
-            .flat_map(|g| g.exercise_configs.iter())
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .map(|c| c.start_weight)
-            .expect("squat should be in the proposal")
-    }
-
-    fn round5(x: f32) -> f32 {
-        (x / 5.0).round() * 5.0
-    }
-
-    /// The "what happens if you stop working out" story, as one timeline. Train
-    /// once, then never again, and query the schedule further and further out:
-    /// the banner should drift Recovering → Ready → Overdue, and past the layoff
-    /// thresholds the proposed weights should deload (×0.9 at 14d, ×0.8 at 30d)
-    /// so you come back to a manageable weight instead of your old max.
-    #[tokio::test]
-    async fn stopping_training_drifts_the_banner_and_deloads_the_weights() {
-        let (svc, user_id, token) = setup().await;
-        let t0 = 1_700_000_000i64;
-
-        // One squat session, then silence. (Hint-less sets don't progress the
-        // stored weight, so the proposal weight is a stable baseline to deload from.)
-        train(&svc, &token, Exercise::Squat, t0 - 40 * 60, t0).await;
-
-        // Baseline: right after, recovering, weight at its normal value.
-        let base_sched = schedule_at(&svc, &user_id, &token, t0 + HOUR).await;
-        let base_status = base_sched.training_status.clone().unwrap();
-        assert_eq!(base_status.readiness_state, ReadinessState::Recovering as i32);
-        let base_weight = squat_weight(&base_sched);
-        assert!(base_weight > 0.0);
-
-        // +4 days: recovered but idle past the ~4-day nag floor and behind the
-        // weekly target → OVERDUE. No deload yet (under 14 days), weight unchanged.
-        let four_days = schedule_at(&svc, &user_id, &token, t0 + 4 * DAY + HOUR).await;
-        assert_eq!(
-            four_days.training_status.as_ref().unwrap().readiness_state,
-            ReadinessState::Overdue as i32,
-            "4 days idle and behind target should read as overdue"
-        );
-        assert_eq!(
-            squat_weight(&four_days),
-            base_weight,
-            "no deload before 14 days"
-        );
-
-        // +14 days: still overdue, and now the layoff deload kicks in at 90%.
-        let two_weeks = schedule_at(&svc, &user_id, &token, t0 + 14 * DAY).await;
-        assert_eq!(
-            two_weeks.training_status.as_ref().unwrap().readiness_state,
-            ReadinessState::Overdue as i32,
-        );
-        assert_eq!(
-            squat_weight(&two_weeks),
-            round5(base_weight * 0.9),
-            "at 14 days off, squat should deload to 90%"
-        );
-
-        // +30 days: deeper deload to 80% so a long break doesn't dump you back on
-        // your old max cold.
-        let one_month = schedule_at(&svc, &user_id, &token, t0 + 30 * DAY).await;
-        assert_eq!(
-            one_month.training_status.as_ref().unwrap().readiness_state,
-            ReadinessState::Overdue as i32,
-        );
-        assert_eq!(
-            squat_weight(&one_month),
-            round5(base_weight * 0.8),
-            "at 30 days off, squat should deload further to 80%"
-        );
-
-        // The deload is a proposal-time view, not a silent rewrite of your saved
-        // program: the stored weight is untouched, so if you *had* trained the
-        // baseline would still be there. Prove it by reading a fresh short-gap
-        // proposal — it's back at the full baseline weight.
-        let recovered_view = schedule_at(&svc, &user_id, &token, t0 + HOUR).await;
-        assert_eq!(
-            squat_weight(&recovered_view),
-            base_weight,
-            "deload must not have mutated stored program state"
-        );
-    }
-}
-
-/// Regime-native comeback (return-from-layoff) behaviour, end-to-end through the
-/// schedule handler with mocked time: Wendler resets to Week 1 (Volume) and eases
-/// the Training Max; GZCLP resets T1 back to Stage 1 (5×3). Each also surfaces a
-/// program-specific explanation message.
-#[cfg(test)]
-mod regime_comeback_tests {
-    use super::*;
-    use crate::program_state::{set_f32, set_int, set_str};
-
-    const DAY: i64 = 24 * 3600;
-
-    fn authed<T>(token: &str, msg: T) -> Request<T> {
-        let mut req = Request::new(msg);
-        req.metadata_mut()
-            .insert("x-session-token", token.parse().unwrap());
-        req
-    }
-
-    async fn setup() -> (ServerWorkoutService, String, String) {
-        let dir = std::env::temp_dir().join(format!("lift-comeback-test-{}", Uuid::new_v4()));
-        let db = ServerDb::new_in_dir(&dir).await.unwrap();
-        let (user, token) = db
-            .get_or_create_user_with_auth_session("tester")
-            .await
+            .find(|t| t.id == after.suggested_template_id)
             .unwrap();
-        (ServerWorkoutService { db }, user.id, token)
-    }
+        assert_ne!(suggested.name, "Legs", "legs were just trained");
+        assert!(!after.suggestion_reason.is_empty());
 
-    /// Establish `last_session_at` by starting + completing + ending a trivial
-    /// workout at `at`. (The regime reconciliation it triggers is irrelevant — we
-    /// overwrite program state right after.)
-    async fn record_history(svc: &ServerWorkoutService, token: &str, at: i64) {
-        let group = ExerciseGroup {
-            id: String::new(),
-            workout_id: String::new(),
-            name: "H".to_string(),
-            sets: 1,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: 100.0,
-                end_weight: 100.0,
-                reps: 5,
-                include_warmup: false,
-                rest_config: None,
-                last_set_amrap: false,
-                working_sets: vec![WorkingSetSpec {
-                    target_weight: 100.0,
-                    target_reps: 5,
-                    is_amrap: false,
-                    instruction: String::new(),
-                    progression_hint: None,
-                }],
-            }],
-            rest_config: None,
-            instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let start = svc
-            .start_workout(authed(
-                token,
-                StartWorkoutRequest {
-                    name: "H".to_string(),
-                    exercise_groups: vec![group],
-                    started_at: at - 1800,
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner();
-        let workout_id = start.workout.unwrap().id;
-        for set in start.proposed_sets.iter().filter(|s| !s.warmup) {
-            svc.complete_set(authed(
-                token,
-                CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: 5,
-                    actual_weight: 100.0,
-                    completed_at: at - 60,
-                },
-            ))
-            .await
+        // Volume moved: quads got credited.
+        let quads = after
+            .volume
+            .iter()
+            .find(|v| v.muscle == MuscleGroup::Quads as i32)
             .unwrap();
-        }
-        svc.end_workout(authed(
-            token,
-            EndWorkoutRequest {
-                workout_id,
-                ended_at: at,
-            },
-        ))
-        .await
-        .unwrap();
-    }
-
-    async fn seed_state(
-        svc: &ServerWorkoutService,
-        user_id: &str,
-        regime_type: RegimeType,
-        mutate: impl FnOnce(&mut crate::program_state::StatePayload),
-    ) {
-        let regime = get_regime(regime_type);
-        let mut payload = regime.default_state();
-        mutate(&mut payload);
-        svc.db
-            .put_program_state(
-                user_id,
-                &GetActiveTrainingProgramStateResponse {
-                    state: Some(TrainingProgramState {
-                        regime_type: regime_type as i32,
-                        fields: payload_to_proto(&payload),
-                        updated_at: 2,
-                        source: "test".to_string(),
-                    }),
-                    schema: Some(regime.state_schema()),
-                },
-            )
-            .await
-            .unwrap();
-    }
-
-    async fn schedule_at(
-        svc: &ServerWorkoutService,
-        user_id: &str,
-        token: &str,
-        at_time: i64,
-    ) -> GetProposedWorkoutScheduleResponse {
-        svc.get_proposed_workout_schedule(authed(
-            token,
-            GetProposedWorkoutScheduleRequest {
-                user_id: user_id.to_string(),
-                at_time,
-            },
-        ))
-        .await
-        .unwrap()
-        .into_inner()
-    }
-
-    #[tokio::test]
-    async fn wendler_comeback_restarts_at_week1_and_eases_the_training_max() {
-        let (svc, user_id, token) = setup().await;
-        let t0 = 1_700_000_000i64;
-
-        record_history(&svc, &token, t0).await;
-        // Was deep in the cycle at Week 3 (Peak) with a known squat TM.
-        seed_state(&svc, &user_id, RegimeType::Wendler531, |s| {
-            set_int(s, "week", 3);
-            set_int(s, "session_in_week", 0);
-            set_f32(s, "squat_tm", 200.0);
-        })
-        .await;
-
-        // 20 days off → comeback. Proposal should be a Volume (Week 1) session, the
-        // TM eased ~10%, and a 5/3/1-specific explanation attached.
-        let sched = schedule_at(&svc, &user_id, &token, t0 + 20 * DAY).await;
-        let name = sched.suggested_workout_name.clone();
-        assert!(
-            name.contains("Week 1") && name.contains("Volume"),
-            "comeback should restart at Week 1 Volume, got {name:?}"
-        );
-        let ctx = sched.regime_context.as_ref().unwrap();
-        assert!(
-            ctx.session_description.contains("Week 1")
-                || ctx.session_description.contains("Volume"),
-            "session_description should reflect Week 1, got {:?}",
-            ctx.session_description
-        );
-        // The eased training max shows up on the proposed squat working weights
-        // (Week 1 top set is 85% of TM; 85% of an eased ~180 < 85% of 200).
-        let squat_top = sched
-            .proposed_groups
-            .iter()
-            .flat_map(|g| g.exercise_configs.iter())
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .map(|c| c.end_weight)
-            .expect("squat in proposal");
-        assert!(
-            squat_top < 200.0 * 0.85,
-            "eased TM should lower the top set below 85% of the old TM, got {squat_top}"
-        );
-        // Program-specific comeback explanation is present.
-        let has_note = sched.user_messages.iter().any(|m| {
-            m.body.contains("training max") || m.body.contains("Week 1")
-        });
-        assert!(has_note, "a 5/3/1 comeback explanation should be attached");
-    }
-
-    #[tokio::test]
-    async fn gzclp_comeback_resets_t1_to_stage_one() {
-        let (svc, user_id, token) = setup().await;
-        let t0 = 1_700_000_000i64;
-
-        record_history(&svc, &token, t0).await;
-        // Had ground up to Stage 3 (10×1) on squat before the break.
-        seed_state(&svc, &user_id, RegimeType::Gzclp, |s| {
-            set_str(s, "squat_t1_stage", "stage_3_10x1");
-            set_f32(s, "squat_t1_weight", 200.0);
-        })
-        .await;
-
-        let sched = schedule_at(&svc, &user_id, &token, t0 + 20 * DAY).await;
-        // Squat T1 should be back to 5×3 (Stage 1): five working sets of 3 reps.
-        let squat = sched
-            .proposed_groups
-            .iter()
-            .find(|g| {
-                g.exercise_configs
-                    .iter()
-                    .any(|c| c.exercise == Exercise::Squat as i32)
-            })
-            .expect("squat group in proposal");
-        let cfg = squat
-            .exercise_configs
-            .iter()
-            .find(|c| c.exercise == Exercise::Squat as i32)
-            .unwrap();
-        assert_eq!(
-            cfg.working_sets.len(),
-            5,
-            "Stage 1 is 5×3 → five working sets, got {}",
-            cfg.working_sets.len()
-        );
-        assert!(
-            cfg.working_sets.iter().all(|s| s.target_reps == 3),
-            "Stage 1 sets are 3 reps each"
-        );
-        let has_note = sched
-            .user_messages
-            .iter()
-            .any(|m| m.body.contains("Stage 1") || m.body.contains("5×3"));
-        assert!(has_note, "a GZCLP comeback explanation should mention Stage 1");
+        assert!(quads.completed_sets_7d > 0.0);
     }
 }

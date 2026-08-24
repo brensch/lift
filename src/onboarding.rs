@@ -1,5 +1,10 @@
-use crate::weight_units::kg_to_pounds;
-use schlift::workout::v1::{ExperienceLevel, RecommendedWeight};
+//! Starting weights for the main lifts, from bodyweight and experience.
+//! Seeds the trackers at onboarding; the catalog opener covers a user who
+//! skips the questions.
+
+use crate::exercise_catalog::{snap_weight_lb, starting_weight_lb};
+use crate::weight_units::{kg_to_pounds, AppWeightUnit};
+use schlift::workout::v1::{Exercise, ExperienceLevel};
 
 fn experience_multiplier(level: ExperienceLevel) -> f32 {
     match level {
@@ -11,39 +16,36 @@ fn experience_multiplier(level: ExperienceLevel) -> f32 {
     }
 }
 
-/// (program-state field key, fraction of bodyweight). Single source of truth for
-/// the onboarding recommendation the app used to compute client-side.
-const RATIOS: &[(&str, f32)] = &[
-    ("squat_weight", 0.95),
-    ("squat_t1_weight", 0.95),
-    ("bench_press_weight", 0.70),
-    ("bench_press_t2_weight", 0.70),
-    ("barbell_row_weight", 0.75),
-    ("barbell_row_t2_weight", 0.75),
-    ("overhead_press_weight", 0.50),
-    ("overhead_press_t2_weight", 0.50),
-    ("deadlift_weight", 1.15),
-    ("deadlift_t1_weight", 1.15),
-    ("squat_tm", 1.10),
-    ("bench_press_tm", 0.80),
-    ("deadlift_tm", 1.35),
-    ("overhead_press_tm", 0.55),
+/// (exercise, fraction of bodyweight) for a sane first working weight.
+const RATIOS: [(Exercise, f32); 5] = [
+    (Exercise::Squat, 0.95),
+    (Exercise::BenchPress, 0.70),
+    (Exercise::BarbellRow, 0.75),
+    (Exercise::OverheadPress, 0.50),
+    (Exercise::Deadlift, 1.15),
 ];
 
-/// Recommended starting weight (lb, unclamped) for every known program field,
-/// given bodyweight and experience. The client clamps to each field's schema
-/// range and snaps for display.
-pub fn recommended_starting_weights(
+/// Tracker seeds for the main lifts, in pounds, snapped loadable in the
+/// user's unit. With no bodyweight (skipped), each lift opens at the
+/// catalog default — the empty bar.
+pub fn starting_tracker_weights(
     bodyweight_kg: f32,
     experience: ExperienceLevel,
-) -> Vec<RecommendedWeight> {
-    let bw_lb = kg_to_pounds(bodyweight_kg);
-    let mult = experience_multiplier(experience);
+    unit: AppWeightUnit,
+) -> Vec<(Exercise, f32)> {
+    let multiplier = experience_multiplier(experience);
     RATIOS
         .iter()
-        .map(|(key, ratio)| RecommendedWeight {
-            field_key: key.to_string(),
-            pounds: bw_lb * ratio * mult,
+        .map(|(exercise, ratio)| {
+            let weight = if bodyweight_kg > 0.0 {
+                let raw = kg_to_pounds(bodyweight_kg) * ratio * multiplier;
+                // Never below the empty bar — these are barbell lifts.
+                snap_weight_lb(*exercise, raw, unit)
+                    .max(starting_weight_lb(*exercise, unit))
+            } else {
+                starting_weight_lb(*exercise, unit)
+            };
+            (*exercise, weight)
         })
         .collect()
 }
@@ -54,13 +56,38 @@ mod tests {
 
     #[test]
     fn scales_by_bodyweight_and_experience() {
-        // 100 kg = 220.46 lb. Squat ratio 0.95, intermediate mult 1.0.
-        let w = recommended_starting_weights(100.0, ExperienceLevel::Intermediate);
-        let squat = w.iter().find(|r| r.field_key == "squat_weight").unwrap();
-        assert!((squat.pounds - kg_to_pounds(100.0) * 0.95).abs() < 0.01);
-        // Cute lifter gets 40%.
-        let cute = recommended_starting_weights(100.0, ExperienceLevel::Cute);
-        let squat_cute = cute.iter().find(|r| r.field_key == "squat_weight").unwrap();
-        assert!((squat_cute.pounds - squat.pounds * 0.40).abs() < 0.01);
+        // 100 kg lifter, intermediate: squat ≈ bodyweight × 0.95, loadable.
+        let weights =
+            starting_tracker_weights(100.0, ExperienceLevel::Intermediate, AppWeightUnit::Lb);
+        let squat = weights
+            .iter()
+            .find(|(ex, _)| *ex == Exercise::Squat)
+            .unwrap()
+            .1;
+        let raw = kg_to_pounds(100.0) * 0.95;
+        assert!((squat - raw).abs() <= 5.0, "snapped near the ratio: {squat}");
+
+        let cute = starting_tracker_weights(100.0, ExperienceLevel::Cute, AppWeightUnit::Lb);
+        let cute_squat = cute
+            .iter()
+            .find(|(ex, _)| *ex == Exercise::Squat)
+            .unwrap()
+            .1;
+        assert!(cute_squat < squat, "a new lifter starts lighter");
+    }
+
+    #[test]
+    fn skipping_bodyweight_opens_at_the_bar() {
+        let weights =
+            starting_tracker_weights(0.0, ExperienceLevel::Unspecified, AppWeightUnit::Lb);
+        assert!(weights.iter().all(|(_, w)| *w == 45.0));
+        assert_eq!(weights.len(), 5);
+    }
+
+    #[test]
+    fn a_light_lifter_never_seeds_below_the_bar() {
+        // 40 kg × 0.5 OHP ratio × 0.4 cute ≈ 17.6 lb — below the bar.
+        let weights = starting_tracker_weights(40.0, ExperienceLevel::Cute, AppWeightUnit::Lb);
+        assert!(weights.iter().all(|(_, w)| *w >= 45.0));
     }
 }

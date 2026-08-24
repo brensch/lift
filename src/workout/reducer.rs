@@ -368,7 +368,6 @@ mod tests {
             cancelled: false,
             is_amrap: false,
             instruction: String::new(),
-            progression_hint: None,
         }
     }
 
@@ -391,8 +390,6 @@ mod tests {
                 exercise_configs: vec![],
                 rest_config: None,
                 instruction: String::new(),
-                prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
             }],
             sets,
             vec![],

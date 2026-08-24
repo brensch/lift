@@ -269,20 +269,6 @@ impl ServerDb {
 
     pub async fn delete_user_account_and_data(&self, user_id: &str) -> DbResult<()> {
         let mut tx = self.write_pool.begin().await?;
-        // v2 training-model tables (t_*). Dormant today but user-keyed, so wipe
-        // them here too — a new user-keyed table that skips this orphans rows.
-        for table in [
-            "t_workouts",
-            "t_blocks",
-            "t_sets",
-            "t_entries",
-            "t_progression",
-        ] {
-            sqlx::query(&format!("DELETE FROM {table} WHERE user_id = ?"))
-                .bind(user_id)
-                .execute(&mut *tx)
-                .await?;
-        }
         sqlx::query("DELETE FROM auth_sessions WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -332,15 +318,7 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM proposed_schedule_cache WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM training_program_state_latest WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM program_progression_applied WHERE user_id = ?")
+        sqlx::query("DELETE FROM progression_applied WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
@@ -348,15 +326,11 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM workout_drafts_current WHERE user_id = ?")
+        sqlx::query("DELETE FROM workout_templates WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM workout_events WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM profile_exercise_groups WHERE user_id = ?")
+        sqlx::query("DELETE FROM exercise_trackers WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
@@ -364,19 +338,6 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        // Training model v2 tables.
-        for table in [
-            "t_entries",
-            "t_sets",
-            "t_blocks",
-            "t_workouts",
-            "t_progression",
-        ] {
-            sqlx::query(&format!("DELETE FROM {table} WHERE user_id = ?"))
-                .bind(user_id)
-                .execute(&mut *tx)
-                .await?;
-        }
         sqlx::query("DELETE FROM users_current WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -446,21 +407,12 @@ mod account_deletion_tests {
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
             ("session_members", format!("(session_id, user_id, first_joined_at, last_seen_at, left_at) VALUES ('{u}-s1', ?, 1, 1, 0)")),
-            ("workout_events", format!("(event_id, user_id, workout_id, recorded_at, event_type, payload) VALUES ('{u}-e1', ?, '{u}-w1', 1, 2, x'00')")),
             ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
-            ("proposed_schedule_cache", "(user_id, response_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
-            ("training_program_state_latest", "(user_id, response_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
-            ("program_progression_applied", format!("(workout_id, user_id, applied_at) VALUES ('{u}-w1', ?, 1)")),
+            ("progression_applied", format!("(workout_id, user_id, applied_at) VALUES ('{u}-w1', ?, 1)")),
             ("user_settings_current", "(user_id, setting_type, setting_blob, updated_at) VALUES (?, 'units', x'00', 1)".to_string()),
-            ("workout_drafts_current", "(user_id, draft_blob, updated_at) VALUES (?, x'00', 1)".to_string()),
-            ("profile_exercise_groups", format!("(id, user_id, name, created_at, updated_at) VALUES ('{u}-pg1', ?, 'G', 1, 1)")),
+            ("workout_templates", format!("(id, user_id, name, template_order, template_blob, created_at, updated_at) VALUES ('{u}-tpl', ?, 'T', 0, x'00', 1, 1)")),
+            ("exercise_trackers", "(user_id, exercise, working_weight, current_reps, updated_at, source) VALUES (?, 1, 100.0, 6, 1, 'test')".to_string()),
             ("user_message_events", "(user_id, message_key, created_at, updated_at, message_blob) VALUES (?, 'k', 1, 1, x'00')".to_string()),
-            // Training model v2. Ids derived from user_id so two users don't collide.
-            ("t_workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-tw', ?, 'W', 1)")),
-            ("t_blocks", format!("(id, workout_id, user_id, ord) VALUES ('{u}-tb', '{u}-tw', ?, 0)")),
-            ("t_sets", format!("(id, workout_id, block_id, user_id, ord, exercise, role) VALUES ('{u}-ts', '{u}-tw', '{u}-tb', ?, 0, 1, 1)")),
-            ("t_entries", format!("(entry_id, set_id, workout_id, user_id, performed_at, recorded_at) VALUES ('{u}-te', '{u}-ts', '{u}-tw', ?, 1, 1)")),
-            ("t_progression", format!("(id, user_id, workout_id, at) VALUES ('{u}-tp', ?, '{u}-tw', 1)")),
         ];
 
         for (table, cols) in &stmts {

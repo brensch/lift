@@ -1,5 +1,4 @@
 use super::*;
-use schlift::workout::v1::ProposedExerciseGroup;
 use crate::weight_units::{
     bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near,
     AppWeightUnit,
@@ -22,44 +21,6 @@ fn to_pounds(display: f32, unit: AppWeightUnit) -> f32 {
         AppWeightUnit::Lb => display,
         AppWeightUnit::Kg => kg_to_pounds(display),
     }
-}
-
-/// Rough time estimate for one proposed group, so the home screen can show a
-/// predicted workout length without doing the maths itself. A heuristic, but the
-/// single source of it. Mirrors what the app used to compute in
-/// `_estimatedWorkoutMinutes`.
-pub(crate) fn estimate_group_duration_seconds(group: &ProposedExerciseGroup) -> i64 {
-    const TRANSITION: i64 = 90;
-    const SETUP: i64 = 75;
-    const WORKING_SET: i64 = 45;
-    const WARMUP_SET: i64 = 30;
-    const DEFAULT_WORKING_REST: i64 = 180;
-    const DEFAULT_WARMUP_REST: i64 = 30;
-
-    let mut total = TRANSITION;
-    for cfg in &group.exercise_configs {
-        total += SETUP;
-        let working_sets = if !cfg.working_sets.is_empty() {
-            cfg.working_sets.len() as i64
-        } else if group.sets <= 0 {
-            1
-        } else {
-            group.sets as i64
-        };
-        let warmup_sets: i64 = if cfg.include_warmup { 2 } else { 0 };
-        let rest = cfg.rest_config.as_ref().or(group.rest_config.as_ref());
-        let working_rest = rest
-            .map(|r| r.rest_after_success as i64)
-            .unwrap_or(DEFAULT_WORKING_REST);
-        let warmup_rest = rest
-            .map(|r| r.rest_after_warmup as i64)
-            .unwrap_or(DEFAULT_WARMUP_REST);
-        total += working_sets * WORKING_SET;
-        total += warmup_sets * WARMUP_SET;
-        total += (working_sets - 1).max(0) * working_rest;
-        total += warmup_sets * warmup_rest;
-    }
-    total
 }
 
 /// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
@@ -159,7 +120,6 @@ pub(crate) fn generate_sets_for_group(
                         cancelled: false,
                         is_amrap: false,
                         instruction: String::new(),
-                        progression_hint: None,
                     });
                     order += 1;
                 }
@@ -186,7 +146,6 @@ pub(crate) fn generate_sets_for_group(
                     cancelled: false,
                     is_amrap: false,
                     instruction: String::new(),
-                    progression_hint: None,
                 });
                 order += 1;
             }
@@ -219,7 +178,6 @@ pub(crate) fn generate_sets_for_group(
                 cancelled: false,
                 is_amrap: ws.is_amrap,
                 instruction: ws.instruction.clone(),
-                progression_hint: ws.progression_hint.clone(),
             });
             order += 1;
         }
@@ -326,7 +284,6 @@ fn materialized_working_sets_for_config(
             target_reps: config.reps,
             is_amrap,
             instruction,
-            progression_hint: None,
         });
     }
     sets
@@ -381,7 +338,6 @@ fn proposed_sets_from_planned_group_sets(
             cancelled: false,
             is_amrap: s.is_amrap,
             instruction: s.instruction.clone(),
-            progression_hint: s.progression_hint.clone(),
         });
     }
     out
@@ -469,7 +425,6 @@ fn rematerialize_group_plan_with_warmups(
                     target_reps: s.target_reps,
                     is_amrap: s.is_amrap,
                     instruction: s.instruction.clone(),
-                    progression_hint: s.progression_hint.clone(),
                 })
                 .collect();
             // Keep the rest the client asked for on the working sets. The
@@ -509,8 +464,6 @@ fn rematerialize_group_plan_with_warmups(
         exercise_configs: configs,
         rest_config,
         instruction: String::new(),
-        prescribed_by_regime: false,
-        materialized_sets: Vec::new(),
     };
 
     generate_sets_for_group(workout_id, &group, 0, unit)
@@ -524,7 +477,6 @@ fn rematerialize_group_plan_with_warmups(
             rest_after_failure: p.rest_after_failure,
             is_amrap: p.is_amrap,
             instruction: p.instruction,
-            progression_hint: p.progression_hint,
             client_set_id: p.id,
         })
         .collect()
@@ -567,8 +519,6 @@ fn create_group_from_plan(
         exercise_configs: vec![],
         rest_config: normalize_rest_config(req.rest_config),
         instruction: req.instruction.clone(),
-        prescribed_by_regime: false,
-        materialized_sets: Vec::new(),
     };
     let set_order = workout_ref
         .proposed_sets
@@ -632,12 +582,6 @@ pub(crate) fn apply_replace_exercise_group_plan(
         }
         None => return Err(WorkoutError::not_found("Exercise group not found")),
     };
-
-    if workout_ref.exercise_groups[existing_idx].prescribed_by_regime {
-        return Err(WorkoutError::failed_precondition(
-            "Regime-prescribed exercise groups cannot be modified",
-        ));
-    }
 
     if req.delete_group_if_empty && normalized_sets.is_empty() {
         let group_id = req.exercise_group_id.clone();
@@ -881,7 +825,6 @@ mod replace_plan_tests {
             cancelled: false,
             is_amrap: false,
             instruction: String::new(),
-            progression_hint: None,
         }
     }
 
@@ -895,7 +838,6 @@ mod replace_plan_tests {
             rest_after_failure: 300,
             is_amrap: false,
             instruction: String::new(),
-            progression_hint: None,
             client_set_id: String::new(),
         }
     }
@@ -925,8 +867,6 @@ mod replace_plan_tests {
             exercise_configs: vec![],
             rest_config: None,
             instruction: String::new(),
-            prescribed_by_regime: false,
-            materialized_sets: vec![],
         };
         let proposed = vec![
             pset("wu1", 0, true, 45.0),
