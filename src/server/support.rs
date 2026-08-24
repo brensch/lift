@@ -4,10 +4,56 @@ pub(super) fn internal_error(error: impl std::fmt::Display) -> Status {
     Status::internal(error.to_string())
 }
 
+/// The version gate. When `MIN_APP_VERSION` is set (e.g. "1.2.0"), any
+/// authed call from an app that sends an older `x-app-version` is rejected
+/// with FAILED_PRECONDITION and the sentinel message `app_update_required`,
+/// which the app renders as an update prompt. A missing header passes —
+/// old apps that predate the header are the ones the gate cannot help, and
+/// the deploy order (ship the header first, set the env second) handles
+/// them.
+#[allow(clippy::result_large_err)] // Status is what every handler returns
+fn check_app_version<T>(request: &Request<T>) -> Result<(), Status> {
+    let Ok(min) = std::env::var("MIN_APP_VERSION") else {
+        return Ok(());
+    };
+    let Some(version) = request
+        .metadata()
+        .get("x-app-version")
+        .and_then(|v| v.to_str().ok())
+    else {
+        return Ok(());
+    };
+    if version_below(version, &min) {
+        tracing::warn!(rpc_auth = "app_too_old", %version, %min, "rejected old app");
+        return Err(Status::failed_precondition("app_update_required"));
+    }
+    Ok(())
+}
+
+/// Dotted-numeric comparison: "1.9.2" < "1.10.0". Unparseable parts read
+/// as 0, so a garbage header never locks anyone out.
+fn version_below(version: &str, min: &str) -> bool {
+    let parse = |s: &str| -> Vec<u64> {
+        s.split('.')
+            .map(|part| part.trim().parse::<u64>().unwrap_or(0))
+            .collect()
+    };
+    let (v, m) = (parse(version), parse(min));
+    for i in 0..v.len().max(m.len()) {
+        let a = v.get(i).copied().unwrap_or(0);
+        let b = m.get(i).copied().unwrap_or(0);
+        if a != b {
+            return a < b;
+        }
+    }
+    false
+}
+
 pub(super) async fn authed_user_id<T>(
     request: &Request<T>,
     db: &ServerDb,
 ) -> Result<String, Status> {
+    check_app_version(request)?;
     let token = request
         .metadata()
         .get("x-session-token")
@@ -110,4 +156,19 @@ pub(super) async fn refresh_participant_for_user(
     db.upsert_session_participant(session_id, user_id, &participant)
         .await
         .map_err(internal_error)
+}
+
+#[cfg(test)]
+mod version_gate_tests {
+    use super::version_below;
+
+    #[test]
+    fn dotted_numeric_comparison() {
+        assert!(version_below("1.9.2", "1.10.0"));
+        assert!(version_below("0.9", "1.0.0"));
+        assert!(!version_below("1.10.0", "1.10.0"));
+        assert!(!version_below("2.0", "1.10.0"));
+        // Garbage never locks anyone out below a real minimum of 0.
+        assert!(!version_below("abc", "0.0.0"));
+    }
 }

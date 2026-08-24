@@ -1,8 +1,12 @@
 use super::*;
-use crate::program_state::{
-    payload_from_proto, ProposalMessage, ProposeResult, StatePayload,
+use crate::exercise_catalog::{category, load_style, primary_muscle};
+use crate::exercise_progress::{
+    advance_tracker, resolve_tracker, session_outcomes, weight_history, TrackerState,
 };
-use crate::weight_units::{weight_unit_from_state, AppWeightUnit};
+use crate::history::WorkoutRecord;
+use crate::recovery::per_muscle_recovery;
+use crate::volume::{muscle_volume_7d, suggest_template};
+use crate::weight_units::AppWeightUnit;
 use std::collections::HashMap;
 
 use super::messages::*;
@@ -15,62 +19,17 @@ pub struct ServerWorkoutService {
 }
 
 impl ServerWorkoutService {
-    fn maybe_annotate_temporal_adjustment(
-        regime: &dyn crate::regimes::WorkoutRegime,
-        stored_payload: &StatePayload,
-        effective_payload: &StatePayload,
-        last_session_at: i64,
-        now: i64,
-        proposal: &mut ProposeResult,
-    ) {
-        if last_session_at <= 0 || stored_payload == effective_payload {
-            return;
-        }
-
-        let days_since = ((now - last_session_at) / (24 * 3600)).max(0);
-        // The regime describes its own comeback in program-native terms (Linear
-        // weight backoff, Wendler TM + Week-1 reset, GZCLP Stage-1 reset).
-        let Some(note) =
-            regime.describe_comeback(stored_payload, effective_payload, days_since)
-        else {
-            return;
-        };
-        let already_present = proposal
-            .schedule_messages
-            .iter()
-            .any(|message| message.kind == UserMessageKind::TemporalDeload && message.body == note);
-        if !already_present {
-            proposal.schedule_messages.insert(
-                0,
-                ProposalMessage {
-                    key: "temporal_adjustment".to_string(),
-                    kind: UserMessageKind::TemporalDeload,
-                    surface: UserMessageSurface::WorkoutBriefing,
-                    title: proposal.regime_context.regime_display_name.clone(),
-                    body: note,
-                    exercise: Exercise::Unspecified,
-                    slot_key: String::new(),
-                },
-            );
-        }
-    }
-
-    /// How many recent workouts the scheduler loads for its proposal. The
-    /// proposal only uses history for timing insights and the last-session
-    /// timestamp (see `load_recent_schplanner_history`), and the most recent
-    /// workout — the one that fixes `last_session_at` even after a long layoff —
-    /// is always among the newest, so a fixed cap is safe and keeps the load
-    /// from growing with a user's training history.
+    /// How many recent workouts the home/progression paths load. Volume
+    /// needs 7 days and recovery needs the latest session per muscle; a
+    /// fixed cap keeps the load flat as history accumulates.
     const RECENT_HISTORY_LIMIT: i64 = 24;
 
-    /// Recent history for the proposal path. Production never replays full
-    /// history (state comes from `training_program_state_latest`); it needs only
-    /// `last_session_at` and recent timing insights, both of which a bounded
-    /// window of the newest workouts satisfies.
-    async fn load_recent_schplanner_history(
+    /// Recent history: enough for volume (7 days), recovery, weight
+    /// sparklines and the suggestion tie-break.
+    async fn load_recent_history(
         &self,
         user_id: &str,
-    ) -> Result<Vec<SchplannerWorkoutRecord>, Status> {
+    ) -> Result<Vec<WorkoutRecord>, Status> {
         let workouts = self
             .db
             .list_recent_workouts(user_id, Self::RECENT_HISTORY_LIMIT)
@@ -82,7 +41,7 @@ impl ServerWorkoutService {
     async fn hydrate_workout_records(
         &self,
         workouts: Vec<Workout>,
-    ) -> Result<Vec<SchplannerWorkoutRecord>, Status> {
+    ) -> Result<Vec<WorkoutRecord>, Status> {
         let mut history = Vec::with_capacity(workouts.len());
         for workout in workouts {
             let exercise_groups = self
@@ -100,7 +59,7 @@ impl ServerWorkoutService {
                 .get_completed_sets(&workout.id)
                 .await
                 .map_err(internal_error)?;
-            history.push(SchplannerWorkoutRecord {
+            history.push(WorkoutRecord {
                 workout,
                 exercise_groups,
                 proposed_sets,
@@ -121,92 +80,214 @@ impl ServerWorkoutService {
             .map_err(internal_error)
     }
 
-    async fn generate_schedule(
-        &self,
-        user_id: &str,
-        at_time: i64,
-    ) -> Result<GetProposedWorkoutScheduleResponse, Status> {
-        let state_resp = if let Some(resp) = self
+    /// The unit the user picked in settings. Every warmup snap and
+    /// progression step rounds in this unit.
+    async fn get_weight_unit(&self, user_id: &str) -> Result<AppWeightUnit, Status> {
+        let settings = self
             .db
-            .get_program_state(user_id)
-            .await
-            .map_err(internal_error)?
-        {
-            resp
-        } else {
-            let regime = get_regime(RegimeType::Linear5x5);
-            GetActiveTrainingProgramStateResponse {
-                state: Some(TrainingProgramState {
-                    regime_type: RegimeType::Linear5x5 as i32,
-                    fields: payload_to_proto(&regime.default_state()),
-                    updated_at: 0,
-                    source: "default".to_string(),
-                }),
-                schema: Some(regime.state_schema()),
-            }
-        };
-        let state = state_resp
-            .state
-            .ok_or_else(|| Status::internal("missing state"))?;
-        let regime_type = RegimeType::try_from(state.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let stored_payload = payload_from_proto(&state.fields);
-        let now = if at_time > 0 { at_time } else { now_unix() };
-        let history = self.load_recent_schplanner_history(user_id).await?;
-        let last_session_at = history
-            .iter()
-            .map(|workout| {
-                if workout.workout.end_time > 0 {
-                    workout.workout.end_time
-                } else {
-                    workout.workout.start_time
-                }
-            })
-            .max()
-            .unwrap_or(0);
-        let effective_state =
-            regime.apply_temporal_adjustments_for_proposal(&stored_payload, last_session_at, now);
-        let insights = summarize_recent_insights(&history);
-        let mut proposal =
-            regime.propose_from_state(&effective_state, last_session_at, now, &insights);
-        Self::maybe_annotate_temporal_adjustment(
-            regime.as_ref(),
-            &stored_payload,
-            &effective_state,
-            last_session_at,
-            now,
-            &mut proposal,
-        );
-        let mut schedule_messages = schedule_messages_from_proposal(&proposal, user_id);
-        let pending_messages = self
-            .db
-            .get_pending_workout_briefing_messages(user_id)
+            .get_settings(user_id)
             .await
             .map_err(internal_error)?;
-        // Recap of last session's progression for the phase header.
-        proposal.regime_context.last_session_summary =
-            summarize_last_session(&pending_messages);
-        schedule_messages.extend(pending_briefing_messages_for_proposal(
-            &pending_messages,
-            &proposal.proposed_groups,
-        ));
-        schedule_messages.sort_by_key(|b| std::cmp::Reverse(b.updated_at));
-        schedule_messages.dedup_by(|a, b| a.message_key == b.message_key);
-        let training_status =
-            regime.derive_training_status(&effective_state, &history, last_session_at, now);
-        // Offer the A/B (or session) swap from the home prompt. Read from stored
-        // state — the temporal-adjustment copy doesn't change the selector. Mark
-        // the program's natural rotation pick (from history) separately from the
-        // currently-selected one, so the UI can show "what the schplanner was
-        // going to do" even after a manual swap.
-        let mut selectable_next_sessions = regime.selectable_next_sessions(&stored_payload);
-        if let Some(recommended) =
-            regime.recommended_next_session(&stored_payload, &history)
-        {
-            for opt in &mut selectable_next_sessions {
-                opt.is_recommended = opt.key.eq_ignore_ascii_case(&recommended);
+        for setting in settings {
+            if let Some(schlift::workout::v1::user_setting::Setting::WeightUnit(config)) =
+                setting.setting
+            {
+                return Ok(crate::weight_units::unit_from_proto(config.unit));
             }
         }
+        Ok(AppWeightUnit::Lb)
+    }
+
+    /// Advance every tracker touched by a finished workout — the single
+    /// seam where performance becomes prescription. Idempotent through the
+    /// `progression_applied` claim: a re-fired EndWorkout moves nothing.
+    /// Returns the progression messages describing what changed.
+    async fn apply_progression_for_workout(
+        &self,
+        user_id: &str,
+        record: &WorkoutRecord,
+    ) -> Result<Vec<UserMessage>, Status> {
+        if record.workout.end_time <= 0 {
+            return Ok(Vec::new());
+        }
+        let claimed = self
+            .db
+            .claim_progression(user_id, &record.workout.id)
+            .await
+            .map_err(internal_error)?;
+        if !claimed {
+            return Ok(Vec::new());
+        }
+
+        let unit = self.get_weight_unit(user_id).await?;
+        let states = self
+            .db
+            .get_tracker_states(user_id)
+            .await
+            .map_err(internal_error)?;
+
+        let mut messages = Vec::new();
+        for (exercise_value, outcome) in session_outcomes(record) {
+            let Ok(exercise) = Exercise::try_from(exercise_value) else {
+                continue;
+            };
+            if exercise == Exercise::Unspecified {
+                continue;
+            }
+            let before = states.get(&exercise_value).copied().unwrap_or_default();
+            let after = advance_tracker(exercise, &before, &outcome, unit);
+            self.db
+                .upsert_tracker_state(
+                    user_id,
+                    exercise_value,
+                    &after,
+                    &format!("workout:{}", record.workout.id),
+                )
+                .await
+                .map_err(internal_error)?;
+            if let Some(message) = progression_message_for_change(
+                exercise,
+                outcome.performed_weight,
+                &after,
+                &record.workout.id,
+            ) {
+                messages.push(message);
+            }
+        }
+        if !messages.is_empty() {
+            self.db
+                .upsert_user_message_events(user_id, &messages)
+                .await
+                .map_err(internal_error)?;
+        }
+        Ok(messages)
+    }
+
+    /// Build the workout's exercise groups from a template: weights from
+    /// the trackers, sets/reps/rest from the prescription, one group per
+    /// exercise, and the layoff deload applied at resolution time only
+    /// (never written back — it sticks only once the user trains).
+    async fn groups_from_template(
+        &self,
+        user_id: &str,
+        template: &WorkoutTemplate,
+        now: i64,
+    ) -> Result<Vec<ExerciseGroup>, Status> {
+        let unit = self.get_weight_unit(user_id).await?;
+        let states = self
+            .db
+            .get_tracker_states(user_id)
+            .await
+            .map_err(internal_error)?;
+
+        let mut groups = Vec::new();
+        for (idx, exercise_value) in template.exercises.iter().enumerate() {
+            let Ok(exercise) = Exercise::try_from(*exercise_value) else {
+                continue;
+            };
+            if exercise == Exercise::Unspecified {
+                continue;
+            }
+            let resolved = resolve_tracker(exercise, states.get(exercise_value), unit);
+            let weight = layoff_adjusted_weight(
+                exercise,
+                resolved.working_weight,
+                resolved.last_performed_at,
+                now,
+                unit,
+            );
+            groups.push(ExerciseGroup {
+                id: Uuid::new_v4().to_string(),
+                workout_id: String::new(),
+                name: crate::exercise_catalog::exercise_display_name(exercise),
+                sets: resolved.sets,
+                interleave_warmups: false,
+                workout_order: idx as i32,
+                exercise_configs: vec![ExerciseTypeConfig {
+                    exercise: *exercise_value,
+                    start_weight: weight,
+                    end_weight: weight,
+                    reps: resolved.target_reps,
+                    include_warmup: resolved.include_warmup,
+                    rest_config: Some(RestConfig {
+                        rest_after_success: resolved.rest_seconds,
+                        rest_after_failure: resolved.rest_seconds_failure,
+                        rest_after_warmup: 0,
+                        rest_after_last_warmup: 0,
+                    }),
+                    last_set_amrap: false,
+                    working_sets: Vec::new(),
+                }],
+                rest_config: None,
+                instruction: String::new(),
+            });
+        }
+        Ok(groups)
+    }
+
+    /// Everything the home screen needs, in one response.
+    async fn build_home(&self, user_id: &str) -> Result<GetHomeResponse, Status> {
+        let now = now_unix();
+        let unit = self.get_weight_unit(user_id).await?;
+        let history = self.load_recent_history(user_id).await?;
+        let states = self
+            .db
+            .get_tracker_states(user_id)
+            .await
+            .map_err(internal_error)?;
+        let templates = self
+            .db
+            .list_templates(user_id)
+            .await
+            .map_err(internal_error)?;
+        let history_series = weight_history(&history);
+
+        let trackers: Vec<ExerciseTracker> = crate::exercise_catalog::all_exercises()
+            .into_iter()
+            .map(|exercise| {
+                let value = exercise as i32;
+                let resolved = resolve_tracker(exercise, states.get(&value), unit);
+                ExerciseTracker {
+                    exercise: value,
+                    working_weight: resolved.working_weight,
+                    sets: resolved.sets,
+                    target_reps: resolved.target_reps,
+                    rep_range_low: resolved.rep_low,
+                    rep_range_high: resolved.rep_high,
+                    rest_seconds: resolved.rest_seconds,
+                    rest_seconds_failure: resolved.rest_seconds_failure,
+                    include_warmup: resolved.include_warmup,
+                    last_performed_at: resolved.last_performed_at,
+                    weight_history: history_series.get(&value).cloned().unwrap_or_default(),
+                    overridden: resolved.overridden,
+                    primary_muscle: primary_muscle(exercise) as i32,
+                    category: category(exercise) as i32,
+                    equipment: load_style(exercise).to_proto() as i32,
+                }
+            })
+            .collect();
+
+        let volume = muscle_volume_7d(&history, now);
+        let recovery = per_muscle_recovery(&history, now)
+            .into_iter()
+            .map(|entry| MuscleRecoveryStatus {
+                muscle_key: crate::exercise_catalog::muscle_key(entry.muscle).to_string(),
+                label: crate::exercise_catalog::muscle_label(entry.muscle).to_string(),
+                last_trained_at: entry.last_trained_at,
+                recovered_at: entry.recovered_at,
+                fraction: entry.fraction,
+                hours_remaining: entry.hours_remaining(now),
+                recovered: entry.is_recovered(now),
+            })
+            .collect();
+
+        let last_started = self
+            .db
+            .template_last_started(user_id)
+            .await
+            .map_err(internal_error)?;
+        let (suggested_template_id, suggestion_reason) =
+            suggest_template(&templates, &volume, &last_started).unwrap_or_default();
 
         let active_workout_id = self
             .db
@@ -215,208 +296,25 @@ impl ServerWorkoutService {
             .map_err(internal_error)?
             .unwrap_or_default();
 
-        let mut proposed_groups = proposal.proposed_groups;
-        let unit = weight_unit_from_state(&effective_state);
-        for (i, g) in proposed_groups.iter_mut().enumerate() {
-            g.estimated_duration_seconds =
-                crate::workout::estimate_group_duration_seconds(g);
-            // Materialize the display sets (warmups + working sets) server-side.
-            let eg = ExerciseGroup {
-                id: format!("preview-{i}"),
-                workout_id: String::new(),
-                name: g.name.clone(),
-                sets: g.sets,
-                interleave_warmups: g.interleave_warmups,
-                workout_order: i as i32,
-                exercise_configs: g.exercise_configs.clone(),
-                rest_config: g.rest_config,
-                instruction: String::new(),
-                prescribed_by_regime: g.prescribed_by_regime,
-                materialized_sets: Vec::new(),
-            };
-            g.materialized_sets =
-                crate::workout::generate_sets_for_group("", &eg, 0, unit);
-        }
-
-        let mut saved_exercise_groups = self
+        let user_messages = self
             .db
-            .list_profile_exercise_groups(user_id)
+            .get_pending_workout_briefing_messages(user_id)
             .await
             .map_err(internal_error)?;
-        for g in &mut saved_exercise_groups {
-            g.materialized_sets =
-                crate::workout::generate_sets_for_group(&g.id, g, 0, unit);
-        }
 
-        // Per-exercise "where you're up to": the weight/reps the app prefills
-        // when you add an exercise to a workout. Built after `proposed_groups` so
-        // the regime's prescription for today wins over the derived progression.
-        let exercise_statuses = crate::exercise_progress::exercise_statuses_for_schedule(
-            &history,
-            &proposed_groups,
-            &crate::recovery::per_muscle_recovery(&history, now, &regime.recovery_profile()),
-            unit,
-            now,
-        );
+        let onboarded = !templates.is_empty() || !history.is_empty();
 
-        let response = GetProposedWorkoutScheduleResponse {
-            exercise_statuses,
+        Ok(GetHomeResponse {
+            templates,
+            trackers,
             active_workout_id,
-            proposed_groups,
-            regime_context: Some(proposal.regime_context),
-            training_status: Some(training_status),
-            suggested_workout_name: proposal.suggested_workout_name,
-            draft: self
-                .db
-                .get_workout_draft(user_id)
-                .await
-                .map_err(internal_error)?,
-            saved_exercise_groups,
-            user_messages: schedule_messages,
-            selectable_next_sessions,
-        };
-        self.db
-            .put_schedule_cache(user_id, &response)
-            .await
-            .map_err(internal_error)?;
-        Ok(response)
-    }
-
-    async fn persist_program_state_after_workout_end(
-        &self,
-        user_id: &str,
-        workout: &SchplannerWorkoutRecord,
-    ) -> Result<Vec<UserMessage>, Status> {
-        let state_resp = if let Some(resp) = self
-            .db
-            .get_program_state(user_id)
-            .await
-            .map_err(internal_error)?
-        {
-            resp
-        } else {
-            let regime = get_regime(RegimeType::Linear5x5);
-            GetActiveTrainingProgramStateResponse {
-                state: Some(TrainingProgramState {
-                    regime_type: RegimeType::Linear5x5 as i32,
-                    fields: payload_to_proto(&regime.default_state()),
-                    updated_at: 0,
-                    source: "default".to_string(),
-                }),
-                schema: Some(regime.state_schema()),
-            }
-        };
-
-        let state = state_resp
-            .state
-            .ok_or_else(|| Status::internal("missing state"))?;
-        let regime_type = RegimeType::try_from(state.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let prev_payload = payload_from_proto(&state.fields);
-
-        // Reconcile against the program's prescription for this session, derived from the
-        // pre-transition state — NOT from the (possibly user-edited) workout plan. Completed
-        // work is matched to prescribed slots by exercise, so editing a weight or
-        // deleting/re-adding a group still progresses the correct lift.
-        let now = workout
-            .workout
-            .end_time
-            .max(workout.workout.start_time)
-            .max(1);
-        let history = self.load_recent_schplanner_history(user_id).await?;
-        let last_session_at = history
-            .iter()
-            .filter(|h| h.workout.id != workout.workout.id)
-            .map(|h| {
-                if h.workout.end_time > 0 {
-                    h.workout.end_time
-                } else {
-                    h.workout.start_time
-                }
-            })
-            .max()
-            .unwrap_or(0);
-        let insights = summarize_recent_insights(&history);
-
-        // Reconcile against the SAME state the proposal was built from, including any
-        // layoff deload. `get_proposed_workout_schedule` applies
-        // `apply_temporal_adjustments_for_proposal` before proposing, so after time away
-        // the user is shown (and performs) reduced weights. Reconciling against the
-        // un-deloaded state instead would judge them against work they were never asked
-        // to do, and — because the failure branches of the regimes hold the state weight
-        // rather than the attempted one — would prescribe the pre-layoff weight after a
-        // failed comeback session, i.e. heavier than the weight they just missed.
-        let adjusted_prev =
-            regime.apply_temporal_adjustments_for_proposal(&prev_payload, last_session_at, now);
-        let mut payload = adjusted_prev.clone();
-        let proposal = regime.propose_from_state(&adjusted_prev, last_session_at, now, &insights);
-        let prescribed = prescribed_slots_from_groups(&proposal.proposed_groups);
-        let slot_outcomes = summarize_slot_outcomes(workout, &prescribed);
-        regime.transition_state_on_workout_completed(&mut payload, workout, &slot_outcomes);
-        let next_updated_at = workout.workout.end_time.max(workout.workout.start_time);
-        let response = GetActiveTrainingProgramStateResponse {
-            state: Some(TrainingProgramState {
-                regime_type: regime_type as i32,
-                fields: payload_to_proto(&payload),
-                updated_at: next_updated_at,
-                source: format!("workout_completed:{}", workout.workout.id),
-            }),
-            schema: Some(regime.state_schema()),
-        };
-
-        // Idempotency lives in the DB: the first EndWorkout for this workout claims the
-        // progression and writes the new state atomically; a retry / double-fire finds the
-        // claim already taken and is a no-op, so we never advance twice.
-        let applied = self
-            .db
-            .apply_program_state_for_workout(user_id, &workout.workout.id, &response)
-            .await
-            .map_err(internal_error)?;
-        if !applied {
-            return Ok(Vec::new());
-        }
-        // Compare against the weights the session was actually performed at, not
-        // the raw stored state. After a layoff deload the two differ, and using
-        // the stored weight would render "180 → 150" (a phantom decrease) when
-        // the user deloaded to 145 and progressed to 150. With no layoff,
-        // adjusted_prev == prev_payload and this is unchanged.
-        let mut messages = completion_messages_for_regime(
-            regime_type,
-            &adjusted_prev,
-            &payload,
-            &slot_outcomes,
-            &workout.workout.id,
-        );
-        // Everything the program *didn't* prescribe progresses too. Derived from
-        // history with this workout included, so the note says what you'll lift
-        // next time for the accessories you picked yourself.
-        let unit = weight_unit_from_state(&adjusted_prev);
-        let mut history_with_workout: Vec<SchplannerWorkoutRecord> = history
-            .iter()
-            .filter(|record| record.workout.id != workout.workout.id)
-            .cloned()
-            .collect();
-        history_with_workout.push(workout.clone());
-        let next_weights = crate::exercise_progress::derive_exercise_progressions(
-            &history_with_workout,
-            unit,
-        )
-        .into_iter()
-        .map(|(exercise, progression)| (exercise, progression.target_weight))
-        .collect();
-        messages.extend(accessory_completion_messages(
-            &crate::exercise_progress::performed_working_weights(workout),
-            &next_weights,
-            &prescribed,
-            &workout.workout.id,
-        ));
-        if !messages.is_empty() {
-            self.db
-                .upsert_user_message_events(user_id, &messages)
-                .await
-                .map_err(internal_error)?;
-        }
-        Ok(messages)
+            user_messages,
+            volume,
+            recovery,
+            suggested_template_id,
+            suggestion_reason,
+            onboarded,
+        })
     }
 
     /// Load proposed_sets + completed_sets for a workout and compute next_up + snapshot.
@@ -475,25 +373,49 @@ impl WorkoutService for ServerWorkoutService {
         // Session attachment is decided by the invariant: whatever session the user is
         // currently in (via user_current_session) is stamped onto the new workout row.
         let session_id = self.get_session_id_for_user(&user_id).await?;
-        info!(rpc = "StartWorkout", %user_id, group_count = req.exercise_groups.len(), %session_id, "request");
+        info!(rpc = "StartWorkout", %user_id, template_id = %req.template_id, group_count = req.exercise_groups.len(), %session_id, "request");
         let workout_id = Uuid::new_v4().to_string();
         let started_at = if req.started_at > 0 {
             req.started_at
         } else {
             now_unix()
         };
-        let workout = Workout {
-            id: workout_id.clone(),
-            name: if req.name.is_empty() {
+
+        // A template start is server-resolved: weights from the trackers,
+        // sets/reps/rest from the prescription. The client sends nothing
+        // but the template id.
+        let (mut groups, workout_name) = if !req.template_id.is_empty() {
+            let template = self
+                .db
+                .get_template(&user_id, &req.template_id)
+                .await
+                .map_err(internal_error)?
+                .ok_or_else(|| Status::not_found("Template not found"))?;
+            let groups = self
+                .groups_from_template(&user_id, &template, started_at)
+                .await?;
+            let name = if req.name.is_empty() {
+                template.name.clone()
+            } else {
+                req.name.clone()
+            };
+            (groups, name)
+        } else {
+            let name = if req.name.is_empty() {
                 "Workout".to_string()
             } else {
-                req.name
-            },
+                req.name.clone()
+            };
+            (req.exercise_groups, name)
+        };
+
+        let workout = Workout {
+            id: workout_id.clone(),
+            name: workout_name,
             start_time: started_at,
             end_time: 0,
             session_id: session_id.clone(),
         };
-        let mut groups = req.exercise_groups;
         for (idx, group) in groups.iter_mut().enumerate() {
             if group.id.is_empty() {
                 group.id = Uuid::new_v4().to_string();
@@ -502,14 +424,7 @@ impl WorkoutService for ServerWorkoutService {
             group.workout_order = idx as i32;
         }
         // Warmups snap to loadable weights in the user's unit, so we need it here.
-        let unit = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(internal_error)?
-            .and_then(|resp| resp.state)
-            .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
-            .unwrap_or(AppWeightUnit::Lb);
+        let unit = self.get_weight_unit(&user_id).await?;
 
         let mut proposed_sets = Vec::new();
         let mut order = 0;
@@ -521,7 +436,7 @@ impl WorkoutService for ServerWorkoutService {
 
         // Insert real rows
         self.db
-            .insert_workout(&user_id, &workout, &groups, &proposed_sets)
+            .insert_workout(&user_id, &workout, &req.template_id, &groups, &proposed_sets)
             .await
             .map_err(internal_error)?;
 
@@ -611,14 +526,14 @@ impl WorkoutService for ServerWorkoutService {
             .get_completed_sets(&req.workout_id)
             .await
             .map_err(internal_error)?;
-        let workout_record = SchplannerWorkoutRecord {
+        let workout_record = WorkoutRecord {
             workout: workout.clone(),
             exercise_groups,
             proposed_sets,
             completed_sets,
         };
         let completion_messages = self
-            .persist_program_state_after_workout_end(&user_id, &workout_record)
+            .apply_progression_for_workout(&user_id, &workout_record)
             .await?;
 
         if !session_id.is_empty() {
@@ -744,20 +659,6 @@ impl WorkoutService for ServerWorkoutService {
         }))
     }
 
-    async fn get_recommended_starting_weights(
-        &self,
-        request: Request<GetRecommendedStartingWeightsRequest>,
-    ) -> Result<Response<GetRecommendedStartingWeightsResponse>, Status> {
-        let _user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        let experience = ExperienceLevel::try_from(req.experience)
-            .unwrap_or(ExperienceLevel::Unspecified);
-        let weights = crate::onboarding::recommended_starting_weights(
-            req.bodyweight_kg as f32,
-            experience,
-        );
-        Ok(Response::new(GetRecommendedStartingWeightsResponse { weights }))
-    }
 
     // ── Individual Set RPCs (targeted single-row SQL operations) ──
 
@@ -1126,14 +1027,7 @@ impl WorkoutService for ServerWorkoutService {
         let mut active = active_from_get_workout_response(resp)?;
 
         // Warmups snap to loadable weights in the user's unit when regenerated.
-        let unit = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(internal_error)?
-            .and_then(|resp| resp.state)
-            .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
-            .unwrap_or(AppWeightUnit::Lb);
+        let unit = self.get_weight_unit(&user_id).await?;
 
         // Apply the complex group plan replacement
         let (group, generated_sets) =
@@ -1257,7 +1151,6 @@ impl WorkoutService for ServerWorkoutService {
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
         let mut active = active_from_get_workout_response(resp)?;
-        let mut events = Vec::with_capacity(req.mutations.len());
         let mut applied = Vec::with_capacity(req.mutations.len());
         let mut generated_messages = Vec::<UserMessage>::new();
 
@@ -1269,13 +1162,7 @@ impl WorkoutService for ServerWorkoutService {
             .iter()
             .any(|m| matches!(&m.mutation, Some(Mutation::ReplaceExerciseGroupPlan(_))))
         {
-            self.db
-                .get_program_state(&user_id)
-                .await
-                .map_err(internal_error)?
-                .and_then(|resp| resp.state)
-                .map(|state| weight_unit_from_state(&payload_from_proto(&state.fields)))
-                .unwrap_or(AppWeightUnit::Lb)
+            self.get_weight_unit(&user_id).await?
         } else {
             AppWeightUnit::Lb
         };
@@ -1286,18 +1173,12 @@ impl WorkoutService for ServerWorkoutService {
             } else {
                 mutation.event_id.clone()
             };
-            let recorded_at = if mutation.client_created_at > 0 {
-                mutation.client_created_at
-            } else {
-                now_unix()
-            };
             match mutation
                 .mutation
                 .ok_or_else(|| Status::invalid_argument("mutation missing"))?
             {
                 Mutation::StartSet(req) => {
                     apply_start_set_to_active(&mut active, &req)?;
-                    events.push((event_id.clone(), recorded_at, 2, req.encode_to_vec()));
                 }
                 Mutation::CompleteSet(req) => {
                     apply_complete_set_to_active(&mut active, &req)?;
@@ -1325,15 +1206,12 @@ impl WorkoutService for ServerWorkoutService {
                             },
                         ));
                     }
-                    events.push((event_id.clone(), recorded_at, 3, req.encode_to_vec()));
                 }
                 Mutation::DeleteCompletedSet(req) => {
                     apply_delete_completed_set_to_active(&mut active, &req)?;
-                    events.push((event_id.clone(), recorded_at, 4, req.encode_to_vec()));
                 }
                 Mutation::CancelProposedSet(req) => {
                     apply_cancel_proposed_set_to_active(&mut active, &req)?;
-                    events.push((event_id.clone(), recorded_at, 5, req.encode_to_vec()));
                 }
                 Mutation::EndWorkout(req) => {
                     let ended_at = if req.ended_at > 0 {
@@ -1342,25 +1220,16 @@ impl WorkoutService for ServerWorkoutService {
                         now_unix()
                     };
                     active.workout.end_time = ended_at;
-                    events.push((event_id.clone(), recorded_at, 6, req.encode_to_vec()));
                 }
                 Mutation::ReplaceExerciseGroupPlan(req) => {
                     apply_replace_exercise_group_plan(&mut active, &req, unit)?;
-                    events.push((event_id.clone(), recorded_at, 7, req.encode_to_vec()));
                 }
                 Mutation::ReorderExerciseGroups(req) => {
                     apply_reorder_exercise_groups(&mut active, &req)?;
-                    events.push((event_id.clone(), recorded_at, 8, req.encode_to_vec()));
                 }
             }
             applied.push(event_id);
         }
-
-        // Append events
-        self.db
-            .append_workout_events(&user_id, &workout_id, &events)
-            .await
-            .map_err(internal_error)?;
 
         if !generated_messages.is_empty() {
             self.db
@@ -1386,14 +1255,14 @@ impl WorkoutService for ServerWorkoutService {
                 .end_workout(&user_id, &workout_id, active.workout.end_time)
                 .await
                 .map_err(internal_error)?;
-            let workout_record = SchplannerWorkoutRecord {
+            let workout_record = WorkoutRecord {
                 workout: active.workout.clone(),
                 exercise_groups: active.exercise_groups.clone(),
                 proposed_sets: active.proposed_sets.clone(),
                 completed_sets: active.completed_sets.clone(),
             };
             let _ = self
-                .persist_program_state_after_workout_end(&user_id, &workout_record)
+                .apply_progression_for_workout(&user_id, &workout_record)
                 .await?;
         } else {
             self.db
@@ -1462,58 +1331,221 @@ impl WorkoutService for ServerWorkoutService {
 
     // ── Schedule / Drafts ──
 
-    async fn get_proposed_workout_schedule(
+
+
+    // ── Home, templates, trackers ──
+
+    async fn get_home(
         &self,
-        request: Request<GetProposedWorkoutScheduleRequest>,
-    ) -> Result<Response<GetProposedWorkoutScheduleResponse>, Status> {
+        request: Request<GetHomeRequest>,
+    ) -> Result<Response<GetHomeResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "GetProposedWorkoutSchedule", %user_id, "request");
-        let response = self.generate_schedule(&user_id, req.at_time).await?;
-        Ok(Response::new(response))
+        info!(rpc = "GetHome", %user_id, "request");
+        Ok(Response::new(self.build_home(&user_id).await?))
     }
 
-    async fn set_next_workout(
+    async fn save_template(
         &self,
-        request: Request<SetNextWorkoutRequest>,
-    ) -> Result<Response<SetNextWorkoutResponse>, Status> {
+        request: Request<SaveTemplateRequest>,
+    ) -> Result<Response<SaveTemplateResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
-        info!(rpc = "SetNextWorkout", %user_id, key = %req.session_key, "request");
-
-        let mut state_resp = self
-            .db
-            .get_program_state(&user_id)
-            .await
-            .map_err(internal_error)?
-            .and_then(|r| r.state)
-            .ok_or_else(|| Status::failed_precondition("no active training program"))?;
-
-        let regime_type =
-            RegimeType::try_from(state_resp.regime_type).unwrap_or(RegimeType::Linear5x5);
-        let regime = get_regime(regime_type);
-        let mut payload = payload_from_proto(&state_resp.fields);
-        if !regime.set_next_session(&mut payload, &req.session_key) {
-            return Err(Status::invalid_argument(format!(
-                "'{}' is not a selectable next session for this program",
-                req.session_key
-            )));
+        let template = req
+            .template
+            .ok_or_else(|| Status::invalid_argument("template is required"))?;
+        info!(rpc = "SaveTemplate", %user_id, template_id = %template.id, "request");
+        if template.name.trim().is_empty() {
+            return Err(Status::invalid_argument("A template needs a name"));
         }
-        state_resp.fields = payload_to_proto(&payload);
-        state_resp.source = "manual".to_string();
-        self.db
-            .put_program_state(
-                &user_id,
-                &GetActiveTrainingProgramStateResponse {
-                    state: Some(state_resp),
-                    schema: Some(regime.state_schema()),
-                },
-            )
+        if template.exercises.is_empty() {
+            return Err(Status::invalid_argument(
+                "A template needs at least one exercise",
+            ));
+        }
+        let stored = self
+            .db
+            .save_template(&user_id, &template)
             .await
             .map_err(internal_error)?;
-        // Refresh the cached schedule so a re-fetch reflects the swap immediately.
-        let _ = self.generate_schedule(&user_id, 0).await;
-        Ok(Response::new(SetNextWorkoutResponse {}))
+        Ok(Response::new(SaveTemplateResponse {
+            template: Some(stored),
+        }))
+    }
+
+    async fn delete_template(
+        &self,
+        request: Request<DeleteTemplateRequest>,
+    ) -> Result<Response<DeleteTemplateResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "DeleteTemplate", %user_id, template_id = %req.template_id, "request");
+        self.db
+            .delete_template(&user_id, &req.template_id)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(DeleteTemplateResponse {}))
+    }
+
+    async fn reorder_templates(
+        &self,
+        request: Request<ReorderTemplatesRequest>,
+    ) -> Result<Response<ReorderTemplatesResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "ReorderTemplates", %user_id, count = req.template_ids.len(), "request");
+        self.db
+            .reorder_templates(&user_id, &req.template_ids)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(ReorderTemplatesResponse {}))
+    }
+
+    async fn set_exercise_tracker(
+        &self,
+        request: Request<SetExerciseTrackerRequest>,
+    ) -> Result<Response<SetExerciseTrackerResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "SetExerciseTracker", %user_id, exercise = req.exercise, weight = req.working_weight, "request");
+        let exercise = Exercise::try_from(req.exercise)
+            .ok()
+            .filter(|ex| *ex != Exercise::Unspecified)
+            .ok_or_else(|| Status::invalid_argument("Unknown exercise"))?;
+        if req.override_rep_low > 0 && req.override_rep_high < req.override_rep_low {
+            return Err(Status::invalid_argument(
+                "The rep range top must be at or above the bottom",
+            ));
+        }
+
+        let unit = self.get_weight_unit(&user_id).await?;
+        let states = self
+            .db
+            .get_tracker_states(&user_id)
+            .await
+            .map_err(internal_error)?;
+        let previous = states.get(&req.exercise).copied().unwrap_or_default();
+        let state = TrackerState {
+            working_weight: crate::exercise_catalog::snap_weight_lb(
+                exercise,
+                req.working_weight.max(0.0),
+                unit,
+            ),
+            // A manual correction restarts the rep climb at the range
+            // bottom; resolution clamps 0 there.
+            current_reps: 0,
+            consecutive_misses: 0,
+            last_performed_at: previous.last_performed_at,
+            override_sets: req.override_sets.max(0),
+            override_rep_low: req.override_rep_low.max(0),
+            override_rep_high: req.override_rep_high.max(0),
+        };
+        self.db
+            .upsert_tracker_state(&user_id, req.exercise, &state, "manual")
+            .await
+            .map_err(internal_error)?;
+
+        let resolved = resolve_tracker(exercise, Some(&state), unit);
+        Ok(Response::new(SetExerciseTrackerResponse {
+            tracker: Some(ExerciseTracker {
+                exercise: req.exercise,
+                working_weight: resolved.working_weight,
+                sets: resolved.sets,
+                target_reps: resolved.target_reps,
+                rep_range_low: resolved.rep_low,
+                rep_range_high: resolved.rep_high,
+                rest_seconds: resolved.rest_seconds,
+                rest_seconds_failure: resolved.rest_seconds_failure,
+                include_warmup: resolved.include_warmup,
+                last_performed_at: resolved.last_performed_at,
+                weight_history: Vec::new(),
+                overridden: resolved.overridden,
+                primary_muscle: primary_muscle(exercise) as i32,
+                category: category(exercise) as i32,
+                equipment: load_style(exercise).to_proto() as i32,
+            }),
+        }))
+    }
+
+    async fn complete_onboarding(
+        &self,
+        request: Request<CompleteOnboardingRequest>,
+    ) -> Result<Response<CompleteOnboardingResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "CompleteOnboarding", %user_id, unit = req.unit, bodyweight_kg = req.body_weight_kg, "request");
+
+        // The unit is the one thing onboarding always sets.
+        if req.unit != WeightUnit::Unspecified as i32 {
+            self.db
+                .put_setting(
+                    &user_id,
+                    "weight_unit",
+                    &UserSetting {
+                        setting: Some(schlift::workout::v1::user_setting::Setting::WeightUnit(
+                            WeightUnitConfig { unit: req.unit },
+                        )),
+                    },
+                )
+                .await
+                .map_err(internal_error)?;
+        }
+        let unit = crate::weight_units::unit_from_proto(req.unit);
+
+        // Idempotent: with templates already present this is a repeat call
+        // (or a returning user) and seeding again would duplicate.
+        let existing = self
+            .db
+            .list_templates(&user_id)
+            .await
+            .map_err(internal_error)?;
+        if existing.is_empty() {
+            // Trackers for the main lifts, scaled from bodyweight and
+            // experience when given; the catalog opener otherwise.
+            let states = self
+                .db
+                .get_tracker_states(&user_id)
+                .await
+                .map_err(internal_error)?;
+            let experience = ExperienceLevel::try_from(req.experience)
+                .unwrap_or(ExperienceLevel::Unspecified);
+            for (exercise, weight) in
+                crate::onboarding::starting_tracker_weights(req.body_weight_kg, experience, unit)
+            {
+                if states.contains_key(&(exercise as i32)) {
+                    continue;
+                }
+                let state = TrackerState {
+                    working_weight: weight,
+                    ..Default::default()
+                };
+                self.db
+                    .upsert_tracker_state(&user_id, exercise as i32, &state, "onboarding")
+                    .await
+                    .map_err(internal_error)?;
+            }
+
+            let now = now_unix();
+            for (order, (name, exercises)) in
+                crate::db::default_templates().into_iter().enumerate()
+            {
+                let template = WorkoutTemplate {
+                    id: String::new(),
+                    name: name.to_string(),
+                    order: order as i32,
+                    exercises: exercises.into_iter().map(|e| e as i32).collect(),
+                    created_at: now,
+                    updated_at: now,
+                };
+                self.db
+                    .save_template(&user_id, &template)
+                    .await
+                    .map_err(internal_error)?;
+            }
+        }
+
+        Ok(Response::new(CompleteOnboardingResponse {
+            home: Some(self.build_home(&user_id).await?),
+        }))
     }
 
     async fn dismiss_user_messages(
@@ -1532,89 +1564,79 @@ impl WorkoutService for ServerWorkoutService {
         }))
     }
 
-    async fn save_workout_draft(
-        &self,
-        request: Request<SaveWorkoutDraftRequest>,
-    ) -> Result<Response<SaveWorkoutDraftResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        info!(rpc = "SaveWorkoutDraft", %user_id, "request");
-        let req = request.into_inner();
-        let draft = req
-            .draft
-            .ok_or_else(|| Status::invalid_argument("draft is required"))?;
-        self.db
-            .put_workout_draft(&user_id, &draft)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(SaveWorkoutDraftResponse {
-            draft: Some(draft),
-        }))
-    }
 
-    async fn clear_workout_draft(
-        &self,
-        request: Request<ClearWorkoutDraftRequest>,
-    ) -> Result<Response<ClearWorkoutDraftResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        info!(rpc = "ClearWorkoutDraft", %user_id, "request");
-        self.db
-            .clear_workout_draft(&user_id)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(ClearWorkoutDraftResponse {}))
-    }
 
-    async fn save_profile_exercise_group(
-        &self,
-        request: Request<SaveProfileExerciseGroupRequest>,
-    ) -> Result<Response<SaveProfileExerciseGroupResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        info!(rpc = "SaveProfileExerciseGroup", %user_id, "request");
-        let req = request.into_inner();
-        let group = req
-            .group
-            .ok_or_else(|| Status::invalid_argument("group is required"))?;
-        if group.name.trim().is_empty() {
-            return Err(Status::invalid_argument("group name is required"));
-        }
-        if group.exercise_configs.is_empty() {
-            return Err(Status::invalid_argument(
-                "profile exercise group must include at least one exercise config",
-            ));
-        }
-        let saved = self
-            .db
-            .save_profile_exercise_group(&user_id, &group)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(SaveProfileExerciseGroupResponse {
-            group: Some(saved),
-        }))
-    }
 
-    async fn delete_profile_exercise_group(
-        &self,
-        request: Request<DeleteProfileExerciseGroupRequest>,
-    ) -> Result<Response<DeleteProfileExerciseGroupResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "DeleteProfileExerciseGroup", %user_id, group_id = %req.group_id, "request");
-        if req.group_id.is_empty() {
-            return Err(Status::invalid_argument("group_id is required"));
-        }
-        self.db
-            .delete_profile_exercise_group(&user_id, &req.group_id)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(DeleteProfileExerciseGroupResponse {}))
-    }
 
-    async fn rehydrate_workout_from_events(
-        &self,
-        _request: Request<RehydrateWorkoutFromEventsRequest>,
-    ) -> Result<Response<RehydrateWorkoutFromEventsResponse>, Status> {
-        Err(Status::unimplemented(
-            "server workout service does not support rehydration yet",
-        ))
+}
+
+/// The layoff deload: 90% after 14 days away from this exercise, 80% after
+/// 30, snapped loadable. Resolution-time only — the tracker is never
+/// written here, so just looking never costs anything; the reduction
+/// sticks only when the user performs the reduced session (progression
+/// follows performed weight).
+fn layoff_adjusted_weight(
+    exercise: Exercise,
+    weight: f32,
+    last_performed_at: i64,
+    now: i64,
+    unit: AppWeightUnit,
+) -> f32 {
+    if last_performed_at <= 0 || weight <= 0.0 {
+        return weight;
     }
+    let days = (now - last_performed_at) / (24 * 3600);
+    let factor = if days >= 30 {
+        0.8
+    } else if days >= 14 {
+        0.9
+    } else {
+        return weight;
+    };
+    crate::exercise_catalog::snap_weight_lb(exercise, weight * factor, unit)
+}
+
+/// One progression card per exercise per workout: what you lifted and
+/// what the tracker says next time. Weight moves name the delta; a hold
+/// stays quiet unless a deload happened (a "nothing changed" card for
+/// every exercise every session would be noise).
+fn progression_message_for_change(
+    exercise: Exercise,
+    performed_weight: f32,
+    after: &TrackerState,
+    workout_id: &str,
+) -> Option<UserMessage> {
+    if performed_weight <= 0.0 {
+        return None;
+    }
+    let next = after.working_weight;
+    let slot_key = slot_key_for_exercise(exercise);
+    let (kind, reason_kind) = if next > performed_weight + 0.1 {
+        (
+            UserMessageKind::LoadIncrease,
+            ProgressionReasonKind::CompletedAllWorkingSets,
+        )
+    } else if next < performed_weight - 0.1 {
+        (
+            UserMessageKind::StallDeload,
+            ProgressionReasonKind::RepeatedMisses,
+        )
+    } else {
+        return None;
+    };
+    Some(build_progression_message(ProgressionMessage {
+        key: format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
+        kind,
+        exercise,
+        slot_key,
+        source_workout_id: workout_id,
+        previous_weight: performed_weight,
+        next_weight: next,
+        previous_stage: None,
+        next_stage: None,
+        context_label: None,
+        metric_kind: ProgressionMetricKind::WorkingWeight,
+        reason_kind,
+        reason_text: None,
+    }))
 }

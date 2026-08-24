@@ -1,9 +1,8 @@
 use prost::Message;
 use schlift::workout::v1::{
-    CompletedSet, ExerciseGroup, ExerciseTypeConfig, GetActiveTrainingProgramStateResponse,
-    GetProposedWorkoutScheduleResponse, GetWorkoutResponse, ParticipantStatus, ProgressionHint,
-    ProposedSet, RestConfig, UserMessage, UserSetting, Workout, WorkoutDraft,
-    WorkoutHeartRatePoint,
+    CompletedSet, ExerciseGroup, ExerciseTypeConfig, GetWorkoutResponse, ParticipantStatus,
+    ProposedSet, RestConfig, UserMessage, UserSetting, Workout, WorkoutHeartRatePoint,
+    WorkoutTemplate,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -18,11 +17,11 @@ use crate::time::now_unix;
 mod auth;
 mod cache;
 mod codec;
+mod migration;
 mod session;
-pub mod training;
 mod workout;
 
-pub use training::{TrainingBlockRow, TrainingEntryRow, TrainingSetRow};
+pub use migration::default_templates;
 
 const SERVER_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users_current (
@@ -55,7 +54,8 @@ CREATE TABLE IF NOT EXISTS workouts (
     name TEXT NOT NULL DEFAULT '',
     start_time INTEGER NOT NULL,
     end_time INTEGER NOT NULL DEFAULT 0,
-    session_id TEXT NOT NULL DEFAULT ''
+    session_id TEXT NOT NULL DEFAULT '',
+    template_id TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
 
@@ -66,7 +66,6 @@ CREATE TABLE IF NOT EXISTS exercise_groups (
     name TEXT NOT NULL,
     sets INTEGER NOT NULL DEFAULT 0,
     interleave_warmups INTEGER NOT NULL DEFAULT 0,
-    prescribed_by_regime INTEGER NOT NULL DEFAULT 0,
     workout_order INTEGER NOT NULL,
     instruction TEXT NOT NULL DEFAULT '',
     rest_success INTEGER NOT NULL DEFAULT 0,
@@ -91,8 +90,7 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     rest_after_success INTEGER NOT NULL DEFAULT 0,
     rest_after_failure INTEGER NOT NULL DEFAULT 0,
     is_amrap INTEGER NOT NULL DEFAULT 0,
-    instruction TEXT NOT NULL DEFAULT '',
-    progression_blob BLOB
+    instruction TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout ON proposed_sets(workout_id, workout_order);
 
@@ -122,17 +120,6 @@ CREATE TABLE IF NOT EXISTS user_current_session (
 );
 CREATE INDEX IF NOT EXISTS idx_user_current_session_session
     ON user_current_session(session_id);
-
-CREATE TABLE IF NOT EXISTS workout_events (
-    event_id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    recorded_at INTEGER NOT NULL,
-    event_type INTEGER NOT NULL,
-    payload BLOB NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_workout_events_user_workout_time
-    ON workout_events(user_id, workout_id, recorded_at DESC);
 
 CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
     id TEXT PRIMARY KEY,
@@ -186,22 +173,10 @@ CREATE TABLE IF NOT EXISTS join_requests (
 CREATE INDEX IF NOT EXISTS idx_join_requests_to
     ON join_requests(to_user_id, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS proposed_schedule_cache (
-    user_id TEXT PRIMARY KEY,
-    response_blob BLOB NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS training_program_state_latest (
-    user_id TEXT PRIMARY KEY,
-    response_blob BLOB NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-
--- Idempotency ledger for progression: one row per workout that has advanced the
--- program state. The PRIMARY KEY makes a second EndWorkout for the same workout a
--- no-op claim, so progression can't be applied twice.
-CREATE TABLE IF NOT EXISTS program_progression_applied (
+-- Idempotency ledger for progression: one row per workout that has advanced
+-- the trackers. The PRIMARY KEY makes a second EndWorkout for the same workout
+-- a no-op claim, so a tracker can't move twice for one workout.
+CREATE TABLE IF NOT EXISTS progression_applied (
     workout_id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     applied_at INTEGER NOT NULL
@@ -215,31 +190,41 @@ CREATE TABLE IF NOT EXISTS user_settings_current (
     PRIMARY KEY(user_id, setting_type)
 );
 
-CREATE TABLE IF NOT EXISTS workout_drafts_current (
-    user_id TEXT PRIMARY KEY,
-    draft_blob BLOB NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS profile_exercise_groups (
+-- A template is a named, ordered exercise list; the blob is the proto
+-- WorkoutTemplate (name/order mirrored in columns for listing).
+CREATE TABLE IF NOT EXISTS workout_templates (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    sets INTEGER NOT NULL DEFAULT 0,
-    interleave_warmups INTEGER NOT NULL DEFAULT 0,
-    prescribed_by_regime INTEGER NOT NULL DEFAULT 0,
-    profile_order INTEGER NOT NULL DEFAULT 0,
-    instruction TEXT NOT NULL DEFAULT '',
-    rest_success INTEGER NOT NULL DEFAULT 0,
-    rest_failure INTEGER NOT NULL DEFAULT 0,
-    rest_warmup INTEGER NOT NULL DEFAULT 0,
-    rest_last_warmup INTEGER NOT NULL DEFAULT 0,
-    exercise_configs_blob BLOB,
+    template_order INTEGER NOT NULL DEFAULT 0,
+    template_blob BLOB NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_profile_exercise_groups_user_updated
-    ON profile_exercise_groups(user_id, updated_at DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_workout_templates_user
+    ON workout_templates(user_id, template_order);
+
+-- One tracker per (user, exercise): the working weight and the position in
+-- the rep range that double progression advances. Overrides of 0 = derived.
+CREATE TABLE IF NOT EXISTS exercise_trackers (
+    user_id TEXT NOT NULL,
+    exercise INTEGER NOT NULL,
+    working_weight REAL NOT NULL DEFAULT 0,
+    current_reps INTEGER NOT NULL DEFAULT 0,
+    consecutive_misses INTEGER NOT NULL DEFAULT 0,
+    last_performed_at INTEGER NOT NULL DEFAULT 0,
+    override_sets INTEGER NOT NULL DEFAULT 0,
+    override_rep_low INTEGER NOT NULL DEFAULT 0,
+    override_rep_high INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    source TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY(user_id, exercise)
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS user_message_events (
     user_id TEXT NOT NULL,
@@ -264,95 +249,6 @@ CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
     ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
     ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
-"#;
-
-/// Training model v2 schema (blocks → sets → append-only entries + ledger).
-/// Applied alongside SERVER_SCHEMA; coexists with the v1 workout tables.
-const TRAINING_SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS t_workouts (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL DEFAULT '',
-    start_time INTEGER NOT NULL,
-    end_time INTEGER NOT NULL DEFAULT 0,
-    session_id TEXT NOT NULL DEFAULT '',
-    active_set_id TEXT NOT NULL DEFAULT '',
-    active_started_at INTEGER NOT NULL DEFAULT 0,
-    from_program INTEGER NOT NULL DEFAULT 1,
-    closed_at INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_t_workouts_user_time ON t_workouts(user_id, start_time DESC);
-
-CREATE TABLE IF NOT EXISTS t_blocks (
-    id TEXT PRIMARY KEY,
-    workout_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    ord INTEGER NOT NULL,
-    name TEXT NOT NULL DEFAULT '',
-    interleave_warmups INTEGER NOT NULL DEFAULT 0,
-    rest_success INTEGER NOT NULL DEFAULT 0,
-    rest_failure INTEGER NOT NULL DEFAULT 0,
-    rest_warmup INTEGER NOT NULL DEFAULT 0,
-    rest_last_warmup INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_t_blocks_workout ON t_blocks(workout_id, ord);
-
-CREATE TABLE IF NOT EXISTS t_sets (
-    id TEXT PRIMARY KEY,
-    workout_id TEXT NOT NULL,
-    block_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    ord INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
-    role INTEGER NOT NULL,
-    proposed_weight REAL NOT NULL DEFAULT 0,
-    proposed_reps INTEGER NOT NULL DEFAULT 0,
-    proposed_duration_s INTEGER NOT NULL DEFAULT 0,
-    proposed_distance_m REAL NOT NULL DEFAULT 0,
-    target_weight REAL NOT NULL DEFAULT 0,
-    target_reps INTEGER NOT NULL DEFAULT 0,
-    target_duration_s INTEGER NOT NULL DEFAULT 0,
-    target_distance_m REAL NOT NULL DEFAULT 0,
-    is_amrap INTEGER NOT NULL DEFAULT 0,
-    instruction TEXT NOT NULL DEFAULT '',
-    skipped INTEGER NOT NULL DEFAULT 0,
-    counts_toward_program INTEGER NOT NULL DEFAULT 0,
-    slot_key TEXT NOT NULL DEFAULT '',
-    removed INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_t_sets_workout ON t_sets(workout_id, ord);
-
--- Append-only, bitemporal. The newest non-tombstoned row per set is the truth.
-CREATE TABLE IF NOT EXISTS t_entries (
-    entry_id TEXT PRIMARY KEY,
-    set_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    weight REAL NOT NULL DEFAULT 0,
-    reps INTEGER NOT NULL DEFAULT 0,
-    duration_s INTEGER NOT NULL DEFAULT 0,
-    distance_m REAL NOT NULL DEFAULT 0,
-    performed_at INTEGER NOT NULL,  -- valid time: when the set happened (back-datable)
-    recorded_at INTEGER NOT NULL,   -- transaction time: when this row was written
-    tombstone INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_t_entries_set ON t_entries(set_id, recorded_at DESC);
-CREATE INDEX IF NOT EXISTS idx_t_entries_workout ON t_entries(workout_id);
-
--- Append-only progression ledger. One row per (user, workout) that advanced the
--- program. UNIQUE gives idempotency: a re-fired CloseWorkout is a no-op.
-CREATE TABLE IF NOT EXISTS t_progression (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    at INTEGER NOT NULL,
-    reason TEXT NOT NULL DEFAULT '',
-    state_before BLOB,
-    state_after BLOB,
-    changes_blob BLOB,
-    UNIQUE(user_id, workout_id)
-);
-CREATE INDEX IF NOT EXISTS idx_t_progression_user_time ON t_progression(user_id, at DESC);
 "#;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -383,7 +279,7 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         sqlx::query(SERVER_SCHEMA).execute(&write_pool).await?;
-        sqlx::query(TRAINING_SCHEMA).execute(&write_pool).await?;
+        migration::run(&write_pool).await?;
         sqlx::query(
             "ALTER TABLE user_message_events ADD COLUMN source_workout_id TEXT NOT NULL DEFAULT ''",
         )

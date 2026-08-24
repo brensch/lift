@@ -23,12 +23,12 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, workout_service_client::WorkoutServiceClient,
-    CancelProposedSetRequest, CompleteSetRequest, DeleteCompletedSetRequest, EndWorkoutRequest,
-    Exercise, ExerciseGroup, ExerciseTypeConfig, GetActiveWorkoutRequest,
-    GetProposedWorkoutScheduleRequest, GetWorkoutRequest, GetWorkoutResponse, GroupWarmupPlan,
-    PlannedGroupSet,
-    ReorderExerciseGroupsRequest, ReplaceExerciseGroupPlanRequest, StartSetRequest,
-    StartWorkoutRequest, TestLoginRequest,
+    CancelProposedSetRequest, CompleteOnboardingRequest, CompleteSetRequest,
+    DeleteCompletedSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup, ExerciseTypeConfig,
+    ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
+    GetWorkoutResponse, GroupWarmupPlan, PlannedGroupSet, ReorderExerciseGroupsRequest,
+    ReplaceExerciseGroupPlanRequest, StartSetRequest, StartWorkoutRequest, TestLoginRequest,
+    WeightUnit,
 };
 use tonic::transport::Channel;
 use tonic::Request;
@@ -145,9 +145,45 @@ async fn run_user(
         }
     };
 
+    // Onboard as the app does: seeds the default templates and trackers.
+    let templates = match wk
+        .complete_onboarding(authed(
+            &token,
+            CompleteOnboardingRequest {
+                body_weight_kg: if rng.gen_bool(0.5) {
+                    rng.gen_range(50..120) as f32
+                } else {
+                    0.0
+                },
+                experience: ExperienceLevel::Beginner as i32,
+                unit: if rng.gen_bool(0.3) {
+                    WeightUnit::Kg as i32
+                } else {
+                    WeightUnit::Lb as i32
+                },
+            },
+        ))
+        .await
+    {
+        Ok(r) => r
+            .into_inner()
+            .home
+            .map(|h| h.templates)
+            .unwrap_or_default(),
+        Err(e) => {
+            violations.push(Violation {
+                user: username.clone(),
+                workout_id: String::new(),
+                step: "complete_onboarding".into(),
+                invariant: "CompleteOnboarding returned an error",
+                detail: e.to_string(),
+            });
+            Vec::new()
+        }
+    };
+
     for session_idx in 0..sessions {
-        // Ask for a proposal roughly as the app does, sometimes far in the
-        // future so the layoff deload path is exercised.
+        // Sometimes far in the future so the layoff deload path is exercised.
         let at_time = 1_700_000_000
             + (session_idx as i64) * 2 * 86_400
             + if rng.gen_bool(0.15) {
@@ -156,32 +192,31 @@ async fn run_user(
                 0
             };
 
-        let _ = wk
-            .get_proposed_workout_schedule(authed(
-                &token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: String::new(),
-                    at_time,
-                },
-            ))
-            .await;
+        let _ = wk.get_home(authed(&token, GetHomeRequest {})).await;
 
-        let group_count = rng.gen_range(1..4);
-        let groups: Vec<ExerciseGroup> = (0..group_count)
-            .map(|i| random_group(&mut rng, i))
-            .collect();
+        // Half the sessions start from a template (the app's main path);
+        // the rest send explicit groups (the "empty workout" path).
+        let request = if !templates.is_empty() && rng.gen_bool(0.5) {
+            let template = &templates[rng.gen_range(0..templates.len())];
+            StartWorkoutRequest {
+                name: String::new(),
+                exercise_groups: vec![],
+                started_at: at_time,
+                template_id: template.id.clone(),
+            }
+        } else {
+            let group_count = rng.gen_range(1..4);
+            StartWorkoutRequest {
+                name: format!("Fuzz {session_idx}"),
+                exercise_groups: (0..group_count)
+                    .map(|i| random_group(&mut rng, i))
+                    .collect(),
+                started_at: at_time,
+                template_id: String::new(),
+            }
+        };
 
-        let started = match wk
-            .start_workout(authed(
-                &token,
-                StartWorkoutRequest {
-                    name: format!("Fuzz {session_idx}"),
-                    exercise_groups: groups,
-                    started_at: at_time,
-                },
-            ))
-            .await
-        {
+        let started = match wk.start_workout(authed(&token, request)).await {
             Ok(r) => r.into_inner(),
             Err(e) => {
                 violations.push(Violation {
@@ -326,7 +361,6 @@ async fn run_user(
                                     rest_after_failure: 300,
                                     is_amrap: false,
                                     instruction: String::new(),
-                                    progression_hint: None,
                                     client_set_id: String::new(),
                                 })
                                 .collect(),
@@ -380,7 +414,8 @@ async fn run_user(
             }
         }
 
-        // End the workout, sometimes twice — EndWorkout must be idempotent.
+        // End the workout, sometimes twice — EndWorkout must be idempotent,
+        // and a re-fire must not advance a tracker a second time.
         let _ = wk
             .end_workout(authed(
                 &token,
@@ -391,6 +426,7 @@ async fn run_user(
             ))
             .await;
         if rng.gen_bool(0.25) {
+            let before: HashMap<i32, (f32, i32)> = home_trackers(&mut wk, &token).await;
             let _ = wk
                 .end_workout(authed(
                     &token,
@@ -400,6 +436,22 @@ async fn run_user(
                     },
                 ))
                 .await;
+            let after = home_trackers(&mut wk, &token).await;
+            for (exercise, (weight, reps)) in &before {
+                if let Some((weight_after, reps_after)) = after.get(exercise) {
+                    if (weight_after - weight).abs() > 0.01 || reps_after != reps {
+                        violations.push(Violation {
+                            user: username.clone(),
+                            workout_id: workout_id.clone(),
+                            step: "end_workout(again)".into(),
+                            invariant: "a re-fired EndWorkout moved a tracker",
+                            detail: format!(
+                                "exercise {exercise}: {weight}@{reps} -> {weight_after}@{reps_after}"
+                            ),
+                        });
+                    }
+                }
+            }
         }
 
         // After ending, there must be no active workout left behind.
@@ -437,6 +489,22 @@ async fn wait_for_backend(endpoint: &str) -> Result<Channel, Box<dyn std::error:
         }
     }
     Err("backend never became reachable".into())
+}
+
+/// (exercise -> (working weight, target reps)) from GetHome.
+async fn home_trackers(
+    wk: &mut WorkoutServiceClient<Channel>,
+    token: &str,
+) -> HashMap<i32, (f32, i32)> {
+    match wk.get_home(authed(token, GetHomeRequest {})).await {
+        Ok(response) => response
+            .into_inner()
+            .trackers
+            .into_iter()
+            .map(|t| (t.exercise, (t.working_weight, t.target_reps)))
+            .collect(),
+        Err(_) => HashMap::new(),
+    }
 }
 
 fn authed<T>(token: &str, msg: T) -> Request<T> {
@@ -598,8 +666,6 @@ fn random_group(rng: &mut StdRng, order: i32) -> ExerciseGroup {
         }],
         rest_config: None,
         instruction: String::new(),
-        prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
     }
 }
 

@@ -1,16 +1,14 @@
-//! Time-mocked readiness transitions: build synthetic completed workouts at
-//! controlled timestamps, advance `now`, and assert the state machine moves
-//! train → recovering → ready → overdue correctly.
+//! Time-mocked recovery: build synthetic completed workouts at controlled
+//! timestamps, advance `now`, and assert the windows behave.
 
 use super::*;
-use crate::schplanner::SchplannerWorkoutRecord;
-use schlift::workout::v1::{CompletedSet, ExerciseGroup, ProposedSet, Workout};
+use crate::history::WorkoutRecord;
+use schlift::workout::v1::{CompletedSet, ProposedSet, Workout};
 
-const HOUR: i64 = 3600;
 const DAY: i64 = 24 * HOUR;
 
 /// A workout that completed `exercises` at unix time `at`.
-fn workout(at: i64, exercises: &[Exercise]) -> SchplannerWorkoutRecord {
+fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
     let mut proposed = Vec::new();
     let mut completed = Vec::new();
     for (i, &ex) in exercises.iter().enumerate() {
@@ -22,14 +20,7 @@ fn workout(at: i64, exercises: &[Exercise]) -> SchplannerWorkoutRecord {
             exercise: ex as i32,
             target_reps: 5,
             target_weight: 100.0,
-            warmup: false,
-            exercise_group_id: "g".into(),
-            rest_after_success: 180,
-            rest_after_failure: 300,
-            cancelled: false,
-            is_amrap: false,
-            instruction: String::new(),
-            progression_hint: None,
+            ..Default::default()
         });
         completed.push(CompletedSet {
             id: format!("c{at}-{i}"),
@@ -42,7 +33,7 @@ fn workout(at: i64, exercises: &[Exercise]) -> SchplannerWorkoutRecord {
             rest_until: 0,
         });
     }
-    SchplannerWorkoutRecord {
+    WorkoutRecord {
         workout: Workout {
             id: format!("w{at}"),
             name: "T".into(),
@@ -50,151 +41,79 @@ fn workout(at: i64, exercises: &[Exercise]) -> SchplannerWorkoutRecord {
             end_time: at,
             session_id: String::new(),
         },
-        exercise_groups: vec![ExerciseGroup::default()],
+        exercise_groups: Vec::new(),
         proposed_sets: proposed,
         completed_sets: completed,
     }
 }
 
-fn readiness_at(
-    history: &[SchplannerWorkoutRecord],
-    next: &[Exercise],
-    weekly_target: i32,
-    now: i64,
-) -> Readiness {
-    // These pure tests use the default (regime-agnostic) profile: 48h large
-    // muscles, 24h core, no heavy-compound penalty.
-    let profile = RecoveryProfile::default();
-    let rec = per_muscle_recovery(history, now, &profile);
-    let cad = cadence(history, now);
-    let last = history.iter().map(|r| r.workout.end_time).max().unwrap_or(0);
-    let muscles = muscles_for_exercises(next);
-    compute_readiness(&muscles, &rec, &cad, last, 24, weekly_target, now)
+fn recovery_for(list: &[MuscleRecovery], muscle: MuscleGroup) -> MuscleRecovery {
+    *list.iter().find(|r| r.muscle == muscle).unwrap()
 }
 
-// ── Muscle map ──────────────────────────────────────────────────────────────
-
+/// Squats train quads and glutes; both open a 48-hour window, and both
+/// close it on schedule.
 #[test]
-fn muscle_map_parity() {
-    // Spot-check the port against app/lib/logic/exercises.dart.
-    use MuscleGroup::*;
-    assert_eq!(muscle_groups(Exercise::Squat), &[Legs, Ass]);
-    assert_eq!(muscle_groups(Exercise::BenchPress), &[Chest]);
-    assert_eq!(muscle_groups(Exercise::Deadlift), &[Back, Ass]);
-    assert_eq!(muscle_groups(Exercise::OverheadPress), &[Shoulders]);
-    assert_eq!(muscle_groups(Exercise::BarbellRow), &[Back]);
-    assert_eq!(muscle_groups(Exercise::PushUp), &[Chest, Arms]);
-    assert_eq!(muscle_groups(Exercise::Plank), &[Core]);
-    assert_eq!(muscle_groups(Exercise::Unspecified), &[] as &[MuscleGroup]);
-    // Every real exercise maps to at least one group.
-    for &ex in &[Exercise::HipThrust, Exercise::LatPulldown, Exercise::CalfRaise] {
-        assert!(!muscle_groups(ex).is_empty());
+fn a_squat_session_blocks_legs_for_two_days() {
+    let t0 = 1_700_000_000i64;
+    let history = vec![workout(t0, &[Exercise::Squat])];
+
+    let after = per_muscle_recovery(&history, t0 + HOUR);
+    let quads = recovery_for(&after, MuscleGroup::Quads);
+    assert!(!quads.is_recovered(t0 + HOUR));
+    assert_eq!(quads.recovered_at, t0 + 48 * HOUR);
+    assert!(recovery_for(&after, MuscleGroup::Glutes).recovered_at == t0 + 48 * HOUR);
+    // Chest untouched: recovered, never trained.
+    let chest = recovery_for(&after, MuscleGroup::Chest);
+    assert!(chest.is_recovered(t0 + HOUR));
+    assert_eq!(chest.last_trained_at, 0);
+
+    let later = per_muscle_recovery(&history, t0 + 2 * DAY + HOUR);
+    assert!(recovery_for(&later, MuscleGroup::Quads).is_recovered(t0 + 2 * DAY + HOUR));
+}
+
+/// Small muscles come back faster than big ones.
+#[test]
+fn windows_scale_with_the_muscle() {
+    let t0 = 1_700_000_000i64;
+    let history = vec![workout(t0, &[Exercise::BarbellCurl, Exercise::Crunch])];
+    let rec = per_muscle_recovery(&history, t0 + HOUR);
+    assert_eq!(recovery_for(&rec, MuscleGroup::Biceps).recovered_at, t0 + 36 * HOUR);
+    assert_eq!(recovery_for(&rec, MuscleGroup::Core).recovered_at, t0 + 24 * HOUR);
+}
+
+/// The most recent session that trained a muscle wins, and the fraction
+/// climbs from 0 toward 1.
+#[test]
+fn the_latest_session_sets_the_clock() {
+    let t0 = 1_700_000_000i64;
+    let history = vec![
+        workout(t0 - 5 * DAY, &[Exercise::BenchPress]),
+        workout(t0, &[Exercise::PushUp]),
+    ];
+    let rec = per_muscle_recovery(&history, t0 + 24 * HOUR);
+    let chest = recovery_for(&rec, MuscleGroup::Chest);
+    assert_eq!(chest.last_trained_at, t0);
+    assert!((chest.fraction - 0.5).abs() < 0.01, "24 of 48 hours elapsed");
+    assert_eq!(chest.hours_remaining(t0 + 24 * HOUR), 24);
+}
+
+/// A planned-but-never-done set trains nothing.
+#[test]
+fn unfinished_sets_do_not_count() {
+    let t0 = 1_700_000_000i64;
+    let mut record = workout(t0, &[Exercise::Squat]);
+    record.completed_sets.clear();
+    let rec = per_muscle_recovery(&[record], t0 + HOUR);
+    assert!(recovery_for(&rec, MuscleGroup::Quads).is_recovered(t0 + HOUR));
+}
+
+/// Always all ten muscles, in catalog order.
+#[test]
+fn every_muscle_reports() {
+    let rec = per_muscle_recovery(&[], 1_000);
+    assert_eq!(rec.len(), 10);
+    for entry in &rec {
+        assert!(entry.is_recovered(1_000));
     }
-}
-
-#[test]
-fn recovery_window_comes_from_the_profile_not_the_exercise() {
-    let base = 1_000_000_000i64;
-    // The window is whatever the profile says for the muscle — the same for squat
-    // and leg curl (both train legs). A program-defined profile, not a fixed
-    // "heavy compound = 72h" rule.
-    let profile = RecoveryProfile::new(&[(MuscleGroup::Legs, 40)], 48);
-    let squat = per_muscle_recovery(&[workout(base, &[Exercise::Squat])], base, &profile);
-    let curl = per_muscle_recovery(&[workout(base, &[Exercise::LegCurl])], base, &profile);
-    let legs_squat = squat.iter().find(|r| r.group == MuscleGroup::Legs).unwrap();
-    let legs_curl = curl.iter().find(|r| r.group == MuscleGroup::Legs).unwrap();
-    assert_eq!(legs_squat.recovered_at - base, 40 * HOUR);
-    assert_eq!(legs_curl.recovered_at - base, 40 * HOUR);
-
-    // A different program can prescribe a longer leg window off the same history.
-    let slow = RecoveryProfile::new(&[(MuscleGroup::Legs, 72)], 48);
-    let legs_slow = per_muscle_recovery(&[workout(base, &[Exercise::Squat])], base, &slow);
-    assert_eq!(
-        legs_slow.iter().find(|r| r.group == MuscleGroup::Legs).unwrap().recovered_at - base,
-        72 * HOUR
-    );
-}
-
-// ── The transition over time (the whole point) ──────────────────────────────
-
-#[test]
-fn first_time_user_is_ready_immediately() {
-    let r = readiness_at(&[], &[Exercise::Squat, Exercise::BenchPress], 3, 1_000_000_000);
-    assert_eq!(r.state, ReadinessState::FirstTime);
-    assert!(r.blocking.is_empty());
-}
-
-#[test]
-fn just_trained_then_recovers_then_ready() {
-    let t0 = 1_700_000_000i64; // a Monday-ish anchor
-    let history = vec![workout(t0, &[Exercise::Squat, Exercise::BenchPress])];
-    let next = &[Exercise::Squat, Exercise::BenchPress]; // same muscles next
-
-    // Right after finishing: recovering, legs are the blocker. Default profile is
-    // 48h for legs (no heavy penalty), so ready is one day sooner than the old 72h.
-    let just_after = readiness_at(&history, next, 3, t0 + HOUR);
-    assert_eq!(just_after.state, ReadinessState::Recovering);
-    assert!(just_after.blocking.contains(&MuscleGroup::Legs));
-    assert_eq!(just_after.next_ready_at, t0 + 48 * HOUR);
-
-    // +36h: still inside the 48h leg window → recovering.
-    let day_and_half = readiness_at(&history, next, 3, t0 + 36 * HOUR);
-    assert_eq!(day_and_half.state, ReadinessState::Recovering);
-    assert!(day_and_half.blocking.contains(&MuscleGroup::Legs));
-
-    // +2 days (48h): legs recovered → ready to train again. This is the case that
-    // matters for someone squatting every other session.
-    let two_days = readiness_at(&history, next, 3, t0 + 2 * DAY + HOUR);
-    assert_eq!(two_days.state, ReadinessState::Ready);
-    assert!(two_days.blocking.is_empty());
-}
-
-#[test]
-fn min_rest_floor_holds_even_if_muscles_are_light() {
-    // A core-only session recovers in 24h, but the program floor is also 24h, so
-    // "ready" can't be earlier than last + 24h.
-    let t0 = 1_700_000_000i64;
-    let history = vec![workout(t0, &[Exercise::Plank])];
-    let next = &[Exercise::Plank];
-    let r = readiness_at(&history, next, 3, t0 + 12 * HOUR);
-    assert_eq!(r.state, ReadinessState::Recovering);
-    assert_eq!(r.next_ready_at, t0 + 24 * HOUR);
-}
-
-#[test]
-fn long_layoff_behind_target_is_overdue() {
-    let t0 = 1_700_000_000i64;
-    let history = vec![workout(t0, &[Exercise::Squat, Exercise::BenchPress])];
-    // 6 days later: everything recovered, 0 sessions this week, target 3 → overdue.
-    let r = readiness_at(&history, &[Exercise::Squat], 3, t0 + 6 * DAY);
-    assert_eq!(r.state, ReadinessState::Overdue);
-    assert!(r.blocking.is_empty());
-}
-
-#[test]
-fn met_weekly_target_reads_as_ahead() {
-    // Three sessions across this week; recovered; target 3 → ahead (bonus).
-    let now = 1_700_000_000i64 + 6 * DAY;
-    let history = vec![
-        workout(now - 5 * DAY, &[Exercise::Squat]),
-        workout(now - 3 * DAY, &[Exercise::BenchPress]),
-        workout(now - DAY - 12 * HOUR, &[Exercise::OverheadPress]),
-    ];
-    // Next hits arms (recovered) — not blocked.
-    let r = readiness_at(&history, &[Exercise::BarbellCurl], 3, now);
-    assert_eq!(r.state, ReadinessState::Ahead);
-}
-
-#[test]
-fn cadence_learns_gap_and_weekly_count() {
-    let now = 1_700_000_000i64 + 10 * DAY;
-    let history = vec![
-        workout(now - 8 * DAY, &[Exercise::Squat]),
-        workout(now - 6 * DAY, &[Exercise::BenchPress]), // +2d
-        workout(now - 4 * DAY, &[Exercise::Deadlift]),   // +2d
-        workout(now - 2 * DAY, &[Exercise::OverheadPress]), // +2d
-    ];
-    let c = cadence(&history, now);
-    assert_eq!(c.avg_gap_hours, Some(48)); // consistent 2-day rhythm
-    assert_eq!(c.sessions_last_7d, 3); // the three within the last 7 days
 }

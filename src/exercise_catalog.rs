@@ -1,35 +1,44 @@
-//! Per-exercise metadata that isn't tied to any regime: how a move is loaded,
-//! what a sensible first prescription looks like, and how much weight to add
-//! when you clear it.
+//! Per-exercise metadata: what a movement is (equipment, role, muscles)
+//! and what the app prescribes for it (sets, rep range, rest, warmups,
+//! opener weight, progression step).
 //!
-//! The regimes only know about the five barbell lifts they program. Everything
-//! else — the accessory you added mid-workout, the machine you like — needs the
-//! same three answers so it can progress too, which is what this table provides.
-//! `crate::exercise_progress` turns it into an actual progression.
+//! This is the single source of truth. The prescription, the volume
+//! model, recovery, the picker's equipment filter and the progression
+//! step all read from here — there is no second classification anywhere.
 
 use crate::weight_units::{
     bar_weight, kg_to_pounds, round_to_unit_increment, snap_loadable_lb, AppWeightUnit,
 };
-use schlift::workout::v1::{Exercise, ExerciseCategory};
+use schlift::workout::v1::{EquipmentKind, Exercise, ExerciseCategory, MuscleGroup};
 
-/// How a move is loaded. Decides the plate/stack granularity you can actually
-/// add, the weight you start at with no history, and whether "add weight" is
-/// even the right progression (it isn't for bodyweight work).
+/// How a move is loaded. Decides the smallest step you can actually add,
+/// the opener with no history, and whether "add weight" is even the right
+/// progression (it is not for bodyweight work).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadStyle {
     Barbell,
     Dumbbell,
     Machine,
     Cable,
-    /// Loaded by your own mass. Progress by reps, not plates — these hold their
-    /// weight (usually 0) unless you've been adding a belt, in which case the
-    /// recorded weight progresses like any other.
+    /// Loaded by your own mass. Progresses by reps, not plates.
     Bodyweight,
 }
 
-/// Every exercise in the enum. Scanned rather than hand-listed so a new exercise
-/// is picked up without a second place to update; the upper bound is generous
-/// slack over the current catalogue.
+impl LoadStyle {
+    pub fn to_proto(self) -> EquipmentKind {
+        match self {
+            LoadStyle::Barbell => EquipmentKind::Barbell,
+            LoadStyle::Dumbbell => EquipmentKind::Dumbbell,
+            LoadStyle::Machine => EquipmentKind::Machine,
+            LoadStyle::Cable => EquipmentKind::Cable,
+            LoadStyle::Bodyweight => EquipmentKind::Bodyweight,
+        }
+    }
+}
+
+/// Every exercise in the enum. Scanned rather than hand-listed so a new
+/// exercise is picked up without a second place to update; the upper bound
+/// is generous slack over the current catalogue.
 pub fn all_exercises() -> Vec<Exercise> {
     (1..256)
         .filter_map(|value| Exercise::try_from(value).ok())
@@ -64,6 +73,8 @@ pub fn load_style(ex: Exercise) -> LoadStyle {
         | E::SumoDeadlift => Barbell,
 
         // ── Dumbbell ──
+        // CalfRaise is here on purpose: a standing calf raise is
+        // dumbbell-loaded, and calves must be reachable without machines.
         E::DumbbellBenchPress
         | E::InclineDumbbellPress
         | E::DumbbellFly
@@ -85,6 +96,7 @@ pub fn load_style(ex: Exercise) -> LoadStyle {
         | E::GobletSquat
         | E::CurtsyLunge
         | E::SumoSquat
+        | E::CalfRaise
         | E::RussianTwist => Dumbbell,
 
         // ── Machine (pin/plate stacks) ──
@@ -94,7 +106,6 @@ pub fn load_style(ex: Exercise) -> LoadStyle {
         | E::LegExtension
         | E::LegCurl
         | E::HackSquat
-        | E::CalfRaise
         | E::SeatedCalfRaise
         | E::HipAbduction
         | E::HipAdduction => Machine,
@@ -128,6 +139,146 @@ pub fn load_style(ex: Exercise) -> LoadStyle {
         | E::MountainClimber => Bodyweight,
 
         E::Unspecified => Bodyweight,
+    }
+}
+
+/// The muscles a move trains, primary mover first. The volume model
+/// counts the primary at 1.0 and each secondary at 0.5; recovery uses
+/// "trained at all". One mapping, ten muscles, no other taxonomy.
+pub fn muscles(ex: Exercise) -> &'static [MuscleGroup] {
+    use Exercise as E;
+    use MuscleGroup::*;
+    match ex {
+        E::Squat => &[Quads, Glutes],
+        E::BenchPress => &[Chest, Triceps, Shoulders],
+        E::Deadlift => &[Back, Hamstrings, Glutes],
+        E::OverheadPress => &[Shoulders, Triceps],
+        E::BarbellRow => &[Back, Biceps],
+        E::HipThrust => &[Glutes, Hamstrings],
+        E::BulgarianSplitSquat => &[Quads, Glutes],
+        E::RomanianDeadlift => &[Hamstrings, Glutes],
+        E::GluteBridge => &[Glutes],
+        E::Lunge => &[Quads, Glutes],
+        E::LegCurl => &[Hamstrings],
+        E::InclineBenchPress => &[Chest, Shoulders, Triceps],
+        E::DumbbellBenchPress => &[Chest, Triceps],
+        E::InclineDumbbellPress => &[Chest, Shoulders, Triceps],
+        E::DumbbellFly => &[Chest],
+        E::CableFly => &[Chest],
+        E::PushUp => &[Chest, Triceps],
+        E::ChestDip => &[Chest, Triceps],
+        E::MachineChestPress => &[Chest, Triceps],
+        E::PecDeck => &[Chest],
+        E::PullUp => &[Back, Biceps],
+        E::ChinUp => &[Back, Biceps],
+        E::LatPulldown => &[Back, Biceps],
+        E::SeatedCableRow => &[Back, Biceps],
+        E::DumbbellRow => &[Back, Biceps],
+        E::TBarRow => &[Back, Biceps],
+        E::PendlayRow => &[Back, Biceps],
+        E::FacePull => &[Shoulders, Back],
+        E::Shrug => &[Back],
+        E::BackExtension => &[Back, Glutes, Hamstrings],
+        E::DumbbellShoulderPress => &[Shoulders, Triceps],
+        E::ArnoldPress => &[Shoulders, Triceps],
+        E::LateralRaise => &[Shoulders],
+        E::FrontRaise => &[Shoulders],
+        E::RearDeltFly => &[Shoulders],
+        E::UprightRow => &[Shoulders, Back],
+        E::BarbellCurl => &[Biceps],
+        E::DumbbellCurl => &[Biceps],
+        E::HammerCurl => &[Biceps],
+        E::PreacherCurl => &[Biceps],
+        E::ConcentrationCurl => &[Biceps],
+        E::CableCurl => &[Biceps],
+        E::TricepPushdown => &[Triceps],
+        E::OverheadTricepExtension => &[Triceps],
+        E::SkullCrusher => &[Triceps],
+        E::CloseGripBenchPress => &[Triceps, Chest],
+        E::TricepDip => &[Triceps, Chest],
+        E::TricepKickback => &[Triceps],
+        E::FrontSquat => &[Quads, Glutes, Core],
+        E::LegPress => &[Quads, Glutes],
+        E::LegExtension => &[Quads],
+        E::HackSquat => &[Quads, Glutes],
+        E::GobletSquat => &[Quads, Glutes],
+        E::WalkingLunge => &[Quads, Glutes],
+        E::StepUp => &[Quads, Glutes],
+        E::CalfRaise => &[Calves],
+        E::SeatedCalfRaise => &[Calves],
+        E::NordicCurl => &[Hamstrings],
+        E::GoodMorning => &[Hamstrings, Glutes, Back],
+        E::GluteKickback => &[Glutes],
+        E::SumoDeadlift => &[Glutes, Hamstrings, Back],
+        E::SumoSquat => &[Glutes, Quads],
+        E::CurtsyLunge => &[Glutes, Quads],
+        E::FrogPump => &[Glutes],
+        E::SingleLegHipThrust => &[Glutes, Hamstrings],
+        E::CablePullThrough => &[Glutes, Hamstrings],
+        E::HipAbduction => &[Glutes],
+        E::HipAdduction => &[Quads],
+        E::Plank => &[Core],
+        E::HangingLegRaise => &[Core],
+        E::CableCrunch => &[Core],
+        E::RussianTwist => &[Core],
+        E::AbWheelRollout => &[Core],
+        E::SitUp => &[Core],
+        E::Crunch => &[Core],
+        E::MountainClimber => &[Core],
+        E::Unspecified => &[],
+    }
+}
+
+pub fn primary_muscle(ex: Exercise) -> MuscleGroup {
+    muscles(ex)
+        .first()
+        .copied()
+        .unwrap_or(MuscleGroup::Unspecified)
+}
+
+/// The ten muscles, in display order.
+pub const ALL_MUSCLES: [MuscleGroup; 10] = [
+    MuscleGroup::Chest,
+    MuscleGroup::Back,
+    MuscleGroup::Shoulders,
+    MuscleGroup::Biceps,
+    MuscleGroup::Triceps,
+    MuscleGroup::Quads,
+    MuscleGroup::Hamstrings,
+    MuscleGroup::Glutes,
+    MuscleGroup::Calves,
+    MuscleGroup::Core,
+];
+
+pub fn muscle_key(muscle: MuscleGroup) -> &'static str {
+    match muscle {
+        MuscleGroup::Chest => "chest",
+        MuscleGroup::Back => "back",
+        MuscleGroup::Shoulders => "shoulders",
+        MuscleGroup::Biceps => "biceps",
+        MuscleGroup::Triceps => "triceps",
+        MuscleGroup::Quads => "quads",
+        MuscleGroup::Hamstrings => "hamstrings",
+        MuscleGroup::Glutes => "glutes",
+        MuscleGroup::Calves => "calves",
+        MuscleGroup::Core => "core",
+        MuscleGroup::Unspecified => "unspecified",
+    }
+}
+
+pub fn muscle_label(muscle: MuscleGroup) -> &'static str {
+    match muscle {
+        MuscleGroup::Chest => "Chest",
+        MuscleGroup::Back => "Back",
+        MuscleGroup::Shoulders => "Shoulders",
+        MuscleGroup::Biceps => "Biceps",
+        MuscleGroup::Triceps => "Triceps",
+        MuscleGroup::Quads => "Quads",
+        MuscleGroup::Hamstrings => "Hamstrings",
+        MuscleGroup::Glutes => "Glutes",
+        MuscleGroup::Calves => "Calves",
+        MuscleGroup::Core => "Core",
+        MuscleGroup::Unspecified => "Unspecified",
     }
 }
 
@@ -177,23 +328,76 @@ pub fn category(ex: Exercise) -> ExerciseCategory {
     }
 }
 
-/// The rep target to offer for an exercise you've never done. Heavy barbell
-/// compounds default to fives; other compounds to eights; isolation to tens.
-pub fn default_reps(ex: Exercise) -> i32 {
-    match (category(ex), load_style(ex)) {
-        (ExerciseCategory::Compound, LoadStyle::Barbell) => 5,
-        (ExerciseCategory::Compound, _) => 8,
-        _ => 10,
+/// The sets, rep range and rest the app prescribes, derived from what the
+/// exercise is. This is the whole table; there is no per-user or per-goal
+/// variant. Users can override sets and range on the tracker.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Prescription {
+    pub sets: i32,
+    pub rep_low: i32,
+    pub rep_high: i32,
+    pub rest_seconds: i32,
+    pub rest_seconds_failure: i32,
+    pub include_warmup: bool,
+}
+
+pub fn prescription(ex: Exercise) -> Prescription {
+    let style = load_style(ex);
+    let is_core = primary_muscle(ex) == MuscleGroup::Core;
+    let compound = category(ex) == ExerciseCategory::Compound;
+
+    if is_core {
+        return Prescription {
+            sets: 3,
+            rep_low: 10,
+            rep_high: 20,
+            rest_seconds: 60,
+            rest_seconds_failure: 90,
+            include_warmup: false,
+        };
+    }
+    match (style, compound) {
+        // The heavy barbell moves: the only class that warms up with a
+        // ladder, and the only one that rests a full three minutes.
+        (LoadStyle::Barbell, true) => Prescription {
+            sets: 3,
+            rep_low: 6,
+            rep_high: 10,
+            rest_seconds: 180,
+            rest_seconds_failure: 240,
+            include_warmup: true,
+        },
+        (LoadStyle::Bodyweight, true) => Prescription {
+            sets: 3,
+            rep_low: 5,
+            rep_high: 15,
+            rest_seconds: 120,
+            rest_seconds_failure: 180,
+            include_warmup: false,
+        },
+        (_, true) => Prescription {
+            sets: 3,
+            rep_low: 8,
+            rep_high: 12,
+            rest_seconds: 120,
+            rest_seconds_failure: 180,
+            include_warmup: false,
+        },
+        // Isolation, whatever the equipment.
+        (_, false) => Prescription {
+            sets: 3,
+            rep_low: 10,
+            rep_high: 15,
+            rest_seconds: 90,
+            rest_seconds_failure: 120,
+            include_warmup: false,
+        },
     }
 }
 
-pub fn default_sets(_ex: Exercise) -> i32 {
-    3
-}
-
-/// The weight to prefill for an exercise with no history. The empty bar for
-/// barbell work, a conservative stack/dumbbell otherwise, and nothing at all for
-/// bodyweight moves — where a prefilled number would be a lie.
+/// The weight to prefill for an exercise with no history. The empty bar
+/// for barbell work, a conservative stack/dumbbell otherwise, and nothing
+/// at all for bodyweight moves — where a prefilled number would be a lie.
 pub fn starting_weight_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
     let in_unit = |lb: f32, kg: f32| match unit {
         AppWeightUnit::Lb => lb,
@@ -208,25 +412,26 @@ pub fn starting_weight_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
     }
 }
 
-/// How much to add after a session where you hit every prescribed set. Sized to
-/// the smallest jump the equipment actually allows: a pair of the smallest
-/// plates on a bar, one notch on a stack, the next dumbbell up.
+/// How much to add when the rep range tops out. Sized to the smallest
+/// jump the equipment actually allows: a pair of the smallest plates on a
+/// bar, one notch on a stack, the next dumbbell up. Load moves rarely
+/// under double progression, so small is correct.
 pub fn progression_increment_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
     let in_unit = |lb: f32, kg: f32| match unit {
         AppWeightUnit::Lb => lb,
         AppWeightUnit::Kg => kg_to_pounds(kg),
     };
     match load_style(ex) {
-        // Bodyweight work progresses by reps; adding phantom pounds to a push-up
-        // would be nonsense.
+        // Bodyweight work progresses by reps; adding phantom pounds to a
+        // push-up would be nonsense.
         LoadStyle::Bodyweight => 0.0,
         LoadStyle::Dumbbell => in_unit(5.0, 2.0),
         _ => in_unit(5.0, 2.5),
     }
 }
 
-/// Round a computed weight to something you can load for this exercise: real
-/// plate maths for barbells, the equipment's step size for everything else.
+/// Round a computed weight to something you can load for this exercise:
+/// real plate maths for barbells, the equipment's step size for the rest.
 pub fn snap_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 {
     if weight_lb <= 0.0 {
         return 0.0;
@@ -239,49 +444,121 @@ pub fn snap_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 
     }
 }
 
+/// Human name for an exercise, derived from the enum name — e.g.
+/// `EXERCISE_INCLINE_BENCH_PRESS` → `Incline Bench Press`. A few common
+/// lifts get their colloquial short forms.
+pub fn exercise_display_name(exercise: Exercise) -> String {
+    match exercise {
+        Exercise::OverheadPress => "OHP".to_string(),
+        Exercise::RomanianDeadlift => "RDL".to_string(),
+        Exercise::BulgarianSplitSquat => "BSS".to_string(),
+        other => prettify_exercise_name(other.as_str_name()),
+    }
+}
+
+fn prettify_exercise_name(str_name: &str) -> String {
+    let trimmed = str_name.strip_prefix("EXERCISE_").unwrap_or(str_name);
+    if trimmed.is_empty() {
+        return "Unknown".to_string();
+    }
+    trimmed
+        .split('_')
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => {
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Every exercise must be classified — a `_ =>` fallback in `load_style`
-    /// would quietly file a new barbell lift as bodyweight and stop it
-    /// progressing, so the match is exhaustive and this pins the scan that
-    /// feeds it.
+    /// Every exercise must be classified — a `_ =>` fallback in
+    /// `load_style` or `muscles` would quietly misfile a new lift, so the
+    /// matches are exhaustive and this pins the scan that feeds them.
     #[test]
     fn the_catalogue_covers_every_exercise() {
         let all = all_exercises();
         assert!(all.len() >= 76, "expected the full catalogue, got {}", all.len());
-        assert!(all.contains(&Exercise::Squat));
-        assert!(all.contains(&Exercise::HipAdduction), "the last enum member");
-        assert!(!all.contains(&Exercise::Unspecified));
+        for ex in &all {
+            assert!(
+                !muscles(*ex).is_empty(),
+                "{ex:?} has no muscle mapping"
+            );
+            let p = prescription(*ex);
+            assert!(p.sets > 0 && p.rep_low > 0 && p.rep_high > p.rep_low, "{ex:?}: {p:?}");
+            assert!(p.rest_seconds > 0 && p.rest_seconds_failure >= p.rest_seconds);
+        }
+    }
+
+    /// The primary mover comes first — the volume model counts it at 1.0
+    /// and everything after at 0.5, so order is load-bearing.
+    #[test]
+    fn primary_muscles_are_sane() {
+        assert_eq!(primary_muscle(Exercise::Squat), MuscleGroup::Quads);
+        assert_eq!(primary_muscle(Exercise::BenchPress), MuscleGroup::Chest);
+        assert_eq!(primary_muscle(Exercise::RomanianDeadlift), MuscleGroup::Hamstrings);
+        assert_eq!(primary_muscle(Exercise::BarbellCurl), MuscleGroup::Biceps);
+        assert_eq!(primary_muscle(Exercise::CalfRaise), MuscleGroup::Calves);
+        assert_eq!(primary_muscle(Exercise::Plank), MuscleGroup::Core);
+    }
+
+    /// Calves must be reachable without machines: a standing calf raise
+    /// is dumbbell-loaded.
+    #[test]
+    fn calf_raise_is_dumbbell() {
+        assert_eq!(load_style(Exercise::CalfRaise), LoadStyle::Dumbbell);
+    }
+
+    /// The prescription table, pinned. Only barbell compounds warm up and
+    /// rest three minutes; core work is short and high-rep.
+    #[test]
+    fn prescriptions_follow_the_class() {
+        let squat = prescription(Exercise::Squat);
+        assert_eq!((squat.sets, squat.rep_low, squat.rep_high), (3, 6, 10));
+        assert_eq!(squat.rest_seconds, 180);
+        assert!(squat.include_warmup);
+
+        let raise = prescription(Exercise::LateralRaise);
+        assert_eq!((raise.rep_low, raise.rep_high), (10, 15));
+        assert_eq!(raise.rest_seconds, 90);
+        assert!(!raise.include_warmup);
+
+        let pullup = prescription(Exercise::PullUp);
+        assert_eq!((pullup.rep_low, pullup.rep_high), (5, 15));
+
+        let db_row = prescription(Exercise::DumbbellRow);
+        assert_eq!((db_row.rep_low, db_row.rep_high), (8, 12));
+
+        let crunch = prescription(Exercise::Crunch);
+        assert_eq!((crunch.rep_low, crunch.rep_high), (10, 20));
+        assert_eq!(crunch.rest_seconds, 60);
     }
 
     #[test]
     fn barbell_work_starts_at_the_empty_bar() {
-        assert_eq!(
-            starting_weight_lb(Exercise::Squat, AppWeightUnit::Lb),
-            45.0
-        );
-        // 20 kg expressed in pounds — the client converts back for display.
+        assert_eq!(starting_weight_lb(Exercise::Squat, AppWeightUnit::Lb), 45.0);
         let kg_bar = starting_weight_lb(Exercise::Squat, AppWeightUnit::Kg);
         assert!((crate::weight_units::pounds_to_kg(kg_bar) - 20.0).abs() < 0.01);
     }
 
     #[test]
-    fn bodyweight_moves_dont_get_a_prefilled_weight_or_an_increment() {
+    fn bodyweight_moves_have_no_weight_and_no_increment() {
         assert_eq!(starting_weight_lb(Exercise::PushUp, AppWeightUnit::Lb), 0.0);
-        assert_eq!(
-            progression_increment_lb(Exercise::PullUp, AppWeightUnit::Lb),
-            0.0
-        );
+        assert_eq!(progression_increment_lb(Exercise::PullUp, AppWeightUnit::Lb), 0.0);
     }
 
     #[test]
-    fn snapping_keeps_barbell_weights_loadable() {
-        // 137 lb isn't loadable on a 45 lb bar; it snaps to a real load.
+    fn snapping_keeps_weights_loadable() {
         let snapped = snap_weight_lb(Exercise::Squat, 137.0, AppWeightUnit::Lb);
         assert_eq!(snapped, snap_loadable_lb(137.0, AppWeightUnit::Lb));
-        // Dumbbells come in 5 lb steps.
         assert_eq!(
             snap_weight_lb(Exercise::LateralRaise, 22.0, AppWeightUnit::Lb),
             20.0

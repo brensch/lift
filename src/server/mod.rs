@@ -1,11 +1,5 @@
 use crate::db::ServerDb;
-use crate::program_state::{payload_from_proto, payload_to_proto};
 use crate::progress::compute_next_up_set;
-use crate::regimes::{catalog_regime_types, get_regime};
-use crate::schplanner::{
-    prescribed_slots_from_groups, summarize_recent_insights, summarize_slot_outcomes,
-    SchplannerWorkoutRecord,
-};
 use crate::state::ActiveWorkout;
 use crate::time::now_unix;
 use crate::workout::{
@@ -16,7 +10,6 @@ use crate::workout::{
     is_final_set_in_exercise_group_after_completion, start_workout_response_from_active,
     workout_state_snapshot_from_state, END_OF_EXERCISE_GROUP_REST_SECONDS,
 };
-use prost::Message;
 use schlift::workout::v1::auth_service_server::AuthService;
 use schlift::workout::v1::multiplayer_service_server::MultiplayerService;
 use schlift::workout::v1::settings_service_server::SettingsService;
@@ -36,9 +29,6 @@ mod multiplayer;
 mod multiplayer_tests;
 mod settings;
 mod support;
-mod training;
-#[cfg(test)]
-mod training_tests;
 mod user;
 mod workout;
 #[cfg(test)]
@@ -47,7 +37,6 @@ mod workout_tests;
 pub use auth::ServerAuthService;
 pub use multiplayer::ServerMultiplayerService;
 pub use settings::ServerSettingsService;
-pub use training::ServerTrainingService;
 pub use user::ServerUserService;
 pub use workout::ServerWorkoutService;
 
