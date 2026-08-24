@@ -356,15 +356,24 @@ pub fn prescription(ex: Exercise) -> Prescription {
             include_warmup: false,
         };
     }
+    // Only the barbell compounds that load the lower body (squats, hinges,
+    // hip thrusts) earn the full three minutes — they tax the whole system.
+    // Upper-body barbell work recovers enough in 2:30 that the extra 30 s
+    // per set buys nothing but session length.
+    let loads_lower_body = muscles(ex).iter().any(|m| {
+        matches!(
+            m,
+            MuscleGroup::Quads | MuscleGroup::Hamstrings | MuscleGroup::Glutes
+        )
+    });
     match (style, compound) {
-        // The heavy barbell moves: the only class that warms up with a
-        // ladder, and the only one that rests a full three minutes.
+        // The heavy barbell moves: the only class that warms up with a ladder.
         (LoadStyle::Barbell, true) => Prescription {
             sets: 3,
             rep_low: 6,
             rep_high: 10,
-            rest_seconds: 180,
-            rest_seconds_failure: 240,
+            rest_seconds: if loads_lower_body { 180 } else { 150 },
+            rest_seconds_failure: if loads_lower_body { 240 } else { 210 },
             include_warmup: true,
         },
         (LoadStyle::Bodyweight, true) => Prescription {
@@ -523,8 +532,16 @@ mod tests {
     fn prescriptions_follow_the_class() {
         let squat = prescription(Exercise::Squat);
         assert_eq!((squat.sets, squat.rep_low, squat.rep_high), (3, 6, 10));
-        assert_eq!(squat.rest_seconds, 180);
+        assert_eq!(squat.rest_seconds, 180, "lower-body barbell: full rest");
         assert!(squat.include_warmup);
+
+        // Upper-body barbell compounds rest 2:30, and the deadlift — primary
+        // Back but hamstring/glute loaded — keeps the full three minutes.
+        assert_eq!(prescription(Exercise::BenchPress).rest_seconds, 150);
+        assert_eq!(prescription(Exercise::BarbellRow).rest_seconds, 150);
+        assert_eq!(prescription(Exercise::OverheadPress).rest_seconds, 150);
+        assert_eq!(prescription(Exercise::Deadlift).rest_seconds, 180);
+        assert_eq!(prescription(Exercise::RomanianDeadlift).rest_seconds, 180);
 
         let raise = prescription(Exercise::LateralRaise);
         assert_eq!((raise.rep_low, raise.rep_high), (10, 15));

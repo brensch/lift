@@ -85,11 +85,18 @@ isolation, core). The table:
 
 | Class | Sets | Rep range | Rest | Rest after a miss | Warmup ladder |
 |---|---:|---|---:|---:|---|
-| Barbell compound | 3 | 6–10 | 180 s | 240 s | Yes |
+| Barbell compound, lower-body loaded | 3 | 6–10 | 180 s | 240 s | Yes |
+| Barbell compound, upper body | 3 | 6–10 | 150 s | 210 s | Yes |
 | Dumbbell / machine / cable compound | 3 | 8–12 | 120 s | 180 s | No |
 | Bodyweight compound | 3 | 5–15 | 120 s | 180 s | No |
 | Isolation | 3 | 10–15 | 90 s | 120 s | No |
 | Core | 3 | 10–20 | 60 s | 90 s | No |
+
+"Lower-body loaded" means the exercise trains quads, hamstrings or
+glutes. Squats and hinges tax the whole system and earn the full three
+minutes; upper-body barbell work recovers in 2:30, and the difference is
+real session time. The home screen shows an estimated duration per
+template so the cost of a plan is visible before starting it.
 
 Three sets everywhere is deliberate. It is memorable, it is defensible
 (per-session per-muscle volume beyond about 8 sets adds little), and the

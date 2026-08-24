@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
+import '../../logic/session_estimate.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -33,6 +34,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isStarting = false;
+  // Which template card is expanded. Defaults to the suggestion; the user
+  // taps the small chips to switch.
+  String? _selectedTemplateId;
 
   Future<void> _refresh() async {
     final auth = context.read<AuthProvider>();
@@ -144,32 +148,63 @@ class _HomeScreenState extends State<HomeScreen> {
     final templates = home.templates;
     final suggestedId = home.suggestedTemplateId;
 
+    // Resolve the selection: sticky while valid, otherwise the suggestion,
+    // otherwise the first template.
+    WorkoutTemplate? selected;
+    for (final t in templates) {
+      if (t.id == _selectedTemplateId) selected = t;
+    }
+    if (selected == null && templates.isNotEmpty) {
+      selected = templates.firstWhere(
+        (t) => t.id == suggestedId,
+        orElse: () => templates.first,
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
           _VolumeCard(volume: home.volume),
-          const SizedBox(height: 16),
-          if (templates.isEmpty) _EmptyState(onCreate: () => _editTemplate(null)),
-          // Suggested first, then user order.
-          for (final template in _ordered(templates, suggestedId))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _TemplateCard(
-                template: template,
+          const SizedBox(height: 14),
+          if (templates.isEmpty)
+            _EmptyState(onCreate: () => _editTemplate(null))
+          else ...[
+            // The small things to tap: one chip per template, showing what
+            // it hits and roughly how long it takes.
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final template in templates)
+                  _TemplateChip(
+                    template: template,
+                    trackers: wp.trackers,
+                    selected: template.id == selected?.id,
+                    recommended: template.id == suggestedId,
+                    onTap: () =>
+                        setState(() => _selectedTemplateId = template.id),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (selected != null)
+              _SelectedTemplateCard(
+                template: selected,
                 trackers: wp.trackers,
                 unit: unit,
-                suggested: template.id == suggestedId,
-                suggestionReason:
-                    template.id == suggestedId ? home.suggestionReason : '',
+                recommended: selected.id == suggestedId,
+                suggestionReason: selected.id == suggestedId
+                    ? home.suggestionReason
+                    : '',
                 isStarting: _isStarting,
-                onStart: () => _start(templateId: template.id),
-                onEdit: () => _editTemplate(template),
-                onDelete: () => _confirmDeleteTemplate(template),
+                onStart: () => _start(templateId: selected!.id),
+                onEdit: () => _editTemplate(selected),
+                onDelete: () => _confirmDeleteTemplate(selected!),
               ),
-            ),
-          const SizedBox(height: 4),
+          ],
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -199,17 +234,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  List<WorkoutTemplate> _ordered(
-    List<WorkoutTemplate> templates,
-    String suggestedId,
-  ) {
-    if (suggestedId.isEmpty) return templates;
-    return [
-      ...templates.where((t) => t.id == suggestedId),
-      ...templates.where((t) => t.id != suggestedId),
-    ];
+/// Short display names for the ten muscles, shared by the volume rows and
+/// the template chips.
+const muscleShortLabels = {
+  MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
+  MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
+  MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
+  MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
+  MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
+  MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
+  MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
+  MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
+  MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
+  MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
+};
+
+/// The distinct primary muscles a template trains, in exercise order.
+List<MuscleGroup> templateMuscles(
+  WorkoutTemplate template,
+  List<ExerciseTracker> trackers,
+) {
+  final byExercise = {for (final t in trackers) t.exercise: t.primaryMuscle};
+  final out = <MuscleGroup>[];
+  for (final exercise in template.exercises) {
+    final muscle = byExercise[exercise];
+    if (muscle != null &&
+        muscle != MuscleGroup.MUSCLE_GROUP_UNSPECIFIED &&
+        !out.contains(muscle)) {
+      out.add(muscle);
+    }
   }
+  return out;
 }
 
 class _EmptyState extends StatelessWidget {
@@ -300,19 +357,6 @@ class _VolumeRow extends StatelessWidget {
   final MuscleVolume entry;
   const _VolumeRow({required this.entry});
 
-  static const _labels = {
-    MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
-    MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
-    MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
-    MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
-    MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
-    MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
-    MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
-    MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
-    MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
-    MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
-  };
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -334,7 +378,7 @@ class _VolumeRow extends StatelessWidget {
         SizedBox(
           width: 56,
           child: Text(
-            _labels[entry.muscle] ?? '?',
+            muscleShortLabels[entry.muscle] ?? '?',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ),
@@ -394,22 +438,115 @@ class _VolumeRow extends StatelessWidget {
 
 // ── Template cards ───────────────────────────────────────────────────────────
 
-class _TemplateCard extends StatelessWidget {
+/// A small tappable summary of one template: name, what it hits, how long
+/// it takes. The star marks the volume suggestion.
+class _TemplateChip extends StatelessWidget {
+  final WorkoutTemplate template;
+  final List<ExerciseTracker> trackers;
+  final bool selected;
+  final bool recommended;
+  final VoidCallback onTap;
+
+  const _TemplateChip({
+    required this.template,
+    required this.trackers,
+    required this.selected,
+    required this.recommended,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final muscles = templateMuscles(template, trackers);
+    final shown = muscles.take(3).map((m) => muscleShortLabels[m]).join(' · ');
+    final more = muscles.length > 3 ? ' +${muscles.length - 3}' : '';
+    final time = estimatedSessionLabel(template, trackers);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? cs.primary.withValues(alpha: 0.12) : null,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (recommended)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(Icons.star_rounded, size: 15, color: cs.primary),
+                  ),
+                Text(
+                  template.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                if (time.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Text(
+                      time,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (shown.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '$shown$more',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: cs.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The one expanded card: every exercise with the exact numbers the workout
+/// will start with, the muscles it hits, the time it should take, and START.
+class _SelectedTemplateCard extends StatelessWidget {
   final WorkoutTemplate template;
   final List<ExerciseTracker> trackers;
   final WeightUnit unit;
-  final bool suggested;
+  final bool recommended;
   final String suggestionReason;
   final bool isStarting;
   final VoidCallback onStart;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _TemplateCard({
+  const _SelectedTemplateCard({
     required this.template,
     required this.trackers,
     required this.unit,
-    required this.suggested,
+    required this.recommended,
     required this.suggestionReason,
     required this.isStarting,
     required this.onStart,
@@ -427,37 +564,61 @@ class _TemplateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final accent = suggested ? cs.primary : cs.outline.withValues(alpha: 0.5);
+    final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.6);
+    final muscles = templateMuscles(template, trackers);
+    final time = estimatedSessionLabel(template, trackers);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: AppTheme.brMd,
-        border: Border.all(color: accent, width: suggested ? 2 : 1),
-        color: suggested ? cs.primary.withValues(alpha: 0.05) : null,
+        border: Border.all(color: accent, width: 2),
+        color: recommended ? cs.primary.withValues(alpha: 0.05) : null,
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      template.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            template.name,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (time.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Text(
+                              time,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    if (suggested && suggestionReason.isNotEmpty)
+                    if (recommended)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          'Up next — $suggestionReason',
+                          suggestionReason.isEmpty
+                              ? 'Recommended next'
+                              : 'Recommended — $suggestionReason',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -484,37 +645,68 @@ class _TemplateCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          if (muscles.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8, right: 8),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  for (final muscle in muscles)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest.withValues(
+                          alpha: 0.4,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        muscleShortLabels[muscle] ?? '?',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           for (final exercise in template.exercises)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 5, right: 8),
               child: _ExerciseLine(
                 exercise: exercise,
                 tracker: _trackerFor(exercise),
                 unit: unit,
               ),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: SizedBox(
               width: double.infinity,
-              height: 44,
-              child: suggested
-                  ? FilledButton(
-                      onPressed: isStarting ? null : onStart,
-                      child: const Text(
+              height: 48,
+              child: FilledButton(
+                onPressed: isStarting ? null : onStart,
+                child: isStarting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
                         'START',
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
                       ),
-                    )
-                  : OutlinedButton(
-                      onPressed: isStarting ? null : onStart,
-                      child: const Text(
-                        'START',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
+              ),
             ),
           ),
         ],
@@ -546,8 +738,22 @@ class _ExerciseLine extends StatelessWidget {
         ? '${resolved.sets}×${resolved.targetReps} @ '
               '${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
         : '${resolved.sets}×${resolved.targetReps}';
+    final restMinutes = resolved == null
+        ? ''
+        : resolved.restSeconds % 60 == 0
+        ? '${resolved.restSeconds ~/ 60}m rest'
+        : '${(resolved.restSeconds / 60).toStringAsFixed(1)}m rest';
     return Row(
       children: [
+        if (resolved?.includeWarmup ?? false)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Icon(
+              Icons.local_fire_department,
+              size: 13,
+              color: cs.tertiary.withValues(alpha: 0.8),
+            ),
+          ),
         Expanded(
           child: Text(
             name,
@@ -555,6 +761,18 @@ class _ExerciseLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (restMinutes.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              restMinutes,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
         Text(
           prescription,
           style: TextStyle(
