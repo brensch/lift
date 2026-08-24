@@ -373,6 +373,7 @@ const Workout$json = {
     {'1': 'start_time', '3': 3, '4': 1, '5': 3, '10': 'startTime'},
     {'1': 'end_time', '3': 4, '4': 1, '5': 3, '10': 'endTime'},
     {'1': 'session_id', '3': 5, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'template_id', '3': 6, '4': 1, '5': 9, '10': 'templateId'},
   ],
 };
 
@@ -380,7 +381,8 @@ const Workout$json = {
 final $typed_data.Uint8List workoutDescriptor = $convert.base64Decode(
     'CgdXb3Jrb3V0Eg4KAmlkGAEgASgJUgJpZBISCgRuYW1lGAIgASgJUgRuYW1lEh0KCnN0YXJ0X3'
     'RpbWUYAyABKANSCXN0YXJ0VGltZRIZCghlbmRfdGltZRgEIAEoA1IHZW5kVGltZRIdCgpzZXNz'
-    'aW9uX2lkGAUgASgJUglzZXNzaW9uSWQ=');
+    'aW9uX2lkGAUgASgJUglzZXNzaW9uSWQSHwoLdGVtcGxhdGVfaWQYBiABKAlSCnRlbXBsYXRlSW'
+    'Q=');
 
 @$core.Deprecated('Use exerciseTypeConfigDescriptor instead')
 const ExerciseTypeConfig$json = {

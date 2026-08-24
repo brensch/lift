@@ -40,6 +40,7 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
             start_time: at - 30 * 60,
             end_time: at,
             session_id: String::new(),
+            ..Default::default()
         },
         exercise_groups: Vec::new(),
         proposed_sets: proposed,

@@ -519,24 +519,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
     // Pick movements only — the app prescribes weight, sets, reps, rest
     // and warmups from each exercise's tracker, same as a template start.
-    // Adjusting the numbers is a separate flow (edit the group after).
-    final added = <Exercise>{};
+    // Nothing lands until SAVE; adjusting numbers is a separate flow.
     showExercisePicker(
       context: context,
       trackers: wp.trackers,
-      isSelected: (e) =>
-          added.contains(e) ||
-          wp.exerciseGroups.any(
-            (g) => g.exercise == e || g.exercises.contains(e),
-          ),
-      onToggle: (exercise, selected) {
-        if (!selected) {
-          added.remove(exercise);
-          return;
-        }
-        if (added.add(exercise)) {
-          unawaited(wp.addPrescribedExercises([exercise]));
-        }
+      initialSelected: const {},
+      onSave: (selected) {
+        if (selected.isEmpty) return;
+        // Catalog order keeps the additions deterministic.
+        final ordered = [
+          for (final info in exerciseCatalog)
+            if (selected.contains(info.exercise)) info.exercise,
+        ];
+        unawaited(wp.addPrescribedExercises(ordered));
       },
     );
   }

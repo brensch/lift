@@ -89,14 +89,18 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     showExercisePicker(
       context: context,
       trackers: context.read<WorkoutProvider>().trackers,
-      isSelected: (e) => _exercises.contains(e),
-      onToggle: (exercise, selected) {
+      initialSelected: _exercises.toSet(),
+      onSave: (selected) {
         setState(() {
-          if (selected) {
-            if (!_exercises.contains(exercise)) _exercises.add(exercise);
-          } else {
-            _exercises.remove(exercise);
-          }
+          // Keep the existing order for retained exercises; append the
+          // newly picked ones in catalog order.
+          _exercises = [
+            ..._exercises.where(selected.contains),
+            for (final info in exerciseCatalog)
+              if (selected.contains(info.exercise) &&
+                  !_exercises.contains(info.exercise))
+                info.exercise,
+          ];
         });
       },
     );

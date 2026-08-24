@@ -32,7 +32,6 @@ impl ServerDb {
         &self,
         user_id: &str,
         workout: &Workout,
-        template_id: &str,
         groups: &[ExerciseGroup],
         proposed_sets: &[ProposedSet],
     ) -> DbResult<()> {
@@ -48,7 +47,7 @@ impl ServerDb {
         .bind(workout.start_time)
         .bind(workout.end_time)
         .bind(&workout.session_id)
-        .bind(template_id)
+        .bind(&workout.template_id)
         .execute(&mut *tx)
         .await?;
 
@@ -329,7 +328,8 @@ impl ServerDb {
     /// Load a workout row by id.
     pub async fn get_workout(&self, user_id: &str, workout_id: &str) -> DbResult<Option<Workout>> {
         let row = sqlx::query(
-            "SELECT id, name, start_time, end_time, session_id FROM workouts WHERE id = ? AND user_id = ?",
+            "SELECT id, name, start_time, end_time, session_id, template_id
+             FROM workouts WHERE id = ? AND user_id = ?",
         )
         .bind(workout_id)
         .bind(user_id)
@@ -341,6 +341,7 @@ impl ServerDb {
             start_time: r.get("start_time"),
             end_time: r.get("end_time"),
             session_id: r.get("session_id"),
+            template_id: r.get("template_id"),
         }))
     }
 
@@ -353,7 +354,7 @@ impl ServerDb {
         limit: i64,
     ) -> DbResult<Vec<Workout>> {
         let rows = sqlx::query(
-            "SELECT id, name, start_time, end_time, session_id
+            "SELECT id, name, start_time, end_time, session_id, template_id
              FROM workouts
              WHERE user_id = ?
              ORDER BY start_time DESC, id DESC
@@ -371,6 +372,7 @@ impl ServerDb {
                 start_time: r.get("start_time"),
                 end_time: r.get("end_time"),
                 session_id: r.get("session_id"),
+                template_id: r.get("template_id"),
             })
             .collect();
         workouts.reverse();
@@ -577,7 +579,7 @@ impl ServerDb {
 
     pub async fn list_workouts(&self, user_id: &str) -> DbResult<Vec<Workout>> {
         let rows = sqlx::query(
-            "SELECT id, name, start_time, end_time, session_id
+            "SELECT id, name, start_time, end_time, session_id, template_id
              FROM workouts WHERE user_id = ? AND end_time > 0 ORDER BY start_time DESC",
         )
         .bind(user_id)
@@ -591,6 +593,7 @@ impl ServerDb {
                 start_time: r.get("start_time"),
                 end_time: r.get("end_time"),
                 session_id: r.get("session_id"),
+                template_id: r.get("template_id"),
             })
             .collect())
     }

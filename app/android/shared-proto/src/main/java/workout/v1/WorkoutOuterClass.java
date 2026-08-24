@@ -2934,6 +2934,28 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getSessionIdBytes();
+
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    java.lang.String getTemplateId();
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    com.google.protobuf.ByteString
+        getTemplateIdBytes();
   }
   /**
    * Protobuf type {@code workout.v1.Workout}
@@ -2947,6 +2969,7 @@ public final class WorkoutOuterClass {
       id_ = "";
       name_ = "";
       sessionId_ = "";
+      templateId_ = "";
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -3138,6 +3161,78 @@ public final class WorkoutOuterClass {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       sessionId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TEMPLATE_ID_FIELD_NUMBER = 6;
+    private java.lang.String templateId_;
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    @java.lang.Override
+    public java.lang.String getTemplateId() {
+      return templateId_;
+    }
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTemplateIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(templateId_);
+    }
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @param value The templateId to set.
+     */
+    private void setTemplateId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      templateId_ = value;
+    }
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     */
+    private void clearTemplateId() {
+      
+      templateId_ = getDefaultInstance().getTemplateId();
+    }
+    /**
+     * <pre>
+     * The template this workout was started from ("" = started empty). Lets
+     * the app offer "update your template?" when the session diverged.
+     * </pre>
+     *
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @param value The bytes for templateId to set.
+     */
+    private void setTemplateIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      templateId_ = value.toStringUtf8();
       
     }
 
@@ -3439,6 +3534,80 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The template this workout was started from ("" = started empty). Lets
+       * the app offer "update your template?" when the session diverged.
+       * </pre>
+       *
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return The templateId.
+       */
+      @java.lang.Override
+      public java.lang.String getTemplateId() {
+        return instance.getTemplateId();
+      }
+      /**
+       * <pre>
+       * The template this workout was started from ("" = started empty). Lets
+       * the app offer "update your template?" when the session diverged.
+       * </pre>
+       *
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return The bytes for templateId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTemplateIdBytes() {
+        return instance.getTemplateIdBytes();
+      }
+      /**
+       * <pre>
+       * The template this workout was started from ("" = started empty). Lets
+       * the app offer "update your template?" when the session diverged.
+       * </pre>
+       *
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @param value The templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTemplateId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The template this workout was started from ("" = started empty). Lets
+       * the app offer "update your template?" when the session diverged.
+       * </pre>
+       *
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTemplateId() {
+        copyOnWrite();
+        instance.clearTemplateId();
+        return this;
+      }
+      /**
+       * <pre>
+       * The template this workout was started from ("" = started empty). Lets
+       * the app offer "update your template?" when the session diverged.
+       * </pre>
+       *
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @param value The bytes for templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTemplateIdBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.Workout)
     }
     @java.lang.Override
@@ -3460,10 +3629,11 @@ public final class WorkoutOuterClass {
               "startTime_",
               "endTime_",
               "sessionId_",
+              "templateId_",
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0002\u0004\u0002\u0005\u0208";
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0002\u0004\u0002\u0005\u0208\u0006\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

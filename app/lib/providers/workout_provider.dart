@@ -24,6 +24,26 @@ import '../logic/utils.dart';
 import '../services/grpc_client.dart' show isAppUpdateRequiredError;
 import '../services/app_logger.dart';
 
+
+/// Offered after a session whose exercises diverged from its template (or
+/// that started empty): "save this as/into a template?". Computed at
+/// EndWorkout, consumed once by the UI.
+class TemplateUpdateSuggestion {
+  /// '' = the workout started empty; saving creates a new template.
+  final String templateId;
+  final String templateName;
+  /// The exercises actually performed, in workout order.
+  final List<Exercise> exercises;
+
+  const TemplateUpdateSuggestion({
+    required this.templateId,
+    required this.templateName,
+    required this.exercises,
+  });
+
+  bool get isNew => templateId.isEmpty;
+}
+
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   static const int _maxWearHeartRateSamplesInMemory = 50000;
@@ -66,6 +86,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutStateSnapshot? _stateSnapshot;
   GetHomeResponse? _home;
   List<UserMessage> _scheduleMessages = [];
+  TemplateUpdateSuggestion? _pendingTemplateUpdate;
   List<UserMessage> _workoutMessages = [];
   final List<HeartRateSample> _wearHeartRateSamples = [];
   final Set<String> _wearHeartRateBatchIds = <String>{};
@@ -782,6 +803,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Refresh templates/trackers/volume without touching the active session.
+  /// The one-shot "update your template?" offer from the last EndWorkout.
+  TemplateUpdateSuggestion? takePendingTemplateUpdate() {
+    final suggestion = _pendingTemplateUpdate;
+    _pendingTemplateUpdate = null;
+    return suggestion;
+  }
+
   Future<void> refreshHome() async {
     try {
       _home = await _service.getHome();
@@ -1627,6 +1655,49 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+
+  /// What the session actually contained, compared against the template it
+  /// started from. Returns the offer to make, or null when nothing
+  /// changed (or nothing was done).
+  TemplateUpdateSuggestion? _computeTemplateUpdateSuggestion(Workout ended) {
+    // Exercises with at least one completed working set, in workout order.
+    final doneSetIds = _activeCompletedSets
+        .where((c) => c.endedAt != Int64.ZERO)
+        .map((c) => c.proposedSetId)
+        .toSet();
+    final ordered = List<ProposedSet>.from(
+      _activeProposedSets.where(
+        (p) => !p.warmup && !p.cancelled && doneSetIds.contains(p.id),
+      ),
+    )..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+    final performed = <Exercise>[];
+    for (final set in ordered) {
+      if (!performed.contains(set.exercise)) performed.add(set.exercise);
+    }
+    if (performed.isEmpty) return null;
+
+    if (ended.templateId.isEmpty) {
+      return TemplateUpdateSuggestion(
+        templateId: '',
+        templateName: '',
+        exercises: performed,
+      );
+    }
+    final template = templates
+        .cast<WorkoutTemplate?>()
+        .firstWhere((t) => t!.id == ended.templateId, orElse: () => null);
+    if (template == null) return null;
+    final planned = template.exercises.toSet();
+    final same =
+        planned.length == performed.length && planned.containsAll(performed);
+    if (same) return null;
+    return TemplateUpdateSuggestion(
+      templateId: template.id,
+      templateName: template.name,
+      exercises: performed,
+    );
+  }
+
   /// Ends the workout on the server and returns immediately.
   /// Health write happens in the background — check [lastHealthResult] after.
   ///
@@ -1641,6 +1712,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _wasResting = false;
       final response = await _service.endWorkout(_activeWorkout!.id);
       final ended = response.workout;
+      _pendingTemplateUpdate = _computeTemplateUpdateSuggestion(ended);
       _activeWorkout = ended;
       _workoutMessages = List<UserMessage>.from(response.userMessages);
       _pendingMutations.clear();

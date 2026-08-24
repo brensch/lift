@@ -53,6 +53,9 @@ message Workout {
   int64 start_time = 3;
   int64 end_time = 4;
   string session_id = 5;
+  // The template this workout was started from ("" = started empty). Lets
+  // the app offer "update your template?" when the session diverged.
+  string template_id = 6;
 }
 
 enum Exercise {

@@ -415,6 +415,7 @@ impl WorkoutService for ServerWorkoutService {
             start_time: started_at,
             end_time: 0,
             session_id: session_id.clone(),
+            template_id: req.template_id.clone(),
         };
         for (idx, group) in groups.iter_mut().enumerate() {
             if group.id.is_empty() {
@@ -436,7 +437,7 @@ impl WorkoutService for ServerWorkoutService {
 
         // Insert real rows
         self.db
-            .insert_workout(&user_id, &workout, &req.template_id, &groups, &proposed_sets)
+            .insert_workout(&user_id, &workout, &groups, &proposed_sets)
             .await
             .map_err(internal_error)?;
 

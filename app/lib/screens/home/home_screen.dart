@@ -149,88 +149,195 @@ class _HomeScreenState extends State<HomeScreen> {
     final suggestedId = home.suggestedTemplateId;
 
     // Resolve the selection: sticky while valid, otherwise the suggestion,
-    // otherwise the first template.
+    // otherwise the first template. '_empty' selects the freestyle card.
+    final emptySelected = _selectedTemplateId == _emptyWorkoutId;
     WorkoutTemplate? selected;
-    for (final t in templates) {
-      if (t.id == _selectedTemplateId) selected = t;
+    if (!emptySelected) {
+      for (final t in templates) {
+        if (t.id == _selectedTemplateId) selected = t;
+      }
+      if (selected == null && templates.isNotEmpty) {
+        selected = templates.firstWhere(
+          (t) => t.id == suggestedId,
+          orElse: () => templates.first,
+        );
+      }
     }
-    if (selected == null && templates.isNotEmpty) {
-      selected = templates.firstWhere(
-        (t) => t.id == suggestedId,
-        orElse: () => templates.first,
-      );
-    }
+    final highlight = selected == null
+        ? const <MuscleGroup>{}
+        : templateMuscles(selected, wp.trackers).toSet();
 
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
-          _VolumeCard(volume: home.volume),
+          _VolumeCard(volume: home.volume, highlight: highlight),
           const SizedBox(height: 14),
-          if (templates.isEmpty)
-            _EmptyState(onCreate: () => _editTemplate(null))
-          else ...[
-            // The small things to tap: one chip per template, showing what
-            // it hits and roughly how long it takes.
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final template in templates)
-                  _TemplateChip(
-                    template: template,
-                    trackers: wp.trackers,
-                    selected: template.id == selected?.id,
-                    recommended: template.id == suggestedId,
-                    onTap: () =>
-                        setState(() => _selectedTemplateId = template.id),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (selected != null)
-              _SelectedTemplateCard(
-                template: selected,
-                trackers: wp.trackers,
-                unit: unit,
-                recommended: selected.id == suggestedId,
-                suggestionReason: selected.id == suggestedId
-                    ? home.suggestionReason
-                    : '',
-                isStarting: _isStarting,
-                onStart: () => _start(templateId: selected!.id),
-                onEdit: () => _editTemplate(selected),
-                onDelete: () => _confirmDeleteTemplate(selected!),
-              ),
-          ],
-          const SizedBox(height: 14),
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _editTemplate(null),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text(
-                    'NEW TEMPLATE',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
+              for (final template in templates)
+                _TemplateChip(
+                  template: template,
+                  trackers: wp.trackers,
+                  selected: template.id == selected?.id,
+                  recommended: template.id == suggestedId,
+                  onTap: () =>
+                      setState(() => _selectedTemplateId = template.id),
                 ),
+              _ActionChip(
+                icon: Icons.bolt,
+                label: 'Empty',
+                selected: emptySelected,
+                onTap: () =>
+                    setState(() => _selectedTemplateId = _emptyWorkoutId),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isStarting ? null : () => _start(),
-                  icon: const Icon(Icons.bolt, size: 18),
-                  label: const Text(
-                    'START EMPTY',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
+              _ActionChip(
+                icon: Icons.add,
+                label: 'New',
+                selected: false,
+                onTap: () => _editTemplate(null),
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          if (emptySelected)
+            _EmptyWorkoutCard(isStarting: _isStarting, onStart: () => _start())
+          else if (selected != null)
+            _SelectedTemplateCard(
+              template: selected,
+              trackers: wp.trackers,
+              unit: unit,
+              recommended: selected.id == suggestedId,
+              suggestionReason: selected.id == suggestedId
+                  ? home.suggestionReason
+                  : '',
+              isStarting: _isStarting,
+              onStart: () => _start(templateId: selected!.id),
+              onEdit: () => _editTemplate(selected),
+              onDelete: () => _confirmDeleteTemplate(selected!),
+            )
+          else
+            _EmptyState(onCreate: () => _editTemplate(null)),
         ],
+      ),
+    );
+  }
+}
+
+/// Sentinel selection id for the freestyle "empty workout" card.
+const _emptyWorkoutId = '__empty__';
+
+/// The freestyle card: no plan, exercises picked as you go, the app still
+/// brings the numbers.
+class _EmptyWorkoutCard extends StatelessWidget {
+  final bool isStarting;
+  final VoidCallback onStart;
+  const _EmptyWorkoutCard({required this.isStarting, required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: AppTheme.brMd,
+        border: Border.all(color: cs.outline.withValues(alpha: 0.6), width: 2),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Empty workout',
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Don't tell me what to do — I'll add exercises as I go. "
+            'The app still brings the weights, sets and reps for '
+            'whatever you pick.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: cs.onSurface.withValues(alpha: 0.65),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
+              onPressed: isStarting ? null : onStart,
+              child: isStarting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'START',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A chip-shaped button that sits inline with the template chips.
+class _ActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? cs.primary.withValues(alpha: 0.12) : null,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: cs.onSurface.withValues(alpha: 0.7)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -317,7 +424,10 @@ class _EmptyState extends StatelessWidget {
 /// this is where you see it.
 class _VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
-  const _VolumeCard({required this.volume});
+  /// Muscles the selected template trains — their rows light up so
+  /// picking a workout shows what it will move on this chart.
+  final Set<MuscleGroup> highlight;
+  const _VolumeCard({required this.volume, this.highlight = const {}});
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +455,10 @@ class _VolumeCard extends StatelessWidget {
           for (final entry in volume)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: _VolumeRow(entry: entry),
+              child: _VolumeRow(
+                entry: entry,
+                highlighted: highlight.contains(entry.muscle),
+              ),
             ),
         ],
       ),
@@ -355,7 +468,8 @@ class _VolumeCard extends StatelessWidget {
 
 class _VolumeRow extends StatelessWidget {
   final MuscleVolume entry;
-  const _VolumeRow({required this.entry});
+  final bool highlighted;
+  const _VolumeRow({required this.entry, this.highlighted = false});
 
   @override
   Widget build(BuildContext context) {
@@ -377,9 +491,32 @@ class _VolumeRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 56,
-          child: Text(
-            muscleShortLabels[entry.muscle] ?? '?',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          child: Row(
+            children: [
+              if (highlighted)
+                Padding(
+                  padding: const EdgeInsets.only(right: 3),
+                  child: Icon(
+                    Icons.circle,
+                    size: 6,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              Flexible(
+                child: Text(
+                  muscleShortLabels[entry.muscle] ?? '?',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight:
+                        highlighted ? FontWeight.w900 : FontWeight.w700,
+                    color: highlighted
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -438,8 +575,9 @@ class _VolumeRow extends StatelessWidget {
 
 // ── Template cards ───────────────────────────────────────────────────────────
 
-/// A small tappable summary of one template: name, what it hits, how long
-/// it takes. The star marks the volume suggestion.
+/// A small tappable summary of one template: name, rough duration, and a
+/// star on the volume recommendation. Deliberately dense — these wrap
+/// three-plus to a row.
 class _TemplateChip extends StatelessWidget {
   final WorkoutTemplate template;
   final List<ExerciseTracker> trackers;
@@ -458,66 +596,44 @@ class _TemplateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final muscles = templateMuscles(template, trackers);
-    final shown = muscles.take(3).map((m) => muscleShortLabels[m]).join(' · ');
-    final more = muscles.length > 3 ? ' +${muscles.length - 3}' : '';
     final time = estimatedSessionLabel(template, trackers);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? cs.primary.withValues(alpha: 0.12) : null,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (recommended)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(Icons.star_rounded, size: 15, color: cs.primary),
-                  ),
-                Text(
-                  template.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                if (time.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: Text(
-                      time,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (shown.isNotEmpty)
+            if (recommended)
               Padding(
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(right: 3),
+                child: Icon(Icons.star_rounded, size: 14, color: cs.primary),
+              ),
+            Text(
+              template.name,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+              ),
+            ),
+            if (time.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 5),
                 child: Text(
-                  '$shown$more',
+                  time,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
                     color: cs.onSurface.withValues(alpha: 0.55),
                   ),
                 ),

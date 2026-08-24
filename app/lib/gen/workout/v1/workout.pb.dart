@@ -143,6 +143,7 @@ class Workout extends $pb.GeneratedMessage {
     $fixnum.Int64? startTime,
     $fixnum.Int64? endTime,
     $core.String? sessionId,
+    $core.String? templateId,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -150,6 +151,7 @@ class Workout extends $pb.GeneratedMessage {
     if (startTime != null) result.startTime = startTime;
     if (endTime != null) result.endTime = endTime;
     if (sessionId != null) result.sessionId = sessionId;
+    if (templateId != null) result.templateId = templateId;
     return result;
   }
 
@@ -171,6 +173,7 @@ class Workout extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'startTime')
     ..aInt64(4, _omitFieldNames ? '' : 'endTime')
     ..aOS(5, _omitFieldNames ? '' : 'sessionId')
+    ..aOS(6, _omitFieldNames ? '' : 'templateId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -235,6 +238,17 @@ class Workout extends $pb.GeneratedMessage {
   $core.bool hasSessionId() => $_has(4);
   @$pb.TagNumber(5)
   void clearSessionId() => $_clearField(5);
+
+  /// The template this workout was started from ("" = started empty). Lets
+  /// the app offer "update your template?" when the session diverged.
+  @$pb.TagNumber(6)
+  $core.String get templateId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set templateId($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTemplateId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTemplateId() => $_clearField(6);
 }
 
 class ExerciseTypeConfig extends $pb.GeneratedMessage {
