@@ -1,7 +1,6 @@
 # Composable Workouts
 
-Status: approved design. This document is the specification for the
-refactor on this branch.
+Status: implemented on this branch. Kept as the design record.
 
 This document tells you how to remove the program state machine from
 Schlift and what to build in its place. Write the code in the order of

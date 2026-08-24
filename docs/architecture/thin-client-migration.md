@@ -108,7 +108,7 @@ No Rust implementation exists for any of these today.
 | `progress_screen.dart:49–105`, `exercise_detail_screen.dart:42–94` | N+1 `getWorkout` loop → per-exercise trend, gains, 1RM/volume series | a per-exercise **progress/analytics RPC** (series precomputed) |
 | `history_screen.dart:35–88` | N+1 loop → per-workout volume, working sets, exercise list | `ListWorkoutSummaries` RPC (or summary embedded in `ListWorkouts`) |
 | `home_screen.dart:359–406` `_estimatedWorkoutMinutes` | hard-coded per-set/warmup/rest seconds heuristic | `estimated_duration_seconds` on the schedule response |
-| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | recommended-starting-weights RPC in the regime layer (`src/regimes/`) |
+| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | onboarding seeds in `src/onboarding.rs` (now via `CompleteOnboarding`) |
 
 Est-1RM (`w*(1+reps/30)`) is implemented in **three** client spots and nowhere
 in Rust — it should be computed once, server-side, per completed set / summary.
@@ -147,8 +147,7 @@ Rendering and device concerns, no backend involvement:
   time-estimate. (~1,000+ lines.)
 - **Tests/fixtures:** `test/logic/{warmup_golden,plate_math,plate_calculator,weight_units,workout_reducer}_test.dart`,
   `testdata/warmup_golden.json` (190 KB), and the `LIFT_SNAPSHOT_*` snapshot
-  harness in `planning.rs` / `simulator_tests.rs`. (`regime_timelines.json` stays —
-  it pins regime progression, which is server-only.)
+  harness in `planning.rs`.
 - **Whole concept:** the "mirror this in both places / regenerate the golden"
   workflow disappears.
 

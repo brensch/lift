@@ -107,14 +107,13 @@ graph TD
 
     home -->|"Start"| workout
     workout -->|"End"| completed["CompletedWorkoutScreen"]
-    settings --> regime["RegimeSettingsScreen"]
     settings --> plates["PlateColorsScreen"]
     settings --> passkeys["PasskeysScreen"]
 ```
 
-`OnboardingScreen` renders itself from the regime's `state_schema()` — fields
-marked `onboarding_field = true` become inputs. Adding a config field to a regime
-therefore needs no Flutter change. See [regimes.md](regimes.md).
+`OnboardingScreen` is three steps (marker, unit, optional bodyweight and
+experience) ending in `CompleteOnboarding`, which seeds the trackers and the
+default templates server-side.
 
 ## Health and sensors
 

@@ -16,10 +16,11 @@ Bundle ID on all platforms: `com.brensch.schlift`.
 - **Backend** — One Rust binary (`src/main.rs`). One SQLite file in WAL
   mode. The write pool has 1 connection, so writes run in series. The read
   pool has 16. RPC handlers are in `src/server/`.
-- **Programs** — `src/regimes/` holds 3 training programs (Linear 5x5,
-  GZCLP, Wendler 5/3/1) behind the `WorkoutRegime` trait. Each program is a
-  state machine. It proposes the next session and moves its state forward
-  when you finish.
+- **Training** — You compose workout templates (ordered exercise lists).
+  The app prescribes sets, reps, rest and weight per exercise
+  (`src/exercise_catalog.rs`), and one rule progresses every exercise:
+  double progression (`src/exercise_progress.rs`). Weekly volume per
+  muscle is tracked against a 10–20 band (`src/volume.rs`).
 - **Protobuf** — `proto/workout/v1/` is the only contract between the
   backend and the clients. Generated code is committed.
 - **App** — `app/lib/` holds `screens/`, `widgets/`, `providers/` (state),
@@ -71,8 +72,8 @@ cd app && flutter test                         # app
 ```
 
 `make fuzz-api` starts a throwaway backend. It drives random workout
-sequences and checks the state invariants after every change. Program
-behaviour is covered by JSON scenarios in `src/regimes/scenarios/`.
+sequences — onboarding, template starts, mid-workout edits, double
+EndWorkout — and checks the state invariants after every change.
 
 See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what
 each layer catches.
@@ -110,8 +111,7 @@ docs/       Architecture reference and runbooks
 | Document | Subject |
 |---|---|
 | [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
-| [`docs/plans/composable-workouts.md`](docs/plans/composable-workouts.md) | **Proposal:** remove the programs; users compose their own workouts |
-| [`docs/regime-explorer.html`](docs/regime-explorer.html) | How each program progresses, stalls and deloads |
+| [`docs/plans/composable-workouts.md`](docs/plans/composable-workouts.md) | The composable-workouts design: templates, trackers, double progression |
 | [`docs/android_dev.md`](docs/android_dev.md) | Emulator and device workflow |
 | [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
 | [`docs/calorie_maths.md`](docs/calorie_maths.md) | How the calorie estimate works |

@@ -1,25 +1,22 @@
 # Workout Lifecycle
 
 This is where most of the system's complexity lives. A workout goes from a
-*proposal* (what the program thinks you should do) to an *active workout* (what
-you're actually doing) to a *completed workout* (which feeds the program's next
-proposal).
+*template* (an ordered exercise list) to an *active workout* (what you're
+actually doing) to a *completed workout* (which advances the trackers).
 
 ## The loop
 
 ```mermaid
 graph LR
-    hist[("Workout history")] -->|"schplanner<br/>summarises"| state["Program state<br/>(latest snapshot)"]
-    state -->|"regime.propose_from_state"| prop["ProposedExerciseGroups"]
-    prop -->|"user edits + StartWorkout"| active["Active workout"]
+    tmpl["Template<br/>exercises only"] -->|"StartWorkout resolves<br/>trackers + prescription"| active["Active workout"]
     active -->|"StartSet / CompleteSet"| active
     active -->|"EndWorkout"| done["Completed workout"]
-    done -->|"transition_state_on_workout_completed"| state
-    done --> hist
+    done -->|"advance_tracker<br/>(double progression)"| trk["Exercise trackers<br/>one per exercise"]
+    trk --> tmpl
 ```
 
-The cycle closes on `EndWorkout`: the finished workout is fed back through the
-regime to produce the next program state, which drives the next proposal.
+The cycle closes on `EndWorkout`: each exercise's outcome advances its
+tracker, and the next start from any template resolves the new numbers.
 
 ## Objects
 
@@ -78,32 +75,24 @@ row exists before the user has lifted anything, holding only `started_at`.
 sequenceDiagram
     participant App
     participant WS as ServerWorkoutService
-    participant SP as schplanner
-    participant R as regime
     participant DB
 
-    App->>WS: GetProposedWorkoutSchedule
-    WS->>SP: get_proposed_schedule(user_id, now)
-    SP->>DB: recent workouts + program state
-    SP->>SP: summarize_history_window<br/>summarize_recent_insights
-    SP->>R: propose_from_state(state, insights)
-    R-->>SP: ProposedExerciseGroups + RegimeContext<br/>+ suggested_workout_name
-    SP-->>WS: ProposeResult
-    WS-->>App: proposal + schedule messages
+    App->>WS: GetHome
+    WS->>DB: templates + trackers + recent history
+    WS-->>App: templates, resolved trackers,<br/>volume, recovery, suggestion
 
-    Note over App: user edits groups,<br/>weights, adds/removes exercises
-
-    App->>WS: StartWorkout(name, exercise_groups)
-    WS->>WS: generate_sets_for_group per group
-    WS->>DB: insert_workout + groups + proposed_sets
+    App->>WS: StartWorkout(template_id)
+    WS->>DB: template + trackers
+    WS->>WS: one group per exercise:<br/>tracker weight, prescription sets/reps/rest,<br/>layoff deload at resolution time
+    WS->>WS: generate_sets_for_group per group<br/>(warmup ladders for barbell compounds)
+    WS->>DB: insert_workout (+ template_id) + groups + proposed_sets
     WS->>DB: stamp session_id from user_current_session
     WS-->>App: StartWorkoutResponse (full state)
 ```
 
-The proposal is **advisory**. The client sends back whatever groups the user
-actually wants; the server regenerates sets from those groups. `prescribed_by_regime`
-on the group records whether it came from the program, which matters later for
-progression matching.
+A start with explicit `exercise_groups` (the "empty workout" path, and
+mid-workout additions via `ReplaceExerciseGroupPlan`) still works exactly as
+before; the template path just builds those groups server-side.
 
 ## Optimistic mutations
 
@@ -173,19 +162,17 @@ sequenceDiagram
     participant App
     participant WS as ServerWorkoutService
     participant DB
-    participant R as regime
 
     App->>WS: EndWorkout(workout_id, ended_at)
     WS->>DB: get_session_id_for_user
     Note over WS: captured first — end_workout clears<br/>active_workout_current, losing the link
     WS->>DB: end_workout (set end_time)
     WS->>DB: load workout, groups, proposed, completed
-    WS->>WS: build SchplannerWorkoutRecord
-
-    WS->>R: transition_state_on_workout_completed
-    R-->>WS: new program state + completion messages
-    WS->>DB: apply_program_state_for_workout(workout_id, state)
-    Note over DB: INSERT OR IGNORE into<br/>program_progression_applied.<br/>0 rows → already applied → rollback
+    WS->>DB: claim_progression(workout_id)
+    Note over DB: INSERT OR IGNORE into progression_applied.<br/>0 rows → already applied → no tracker moves
+    WS->>WS: session_outcomes per exercise
+    WS->>WS: advance_tracker (double progression)
+    WS->>DB: upsert trackers + progression messages
 
     alt in a session
         WS->>DB: refresh_participant_for_user (final snapshot)
@@ -201,10 +188,10 @@ Two ordering constraints worth knowing, both already commented in the source:
 2. **The participant blob is refreshed before leaving the session**, so peers
    still polling see your finished workout rather than a cleared slot.
 
-Progression is idempotent via the `program_progression_applied` ledger — a
-retried `EndWorkout` cannot advance your program twice. This is covered by
-`end_workout_is_idempotent_and_does_not_double_progress` in
-`src/server/workout.rs`.
+Progression is idempotent via the `progression_applied` ledger — a retried
+`EndWorkout` cannot move a tracker twice. Covered by
+`end_workout_is_idempotent` in `src/server/workout_tests.rs` and a fuzz
+invariant.
 
 ## Crash recovery
 
@@ -216,7 +203,7 @@ snapshot.
 Fields that are **not persisted** and are therefore lost on recovery:
 
 - `ProposedSet.is_amrap` and `ProposedSet.instruction`
-- `ExerciseGroup.instruction` (regime coaching text)
+- `ExerciseGroup.instruction` (coaching text)
 
 These are populated when a proposal is converted into a workout and exist only
 in memory. After a crash, AMRAP markers and coaching text disappear from an
@@ -229,5 +216,5 @@ in-progress workout even though the sets themselves are intact.
 | Warmup generation, plate snapping | `src/workout/planning.rs` |
 | State transitions | `src/workout/reducer.rs` |
 | Next-up-set derivation | `src/progress.rs` |
-| History summarisation | `src/schplanner.rs` |
+| Prescription + progression + volume | `src/exercise_catalog.rs`, `src/exercise_progress.rs`, `src/volume.rs` |
 | Client-side mirror of all the above | `app/lib/providers/workout_provider.dart`, `app/lib/logic/` |
