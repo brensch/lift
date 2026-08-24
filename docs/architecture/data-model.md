@@ -10,9 +10,7 @@ The suffix tells you the table's shape:
 | Suffix | Meaning | Example |
 |---|---|---|
 | `_current` | One row per key, holding the latest value. Overwritten in place. | `users_current`, `session_participants_current` |
-| `_latest` | Same idea, for a cached protobuf response. | `training_program_state_latest` |
-| `_events` | Append-only log. | `workout_events`, `user_message_events` |
-| `_cache` | Derived, safe to delete and recompute. | `proposed_schedule_cache` |
+| `_events` | Historically an append-only log. | `user_message_events` |
 
 Note `user_message_events` is a misnomer — it has `PRIMARY KEY(user_id, message_key)`
 and is upserted, so it is a `_current` table despite the name.
@@ -41,13 +39,13 @@ erDiagram
         INTEGER start_time
         INTEGER end_time "0 = in progress"
         TEXT session_id "'' = solo"
+        TEXT template_id "'' = started empty"
     }
     exercise_groups {
         TEXT id PK
         TEXT workout_id FK
         TEXT name
         INTEGER workout_order
-        INTEGER prescribed_by_regime
         INTEGER interleave_warmups
         TEXT instruction
         BLOB exercise_configs_blob
@@ -63,7 +61,6 @@ erDiagram
         INTEGER warmup
         INTEGER cancelled
         INTEGER is_amrap
-        BLOB progression_blob
     }
     completed_sets {
         TEXT id PK
@@ -147,49 +144,57 @@ erDiagram
 
 See [auth.md](auth.md).
 
-## Program state and progression
+## Templates, trackers and progression
 
 ```mermaid
 erDiagram
-    users_current ||--o| training_program_state_latest : "has"
-    users_current ||--o| proposed_schedule_cache : "has"
-    workouts ||--o| program_progression_applied : "claims"
+    users_current ||--o{ workout_templates : "keeps"
+    users_current ||--o{ exercise_trackers : "one per exercise"
+    workouts ||--o| progression_applied : "claims"
 
-    training_program_state_latest {
-        TEXT user_id PK
-        BLOB response_blob "GetActiveTrainingProgramStateResponse"
-        INTEGER updated_at
+    workout_templates {
+        TEXT id PK
+        TEXT user_id
+        TEXT name
+        INTEGER template_order
+        BLOB template_blob "proto WorkoutTemplate"
     }
-    proposed_schedule_cache {
+    exercise_trackers {
         TEXT user_id PK
-        BLOB response_blob
-        INTEGER updated_at
+        INTEGER exercise PK
+        REAL working_weight "lb"
+        INTEGER current_reps "position in the rep range"
+        INTEGER consecutive_misses
+        INTEGER last_performed_at
+        INTEGER override_sets "0 = derived"
+        INTEGER override_rep_low
+        INTEGER override_rep_high
+        TEXT source "workout:<id> | manual | migration | onboarding"
     }
-    program_progression_applied {
+    progression_applied {
         TEXT workout_id PK "idempotency ledger"
         TEXT user_id
         INTEGER applied_at
     }
 ```
 
-`program_progression_applied` is an idempotency ledger. `EndWorkout` claims the
-`workout_id` with `INSERT OR IGNORE` inside the same transaction that writes the
-new program state (`src/db/cache.rs:82`). If the claim affects zero rows,
-progression was already applied and the write is rolled back — so a retried or
-duplicated `EndWorkout` cannot double-advance a program.
-
-**There is only a `_latest` snapshot — no history table.** See
-[regimes.md](regimes.md#no-history).
+- A template holds exercises only; sets/reps/rest/weight resolve from the
+  prescription (`src/exercise_catalog.rs`) and the tracker at start time.
+- A tracker row is optional: no row means catalog opener weight and the
+  derived prescription.
+- `progression_applied` is the idempotency ledger. `EndWorkout` claims the
+  `workout_id` with `INSERT OR IGNORE` before advancing any tracker, so a
+  retried or duplicated `EndWorkout` cannot move a tracker twice.
+- `schema_migrations` holds one row per one-time migration
+  (`composable_workouts_v1` converted the old program-state world; see
+  `src/db/migration.rs`).
 
 ## Everything else
 
 | Table | Purpose |
 |---|---|
-| `user_settings_current` | Per-user settings, keyed by `(user_id, setting_type)` |
-| `workout_drafts_current` | Unsaved home-screen workout draft |
-| `profile_exercise_groups` | Saved exercise groups reusable across workouts |
+| `user_settings_current` | Per-user settings, keyed by `(user_id, setting_type)` — the weight unit lives here |
 | `user_message_events` | Coaching/progression messages, upserted by `message_key`, soft-dismissed via `dismissed_at` |
-| `workout_events` | **Write-only.** Appended by `AppendWorkoutMutations`, never read — `RehydrateWorkoutFromEvents` is unimplemented |
 | `workout_heart_rate_samples` | Heart rate from the watch, one row per sample |
 
 ## Referential integrity
