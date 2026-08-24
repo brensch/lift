@@ -248,8 +248,19 @@ impl ServerWorkoutService {
                 crate::workout::generate_sets_for_group(&g.id, g, 0, unit);
         }
 
+        // Per-exercise "where you're up to": the weight/reps the app prefills
+        // when you add an exercise to a workout. Built after `proposed_groups` so
+        // the regime's prescription for today wins over the derived progression.
+        let exercise_statuses = crate::exercise_progress::exercise_statuses_for_schedule(
+            &history,
+            &proposed_groups,
+            &crate::recovery::per_muscle_recovery(&history, now, &regime.recovery_profile()),
+            unit,
+            now,
+        );
+
         let response = GetProposedWorkoutScheduleResponse {
-            exercise_statuses: Vec::new(),
+            exercise_statuses,
             active_workout_id,
             proposed_groups,
             regime_context: Some(proposal.regime_context),
@@ -369,13 +380,36 @@ impl ServerWorkoutService {
         // the stored weight would render "180 → 150" (a phantom decrease) when
         // the user deloaded to 145 and progressed to 150. With no layoff,
         // adjusted_prev == prev_payload and this is unchanged.
-        let messages = completion_messages_for_regime(
+        let mut messages = completion_messages_for_regime(
             regime_type,
             &adjusted_prev,
             &payload,
             &slot_outcomes,
             &workout.workout.id,
         );
+        // Everything the program *didn't* prescribe progresses too. Derived from
+        // history with this workout included, so the note says what you'll lift
+        // next time for the accessories you picked yourself.
+        let unit = weight_unit_from_state(&adjusted_prev);
+        let mut history_with_workout: Vec<SchplannerWorkoutRecord> = history
+            .iter()
+            .filter(|record| record.workout.id != workout.workout.id)
+            .cloned()
+            .collect();
+        history_with_workout.push(workout.clone());
+        let next_weights = crate::exercise_progress::derive_exercise_progressions(
+            &history_with_workout,
+            unit,
+        )
+        .into_iter()
+        .map(|(exercise, progression)| (exercise, progression.target_weight))
+        .collect();
+        messages.extend(accessory_completion_messages(
+            &crate::exercise_progress::performed_working_weights(workout),
+            &next_weights,
+            &prescribed,
+            &workout.workout.id,
+        ));
         if !messages.is_empty() {
             self.db
                 .upsert_user_message_events(user_id, &messages)

@@ -102,6 +102,20 @@ List<WorkingSetSpec> materializeWorkingSetsForConfig(
   return out;
 }
 
+/// The warmup intent to send alongside a group plan.
+///
+/// The planned sets are working sets only — the server materializes the ladders
+/// — so the "does this exercise want warmups?" toggle has to travel separately.
+/// Always send one, even when it's empty: an absent plan means "don't change the
+/// warmups", while an empty one means "no warmups", and the toggle needs to be
+/// able to say both.
+GroupWarmupPlan warmupPlanFromConfigs(List<ExerciseTypeConfig> configs) {
+  return GroupWarmupPlan()
+    ..exercises.addAll(
+      configs.where((c) => c.includeWarmup).map((c) => c.exercise),
+    );
+}
+
 /// Expand a group's configs into the flat planned-set list: warmups first
 /// (interleaved round-robin for supersets when asked), then working sets
 /// interleaved by round.
