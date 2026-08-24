@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../providers/multiplayer_provider.dart';
 import '../../widgets/set_log.dart';
 import '../../widgets/dialogs/end_workout_dialog.dart';
 import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
+import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import 'current_exercise_card.dart';
 import 'exercise_list_card.dart';
@@ -515,27 +517,26 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
-    showAddExerciseDialog(
-      context,
+    // Pick movements only — the app prescribes weight, sets, reps, rest
+    // and warmups from each exercise's tracker, same as a template start.
+    // Adjusting the numbers is a separate flow (edit the group after).
+    final added = <Exercise>{};
+    showExercisePicker(
+      context: context,
       trackers: wp.trackers,
-      onAdd: (name, sets, interleaveWarmups, exerciseConfigs, restConfig) {
-        final finalName = name.isNotEmpty
-            ? name
-            : exerciseConfigs
-                  .map(
-                    (c) =>
-                        exerciseNames[Exercise.valueOf(c.exercise.value)] ??
-                        '?',
-                  )
-                  .join(' / ');
-
-        wp.addExerciseGroup(
-          name: finalName,
-          sets: sets,
-          interleaveWarmups: interleaveWarmups,
-          exerciseConfigs: exerciseConfigs,
-          restConfig: restConfig,
-        );
+      isSelected: (e) =>
+          added.contains(e) ||
+          wp.exerciseGroups.any(
+            (g) => g.exercise == e || g.exercises.contains(e),
+          ),
+      onToggle: (exercise, selected) {
+        if (!selected) {
+          added.remove(exercise);
+          return;
+        }
+        if (added.add(exercise)) {
+          unawaited(wp.addPrescribedExercises([exercise]));
+        }
       },
     );
   }

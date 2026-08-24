@@ -1510,6 +1510,35 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
+
+  /// Add exercises to the active workout with the app in charge of the
+  /// numbers: one group per exercise, weight/sets/reps/rest/warmups from
+  /// its tracker — exactly what a template start would prescribe. The
+  /// user picks movements; adjusting a weight is its own flow (edit the
+  /// group, or the tracker sheet).
+  Future<void> addPrescribedExercises(List<Exercise> exercises) async {
+    for (final exercise in exercises) {
+      final tracker = trackerFor(exercise);
+      final config = ExerciseTypeConfig()
+        ..exercise = exercise
+        ..startWeight = tracker?.workingWeight ?? 0
+        ..endWeight = tracker?.workingWeight ?? 0
+        ..reps = tracker?.targetReps ?? 8
+        ..includeWarmup = tracker?.includeWarmup ?? false;
+      if (tracker != null) {
+        config.restConfig = RestConfig()
+          ..restAfterSuccess = tracker.restSeconds
+          ..restAfterFailure = tracker.restSecondsFailure;
+      }
+      await addExerciseGroup(
+        name: exerciseNames[exercise] ?? 'Exercise',
+        sets: tracker?.sets ?? 3,
+        interleaveWarmups: false,
+        exerciseConfigs: [config],
+      );
+    }
+  }
+
   Future<void> addExerciseGroup({
     required String name,
     required int sets,
@@ -1621,6 +1650,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // Fire-and-forget: never blocks workout completion
       _writeToHealthPlatform(ended);
+      // The trackers just advanced server-side; pull the new numbers so
+      // home shows them the moment the user lands back on it.
+      unawaited(refreshHome());
 
       if (fireEndedCallback) {
         onWorkoutEnded?.call(ended.id);
