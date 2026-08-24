@@ -46,42 +46,6 @@ class SettingsServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getSettings, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.GetTrainingProgramCatalogResponse>
-      getTrainingProgramCatalog(
-    $0.GetTrainingProgramCatalogRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getTrainingProgramCatalog, request,
-        options: options);
-  }
-
-  $grpc.ResponseFuture<$0.GetActiveTrainingProgramStateResponse>
-      getActiveTrainingProgramState(
-    $0.GetActiveTrainingProgramStateRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getActiveTrainingProgramState, request,
-        options: options);
-  }
-
-  $grpc.ResponseFuture<$0.SetActiveTrainingProgramStateResponse>
-      setActiveTrainingProgramState(
-    $0.SetActiveTrainingProgramStateRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$setActiveTrainingProgramState, request,
-        options: options);
-  }
-
-  $grpc.ResponseFuture<$0.GetTrainingProgramStateHistoryResponse>
-      getTrainingProgramStateHistory(
-    $0.GetTrainingProgramStateHistoryRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getTrainingProgramStateHistory, request,
-        options: options);
-  }
-
   // method descriptors
 
   static final _$updateSetting =
@@ -94,30 +58,6 @@ class SettingsServiceClient extends $grpc.Client {
           '/workout.v1.SettingsService/GetSettings',
           ($0.GetSettingsRequest value) => value.writeToBuffer(),
           $0.GetSettingsResponse.fromBuffer);
-  static final _$getTrainingProgramCatalog = $grpc.ClientMethod<
-          $0.GetTrainingProgramCatalogRequest,
-          $0.GetTrainingProgramCatalogResponse>(
-      '/workout.v1.SettingsService/GetTrainingProgramCatalog',
-      ($0.GetTrainingProgramCatalogRequest value) => value.writeToBuffer(),
-      $0.GetTrainingProgramCatalogResponse.fromBuffer);
-  static final _$getActiveTrainingProgramState = $grpc.ClientMethod<
-          $0.GetActiveTrainingProgramStateRequest,
-          $0.GetActiveTrainingProgramStateResponse>(
-      '/workout.v1.SettingsService/GetActiveTrainingProgramState',
-      ($0.GetActiveTrainingProgramStateRequest value) => value.writeToBuffer(),
-      $0.GetActiveTrainingProgramStateResponse.fromBuffer);
-  static final _$setActiveTrainingProgramState = $grpc.ClientMethod<
-          $0.SetActiveTrainingProgramStateRequest,
-          $0.SetActiveTrainingProgramStateResponse>(
-      '/workout.v1.SettingsService/SetActiveTrainingProgramState',
-      ($0.SetActiveTrainingProgramStateRequest value) => value.writeToBuffer(),
-      $0.SetActiveTrainingProgramStateResponse.fromBuffer);
-  static final _$getTrainingProgramStateHistory = $grpc.ClientMethod<
-          $0.GetTrainingProgramStateHistoryRequest,
-          $0.GetTrainingProgramStateHistoryResponse>(
-      '/workout.v1.SettingsService/GetTrainingProgramStateHistory',
-      ($0.GetTrainingProgramStateHistoryRequest value) => value.writeToBuffer(),
-      $0.GetTrainingProgramStateHistoryResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.SettingsService')
@@ -143,45 +83,6 @@ abstract class SettingsServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.GetSettingsRequest.fromBuffer(value),
             ($0.GetSettingsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetTrainingProgramCatalogRequest,
-            $0.GetTrainingProgramCatalogResponse>(
-        'GetTrainingProgramCatalog',
-        getTrainingProgramCatalog_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetTrainingProgramCatalogRequest.fromBuffer(value),
-        ($0.GetTrainingProgramCatalogResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetActiveTrainingProgramStateRequest,
-            $0.GetActiveTrainingProgramStateResponse>(
-        'GetActiveTrainingProgramState',
-        getActiveTrainingProgramState_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetActiveTrainingProgramStateRequest.fromBuffer(value),
-        ($0.GetActiveTrainingProgramStateResponse value) =>
-            value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.SetActiveTrainingProgramStateRequest,
-            $0.SetActiveTrainingProgramStateResponse>(
-        'SetActiveTrainingProgramState',
-        setActiveTrainingProgramState_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.SetActiveTrainingProgramStateRequest.fromBuffer(value),
-        ($0.SetActiveTrainingProgramStateResponse value) =>
-            value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetTrainingProgramStateHistoryRequest,
-            $0.GetTrainingProgramStateHistoryResponse>(
-        'GetTrainingProgramStateHistory',
-        getTrainingProgramStateHistory_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetTrainingProgramStateHistoryRequest.fromBuffer(value),
-        ($0.GetTrainingProgramStateHistoryResponse value) =>
-            value.writeToBuffer()));
   }
 
   $async.Future<$0.UpdateSettingResponse> updateSetting_Pre(
@@ -200,49 +101,4 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetSettingsResponse> getSettings(
       $grpc.ServiceCall call, $0.GetSettingsRequest request);
-
-  $async.Future<$0.GetTrainingProgramCatalogResponse>
-      getTrainingProgramCatalog_Pre($grpc.ServiceCall $call,
-          $async.Future<$0.GetTrainingProgramCatalogRequest> $request) async {
-    return getTrainingProgramCatalog($call, await $request);
-  }
-
-  $async.Future<$0.GetTrainingProgramCatalogResponse> getTrainingProgramCatalog(
-      $grpc.ServiceCall call, $0.GetTrainingProgramCatalogRequest request);
-
-  $async.Future<$0.GetActiveTrainingProgramStateResponse>
-      getActiveTrainingProgramState_Pre(
-          $grpc.ServiceCall $call,
-          $async.Future<$0.GetActiveTrainingProgramStateRequest>
-              $request) async {
-    return getActiveTrainingProgramState($call, await $request);
-  }
-
-  $async.Future<$0.GetActiveTrainingProgramStateResponse>
-      getActiveTrainingProgramState($grpc.ServiceCall call,
-          $0.GetActiveTrainingProgramStateRequest request);
-
-  $async.Future<$0.SetActiveTrainingProgramStateResponse>
-      setActiveTrainingProgramState_Pre(
-          $grpc.ServiceCall $call,
-          $async.Future<$0.SetActiveTrainingProgramStateRequest>
-              $request) async {
-    return setActiveTrainingProgramState($call, await $request);
-  }
-
-  $async.Future<$0.SetActiveTrainingProgramStateResponse>
-      setActiveTrainingProgramState($grpc.ServiceCall call,
-          $0.SetActiveTrainingProgramStateRequest request);
-
-  $async.Future<$0.GetTrainingProgramStateHistoryResponse>
-      getTrainingProgramStateHistory_Pre(
-          $grpc.ServiceCall $call,
-          $async.Future<$0.GetTrainingProgramStateHistoryRequest>
-              $request) async {
-    return getTrainingProgramStateHistory($call, await $request);
-  }
-
-  $async.Future<$0.GetTrainingProgramStateHistoryResponse>
-      getTrainingProgramStateHistory($grpc.ServiceCall call,
-          $0.GetTrainingProgramStateHistoryRequest request);
 }
