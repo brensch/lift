@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../gen/workout/v1/workout.pb.dart' show ExerciseTracker;
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
@@ -32,6 +35,7 @@ Future<void> showExercisePicker({
   required BuildContext context,
   required bool Function(Exercise) isSelected,
   required void Function(Exercise exercise, bool selected) onToggle,
+  List<ExerciseTracker> trackers = const [],
 }) {
   return showModalBottomSheet(
     context: context,
@@ -40,6 +44,7 @@ Future<void> showExercisePicker({
     builder: (ctx) => _ExercisePickerSheet(
       isSelected: isSelected,
       onToggle: onToggle,
+      trackers: trackers,
     ),
   );
 }
@@ -47,22 +52,41 @@ Future<void> showExercisePicker({
 class _ExercisePickerSheet extends StatefulWidget {
   final bool Function(Exercise) isSelected;
   final void Function(Exercise exercise, bool selected) onToggle;
+  final List<ExerciseTracker> trackers;
 
-  const _ExercisePickerSheet({required this.isSelected, required this.onToggle});
+  const _ExercisePickerSheet({
+    required this.isSelected,
+    required this.onToggle,
+    required this.trackers,
+  });
 
   @override
   State<_ExercisePickerSheet> createState() => _ExercisePickerSheetState();
 }
 
 class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
+  static const _machinesPrefKey = 'picker_show_machines';
+
   final TextEditingController _searchController = TextEditingController();
   final Set<Exercise> _selected = {};
   String _query = '';
   BodyPart? _filter; // null = All
+  // Default to rack-and-dumbbell exercises: at the squat rack you should
+  // not have to scroll past machines you would have to go hunting for.
+  // The toggle persists.
+  bool _showMachines = false;
+  Map<int, EquipmentKind>? _equipment;
 
   @override
   void initState() {
     super.initState();
+    if (widget.trackers.isNotEmpty) {
+      _equipment = {
+        for (final tracker in widget.trackers)
+          tracker.exercise.value: tracker.equipment,
+      };
+    }
+    unawaited(_loadMachinesPref());
     for (final info in exerciseCatalog) {
       if (widget.isSelected(info.exercise)) _selected.add(info.exercise);
     }
@@ -79,10 +103,36 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     super.dispose();
   }
 
+  Future<void> _loadMachinesPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _showMachines = prefs.getBool(_machinesPrefKey) ?? false);
+  }
+
+  Future<void> _setShowMachines(bool value) async {
+    setState(() => _showMachines = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_machinesPrefKey, value);
+  }
+
+  bool _isMachineOrCable(Exercise exercise) {
+    final kind = _equipment?[exercise.value];
+    return kind == EquipmentKind.EQUIPMENT_KIND_MACHINE ||
+        kind == EquipmentKind.EQUIPMENT_KIND_CABLE;
+  }
+
   List<ExerciseInfo> get _filtered {
     final q = _query.trim().toLowerCase();
     return exerciseCatalog.where((info) {
       if (_filter != null && !info.bodyParts.contains(_filter)) return false;
+      // Searching overrides the equipment filter — a typed name always wins.
+      if (_equipment != null &&
+          !_showMachines &&
+          q.isEmpty &&
+          _isMachineOrCable(info.exercise) &&
+          !_selected.contains(info.exercise)) {
+        return false;
+      }
       if (q.isEmpty) return true;
       return info.name.toLowerCase().contains(q);
     }).toList();
@@ -190,6 +240,15 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                         onTap: () => setState(
                           () => _filter = _filter == part ? null : part,
                         ),
+                      ),
+                    if (_equipment != null)
+                      _FilterChip(
+                        label: _showMachines
+                            ? 'HIDE MACHINES'
+                            : 'SHOW MACHINES',
+                        color: colorScheme.tertiary,
+                        selected: _showMachines,
+                        onTap: () => _setShowMachines(!_showMachines),
                       ),
                   ],
                 ),

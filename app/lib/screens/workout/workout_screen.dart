@@ -16,7 +16,6 @@ import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import 'current_exercise_card.dart';
 import 'exercise_list_card.dart';
-import 'exschplanation_page.dart';
 import 'workout_panels.dart';
 
 class WorkoutScreen extends StatefulWidget {
@@ -89,11 +88,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final logProposedSets = sessionLedgerProposed;
     final logCompletedSets = sessionLedgerCompleted;
 
-    final exschplanationSections = _buildExschplanationSections(wp);
-    // Show the Schplan tab when there are per-lift notes OR a cycle-phase
-    // explanation to surface.
-    final hasExschplanation =
-        exschplanationSections.isNotEmpty || wp.regimeContext != null;
     final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
     // Overall progress across every working set, for the session strip's bar.
@@ -150,7 +144,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       const PageTabItem('Workout'),
       PageTabItem('Log', count: loggedCount > 0 ? loggedCount : null),
       const PageTabItem('Heart'),
-      if (hasExschplanation) const PageTabItem('Schplan'),
     ];
 
     final workout = wp.workout!;
@@ -466,12 +459,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 )
               else
                 const NoHeartRateMonitor(),
-              // ════ PAGE 4 — exschplanation ════
-              if (hasExschplanation)
-                ExschplanationPage(
-                  sections: exschplanationSections,
-                  regimeContext: wp.regimeContext,
-                ),
             ],
           ),
         ),
@@ -530,7 +517,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
     showAddExerciseDialog(
       context,
-      exerciseStatuses: wp.exerciseStatuses,
+      trackers: wp.trackers,
       onAdd: (name, sets, interleaveWarmups, exerciseConfigs, restConfig) {
         final finalName = name.isNotEmpty
             ? name
@@ -567,7 +554,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       context,
       group: group,
       groupIndex: groupIndex,
-      exerciseStatuses: wp.exerciseStatuses,
+      trackers: wp.trackers,
       isSetDone: wp.isSetDone,
       onSave:
           (
@@ -589,59 +576,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  List<ExschplanationSection> _buildExschplanationSections(
-    WorkoutProvider wp,
-  ) {
-    final all = wp.workoutMessages;
-    final seen = <String>{};
-    final sections = <ExschplanationSection>[];
-
-    final sessionMessages = all
-        .where(
-          (m) =>
-              m.exerciseGroupId.isEmpty &&
-              m.exercise == Exercise.EXERCISE_UNSPECIFIED,
-        )
-        .where((m) => seen.add(m.messageKey))
-        .toList(growable: false);
-    if (sessionMessages.isNotEmpty) {
-      sections.add(ExschplanationSection('This session', sessionMessages));
-    }
-
-    for (final group in wp.exerciseGroups) {
-      final groupMessages = _messagesForWorkoutGroup(
-        group,
-        all,
-      ).where((m) => seen.add(m.messageKey)).toList(growable: false);
-      if (groupMessages.isEmpty) continue;
-      final title =
-          group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
-      sections.add(ExschplanationSection(title, groupMessages));
-    }
-
-    return sections;
-  }
 }
 
-List<UserMessage> _messagesForWorkoutGroup(
-  ExerciseGroupData group,
-  List<UserMessage> messages,
-) {
-  final groupId = group.group?.id ?? '';
-  final exercises = <Exercise>{group.exercise, ...group.exercises};
-  final seen = <String>{};
-  final out = <UserMessage>[];
-  for (final message in messages) {
-    final matchesGroupId =
-        groupId.isNotEmpty && message.exerciseGroupId == groupId;
-    final matchesExercise =
-        message.exerciseGroupId.isEmpty &&
-        message.exercise != Exercise.EXERCISE_UNSPECIFIED &&
-        exercises.contains(message.exercise);
-    if (!matchesGroupId && !matchesExercise) continue;
-    if (!seen.add(message.messageKey)) continue;
-    out.add(message);
-  }
-  return out;
-}
 

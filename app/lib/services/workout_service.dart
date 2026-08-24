@@ -1,5 +1,6 @@
 import 'package:grpc/grpc.dart';
 
+import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import 'package:fixnum/fixnum.dart';
@@ -15,11 +16,13 @@ class WorkoutServiceWrapper {
 
   Future<StartWorkoutResponse> startWorkout(
     String name,
-    List<ExerciseGroup> exerciseGroups,
-  ) async {
+    List<ExerciseGroup> exerciseGroups, {
+    String templateId = '',
+  }) async {
     final req = StartWorkoutRequest()
       ..name = name
-      ..exerciseGroups.addAll(exerciseGroups);
+      ..exerciseGroups.addAll(exerciseGroups)
+      ..templateId = templateId;
     return await _client.workoutService.startWorkout(req);
   }
 
@@ -64,21 +67,6 @@ class WorkoutServiceWrapper {
     return await _client.workoutService.getExerciseProgress(
       GetExerciseProgressRequest(),
     );
-  }
-
-  /// Recommended starting weights (field key -> pounds) for onboarding.
-  /// [experienceValue] is the proto ExperienceLevel enum value.
-  Future<Map<String, double>> getRecommendedStartingWeights(
-    double bodyweightKg,
-    int experienceValue,
-  ) async {
-    final resp = await _client.workoutService.getRecommendedStartingWeights(
-      GetRecommendedStartingWeightsRequest()
-        ..bodyweightKg = bodyweightKg
-        ..experience = ExperienceLevel.valueOf(experienceValue) ??
-            ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
-    );
-    return {for (final w in resp.weights) w.fieldKey: w.pounds};
   }
 
   Future<StartSetResponse> startSet(
@@ -137,16 +125,6 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<RehydrateWorkoutFromEventsResponse> rehydrateWorkoutFromEvents(
-    String workoutId, {
-    bool persist = true,
-  }) async {
-    return await _client.workoutService.rehydrateWorkoutFromEvents(
-      RehydrateWorkoutFromEventsRequest()
-        ..workoutId = workoutId
-        ..persist = persist,
-    );
-  }
 
   Future<DeleteCompletedSetResponse> deleteCompletedSet(
     String workoutId,
@@ -209,26 +187,6 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<GetProposedWorkoutScheduleResponse> getProposedWorkoutSchedule(
-    String userId,
-  ) async {
-    return await retryReadAfterReconnect(
-      operation: 'GetProposedWorkoutSchedule',
-      resetChannel: _client.resetChannel,
-      rpc: () => _client.workoutService.getProposedWorkoutSchedule(
-        GetProposedWorkoutScheduleRequest()..userId = userId,
-        options: _defaultCallOptions,
-      ),
-    );
-  }
-
-  Future<void> setNextWorkout(String sessionKey) async {
-    await _client.workoutService.setNextWorkout(
-      SetNextWorkoutRequest()..sessionKey = sessionKey,
-      options: _defaultCallOptions,
-    );
-  }
-
   Future<List<String>> dismissUserMessages(List<String> messageKeys) async {
     final response = await _client.workoutService.dismissUserMessages(
       DismissUserMessagesRequest()..messageKeys.addAll(messageKeys),
@@ -236,27 +194,68 @@ class WorkoutServiceWrapper {
     return response.dismissedMessageKeys;
   }
 
-  Future<WorkoutDraft> saveWorkoutDraft(WorkoutDraft draft) async {
-    final response = await _client.workoutService.saveWorkoutDraft(
-      SaveWorkoutDraftRequest()..draft = draft,
+  /// Everything the home screen needs in one round trip.
+  Future<GetHomeResponse> getHome() async {
+    return await retryReadAfterReconnect(
+      operation: 'GetHome',
+      resetChannel: _client.resetChannel,
+      rpc: () => _client.workoutService.getHome(
+        GetHomeRequest(),
+        options: _defaultCallOptions,
+      ),
     );
-    return response.draft;
   }
 
-  Future<void> clearWorkoutDraft() async {
-    await _client.workoutService.clearWorkoutDraft(ClearWorkoutDraftRequest());
+  Future<WorkoutTemplate> saveTemplate(WorkoutTemplate template) async {
+    final response = await _client.workoutService.saveTemplate(
+      SaveTemplateRequest()..template = template,
+    );
+    return response.template;
   }
 
-  Future<ExerciseGroup> saveProfileExerciseGroup(ExerciseGroup group) async {
-    final response = await _client.workoutService.saveProfileExerciseGroup(
-      SaveProfileExerciseGroupRequest()..group = group,
+  Future<void> deleteTemplate(String templateId) async {
+    await _client.workoutService.deleteTemplate(
+      DeleteTemplateRequest()..templateId = templateId,
     );
-    return response.group;
   }
 
-  Future<void> deleteProfileExerciseGroup(String groupId) async {
-    await _client.workoutService.deleteProfileExerciseGroup(
-      DeleteProfileExerciseGroupRequest()..groupId = groupId,
+  Future<void> reorderTemplates(List<String> templateIds) async {
+    await _client.workoutService.reorderTemplates(
+      ReorderTemplatesRequest()..templateIds.addAll(templateIds),
     );
+  }
+
+  /// Manual correction/override for one exercise. Overrides of 0 = derived.
+  Future<ExerciseTracker> setExerciseTracker({
+    required Exercise exercise,
+    required double workingWeight,
+    int overrideSets = 0,
+    int overrideRepLow = 0,
+    int overrideRepHigh = 0,
+  }) async {
+    final response = await _client.workoutService.setExerciseTracker(
+      SetExerciseTrackerRequest()
+        ..exercise = exercise
+        ..workingWeight = workingWeight
+        ..overrideSets = overrideSets
+        ..overrideRepLow = overrideRepLow
+        ..overrideRepHigh = overrideRepHigh,
+    );
+    return response.tracker;
+  }
+
+  /// Finishes setup: saves the unit, seeds trackers and default templates.
+  Future<GetHomeResponse> completeOnboarding({
+    required double bodyWeightKg,
+    required ExperienceLevel experience,
+    required WeightUnit unit,
+  }) async {
+    final response = await _client.workoutService.completeOnboarding(
+      CompleteOnboardingRequest()
+        ..bodyWeightKg = bodyWeightKg
+        ..experience = experience
+        ..unit = unit,
+    );
+    return response.home;
   }
 }

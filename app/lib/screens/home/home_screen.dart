@@ -1,27 +1,28 @@
+/// Home: your templates, your weekly volume, and one suggestion.
+///
+/// A template is an ordered list of exercises and nothing else — the
+/// server prescribes sets, reps, rest and weight from the trackers, so
+/// every card here shows the numbers the workout will actually start
+/// with. The suggestion is the template whose muscles are furthest below
+/// the 10–20 weekly-set band; it is one tap, never a gate.
+library;
+
 import 'dart:async';
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../gen/workout/v1/settings.pbenum.dart';
+import '../../logic/exercises.dart';
+import '../../logic/weight_units.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
-import '../../services/grpc_client.dart';
 import '../../services/health_service.dart';
 import '../../services/wearable_bridge_service.dart';
-import '../../services/workout_service.dart';
-import '../../logic/exercises.dart';
-import '../../logic/exercise_groups.dart';
-import '../../logic/utils.dart';
-import '../../logic/weight_units.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/common/primary_button.dart';
-import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
-import '../../widgets/phase_explanation.dart';
-import 'home_selection.dart';
-
+import 'template_editor.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,203 +32,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _draftSaveDebounce = Duration(milliseconds: 400);
-  List<ExerciseStatus>? _schedule;
-  List<HomeSelectableGroup>? _selectableGroups;
-  RegimeContext? _regimeContext;
-  TrainingStatus? _trainingStatus;
-  List<NextSessionOption> _selectableNextSessions = [];
-  bool _isSwappingSession = false;
-  String _suggestedWorkoutBaseName = '';
-  Set<int> _selectedGroupIndices = {};
-  bool _isLoading = true;
-  bool _isRefreshing = false;
   bool _isStarting = false;
-  String? _error;
-  Timer? _draftSaveTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  @override
-  void dispose() {
-    _draftSaveTimer?.cancel();
-    super.dispose();
-  }
-
-  String _getDefaultWorkoutName() {
-    return 'Workout';
-  }
-
-  Future<void> _loadData({bool refreshOnly = false}) async {
+  Future<void> _refresh() async {
     final auth = context.read<AuthProvider>();
-    final grpc = context.read<GrpcClient>();
-    final workoutService = WorkoutServiceWrapper(grpc);
-
-    setState(() {
-      if (refreshOnly && !_isLoading) {
-        _isRefreshing = true;
-      } else {
-        _isLoading = true;
-        _error = null;
-      }
-    });
-
-    try {
-      final scheduleRes = await workoutService.getProposedWorkoutSchedule(
-        auth.userId!,
-      );
-
-      if (!mounted) return;
-
-      final schedule = scheduleRes.exerciseStatuses;
-      final selectableGroups = <HomeSelectableGroup>[
-        for (int i = 0; i < scheduleRes.proposedGroups.length; i++)
-          HomeSelectableGroup.fromProposed(
-            scheduleRes.proposedGroups[i],
-            index: i,
-          ),
-        for (final group in scheduleRes.savedExerciseGroups)
-          HomeSelectableGroup.fromSaved(group),
-      ];
-
-      // Auto-select all groups tagged "recommended" on each load/refresh.
-      final autoSelected = <int>{};
-      for (int i = 0; i < selectableGroups.length; i++) {
-        if (selectableGroups[i].section == HomeGroupSection.recommended) {
-          autoSelected.add(i);
-        }
-      }
-
-      final draft = scheduleRes.hasDraft() ? scheduleRes.draft : null;
-      final selectedFromDraft = <int>{};
-      if (draft != null && draft.exerciseGroups.isNotEmpty) {
-        for (final group in draft.exerciseGroups) {
-          final idx = selectableGroups.indexWhere(
-            (candidate) => candidate.matchesDraftGroup(group),
-          );
-          if (idx != -1) selectedFromDraft.add(idx);
-        }
-      }
-
-      setState(() {
-        _schedule = schedule;
-        _selectableGroups = selectableGroups;
-        _regimeContext = scheduleRes.hasRegimeContext()
-            ? scheduleRes.regimeContext
-            : null;
-        _trainingStatus = scheduleRes.hasTrainingStatus()
-            ? scheduleRes.trainingStatus
-            : null;
-        _selectableNextSessions = scheduleRes.selectableNextSessions;
-        _suggestedWorkoutBaseName = scheduleRes.suggestedWorkoutName.trim();
-        _selectedGroupIndices = selectedFromDraft.isNotEmpty
-            ? selectedFromDraft
-            : autoSelected;
-        _isLoading = false;
-        _isRefreshing = false;
-      });
-    } catch (e) {
-      if (isUnauthenticatedError(e)) {
-        await auth.expireSession(
-          message: 'Your saved session expired. Sign in again.',
-        );
-        return;
-      }
-      if (mounted) {
-        setState(() {
-          if (_isLoading) {
-            _error = cleanErrorMessage(e);
-          }
-          _isLoading = false;
-          _isRefreshing = false;
-        });
-        if (refreshOnly && (_schedule != null || _selectableGroups != null)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Refresh failed: ${cleanErrorMessage(e)}')),
-          );
-        }
-      }
-    }
+    final userId = auth.userId;
+    if (userId == null) return;
+    await context.read<WorkoutProvider>().loadActiveWorkout(userId);
   }
 
-  Future<void> _startWorkout() async {
-    if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
-
-    // Refresh the schedule so the workout starts from the latest weights, then
-    // start immediately — the home screen now carries the context the old
-    // pre-workout briefing used to show, so there's nothing left to preview.
-    final auth = context.read<AuthProvider>();
-    final grpc = context.read<GrpcClient>();
-    final workoutService = WorkoutServiceWrapper(grpc);
-    final freshSchedule = await workoutService.getProposedWorkoutSchedule(
-      auth.userId!,
-    );
-    if (!mounted) return;
-
-    setState(() {
-      _schedule = freshSchedule.exerciseStatuses;
-      _regimeContext = freshSchedule.hasRegimeContext()
-          ? freshSchedule.regimeContext
-          : null;
-      _trainingStatus = freshSchedule.hasTrainingStatus()
-          ? freshSchedule.trainingStatus
-          : null;
-      _suggestedWorkoutBaseName = freshSchedule.suggestedWorkoutName.trim();
-    });
-
-    await _performWorkoutStart();
-  }
-
-  Future<void> _performWorkoutStart() async {
-    if (_selectedGroupIndices.isEmpty || _selectableGroups == null) return;
-
-    if (mounted) {
-      setState(() => _isStarting = true);
-    }
-
+  Future<void> _start({String templateId = ''}) async {
+    if (_isStarting) return;
+    setState(() => _isStarting = true);
     try {
-      final exerciseGroups = _buildExerciseGroupsFromSelection(
-        forWorkoutStart: true,
-      );
-      final grpc = context.read<GrpcClient>();
       final wearableBridge = context.read<WearableBridgeService>();
       final workoutProvider = context.read<WorkoutProvider>();
-
-      final workoutName = await _resolveLatestWorkoutName();
-
       final workoutId = await workoutProvider.startWorkout(
-        workoutName,
-        exerciseGroups,
+        templateId.isEmpty ? 'Workout' : '',
+        const [],
+        templateId: templateId,
       );
-
       if (workoutId != null && mounted) {
-        await WorkoutServiceWrapper(grpc).clearWorkoutDraft();
         unawaited(_setUpHealthAndWatch(wearableBridge));
       }
     } catch (e) {
-      debugPrint('Error starting workout: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
       }
-      rethrow;
     } finally {
-      if (mounted) {
-        setState(() => _isStarting = false);
-      }
+      if (mounted) setState(() => _isStarting = false);
     }
   }
 
   Future<void> _setUpHealthAndWatch(WearableBridgeService bridge) async {
-    // ONE comprehensive Health permission request, fully awaited, THEN launch the
-    // watch — never concurrently. Doing them at the same time made iOS re-present a
-    // half-answered sheet (the "Allow read → comes back unticked" bug). Requested for
-    // everyone (not just watch users) because completed workouts are saved to Health.
+    // ONE comprehensive Health permission request, fully awaited, THEN launch
+    // the watch — never concurrently (the iOS half-answered-sheet bug).
     await HealthService.requestWorkoutHealthPermissions();
     try {
       if (await bridge.isWatchAppAvailable()) {
@@ -238,986 +79,216 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _swapNextSession(String sessionKey) async {
-    if (_isSwappingSession) return;
-    setState(() => _isSwappingSession = true);
-    try {
-      final grpc = context.read<GrpcClient>();
-      final ws = WorkoutServiceWrapper(grpc);
-      await ws.setNextWorkout(sessionKey);
-      // Drop the saved draft: it holds the *previous* session's selection, which
-      // would otherwise partially re-match (e.g. squat is in both A and B) and
-      // leave the wrong exercises ticked. Clearing it makes the reload auto-select
-      // the newly-recommended exercises.
-      await ws.clearWorkoutDraft();
-      if (!mounted) return;
-      // Reload so the proposed groups, recovery strip and readiness all reflect
-      // the newly-queued session.
-      await _loadData(refreshOnly: true);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Couldn\'t swap: ${cleanErrorMessage(e)}')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSwappingSession = false);
-    }
+  Future<void> _editTemplate(WorkoutTemplate? template) async {
+    final wp = context.read<WorkoutProvider>();
+    await showTemplateEditor(context, template: template, provider: wp);
   }
 
-  void _toggleGroup(int index) {
-    setState(() {
-      if (_selectedGroupIndices.contains(index)) {
-        _selectedGroupIndices.remove(index);
-      } else {
-        _selectedGroupIndices.add(index);
-      }
-    });
-    _queueDraftSave();
-  }
-
-  Map<int, ExerciseStatus> _statusMap() {
-    final statusMap = <int, ExerciseStatus>{};
-    if (_schedule != null) {
-      for (final s in _schedule!) {
-        statusMap[s.exercise.value] = s;
-      }
-    }
-    return statusMap;
-  }
-
-  List<ExerciseGroup> _buildExerciseGroupsFromSelection({
-    required bool forWorkoutStart,
-  }) {
-    final exerciseGroups = <ExerciseGroup>[];
-    int groupOrder = 0;
-    final statusMap = _statusMap();
-
-    for (final idx in _selectedGroupIndices.toList()..sort()) {
-      final selected = _selectableGroups![idx];
-      exerciseGroups.add(
-        selected.toWorkoutGroup(
-          workoutOrder: groupOrder++,
-          statusMap: statusMap,
-          forWorkoutStart: forWorkoutStart,
-        ),
-      );
-    }
-    return exerciseGroups;
-  }
-
-  void _queueDraftSave() {
-    if (!mounted) return;
-    _draftSaveTimer?.cancel();
-    _draftSaveTimer = Timer(_draftSaveDebounce, () {
-      unawaited(_saveDraftToServer());
-    });
-  }
-
-  Future<void> _saveDraftToServer() async {
-    final auth = context.read<AuthProvider>();
-    if (auth.userId == null) return;
-    final grpc = context.read<GrpcClient>();
-    final workoutService = WorkoutServiceWrapper(grpc);
-    try {
-      final draft = WorkoutDraft()
-        ..exerciseGroups.addAll(
-          _buildExerciseGroupsFromSelection(forWorkoutStart: false),
-        )
-        ..updatedAt = Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000);
-      await workoutService.saveWorkoutDraft(draft);
-    } catch (e) {
-      debugPrint('Failed to save workout draft: $e');
-    }
-  }
-
-
-  int _estimatedWorkoutMinutes() {
-    if (_selectableGroups == null || _selectedGroupIndices.isEmpty) return 0;
-    // The server estimates each group's duration; we just sum the selected ones.
-    var totalSeconds = 0;
-    for (final idx in _selectedGroupIndices) {
-      totalSeconds += _selectableGroups![idx].estimatedDurationSeconds.toInt();
-    }
-    return (totalSeconds / 60).ceil();
-  }
-
-  String _predictedWorkoutTimeLabel() {
-    final minutes = _estimatedWorkoutMinutes();
-    if (minutes <= 0) return '--';
-    if (minutes < 60) return '${minutes}m';
-    final hours = minutes ~/ 60;
-    final rem = minutes % 60;
-    if (rem == 0) return '${hours}h';
-    return '${hours}h ${rem}m';
-  }
-
-  String _currentWorkoutBaseName() {
-    final regimeSuggested = _regimeContext?.regimeDisplayName.trim() ?? '';
-    final scheduleSuggested = _suggestedWorkoutBaseName.trim();
-    if (scheduleSuggested.isNotEmpty) return scheduleSuggested;
-    if (regimeSuggested.isNotEmpty) return regimeSuggested;
-    return _getDefaultWorkoutName();
-  }
-
-  Future<String> _resolveLatestWorkoutName() async {
-    final auth = context.read<AuthProvider>();
-    final fallbackBaseName = _currentWorkoutBaseName();
-    if (auth.userId == null) {
-      return _buildWorkoutName(fallbackBaseName);
-    }
-
-    try {
-      final grpc = context.read<GrpcClient>();
-      final scheduleRes = await WorkoutServiceWrapper(
-        grpc,
-      ).getProposedWorkoutSchedule(auth.userId!);
-      final latestBaseName = scheduleRes.suggestedWorkoutName.trim().isNotEmpty
-          ? scheduleRes.suggestedWorkoutName.trim()
-          : (scheduleRes.hasRegimeContext() &&
-                    scheduleRes.regimeContext.regimeDisplayName
-                        .trim()
-                        .isNotEmpty
-                ? scheduleRes.regimeContext.regimeDisplayName.trim()
-                : fallbackBaseName);
-      return _buildWorkoutName(latestBaseName);
-    } catch (e) {
-      debugPrint('Failed to refresh workout name before start: $e');
-      return _buildWorkoutName(fallbackBaseName);
-    }
-  }
-
-  String _buildWorkoutName(String baseName) {
-    final now = DateTime.now();
-    final dateStr =
-        "${now.year}/${now.month.toString().padLeft(2, '0')}/${now.day.toString().padLeft(2, '0')}";
-    return "$dateStr - $baseName";
-  }
-
-  Future<void> _showAddSavedGroupDialog() async {
-    final exerciseStatuses = _schedule ?? const <ExerciseStatus>[];
-    await showAddExerciseDialog(
-      context,
-      exerciseStatuses: exerciseStatuses,
-      onAdd:
-          (name, sets, interleaveWarmups, exerciseConfigs, restConfig) async {
-            final finalName = name.trim().isNotEmpty
-                ? name.trim()
-                : exerciseConfigs
-                      .map((c) => exerciseNames[c.exercise] ?? 'Exercise')
-                      .join(' / ');
-            final group = ExerciseGroup()
-              ..name = finalName
-              ..sets = sets
-              ..interleaveWarmups = interleaveWarmups
-              ..exerciseConfigs.addAll(exerciseConfigs)
-              ..instruction = '';
-            group.restConfig = restConfig;
-
-            try {
-              final saved = await WorkoutServiceWrapper(
-                context.read<GrpcClient>(),
-              ).saveProfileExerciseGroup(group);
-              if (!mounted) return;
-              setState(() {
-                _selectableGroups = [
-                  ...?_selectableGroups,
-                  HomeSelectableGroup.fromSaved(saved),
-                ];
-                _selectedGroupIndices = {
-                  ..._selectedGroupIndices,
-                  (_selectableGroups?.length ?? 1) - 1,
-                };
-              });
-              _queueDraftSave();
-            } catch (e) {
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Failed to save group: ${cleanErrorMessage(e)}',
-                  ),
-                ),
-              );
-            }
-          },
-    );
-  }
-
-  Future<void> _editGroup(int index) async {
-    final groups = _selectableGroups;
-    if (groups == null || index < 0 || index >= groups.length) return;
-    final target = groups[index];
-    final backingGroup = target.toWorkoutGroup(
-      workoutOrder: index,
-      statusMap: _statusMap(),
-      forWorkoutStart: false,
-    );
-
-    await showEditExerciseDialog(
-      context,
-      group: ExerciseGroupData(
-        exercise: target.exerciseConfigs.isNotEmpty
-            ? target.exerciseConfigs.first.exercise
-            : Exercise.EXERCISE_UNSPECIFIED,
-        sets: const [],
-        group: backingGroup,
-        exercises: target.exerciseConfigs
-            .map((cfg) => cfg.exercise)
-            .toSet()
-            .toList(),
-      ),
-      groupIndex: index,
-      exerciseStatuses: _schedule ?? const <ExerciseStatus>[],
-      isSetDone: (_) => false,
-      onSave:
-          (
-            groupIndex, {
-            required int sets,
-            required bool interleaveWarmups,
-            required List<ExerciseTypeConfig> exerciseConfigs,
-            RestConfig? restConfig,
-          }) async {
-            final original = _selectableGroups![groupIndex];
-            final updated = original.copyWith(
-              sets: sets,
-              interleaveWarmups: interleaveWarmups,
-              exerciseConfigs: exerciseConfigs,
-              restConfig: restConfig ?? RestConfig(),
-            );
-
-            if (original.section == HomeGroupSection.saved) {
-              final saveGroup = ExerciseGroup()
-                ..id = original.templateId ?? ''
-                ..name = updated.name
-                ..sets = updated.sets
-                ..interleaveWarmups = updated.interleaveWarmups
-                ..instruction = updated.explanation
-                ..exerciseConfigs.addAll(
-                  updated.exerciseConfigs.map((c) => c.deepCopy()),
-                );
-              if (updated.restConfig != null) {
-                saveGroup.restConfig = updated.restConfig!.deepCopy();
-              }
-
-              try {
-                final saved = await WorkoutServiceWrapper(
-                  context.read<GrpcClient>(),
-                ).saveProfileExerciseGroup(saveGroup);
-                if (!mounted) return;
-                setState(() {
-                  _selectableGroups![groupIndex] =
-                      HomeSelectableGroup.fromSaved(saved);
-                });
-                _queueDraftSave();
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Failed to save group changes: ${cleanErrorMessage(e)}',
-                    ),
-                  ),
-                );
-              }
-            } else {
-              if (!mounted) return;
-              setState(() {
-                _selectableGroups![groupIndex] = updated;
-              });
-              _queueDraftSave();
-            }
-          },
-    );
-  }
-
-  Future<void> _deleteSavedGroup(int index) async {
-    final groups = _selectableGroups;
-    if (groups == null || index < 0 || index >= groups.length) return;
-    final target = groups[index];
-    if (target.section != HomeGroupSection.saved ||
-        target.templateId == null) {
-      return;
-    }
-
+  Future<void> _confirmDeleteTemplate(WorkoutTemplate template) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        final colorScheme = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          title: Text(
-            'Delete ${target.name}?',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          content: const Text(
-            'This will remove the saved group from your profile.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await WorkoutServiceWrapper(
-        context.read<GrpcClient>(),
-      ).deleteProfileExerciseGroup(target.templateId!);
-      if (!mounted) return;
-      setState(() {
-        _selectableGroups!.removeAt(index);
-        _selectedGroupIndices = _selectedGroupIndices
-            .where((selected) => selected != index)
-            .map((selected) => selected > index ? selected - 1 : selected)
-            .toSet();
-      });
-      _queueDraftSave();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to delete saved group: ${cleanErrorMessage(e)}',
-          ),
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Delete ${template.name}?',
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
-      );
+        content: const Text(
+          'Your weights are safe — they live on the exercises, not the '
+          'template.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<WorkoutProvider>().deleteTemplate(template.id);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Error: $_error', style: TextStyle(color: colorScheme.error)),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _loadData, child: const Text('Retry')),
-          ],
-        ),
-      );
-    }
-
-    final ts = _trainingStatus;
-    final rc = _regimeContext;
+    final wp = context.watch<WorkoutProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final style = _readinessStyle(ts?.readinessState);
-    final liftRows = _selectedLiftRows(unit);
-    final canStart = _selectedGroupIndices.isNotEmpty && !_isStarting;
+    final home = wp.home;
 
-    return RefreshIndicator(
-      onRefresh: () => _loadData(refreshOnly: true),
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: ClampingScrollPhysics(),
-              ),
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Readiness headline ─────────────────────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          style.headline,
-                          style: TextStyle(
-                            fontSize: 34,
-                            height: 0.98,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1.4,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child:
-                            _StateTagChip(label: style.tag, accent: style.accent),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // ── Session line + Edit ────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _sessionLine(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            height: 1.25,
-                            color:
-                                colorScheme.onSurface.withValues(alpha: 0.82),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _EditButton(
-                          onTap: _showEditSheet, accent: colorScheme.tertiary),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  // ── Recovery strip ─────────────────────────────────────
-                  if (ts != null && ts.muscleRecovery.isNotEmpty)
-                    _RecoveryStripRow(muscles: _stripMuscles(ts)),
-                  // ── Phase explanation (clean) ──────────────────────────
-                  if (rc != null) ...[
-                    const SizedBox(height: 16),
-                    PhaseExplanation(
-                        context: rc, showHeadline: false, showNext: false),
-                  ],
-                  const SizedBox(height: 20),
-                  // ── Today's lifts ──────────────────────────────────────
-                  Row(
-                    children: [
-                      Text(
-                        'TODAY’S LIFTS',
-                        style: TextStyle(
-                          fontSize: 10,
-                          letterSpacing: 1.4,
-                          fontWeight: FontWeight.w800,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (_isRefreshing)
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colorScheme.tertiary,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  if (liftRows.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Text(
-                        'No exercises selected — tap Edit to add some.',
-                        style:
-                            TextStyle(color: colorScheme.tertiary, fontSize: 13),
-                      ),
-                    )
-                  else
-                    ...liftRows,
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-          // ── Start area: swap toggle + inset rounded Start button ───────
-          _buildStartArea(colorScheme, style, canStart),
-        ],
-      ),
-    );
-  }
-
-  // ── Readiness presentation ───────────────────────────────────────────────
-  _ReadinessStyle _readinessStyle(ReadinessState? state) {
-    switch (state) {
-      case ReadinessState.READINESS_STATE_RECOVERING:
-        return const _ReadinessStyle('Rest\nday.', 'Recovering', _kBlue);
-      case ReadinessState.READINESS_STATE_OVERDUE:
-        return const _ReadinessStyle('Been a\nwhile.', 'Overdue', _kAmber);
-      case ReadinessState.READINESS_STATE_AHEAD:
-        return const _ReadinessStyle('Bonus\nround.', 'Ahead', _kGreen);
-      case ReadinessState.READINESS_STATE_FIRST_TIME:
-        return const _ReadinessStyle('Ready\nto lift.', 'Ready', _kGreen);
-      case ReadinessState.READINESS_STATE_READY:
-      default:
-        return const _ReadinessStyle('Train\ntoday.', 'Train today', _kGreen);
-    }
-  }
-
-  /// The session line reflects the currently-selected exercises so it stays
-  /// accurate after an edit, e.g. "Squat · Bench Press · Barbell Row".
-  String _sessionLine() {
-    final groups = _selectableGroups;
-    if (groups == null) return '';
-    final names = <String>[];
-    for (final i in _selectedGroupIndices.toList()..sort()) {
-      if (i < 0 || i >= groups.length) continue;
-      for (final c in groups[i].exerciseConfigs) {
-        final n = exerciseNames[c.exercise] ?? '';
-        if (n.isNotEmpty && !names.contains(n)) names.add(n);
-      }
-    }
-    if (names.isEmpty) return _trainingStatus?.nextWorkoutLabel ?? '';
-    return names.join('  ·  ');
-  }
-
-  /// Next-workout muscles first (recovering ones lead), for the strip.
-  List<MuscleRecoveryStatus> _stripMuscles(TrainingStatus ts) {
-    final inNext = ts.muscleRecovery.where((m) => m.inNextWorkout).toList();
-    final list = inNext.isNotEmpty ? inNext : ts.muscleRecovery.toList();
-    list.sort((a, b) {
-      final ar = a.recovered ? 1 : 0;
-      final br = b.recovered ? 1 : 0;
-      if (ar != br) return ar - br;
-      return a.label.compareTo(b.label);
-    });
-    return list;
-  }
-
-  double _resolveWeight(
-    HomeSelectableGroup g,
-    ExerciseTypeConfig c,
-    Map<int, ExerciseStatus> statusMap,
-  ) {
-    if (g.useScheduleWeights) {
-      return statusMap[c.exercise.value]?.targetWeight ?? c.startWeight;
-    }
-    return c.startWeight;
-  }
-
-  /// One row per exercise across the currently-selected groups.
-  List<Widget> _selectedLiftRows(WeightUnit unit) {
-    final groups = _selectableGroups;
-    if (groups == null) return const [];
-    final statusMap = _statusMap();
-    final rows = <Widget>[];
-    for (final i in _selectedGroupIndices.toList()..sort()) {
-      if (i < 0 || i >= groups.length) continue;
-      final g = groups[i];
-      for (final c in g.exerciseConfigs) {
-        final w = _resolveWeight(g, c, statusMap);
-        rows.add(_LiftRow(
-          emoji: exerciseEmojis[c.exercise] ?? '🏋️',
-          name: exerciseNames[c.exercise] ?? g.name,
-          scheme: '${g.sets}×${c.reps}',
-          weight: w > 0 ? formatWeight(w, unit) : '—',
-        ));
-      }
-    }
-    return rows;
-  }
-
-  /// Label above the A/B toggle. Names the schplanner's rotation pick, and calls
-  /// out when the user has manually switched away from it.
-  Widget _swapLabel(ColorScheme cs, Color accent) {
-    String recName = '';
-    String curName = '';
-    bool haveRec = false, haveCur = false, mismatch = false;
-    for (final o in _selectableNextSessions) {
-      final short = o.label.split('·').first.trim();
-      if (o.isRecommended) {
-        recName = short;
-        haveRec = true;
-      }
-      if (o.isCurrent) {
-        curName = short;
-        haveCur = true;
-      }
-    }
-    mismatch = haveRec && haveCur && recName != curName;
-
-    final Widget text = mismatch
-        ? RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurfaceVariant.withValues(alpha: 0.75),
-              ),
-              children: [
-                TextSpan(
-                  text: 'Schplanner’s next is $recName',
-                  style: TextStyle(color: accent, fontWeight: FontWeight.w800),
-                ),
-                TextSpan(text: '  ·  you’ve switched to $curName'),
-              ],
-            ),
-          )
-        : Text(
-            haveRec
-                ? '· $recName is the schplanner’s pick'
-                : '· tap to switch',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-          );
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
-      child: Row(
-        children: [
-          Text('UP NEXT',
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 1.4,
-                fontWeight: FontWeight.w800,
-                color: cs.onSurfaceVariant,
-              )),
-          const SizedBox(width: 6),
-          Expanded(child: text),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStartArea(ColorScheme cs, _ReadinessStyle style, bool canStart) {
-    final est = _predictedWorkoutTimeLabel();
-    // The app tab bar collapses on the home screen, so this Start area is the
-    // bottom-most element. The Scaffold zeroes viewPadding for the body when a
-    // bottom bar exists, so read the raw window inset to actually clear the
-    // gesture bar / curved corners, and add generous fixed padding on top.
-    final safeBottom = MediaQueryData.fromView(View.of(context)).padding.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 6, 20, 24 + safeBottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_selectableNextSessions.length >= 2) ...[
-            _swapLabel(cs, style.accent),
-            _SessionSwapToggle(
-              options: _selectableNextSessions,
-              isSwapping: _isSwappingSession,
-              onSwap: _swapNextSession,
-              accent: style.accent,
-            ),
-            const SizedBox(height: 12),
-          ],
-          PrimaryButton(
-            label: 'Start workout',
-            trailing: est != '--' ? '· $est' : null,
-            accent: style.accent,
-            loading: _isStarting,
-            onPressed: canStart ? _startWorkout : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showEditSheet() async {
-    final groups = _selectableGroups;
-    if (groups == null) return;
-    final unit = context.read<SettingsProvider>().weightUnit;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => _EditSheet(
-        groups: groups,
-        currentSelection: () => _selectedGroupIndices,
-        unit: unit,
-        statusMap: _statusMap(),
-        resolveWeight: _resolveWeight,
-        onToggle: _toggleGroup,
-        // These open a dialog on TOP of the sheet (root navigator) and complete
-        // when it closes — the sheet stays put and refreshes itself, instead of
-        // being dismissed.
-        onEdit: _editGroup,
-        onDelete: _deleteSavedGroup,
-        onAddSaved: _showAddSavedGroupDialog,
-      ),
-    );
-  }
-}
-
-// ─── Concept B home widgets ───────────────────────────────────────────────────
-
-const Color _kGreen = AppTheme.accentGreen;
-const Color _kAmber = AppTheme.accentAmber;
-const Color _kBlue = AppTheme.accentBlue;
-
-class _ReadinessStyle {
-  final String headline; // may contain a newline for the big two-line title
-  final String tag;
-  final Color accent;
-  const _ReadinessStyle(this.headline, this.tag, this.accent);
-}
-
-class _StateTagChip extends StatelessWidget {
-  final String label;
-  final Color accent;
-  const _StateTagChip({required this.label, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.14),
-        borderRadius: AppTheme.brSm,
-        border: Border.all(color: accent.withValues(alpha: 0.34)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.9,
-              color: accent,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EditButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final Color accent;
-  const _EditButton({required this.onTap, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.tune_rounded, size: 14, color: accent),
-              const SizedBox(width: 5),
-              Text('Edit',
-                  style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w900, color: accent)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RecoveryStripRow extends StatelessWidget {
-  final List<MuscleRecoveryStatus> muscles;
-  const _RecoveryStripRow({required this.muscles});
-
-  static String _hoursLabel(int hours) {
-    if (hours >= 24) {
-      final days = (hours / 24).round();
-      return days <= 1 ? '1d' : '${days}d';
-    }
-    return '${hours}h';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final m in muscles)
-          Builder(builder: (context) {
-            final accent = m.recovered ? _kGreen : _kAmber;
-            final hours = m.hoursRemaining.toInt();
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: AppTheme.brSm,
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.09)),
-              ),
-              child: Row(
+    if (home == null) {
+      return Center(
+        child: wp.lastLoadError != null
+            ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration:
-                        BoxDecoration(color: accent, shape: BoxShape.circle),
+                  const Text('Could not reach the gym computer.'),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _refresh,
+                    child: const Text('RETRY'),
                   ),
-                  const SizedBox(width: 6),
-                  Text(m.label,
-                      style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
-                          color: accent)),
-                  if (!m.recovered && hours > 0) ...[
-                    const SizedBox(width: 5),
-                    Text(_hoursLabel(hours),
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white.withValues(alpha: 0.45))),
-                  ],
                 ],
+              )
+            : const CircularProgressIndicator(),
+      );
+    }
+
+    final templates = home.templates;
+    final suggestedId = home.suggestedTemplateId;
+
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+        children: [
+          _VolumeCard(volume: home.volume),
+          const SizedBox(height: 16),
+          if (templates.isEmpty) _EmptyState(onCreate: () => _editTemplate(null)),
+          // Suggested first, then user order.
+          for (final template in _ordered(templates, suggestedId))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _TemplateCard(
+                template: template,
+                trackers: wp.trackers,
+                unit: unit,
+                suggested: template.id == suggestedId,
+                suggestionReason:
+                    template.id == suggestedId ? home.suggestionReason : '',
+                isStarting: _isStarting,
+                onStart: () => _start(templateId: template.id),
+                onEdit: () => _editTemplate(template),
+                onDelete: () => _confirmDeleteTemplate(template),
               ),
-            );
-          }),
-      ],
+            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _editTemplate(null),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text(
+                    'NEW TEMPLATE',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isStarting ? null : () => _start(),
+                  icon: const Icon(Icons.bolt, size: 18),
+                  label: const Text(
+                    'START EMPTY',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  List<WorkoutTemplate> _ordered(
+    List<WorkoutTemplate> templates,
+    String suggestedId,
+  ) {
+    if (suggestedId.isEmpty) return templates;
+    return [
+      ...templates.where((t) => t.id == suggestedId),
+      ...templates.where((t) => t.id != suggestedId),
+    ];
   }
 }
 
-class _LiftRow extends StatelessWidget {
-  final String emoji;
-  final String name;
-  final String scheme;
-  final String weight;
-  const _LiftRow({
-    required this.emoji,
-    required this.name,
-    required this.scheme,
-    required this.weight,
-  });
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onCreate;
+  const _EmptyState({required this.onCreate});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: cs.outline.withValues(alpha: 0.25)),
-        ),
+        borderRadius: AppTheme.brMd,
+        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 15)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 14)),
+          const Text('🏗️', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 12),
+          const Text(
+            'No templates yet',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
-          Text(scheme,
-              style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(width: 12),
-          Text(weight,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  fontFeatures: [FontFeature.tabularFigures()])),
+          const SizedBox(height: 6),
+          Text(
+            'A template is just a list of exercises. The app handles the '
+            'sets, reps and weight.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: onCreate,
+            child: const Text('CREATE ONE'),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SessionSwapToggle extends StatelessWidget {
-  final List<NextSessionOption> options;
-  final bool isSwapping;
-  final ValueChanged<String> onSwap;
-  final Color accent;
-  const _SessionSwapToggle({
-    required this.options,
-    required this.isSwapping,
-    required this.onSwap,
-    required this.accent,
-  });
+// ── Weekly volume ────────────────────────────────────────────────────────────
+
+/// Ten compact bars: weighted hard sets per muscle in the last 7 days,
+/// against the 10–20 band. This is the honesty panel — the app prescribes
+/// per-exercise numbers, so weekly volume is decided by what you pick, and
+/// this is where you see it.
+class _VolumeCard extends StatelessWidget {
+  final List<MuscleVolume> volume;
+  const _VolumeCard({required this.volume});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    if (volume.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: AppTheme.brSm,
+        borderRadius: AppTheme.brMd,
+        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final o in options)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: (o.isCurrent || isSwapping) ? null : () => onSwap(o.key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: o.isCurrent ? accent.withValues(alpha: 0.18) : Colors.transparent,
-                    borderRadius: AppTheme.brSm,
-                  ),
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Sparkle marks the schplanner's rotation pick (what it
-                        // was going to do), regardless of what's selected.
-                        if (o.isRecommended) ...[
-                          Icon(Icons.auto_awesome_rounded,
-                              size: 13, color: accent),
-                          const SizedBox(width: 5),
-                        ],
-                        Flexible(
-                          child: Text(
-                            // "Workout A · Squat, Bench, Row" → "Workout A"
-                            o.label.split('·').first.trim(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight:
-                                  o.isCurrent ? FontWeight.w800 : FontWeight.w700,
-                              color: o.isCurrent
-                                  ? accent
-                                  : (o.isRecommended
-                                      ? accent.withValues(alpha: 0.85)
-                                      : cs.onSurfaceVariant),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          Text(
+            'SETS THIS WEEK · AIM FOR 10–20 PER MUSCLE',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final entry in volume)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _VolumeRow(entry: entry),
             ),
         ],
       ),
@@ -1225,254 +296,275 @@ class _SessionSwapToggle extends StatelessWidget {
   }
 }
 
-/// The edit sheet: a checklist of every group (recommended / later / saved).
-/// Ticking includes it in today; tapping the row opens the exercise editor.
-class _EditSheet extends StatefulWidget {
-  final List<HomeSelectableGroup> groups;
-  final Set<int> Function() currentSelection;
-  final WeightUnit unit;
-  final Map<int, ExerciseStatus> statusMap;
-  final double Function(
-      HomeSelectableGroup, ExerciseTypeConfig, Map<int, ExerciseStatus>) resolveWeight;
-  final ValueChanged<int> onToggle;
-  final Future<void> Function(int) onEdit;
-  final Future<void> Function(int) onDelete;
-  final Future<void> Function() onAddSaved;
+class _VolumeRow extends StatelessWidget {
+  final MuscleVolume entry;
+  const _VolumeRow({required this.entry});
 
-  const _EditSheet({
-    required this.groups,
-    required this.currentSelection,
+  static const _labels = {
+    MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
+    MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
+    MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
+    MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
+    MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
+    MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
+    MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
+    MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
+    MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
+    MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final sets = entry.completedSets7d;
+    final low = entry.targetLow.toDouble();
+    final high = entry.targetHigh.toDouble();
+    // The bar spans 0..high; the band marker sits at low.
+    final fraction = (sets / high).clamp(0.0, 1.0);
+    final inBand = sets >= low && sets <= high;
+    final over = sets > high;
+    final color = over
+        ? cs.error
+        : inBand
+        ? const Color(0xFF7CF2C0)
+        : cs.onSurface.withValues(alpha: 0.35);
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 56,
+          child: Text(
+            _labels[entry.muscle] ?? '?',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              return SizedBox(
+                height: 10,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest.withValues(
+                          alpha: 0.35,
+                        ),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: fraction,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
+                    // The band-floor tick at 10 sets.
+                    Positioned(
+                      left: width * (low / high) - 1,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 2,
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        SizedBox(
+          width: 34,
+          child: Text(
+            sets % 1 == 0 ? sets.toStringAsFixed(0) : sets.toStringAsFixed(1),
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Template cards ───────────────────────────────────────────────────────────
+
+class _TemplateCard extends StatelessWidget {
+  final WorkoutTemplate template;
+  final List<ExerciseTracker> trackers;
+  final WeightUnit unit;
+  final bool suggested;
+  final String suggestionReason;
+  final bool isStarting;
+  final VoidCallback onStart;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _TemplateCard({
+    required this.template,
+    required this.trackers,
     required this.unit,
-    required this.statusMap,
-    required this.resolveWeight,
-    required this.onToggle,
+    required this.suggested,
+    required this.suggestionReason,
+    required this.isStarting,
+    required this.onStart,
     required this.onEdit,
     required this.onDelete,
-    required this.onAddSaved,
   });
 
-  @override
-  State<_EditSheet> createState() => _EditSheetState();
-}
-
-class _EditSheetState extends State<_EditSheet> {
-  // No local selection copy — read the live selection from the parent so the
-  // sheet always reflects the truth (edits/adds/deletes mutate it underneath).
-  void _toggle(int i) {
-    widget.onToggle(i);
-    setState(() {});
+  ExerciseTracker? _trackerFor(Exercise exercise) {
+    for (final tracker in trackers) {
+      if (tracker.exercise == exercise) return tracker;
+    }
+    return null;
   }
-
-  /// Run a parent action that opens a dialog over the sheet, then refresh.
-  Future<void> _thenRefresh(Future<void> Function() action) async {
-    await action();
-    if (mounted) setState(() {});
-  }
-
-  List<int> _indicesFor(HomeGroupSection section) => [
-        for (int i = 0; i < widget.groups.length; i++)
-          if (widget.groups[i].section == section) i,
-      ];
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final recommended = _indicesFor(HomeGroupSection.recommended);
-    final later = _indicesFor(HomeGroupSection.planLater);
-    final saved = _indicesFor(HomeGroupSection.saved);
+    final accent = suggested ? cs.primary : cs.outline.withValues(alpha: 0.5);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.72,
-      minChildSize: 0.45,
-      maxChildSize: 0.92,
-      expand: false,
-      builder: (context, scrollController) => Container(
-        decoration: BoxDecoration(
-          color: AppTheme.sheetColor(context),
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLg)),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
-        ),
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-        child: Column(
-          children: [
-            AppTheme.sheetHandle(context),
-            Row(
-              children: [
-                const Text('Customize workout',
-                    style: TextStyle(
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: AppTheme.brMd,
+        border: Border.all(color: accent, width: suggested ? 2 : 1),
+        color: suggested ? cs.primary.withValues(alpha: 0.05) : null,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      template.name,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.3)),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Done',
-                      style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Tap to add or drop a lift. Use the sliders to change sets & weight.',
-                  style: TextStyle(
-                      fontSize: 12, color: cs.onSurfaceVariant, height: 1.3)),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.only(bottom: 24),
-                children: [
-                  if (recommended.isNotEmpty)
-                    _section(cs, 'Recommended today', recommended),
-                  if (later.isNotEmpty)
-                    _section(cs, 'Later in your plan', later),
-                  _section(cs, 'Saved', saved, showAdd: true),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _section(ColorScheme cs, String title, List<int> indices,
-      {bool showAdd = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Text(title.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w800,
-                    color: cs.tertiary)),
-            const Spacer(),
-            if (showAdd)
-              GestureDetector(
-                onTap: () => _thenRefresh(widget.onAddSaved),
-                child: Row(
-                  children: [
-                    Icon(Icons.add_rounded, size: 15, color: cs.primary),
-                    const SizedBox(width: 3),
-                    Text('New',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            color: cs.primary)),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (suggested && suggestionReason.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'Up next — $suggestionReason',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: cs.primary,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        if (indices.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-                showAdd
-                    ? 'Save a group to reuse it any time.'
-                    : 'Nothing here.',
-                style: TextStyle(color: cs.tertiary, fontSize: 12.5)),
-          )
-        else
-          for (final i in indices) _groupRow(cs, i),
-      ],
-    );
-  }
-
-  Widget _groupRow(ColorScheme cs, int i) {
-    final g = widget.groups[i];
-    final on = widget.currentSelection().contains(i);
-    final lifts = g.exerciseConfigs
-        .map((c) => exerciseNames[c.exercise] ?? '')
-        .where((s) => s.isNotEmpty)
-        .join(', ');
-    final firstCfg = g.exerciseConfigs.isNotEmpty ? g.exerciseConfigs.first : null;
-    final weight = firstCfg == null
-        ? ''
-        : formatWeight(
-            widget.resolveWeight(g, firstCfg, widget.statusMap), widget.unit);
-
-    return InkWell(
-      onTap: () => _toggle(i),
-      borderRadius: AppTheme.brMd,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: on ? _kGreen : Colors.transparent,
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(
-                    color: on ? _kGreen : cs.outlineVariant, width: 2),
-              ),
-              child: on
-                  ? const Icon(Icons.check_rounded,
-                      size: 15, color: Color(0xFF04120B))
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(g.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: on ? cs.onSurface : cs.onSurfaceVariant)),
-                  if (lifts.isNotEmpty && lifts != g.name)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(lifts,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 11.5,
-                              color: cs.onSurfaceVariant
-                                  .withValues(alpha: 0.7))),
-                    ),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  color: cs.onSurface.withValues(alpha: 0.6),
+                ),
+                onSelected: (value) {
+                  if (value == 'edit') onEdit();
+                  if (value == 'delete') onDelete();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Text('${g.sets}×${firstCfg?.reps ?? 5}${weight.isNotEmpty ? ' · $weight' : ''}',
-                style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurfaceVariant)),
-            IconButton(
-              onPressed: () => _thenRefresh(() => widget.onEdit(i)),
-              icon: Icon(Icons.tune_rounded, size: 17, color: cs.tertiary),
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(),
-              padding: const EdgeInsets.only(left: 10, right: 2),
-            ),
-            if (g.section == HomeGroupSection.saved)
-              IconButton(
-                onPressed: () => _thenRefresh(() => widget.onDelete(i)),
-                icon: Icon(Icons.delete_outline_rounded,
-                    size: 17, color: cs.error.withValues(alpha: 0.8)),
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(),
-                padding: const EdgeInsets.only(left: 6),
+            ],
+          ),
+          const SizedBox(height: 6),
+          for (final exercise in template.exercises)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: _ExerciseLine(
+                exercise: exercise,
+                tracker: _trackerFor(exercise),
+                unit: unit,
               ),
-          ],
-        ),
+            ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: suggested
+                  ? FilledButton(
+                      onPressed: isStarting ? null : onStart,
+                      child: const Text(
+                        'START',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    )
+                  : OutlinedButton(
+                      onPressed: isStarting ? null : onStart,
+                      child: const Text(
+                        'START',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// One line of a template card: "Squat   3×8 @ 185 lb".
+class _ExerciseLine extends StatelessWidget {
+  final Exercise exercise;
+  final ExerciseTracker? tracker;
+  final WeightUnit unit;
+
+  const _ExerciseLine({
+    required this.exercise,
+    required this.tracker,
+    required this.unit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final name = exerciseNames[exercise] ?? '?';
+    final resolved = tracker;
+    final prescription = resolved == null
+        ? ''
+        : resolved.workingWeight > 0
+        ? '${resolved.sets}×${resolved.targetReps} @ '
+              '${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
+        : '${resolved.sets}×${resolved.targetReps}';
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Text(
+          prescription,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            color: cs.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+}

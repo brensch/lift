@@ -165,7 +165,6 @@ List<PlannedGroupSet> buildPlannedGroupSetsFromConfigs({
         )
         ..isAmrap = ws.isAmrap
         ..instruction = ws.instruction
-        ..progressionHint = ws.progressionHint.deepCopy()
         ..clientSetId = _uuid.v4();
       out.add(planned);
     }
@@ -218,8 +217,7 @@ List<ProposedSet> proposedSetsFromPlannedGroupSets({
         ..restAfterFailure = set.restAfterFailure
         ..cancelled = false
         ..isAmrap = set.isAmrap
-        ..instruction = set.instruction
-        ..progressionHint = set.progressionHint.deepCopy(),
+        ..instruction = set.instruction,
     );
   }
   return out;

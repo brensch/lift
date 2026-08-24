@@ -18,7 +18,6 @@ import '../services/workout_service.dart';
 import '../widgets/heart_rate/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
 import '../widgets/user_message_chip.dart';
-import '../services/notification_service.dart';
 
 class CompletedWorkoutScreen extends StatefulWidget {
   final String workoutId;
@@ -102,7 +101,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       }
 
       if (!widget.isHistory && userId != null && userId.isNotEmpty) {
-        _scheduleNextWorkoutNotification(userId, service);
       }
     } catch (e, st) {
       debugPrint(
@@ -142,27 +140,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       Error.throwWithStackTrace(lastError!, lastStack);
     }
     throw lastError ?? StateError('Failed to load finalized workout summary.');
-  }
-
-  Future<void> _scheduleNextWorkoutNotification(
-    String userId,
-    WorkoutServiceWrapper service,
-  ) async {
-    try {
-      final scheduleRes = await service.getProposedWorkoutSchedule(userId);
-      if (!scheduleRes.hasTrainingStatus()) return;
-      final ts = scheduleRes.trainingStatus;
-      if (ts.nextSessionAt.toInt() <= 0) return;
-      final regimeName = scheduleRes.hasRegimeContext()
-          ? scheduleRes.regimeContext.regimeDisplayName
-          : 'your';
-      await NotificationService.scheduleNextWorkout(
-        nextSessionAtUnix: ts.nextSessionAt.toInt(),
-        regimeName: regimeName.isNotEmpty ? regimeName : 'your',
-      );
-    } catch (_) {
-      // Fail silently — notification is best-effort
-    }
   }
 
   Future<void> _loadSessionFriends(
