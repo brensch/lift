@@ -395,6 +395,7 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
         start_time: row.get(2),
         end_time: row.get(3),
         session_id: row.get(4),
+        ..Default::default()
     })
     .collect();
 

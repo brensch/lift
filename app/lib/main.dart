@@ -10,6 +10,7 @@ import 'package:app_links/app_links.dart' as app_links;
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
 import 'services/grpc_client.dart';
+import 'widgets/dialogs/template_update_dialog.dart';
 import 'services/auth_service.dart';
 import 'services/workout_service.dart';
 import 'services/multiplayer_service.dart';
@@ -166,6 +167,19 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
         ),
       );
+      // If the session diverged from its template (or started empty),
+      // offer to fold it back — layered over the summary screen.
+      final suggestion = _workoutProvider.takePendingTemplateUpdate();
+      final dialogContext = navigator?.context;
+      if (suggestion != null && dialogContext != null) {
+        unawaited(
+          showTemplateUpdateDialog(
+            dialogContext,
+            suggestion: suggestion,
+            provider: _workoutProvider,
+          ),
+        );
+      }
     };
 
     // Listen to auth changes: clear state on logout, load settings on login.

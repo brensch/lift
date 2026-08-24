@@ -379,6 +379,7 @@ mod tests {
                 start_time: 1_000,
                 end_time: 0,
                 session_id: String::new(),
+                ..Default::default()
             },
             vec![ExerciseGroup {
                 id: "g1".to_string(),

@@ -883,6 +883,7 @@ mod replace_plan_tests {
                 start_time: 1,
                 end_time: 0,
                 session_id: String::new(),
+                ..Default::default()
             },
             vec![group],
             proposed,
@@ -916,6 +917,7 @@ mod replace_plan_tests {
                 start_time: 1,
                 end_time: 0,
                 session_id: String::new(),
+                ..Default::default()
             },
             vec![],
             vec![],

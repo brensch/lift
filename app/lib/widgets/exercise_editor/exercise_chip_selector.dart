@@ -23,12 +23,18 @@ class ExerciseChipSelector extends StatefulWidget {
 
 class ExerciseChipSelectorState extends State<ExerciseChipSelector> {
   void _openPicker() {
+    final before = {for (final c in widget.configs) c.exercise};
     showExercisePicker(
       context: context,
       trackers: widget.trackers,
-      isSelected: (e) => widget.configs.any((c) => c.exercise == e),
-      onToggle: (exercise, selected) {
-        widget.onToggle(exercise, selected);
+      initialSelected: before,
+      onSave: (selected) {
+        for (final exercise in before.difference(selected)) {
+          widget.onToggle(exercise, false);
+        }
+        for (final exercise in selected.difference(before)) {
+          widget.onToggle(exercise, true);
+        }
         setState(() {});
       },
     );
