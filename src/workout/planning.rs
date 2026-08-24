@@ -387,6 +387,30 @@ fn proposed_sets_from_planned_group_sets(
     out
 }
 
+/// Which exercises in this plan want a warmup ladder.
+///
+/// The client sends working sets only, so the intent has to travel out-of-band.
+/// An explicit `warmup_plan` is authoritative (including when it's empty — that
+/// means "no warmups"), which is what makes the editor's warmup toggle work in
+/// both directions. Without one (older clients) we fall back to inferring it
+/// from the warmups the group already has, so an edit doesn't silently drop
+/// them; on a brand-new group there are none to infer and the group gets no
+/// warmups, which is the pre-`warmup_plan` behaviour.
+fn warmup_exercises_for_request(
+    workout_ref: &ActiveWorkout,
+    req: &ReplaceExerciseGroupPlanRequest,
+) -> std::collections::HashSet<i32> {
+    if let Some(plan) = req.warmup_plan.as_ref() {
+        return plan.exercises.iter().copied().collect();
+    }
+    workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|p| p.exercise_group_id == req.exercise_group_id && p.warmup)
+        .map(|p| p.exercise)
+        .collect()
+}
+
 fn active_group_sets(workout_ref: &ActiveWorkout, group_id: &str) -> Vec<ProposedSet> {
     let mut sets: Vec<ProposedSet> = workout_ref
         .proposed_sets
@@ -448,13 +472,27 @@ fn rematerialize_group_plan_with_warmups(
                     progression_hint: s.progression_hint.clone(),
                 })
                 .collect();
+            // Keep the rest the client asked for on the working sets. The
+            // request has no per-exercise rest field — the client folds its
+            // per-exercise override into each planned set — so rebuilding from
+            // the group's rest alone would silently reset a per-exercise
+            // override to the group default. The warmup halves come from the
+            // group, which is the only place they're expressed.
+            let per_exercise_rest = working.first().map(|s| RestConfig {
+                rest_after_success: s.rest_after_success,
+                rest_after_failure: s.rest_after_failure,
+                rest_after_warmup: rest_config.map(|r| r.rest_after_warmup).unwrap_or(0),
+                rest_after_last_warmup: rest_config
+                    .map(|r| r.rest_after_last_warmup)
+                    .unwrap_or(0),
+            });
             ExerciseTypeConfig {
                 exercise: *exercise,
                 start_weight: working_specs.first().map(|w| w.target_weight).unwrap_or(0.0),
                 end_weight: working_specs.last().map(|w| w.target_weight).unwrap_or(0.0),
                 reps: working_specs.first().map(|w| w.target_reps).unwrap_or(0),
                 include_warmup: warmup_exercises.contains(exercise),
-                rest_config: None,
+                rest_config: per_exercise_rest.filter(rest_config_has_values),
                 last_set_amrap: working_specs.last().map(|w| w.is_amrap).unwrap_or(false),
                 working_sets: working_specs,
             }
@@ -492,6 +530,60 @@ fn rematerialize_group_plan_with_warmups(
         .collect()
 }
 
+/// Add a brand-new group to the workout from the client's plan.
+///
+/// The warmup ladders are materialized here for the same reason they are on the
+/// edit path: the app is a thin client that sends working sets only, so a group
+/// created without this step would arrive with no warmups at all.
+fn create_group_from_plan(
+    workout_ref: &mut ActiveWorkout,
+    req: &ReplaceExerciseGroupPlanRequest,
+    group_id: String,
+    working_sets: &[PlannedGroupSet],
+    unit: AppWeightUnit,
+) -> (ExerciseGroup, Vec<ProposedSet>) {
+    let warmup_exercises = warmup_exercises_for_request(workout_ref, req);
+    let planned_sets = if warmup_exercises.is_empty() {
+        working_sets.to_vec()
+    } else {
+        rematerialize_group_plan_with_warmups(
+            &req.workout_id,
+            &group_id,
+            working_sets,
+            &warmup_exercises,
+            req.interleave_warmups,
+            normalize_rest_config(req.rest_config),
+            unit,
+        )
+    };
+
+    let group = ExerciseGroup {
+        id: group_id.clone(),
+        workout_id: req.workout_id.clone(),
+        name: req.name.clone(),
+        sets: compute_group_working_rounds_from_sets(&planned_sets),
+        interleave_warmups: req.interleave_warmups,
+        workout_order: workout_ref.exercise_groups.len() as i32,
+        exercise_configs: vec![],
+        rest_config: normalize_rest_config(req.rest_config),
+        instruction: req.instruction.clone(),
+        prescribed_by_regime: false,
+        materialized_sets: Vec::new(),
+    };
+    let set_order = workout_ref
+        .proposed_sets
+        .last()
+        .map(|s| s.workout_order + 1)
+        .unwrap_or(0);
+    let generated_sets =
+        proposed_sets_from_planned_group_sets(&req.workout_id, &group_id, &planned_sets, set_order);
+    workout_ref.exercise_groups.push(group.clone());
+    workout_ref.proposed_sets.extend(generated_sets);
+    workout_ref.reindex_sets();
+    let visible = active_group_sets(workout_ref, &group_id);
+    (group, visible)
+}
+
 pub(crate) fn apply_replace_exercise_group_plan(
     workout_ref: &mut ActiveWorkout,
     req: &ReplaceExerciseGroupPlanRequest,
@@ -516,35 +608,9 @@ pub(crate) fn apply_replace_exercise_group_plan(
         }
 
         let group_id = Uuid::new_v4().to_string();
-        let workout_order = workout_ref.exercise_groups.len() as i32;
-        let group = ExerciseGroup {
-            id: group_id.clone(),
-            workout_id: req.workout_id.clone(),
-            name: req.name.clone(),
-            sets: compute_group_working_rounds_from_sets(&normalized_sets),
-            interleave_warmups: req.interleave_warmups,
-            workout_order,
-            exercise_configs: vec![],
-            rest_config: normalize_rest_config(req.rest_config),
-            instruction: req.instruction.clone(),
-            prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-        };
-        let set_order = workout_ref
-            .proposed_sets
-            .last()
-            .map(|s| s.workout_order + 1)
-            .unwrap_or(0);
-        let generated_sets = proposed_sets_from_planned_group_sets(
-            &req.workout_id,
-            &group_id,
-            &normalized_sets,
-            set_order,
-        );
-        workout_ref.exercise_groups.push(group.clone());
-        workout_ref.proposed_sets.extend(generated_sets.clone());
-        workout_ref.reindex_sets();
-        return Ok((Some(group), active_group_sets(workout_ref, &group_id)));
+        let (group, visible) =
+            create_group_from_plan(workout_ref, req, group_id, &normalized_sets, unit);
+        return Ok((Some(group), visible));
     }
 
     // Update/Delete existing
@@ -555,37 +621,14 @@ pub(crate) fn apply_replace_exercise_group_plan(
     {
         Some(idx) => idx,
         None if req.create_if_missing => {
-            let group = ExerciseGroup {
-                id: req.exercise_group_id.clone(),
-                workout_id: req.workout_id.clone(),
-                name: req.name.clone(),
-                sets: compute_group_working_rounds_from_sets(&normalized_sets),
-                interleave_warmups: req.interleave_warmups,
-                workout_order: workout_ref.exercise_groups.len() as i32,
-                exercise_configs: vec![],
-                rest_config: normalize_rest_config(req.rest_config),
-                instruction: req.instruction.clone(),
-                prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-            };
-            let set_order = workout_ref
-                .proposed_sets
-                .last()
-                .map(|s| s.workout_order + 1)
-                .unwrap_or(0);
-            let generated_sets = proposed_sets_from_planned_group_sets(
-                &req.workout_id,
-                &req.exercise_group_id,
+            let (group, visible) = create_group_from_plan(
+                workout_ref,
+                req,
+                req.exercise_group_id.clone(),
                 &normalized_sets,
-                set_order,
+                unit,
             );
-            workout_ref.exercise_groups.push(group.clone());
-            workout_ref.proposed_sets.extend(generated_sets.clone());
-            workout_ref.reindex_sets();
-            return Ok((
-                Some(group),
-                active_group_sets(workout_ref, &req.exercise_group_id),
-            ));
+            return Ok((Some(group), visible));
         }
         None => return Err(WorkoutError::not_found("Exercise group not found")),
     };
@@ -628,14 +671,10 @@ pub(crate) fn apply_replace_exercise_group_plan(
     completed_group_sets.sort_by_key(|s| s.workout_order);
 
     // Regenerate warmups server-side for the new working weights — the thin client
-    // sends working sets only. Only for exercises that already had warmups, so we
-    // don't invent them where the group never wanted them.
-    let warmup_exercises: std::collections::HashSet<i32> = workout_ref
-        .proposed_sets
-        .iter()
-        .filter(|p| p.exercise_group_id == req.exercise_group_id && p.warmup)
-        .map(|p| p.exercise)
-        .collect();
+    // sends working sets only. Driven by the request's warmup plan when it has one,
+    // otherwise by the warmups the group already had, so we don't invent them where
+    // the group never wanted them.
+    let warmup_exercises = warmup_exercises_for_request(workout_ref, req);
     // Heaviest warmup already completed per exercise. A recalculated warmup at or
     // below this is one you've effectively already done (a big *downward* edit), so
     // it's dropped rather than handed back to you.
@@ -825,7 +864,7 @@ mod warmup_tests {
 #[cfg(test)]
 mod replace_plan_tests {
     use super::*;
-    use schlift::workout::v1::Workout;
+    use schlift::workout::v1::{GroupWarmupPlan, Workout};
 
     fn pset(id: &str, order: i32, warmup: bool, weight: f32) -> ProposedSet {
         ProposedSet {
@@ -922,8 +961,47 @@ mod replace_plan_tests {
             delete_group_if_empty: false,
             instruction: String::new(),
             create_if_missing: false,
+            warmup_plan: None,
         };
         apply_replace_exercise_group_plan(active, &req, AppWeightUnit::Lb).unwrap();
+    }
+
+    /// A workout with one existing group and no second group yet — the state the
+    /// app is in when you tap "add exercise group" mid-session.
+    fn empty_workout() -> ActiveWorkout {
+        ActiveWorkout::new(
+            Workout {
+                id: "w1".to_string(),
+                name: "T".to_string(),
+                start_time: 1,
+                end_time: 0,
+                session_id: String::new(),
+            },
+            vec![],
+            vec![],
+            vec![],
+        )
+    }
+
+    fn add_group(
+        active: &mut ActiveWorkout,
+        warmup_plan: Option<GroupWarmupPlan>,
+    ) -> Vec<ProposedSet> {
+        let req = ReplaceExerciseGroupPlanRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: String::new(),
+            name: "Squat".to_string(),
+            interleave_warmups: false,
+            sets: vec![planned_working(200.0), planned_working(200.0)],
+            rest_config: None,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+            create_if_missing: true,
+            warmup_plan,
+        };
+        apply_replace_exercise_group_plan(active, &req, AppWeightUnit::Lb)
+            .unwrap()
+            .1
     }
 
     fn active_warmups(active: &ActiveWorkout) -> Vec<f32> {
@@ -999,5 +1077,152 @@ mod replace_plan_tests {
             pending.iter().all(|&w| w > 135.0),
             "no warmup at/below one already completed: {pending:?}"
         );
+    }
+
+    /// A group added mid-workout gets the same warmup ladder a planned one does.
+    /// The app sends working sets only, so if the server didn't materialize these
+    /// the new group would start cold on set one.
+    #[test]
+    fn a_new_group_gets_warmups_when_the_plan_asks_for_them() {
+        let mut active = empty_workout();
+        let sets = add_group(
+            &mut active,
+            Some(GroupWarmupPlan {
+                exercises: vec![1], // squat
+            }),
+        );
+
+        let warmups: Vec<f32> = sets
+            .iter()
+            .filter(|s| s.warmup)
+            .map(|s| s.target_weight)
+            .collect();
+        assert_eq!(warmups.len(), 4, "a fresh ladder is 4 warmups: {sets:?}");
+        assert!(
+            warmups.iter().all(|&w| w < 200.0),
+            "warmups climb to, but stay under, the working weight: {warmups:?}"
+        );
+        assert!(
+            warmups.windows(2).all(|w| w[0] <= w[1]),
+            "warmups are ordered lightest first: {warmups:?}"
+        );
+        assert_eq!(
+            sets.iter().filter(|s| !s.warmup).count(),
+            2,
+            "the working sets the client asked for survive"
+        );
+        // Warmups come first in the group's order.
+        assert!(sets.iter().take(4).all(|s| s.warmup));
+    }
+
+    /// Warmups off for this exercise means none get invented.
+    #[test]
+    fn a_new_group_with_an_empty_warmup_plan_gets_none() {
+        let mut active = empty_workout();
+        let sets = add_group(&mut active, Some(GroupWarmupPlan { exercises: vec![] }));
+        assert!(sets.iter().all(|s| !s.warmup), "{sets:?}");
+        assert_eq!(sets.len(), 2);
+    }
+
+    /// An older client that doesn't send a warmup plan keeps the previous
+    /// behaviour rather than getting a surprise ladder.
+    #[test]
+    fn a_new_group_without_a_warmup_plan_is_unchanged() {
+        let mut active = empty_workout();
+        let sets = add_group(&mut active, None);
+        assert!(sets.iter().all(|s| !s.warmup), "{sets:?}");
+    }
+
+    /// The editor's warmup toggle works in both directions: an explicit empty
+    /// plan clears the ladder a group already had.
+    #[test]
+    fn an_edit_can_turn_warmups_off() {
+        let mut active = squat_workout(vec![]);
+        let req = ReplaceExerciseGroupPlanRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: "g1".to_string(),
+            name: "Squat".to_string(),
+            interleave_warmups: false,
+            sets: vec![planned_working(200.0), planned_working(200.0)],
+            rest_config: None,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+            create_if_missing: false,
+            warmup_plan: Some(GroupWarmupPlan { exercises: vec![] }),
+        };
+        apply_replace_exercise_group_plan(&mut active, &req, AppWeightUnit::Lb).unwrap();
+
+        assert!(
+            active_warmups(&active).is_empty(),
+            "the ladder is gone: {:?}",
+            active_warmups(&active)
+        );
+    }
+
+    /// The rest the client asked for on its working sets survives the rebuild —
+    /// the request has nowhere else to express a per-exercise rest override, so
+    /// dropping it would quietly reset it to the group default.
+    #[test]
+    fn a_rebuild_keeps_the_working_sets_rest() {
+        let mut active = empty_workout();
+        let mut long_rest = planned_working(200.0);
+        long_rest.rest_after_success = 240;
+        long_rest.rest_after_failure = 420;
+
+        let req = ReplaceExerciseGroupPlanRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: String::new(),
+            name: "Squat".to_string(),
+            interleave_warmups: false,
+            sets: vec![long_rest.clone(), long_rest],
+            rest_config: None,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+            create_if_missing: true,
+            warmup_plan: Some(GroupWarmupPlan {
+                exercises: vec![1],
+            }),
+        };
+        let (_, sets) =
+            apply_replace_exercise_group_plan(&mut active, &req, AppWeightUnit::Lb).unwrap();
+
+        let working: Vec<&ProposedSet> = sets.iter().filter(|s| !s.warmup).collect();
+        assert!(
+            working
+                .iter()
+                .all(|s| s.rest_after_success == 240 && s.rest_after_failure == 420),
+            "working rest survived: {working:?}"
+        );
+        // The last warmup rolls straight into the first working set, so it takes
+        // that set's rest rather than the short between-warmups one.
+        let warmups: Vec<&ProposedSet> = sets.iter().filter(|s| s.warmup).collect();
+        assert_eq!(warmups.last().unwrap().rest_after_success, 240);
+        assert_eq!(warmups[0].rest_after_success, 30);
+    }
+
+    /// ...and on: a group that never had warmups gains a ladder when you ask.
+    #[test]
+    fn an_edit_can_turn_warmups_on() {
+        let mut active = empty_workout();
+        add_group(&mut active, Some(GroupWarmupPlan { exercises: vec![] }));
+        let group_id = active.exercise_groups[0].id.clone();
+
+        let req = ReplaceExerciseGroupPlanRequest {
+            workout_id: "w1".to_string(),
+            exercise_group_id: group_id,
+            name: "Squat".to_string(),
+            interleave_warmups: false,
+            sets: vec![planned_working(200.0), planned_working(200.0)],
+            rest_config: None,
+            delete_group_if_empty: false,
+            instruction: String::new(),
+            create_if_missing: false,
+            warmup_plan: Some(GroupWarmupPlan {
+                exercises: vec![1],
+            }),
+        };
+        apply_replace_exercise_group_plan(&mut active, &req, AppWeightUnit::Lb).unwrap();
+
+        assert_eq!(active_warmups(&active).len(), 4);
     }
 }

@@ -3422,6 +3422,62 @@ class ProgressionHint extends $pb.GeneratedMessage {
   void clearCountsTowardProgram() => $_clearField(5);
 }
 
+/// Which exercises in a group plan should get a server-generated warmup ladder.
+/// Wrapped in a message so presence is meaningful: an unset `warmup_plan` means
+/// "the client didn't say" (keep whatever warmups the group already has), while a
+/// set-but-empty `exercises` means "no warmups at all". A bare repeated field
+/// couldn't tell those apart.
+class GroupWarmupPlan extends $pb.GeneratedMessage {
+  factory GroupWarmupPlan({
+    $core.Iterable<Exercise>? exercises,
+  }) {
+    final result = create();
+    if (exercises != null) result.exercises.addAll(exercises);
+    return result;
+  }
+
+  GroupWarmupPlan._();
+
+  factory GroupWarmupPlan.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GroupWarmupPlan.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GroupWarmupPlan',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pc<Exercise>(1, _omitFieldNames ? '' : 'exercises', $pb.PbFieldType.KE,
+        valueOf: Exercise.valueOf,
+        enumValues: Exercise.values,
+        defaultEnumValue: Exercise.EXERCISE_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupWarmupPlan clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupWarmupPlan copyWith(void Function(GroupWarmupPlan) updates) =>
+      super.copyWith((message) => updates(message as GroupWarmupPlan))
+          as GroupWarmupPlan;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GroupWarmupPlan create() => GroupWarmupPlan._();
+  @$core.override
+  GroupWarmupPlan createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GroupWarmupPlan getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GroupWarmupPlan>(create);
+  static GroupWarmupPlan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Exercise> get exercises => $_getList(0);
+}
+
 class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
   factory ReplaceExerciseGroupPlanRequest({
     $core.String? workoutId,
@@ -3433,6 +3489,7 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
     $core.bool? deleteGroupIfEmpty,
     $core.String? instruction,
     $core.bool? createIfMissing,
+    GroupWarmupPlan? warmupPlan,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -3445,6 +3502,7 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
       result.deleteGroupIfEmpty = deleteGroupIfEmpty;
     if (instruction != null) result.instruction = instruction;
     if (createIfMissing != null) result.createIfMissing = createIfMissing;
+    if (warmupPlan != null) result.warmupPlan = warmupPlan;
     return result;
   }
 
@@ -3472,6 +3530,8 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
     ..aOB(7, _omitFieldNames ? '' : 'deleteGroupIfEmpty')
     ..aOS(8, _omitFieldNames ? '' : 'instruction')
     ..aOB(9, _omitFieldNames ? '' : 'createIfMissing')
+    ..aOM<GroupWarmupPlan>(10, _omitFieldNames ? '' : 'warmupPlan',
+        subBuilder: GroupWarmupPlan.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3573,6 +3633,20 @@ class ReplaceExerciseGroupPlanRequest extends $pb.GeneratedMessage {
   $core.bool hasCreateIfMissing() => $_has(8);
   @$pb.TagNumber(9)
   void clearCreateIfMissing() => $_clearField(9);
+
+  /// Warmup intent. The client sends working sets only; the server materializes
+  /// the ladders for the exercises named here (both when creating a group and
+  /// when editing one).
+  @$pb.TagNumber(10)
+  GroupWarmupPlan get warmupPlan => $_getN(9);
+  @$pb.TagNumber(10)
+  set warmupPlan(GroupWarmupPlan value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasWarmupPlan() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearWarmupPlan() => $_clearField(10);
+  @$pb.TagNumber(10)
+  GroupWarmupPlan ensureWarmupPlan() => $_ensure(9);
 }
 
 class ReplaceExerciseGroupPlanResponse extends $pb.GeneratedMessage {

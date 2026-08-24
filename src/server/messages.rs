@@ -432,6 +432,83 @@ pub(super) fn lp_completion_messages(
     out
 }
 
+/// Progression notes for the exercises the program *doesn't* prescribe — the
+/// accessories and one-offs you added yourself.
+///
+/// The regime emits these for its own lifts off its state transition; these come
+/// from the per-exercise progression in `crate::exercise_progress`, so every
+/// exercise you train gets the same "here's what changed, here's next time"
+/// treatment instead of silently repeating a weight forever.
+pub(super) fn accessory_completion_messages(
+    performed: &HashMap<i32, f32>,
+    next_weights: &HashMap<i32, f32>,
+    prescribed: &HashMap<String, crate::schplanner::PrescribedSlot>,
+    workout_id: &str,
+) -> Vec<UserMessage> {
+    let mut out = Vec::new();
+    let mut exercises: Vec<i32> = performed.keys().copied().collect();
+    // Deterministic order: the message list is persisted and rendered as-is.
+    exercises.sort_unstable();
+
+    for exercise_value in exercises {
+        let Ok(exercise) = Exercise::try_from(exercise_value) else {
+            continue;
+        };
+        if exercise == Exercise::Unspecified {
+            continue;
+        }
+        let slot_key = slot_key_for_exercise(exercise);
+        // The regime already speaks for its own lifts; two messages about the
+        // same squat would contradict each other.
+        if prescribed.contains_key(&slot_key) {
+            continue;
+        }
+        let previous_weight = performed.get(&exercise_value).copied().unwrap_or(0.0);
+        // Bodyweight work has no load to move — progression there is reps, and a
+        // "0 → 0" card would be noise.
+        if previous_weight <= 0.0 {
+            continue;
+        }
+        let Some(&next_weight) = next_weights.get(&exercise_value) else {
+            continue;
+        };
+
+        let (kind, reason_kind) = if next_weight > previous_weight + 0.1 {
+            (
+                UserMessageKind::LoadIncrease,
+                ProgressionReasonKind::CompletedAllWorkingSets,
+            )
+        } else if next_weight < previous_weight - 0.1 {
+            (
+                UserMessageKind::StallDeload,
+                ProgressionReasonKind::RepeatedMisses,
+            )
+        } else {
+            (
+                UserMessageKind::LoadHold,
+                ProgressionReasonKind::MissedTargetReps,
+            )
+        };
+
+        out.push(build_progression_message(ProgressionMessage {
+            key: format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
+            kind,
+            exercise,
+            slot_key,
+            source_workout_id: workout_id,
+            previous_weight,
+            next_weight,
+            previous_stage: None,
+            next_stage: None,
+            context_label: None,
+            metric_kind: ProgressionMetricKind::WorkingWeight,
+            reason_kind,
+            reason_text: None,
+        }));
+    }
+    out
+}
+
 pub(super) fn completion_messages_for_regime(
     regime_type: RegimeType,
     prev: &StatePayload,

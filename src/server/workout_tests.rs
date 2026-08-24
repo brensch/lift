@@ -139,6 +139,7 @@ mod live_progression_tests {
                     delete_group_if_empty: false,
                     instruction: String::new(),
                     create_if_missing: false,
+                    warmup_plan: None,
                 },
             ))
             .await
@@ -208,6 +209,142 @@ mod live_progression_tests {
             squat_cfg.start_weight, 190.0,
             "next squat weight should increment from the edited 185"
         );
+    }
+
+    /// The full loop for an exercise the program knows nothing about: add a group
+    /// for it mid-workout, get warmups for it, lift it, and find the next weight
+    /// waiting for you the next time you go to add it.
+    ///
+    /// This is the path the app takes when you tap "add exercise group" during a
+    /// session — the client sends working sets only, so both the warmups and the
+    /// progression have to come from the server.
+    #[tokio::test]
+    async fn an_accessory_added_mid_workout_gets_warmups_and_progresses() {
+        let (svc, user_id, token) = setup().await;
+
+        let start = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Workout A".to_string(),
+                    exercise_groups: vec![],
+                    started_at: 1000,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = start.workout.unwrap().id;
+
+        // Add a lateral raise group at 20 lb with warmups on, the way the editor
+        // does: working sets only, plus the warmup intent.
+        let planned = (0..3)
+            .map(|_| PlannedGroupSet {
+                exercise: Exercise::LateralRaise as i32,
+                target_reps: 10,
+                target_weight: 20.0,
+                warmup: false,
+                rest_after_success: 90,
+                rest_after_failure: 120,
+                is_amrap: false,
+                instruction: String::new(),
+                progression_hint: None,
+                client_set_id: String::new(),
+            })
+            .collect::<Vec<_>>();
+        let added = svc
+            .replace_exercise_group_plan(authed(
+                &token,
+                ReplaceExerciseGroupPlanRequest {
+                    workout_id: workout_id.clone(),
+                    exercise_group_id: String::new(),
+                    name: "Lateral Raise".to_string(),
+                    interleave_warmups: false,
+                    sets: planned,
+                    rest_config: None,
+                    delete_group_if_empty: false,
+                    instruction: String::new(),
+                    create_if_missing: true,
+                    warmup_plan: Some(GroupWarmupPlan {
+                        exercises: vec![Exercise::LateralRaise as i32],
+                    }),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let warmups: Vec<&ProposedSet> =
+            added.generated_sets.iter().filter(|s| s.warmup).collect();
+        assert_eq!(
+            warmups.len(),
+            4,
+            "a group added mid-workout gets the same warmup ladder a planned one does: {:?}",
+            added.generated_sets
+        );
+        assert!(warmups.iter().all(|s| s.target_weight < 20.0));
+
+        // Clear every working set.
+        let mut ts = 1100;
+        for set in added.generated_sets.iter().filter(|s| !s.warmup) {
+            svc.complete_set(authed(
+                &token,
+                CompleteSetRequest {
+                    workout_id: workout_id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: 10,
+                    actual_weight: 20.0,
+                    completed_at: ts,
+                },
+            ))
+            .await
+            .unwrap();
+            ts += 10;
+        }
+
+        svc.end_workout(authed(
+            &token,
+            EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+                ended_at: ts,
+            },
+        ))
+        .await
+        .unwrap();
+
+        let sched = svc
+            .get_proposed_workout_schedule(authed(
+                &token,
+                GetProposedWorkoutScheduleRequest {
+                    user_id: user_id.clone(),
+                    at_time: ts + 100,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let status = sched
+            .exercise_statuses
+            .iter()
+            .find(|s| s.exercise == Exercise::LateralRaise as i32)
+            .expect("every exercise gets a status to prefill from");
+        assert_eq!(
+            status.target_weight, 25.0,
+            "you cleared 20, so next time starts at 25"
+        );
+        assert_eq!(status.default_reps, 10, "and at the reps you actually did");
+        assert_eq!(status.default_sets, 3);
+        assert_eq!(status.last_performed_at, ts);
+
+        // An exercise never performed still has something sane to prefill.
+        let untouched = sched
+            .exercise_statuses
+            .iter()
+            .find(|s| s.exercise == Exercise::PecDeck as i32)
+            .expect("statuses cover the whole catalogue");
+        assert!(untouched.target_weight > 0.0);
+        assert_eq!(untouched.last_performed_at, 0);
     }
 
     /// Editing a group's weight after completing some sets must keep completed sets first
@@ -308,6 +445,7 @@ mod live_progression_tests {
                 delete_group_if_empty: false,
                 instruction: String::new(),
                 create_if_missing: false,
+                warmup_plan: None,
             },
         ))
         .await

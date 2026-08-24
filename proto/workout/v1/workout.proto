@@ -451,6 +451,15 @@ message ProgressionHint {
   bool counts_toward_program = 5;
 }
 
+// Which exercises in a group plan should get a server-generated warmup ladder.
+// Wrapped in a message so presence is meaningful: an unset `warmup_plan` means
+// "the client didn't say" (keep whatever warmups the group already has), while a
+// set-but-empty `exercises` means "no warmups at all". A bare repeated field
+// couldn't tell those apart.
+message GroupWarmupPlan {
+  repeated Exercise exercises = 1;
+}
+
 message ReplaceExerciseGroupPlanRequest {
   string workout_id = 1;
   string exercise_group_id = 2; // empty = create new group
@@ -461,6 +470,10 @@ message ReplaceExerciseGroupPlanRequest {
   bool delete_group_if_empty = 7;    // if true and sets empty, remove the group
   string instruction = 8;
   bool create_if_missing = 9;        // if true and exercise_group_id is unknown, create with that id
+  // Warmup intent. The client sends working sets only; the server materializes
+  // the ladders for the exercises named here (both when creating a group and
+  // when editing one).
+  GroupWarmupPlan warmup_plan = 10;
 }
 
 message ReplaceExerciseGroupPlanResponse {

@@ -1457,6 +1457,26 @@ final $typed_data.Uint8List progressionHintDescriptor = $convert.base64Decode(
     'bGUSNgoXYW1yYXBfc3VjY2Vzc190aHJlc2hvbGQYBCABKAVSFWFtcmFwU3VjY2Vzc1RocmVzaG'
     '9sZBIyChVjb3VudHNfdG93YXJkX3Byb2dyYW0YBSABKAhSE2NvdW50c1Rvd2FyZFByb2dyYW0=');
 
+@$core.Deprecated('Use groupWarmupPlanDescriptor instead')
+const GroupWarmupPlan$json = {
+  '1': 'GroupWarmupPlan',
+  '2': [
+    {
+      '1': 'exercises',
+      '3': 1,
+      '4': 3,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercises'
+    },
+  ],
+};
+
+/// Descriptor for `GroupWarmupPlan`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List groupWarmupPlanDescriptor = $convert.base64Decode(
+    'Cg9Hcm91cFdhcm11cFBsYW4SMgoJZXhlcmNpc2VzGAEgAygOMhQud29ya291dC52MS5FeGVyY2'
+    'lzZVIJZXhlcmNpc2Vz');
+
 @$core.Deprecated('Use replaceExerciseGroupPlanRequestDescriptor instead')
 const ReplaceExerciseGroupPlanRequest$json = {
   '1': 'ReplaceExerciseGroupPlanRequest',
@@ -1496,6 +1516,14 @@ const ReplaceExerciseGroupPlanRequest$json = {
     },
     {'1': 'instruction', '3': 8, '4': 1, '5': 9, '10': 'instruction'},
     {'1': 'create_if_missing', '3': 9, '4': 1, '5': 8, '10': 'createIfMissing'},
+    {
+      '1': 'warmup_plan',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.GroupWarmupPlan',
+      '10': 'warmupPlan'
+    },
   ],
 };
 
@@ -1508,7 +1536,8 @@ final $typed_data.Uint8List replaceExerciseGroupPlanRequestDescriptor = $convert
     'dHMSNwoLcmVzdF9jb25maWcYBiABKAsyFi53b3Jrb3V0LnYxLlJlc3RDb25maWdSCnJlc3RDb2'
     '5maWcSMQoVZGVsZXRlX2dyb3VwX2lmX2VtcHR5GAcgASgIUhJkZWxldGVHcm91cElmRW1wdHkS'
     'IAoLaW5zdHJ1Y3Rpb24YCCABKAlSC2luc3RydWN0aW9uEioKEWNyZWF0ZV9pZl9taXNzaW5nGA'
-    'kgASgIUg9jcmVhdGVJZk1pc3Npbmc=');
+    'kgASgIUg9jcmVhdGVJZk1pc3NpbmcSPAoLd2FybXVwX3BsYW4YCiABKAsyGy53b3Jrb3V0LnYx'
+    'Lkdyb3VwV2FybXVwUGxhblIKd2FybXVwUGxhbg==');
 
 @$core.Deprecated('Use replaceExerciseGroupPlanResponseDescriptor instead')
 const ReplaceExerciseGroupPlanResponse$json = {

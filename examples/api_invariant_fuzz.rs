@@ -25,7 +25,8 @@ use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, workout_service_client::WorkoutServiceClient,
     CancelProposedSetRequest, CompleteSetRequest, DeleteCompletedSetRequest, EndWorkoutRequest,
     Exercise, ExerciseGroup, ExerciseTypeConfig, GetActiveWorkoutRequest,
-    GetProposedWorkoutScheduleRequest, GetWorkoutRequest, GetWorkoutResponse, PlannedGroupSet,
+    GetProposedWorkoutScheduleRequest, GetWorkoutRequest, GetWorkoutResponse, GroupWarmupPlan,
+    PlannedGroupSet,
     ReorderExerciseGroupsRequest, ReplaceExerciseGroupPlanRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest,
 };
@@ -333,6 +334,15 @@ async fn run_user(
                             delete_group_if_empty: false,
                             instruction: String::new(),
                             create_if_missing: false,
+                            // Cover all three warmup intents: silent (old
+                            // client), explicitly on, explicitly off.
+                            warmup_plan: match rng.gen_range(0..3) {
+                                0 => None,
+                                1 => Some(GroupWarmupPlan { exercises: vec![] }),
+                                _ => Some(GroupWarmupPlan {
+                                    exercises: vec![exercise],
+                                }),
+                            },
                         },
                     ))
                     .await;

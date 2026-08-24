@@ -171,6 +171,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool deleteGroupIfEmpty = false,
     String instruction = '',
     bool createIfMissing = false,
+    GroupWarmupPlan? warmupPlan,
   }) {
     final workout = _activeWorkout;
     if (workout == null) return null;
@@ -260,11 +261,22 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     // so cancelling here would blink them out until the server's recalculated
     // warmups arrive. They stay at the old weight for ~one round-trip, then the
     // response swaps in the new ladder in place — no disappear/reappear jump.
+    //
+    // The exception is a warmup the plan just switched off: nothing is coming
+    // back to replace it, so it goes now rather than lingering until the
+    // response lands.
+    final droppedWarmupExercises = warmupPlan == null
+        ? const <int>{}
+        : _activeProposedSets
+              .where((p) => p.exerciseGroupId == existing.id && p.warmup)
+              .map((p) => p.exercise.value)
+              .toSet()
+              .difference(warmupPlan.exercises.map((e) => e.value).toSet());
     for (final set in _activeProposedSets.where(
       (p) =>
           p.exerciseGroupId == existing.id &&
           !completedIds.contains(p.id) &&
-          !p.warmup,
+          (!p.warmup || droppedWarmupExercises.contains(p.exercise.value)),
     )) {
       set.cancelled = true;
     }
@@ -310,6 +322,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool deleteGroupIfEmpty = false,
     String instruction = '',
     bool createIfMissing = false,
+    GroupWarmupPlan? warmupPlan,
   }) async {
     if (_activeWorkout == null) return;
     final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
@@ -329,6 +342,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       deleteGroupIfEmpty: deleteGroupIfEmpty,
       instruction: instruction,
       createIfMissing: createIfMissing,
+      warmupPlan: warmupPlan,
     );
     if (effectiveGroupId == null && createIfMissing) {
       _handleError('Could not apply workout group change locally.');
@@ -343,6 +357,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       ..deleteGroupIfEmpty = deleteGroupIfEmpty
       ..instruction = instruction
       ..createIfMissing = createIfMissing;
+    if (warmupPlan != null) {
+      req.warmupPlan = warmupPlan;
+    }
     if (restConfig != null) {
       req.restConfig = RestConfig()..mergeFromMessage(restConfig);
     }
@@ -640,6 +657,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             deleteGroupIfEmpty: req.deleteGroupIfEmpty,
             instruction: req.instruction,
             createIfMissing: req.createIfMissing,
+            warmupPlan: req.hasWarmupPlan() ? req.warmupPlan : null,
           );
         case WorkoutMutation_Mutation.reorderExerciseGroups:
           _applyLocalReorderExerciseGroups(
@@ -1456,6 +1474,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: plannedSets,
         restConfig: restConfig,
         createIfMissing: true,
+        warmupPlan: warmupPlanFromConfigs(exerciseConfigs),
       );
     } catch (e) {
       _handleError(e);
@@ -1489,6 +1508,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         sets: plannedSets,
         restConfig: restConfig,
         instruction: groupData.group!.instruction,
+        warmupPlan: warmupPlanFromConfigs(exerciseConfigs),
       );
     } catch (e) {
       _handleError(e);

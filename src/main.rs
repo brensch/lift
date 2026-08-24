@@ -11,6 +11,8 @@ use tower_http::cors::{Any, CorsLayer};
 
 mod auth;
 mod db;
+mod exercise_catalog;
+mod exercise_progress;
 mod program_state;
 mod progress;
 mod onboarding;
