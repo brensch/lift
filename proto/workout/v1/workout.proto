@@ -5,6 +5,8 @@ import "workout/v1/settings.proto";
 
 // --- Data Structures ---
 
+// The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+// use this one list — there is no second muscle grouping anywhere.
 enum MuscleGroup {
   MUSCLE_GROUP_UNSPECIFIED = 0;
   MUSCLE_GROUP_QUADS = 1;
@@ -15,12 +17,25 @@ enum MuscleGroup {
   MUSCLE_GROUP_SHOULDERS = 6;
   MUSCLE_GROUP_BICEPS = 7;
   MUSCLE_GROUP_TRICEPS = 8;
+  MUSCLE_GROUP_CALVES = 9;
+  MUSCLE_GROUP_CORE = 10;
 }
 
 enum ExerciseCategory {
   EXERCISE_CATEGORY_UNSPECIFIED = 0;
   EXERCISE_CATEGORY_COMPOUND = 1;
   EXERCISE_CATEGORY_AUXILIARY = 2;
+}
+
+// How an exercise is loaded. Drives the equipment filter in the picker
+// and the size of a progression step.
+enum EquipmentKind {
+  EQUIPMENT_KIND_UNSPECIFIED = 0;
+  EQUIPMENT_KIND_BARBELL = 1;
+  EQUIPMENT_KIND_DUMBBELL = 2;
+  EQUIPMENT_KIND_MACHINE = 3;
+  EQUIPMENT_KIND_CABLE = 4;
+  EQUIPMENT_KIND_BODYWEIGHT = 5;
 }
 
 message User {
@@ -150,7 +165,8 @@ message WorkingSetSpec {
   int32 target_reps = 2;
   bool is_amrap = 3;
   string instruction = 4;
-  ProgressionHint progression_hint = 5;
+  reserved 5;
+  reserved "progression_hint";
 }
 
 message RestConfig {
@@ -169,11 +185,9 @@ message ExerciseGroup {
   int32 workout_order = 6;
   repeated ExerciseTypeConfig exercise_configs = 7;
   RestConfig rest_config = 8;
-  string instruction = 9;        // regime coaching note, e.g. "T1 — max effort" (not persisted to DB)
-  bool prescribed_by_regime = 10; // immutable in UI once created from a regime suggestion
-  // Server-materialized display sets, populated only in the schedule response so
-  // the home preview renders them directly. Not persisted / not sent on mutations.
-  repeated ProposedSet materialized_sets = 11;
+  string instruction = 9;        // coaching note shown in the UI (not persisted to DB)
+  reserved 10, 11;
+  reserved "prescribed_by_regime", "materialized_sets";
 }
 
 message ProposedSet {
@@ -190,7 +204,8 @@ message ProposedSet {
   bool cancelled = 11;
   bool is_amrap = 12;           // do as many reps as possible (target_reps is the minimum)
   string instruction = 13;      // optional per-set note shown in the UI
-  ProgressionHint progression_hint = 14;
+  reserved 14;
+  reserved "progression_hint";
 }
 
 message CompletedSet {
@@ -291,6 +306,10 @@ message StartWorkoutRequest {
   string name = 1;
   repeated ExerciseGroup exercise_groups = 2;
   int64 started_at = 3; // Unix seconds; if 0, server uses current time
+  // When set, the server builds the groups itself: one group per template
+  // exercise, weights from the trackers, sets/reps/rest from the
+  // prescription, warmups where prescribed. `exercise_groups` is ignored.
+  string template_id = 4;
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -403,18 +422,6 @@ enum ExperienceLevel {
   EXPERIENCE_LEVEL_EXPERT = 4;
 }
 
-message RecommendedWeight {
-  string field_key = 1; // program state field, e.g. "squat_weight" / "bench_press_tm"
-  float pounds = 2;     // recommended starting value, unclamped (client clamps to schema)
-}
-message GetRecommendedStartingWeightsRequest {
-  double bodyweight_kg = 1;
-  ExperienceLevel experience = 2;
-}
-message GetRecommendedStartingWeightsResponse {
-  repeated RecommendedWeight weights = 1;
-}
-
 message GetExerciseProgressRequest {}
 message GetExerciseProgressResponse {
   repeated ExerciseProgress exercises = 1; // most-improved first
@@ -432,23 +439,9 @@ message PlannedGroupSet {
   int32 rest_after_failure = 6;
   bool is_amrap = 7;
   string instruction = 8;
-  ProgressionHint progression_hint = 9;
+  reserved 9;
+  reserved "progression_hint";
   string client_set_id = 10;
-}
-
-enum ProgressionRule {
-  PROGRESSION_RULE_UNSPECIFIED = 0;
-  PROGRESSION_RULE_NONE = 1;
-  PROGRESSION_RULE_ALL_SETS_MATCH_TARGET = 2;
-  PROGRESSION_RULE_TOP_SET_AMRAP = 3;
-}
-
-message ProgressionHint {
-  string slot_key = 1;
-  string tier = 2;
-  ProgressionRule rule = 3;
-  int32 amrap_success_threshold = 4;
-  bool counts_toward_program = 5;
 }
 
 // Which exercises in a group plan should get a server-generated warmup ladder.
@@ -483,35 +476,9 @@ message ReplaceExerciseGroupPlanResponse {
   WorkoutStateSnapshot state_snapshot = 4;
 }
 
-message CreateExerciseGroupRequest {
-
-  string workout_id = 1;
-
-  string name = 2;
-
-  int32 sets = 3;
-
-  bool interleave_warmups = 4;
-
-  repeated ExerciseTypeConfig exercise_configs = 5;
-
-  RestConfig rest_config = 6;
-
-}
 
 
 
-message CreateExerciseGroupResponse {
-
-  ExerciseGroup group = 1;
-
-  repeated ProposedSet generated_sets = 2;
-
-  ProposedSet next_up_set = 3;
-
-  WorkoutStateSnapshot state_snapshot = 4;
-
-}
 
 
 
@@ -612,207 +579,123 @@ message EndWorkoutResponse {
 
 
 
-message GetProposedWorkoutScheduleRequest {
-  string user_id = 1;
-  int64 at_time = 2; // Unix seconds; if 0, server uses current time (for testing)
+// ── Templates, trackers, and the home screen ──
+
+// A named, ordered list of exercises. Nothing else: sets, reps, rest and
+// weight all derive from the prescription and the tracker, so every
+// template that contains an exercise shows the same current weight.
+message WorkoutTemplate {
+  string id = 1;
+  string name = 2;
+  int32 order = 3;
+  repeated Exercise exercises = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
 }
 
-
-
-message ExerciseStatus {
-
+// The resolved state of one exercise for one user: the weight and the
+// prescription the next workout will use. GetHome returns one for every
+// exercise in the catalog, so the client never needs a fallback table.
+message ExerciseTracker {
   Exercise exercise = 1;
-
-  float target_weight = 2;
-
-  int64 last_performed_at = 3;
-
-  repeated float weight_history = 4;
-
-  repeated MuscleGroup muscle_groups = 5;
-
-  int32 default_sets = 6;
-
-  int32 default_reps = 7;
-
-  bool recovered = 8;
-
-  bool always_include = 9;
-
-  ExerciseCategory category = 10;
-
+  float working_weight = 2;        // lb, snapped for the user's unit
+  int32 sets = 3;                  // resolved (override or derived)
+  int32 target_reps = 4;           // current position in the rep range
+  int32 rep_range_low = 5;
+  int32 rep_range_high = 6;
+  int32 rest_seconds = 7;
+  int32 rest_seconds_failure = 8;
+  bool include_warmup = 9;
+  int64 last_performed_at = 10;
+  repeated float weight_history = 11; // top working weight per session, oldest first
+  bool overridden = 12;            // the user has set sets or the rep range by hand
+  MuscleGroup primary_muscle = 13;
+  ExerciseCategory category = 14;
+  EquipmentKind equipment = 15;
 }
 
-
-
-message ProposedExerciseGroup {
-
-  string name = 1;
-
-  int32 sets = 2;
-
-  bool interleave_warmups = 3;
-
-  repeated ExerciseTypeConfig exercise_configs = 4;
-
-  RestConfig rest_config = 5;
-
-  repeated string tags = 6;
-
-  bool prescribed_by_regime = 7;
-
-  int64 estimated_duration_seconds = 8; // server-estimated time for this group
-
-  // Server-materialized display sets (warmups + working sets, plate-snapped) so
-  // the preview renders them directly instead of expanding client-side.
-  repeated ProposedSet materialized_sets = 9;
-
-}
-
-
-
-message SlotTrainingStatus {
-  string slot_key = 1;
-  string label = 2;
-  string tier = 3;
-  int64 last_trained_at = 4;
-  int32 days_since_last_trained = 5;
-  int32 target_sets_per_7_days = 6;
-  int32 completed_sets_per_7_days = 7;
-  int32 remaining_sets_per_7_days = 8;
-  bool appears_in_next_workout = 9;
-  string status_label = 10;
-}
-
-// Recovery- and frequency-aware readiness for the home hero. Replaces the flat
-// "last session + 24h" signal with a per-muscle recovery model.
-enum ReadinessState {
-  READINESS_STATE_UNSPECIFIED = 0;
-  READINESS_STATE_FIRST_TIME = 1;   // never trained — ready immediately
-  READINESS_STATE_READY = 2;        // next workout's muscles recovered — train
-  READINESS_STATE_RECOVERING = 3;   // some targeted muscles still recovering
-  READINESS_STATE_OVERDUE = 4;      // recovered + behind weekly target (gentle nudge)
-  READINESS_STATE_AHEAD = 5;        // recovered + already met weekly target (bonus)
+// Weighted hard sets for one muscle over the rolling last 7 days.
+// A completed working set counts 1.0 for the exercise's primary muscle
+// and 0.5 for each secondary; warmups and cancelled sets count 0.
+message MuscleVolume {
+  MuscleGroup muscle = 1;
+  float completed_sets_7d = 2;
+  int32 target_low = 3;            // 10
+  int32 target_high = 4;           // 20
 }
 
 message MuscleRecoveryStatus {
-  string muscle_key = 1;      // "legs", "chest", "arms", ...
-  string label = 2;           // "Legs"
+  string muscle_key = 1;      // "chest", "quads", ...
+  string label = 2;           // "Chest"
   int64 last_trained_at = 3;  // 0 = never
   int64 recovered_at = 4;     // last_trained_at + window (0 = never trained)
   float fraction = 5;         // 0.0 (just trained) → 1.0 (recovered)
   int64 hours_remaining = 6;  // hours until recovered (0 if recovered)
   bool recovered = 7;
-  bool in_next_workout = 8;   // targeted by the upcoming session
+  reserved 8;
+  reserved "in_next_workout";
 }
 
-message TrainingStatus {
-  int64 next_session_at = 1;    // Unix timestamp for the regime-recommended next workout
-  int64 last_session_at = 2;    // When the last workout ended (0 if never)
-  string headline = 3;          // e.g. "Train today", "Next lift window in 14h"
-  string detail = 4;            // e.g. "1 of 3 sessions done in the last 7 days"
-  bool should_train_now = 5;    // true if now >= next_session_at
-  int32 target_sessions_per_7_days = 6;
-  int32 completed_sessions_per_7_days = 7;
-  int32 remaining_sessions_per_7_days = 8;
-  int32 target_sets_per_7_days = 9;
-  int32 completed_sets_per_7_days = 10;
-  int32 remaining_sets_per_7_days = 11;
-  repeated SlotTrainingStatus slot_statuses = 12;
+message GetHomeRequest {}
 
-  // Readiness redesign (recovery + frequency model).
-  ReadinessState readiness_state = 13;
-  int64 next_ready_at = 14;                       // when the next workout's muscles recover (floored by min rest)
-  repeated MuscleRecoveryStatus muscle_recovery = 15;
-  repeated string blocking_muscles = 16;          // labels of next-workout muscles still recovering
-  int32 avg_gap_hours = 17;                        // learned cadence between sessions (0 = unknown)
-  int32 sessions_last_7_days = 18;                 // rolling 7-day session count
-  string next_workout_label = 19;                  // "Squat · Bench · Row"
+message GetHomeResponse {
+  repeated WorkoutTemplate templates = 1;   // in user order
+  repeated ExerciseTracker trackers = 2;    // every exercise, resolved
+  string active_workout_id = 3;
+  repeated UserMessage user_messages = 4;
+  repeated MuscleVolume volume = 5;
+  repeated MuscleRecoveryStatus recovery = 6;
+  // A stateless suggestion: the template whose muscles are furthest
+  // below the volume band, ties broken toward the least recently
+  // started. Never a gate — any template can be started.
+  string suggested_template_id = 7;
+  string suggestion_reason = 8;             // "Back and biceps are 6 sets behind"
+  bool onboarded = 9;                       // templates or workouts exist
 }
 
-message RegimeContext {
-  string regime_display_name = 1;   // e.g. "Wendler 5/3/1"
-  string session_description = 2;   // e.g. "Cycle 1, Week 2 — Intensity Week"
-  string next_session_preview = 3;  // e.g. "Next: Week 3 — Peak Week (1-rep sets)"
-  // Phase explanation ("why today looks like this"). phase_narrative describes
-  // where you are in the cycle and what this session is (from program state);
-  // last_session_summary recaps what changed since last time (e.g. "Squat +5,
-  // Bench held") and is filled server-side from the progression messages.
-  string phase_narrative = 4;
-  string last_session_summary = 5;
+// Create when id is empty; update when it exists.
+message SaveTemplateRequest {
+  WorkoutTemplate template = 1;
+}
+message SaveTemplateResponse {
+  WorkoutTemplate template = 1;
 }
 
-message GetProposedWorkoutScheduleResponse {
+message DeleteTemplateRequest {
+  string template_id = 1;
+}
+message DeleteTemplateResponse {}
 
-  repeated ExerciseStatus exercise_statuses = 1;
+message ReorderTemplatesRequest {
+  repeated string template_ids = 1;
+}
+message ReorderTemplatesResponse {}
 
-  string active_workout_id = 2;
-
-  repeated ProposedExerciseGroup proposed_groups = 3;
-
-  RegimeContext regime_context = 4;
-
-  TrainingStatus training_status = 5;
-
-  string suggested_workout_name = 6; // regime-generated name, e.g. "5/3/1 — Cycle 2, Week 3 Peak"
-
-  WorkoutDraft draft = 7;
-
-  repeated ExerciseGroup saved_exercise_groups = 8;
-
-  repeated UserMessage user_messages = 9;
-
-  // Selectable next-session choices (e.g. Linear 5×5 Workout A / B) so the home
-  // prompt can offer a one-tap swap. Empty when the regime has no choice.
-  repeated NextSessionOption selectable_next_sessions = 10;
-
+// Manual correction / override for one exercise. working_weight is the
+// full new value (send the current one to keep it). Overrides of 0 mean
+// "derived". current_reps resets to the resolved range bottom.
+message SetExerciseTrackerRequest {
+  Exercise exercise = 1;
+  float working_weight = 2;        // lb
+  int32 override_sets = 3;         // 0 = derived
+  int32 override_rep_low = 4;      // 0 = derived
+  int32 override_rep_high = 5;     // 0 = derived
+}
+message SetExerciseTrackerResponse {
+  ExerciseTracker tracker = 1;
 }
 
-message NextSessionOption {
-  string key = 1;          // regime-specific selector, e.g. "A" / "B"
-  string label = 2;        // "Workout A · Squat, Bench, Row"
-  bool is_current = 3;     // the option currently queued/selected (what Start runs)
-  bool is_recommended = 4; // the program's natural rotation pick from history
-                           // (e.g. last did A → recommends B), independent of any
-                           // manual override — "what the schplanner was going to do".
+// Finishes setup: saves the unit, seeds trackers for the main lifts from
+// bodyweight and experience (catalog openers when skipped), and copies
+// the default templates. Does nothing when templates already exist.
+message CompleteOnboardingRequest {
+  float body_weight_kg = 1;        // 0 = skipped
+  ExperienceLevel experience = 2;  // unspecified = skipped
+  WeightUnit unit = 3;
 }
-
-message SetNextWorkoutRequest {
-  string session_key = 1;  // one of NextSessionOption.key
+message CompleteOnboardingResponse {
+  GetHomeResponse home = 1;
 }
-message SetNextWorkoutResponse {}
-
-message SaveProfileExerciseGroupRequest {
-  ExerciseGroup group = 1;
-}
-
-message SaveProfileExerciseGroupResponse {
-  ExerciseGroup group = 1;
-}
-
-message DeleteProfileExerciseGroupRequest {
-  string group_id = 1;
-}
-
-message DeleteProfileExerciseGroupResponse {}
-
-message WorkoutDraft {
-  string name = 1;
-  repeated ExerciseGroup exercise_groups = 2;
-  int64 updated_at = 3;
-}
-
-message SaveWorkoutDraftRequest {
-  WorkoutDraft draft = 1;
-}
-
-message SaveWorkoutDraftResponse {
-  WorkoutDraft draft = 1;
-}
-
-message ClearWorkoutDraftRequest {}
-
-message ClearWorkoutDraftResponse {}
 
 
 
@@ -826,42 +709,9 @@ message GetActiveWorkoutResponse {
 
 
 
-message UpdateExerciseGroupRequest {
 
-  string workout_id = 1;
 
-  string exercise_group_id = 2;
 
-  string name = 3;
-
-  int32 sets = 4;
-
-  bool interleave_warmups = 5;
-
-  repeated ExerciseTypeConfig exercise_configs = 6;
-
-  RestConfig rest_config = 7;
-
-}
-
-message UpdateExerciseGroupResponse {
-  ExerciseGroup group = 1;
-  repeated ProposedSet generated_sets = 2;
-  ProposedSet next_up_set = 3;
-  WorkoutStateSnapshot state_snapshot = 4;
-  repeated UserMessage user_messages = 5;
-}
-
-message DeleteExerciseGroupRequest {
-  string workout_id = 1;
-  string exercise_group_id = 2;
-}
-
-message DeleteExerciseGroupResponse {
-  ProposedSet next_up_set = 1;
-  WorkoutStateSnapshot state_snapshot = 2;
-  repeated UserMessage user_messages = 3;
-}
 
 message ReorderExerciseGroupsRequest {
   string workout_id = 1;
@@ -928,15 +778,7 @@ message DismissUserMessagesResponse {
   repeated string dismissed_message_keys = 1;
 }
 
-message RehydrateWorkoutFromEventsRequest {
-  string workout_id = 1;
-  bool persist = 2; // if true, overwrite current workout tables with rebuilt state
-}
 
-message RehydrateWorkoutFromEventsResponse {
-  GetWorkoutResponse workout_state = 1;
-  int32 applied_event_count = 2;
-}
 
 // --- Service Definition ---
 
@@ -953,8 +795,6 @@ service WorkoutService {
   rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
   // Per-exercise progress series, everything precomputed (progress + detail).
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
-  // Recommended starting weights from bodyweight + experience (onboarding).
-  rpc GetRecommendedStartingWeights(GetRecommendedStartingWeightsRequest) returns (GetRecommendedStartingWeightsResponse);
 
   rpc ReplaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest) returns (ReplaceExerciseGroupPlanResponse);
   rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
@@ -964,18 +804,19 @@ service WorkoutService {
   rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
   rpc CancelProposedSet(CancelProposedSetRequest) returns (CancelProposedSetResponse);
   rpc AppendWorkoutMutations(AppendWorkoutMutationsRequest) returns (AppendWorkoutMutationsResponse);
-  rpc RehydrateWorkoutFromEvents(RehydrateWorkoutFromEventsRequest) returns (RehydrateWorkoutFromEventsResponse);
   rpc AppendWorkoutHeartRate(AppendWorkoutHeartRateRequest) returns (AppendWorkoutHeartRateResponse);
   rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);
 
-  // Get the next scheduled workouts for the user according to preferences and weight progression etc
-  rpc GetProposedWorkoutSchedule(GetProposedWorkoutScheduleRequest) returns (GetProposedWorkoutScheduleResponse);
-  rpc SetNextWorkout(SetNextWorkoutRequest) returns (SetNextWorkoutResponse);
+  // Everything the home screen needs in one round trip: templates,
+  // trackers, volume, recovery, the suggestion, and pending messages.
+  rpc GetHome(GetHomeRequest) returns (GetHomeResponse);
+  rpc SaveTemplate(SaveTemplateRequest) returns (SaveTemplateResponse);
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
+  rpc ReorderTemplates(ReorderTemplatesRequest) returns (ReorderTemplatesResponse);
+  rpc SetExerciseTracker(SetExerciseTrackerRequest) returns (SetExerciseTrackerResponse);
+  rpc CompleteOnboarding(CompleteOnboardingRequest) returns (CompleteOnboardingResponse);
+
   rpc DismissUserMessages(DismissUserMessagesRequest) returns (DismissUserMessagesResponse);
-  rpc SaveWorkoutDraft(SaveWorkoutDraftRequest) returns (SaveWorkoutDraftResponse);
-  rpc ClearWorkoutDraft(ClearWorkoutDraftRequest) returns (ClearWorkoutDraftResponse);
-  rpc SaveProfileExerciseGroup(SaveProfileExerciseGroupRequest) returns (SaveProfileExerciseGroupResponse);
-  rpc DeleteProfileExerciseGroup(DeleteProfileExerciseGroupRequest) returns (DeleteProfileExerciseGroupResponse);
 }
 
 message CreateUserRequest {

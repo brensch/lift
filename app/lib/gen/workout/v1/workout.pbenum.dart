@@ -14,6 +14,8 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+/// The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+/// use this one list — there is no second muscle grouping anywhere.
 class MuscleGroup extends $pb.ProtobufEnum {
   static const MuscleGroup MUSCLE_GROUP_UNSPECIFIED =
       MuscleGroup._(0, _omitEnumNames ? '' : 'MUSCLE_GROUP_UNSPECIFIED');
@@ -33,6 +35,10 @@ class MuscleGroup extends $pb.ProtobufEnum {
       MuscleGroup._(7, _omitEnumNames ? '' : 'MUSCLE_GROUP_BICEPS');
   static const MuscleGroup MUSCLE_GROUP_TRICEPS =
       MuscleGroup._(8, _omitEnumNames ? '' : 'MUSCLE_GROUP_TRICEPS');
+  static const MuscleGroup MUSCLE_GROUP_CALVES =
+      MuscleGroup._(9, _omitEnumNames ? '' : 'MUSCLE_GROUP_CALVES');
+  static const MuscleGroup MUSCLE_GROUP_CORE =
+      MuscleGroup._(10, _omitEnumNames ? '' : 'MUSCLE_GROUP_CORE');
 
   static const $core.List<MuscleGroup> values = <MuscleGroup>[
     MUSCLE_GROUP_UNSPECIFIED,
@@ -44,10 +50,12 @@ class MuscleGroup extends $pb.ProtobufEnum {
     MUSCLE_GROUP_SHOULDERS,
     MUSCLE_GROUP_BICEPS,
     MUSCLE_GROUP_TRICEPS,
+    MUSCLE_GROUP_CALVES,
+    MUSCLE_GROUP_CORE,
   ];
 
   static final $core.List<MuscleGroup?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 8);
+      $pb.ProtobufEnum.$_initByValueList(values, 10);
   static MuscleGroup? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
@@ -76,6 +84,39 @@ class ExerciseCategory extends $pb.ProtobufEnum {
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const ExerciseCategory._(super.value, super.name);
+}
+
+/// How an exercise is loaded. Drives the equipment filter in the picker
+/// and the size of a progression step.
+class EquipmentKind extends $pb.ProtobufEnum {
+  static const EquipmentKind EQUIPMENT_KIND_UNSPECIFIED =
+      EquipmentKind._(0, _omitEnumNames ? '' : 'EQUIPMENT_KIND_UNSPECIFIED');
+  static const EquipmentKind EQUIPMENT_KIND_BARBELL =
+      EquipmentKind._(1, _omitEnumNames ? '' : 'EQUIPMENT_KIND_BARBELL');
+  static const EquipmentKind EQUIPMENT_KIND_DUMBBELL =
+      EquipmentKind._(2, _omitEnumNames ? '' : 'EQUIPMENT_KIND_DUMBBELL');
+  static const EquipmentKind EQUIPMENT_KIND_MACHINE =
+      EquipmentKind._(3, _omitEnumNames ? '' : 'EQUIPMENT_KIND_MACHINE');
+  static const EquipmentKind EQUIPMENT_KIND_CABLE =
+      EquipmentKind._(4, _omitEnumNames ? '' : 'EQUIPMENT_KIND_CABLE');
+  static const EquipmentKind EQUIPMENT_KIND_BODYWEIGHT =
+      EquipmentKind._(5, _omitEnumNames ? '' : 'EQUIPMENT_KIND_BODYWEIGHT');
+
+  static const $core.List<EquipmentKind> values = <EquipmentKind>[
+    EQUIPMENT_KIND_UNSPECIFIED,
+    EQUIPMENT_KIND_BARBELL,
+    EQUIPMENT_KIND_DUMBBELL,
+    EQUIPMENT_KIND_MACHINE,
+    EQUIPMENT_KIND_CABLE,
+    EQUIPMENT_KIND_BODYWEIGHT,
+  ];
+
+  static final $core.List<EquipmentKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static EquipmentKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const EquipmentKind._(super.value, super.name);
 }
 
 class Exercise extends $pb.ProtobufEnum {
@@ -579,66 +620,6 @@ class ExperienceLevel extends $pb.ProtobufEnum {
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const ExperienceLevel._(super.value, super.name);
-}
-
-class ProgressionRule extends $pb.ProtobufEnum {
-  static const ProgressionRule PROGRESSION_RULE_UNSPECIFIED = ProgressionRule._(
-      0, _omitEnumNames ? '' : 'PROGRESSION_RULE_UNSPECIFIED');
-  static const ProgressionRule PROGRESSION_RULE_NONE =
-      ProgressionRule._(1, _omitEnumNames ? '' : 'PROGRESSION_RULE_NONE');
-  static const ProgressionRule PROGRESSION_RULE_ALL_SETS_MATCH_TARGET =
-      ProgressionRule._(
-          2, _omitEnumNames ? '' : 'PROGRESSION_RULE_ALL_SETS_MATCH_TARGET');
-  static const ProgressionRule PROGRESSION_RULE_TOP_SET_AMRAP =
-      ProgressionRule._(
-          3, _omitEnumNames ? '' : 'PROGRESSION_RULE_TOP_SET_AMRAP');
-
-  static const $core.List<ProgressionRule> values = <ProgressionRule>[
-    PROGRESSION_RULE_UNSPECIFIED,
-    PROGRESSION_RULE_NONE,
-    PROGRESSION_RULE_ALL_SETS_MATCH_TARGET,
-    PROGRESSION_RULE_TOP_SET_AMRAP,
-  ];
-
-  static final $core.List<ProgressionRule?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
-  static ProgressionRule? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ProgressionRule._(super.value, super.name);
-}
-
-/// Recovery- and frequency-aware readiness for the home hero. Replaces the flat
-/// "last session + 24h" signal with a per-muscle recovery model.
-class ReadinessState extends $pb.ProtobufEnum {
-  static const ReadinessState READINESS_STATE_UNSPECIFIED =
-      ReadinessState._(0, _omitEnumNames ? '' : 'READINESS_STATE_UNSPECIFIED');
-  static const ReadinessState READINESS_STATE_FIRST_TIME =
-      ReadinessState._(1, _omitEnumNames ? '' : 'READINESS_STATE_FIRST_TIME');
-  static const ReadinessState READINESS_STATE_READY =
-      ReadinessState._(2, _omitEnumNames ? '' : 'READINESS_STATE_READY');
-  static const ReadinessState READINESS_STATE_RECOVERING =
-      ReadinessState._(3, _omitEnumNames ? '' : 'READINESS_STATE_RECOVERING');
-  static const ReadinessState READINESS_STATE_OVERDUE =
-      ReadinessState._(4, _omitEnumNames ? '' : 'READINESS_STATE_OVERDUE');
-  static const ReadinessState READINESS_STATE_AHEAD =
-      ReadinessState._(5, _omitEnumNames ? '' : 'READINESS_STATE_AHEAD');
-
-  static const $core.List<ReadinessState> values = <ReadinessState>[
-    READINESS_STATE_UNSPECIFIED,
-    READINESS_STATE_FIRST_TIME,
-    READINESS_STATE_READY,
-    READINESS_STATE_RECOVERING,
-    READINESS_STATE_OVERDUE,
-    READINESS_STATE_AHEAD,
-  ];
-
-  static final $core.List<ReadinessState?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 5);
-  static ReadinessState? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ReadinessState._(super.value, super.name);
 }
 
 const $core.bool _omitEnumNames =
