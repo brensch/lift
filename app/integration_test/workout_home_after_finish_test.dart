@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:schlift/gen/workout/v1/workout.pbenum.dart';
 import 'support/scenario.dart';
 
 void main() {
@@ -43,12 +44,8 @@ void main() {
         note: 'The summary reports each lift advancing 45 → 50.');
 
     // Backend should have advanced.
-    final after = await api.proposedGroups();
-    final backendSquat = after
-        .expand((g) => g.exerciseConfigs)
-        .firstWhere((c) => c.exercise.name.contains('SQUAT'),
-            orElse: () => throw StateError('no squat in proposal'))
-        .startWeight;
+    final squatTracker = await api.trackerFor(Exercise.EXERCISE_SQUAT);
+    final backendSquat = squatTracker?.workingWeight ?? 0;
     s.note('Backend squat after finish',
         detail: '$backendSquat lb', kind: 'api');
     expect(backendSquat, greaterThan(45),

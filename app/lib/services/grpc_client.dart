@@ -10,7 +10,23 @@ import 'app_logger.dart';
 class AuthInterceptor extends ClientInterceptor {
   String? _token;
 
+  /// The running app's version, sent on every call as `x-app-version`. The
+  /// server's MIN_APP_VERSION gate reads it and rejects apps that predate a
+  /// breaking change with FAILED_PRECONDITION "app_update_required".
+  static String appVersion = '';
+
   void setToken(String? token) => _token = token;
+
+  Map<String, String> _decorated(Map<String, String> base) {
+    final metadata = Map<String, String>.from(base);
+    if (_token != null) {
+      metadata['x-session-token'] = _token!;
+    }
+    if (appVersion.isNotEmpty) {
+      metadata['x-app-version'] = appVersion;
+    }
+    return metadata;
+  }
 
   @override
   ResponseFuture<R> interceptUnary<Q, R>(
@@ -19,14 +35,10 @@ class AuthInterceptor extends ClientInterceptor {
     CallOptions options,
     ClientUnaryInvoker<Q, R> invoker,
   ) {
-    final metadata = Map<String, String>.from(options.metadata);
-    if (_token != null) {
-      metadata['x-session-token'] = _token!;
-    }
     return invoker(
       method,
       request,
-      options.mergedWith(CallOptions(metadata: metadata)),
+      options.mergedWith(CallOptions(metadata: _decorated(options.metadata))),
     );
   }
 
@@ -37,16 +49,20 @@ class AuthInterceptor extends ClientInterceptor {
     CallOptions options,
     ClientStreamingInvoker<Q, R> invoker,
   ) {
-    final metadata = Map<String, String>.from(options.metadata);
-    if (_token != null) {
-      metadata['x-session-token'] = _token!;
-    }
     return invoker(
       method,
       requests,
-      options.mergedWith(CallOptions(metadata: metadata)),
+      options.mergedWith(CallOptions(metadata: _decorated(options.metadata))),
     );
   }
+}
+
+/// True when the server rejected this app version — the only right move is
+/// an update prompt; retrying is pointless.
+bool isAppUpdateRequiredError(Object error) {
+  return error is GrpcError &&
+      error.code == StatusCode.failedPrecondition &&
+      (error.message ?? '').contains('app_update_required');
 }
 
 String formatGrpcError(Object error) {

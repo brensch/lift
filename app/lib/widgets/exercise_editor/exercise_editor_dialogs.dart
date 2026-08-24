@@ -16,7 +16,7 @@ Future<void> showEditExerciseDialog(
   BuildContext context, {
   required ExerciseGroupData group,
   required int groupIndex,
-  required List<ExerciseStatus> exerciseStatuses,
+  required List<ExerciseTracker> trackers,
   required bool Function(String setId) isSetDone,
   required void Function(
     int groupIndex, {
@@ -194,24 +194,24 @@ Future<void> showEditExerciseDialog(
                   // Add exercise chips
                   ExerciseChipSelector(
                     configs: editableConfigs,
-                    exerciseStatuses: exerciseStatuses,
+                    trackers: trackers,
                     onToggle: (exercise, selected) {
                       setState(() {
                         if (selected) {
-                          final status = exerciseStatuses
-                              .cast<ExerciseStatus?>()
+                          final tracker = trackers
+                              .cast<ExerciseTracker?>()
                               .firstWhere(
-                                (s) => s!.exercise == exercise,
+                                (t) => t!.exercise == exercise,
                                 orElse: () => null,
                               );
                           editableConfigs.add(
                             EditableConfig(
                               exercise: exercise,
-                              startWeight: status?.targetWeight ?? 45,
-                              endWeight: status?.targetWeight ?? 45,
+                              startWeight: tracker?.workingWeight ?? 45,
+                              endWeight: tracker?.workingWeight ?? 45,
                               differentEndWeight: false,
-                              reps: status?.defaultReps ?? 5,
-                              includeWarmup: true,
+                              reps: tracker?.targetReps ?? 8,
+                              includeWarmup: tracker?.includeWarmup ?? false,
                             ),
                           );
                         } else {
@@ -369,7 +369,7 @@ Future<void> showEditExerciseDialog(
 
 Future<void> showAddExerciseDialog(
   BuildContext context, {
-  required List<ExerciseStatus> exerciseStatuses,
+  required List<ExerciseTracker> trackers,
   required void Function(
     String name,
     int sets,
@@ -462,28 +462,28 @@ Future<void> showAddExerciseDialog(
                   // Exercise chips
                   ExerciseChipSelector(
                     configs: configs,
-                    exerciseStatuses: exerciseStatuses,
+                    trackers: trackers,
                     onToggle: (exercise, selected) {
                       setState(() {
                         if (selected) {
-                          final status = exerciseStatuses
-                              .cast<ExerciseStatus?>()
+                          final tracker = trackers
+                              .cast<ExerciseTracker?>()
                               .firstWhere(
-                                (s) => s!.exercise == exercise,
+                                (t) => t!.exercise == exercise,
                                 orElse: () => null,
                               );
                           configs.add(
                             EditableConfig(
                               exercise: exercise,
-                              startWeight: status?.targetWeight ?? 45,
-                              endWeight: status?.targetWeight ?? 45,
+                              startWeight: tracker?.workingWeight ?? 45,
+                              endWeight: tracker?.workingWeight ?? 45,
                               differentEndWeight: false,
-                              reps: status?.defaultReps ?? 5,
-                              includeWarmup: true,
+                              reps: tracker?.targetReps ?? 8,
+                              includeWarmup: tracker?.includeWarmup ?? false,
                             ),
                           );
                           if (configs.length == 1) {
-                            sets = status?.defaultSets ?? 3;
+                            sets = tracker?.sets ?? 3;
                           }
                         } else {
                           configs.removeWhere((c) => c.exercise == exercise);

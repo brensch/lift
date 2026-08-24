@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart' as app_links;
 
@@ -41,7 +42,6 @@ import 'screens/maths_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/passkey_notice_screen.dart';
-import 'screens/regime_settings_screen.dart';
 import 'screens/build_info_screen.dart';
 import 'widgets/main_layout.dart';
 
@@ -68,6 +68,13 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
   await NotificationService.init();
+  // Stamp every RPC with the app version for the server's update gate.
+  try {
+    final info = await PackageInfo.fromPlatform();
+    AuthInterceptor.appVersion = info.version;
+  } catch (_) {
+    // Best-effort: a missing header just skips the gate.
+  }
   runApp(const SchliftApp());
 }
 
@@ -159,7 +166,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
         ),
       );
-      unawaited(_settingsProvider.refreshActiveTrainingProgramState());
     };
 
     // Listen to auth changes: clear state on logout, load settings on login.
@@ -198,7 +204,11 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
     _router = GoRouter(
       navigatorKey: ErrorModalService.rootNavigatorKey,
-      refreshListenable: Listenable.merge([_authProvider, _settingsProvider]),
+      refreshListenable: Listenable.merge([
+        _authProvider,
+        _settingsProvider,
+        _workoutProvider,
+      ]),
       redirect: (context, state) {
         final loggedIn = _authProvider.isLoggedIn;
         final isLogin = state.matchedLocation == '/login';
@@ -214,12 +224,14 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         }
         if (loggedIn && isLogin) return '/';
 
-        // Redirect new users to onboarding if they haven't set up a training program.
+        // Route brand-new users to setup: the server says a user is
+        // onboarded once they have any templates or workouts.
+        final home = _workoutProvider.home;
         if (loggedIn &&
             !isOnboarding &&
             !isPasskeyNotice &&
-            _settingsProvider.loaded &&
-            !_settingsProvider.hasProgramState) {
+            home != null &&
+            !home.onboarded) {
           return '/onboarding';
         }
 
@@ -246,14 +258,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
                 workoutId: state.pathParameters['id']!,
                 isHistory: state.uri.queryParameters['isHistory'] == 'true',
               ),
-            ),
-            GoRoute(
-              path: '/training-program',
-              builder: (_, __) => const RegimeSettingsScreen(),
-            ),
-            GoRoute(
-              path: '/settings/regime',
-              redirect: (_, __) => '/training-program',
             ),
             GoRoute(
               path: '/progress',

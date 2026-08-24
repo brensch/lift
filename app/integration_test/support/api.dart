@@ -93,20 +93,18 @@ class Peer {
         .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
   }
 
-  /// The regime's current program state (weights, stall counts, …).
-  Future<TrainingProgramState?> programState() async {
-    final r = await _api.settings.getActiveTrainingProgramState(
-        GetActiveTrainingProgramStateRequest(),
-        options: _opts);
-    return r.hasState() ? r.state : null;
+  /// The home payload: templates, resolved trackers, volume, suggestion.
+  Future<GetHomeResponse> home() async {
+    return _api.workout.getHome(GetHomeRequest(), options: _opts);
   }
 
-  /// The proposed next workout the home screen renders (groups + weights).
-  Future<List<ProposedExerciseGroup>> proposedGroups() async {
-    final r = await _api.workout.getProposedWorkoutSchedule(
-        GetProposedWorkoutScheduleRequest(),
-        options: _opts);
-    return r.proposedGroups;
+  /// The resolved tracker for one exercise (weight the next workout uses).
+  Future<ExerciseTracker?> trackerFor(Exercise exercise) async {
+    final response = await home();
+    for (final tracker in response.trackers) {
+      if (tracker.exercise == exercise) return tracker;
+    }
+    return null;
   }
 
   /// Start a simple one-exercise workout (used to give a peer visible activity).

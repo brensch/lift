@@ -21,6 +21,7 @@ import '../services/health_service.dart' show HealthService, HealthWriteResult;
 import '../services/error_modal_service.dart';
 import '../logic/exercises.dart';
 import '../logic/utils.dart';
+import '../services/grpc_client.dart' show isAppUpdateRequiredError;
 import '../services/app_logger.dart';
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
@@ -63,9 +64,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<CompletedSet> _activeCompletedSets = [];
   ProposedSet? _backendNextUpSet;
   WorkoutStateSnapshot? _stateSnapshot;
-  List<ExerciseStatus> _exerciseStatuses = [];
-  List<ProposedExerciseGroup> _proposedGroups = [];
-  RegimeContext? _regimeContext;
+  GetHomeResponse? _home;
   List<UserMessage> _scheduleMessages = [];
   List<UserMessage> _workoutMessages = [];
   final List<HeartRateSample> _wearHeartRateSamples = [];
@@ -200,8 +199,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         ..sets = computeGroupWorkingRoundsFromSets(normalizedSets)
         ..interleaveWarmups = interleaveWarmups
         ..workoutOrder = _activeExerciseGroups.length
-        ..instruction = instruction
-        ..prescribedByRegime = false;
+        ..instruction = instruction;
       if (restConfig != null) {
         group.restConfig = RestConfig()..mergeFromMessage(restConfig);
       }
@@ -222,7 +220,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     if (existingIdx == -1) return null;
     final existing = _activeExerciseGroups[existingIdx];
-    if (existing.prescribedByRegime) return null;
 
     if (deleteGroupIfEmpty && normalizedSets.isEmpty) {
       final groupId = existing.id;
@@ -741,6 +738,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _handleError(Object e) {
     if (isUnauthenticatedError(e)) return;
+    if (isAppUpdateRequiredError(e)) {
+      ErrorModalService.showError(
+        'THIS VERSION OF SCHLIFT IS TOO OLD — PLEASE UPDATE FROM THE STORE.',
+      );
+      return;
+    }
     final message = cleanErrorMessage(e);
     ErrorModalService.showError(message.toUpperCase());
   }
@@ -762,10 +765,68 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Workout? get workout => _activeWorkout;
   List<ProposedSet> get proposedSets => _activeProposedSets;
   List<CompletedSet> get completedSets => _activeCompletedSets;
-  List<ExerciseStatus> get exerciseStatuses => _exerciseStatuses;
-  List<ProposedExerciseGroup> get proposedGroups => _proposedGroups;
-  RegimeContext? get regimeContext => _regimeContext;
+  /// The last GetHome response: templates, trackers, volume, recovery,
+  /// the suggestion. Null until the first load succeeds.
+  GetHomeResponse? get home => _home;
+  List<WorkoutTemplate> get templates => _home?.templates ?? const [];
+  List<ExerciseTracker> get trackers => _home?.trackers ?? const [];
   List<UserMessage> get scheduleMessages => _scheduleMessages;
+
+  /// The resolved tracker for one exercise. GetHome returns one for every
+  /// exercise, so this only misses before the first home load.
+  ExerciseTracker? trackerFor(Exercise exercise) {
+    for (final tracker in trackers) {
+      if (tracker.exercise == exercise) return tracker;
+    }
+    return null;
+  }
+
+  /// Refresh templates/trackers/volume without touching the active session.
+  Future<void> refreshHome() async {
+    try {
+      _home = await _service.getHome();
+      _scheduleMessages =
+          List<UserMessage>.from(_home?.userMessages ?? const []);
+      notifyListeners();
+    } catch (e) {
+      AppLogger.instance.warn('Workout', 'refreshHome failed', {
+        'error': e.toString(),
+      });
+    }
+  }
+
+  Future<void> saveTemplate(WorkoutTemplate template) async {
+    await _service.saveTemplate(template);
+    await refreshHome();
+  }
+
+  Future<void> deleteTemplate(String templateId) async {
+    await _service.deleteTemplate(templateId);
+    await refreshHome();
+  }
+
+  Future<void> reorderTemplates(List<String> templateIds) async {
+    await _service.reorderTemplates(templateIds);
+    await refreshHome();
+  }
+
+  Future<void> setExerciseTracker({
+    required Exercise exercise,
+    required double workingWeightLb,
+    int overrideSets = 0,
+    int overrideRepLow = 0,
+    int overrideRepHigh = 0,
+  }) async {
+    await _service.setExerciseTracker(
+      exercise: exercise,
+      workingWeight: workingWeightLb,
+      overrideSets: overrideSets,
+      overrideRepLow: overrideRepLow,
+      overrideRepHigh: overrideRepHigh,
+    );
+    await refreshHome();
+  }
+
   List<UserMessage> get workoutMessages => _workoutMessages;
 
   Workout? get activeWorkout => _activeWorkout;
@@ -1027,15 +1088,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _stopTimer();
       }
 
-      final proposedSchedule = await _service.getProposedWorkoutSchedule(
-        userId,
-      );
-      _exerciseStatuses = proposedSchedule.exerciseStatuses;
-      _proposedGroups = proposedSchedule.proposedGroups;
-      _regimeContext = proposedSchedule.hasRegimeContext()
-          ? proposedSchedule.regimeContext
-          : null;
-      _scheduleMessages = List<UserMessage>.from(proposedSchedule.userMessages);
+      _home = await _service.getHome();
+      _scheduleMessages = List<UserMessage>.from(_home?.userMessages ?? const []);
       _loadWorkoutRetryScheduled = false;
       await _persistLocalCache();
     } catch (e) {
@@ -1107,11 +1161,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<String?> startWorkout(String name, List<ExerciseGroup> groups) async {
+  Future<String?> startWorkout(
+    String name,
+    List<ExerciseGroup> groups, {
+    String templateId = '',
+  }) async {
     try {
       await NotificationService.cancelAll();
       _wasResting = false;
-      final response = await _service.startWorkout(name, groups);
+      final response =
+          await _service.startWorkout(name, groups, templateId: templateId);
       _applyStartWorkoutResponse(response);
       _workoutMessages = List<UserMessage>.from(response.userMessages);
       await _persistLocalCache();

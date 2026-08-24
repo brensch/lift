@@ -47,7 +47,6 @@ class MainLayout extends StatelessWidget {
         currentPath == '/' ||
         currentPath == '/progress' ||
         currentPath == '/history' ||
-        currentPath == '/training-program' ||
         currentPath == '/settings';
 
     return PopScope(
@@ -134,13 +133,6 @@ class MainLayout extends StatelessWidget {
                         isActive: currentPath == '/history',
                       ),
                       Divider(height: 32, color: colorScheme.outline),
-                      _MenuButton(
-                        icon: Icons.psychology_outlined,
-                        label: 'Schplanner',
-                        onTap: () => goToTopLevel('/training-program'),
-                        isActive: currentPath == '/training-program',
-                      ),
-                      const SizedBox(height: 4),
                       _MenuButton(
                         icon: Icons.settings_outlined,
                         label: 'Settings',

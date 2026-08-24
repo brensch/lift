@@ -1,29 +1,29 @@
+/// Setup, three questions long: your marker, your unit, and (optionally)
+/// your bodyweight and experience so the first weights aren't the empty
+/// bar. Finishing calls CompleteOnboarding, which seeds the trackers and
+/// copies the six default templates — after that the app is usable and
+/// nothing else is required, ever.
+library;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
-import 'dart:io' show Platform;
 import 'dart:math';
 
 import '../../gen/workout/v1/settings.pb.dart';
+import '../../gen/workout/v1/workout.pb.dart' show ExperienceLevel;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/workout_provider.dart';
 import '../../services/grpc_client.dart';
-import '../../services/workout_service.dart';
-import '../../services/app_logger.dart';
-import '../../services/health_service.dart';
 import '../../services/user_service.dart';
-import '../regime_info_screen.dart';
-import 'steps/config_step.dart';
-import 'steps/confirm_step.dart';
+import '../../services/workout_service.dart';
 import 'steps/marker_step.dart';
-import 'steps/program_step.dart';
 import 'steps/unit_step.dart';
-
-enum ExperienceLevel { cute, beginner, intermediate, expert }
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -35,296 +35,33 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   static const int _emojiWindowSize = 18;
   int _step = 0;
-  RegimeType? _selectedRegimeType;
-  final Map<String, TextEditingController> _controllers = {};
-  late final TextEditingController _bodyWeightController;
   bool _isSaving = false;
-  bool _initialized = false;
   bool _profileLoaded = false;
   bool _profileTouched = false;
-  bool _syncingBodyWeightText = false;
-  bool _isImportingBodyWeight = false;
   late String _selectedEmoji;
   late String _selectedColorHex;
-  String _bodyWeightHint =
-      'We use your bodyweight to estimate calories burned for each workout.';
-  ExperienceLevel _experienceLevel = ExperienceLevel.intermediate;
-  // Server-recommended starting weights (field key -> pounds), fetched from
-  // bodyweight + experience. The client only clamps/snaps/formats for display.
-  Map<String, double> _recommendedPounds = {};
-  Timer? _recDebounce;
+  WeightUnit _unit = WeightUnit.WEIGHT_UNIT_LB;
+  ExperienceLevel _experience =
+      ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE;
+  final TextEditingController _bodyWeightController = TextEditingController();
   late List<String> _emojiChoices;
 
   @override
   void initState() {
     super.initState();
-    _bodyWeightController = TextEditingController();
-    _bodyWeightController.addListener(_onBodyWeightChanged);
     final rng = Random();
     final shuffled = [...whimsicalEmojiCatalog]..shuffle(rng);
     _emojiChoices = shuffled.take(_emojiWindowSize).toList();
     _selectedEmoji = _emojiChoices[rng.nextInt(_emojiWindowSize)];
     _selectedColorHex =
         profileColorHexOptions[rng.nextInt(profileColorHexOptions.length)];
-  }
-
-  void _goToStep(int nextStep) {
-    if (_step == nextStep) return;
-    setState(() => _step = nextStep);
-    if (nextStep == 3) {
-      unawaited(_prepareConfigStep());
-    }
+    unawaited(_loadProfile());
   }
 
   @override
   void dispose() {
-    _recDebounce?.cancel();
-    for (final c in _controllers.values) {
-      c.dispose();
-    }
-    _bodyWeightController
-      ..removeListener(_onBodyWeightChanged)
-      ..dispose();
+    _bodyWeightController.dispose();
     super.dispose();
-  }
-
-  void _initFromCatalog(SettingsProvider provider) {
-    if (_initialized || !provider.loaded || provider.trainingPrograms.isEmpty) {
-      return;
-    }
-    final first = provider.trainingPrograms.first;
-    _selectedRegimeType = first.regimeType;
-    _seedFromSchema(first.stateSchema.fields);
-    _initialized = true;
-  }
-
-  void _seedFromSchema(List<TrainingProgramStateFieldSchema> fields) {
-    for (final f in fields) {
-      if (!f.onboardingField) continue;
-      _controllers.putIfAbsent(f.key, () => TextEditingController());
-      _controllers[f.key]!.text = _defaultTextForField(f);
-    }
-  }
-
-  String _defaultTextForField(TrainingProgramStateFieldSchema f) {
-    if (f.kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
-      final provider = context.read<SettingsProvider>();
-      final value = SettingsProvider.isWeightField(f)
-          ? snapDisplayWeight(
-              displayWeightFromPounds(f.minValue, provider.weightUnit),
-              provider.weightUnit,
-              poundStep: f.step,
-              kilogramStep: SettingsProvider.displayStepForField(
-                f,
-                provider.weightUnit,
-              ),
-            )
-          : f.minValue;
-      if (value <= 0) return '';
-      return value % 1 == 0
-          ? value.toStringAsFixed(0)
-          : value.toStringAsFixed(1);
-    } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_INT) {
-      return f.minValue.toInt().toString();
-    } else if (f.kind == StateFieldKind.STATE_FIELD_KIND_ENUM) {
-      return f.enumOptions.isNotEmpty ? f.enumOptions.first.value : '';
-    }
-    return '';
-  }
-
-  void _selectProgram(TrainingProgramDefinition p) {
-    setState(() {
-      _selectedRegimeType = p.regimeType;
-      // Re-seed controllers for new program's onboarding fields
-      final fields = p.stateSchema.fields
-          .where((f) => f.onboardingField)
-          .toList();
-      for (final f in fields) {
-        if (!_controllers.containsKey(f.key)) {
-          _controllers[f.key] = TextEditingController(
-            text: _defaultTextForField(f),
-          );
-        }
-      }
-    });
-    _applyRecommendedWeights(context.read<SettingsProvider>(), p);
-  }
-
-  Future<void> _selectWeightUnit(
-    SettingsProvider provider,
-    WeightUnit unit,
-  ) async {
-    // Capture the entered bodyweight in canonical kg while the OLD unit is still
-    // active. If we changed the unit first, `_parsedBodyWeightKg` would re-read
-    // the same digits as the new unit (180 lb silently becoming 180 kg).
-    final currentKg = _parsedBodyWeightKg(provider);
-    await provider.updateWeightUnit(unit);
-    if (currentKg != null && currentKg > 0) {
-      _setBodyWeightText(currentKg, unit);
-    }
-    final selectedProgram = _selectedRegimeType == null
-        ? null
-        : provider.trainingProgramFor(_selectedRegimeType!);
-    if (selectedProgram != null) {
-      _seedFromSchema(selectedProgram.stateSchema.fields);
-      _applyRecommendedWeights(provider, selectedProgram);
-    }
-  }
-
-  void _onBodyWeightChanged() {
-    if (_syncingBodyWeightText || !mounted) return;
-    // Debounce: don't fire the recommendation RPC on every keystroke.
-    _recDebounce?.cancel();
-    _recDebounce = Timer(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      final provider = context.read<SettingsProvider>();
-      final program = _selectedRegimeType == null
-          ? null
-          : provider.trainingProgramFor(_selectedRegimeType!);
-      if (program != null) {
-        _applyRecommendedWeights(provider, program);
-      }
-    });
-  }
-
-  double? _parsedBodyWeightKg(SettingsProvider provider) {
-    final raw = double.tryParse(_bodyWeightController.text.trim());
-    if (raw == null || raw <= 0) return null;
-    return isMetricUnit(provider.weightUnit) ? raw : poundsToKilograms(raw);
-  }
-
-  void _setBodyWeightText(double kg, WeightUnit unit) {
-    final display = isMetricUnit(unit) ? kg : kilogramsToPounds(kg);
-    final text = display % 1 == 0
-        ? display.toStringAsFixed(0)
-        : display.toStringAsFixed(1);
-    _syncingBodyWeightText = true;
-    _bodyWeightController.text = text;
-    _syncingBodyWeightText = false;
-  }
-
-  Future<void> _prepareConfigStep() async {
-    final provider = context.read<SettingsProvider>();
-    final program = _selectedRegimeType == null
-        ? null
-        : provider.trainingProgramFor(_selectedRegimeType!);
-    if (program == null) return;
-
-    AppLogger.instance.info('Onboarding', 'bodyweight import', {
-      'phase': 'start',
-    });
-    final auth = context.read<AuthProvider>();
-    if (mounted) {
-      setState(() {
-        _isImportingBodyWeight = true;
-        _bodyWeightHint = Platform.isAndroid
-            ? 'Checking Health Connect for your latest bodyweight...'
-            : 'Checking Apple Health for your latest bodyweight...';
-      });
-    }
-    final importedKg = await HealthService.readLatestBodyWeightKg(
-      requestPermissions: true,
-    );
-    if (!mounted) return;
-    if (importedKg != null && importedKg > 0) {
-      _setBodyWeightText(importedKg, provider.weightUnit);
-      AppLogger.instance.info('Onboarding', 'bodyweight import', {
-        'source': Platform.isAndroid ? 'health_connect' : 'apple_health',
-        'bodyWeightKg': importedKg,
-      });
-      setState(() {
-        _bodyWeightHint = Platform.isAndroid
-            ? 'Pulled from Health Connect. You can edit it before you start. We use bodyweight to estimate calories burned.'
-            : 'Pulled from Apple Health. You can edit it before you start. We use bodyweight to estimate calories burned.';
-      });
-    } else if (auth.bodyWeightKg > 0) {
-      _setBodyWeightText(auth.bodyWeightKg, provider.weightUnit);
-      AppLogger.instance.info('Onboarding', 'bodyweight import', {
-        'source': 'profile',
-        'bodyWeightKg': auth.bodyWeightKg,
-      });
-      setState(() {
-        _bodyWeightHint =
-            'Using the bodyweight saved on your profile. We use it to estimate calories burned.';
-      });
-    } else {
-      AppLogger.instance.warn('Onboarding', 'bodyweight import empty');
-      setState(() {
-        _bodyWeightHint =
-            'Enter your bodyweight to personalize starting weights and estimate calories burned.';
-      });
-    }
-    if (mounted) {
-      setState(() => _isImportingBodyWeight = false);
-    }
-
-    _applyRecommendedWeights(provider, program);
-  }
-
-  String _formattedRecommendedValue(
-    TrainingProgramStateFieldSchema field,
-    SettingsProvider provider,
-    double bodyWeightKg,
-  ) {
-    final recommended = _recommendedPounds[field.key];
-    if (recommended == null) {
-      return _defaultTextForField(field);
-    }
-
-    // Server gives the raw recommendation; we clamp to this field's range and
-    // snap/format for display.
-    final targetPounds =
-        recommended.clamp(field.minValue, field.maxValue).toDouble();
-    final snappedPounds = snapPoundsForUnit(
-      targetPounds,
-      provider.weightUnit,
-      poundStep: field.step,
-      kilogramStep: SettingsProvider.displayStepForField(
-        field,
-        provider.weightUnit,
-      ),
-    );
-    final display = displayWeightFromPounds(snappedPounds, provider.weightUnit);
-    return display % 1 == 0
-        ? display.toStringAsFixed(0)
-        : display.toStringAsFixed(1);
-  }
-
-  Future<void> _applyRecommendedWeights(
-    SettingsProvider provider,
-    TrainingProgramDefinition program,
-  ) async {
-    final bodyWeightKg = _parsedBodyWeightKg(provider);
-    if (bodyWeightKg == null || bodyWeightKg <= 0) return;
-
-    // The server owns the recommendation (bodyweight x lift ratio x experience).
-    try {
-      final service = WorkoutServiceWrapper(context.read<GrpcClient>());
-      _recommendedPounds = await service.getRecommendedStartingWeights(
-        bodyWeightKg,
-        _experienceLevel.index + 1, // local enum -> proto value (Cute = 1)
-      );
-    } catch (_) {
-      // Keep whatever we had; fields fall back to schema defaults.
-    }
-    if (!mounted) return;
-
-    final onboardingFields = program.stateSchema.fields
-        .where((f) => f.onboardingField)
-        .toList();
-    for (final field in onboardingFields) {
-      if (!SettingsProvider.isWeightField(field)) continue;
-      final controller = _controllers[field.key];
-      if (controller == null) continue;
-      final recommended = _formattedRecommendedValue(
-        field,
-        provider,
-        bodyWeightKg,
-      );
-      if (controller.text != recommended) {
-        controller.text = recommended;
-      }
-    }
   }
 
   void _refreshEmojiChoices() {
@@ -355,10 +92,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         context.read<GrpcClient>(),
       ).getUser(userId);
       if (!mounted || user == null || _profileTouched) return;
-      // Only apply the server profile if the user previously saved a custom
-      // one (i.e. the emoji differs from the server-side new-account default).
-      // If it's still the default "💪" they haven't customised yet, keep the
-      // random pick we already chose so the page feels fresh each sign-up.
       const serverDefaultEmoji = '💪';
       final emoji = normalizedProfileEmoji(user.profileEmoji);
       if (emoji == serverDefaultEmoji) return;
@@ -377,13 +110,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  Future<void> _save(
-    SettingsProvider provider,
-    TrainingProgramDefinition program,
-  ) async {
+  double _parsedBodyWeightKg() {
+    final text = _bodyWeightController.text.trim();
+    final value = double.tryParse(text);
+    if (value == null || value <= 0) return 0;
+    return isMetricUnit(_unit) ? value : value * 0.45359237;
+  }
+
+  Future<void> _finish() async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
-      final bodyWeightKg = _parsedBodyWeightKg(provider);
+      final bodyWeightKg = _parsedBodyWeightKg();
+
+      // Profile marker (and bodyweight, for calorie estimates).
       final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
           .updateMyProfile(
             profileEmoji: _selectedEmoji,
@@ -396,30 +136,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           profileColorHex: updatedUser.profileColorHex,
           bodyWeightKg: updatedUser.bodyWeightKg.toDouble(),
         );
+        context.read<SettingsProvider>().applyWeightUnitLocally(_unit);
       }
 
-      final onboardingFields = program.stateSchema.fields
-          .where((f) => f.onboardingField)
-          .toList();
+      // The server seeds trackers and the default templates.
+      if (!mounted) return;
+      final service = WorkoutServiceWrapper(context.read<GrpcClient>());
+      await service.completeOnboarding(
+        bodyWeightKg: bodyWeightKg,
+        experience: bodyWeightKg > 0
+            ? _experience
+            : ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
+        unit: _unit,
+      );
 
-      final fields = <String, StateFieldValue>{};
-      for (final f in onboardingFields) {
-        final text = _controllers[f.key]?.text.trim() ?? '';
-        final val = SettingsProvider.fieldValueFromText(
-          f,
-          text,
-          unit: provider.weightUnit,
-        );
-        if (val != null) fields[f.key] = val;
-      }
-
-      await provider.setActiveTrainingProgramState(
-        regimeType: program.regimeType,
-        fields: fields,
-        source: 'onboarding_init',
+      if (!mounted) return;
+      // Refresh home so the router's onboarded gate flips.
+      final auth = context.read<AuthProvider>();
+      await context.read<WorkoutProvider>().loadActiveWorkout(
+        auth.userId ?? '',
       );
       if (!mounted) return;
       context.go('/');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Setup failed: $e — try again.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -427,170 +171,213 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<SettingsProvider>();
-    _initFromCatalog(provider);
-    _loadProfile();
+    final steps = <Widget>[
+      MarkerStep(
+        selectedEmoji: _selectedEmoji,
+        selectedColorHex: _selectedColorHex,
+        emojiChoices: _emojiChoices,
+        onSelectEmoji: (emoji) => setState(() {
+          _profileTouched = true;
+          _selectedEmoji = emoji;
+        }),
+        onSelectColor: (hex) => setState(() {
+          _profileTouched = true;
+          _selectedColorHex = hex;
+        }),
+        onRefreshEmojis: _refreshEmojiChoices,
+        onNext: () => setState(() => _step = 1),
+      ),
+      UnitStep(
+        selectedUnit: _unit,
+        onSelect: (unit) async => setState(() => _unit = unit),
+        onBack: () => setState(() => _step = 0),
+        onNext: () => setState(() => _step = 2),
+      ),
+      _BodyStep(
+        unit: _unit,
+        controller: _bodyWeightController,
+        experience: _experience,
+        onExperienceChanged: (level) => setState(() => _experience = level),
+        isSaving: _isSaving,
+        onBack: () => setState(() => _step = 1),
+        onFinish: _finish,
+      ),
+    ];
 
-    if (!provider.loaded ||
-        provider.trainingPrograms.isEmpty ||
-        _selectedRegimeType == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    final programs = provider.trainingPrograms;
-    final selected =
-        provider.trainingProgramFor(_selectedRegimeType!) ?? programs.first;
-    final cs = Theme.of(context).colorScheme;
-    final progressAlignment = switch (_step) {
-      0 => Alignment.centerLeft,
-      1 => const Alignment(-0.333, 0),
-      2 => const Alignment(0.333, 0),
-      _ => Alignment.centerRight,
-    };
-
-    return PopScope(
-      canPop: _step == 0,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _step > 0) _goToStep(_step - 1);
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-                child: SizedBox(
-                  height: 5,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final totalWidth = constraints.maxWidth;
-                      const gap = 8.0;
-                      final segmentWidth = (totalWidth - (gap * 3)) / 4;
-                      return Stack(
-                        children: [
-                          Row(
-                            children: [
-                              for (var i = 0; i < 4; i++) ...[
-                                if (i > 0) const SizedBox(width: gap),
-                                Container(
-                                  width: segmentWidth,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(999),
-                                    color: cs.outline.withValues(alpha: 0.18),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          AnimatedAlign(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeOutCubic,
-                            alignment: progressAlignment,
-                            child: Container(
-                              width: segmentWidth,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                color: cs.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final curved = CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                    );
-                    return FadeTransition(opacity: curved, child: child);
-                  },
-                  child: KeyedSubtree(
-                    key: ValueKey(_step),
-                    child: _step == 0
-                        ? MarkerStep(
-                            selectedEmoji: _selectedEmoji,
-                            selectedColorHex: _selectedColorHex,
-                            emojiChoices: _emojiChoices,
-                            onSelectEmoji: (emoji) => setState(() {
-                              _profileTouched = true;
-                              _selectedEmoji = emoji;
-                            }),
-                            onSelectColor: (hex) => setState(() {
-                              _profileTouched = true;
-                              _selectedColorHex = hex;
-                            }),
-                            onRefreshEmojis: _refreshEmojiChoices,
-                            onNext: () => _goToStep(1),
-                          )
-                        : _step == 1
-                        ? UnitStep(
-                            selectedUnit: provider.weightUnit,
-                            onSelect: (unit) =>
-                                _selectWeightUnit(provider, unit),
-                            onBack: () => _goToStep(0),
-                            onNext: () => _goToStep(2),
-                          )
-                        : _step == 2
-                        ? ProgramStep(
-                            programs: programs,
-                            selectedType: selected.regimeType,
-                            onSelect: _selectProgram,
-                            onInfo: (p) => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RegimeInfoScreen(regimeType: p.regimeType),
-                              ),
-                            ),
-                            onBack: () => _goToStep(1),
-                            onNext: () => _goToStep(3),
-                          )
-                        : _step == 3
-                        ? ConfigStep(
-                            program: selected,
-                            controllers: _controllers,
-                            bodyWeightController: _bodyWeightController,
-                            weightUnit: provider.weightUnit,
-                            experienceLevel: _experienceLevel,
-                            bodyWeightHint: _bodyWeightHint,
-                            isImportingBodyWeight: _isImportingBodyWeight,
-                            onSelectExperience: (level) {
-                              setState(() => _experienceLevel = level);
-                              _applyRecommendedWeights(provider, selected);
-                            },
-                            onBack: () => _goToStep(2),
-                            onNext: () => _goToStep(4),
-                          )
-                        : ConfirmStep(
-                            program: selected,
-                            controllers: _controllers,
-                            weightUnit: provider.weightUnit,
-                            selectedEmoji: _selectedEmoji,
-                            selectedColorHex: _selectedColorHex,
-                            onBack: () => _goToStep(3),
-                            onSave: _isSaving
-                                ? null
-                                : () => _save(provider, selected),
-                            isSaving: _isSaving,
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            _StepDots(step: _step, count: steps.length),
+            Expanded(child: steps[_step]),
+          ],
         ),
       ),
     );
   }
 }
 
+class _StepDots extends StatelessWidget {
+  final int step;
+  final int count;
+  const _StepDots({required this.step, required this.count});
 
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(count, (i) {
+        return Container(
+          width: i == step ? 22 : 8,
+          height: 8,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          decoration: BoxDecoration(
+            color: i == step
+                ? cs.primary
+                : cs.onSurface.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+/// Step 3: bodyweight and experience, both skippable. With them the main
+/// lifts open at sensible fractions of bodyweight; without them, at the
+/// empty bar.
+class _BodyStep extends StatelessWidget {
+  final WeightUnit unit;
+  final TextEditingController controller;
+  final ExperienceLevel experience;
+  final ValueChanged<ExperienceLevel> onExperienceChanged;
+  final bool isSaving;
+  final VoidCallback onBack;
+  final VoidCallback onFinish;
+
+  const _BodyStep({
+    required this.unit,
+    required this.controller,
+    required this.experience,
+    required this.onExperienceChanged,
+    required this.isSaving,
+    required this.onBack,
+    required this.onFinish,
+  });
+
+  static const _levels = [
+    (ExperienceLevel.EXPERIENCE_LEVEL_CUTE, 'Brand new', '🐣'),
+    (ExperienceLevel.EXPERIENCE_LEVEL_BEGINNER, 'A few months', '🌱'),
+    (ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE, 'A while', '💪'),
+    (ExperienceLevel.EXPERIENCE_LEVEL_EXPERT, 'Years', '🦍'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'STARTING WEIGHTS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'How much do you weigh?',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Optional. Sets sane opening weights for the big lifts and '
+            'powers calorie estimates. Skip it and everything starts at '
+            'the empty bar.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: cs.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            decoration: InputDecoration(
+              labelText: 'Bodyweight',
+              suffixText: weightUnitSuffix(unit),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'HOW LONG HAVE YOU LIFTED?',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _levels.map((entry) {
+              final selected = experience == entry.$1;
+              return ChoiceChip(
+                label: Text('${entry.$3} ${entry.$2}'),
+                selected: selected,
+                onSelected: (_) => onExperienceChanged(entry.$1),
+              );
+            }).toList(),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: isSaving ? null : onBack,
+                    child: const Text('BACK'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: isSaving ? null : onFinish,
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text(
+                            'START LIFTING',
+                            style: TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

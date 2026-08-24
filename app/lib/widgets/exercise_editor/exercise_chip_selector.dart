@@ -8,12 +8,12 @@ import 'editable_config.dart';
 
 class ExerciseChipSelector extends StatefulWidget {
   final List<EditableConfig> configs;
-  final List<ExerciseStatus> exerciseStatuses;
+  final List<ExerciseTracker> trackers;
   final void Function(Exercise exercise, bool selected) onToggle;
 
-  const ExerciseChipSelector({super.key, 
+  const ExerciseChipSelector({super.key,
     required this.configs,
-    required this.exerciseStatuses,
+    this.trackers = const [],
     required this.onToggle,
   });
 
@@ -25,6 +25,7 @@ class ExerciseChipSelectorState extends State<ExerciseChipSelector> {
   void _openPicker() {
     showExercisePicker(
       context: context,
+      trackers: widget.trackers,
       isSelected: (e) => widget.configs.any((c) => c.exercise == e),
       onToggle: (exercise, selected) {
         widget.onToggle(exercise, selected);
