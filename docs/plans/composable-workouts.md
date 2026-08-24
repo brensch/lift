@@ -1,657 +1,557 @@
-# Proposal: Composable Workouts
+# Composable Workouts
 
-Status: proposal. Not implemented.
+Status: approved design. This document is the specification for the
+refactor on this branch.
 
 This document tells you how to remove the program state machine from
-Schlift. It tells you what to delete, what to add, and in which order.
-
-Write the code in the order of [7. Work phases](#7-work-phases). Do not keep
-the old model and the new model at the same time.
+Schlift and what to build in its place. Write the code in the order of
+[8. Work phases](#8-work-phases). Do not keep the old model and the new
+model at the same time.
 
 ## 1. Summary
 
 Today the server selects your workout. You select a program (Linear 5x5,
 GZCLP or Wendler 5/3/1). The program is a state machine. It holds a state
-record for you. It proposes the next session from that state. It moves the
-state forward when you complete the session.
+record for you, proposes the next session from it, and moves it forward
+when you complete a session.
 
-After this change, you select your workout. You make templates. A template
-is a list of exercises. You start a workout from a template.
-
-The server keeps one weight for each exercise type. The weight goes up when
-you complete the work. This is the only progression rule.
+After this change, you compose your own workouts. You keep templates. A
+template is an ordered list of exercises and nothing else. The app
+prescribes the sets, the reps, the rest and the weight for each exercise.
+The prescription follows hypertrophy training evidence. There is no
+strength mode and there are no cycles; the app trains you for muscle
+growth.
 
 | Property | Today | After |
 |---|---|---|
-| Who selects the session | The program | The user |
-| Setup steps before the first workout | Select a program, then set 5 to 12 program fields | Select units |
+| Who selects the session | The program | The user, with a suggestion |
+| The user sets sets, reps, weight | Yes, per group | No. The app prescribes them. Overrides are possible. |
+| Setup before the first workout | Select a program, set 5 to 12 fields | Select a unit. Bodyweight is optional. |
 | Progression scope | The 5 lifts the program prescribes | Every exercise |
-| Progression rules | 3 regimes, each different | 1 rule |
-| Server state for a user | Program state record (untyped key-value) | One weight for each exercise |
-| Backend code | About 7200 lines for programs | About 1500 lines for templates and trackers |
-
-The change deletes about 12 900 lines of code and adds about 3750. The net
-result is about 9150 fewer lines. It also deletes a 25 400-line test data
-file. See [10. Sizes](#10-sizes).
+| Progression rules | 3 regimes, each different | 1 rule: double progression |
+| Volume guidance | None | Sets per muscle over 7 days, against a 10–20 band |
+| Server state per user | Untyped key-value program state | One tracker per exercise |
 
 ## 2. Terms
 
-Use these terms in code, in the proto files, and in the user interface. One
-term has one meaning.
+One term has one meaning. Use these terms in code, in proto files and in
+the user interface.
 
 | Term | Meaning |
 |---|---|
-| Exercise | One movement type. An entry in the `Exercise` enum. Example: Squat. |
+| Exercise | One movement type. An entry in the `Exercise` enum. |
 | Set | One performance of one exercise. |
-| Exercise group | One or more exercises that you do together. The existing `ExerciseGroup` message. |
-| Template | A named plan for one workout. It holds exercise groups. It holds no weights. |
-| Workout | One training session. You start it from a template. |
-| Tracker | The weight, the rep target and the set count for one exercise, for one user. |
-| Progression | The rule that changes a tracker after a workout. |
+| Template | A named, ordered list of exercises. Nothing else. |
+| Workout | One training session, started from a template or empty. |
+| Tracker | Per user, per exercise: the working weight, the current rep target, the miss count, and optional overrides. |
+| Prescription | The sets, rep range and rest derived from what an exercise is. |
+| Muscle | One of 10: chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes, calves, core. |
+| Volume | Weighted hard sets per muscle in the last 7 days. |
 
-Do not use these words after the change: regime, schplanner, program state,
-phase, cycle, stage, tier, slot.
+Do not use these words after the change: regime, schplanner, program
+state, phase, cycle, stage, tier, slot.
 
-## 3. The design
+## 3. The training design
+
+The design follows the strongest findings in hypertrophy research:
+
+1. Weekly hard sets per muscle drive growth, with diminishing returns.
+   About 10–20 sets per muscle per week is the useful band.
+2. Sets must be near failure. The prescription assumes 0–2 reps in
+   reserve; the app copy says "stop 1–2 reps before failure".
+3. Progressive overload counts reps as well as load. More reps at the same
+   weight is progress.
+4. Load range is forgiving. 60–80 percent of maximum grows muscle when the
+   set is hard. Small equipment steps are enough.
+5. Rest of 2–3 minutes beats short rest, for size as well as strength.
 
 ### 3.1 A template holds structure. A tracker holds weight.
 
 This is the most important rule in this document.
 
-A template holds the exercises, the group order, the set count, the rep
-target, the rest times, and the warmup flag. A template holds no weight.
+A template holds an ordered list of exercises. It holds no sets, no reps,
+no weights and no rest times. All of those derive from the exercise
+(see 3.2) and from the tracker (see 3.3).
 
-A tracker holds the weight. There is one tracker for each exercise, for each
-user. All templates that contain Squat use the same Squat tracker.
+Result: you increase your squat one time, and every template that contains
+Squat shows the new weight. Do not put numbers in a template. A number in
+a template makes a second source of truth.
 
-The server joins the two when you start a workout:
+### 3.2 The prescription
 
-```
-StartWorkout(template_id)
-  for each exercise group in the template:
-    for each exercise in the group:
-      weight = tracker(user, exercise).working_weight
-      make the working sets
-      make the warmup sets            (existing generate_sets_for_group)
-  write the proposed sets
-```
+The prescription derives from what the exercise is. The exercise catalog
+(`src/exercise_catalog.rs`) classifies every exercise by equipment
+(barbell, dumbbell, machine, cable, bodyweight) and by role (compound,
+isolation, core). The table:
 
-Result: you increase your squat one time. Every template that contains
-Squat shows the new weight.
+| Class | Sets | Rep range | Rest | Rest after a miss | Warmup ladder |
+|---|---:|---|---:|---:|---|
+| Barbell compound | 3 | 6–10 | 180 s | 240 s | Yes |
+| Dumbbell / machine / cable compound | 3 | 8–12 | 120 s | 180 s | No |
+| Bodyweight compound | 3 | 5–15 | 120 s | 180 s | No |
+| Isolation | 3 | 10–15 | 90 s | 120 s | No |
+| Core | 3 | 10–20 | 60 s | 90 s | No |
 
-Do not put a weight in a template. A weight in a template makes a second
-source of truth. Two templates then disagree about your squat.
+Three sets everywhere is deliberate. It is memorable, it is defensible
+(per-session per-muscle volume beyond about 8 sets adds little), and the
+weekly dose comes from exercise selection and frequency, which the volume
+display makes visible.
 
-### 3.2 One progression rule
+A user can override sets and the rep range for one exercise. The override
+lives on the tracker, not on a template, so it applies everywhere that
+exercise appears. Overrides are the escape hatch; the default path never
+asks the user for numbers.
 
-The rule is in `src/exercise_progress.rs`. The code exists. It is tested.
+### 3.3 Double progression
 
-After you complete a workout, the server examines each exercise:
+One rule for every exercise. The tracker holds `working_weight`,
+`current_reps` (the rep target inside the range) and
+`consecutive_misses`.
 
-| Condition | Action |
+After a workout, for each exercise performed, let `m` be the lowest
+actual rep count across the planned working sets, and let `W` be the
+weight of the last working set you completed:
+
+| Outcome | Next state |
 |---|---|
-| You completed every planned set at the rep target | Add one equipment step |
-| You missed the rep target | Keep the weight |
-| You missed the rep target two times, one after the other | Subtract 10 percent |
-| The exercise has no load (bodyweight) | Keep the weight at zero |
+| Every planned set completed at its target, and `m >= range top` | `working_weight = snap(W + step)`, `current_reps = range bottom`, misses = 0 |
+| Every planned set completed at its target, `m < range top` | `current_reps = clamp(m + 1, bottom, top)`, misses = 0 |
+| A set missed its target or was not done | misses + 1. At 2 misses: `working_weight = snap(W * 0.9)`, `current_reps = bottom`, misses = 0 |
+| The exercise has no load (bodyweight) | Reps only: `current_reps = min(m + 1, 30)`. The weight stays 0. |
 
-`src/exercise_catalog.rs` gives the equipment step for each exercise. A
-barbell step is 5 lb or 2.5 kg. A dumbbell step is 5 lb or 2 kg. The server
-rounds the result to a weight that you can load.
+Properties to preserve:
 
-### 3.3 Defaults
+- The basis is `W`, the weight you performed, not the stored weight. A
+  mid-session edit carries through.
+- `step` comes from the equipment (5 lb / 2.5 kg barbell, one dumbbell
+  step, one stack step), and `snap` rounds to a loadable weight in the
+  user's unit. Load moves rarely and by small amounts; reps do the
+  day-to-day progressing. This is what makes one rule work for a squat
+  and a lateral raise.
+- Judgement uses the target stamped on each set at start time, so an
+  edited session is judged by what you attempted.
 
-Ship 6 default templates as data, not as code:
+### 3.4 Volume
 
-- Full Body A, Full Body B
-- Upper, Lower
-- Push, Pull, Legs
+The server computes, for each of the 10 muscles, the weighted hard sets
+in the last 7 days (rolling window, in-progress workout included):
 
-Copy the defaults into the user's own templates at first sign-in. The user
-can then edit them or delete them. Do not make the defaults read-only. Do
-not give them special behaviour.
+- A completed working set counts 1.0 for the exercise's primary muscle
+  and 0.5 for each secondary muscle. Warmups and cancelled sets count 0.
+- The target band is 10–20. Show the count against the band. Below 10 is
+  the actionable signal; above 20 is a soft warning.
 
-### 3.4 What the home screen becomes
+The exercise-to-muscle mapping lives in the catalog, primary mover first.
+There is exactly one mapping. The old 7-group recovery taxonomy and the
+old 8-value proto enum both give way to the 10-muscle list.
 
-The home screen shows a list of templates. Each template shows its
-exercises and the weights from the trackers.
+Volume drives selection in two places:
 
-1. The user selects a template.
-2. The user starts the workout, or edits the template first.
+- The template suggestion (3.5).
+- The exercise picker sorts muscles below the band first.
 
-There is also an empty workout. The user starts it and adds exercises
-during the session.
+### 3.5 The template suggestion
 
-Remove the readiness banner controls that select or change the next
-session. Keep the muscle recovery display (see [Decision 2](#decision-2-keep-muscle-recovery)).
+The home screen marks one template as "up next". The rule is a pure
+function, computed fresh on every request:
 
-## 4. Delete this
+```
+score(template) = sum over its exercises' primary muscles of
+                  max(0, 10 - sets_7d(muscle)), counted once per muscle
+```
 
-### 4.1 Rust
+Highest score wins. Ties break toward the template least recently
+started (`workouts.template_id` records what started from where). The
+suggestion is a sort the user can see the reason for — never stored
+state, never a phase, never a thing that remembers. If it ever needs to
+remember something between sessions, it has gone wrong.
 
-| Path | Lines | Note |
-|---|---:|---|
-| `src/regimes/` | 3531 | All 3 regimes, the trait, the simulator |
-| `src/regimes/scenarios/` | — | 4 JSON scenarios, the refresh script, the visualiser |
-| `src/schplanner.rs` | 691 | Proposal input, slot outcomes |
-| `src/schplanner_tests.rs` | 492 | |
-| `src/scenario_tests.rs` | 346 | |
-| `src/program_state.rs` | 355 | Untyped key-value state |
-| `src/onboarding.rs` | 66 | Rewrite. See [5.4](#54-onboarding) |
-| `src/server/training.rs` | 663 | Training model v2. See [Decision 1](#decision-1-delete-the-v2-training-model) |
-| `src/db/training.rs` | 625 | Training model v2 |
-| `src/server/training_tests.rs` | 474 | Training model v2 |
-| `testdata/regime_timelines.json` | 25374 | |
-| `examples/bench_training.rs` | — | Benchmarks the v2 model |
+The user can start any template. The suggestion is one tap but never a
+gate.
 
-Also delete these parts of files that stay:
+### 3.6 Equipment
 
-- `src/server/workout.rs` — `generate_schedule`, `persist_program_state_after_workout_end`, `maybe_annotate_temporal_adjustment`, `set_next_workout`, `rehydrate_workout_from_events`.
-- `src/server/messages.rs` — `lp_completion_messages`, `completion_messages_for_regime`, `schedule_messages_from_proposal`, `summarize_last_session`.
+The exercise picker defaults to barbell, dumbbell and bodyweight
+exercises. A "machines & cables" toggle shows the rest. The toggle is a
+client-side preference; the server does not care.
+
+One catalog fix: `CalfRaise` is classified `Machine` today. A standing
+calf raise is dumbbell-loaded. Reclassify it `Dumbbell` so calves are
+reachable in the default filter.
+
+Known gaps with the default filter, accepted: hamstring isolation is
+Nordic curls or nothing (RDL and good mornings cover hamstrings as
+compounds); vertical pulling requires pull-ups.
+
+### 3.7 Layoff deload
+
+When an exercise was last performed 14–29 days ago, resolve its start
+weight at 90 percent; 30 days or more, 80 percent, snapped. Do not write
+the reduction to the tracker. Because progression follows the performed
+weight (3.3), the reduction sticks only when the user trains, exactly as
+today. About 20 lines, at StartWorkout resolution time.
+
+### 3.8 Defaults
+
+Six templates, copied into the user's own templates at onboarding, all
+editable, none special. Barbell, dumbbell and bodyweight moves only:
+
+| Template | Exercises |
+|---|---|
+| Full Body | Squat, Bench Press, Barbell Row, Dumbbell Shoulder Press, Barbell Curl |
+| Upper | Bench Press, Barbell Row, Overhead Press, Chin Up, Dumbbell Curl, Skull Crusher |
+| Lower | Squat, Romanian Deadlift, Hip Thrust, Calf Raise, Crunch |
+| Push | Bench Press, Overhead Press, Incline Dumbbell Press, Lateral Raise, Skull Crusher |
+| Pull | Barbell Row, Pull Up, Dumbbell Row, Rear Delt Fly, Barbell Curl |
+| Legs | Squat, Romanian Deadlift, Lunge, Calf Raise, Hanging Leg Raise |
+
+## 4. What the user sees
+
+The home screen shows:
+
+1. The volume display: 10 compact bars, sets against the 10–20 band.
+2. The suggested template, marked, with the reason ("back and biceps are
+   behind").
+3. The other templates as cards. Each card lists its exercises with the
+   current tracker weight ("Squat — 3×8 @ 185").
+4. Start empty, for a made-up-on-the-spot session.
+
+A template editor: name, exercise list, drag to reorder, add from the
+picker. Tapping an exercise shows its derived prescription and lets the
+user override sets and rep range (stored on the tracker).
+
+The workout session screen does not change. Warmups, rest timers, set
+logging, mid-workout editing and multiplayer all stay as they are.
+
+## 5. Delete this
+
+### 5.1 Rust
+
+| Path | Note |
+|---|---|
+| `src/regimes/` | All 3 regimes, the trait, the simulator, scenarios |
+| `src/schplanner.rs`, `src/schplanner_tests.rs` | |
+| `src/scenario_tests.rs` | |
+| `src/program_state.rs` | |
+| `src/server/training.rs`, `src/db/training.rs`, `src/server/training_tests.rs` | v2 model, unused (Decision 1) |
+| `testdata/regime_timelines.json` | |
+| `examples/bench_training.rs` | Benchmarks the v2 model |
+
+Parts of files that stay:
+
+- `src/server/workout.rs` — `generate_schedule`,
+  `persist_program_state_after_workout_end`,
+  `maybe_annotate_temporal_adjustment`, `set_next_workout`,
+  `rehydrate_workout_from_events`, draft and profile-group RPCs.
+- `src/server/messages.rs` — the regime message builders. Keep the
+  message infrastructure and the progression-message builder; every
+  exercise now uses them.
 - `src/server/settings.rs` — the 3 program RPCs.
-- `src/recovery.rs` — `RecoveryProfile` becomes one constant. Delete the per-regime selection.
-- `src/weight_units.rs` — `weight_unit_from_state`. See [5.5](#55-fix-the-weight-unit-defect).
+- `src/recovery.rs` — per-regime profiles. One fixed profile over the 10
+  muscles stays.
+- `src/weight_units.rs` — `weight_unit_from_state`. It reads a key that
+  nothing writes and always returns pounds; kilogram users get
+  pound-rounded weights today. Read `user_settings_current` instead.
+- `src/exercise_progress.rs` — the linear engine. Double progression
+  replaces it.
 
-### 4.2 Flutter
+### 5.2 Flutter
 
-| Path | Lines | Action |
-|---|---:|---|
-| `app/lib/screens/regime_settings_screen.dart` | 624 | Delete |
-| `app/lib/screens/regime_info_screen.dart` | 251 | Delete |
-| `app/lib/widgets/phase_explanation.dart` | 142 | Delete |
-| `app/lib/screens/workout/exschplanation_page.dart` | 107 | Delete |
-| `app/lib/screens/onboarding/` | 2092 | Replace. See [5.4](#54-onboarding) |
-| `app/lib/screens/home/home_screen.dart` | 1478 | Replace with a template list |
-| `app/lib/screens/home/home_selection.dart` | 229 | Delete |
-| `app/lib/screens/home/group_grid.dart` | 399 | Replace |
-| `app/lib/screens/home/readiness_banner.dart` | 628 | Reduce to the recovery display |
+Delete: `regime_settings_screen.dart`, `regime_info_screen.dart`,
+`phase_explanation.dart`, `exschplanation_page.dart`,
+`home_selection.dart`, `readiness_banner.dart`, `group_grid.dart`, the
+5-step onboarding.
 
-Keep `app/lib/widgets/exercise_editor/`. It already edits exercise groups.
-It becomes the template editor.
+Replace: `home_screen.dart` (template list + volume), onboarding (3
+steps). Keep the exercise editor widgets; they become the template
+editor's parts and the mid-workout dialogs, fed by trackers instead of
+`ExerciseStatus`.
 
-### 4.3 Protobuf
+### 5.3 Protobuf
 
-Delete from `proto/workout/v1/settings.proto`:
+Delete from `workout.proto`: `ProposedExerciseGroup`, `ProgressionHint`,
+`ProgressionRule`, `RegimeContext`, `NextSessionOption`,
+`TrainingStatus`, `SlotTrainingStatus`, `ReadinessState`,
+`WorkoutDraft`, `ExerciseStatus`, `GetProposedWorkoutSchedule*`,
+`SetNextWorkout*`, `SaveWorkoutDraft*`, `ClearWorkoutDraft*`,
+`SaveProfileExerciseGroup*`, `DeleteProfileExerciseGroup*`,
+`RehydrateWorkoutFromEvents*`, `GetRecommendedStartingWeights*`.
 
-`RegimeType`, `TrainingProgramAtAGlance`, `TrainingProgramLink`,
-`TrainingProgramDefinition`, `StateFieldKind`, `StateEnumOption`,
-`TrainingProgramStateFieldSchema`, `TrainingProgramStateSchema`,
-`StateFieldValue`, `TrainingProgramState`, `TrainingProgramStateEvent`,
-and the 4 catalog and state RPCs. The file keeps only plate colours and the
-weight unit. It becomes about 60 lines.
+Remove `prescribed_by_regime` from `ExerciseGroup` and
+`progression_hint` from `ProposedSet`, `WorkingSetSpec` and
+`PlannedGroupSet`. Reserve every removed field number.
 
-Delete from `proto/workout/v1/workout.proto`:
+Extend `MuscleGroup` with `CALVES` and `CORE` (nothing populates the old
+8 values, verified). Add an `EquipmentKind` enum.
 
-`ProposedExerciseGroup`, `ProgressionHint`, `ProgressionRule`,
-`RegimeContext`, `NextSessionOption`, `SlotTrainingStatus`, `WorkoutDraft`,
-`GetProposedWorkoutSchedule*`, `SetNextWorkout*`, `SaveWorkoutDraft*`,
-`ClearWorkoutDraft*`, `SaveProfileExerciseGroup*`,
-`DeleteProfileExerciseGroup*`, `RehydrateWorkoutFromEvents*`.
+`settings.proto` keeps plate colors and the weight unit; the program
+catalog and state machinery go. Delete `training.proto` in full.
 
-Delete `proto/workout/v1/training.proto` in full.
+Keep `UserMessageKind` values as they are so stored messages still
+render.
 
-Remove the `prescribed_by_regime` field from `ExerciseGroup`. Remove the
-`progression_hint` field from `ProposedSet`, `WorkingSetSpec` and
-`PlannedGroupSet`.
+### 5.4 What survives untouched
 
-Keep `TrainingStatus` only if you keep muscle recovery. Remove its program
-fields: `next_session_at`, `slot_statuses`, `target_sessions_per_7_days`,
-`completed_sessions_per_7_days`, `remaining_sessions_per_7_days`,
-`target_sets_per_7_days`, `completed_sets_per_7_days`,
-`remaining_sets_per_7_days`.
+The workout session model — `workouts`, `exercise_groups`,
+`proposed_sets`, `completed_sets`, the reducer, planning with warmup
+generation, `AppendWorkoutMutations` batching, multiplayer, heart rate,
+summaries, exercise progress charts, auth. The watch apps reference only
+`ProposedSet`, `WorkoutState` and the wearable envelope, all of which
+stay. The web app calls only surviving RPCs.
 
-## 5. Add this
+## 6. Add this
 
-### 5.1 Templates
-
-Add one table:
-
-```sql
-CREATE TABLE workout_templates (
-    id                 TEXT PRIMARY KEY,
-    user_id            TEXT NOT NULL,
-    name               TEXT NOT NULL,
-    template_order     INTEGER NOT NULL DEFAULT 0,
-    exercise_groups    BLOB NOT NULL,   -- repeated ExerciseGroup, no weights
-    created_at         INTEGER NOT NULL,
-    updated_at         INTEGER NOT NULL
-);
-CREATE INDEX idx_workout_templates_user
-    ON workout_templates(user_id, template_order);
-```
-
-The blob holds the same `ExerciseGroup` message that a workout uses. This
-keeps one structure for the plan and for the session. Set `start_weight` and
-`end_weight` to 0 in a template. The server fills them at start time.
-
-Add these RPCs to `WorkoutService`:
-
-```
-rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
-rpc SaveTemplate(SaveTemplateRequest) returns (SaveTemplateResponse);
-rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
-rpc ReorderTemplates(ReorderTemplatesRequest) returns (ReorderTemplatesResponse);
-```
-
-`SaveTemplate` creates a template when the id is empty. It updates a
-template when the id exists.
-
-### 5.2 Trackers
-
-Add one table:
-
-```sql
-CREATE TABLE exercise_trackers (
-    user_id            TEXT NOT NULL,
-    exercise           INTEGER NOT NULL,
-    working_weight     REAL NOT NULL,      -- lb
-    target_reps        INTEGER NOT NULL,
-    target_sets        INTEGER NOT NULL,
-    consecutive_misses INTEGER NOT NULL DEFAULT 0,
-    last_performed_at  INTEGER NOT NULL DEFAULT 0,
-    updated_at         INTEGER NOT NULL,
-    source             TEXT NOT NULL,      -- "workout:<id>" | "manual" | "migration"
-    PRIMARY KEY(user_id, exercise)
-);
-```
-
-Add these RPCs:
-
-```
-rpc ListExerciseTrackers(ListExerciseTrackersRequest) returns (ListExerciseTrackersResponse);
-rpc SetExerciseTracker(SetExerciseTrackerRequest) returns (SetExerciseTrackerResponse);
-```
-
-`SetExerciseTracker` lets the user correct a weight by hand. Set `source` to
-`"manual"`.
-
-A tracker row does not have to exist. When there is no row, use
-`exercise_catalog::starting_weight_lb`, `default_reps` and `default_sets`.
-
-Keep the `program_progression_applied` table. Rename it to
-`progression_applied`. It stops a repeated `EndWorkout` from moving a
-tracker two times.
-
-### 5.3 One home RPC
-
-Replace `GetProposedWorkoutSchedule` with one RPC. The home screen needs
-one round trip.
+### 6.1 Proto
 
 ```proto
-message GetHomeRequest {}
+message WorkoutTemplate {
+  string id = 1;
+  string name = 2;
+  int32 order = 3;
+  repeated Exercise exercises = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+// The resolved state of one exercise for one user. GetHome returns one
+// for every exercise in the catalog, so the client never needs a
+// fallback table.
+message ExerciseTracker {
+  Exercise exercise = 1;
+  float working_weight = 2;        // lb, snapped for the user's unit
+  int32 sets = 3;                  // resolved (override or derived)
+  int32 target_reps = 4;           // current position in the range
+  int32 rep_range_low = 5;
+  int32 rep_range_high = 6;
+  int32 rest_seconds = 7;
+  int32 rest_seconds_failure = 8;
+  bool include_warmup = 9;
+  int64 last_performed_at = 10;
+  repeated float weight_history = 11;
+  bool overridden = 12;
+  MuscleGroup primary_muscle = 13;
+  ExerciseCategory category = 14;
+  EquipmentKind equipment = 15;
+}
+
+message MuscleVolume {
+  MuscleGroup muscle = 1;
+  float completed_sets_7d = 2;     // weighted: primary 1.0, secondary 0.5
+  int32 target_low = 3;            // 10
+  int32 target_high = 4;           // 20
+}
 
 message GetHomeResponse {
   repeated WorkoutTemplate templates = 1;
   repeated ExerciseTracker trackers = 2;
   string active_workout_id = 3;
   repeated UserMessage user_messages = 4;
-  TrainingStatus recovery = 5;   // muscle recovery only
+  repeated MuscleVolume volume = 5;
+  repeated MuscleRecoveryStatus recovery = 6;
+  string suggested_template_id = 7;
+  string suggestion_reason = 8;    // "Back and biceps are 6 sets behind"
+  bool onboarded = 9;              // templates or workouts exist
 }
 ```
 
-Fill `WorkoutTemplate.exercise_groups` with the weights from the trackers.
-The client then shows the real weights without a second call.
+RPCs on `WorkoutService`: `GetHome`, `SaveTemplate`, `DeleteTemplate`,
+`ReorderTemplates`, `SetExerciseTracker`, `CompleteOnboarding`.
+`StartWorkoutRequest` gains `template_id`; when set, the server builds
+the groups from the template, the trackers and the prescription, and
+stamps `template_id` on the workout.
 
-### 5.4 Onboarding
+`CompleteOnboarding(body_weight_kg, experience, unit)` saves the unit
+setting, seeds trackers for the 5 main lifts from the bodyweight ratios
+(or catalog openers when skipped), and copies the 6 default templates.
+Idempotent: it does nothing when templates already exist.
 
-The new sequence has 3 steps. The old sequence has 5 steps.
+### 6.2 Tables
 
-1. Select the weight unit.
-2. Give the bodyweight and the experience level. This step is optional.
-3. Confirm.
+```sql
+CREATE TABLE workout_templates (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    template_order INTEGER NOT NULL DEFAULT 0,
+    template_blob BLOB NOT NULL,       -- proto WorkoutTemplate
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
 
-Then:
+CREATE TABLE exercise_trackers (
+    user_id TEXT NOT NULL,
+    exercise INTEGER NOT NULL,
+    working_weight REAL NOT NULL,      -- lb
+    current_reps INTEGER NOT NULL,
+    consecutive_misses INTEGER NOT NULL DEFAULT 0,
+    last_performed_at INTEGER NOT NULL DEFAULT 0,
+    override_sets INTEGER NOT NULL DEFAULT 0,      -- 0 = derived
+    override_rep_low INTEGER NOT NULL DEFAULT 0,
+    override_rep_high INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    source TEXT NOT NULL,              -- "workout:<id>" | "manual" | "migration" | "onboarding"
+    PRIMARY KEY(user_id, exercise)
+);
 
-- Seed a tracker for each of the 5 main lifts from
-  `recommended_starting_weights`. If the user skipped step 2, use the
-  catalogue opener.
-- Copy the 6 default templates into the user's templates.
-
-Rewrite `src/onboarding.rs`. Change `RATIOS` from program field keys to
-`Exercise` values:
-
-```rust
-const RATIOS: &[(Exercise, f32)] = &[
-    (Exercise::Squat, 0.95),
-    (Exercise::BenchPress, 0.70),
-    (Exercise::BarbellRow, 0.75),
-    (Exercise::OverheadPress, 0.50),
-    (Exercise::Deadlift, 1.15),
-];
+CREATE TABLE schema_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at INTEGER NOT NULL
+);
 ```
 
-The client uses "the program state exists" to decide that onboarding is
-complete (`SettingsProvider.hasProgramState`). Replace this test. Use "the
-user has one or more templates".
+`workouts` gains `template_id TEXT NOT NULL DEFAULT ''`.
 
-### 5.5 Fix the weight unit defect
+A tracker row is optional. No row means: catalog opener weight, derived
+prescription, `current_reps` at the range bottom.
 
-`weight_unit_from_state` reads the key `__weight_unit` from the program
-state. **No code writes that key.** The function always returns pounds.
-Users who select kilograms get warmups and progression steps that are
-rounded for pounds.
+Keep the `program_progression_applied` idempotency ledger, renamed
+`progression_applied`. A repeated `EndWorkout` must not move a tracker
+twice.
 
-Read the unit from `user_settings_current` instead. The client already
-writes the unit there through `UpdateSetting`. Add
-`ServerDb::get_weight_unit(user_id)`.
+## 7. Migration
 
-Do this in the same change. The old function is deleted anyway.
+One run at server start, guarded by a `schema_migrations` row named
+`composable_workouts_v1`. The migration must not lose a user's weights.
 
-## 6. Migration
+### 7.1 Trackers
 
-Run the migration one time at server start. Guard it with a marker row.
-The migration must not lose a user's weights.
+Per user, in order; the first source that produces a weight wins:
 
-```
-CREATE TABLE schema_migrations (name TEXT PRIMARY KEY, applied_at INTEGER NOT NULL);
-```
+1. Workout history. Replay the recent workouts through the progression
+   weight rule (performed weight, cleared → +step, missed twice →
+   −10 %). One tracker per exercise found. `current_reps` starts at the
+   range bottom.
+2. Program state, for main lifts with no history tracker. Decode the
+   `training_program_state_latest` blob with local prost structs defined
+   in the migration module (the proto messages are deleted; the wire
+   format is stable):
 
-### 6.1 Trackers
+| Program | Key | Weight |
+|---|---|---|
+| Linear 5x5 | `<lift>_weight` | The value |
+| GZCLP | `<lift>_t1_weight`, `<lift>_t2_weight` | The larger of the two |
+| Wendler 5/3/1 | `<lift>_tm` | `tm * 0.85`, snapped |
 
-For each user, in this order:
+Set `source = "migration"`. History wins over program state: history is
+what the user did.
 
-1. Run `derive_exercise_progressions` over the user's whole workout
-   history. Write one tracker for each exercise found. This code exists and
-   is tested. It gives the weight that the user would lift next.
-2. For each of the 5 main lifts with no tracker from step 1, read the
-   program state:
+> **Caution:** GZCLP holds two weights per lift; the migration keeps
+> one. Say so in the release notes.
 
-| Program | Key | Tracker weight | Reps | Sets |
-|---|---|---|---|---|
-| Linear 5x5 | `<lift>_weight` | The value | 5 | 5, or 1 for the deadlift |
-| GZCLP | `<lift>_t1_weight`, `<lift>_t2_weight` | The larger of the two | 5 | 5 |
-| Wendler 5/3/1 | `<lift>_tm` | `tm * 0.85`, rounded | 5 | 3 |
+### 7.2 Templates
 
-3. Set `source` to `"migration"`.
+Per user: convert each `profile_exercise_groups` row to a template
+(exercises only); convert the most recent completed workout to a
+template named after it; copy the 6 defaults. A migrated user always has
+a starting point.
 
-History wins over program state. History is what the user did. Program
-state is what a program planned.
-
-> **Caution:** GZCLP holds two weights for one exercise. The migration
-> keeps one. Tell the user in the release notes.
-
-### 6.2 Templates
-
-For each user:
-
-1. Convert each row of `profile_exercise_groups` to one template. Set the
-   weights to 0.
-2. Convert the user's most recent completed workout to one template. Name
-   it after the workout. A user then always has a starting point.
-3. Copy the 6 default templates.
-
-### 6.3 Tables
+### 7.3 Tables
 
 | Table | Action |
 |---|---|
-| `workouts`, `exercise_groups`, `proposed_sets`, `completed_sets` | Keep. No change |
-| `training_program_state_latest` | Read in 6.1, then DROP |
-| `proposed_schedule_cache` | DROP. Nothing reads it today |
-| `workout_drafts_current` | DROP. A template replaces the draft |
-| `profile_exercise_groups` | Read in 6.2, then DROP |
-| `program_progression_applied` | Rename to `progression_applied` |
-| `workout_events` | DROP. Write-only today; nothing reads it |
-| `t_workouts`, `t_blocks`, `t_sets`, `t_entries`, `t_progression` | DROP. See [Decision 1](#decision-1-delete-the-v2-training-model) |
-| `user_message_events` | Keep. Delete rows with a removed message kind |
-
-Column changes:
-
-- `exercise_groups`: drop `prescribed_by_regime`.
-- `proposed_sets`: drop `progression_blob`.
-
-> **Caution:** `delete_user_account_and_data` in `src/db/auth.rs:270`
-> deletes each table by name. Update it for every table that you add or
-> remove. Also update `seed_all_tables` in the same file. The test
-> `deleting_an_account_clears_every_user_keyed_table` finds all user-keyed
-> tables at run time. It fails if the delete path misses one, and it fails
-> if the seed misses one.
-
-### 6.4 Workouts that are in progress
-
-A user can have an open workout when the server restarts with the new
-code. An open workout has `end_time = 0`.
-
-Keep the workout. Its `proposed_sets` and `completed_sets` do not change.
-The user completes it as normal. `EndWorkout` then updates the trackers
-with the new rule.
-
-Do not try to attach an open workout to a template. It has no template.
-Leave `template_id` empty on the workout row.
-
-## 7. Work phases
-
-The branch does not build between phase 1 and phase 3. This is correct.
-Do not add a compatibility layer.
-
-### Phase 1 — Protobuf
-
-1. Delete the messages and the RPCs from [4.3](#43-protobuf).
-2. Add the messages and the RPCs from [5](#5-add-this).
-3. Regenerate the bindings. See [12](#12-tools).
-
-Result: the Rust backend and the Flutter app do not compile. Continue.
-
-### Phase 2 — Backend
-
-1. Delete the files from [4.1](#41-rust).
-2. Add the tables, the migration and the template and tracker code.
-3. Change `StartWorkout` to accept a template id and to resolve weights.
-4. Change `EndWorkout` to update trackers instead of program state.
-5. Fix the weight unit read.
-6. Update `delete_user_account_and_data`.
-
-Result: `cargo test` passes. `cargo clippy --all-targets -- -D warnings`
-passes.
-
-### Phase 3 — Flutter
-
-1. Delete the screens from [4.2](#42-flutter).
-2. Build the template list home screen.
-3. Point the exercise editor at `SaveTemplate`.
-4. Build the 3-step onboarding.
-5. Change the onboarding-complete test.
-
-Result: `flutter analyze --fatal-infos` passes. `flutter test` passes.
-
-### Phase 4 — Tests
-
-1. Delete `scenario_tests.rs` and `schplanner_tests.rs`.
-2. Write progression tests: one step up, hold, deload, bodyweight, manual
-   override, and the weight unit in kilograms.
-3. Write migration tests: one user for each program, plus a user with no
-   program state.
-4. Extend `examples/api_invariant_fuzz.rs`. Add template create, template
-   edit, and start-from-template.
-5. Add an invariant: a tracker never moves two times for one workout.
-
-### Phase 5 — Release
-
-1. Update `docs/architecture/`. Delete `regimes.md` and
-   `training-model.md`. Rewrite `overview.md` and `data-model.md`.
-2. Delete `docs/regime-explorer.html`.
-3. Add the version gate. See [8.1](#81-old-apps-break).
-4. Write the release notes. State that GZCLP users keep one weight for each
-   lift.
-
-## 8. Risks
-
-### 8.1 Old apps break
-
-There is **no version check** in the repo today. The server does not know
-the app version. An installed app that calls a deleted RPC gets an error
-that it cannot explain.
-
-Do this before you deploy:
-
-1. Add an app version to the gRPC metadata on every call.
-2. Add a `min_supported_version` check in `src/server/support.rs`.
-3. Return a specific status code when the version is too old.
-4. Show a "you must update" screen in the app for that code.
-
-Ship step 4 in a release **before** the refactor lands. Users then have an
-app that can show the message.
-
-### 8.2 Users lose their program
-
-A user who follows Wendler 5/3/1 loses the cycle. This is the point of the
-change. The user must not lose the weight. Section [6.1](#61-trackers) keeps
-the weight.
-
-Show a message at the first sign-in after the change. Tell the user where
-the weights went.
-
-### 8.3 Progression becomes less clever
-
-Three programs become one rule. A user who wants 5/3/1 cannot get it.
-
-The template model can express the structure of 5/3/1 for one week. It
-cannot express the 4-week cycle. Accept this, or see
-[Decision 4](#decision-4-cycles).
-
-### 8.4 Test coverage drops
-
-The scenario tests cover the regimes well. They cover persistence and RPCs
-not at all (`docs/architecture/testing.md`). When the regimes go, the
-scenario tests go. Phase 4 must replace the coverage at the API level, not
-only at the unit level.
-
-### 8.5 Watches and web are safe
-
-The Wear OS app, the Apple Watch app and the web app contain **no**
-reference to regimes outside generated code. The blast radius is the
-backend and the Flutter phone app. Regenerate the Java, Swift and
-TypeScript bindings, then build each client one time to confirm.
-
-## 9. Decisions
-
-Each decision has a recommendation. Change it if you disagree, but change
-it before phase 1.
-
-### Decision 1: delete the v2 training model
-
-`src/server/training.rs`, `src/db/training.rs` and
-`proto/workout/v1/training.proto` hold a second, complete workout model.
-It has blocks, sets, append-only entries, and one `MutateWorkout` endpoint.
-The backend is built and tested. The Flutter app does not use it. Nothing
-is migrated to it.
-
-**Recommendation: delete it.**
-
-Reasons:
-
-- Its `CloseWorkout` calls the regime machinery. That machinery goes away,
-  so `CloseWorkout` must be rewritten anyway.
-- The Flutter side has no v2 code. To adopt v2 you must also rewrite
-  `workout_provider.dart` (1778 lines) and the workout screen. That
-  doubles this refactor.
-- A second dormant model is the kind of complexity that this change
-  removes.
-
-What you lose: v2 edits a workout one row at a time. v1 rewrites the whole
-workout on each plan change (`apply_replace_exercise_group_plan`). The v1
-way is slower and it caused an ordering defect that is now fixed. If you
-want the row-level model later, take it from git history and apply it to
-the simpler schema. That is cheaper than to carry it through this refactor.
-
-### Decision 2: keep muscle recovery
-
-`src/recovery.rs` computes muscle recovery from workout history. It uses a
-recovery profile that the regime supplies. The rest of it does not depend
-on programs.
-
-**Recommendation: keep it. Use one fixed profile.**
-
-It answers "are my legs ready?", which is still useful when you select your
-own workout. It costs about 450 lines. Delete it if you want the smallest
-possible result.
-
-### Decision 3: keep the layoff deload
-
-Today a program reduces your weights after time away: 90 percent after 14
-days, 80 percent after 30 days.
-
-**Recommendation: keep it. Apply it for each exercise.**
-
-Apply it when the server resolves a tracker weight at `StartWorkout`. Do
-not write the reduced weight to the tracker until the user completes the
-workout. This is how the programs behave today, and it is about 20 lines
-under the new model.
-
-### Decision 4: cycles
-
-A user cannot express "week 3 is heavy, week 4 is light" with templates
-alone.
-
-**Recommendation: do nothing now.**
-
-A user can make 4 templates and select one. This is manual, and it matches
-the aim of the change. Add a template sequence later if users ask for it.
-
-### Decision 5: store the tracker, do not derive it
-
-`derive_exercise_progressions` computes the weight from history each time.
-A stored table is the other option.
-
-**Recommendation: store it.**
-
-Reasons:
-
-- A user must be able to correct a weight by hand. A derived value has
-  nowhere to hold the correction.
-- A user's weight must not change when the user edits an old workout.
-- The derivation code stays. It seeds the table in the migration, and it
-  can repair a table.
-
-## 10. Sizes
-
-Use these numbers to plan, not to measure success.
-
-| Area | Delete | Add | Net |
-|---|---:|---:|---:|
-| Rust | 7200 | 1500 | −5700 |
-| Flutter | 5000 | 2000 | −3000 |
-| Protobuf | 700 | 250 | −450 |
-| **Code total** | **12 900** | **3750** | **−9150** |
-| Test data (`regime_timelines.json`) | 25 400 | 0 | −25 400 |
-
-## 11. Definition of done
-
-The refactor is complete when all of these are true.
-
-- [ ] The word "regime" occurs nowhere outside generated code and git history.
-- [ ] `src/regimes/`, `src/schplanner.rs` and `src/program_state.rs` do not exist.
-- [ ] A new user selects a unit, then starts a workout. No other setup step exists.
-- [ ] A user makes a template, starts it, and the weights come from the trackers.
-- [ ] A user increases the squat one time. Every template shows the new weight.
-- [ ] Every exercise progresses, not only the 5 main lifts.
-- [ ] A user with kilograms gets weights that are rounded for kilograms.
-- [ ] The migration runs one time. A second start does nothing.
-- [ ] No user loses a working weight in the migration.
-- [ ] `cargo clippy --all-targets -- -D warnings` passes.
-- [ ] `cargo test --all-targets` passes.
-- [ ] `make fuzz-api-ci` passes.
-- [ ] `flutter analyze --fatal-infos` passes.
-- [ ] `flutter test` passes.
-- [ ] The Wear OS app, the Apple Watch app and the web app build.
-- [ ] An app with an old version shows an update message.
-
-## 12. Tools
-
-`buf` is installed at `~/.local/bin/buf`. Use the Makefile targets:
-
-```bash
-make proto-dart       # works
-make proto-android    # works
-make proto-swift      # fails: protoc-gen-swift is not on this machine
-```
-
-`make proto-all` runs all three, so it fails at the Swift step. The Swift
-output is not in git, and the iOS build runs on macOS, so this does not
-block Linux work.
-
-The Android bindings were regenerated in commit `37af8e7`. They had 15
-`Exercise` enum members against 80 in the proto.
-
-The TypeScript bindings in `web/src/gen/` use a remote `buf` plugin. They
-are out of date. Regenerate them with `cd proto && buf generate` and read
-the diff, because it holds other people's proto changes as well as yours.
+| `workouts`, `exercise_groups`, `proposed_sets`, `completed_sets` | Keep. `workouts` gains `template_id`; drop `exercise_groups.prescribed_by_regime` and `proposed_sets.progression_blob` |
+| `training_program_state_latest` | Read in 7.1, then DROP |
+| `profile_exercise_groups` | Read in 7.2, then DROP |
+| `proposed_schedule_cache`, `workout_drafts_current`, `workout_events` | DROP. All write-only or replaced |
+| `t_workouts`, `t_blocks`, `t_sets`, `t_entries`, `t_progression` | DROP (Decision 1) |
+| `program_progression_applied` | Rename `progression_applied` |
+| `user_message_events` | Keep |
+
+An open workout (`end_time = 0`) survives untouched and finishes under
+the new `EndWorkout`. Its `template_id` stays empty.
+
+> **Caution:** `delete_user_account_and_data` (`src/db/auth.rs`) deletes
+> tables by name, and `seed_all_tables` in the same file feeds the test
+> that discovers user-keyed tables at run time. Update both for every
+> table added or removed, or the discovery test fails.
+
+## 8. Work phases
+
+The repo does not build between phase 2 and phase 4. This is correct; do
+not add a compatibility layer.
+
+1. **Spec.** This document.
+2. **Proto.** Delete 5.3, add 6.1, regenerate Dart and Android
+   (`make proto-dart`, `make proto-android`). Swift and TypeScript
+   regenerate in their own CI.
+3. **Backend.** Catalog (muscles, prescription, equipment), double
+   progression, volume, suggestion, tables, migration, handlers,
+   deletions, weight-unit fix, `delete_user_account_and_data`. Green:
+   `cargo test --all-targets`, `cargo clippy --all-targets -- -D
+   warnings`.
+4. **Flutter.** Services, providers, home, template editor, onboarding,
+   deletions. Green: `flutter analyze --fatal-infos`, `flutter test`.
+5. **Harnesses.** `api_invariant_fuzz` gains template flows and a
+   no-double-advance tracker invariant; `load_simulation` updated.
+   `make fuzz-api-ci` green.
+6. **Docs.** README, `overview.md`, `data-model.md`; delete
+   `regimes.md`, `training-model.md`, `regime-explorer.html`.
+
+## 9. Risks
+
+### 9.1 Old apps break
+
+There is no version check in the repo. Ship the gate with this change:
+the app sends `x-app-version` metadata; the server, when
+`MIN_APP_VERSION` is set, rejects older clients with
+`FAILED_PRECONDITION` and message `app_update_required`; the app shows
+an update prompt for that status. Deploy order: release an app that
+sends the header and understands the error **before** setting
+`MIN_APP_VERSION` on the server.
+
+### 9.2 Users lose their program
+
+A 5/3/1 user loses the cycle. That is the point of the change; the
+weights survive (7.1). Say where the weights went in the release notes
+and in a one-time message.
+
+### 9.3 The intermediate ceiling
+
+Double progression stalls eventually; the answer here is the 2-miss
+deload and rep-range resets, not planned cycles. This is a
+novice-to-intermediate bodybuilding app by design. Say it plainly in the
+copy.
+
+### 9.4 Volume blindness is now the app's job
+
+The app prescribes per-exercise numbers, so weekly volume per muscle is
+set entirely by exercise selection and frequency. The volume display
+(3.4) is therefore load-bearing, not decoration. It ships in the same
+phase as the prescription, not later.
+
+### 9.5 Test coverage moves
+
+The regime scenario tests die with the regimes. Their replacement is
+API-level: handler tests for the tracker loop and the migration, and the
+fuzz invariants. Phase 5 is not optional.
+
+## 10. Decisions
+
+Settled in review; recorded with reasons.
+
+1. **Delete the v2 training model.** Its `CloseWorkout` depends on the
+   regimes, the app never adopted it, and carrying it doubles the
+   refactor. Take it from git history if row-level editing is ever
+   wanted.
+2. **Keep muscle recovery, one fixed profile,** over the 10-muscle
+   taxonomy. "Are my legs ready" stays useful without programs.
+3. **Keep the layoff deload, per exercise, resolution-time only** (3.7).
+4. **No cycles, no goal dial.** Bodybuilding only. Strength-specific
+   programming (waves, heavy triples) is out of scope; the old regimes
+   were powerlifting programs and they are what is being deleted.
+5. **Store trackers; do not derive them per request.** Manual
+   corrections need a place to live, and editing an old workout must not
+   move today's weight. The derivation exists to seed the migration and
+   to repair.
+6. **Templates rotate; exercises inside them do not.** Rotating
+   exercises starves double progression of exposure. Variety comes from
+   template rotation, the volume-aware suggestion, and deliberate
+   swap-with-alternative in the editor.
+
+## 11. Tools
+
+`buf` is at `~/.local/bin/buf`. `make proto-dart` and
+`make proto-android` work on this machine; `make proto-swift` needs
+`protoc-gen-swift` (macOS CI has it; the output is not committed).
+TypeScript bindings regenerate with `cd proto && buf generate` and are
+already stale — read that diff before committing it.
