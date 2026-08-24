@@ -637,21 +637,21 @@ The refactor is complete when all of these are true.
 
 ## 12. Tools
 
-`buf` is not installed on the development machine. Use these commands
-instead:
+`buf` is installed at `~/.local/bin/buf`. Use the Makefile targets:
 
 ```bash
-dart pub global activate protoc_plugin
-cd proto && protoc --dart_out=grpc:../app/lib/gen -I . workout/v1/*.proto
+make proto-dart       # works
+make proto-android    # works
+make proto-swift      # fails: protoc-gen-swift is not on this machine
 ```
 
-The Dart output is the same, byte for byte, as the buf output. This is
-verified against the committed files.
+`make proto-all` runs all three, so it fails at the Swift step. The Swift
+output is not in git, and the iOS build runs on macOS, so this does not
+block Linux work.
 
-Java is not the same. `buf` writes `json_name` into the descriptor, so
-plain `protoc` changes a comment on every field. The result is a very large
-diff. Install `buf` to regenerate `app/android/shared-proto/`, or accept
-the diff.
+The Android bindings were regenerated in commit `37af8e7`. They had 15
+`Exercise` enum members against 80 in the proto.
 
-The Swift bindings are not in git. The TypeScript bindings use a remote
-`buf` plugin, and they are already out of date.
+The TypeScript bindings in `web/src/gen/` use a remote `buf` plugin. They
+are out of date. Regenerate them with `cd proto && buf generate` and read
+the diff, because it holds other people's proto changes as well as yours.

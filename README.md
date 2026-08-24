@@ -38,15 +38,24 @@ cd app && flutter pub get && flutter run             # app
 cd web && npm install && npm run dev                 # web
 ```
 
-Regenerate the Dart bindings after you edit a `.proto` file:
+Regenerate the bindings after you edit a `.proto` file:
 
 ```bash
-dart pub global activate protoc_plugin
-cd proto && protoc --dart_out=grpc:../app/lib/gen -I . workout/v1/*.proto
+make proto-dart       # app/lib/gen/            — needs protoc-gen-dart
+make proto-android    # app/android/shared-proto/
+make proto-swift      # watchOS — needs protoc-gen-swift (macOS only)
 ```
 
-`make proto-all` also builds the Java and Swift bindings, but it needs
-`buf`. Rust regenerates through `build.rs` on the next build.
+Rust regenerates through `build.rs` on the next build.
+
+Install the tools one time:
+
+```bash
+curl -fsSL -o ~/.local/bin/buf \
+  https://github.com/bufbuild/buf/releases/latest/download/buf-Linux-x86_64
+chmod +x ~/.local/bin/buf
+dart pub global activate protoc_plugin        # gives protoc-gen-dart
+```
 
 > **Caution:** generated code is committed. If you edit a proto and do not
 > regenerate, the backend and the app disagree at run time, not at build
