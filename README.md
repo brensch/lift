@@ -1,131 +1,109 @@
 # Schlift
 
-A multiplayer strength-training app. Track your lifts solo or in a shared
-session, follow an adaptive program (5×5, GZCLP, Wendler 5/3/1), and drive your
-workout from your phone or watch.
+A strength-training app. You log your lifts on a phone or a watch. You can
+share a live session with other lifters.
 
-The repo holds three things:
+| Part | Path | Stack |
+|---|---|---|
+| Backend | `src/` | Rust, gRPC (tonic), one SQLite file |
+| App | `app/` | Flutter — phone, Wear OS, Apple Watch |
+| Web | `web/` | React, Vite — landing page, privacy, account deletion |
 
-| Component | Path | Stack |
-|-----------|------|-------|
-| Backend | `src/` | Rust + gRPC (tonic), SQLite single-file store |
-| Mobile app | `app/` | Flutter — phone, Wear OS, and Apple Watch |
-| Web (landing + account) | `web/` | React + Vite (marketing, privacy, delete-account) |
+Bundle ID on all platforms: `com.brensch.schlift`.
 
-Package / bundle ID across platforms: `com.brensch.schlift`.
+## How it works
 
-## Architecture
+- **Backend** — One Rust binary (`src/main.rs`). One SQLite file in WAL
+  mode. The write pool has 1 connection, so writes run in series. The read
+  pool has 16. RPC handlers are in `src/server/`.
+- **Programs** — `src/regimes/` holds 3 training programs (Linear 5x5,
+  GZCLP, Wendler 5/3/1) behind the `WorkoutRegime` trait. Each program is a
+  state machine. It proposes the next session and moves its state forward
+  when you finish.
+- **Protobuf** — `proto/workout/v1/` is the only contract between the
+  backend and the clients. Generated code is committed.
+- **App** — `app/lib/` holds `screens/`, `widgets/`, `providers/` (state),
+  `services/` (transport) and `logic/` (pure functions).
+- **Watches** — The watches never call the backend. They exchange protobuf
+  messages with the phone. The phone holds the truth.
+- **Auth** — Passkeys only. There are no passwords.
 
-Full reference with diagrams: [`docs/architecture/`](docs/architecture/).
+Full reference: [`docs/architecture/`](docs/architecture/).
 
-- **Backend** — A Rust gRPC server (`src/main.rs`) backed by a single SQLite
-  database (`data/server.sqlite`) in WAL mode. The DB layer (`src/db/`) uses a
-  single-connection write pool and a 16-connection read pool, so writes
-  serialise and reads run concurrently. RPC handlers live in `src/server/`
-  (`workout`, `multiplayer`, `settings`, `user`, `auth`, `support`).
-- **Adaptive regimes** — `src/regimes/` implements the program state machine
-  (Linear 5×5, GZCLP, Wendler 5/3/1) behind the `WorkoutRegime` trait. Each
-  regime's `state_schema()` drives the settings and onboarding UI, so adding a
-  program needs no Flutter changes. One current state snapshot is kept per user
-  in `training_program_state_latest`.
-  See [`docs/architecture/regimes.md`](docs/architecture/regimes.md).
-- **Protobuf** — Contracts in `proto/workout/v1/`. Generated Dart lands in
-  `app/lib/gen/`, TypeScript in `web/src/gen/`, Java in
-  `app/android/shared-proto/`, plus Swift for watchOS. Regenerate with
-  `make proto-all`; Rust regenerates via `build.rs`.
-- **Flutter app** — `app/lib/` is organised into `screens/`, `widgets/`,
-  `providers/` (state), `services/` (transport), and `logic/` (pure functions,
-  no Flutter imports). The watch companions never talk to the backend — they
-  exchange protobuf envelopes with the phone, which remains the source of truth.
-- **Auth** — Passkeys (WebAuthn) only; no passwords. See
-  [`docs/architecture/auth.md`](docs/architecture/auth.md).
-
-## Getting started
-
-### Backend
+## Build and run
 
 ```bash
-cargo build --release
-./target/release/schlift        # listens on :50051
+cargo build --release && ./target/release/schlift    # backend on :50051
+cd app && flutter pub get && flutter run             # app
+cd web && npm install && npm run dev                 # web
 ```
 
-### Flutter app
+Regenerate the Dart bindings after you edit a `.proto` file:
 
 ```bash
-cd app
-flutter pub get
-flutter run
+dart pub global activate protoc_plugin
+cd proto && protoc --dart_out=grpc:../app/lib/gen -I . workout/v1/*.proto
 ```
 
-Regenerate protobuf bindings after editing `proto/`:
+`make proto-all` also builds the Java and Swift bindings, but it needs
+`buf`. Rust regenerates through `build.rs` on the next build.
+
+> **Caution:** generated code is committed. If you edit a proto and do not
+> regenerate, the backend and the app disagree at run time, not at build
+> time.
+
+## Test
 
 ```bash
-PATH="$PATH:$HOME/.pub-cache/bin" \
-  protoc --dart_out=grpc:app/lib/gen --proto_path=proto proto/workout/v1/*.proto
+cargo test --all-targets                       # backend
+cargo clippy --all-targets -- -D warnings      # lints, as CI runs them
+make fuzz-api                                  # randomised API sequences
+cd app && flutter test                         # app
 ```
 
-### Web
+`make fuzz-api` starts a throwaway backend. It drives random workout
+sequences and checks the state invariants after every change. Program
+behaviour is covered by JSON scenarios in `src/regimes/scenarios/`.
+
+See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what
+each layer catches.
+
+## Release
+
+Push to `main` to deploy the backend. Push a `v*` tag to build the signed
+Android, Wear OS and iOS artifacts.
 
 ```bash
-cd web
-npm install
-npm run dev
+git tag v0.9.6 origin/main && git push origin v0.9.6
 ```
 
-## Tests
+The version comes from the tag. Do not edit `app/pubspec.yaml`; it stays at
+the `0.0.0+1` placeholder.
 
-```bash
-cargo test                      # backend: units, regime scenarios, handler tests
-cd app && flutter test          # Flutter: logic + cross-language parity
-make fuzz-api                   # randomised API sequences with invariant checks
-```
+See [`docs/releasing.md`](docs/releasing.md) for signing, secrets and the
+store checklists.
 
-Regime behaviour is covered by JSON scenarios in `src/regimes/scenarios/`, whole
-program timelines in `testdata/regime_timelines.json`, and end-to-end handler
-tests for the seams between RPCs. `make fuzz-api` spawns a throwaway backend and
-drives randomised workout sequences, asserting state invariants after every
-mutation.
-
-See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what each
-layer catches and where coverage is thin.
-
-## Releasing
-
-Releases are triggered by pushing a `v*` tag (e.g. `v0.9.5`), which runs the
-signed Android/Wear and iOS build workflows. The backend deploys on push to
-`main`.
-
-1. Merge release-ready changes to `main` via PR.
-2. Tag the merged commit and push: `git tag v0.9.6 origin/main && git push origin v0.9.6`.
-
-The version is derived automatically — name from the tag (`v0.9.6` → `0.9.6`),
-build number from the run number. `app/pubspec.yaml` stays a `0.0.0+1`
-placeholder; there is no manual version bump.
-
-See [`docs/releasing.md`](docs/releasing.md) for signing setup, required GitHub
-Actions secrets, and the Play Store / App Store checklists.
-
-## Repo layout
+## Layout
 
 ```
-src/        Rust backend (gRPC server, db, regimes, scheduler)
-app/        Flutter app (phone + Wear OS + Apple Watch)
-web/        React landing / privacy / account-deletion site
-proto/      Protobuf contracts (source of truth for generated code)
-examples/   load_simulation.rs (load test), api_invariant_fuzz.rs (invariant harness)
-scripts/    Release / icon / deploy helper scripts
-make/       Makefile target groups (backend, app, emulators, wear, watch, release, proto)
-deploy/     Production deploy configs (systemd + Caddy)
+src/        Rust backend
+app/        Flutter app (phone, Wear OS, Apple Watch)
+web/        React site
+proto/      Protobuf contracts
+examples/   Load test and API invariant harness
+make/       Makefile target groups
+deploy/     systemd and Caddy configs
 docs/       Architecture reference and runbooks
 ```
 
-## Documentation
+## Documents
 
-| Doc | Covers |
+| Document | Subject |
 |---|---|
 | [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
-| [`docs/regime-explorer.html`](docs/regime-explorer.html) | Interactive: how each program progresses, stalls and deloads |
-| [`docs/android_dev.md`](docs/android_dev.md) | Emulator + device workflow, Wear OS, screenshot automation |
+| [`docs/plans/composable-workouts.md`](docs/plans/composable-workouts.md) | **Proposal:** remove the programs; users compose their own workouts |
+| [`docs/regime-explorer.html`](docs/regime-explorer.html) | How each program progresses, stalls and deloads |
+| [`docs/android_dev.md`](docs/android_dev.md) | Emulator and device workflow |
 | [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
-| [`docs/calorie_maths.md`](docs/calorie_maths.md) | Calorie estimation derivation |
-| [`docs/design-history/`](docs/design-history/) | Superseded design plans, kept for context |
+| [`docs/calorie_maths.md`](docs/calorie_maths.md) | How the calorie estimate works |
+| [`docs/design-history/`](docs/design-history/) | Replaced design plans, kept for context |
