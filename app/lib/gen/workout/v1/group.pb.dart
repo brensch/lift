@@ -1048,7 +1048,6 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $1.User? user,
     $core.String? activeWorkoutId,
     $1.Workout? activeWorkout,
-    $core.Iterable<$1.ExerciseGroup>? exerciseGroups,
     $core.Iterable<$1.ProposedSet>? proposedSets,
     $core.Iterable<$1.CompletedSet>? completedSets,
     $1.ProposedSet? nextUpSet,
@@ -1059,7 +1058,6 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (user != null) result.user = user;
     if (activeWorkoutId != null) result.activeWorkoutId = activeWorkoutId;
     if (activeWorkout != null) result.activeWorkout = activeWorkout;
-    if (exerciseGroups != null) result.exerciseGroups.addAll(exerciseGroups);
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
@@ -1085,8 +1083,6 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'activeWorkoutId')
     ..aOM<$1.Workout>(3, _omitFieldNames ? '' : 'activeWorkout',
         subBuilder: $1.Workout.create)
-    ..pPM<$1.ExerciseGroup>(4, _omitFieldNames ? '' : 'exerciseGroups',
-        subBuilder: $1.ExerciseGroup.create)
     ..pPM<$1.ProposedSet>(5, _omitFieldNames ? '' : 'proposedSets',
         subBuilder: $1.ProposedSet.create)
     ..pPM<$1.CompletedSet>(6, _omitFieldNames ? '' : 'completedSets',
@@ -1147,41 +1143,38 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $1.Workout ensureActiveWorkout() => $_ensure(2);
 
-  @$pb.TagNumber(4)
-  $pb.PbList<$1.ExerciseGroup> get exerciseGroups => $_getList(3);
-
   @$pb.TagNumber(5)
-  $pb.PbList<$1.ProposedSet> get proposedSets => $_getList(4);
+  $pb.PbList<$1.ProposedSet> get proposedSets => $_getList(3);
 
   @$pb.TagNumber(6)
-  $pb.PbList<$1.CompletedSet> get completedSets => $_getList(5);
+  $pb.PbList<$1.CompletedSet> get completedSets => $_getList(4);
 
   @$pb.TagNumber(7)
-  $1.ProposedSet get nextUpSet => $_getN(6);
+  $1.ProposedSet get nextUpSet => $_getN(5);
   @$pb.TagNumber(7)
   set nextUpSet($1.ProposedSet value) => $_setField(7, value);
   @$pb.TagNumber(7)
-  $core.bool hasNextUpSet() => $_has(6);
+  $core.bool hasNextUpSet() => $_has(5);
   @$pb.TagNumber(7)
   void clearNextUpSet() => $_clearField(7);
   @$pb.TagNumber(7)
-  $1.ProposedSet ensureNextUpSet() => $_ensure(6);
+  $1.ProposedSet ensureNextUpSet() => $_ensure(5);
 
   @$pb.TagNumber(8)
-  $fixnum.Int64 get restUntil => $_getI64(7);
+  $fixnum.Int64 get restUntil => $_getI64(6);
   @$pb.TagNumber(8)
-  set restUntil($fixnum.Int64 value) => $_setInt64(7, value);
+  set restUntil($fixnum.Int64 value) => $_setInt64(6, value);
   @$pb.TagNumber(8)
-  $core.bool hasRestUntil() => $_has(7);
+  $core.bool hasRestUntil() => $_has(6);
   @$pb.TagNumber(8)
   void clearRestUntil() => $_clearField(8);
 
   @$pb.TagNumber(9)
-  $core.bool get hasActiveSet => $_getBF(8);
+  $core.bool get hasActiveSet => $_getBF(7);
   @$pb.TagNumber(9)
-  set hasActiveSet($core.bool value) => $_setBool(8, value);
+  set hasActiveSet($core.bool value) => $_setBool(7, value);
   @$pb.TagNumber(9)
-  $core.bool hasHasActiveSet() => $_has(8);
+  $core.bool hasHasActiveSet() => $_has(7);
   @$pb.TagNumber(9)
   void clearHasActiveSet() => $_clearField(9);
 }

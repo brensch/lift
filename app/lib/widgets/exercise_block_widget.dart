@@ -2,35 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercise_groups.dart';
+import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 
-class ExerciseGroupWidget extends StatefulWidget {
-  final ExerciseGroupData group;
+class ExerciseBlockWidget extends StatefulWidget {
+  final ExerciseBlock block;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
   final bool isWorkoutEnded;
   final VoidCallback? onEdit;
-  final int? groupIndex; // null = not draggable (completed group)
+  final int? dragIndex; // null = not draggable (completed block)
 
-  const ExerciseGroupWidget({
+  const ExerciseBlockWidget({
     super.key,
-    required this.group,
+    required this.block,
     required this.completedSets,
     this.activeSetId,
     required this.isWorkoutEnded,
     this.onEdit,
-    this.groupIndex,
+    this.dragIndex,
   });
 
   @override
-  State<ExerciseGroupWidget> createState() => _ExerciseGroupWidgetState();
+  State<ExerciseBlockWidget> createState() => _ExerciseBlockWidgetState();
 }
 
-class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
+class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
   static const _activeLiftFg = AppTheme.workoutLiftingFg;
   static const _activeLiftBg = AppTheme.workoutLiftingBg;
   bool _isManualExpanded = false;
@@ -62,9 +62,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final detailsText = (widget.group.group?.instruction ?? '').trim();
-    final workingSets = widget.group.sets.where((s) => !s.warmup).toList();
-    final warmupSets = widget.group.sets.where((s) => s.warmup).toList();
+    final workingSets = widget.block.workingSets.toList();
+    final warmupSets = widget.block.warmupSets.toList();
 
     final completedWorkingSets = workingSets
         .where(
@@ -86,7 +85,6 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
     );
     final remainingWorkingRepsMin =
         (targetWorkingRepsMin - completedWorkingReps).clamp(0, 1 << 30);
-    final amrapWorkingSets = workingSets.where((s) => s.isAmrap).length;
     final completedWarmupSets = warmupSets
         .where(
           (s) => widget.completedSets.any(
@@ -97,7 +95,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
 
     final allCompleted =
         workingSets.isNotEmpty && completedWorkingSets == workingSets.length;
-    final hasActiveSet = widget.group.sets.any(
+    final hasActiveSet = widget.block.sets.any(
       (s) => s.id == widget.activeSetId,
     );
     final isExpanded = hasActiveSet || _isManualExpanded || !allCompleted;
@@ -147,8 +145,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                           const SizedBox(width: 7),
                           Expanded(
                             child: Text(
-                              (widget.group.group?.name ??
-                                  exerciseNames[widget.group.exercise] ??
+                              (exerciseNames[widget.block.exercise] ??
                                   'Unknown'),
                               style: TextStyle(
                                 fontSize: 15,
@@ -232,9 +229,8 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        (widget.group.group?.name ??
-                                            exerciseNames[widget
-                                                .group
+                                        (exerciseNames[widget
+                                                .block
                                                 .exercise] ??
                                             'Unknown'),
                                         style: TextStyle(
@@ -274,29 +270,12 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                                 ),
                                 if (workingSets.isNotEmpty)
                                   Text(
-                                    amrapWorkingSets > 0
-                                        ? 'Min $targetWorkingRepsMin reps • $completedWorkingReps done • $remainingWorkingRepsMin min to go • $amrapWorkingSets AMRAP'
-                                        : 'Target $targetWorkingRepsMin reps • $completedWorkingReps done • $remainingWorkingRepsMin to go',
+                                    'Target $targetWorkingRepsMin reps • $completedWorkingReps done • $remainingWorkingRepsMin to go',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
                                       color: colorScheme.tertiary.withValues(
                                         alpha: 0.72,
-                                      ),
-                                    ),
-                                  ),
-                                if (detailsText.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      detailsText,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: colorScheme.onSurface.withValues(
-                                          alpha: allCompleted ? 0.62 : 0.72,
-                                        ),
-                                        height: 1.3,
                                       ),
                                     ),
                                   ),
@@ -310,7 +289,7 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
-                        children: widget.group.sets
+                        children: widget.block.sets
                             .map((s) => _buildChip(context, s))
                             .toList(),
                       ),
@@ -341,9 +320,9 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
                     ),
                   ),
                 )
-              else if (!widget.isWorkoutEnded && widget.groupIndex != null)
+              else if (!widget.isWorkoutEnded && widget.dragIndex != null)
                 ReorderableDragStartListener(
-                  index: widget.groupIndex!,
+                  index: widget.dragIndex!,
                   child: Container(
                     width: 32,
                     decoration: BoxDecoration(
@@ -376,7 +355,6 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       orElse: () => null,
     );
     final isActive = set.id == widget.activeSetId;
-    final isSuperset = widget.group.exercises.length > 1;
 
     final unit = context.watch<SettingsProvider>().weightUnit;
     final String weight = formatWeight(set.targetWeight.toDouble(), unit);
@@ -408,19 +386,14 @@ class _ExerciseGroupWidgetState extends State<ExerciseGroupWidget> {
       bg = _activeLiftBg;
       fg = _activeLiftFg;
       borderColor = _activeLiftFg.withValues(alpha: 0.5);
-      text = set.isAmrap ? 'AMRAP@$weight' : '${set.targetReps}@$weight';
+      text = '${set.targetReps}@$weight';
       fontWeight = FontWeight.w800;
     } else {
       bg = Colors.transparent;
       fg = colorScheme.onSurface.withValues(alpha: 0.75);
       borderColor = colorScheme.outline.withValues(alpha: 0.25);
-      text = set.isAmrap ? 'AMRAP@$weight' : '${set.targetReps}@$weight';
-      fontWeight = set.isAmrap ? FontWeight.w700 : FontWeight.w600;
-    }
-
-    if (isSuperset) {
-      final name = exerciseNames[set.exercise] ?? '?';
-      text = '${name[0]} $text';
+      text = '${set.targetReps}@$weight';
+      fontWeight = FontWeight.w600;
     }
 
     return Container(

@@ -317,14 +317,6 @@ const ParticipantStatus$json = {
       '10': 'activeWorkout'
     },
     {
-      '1': 'exercise_groups',
-      '3': 4,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.ExerciseGroup',
-      '10': 'exerciseGroups'
-    },
-    {
       '1': 'proposed_sets',
       '3': 5,
       '4': 3,
@@ -351,19 +343,22 @@ const ParticipantStatus$json = {
     {'1': 'rest_until', '3': 8, '4': 1, '5': 3, '10': 'restUntil'},
     {'1': 'has_active_set', '3': 9, '4': 1, '5': 8, '10': 'hasActiveSet'},
   ],
+  '9': [
+    {'1': 4, '2': 5},
+  ],
+  '10': ['exercise_groups'],
 };
 
 /// Descriptor for `ParticipantStatus`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'ChFQYXJ0aWNpcGFudFN0YXR1cxIkCgR1c2VyGAEgASgLMhAud29ya291dC52MS5Vc2VyUgR1c2'
     'VyEioKEWFjdGl2ZV93b3Jrb3V0X2lkGAIgASgJUg9hY3RpdmVXb3Jrb3V0SWQSOgoOYWN0aXZl'
-    'X3dvcmtvdXQYAyABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXRSDWFjdGl2ZVdvcmtvdXQSQgoPZX'
-    'hlcmNpc2VfZ3JvdXBzGAQgAygLMhkud29ya291dC52MS5FeGVyY2lzZUdyb3VwUg5leGVyY2lz'
-    'ZUdyb3VwcxI8Cg1wcm9wb3NlZF9zZXRzGAUgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldF'
-    'IMcHJvcG9zZWRTZXRzEj8KDmNvbXBsZXRlZF9zZXRzGAYgAygLMhgud29ya291dC52MS5Db21w'
-    'bGV0ZWRTZXRSDWNvbXBsZXRlZFNldHMSNwoLbmV4dF91cF9zZXQYByABKAsyFy53b3Jrb3V0Ln'
-    'YxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSHQoKcmVzdF91bnRpbBgIIAEoA1IJcmVzdFVudGls'
-    'EiQKDmhhc19hY3RpdmVfc2V0GAkgASgIUgxoYXNBY3RpdmVTZXQ=');
+    'X3dvcmtvdXQYAyABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXRSDWFjdGl2ZVdvcmtvdXQSPAoNcH'
+    'JvcG9zZWRfc2V0cxgFIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXRSDHByb3Bvc2VkU2V0'
+    'cxI/Cg5jb21wbGV0ZWRfc2V0cxgGIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0Ug1jb2'
+    '1wbGV0ZWRTZXRzEjcKC25leHRfdXBfc2V0GAcgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNl'
+    'dFIJbmV4dFVwU2V0Eh0KCnJlc3RfdW50aWwYCCABKANSCXJlc3RVbnRpbBIkCg5oYXNfYWN0aX'
+    'ZlX3NldBgJIAEoCFIMaGFzQWN0aXZlU2V0SgQIBBAFUg9leGVyY2lzZV9ncm91cHM=');
 
 @$core.Deprecated('Use trainingPartnerDescriptor instead')
 const TrainingPartner$json = {

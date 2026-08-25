@@ -403,7 +403,6 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
           displaySet = proposed;
           actionButton = RepButtons(
             targetReps: proposed.targetReps,
-            isAmrap: proposed.isAmrap,
             onComplete: (reps) => wp.completeSet(
               proposed.id,
               reps,

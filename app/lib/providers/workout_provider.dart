@@ -10,9 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
-import '../logic/exercise_groups.dart';
+import '../logic/exercise_blocks.dart';
 import '../logic/weight_units.dart';
-import '../logic/workout_plan_builder.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
@@ -79,7 +78,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Active workout state
   Workout? _activeWorkout;
-  List<ExerciseGroup> _activeExerciseGroups = [];
   List<ProposedSet> _activeProposedSets = [];
   List<CompletedSet> _activeCompletedSets = [];
   ProposedSet? _backendNextUpSet;
@@ -105,7 +103,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
   DateTime _now = DateTime.now();
   late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
-  final List<ExerciseGroupData> _exerciseGroupsCache = [];
+  final List<ExerciseBlock> _blocksCache = [];
   late final UnmodifiableListView<HeartRateSample> _wearHeartRateSamplesView =
       UnmodifiableListView(_wearHeartRateSamples);
 
@@ -133,264 +131,92 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
 
 
-  void _resequenceAllProposedSets({
-    String? prioritizeCompletedGroupId,
-    Set<String> completedIds = const {},
-  }) {
-    final orderedGroups = List<ExerciseGroup>.from(_activeExerciseGroups)
-      ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
+  // ── Plan-shaping ops: optimistic local apply + queued mutation ──
+  // The local apply gives instant feedback; the server response (with the
+  // authoritative plan, warmups included) replaces it a beat later.
 
-    final reordered = <ProposedSet>[];
-    final cancelled = <ProposedSet>[];
-
-    for (final group in orderedGroups) {
-      final groupSets = _activeProposedSets
-          .where((set) => set.exerciseGroupId == group.id)
-          .toList();
-      final visible = groupSets.where((set) => !set.cancelled).toList()
-        ..sort((a, b) {
-          if (group.id == prioritizeCompletedGroupId) {
-            final aDone = completedIds.contains(a.id);
-            final bDone = completedIds.contains(b.id);
-            if (aDone != bDone) return aDone ? -1 : 1;
-          }
-          return a.workoutOrder.compareTo(b.workoutOrder);
-        });
-      final hidden = groupSets.where((set) => set.cancelled).toList()
-        ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-      reordered.addAll(visible);
-      cancelled.addAll(hidden);
+  void _applyLocalAddExercises(
+    List<Exercise> exercises,
+    List<String> workingSetIds,
+  ) {
+    final workout = _activeWorkout;
+    if (workout == null) return;
+    var order = _activeProposedSets.isEmpty
+        ? 0
+        : _activeProposedSets.last.workoutOrder + 1;
+    final existingIds = _activeProposedSets.map((s) => s.id).toSet();
+    var idIndex = 0;
+    for (final exercise in exercises) {
+      final tracker = trackerFor(exercise);
+      final count = (tracker?.sets ?? 3).clamp(1, 10);
+      for (var i = 0; i < count; i++) {
+        final id = idIndex < workingSetIds.length
+            ? workingSetIds[idIndex++]
+            : _uuid.v4();
+        // Replaying a mutation the server already applied must not
+        // duplicate the sets.
+        if (existingIds.contains(id)) continue;
+        _activeProposedSets.add(
+          ProposedSet()
+            ..id = id
+            ..workoutId = workout.id
+            ..workoutOrder = order++
+            ..exercise = exercise
+            ..targetReps = tracker?.targetReps ?? 8
+            ..targetWeight = tracker?.workingWeight ?? 0
+            ..restAfterSuccess =
+                (tracker != null && tracker.restSeconds > 0)
+                ? tracker.restSeconds
+                : 180
+            ..restAfterFailure =
+                (tracker != null && tracker.restSecondsFailure > 0)
+                ? tracker.restSecondsFailure
+                : 300,
+        );
+      }
     }
-
-    final ungroupedVisible =
-        _activeProposedSets
-            .where((set) => set.exerciseGroupId.isEmpty && !set.cancelled)
-            .toList()
-          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-    final ungroupedCancelled =
-        _activeProposedSets
-            .where((set) => set.exerciseGroupId.isEmpty && set.cancelled)
-            .toList()
-          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-
-    reordered.addAll(ungroupedVisible);
-    cancelled.addAll(ungroupedCancelled);
-
-    _activeProposedSets = [...reordered, ...cancelled];
-    for (int i = 0; i < _activeProposedSets.length; i++) {
-      _activeProposedSets[i].workoutOrder = i;
-    }
+    _refreshDerivedState();
   }
 
-  String? _applyLocalReplaceExerciseGroupPlan({
-    required String name,
-    required String? exerciseGroupId,
-    required bool interleaveWarmups,
-    required List<PlannedGroupSet> sets,
-    RestConfig? restConfig,
-    bool deleteGroupIfEmpty = false,
-    String instruction = '',
-    bool createIfMissing = false,
-    GroupWarmupPlan? warmupPlan,
-  }) {
-    final workout = _activeWorkout;
-    if (workout == null) return null;
-    final normalizedSets = List<PlannedGroupSet>.from(sets);
+  void _applyLocalAdjustExerciseWeight(Exercise exercise, double weightLb) {
     final completedIds = _activeCompletedSets
-        .where((c) => c.proposedSetId.isNotEmpty)
         .map((c) => c.proposedSetId)
         .toSet();
-
-    final requestedGroupId =
-        (exerciseGroupId == null || exerciseGroupId.isEmpty)
-        ? null
-        : exerciseGroupId;
-
-    final existingIdx = requestedGroupId == null
-        ? -1
-        : _activeExerciseGroups.indexWhere((g) => g.id == requestedGroupId);
-
-    if (requestedGroupId == null || (existingIdx == -1 && createIfMissing)) {
-      if (deleteGroupIfEmpty && normalizedSets.isEmpty) return null;
-      final groupId = requestedGroupId ?? _uuid.v4();
-      final group = ExerciseGroup()
-        ..id = groupId
-        ..workoutId = workout.id
-        ..name = name
-        ..sets = computeGroupWorkingRoundsFromSets(normalizedSets)
-        ..interleaveWarmups = interleaveWarmups
-        ..workoutOrder = _activeExerciseGroups.length
-        ..instruction = instruction;
-      if (restConfig != null) {
-        group.restConfig = RestConfig()..mergeFromMessage(restConfig);
-      }
-      final startOrder = _activeProposedSets.isEmpty
-          ? 0
-          : (_activeProposedSets.last.workoutOrder + 1);
-      final generated = proposedSetsFromPlannedGroupSets(
-        workoutId: workout.id,
-        groupId: groupId,
-        sets: normalizedSets,
-        startOrder: startOrder,
-      );
-      _activeExerciseGroups.add(group);
-      _activeProposedSets.addAll(generated);
-      _refreshDerivedState();
-      return groupId;
+    for (final set in _activeProposedSets) {
+      if (set.exercise != exercise || set.warmup || set.cancelled) continue;
+      if (completedIds.contains(set.id)) continue;
+      set.targetWeight = weightLb;
     }
-
-    if (existingIdx == -1) return null;
-    final existing = _activeExerciseGroups[existingIdx];
-
-    if (deleteGroupIfEmpty && normalizedSets.isEmpty) {
-      final groupId = existing.id;
-      _activeProposedSets.removeWhere(
-        (p) => p.exerciseGroupId == groupId && !completedIds.contains(p.id),
-      );
-      _activeExerciseGroups.removeAt(existingIdx);
-      _refreshDerivedState();
-      return groupId;
-    }
-
-    existing
-      ..name = name
-      ..interleaveWarmups = interleaveWarmups
-      ..sets = computeGroupWorkingRoundsFromSets(normalizedSets)
-      ..instruction = instruction
-      ..exerciseConfigs.clear();
-    if (restConfig != null) {
-      existing.restConfig = RestConfig()..mergeFromMessage(restConfig);
-    } else {
-      existing.clearRestConfig();
-    }
-
-    final completedGroupSets =
-        _activeProposedSets
-            .where(
-              (p) =>
-                  p.exerciseGroupId == existing.id &&
-                  completedIds.contains(p.id),
-            )
-            .toList()
-          ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-
-    // Cancel the pending *working* sets optimistically — the edit replaces those.
-    // Leave the existing warmups on screen: the client no longer generates them,
-    // so cancelling here would blink them out until the server's recalculated
-    // warmups arrive. They stay at the old weight for ~one round-trip, then the
-    // response swaps in the new ladder in place — no disappear/reappear jump.
-    //
-    // The exception is a warmup the plan just switched off: nothing is coming
-    // back to replace it, so it goes now rather than lingering until the
-    // response lands.
-    final droppedWarmupExercises = warmupPlan == null
-        ? const <int>{}
-        : _activeProposedSets
-              .where((p) => p.exerciseGroupId == existing.id && p.warmup)
-              .map((p) => p.exercise.value)
-              .toSet()
-              .difference(warmupPlan.exercises.map((e) => e.value).toSet());
-    for (final set in _activeProposedSets.where(
-      (p) =>
-          p.exerciseGroupId == existing.id &&
-          !completedIds.contains(p.id) &&
-          (!p.warmup || droppedWarmupExercises.contains(p.exercise.value)),
-    )) {
-      set.cancelled = true;
-    }
-
-    final completedSlotsByKey = <String, int>{};
-    for (final set in completedGroupSets) {
-      final key = '${set.exercise.value}:${set.warmup}';
-      completedSlotsByKey[key] = (completedSlotsByKey[key] ?? 0) + 1;
-    }
-
-    final pendingPlanned = <PlannedGroupSet>[];
-    for (final set in normalizedSets) {
-      final key = '${set.exercise.value}:${set.warmup}';
-      final remaining = completedSlotsByKey[key] ?? 0;
-      if (remaining > 0) {
-        completedSlotsByKey[key] = remaining - 1;
-        continue;
-      }
-      pendingPlanned.add(set);
-    }
-
-    final generated = proposedSetsFromPlannedGroupSets(
-      workoutId: workout.id,
-      groupId: existing.id,
-      sets: pendingPlanned,
-      startOrder: 0,
-    );
-    _activeProposedSets.addAll(generated);
-    _resequenceAllProposedSets(
-      prioritizeCompletedGroupId: existing.id,
-      completedIds: completedIds,
-    );
+    // Pending warmups keep their old rungs for ~one round trip; the server
+    // response swaps in the recalculated ladder without a blink.
     _refreshDerivedState();
-    return existing.id;
   }
 
-  Future<void> _replaceExerciseGroupPlan({
-    required String name,
-    required String? exerciseGroupId,
-    required bool interleaveWarmups,
-    required List<PlannedGroupSet> sets,
-    RestConfig? restConfig,
-    bool deleteGroupIfEmpty = false,
-    String instruction = '',
-    bool createIfMissing = false,
-    GroupWarmupPlan? warmupPlan,
-  }) async {
-    if (_activeWorkout == null) return;
-    final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
-    final normalizedSets = sets
-        .map(
-          (set) => (set.clientSetId.isNotEmpty
-              ? set
-              : (set.deepCopy()..clientSetId = _uuid.v4())),
-        )
-        .toList();
-    final effectiveGroupId = _applyLocalReplaceExerciseGroupPlan(
-      name: name,
-      exerciseGroupId: exerciseGroupId,
-      interleaveWarmups: interleaveWarmups,
-      sets: normalizedSets,
-      restConfig: restConfig,
-      deleteGroupIfEmpty: deleteGroupIfEmpty,
-      instruction: instruction,
-      createIfMissing: createIfMissing,
-      warmupPlan: warmupPlan,
-    );
-    if (effectiveGroupId == null && createIfMissing) {
-      _handleError('Could not apply workout group change locally.');
-      return;
+  void _applyLocalRemoveExercise(Exercise exercise) {
+    final completedIds = _activeCompletedSets
+        .map((c) => c.proposedSetId)
+        .toSet();
+    for (final set in _activeProposedSets) {
+      if (set.exercise != exercise || completedIds.contains(set.id)) continue;
+      set.cancelled = true;
     }
-    final req = ReplaceExerciseGroupPlanRequest()
-      ..workoutId = _activeWorkout!.id
-      ..exerciseGroupId = effectiveGroupId ?? (exerciseGroupId ?? '')
-      ..name = name
-      ..interleaveWarmups = interleaveWarmups
-      ..sets.addAll(normalizedSets)
-      ..deleteGroupIfEmpty = deleteGroupIfEmpty
-      ..instruction = instruction
-      ..createIfMissing = createIfMissing;
-    if (warmupPlan != null) {
-      req.warmupPlan = warmupPlan;
+    _refreshDerivedState();
+  }
+
+  void _applyLocalReorderExercises(List<Exercise> exercises) {
+    final rank = <Exercise, int>{
+      for (var i = 0; i < exercises.length; i++) exercises[i]: i,
+    };
+    _activeProposedSets.sort((a, b) {
+      final rankA = rank[a.exercise] ?? rank.length;
+      final rankB = rank[b.exercise] ?? rank.length;
+      if (rankA != rankB) return rankA.compareTo(rankB);
+      return a.workoutOrder.compareTo(b.workoutOrder);
+    });
+    for (var i = 0; i < _activeProposedSets.length; i++) {
+      _activeProposedSets[i].workoutOrder = i;
     }
-    if (restConfig != null) {
-      req.restConfig = RestConfig()..mergeFromMessage(restConfig);
-    }
-    _queueMutation(
-      _buildMutation(
-        workoutId: _activeWorkout!.id,
-        createdAt: createdAt,
-        replaceExerciseGroupPlan: req,
-      ),
-    );
-    await _persistLocalCache();
-    notifyListeners();
-    onSessionRefreshNeeded?.call();
+    _refreshDerivedState();
   }
 
   void setSoundProvider(SoundProvider provider) {
@@ -433,9 +259,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _sortState() {
-    _activeExerciseGroups.sort(
-      (a, b) => a.workoutOrder.compareTo(b.workoutOrder),
-    );
     _activeProposedSets.sort(
       (a, b) => a.workoutOrder.compareTo(b.workoutOrder),
     );
@@ -484,7 +307,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         displaySet: displaySet,
         activeStartedAt: active.startedAt,
       ));
-      _rebuildExerciseGroupsCache();
+      _rebuildBlocksCache();
       return;
     }
 
@@ -510,7 +333,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         displaySet: nextUp,
         restUntil: lastDone.restUntil,
       ));
-      _rebuildExerciseGroupsCache();
+      _rebuildBlocksCache();
       return;
     }
 
@@ -526,51 +349,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ? lastDone.restUntil
           : Int64.ZERO,
     ));
-    _rebuildExerciseGroupsCache();
+    _rebuildBlocksCache();
   }
 
-  void _rebuildExerciseGroupsCache() {
-    _exerciseGroupsCache.clear();
-    if (_activeExerciseGroups.isEmpty) {
-      _exerciseGroupsCache.addAll(groupSetsByExercise(_activeProposedSets));
-      return;
-    }
-
-    for (final group in _activeExerciseGroups) {
-      final sets = _activeProposedSets
-          .where((s) => s.exerciseGroupId == group.id && !s.cancelled)
-          .toList();
-      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-
-      final exercise = group.exerciseConfigs.isNotEmpty
-          ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
-                Exercise.EXERCISE_UNSPECIFIED
-          : (sets.isNotEmpty
-                ? sets.first.exercise
-                : Exercise.EXERCISE_UNSPECIFIED);
-
-      final exercises = <Exercise>[];
-      for (final config in group.exerciseConfigs) {
-        final ex = Exercise.valueOf(config.exercise.value);
-        if (ex != null && !exercises.contains(ex)) exercises.add(ex);
-      }
-
-      _exerciseGroupsCache.add(
-        ExerciseGroupData(
-          exercise: exercise,
-          sets: sets,
-          group: group,
-          exercises: exercises,
-        ),
-      );
-    }
+  void _rebuildBlocksCache() {
+    _blocksCache
+      ..clear()
+      ..addAll(blocksFromSets(_activeProposedSets));
   }
 
   void _applyWorkoutResponse(GetWorkoutResponse response) {
     final isSameWorkout = _activeWorkout?.id == response.workout.id;
     _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
     _activeWorkout = response.workout;
-    _activeExerciseGroups = List.from(response.exerciseGroups);
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
     // Keep the schplanner explanation sticky for the duration of a workout: a
@@ -585,7 +376,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (response.hasStateSnapshot()) {
       _applyStateSnapshot(response.stateSnapshot);
     }
-    _rebuildExerciseGroupsCache();
+    _rebuildBlocksCache();
   }
 
   String? _workoutIdForMutation(WorkoutMutation mutation) {
@@ -601,42 +392,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         return mutation.deleteCompletedSet.workoutId;
       case WorkoutMutation_Mutation.endWorkout:
         return mutation.endWorkout.workoutId;
-      case WorkoutMutation_Mutation.replaceExerciseGroupPlan:
-        return mutation.replaceExerciseGroupPlan.workoutId;
-      case WorkoutMutation_Mutation.reorderExerciseGroups:
-        return mutation.reorderExerciseGroups.workoutId;
+      case WorkoutMutation_Mutation.addExercises:
+        return mutation.addExercises.workoutId;
+      case WorkoutMutation_Mutation.adjustExerciseWeight:
+        return mutation.adjustExerciseWeight.workoutId;
+      case WorkoutMutation_Mutation.removeExercise:
+        return mutation.removeExercise.workoutId;
+      case WorkoutMutation_Mutation.reorderExercises:
+        return mutation.reorderExercises.workoutId;
       case WorkoutMutation_Mutation.notSet:
         return null;
     }
-  }
-
-  void _applyLocalReorderExerciseGroups(List<String> groupIds) {
-    if (_activeWorkout == null) return;
-    final orderedGroups = <ExerciseGroup>[];
-    for (final id in groupIds) {
-      final idx = _activeExerciseGroups.indexWhere((g) => g.id == id);
-      if (idx == -1) continue;
-      final group = _activeExerciseGroups[idx];
-      orderedGroups.add(group..workoutOrder = orderedGroups.length);
-    }
-    for (final group in _activeExerciseGroups) {
-      if (orderedGroups.any((existing) => existing.id == group.id)) continue;
-      orderedGroups.add(group..workoutOrder = orderedGroups.length);
-    }
-    _activeExerciseGroups = orderedGroups;
-
-    final orderedSets = <ProposedSet>[];
-    for (final group in orderedGroups) {
-      final sets = _activeProposedSets
-          .where((s) => s.exerciseGroupId == group.id)
-          .toList();
-      sets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-      for (final set in sets) {
-        orderedSets.add(set..workoutOrder = orderedSets.length);
-      }
-    }
-    _activeProposedSets = orderedSets;
-    _refreshDerivedState();
   }
 
   void _overlayPendingMutationsOnActiveWorkout() {
@@ -664,23 +430,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           _applyLocalDeleteCompletedSet(
             mutation.deleteCompletedSet.completedSetId,
           );
-        case WorkoutMutation_Mutation.replaceExerciseGroupPlan:
-          final req = mutation.replaceExerciseGroupPlan;
-          _applyLocalReplaceExerciseGroupPlan(
-            name: req.name,
-            exerciseGroupId: req.exerciseGroupId,
-            interleaveWarmups: req.interleaveWarmups,
-            sets: req.sets,
-            restConfig: req.hasRestConfig() ? req.restConfig : null,
-            deleteGroupIfEmpty: req.deleteGroupIfEmpty,
-            instruction: req.instruction,
-            createIfMissing: req.createIfMissing,
-            warmupPlan: req.hasWarmupPlan() ? req.warmupPlan : null,
+        case WorkoutMutation_Mutation.addExercises:
+          _applyLocalAddExercises(
+            mutation.addExercises.exercises,
+            mutation.addExercises.clientWorkingSetIds,
           );
-        case WorkoutMutation_Mutation.reorderExerciseGroups:
-          _applyLocalReorderExerciseGroups(
-            mutation.reorderExerciseGroups.exerciseGroupIds,
+        case WorkoutMutation_Mutation.adjustExerciseWeight:
+          _applyLocalAdjustExerciseWeight(
+            mutation.adjustExerciseWeight.exercise,
+            mutation.adjustExerciseWeight.workingWeight,
           );
+        case WorkoutMutation_Mutation.removeExercise:
+          _applyLocalRemoveExercise(mutation.removeExercise.exercise);
+        case WorkoutMutation_Mutation.reorderExercises:
+          _applyLocalReorderExercises(mutation.reorderExercises.exercises);
         case WorkoutMutation_Mutation.endWorkout:
         case WorkoutMutation_Mutation.notSet:
           continue;
@@ -695,7 +458,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       final snapshot = GetWorkoutResponse(
         workout: _activeWorkout,
-        exerciseGroups: _activeExerciseGroups,
         proposedSets: _activeProposedSets,
         completedSets: _activeCompletedSets,
         nextUpSet: _backendNextUpSet,
@@ -869,7 +631,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ValueNotifier<DateTime> get clock => _clock;
   List<HeartRateSample> get wearHeartRateSamples => _wearHeartRateSamplesView;
 
-  List<ExerciseGroupData> get exerciseGroups => _exerciseGroupsCache;
+  List<ExerciseBlock> get exerciseBlocks => _blocksCache;
 
   String _nextSetBody() {
     final next = nextPendingSet;
@@ -1107,7 +869,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       } else {
         _resetWearHeartRateBufferIfWorkoutChanged(null);
         _activeWorkout = null;
-        _activeExerciseGroups = [];
         _activeProposedSets = [];
         _activeCompletedSets = [];
         _workoutMessages = [];
@@ -1178,7 +939,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       response.hasWorkout() ? response.workout.id : null,
     );
     _activeWorkout = response.hasWorkout() ? response.workout : null;
-    _activeExerciseGroups = List.from(response.exerciseGroups);
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
     _refreshDerivedState();
@@ -1190,15 +950,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<String?> startWorkout(
-    String name,
-    List<ExerciseGroup> groups, {
+    String name, {
     String templateId = '',
+    List<Exercise> exercises = const [],
   }) async {
     try {
       await NotificationService.cancelAll();
       _wasResting = false;
-      final response =
-          await _service.startWorkout(name, groups, templateId: templateId);
+      final response = await _service.startWorkout(
+        name,
+        templateId: templateId,
+        exercises: exercises,
+      );
       _applyStartWorkoutResponse(response);
       _workoutMessages = List<UserMessage>.from(response.userMessages);
       await _persistLocalCache();
@@ -1278,8 +1041,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     CompleteSetRequest? completeSet,
     CancelProposedSetRequest? cancelProposedSet,
     DeleteCompletedSetRequest? deleteCompletedSet,
-    ReplaceExerciseGroupPlanRequest? replaceExerciseGroupPlan,
-    ReorderExerciseGroupsRequest? reorderExerciseGroups,
+    AddExercisesRequest? addExercises,
+    AdjustExerciseWeightRequest? adjustExerciseWeight,
+    RemoveExerciseRequest? removeExercise,
+    ReorderExercisesRequest? reorderExercises,
   }) {
     final mutation = WorkoutMutation()
       ..eventId = _uuid.v4()
@@ -1292,10 +1057,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       mutation.cancelProposedSet = cancelProposedSet;
     } else if (deleteCompletedSet != null) {
       mutation.deleteCompletedSet = deleteCompletedSet;
-    } else if (replaceExerciseGroupPlan != null) {
-      mutation.replaceExerciseGroupPlan = replaceExerciseGroupPlan;
-    } else if (reorderExerciseGroups != null) {
-      mutation.reorderExerciseGroups = reorderExerciseGroups;
+    } else if (addExercises != null) {
+      mutation.addExercises = addExercises;
+    } else if (adjustExerciseWeight != null) {
+      mutation.adjustExerciseWeight = adjustExerciseWeight;
+    } else if (removeExercise != null) {
+      mutation.removeExercise = removeExercise;
+    } else if (reorderExercises != null) {
+      mutation.reorderExercises = reorderExercises;
     }
     return mutation;
   }
@@ -1375,7 +1144,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// server-provided on the proposed set (`restAfterSuccess`/`restAfterFailure`);
   /// the last set in a group uses the end-of-group rest. The server reconciles
   /// with an identical target when the mutation lands.
-  static const int _endOfExerciseGroupRestSeconds = 60; // END_OF_EXERCISE_GROUP_REST_SECONDS
+  static const int _endOfExerciseRestSeconds = 60; // END_OF_EXERCISE_REST_SECONDS
 
   Int64 _localRestUntil(String proposedSetId, int actualReps, Int64 endedAt) {
     final proposed = _activeProposedSets
@@ -1386,19 +1155,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     var restSeconds = actualReps >= proposed.targetReps
         ? proposed.restAfterSuccess
         : proposed.restAfterFailure;
-    if (_isFinalSetInGroupAfterCompletion(proposed)) {
-      restSeconds = _endOfExerciseGroupRestSeconds;
+    if (_isFinalSetOfExerciseAfterCompletion(proposed)) {
+      restSeconds = _endOfExerciseRestSeconds;
     }
     return endedAt + Int64(restSeconds);
   }
 
-  /// True when every other live set in this set's group is already completed —
-  /// so finishing this one ends the group. Mirrors
-  /// `is_final_set_in_exercise_group_after_completion` in the Rust reducer.
-  bool _isFinalSetInGroupAfterCompletion(ProposedSet current) {
-    final groupId = current.exerciseGroupId;
+  /// True when every other live set of this exercise is already completed —
+  /// so finishing this one ends the exercise. Mirrors
+  /// `is_final_set_of_exercise_after_completion` in the Rust reducer.
+  bool _isFinalSetOfExerciseAfterCompletion(ProposedSet current) {
     for (final set in _activeProposedSets) {
-      if (set.exerciseGroupId != groupId || set.cancelled || set.id == current.id) {
+      if (set.exercise != current.exercise ||
+          set.cancelled ||
+          set.id == current.id) {
         continue;
       }
       final done = _activeCompletedSets.any(
@@ -1421,21 +1191,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _refreshDerivedState();
   }
 
-  Future<void> reorderExerciseGroups(List<String> groupIds) async {
+  Future<void> reorderExercises(List<Exercise> exercises) async {
     if (_activeWorkout == null) return;
     final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
 
     // Optimistically update local state
-    _applyLocalReorderExerciseGroups(groupIds);
+    _applyLocalReorderExercises(exercises);
     notifyListeners();
 
     _queueMutation(
       _buildMutation(
         workoutId: _activeWorkout!.id,
         createdAt: createdAt,
-        reorderExerciseGroups: ReorderExerciseGroupsRequest()
+        reorderExercises: ReorderExercisesRequest()
           ..workoutId = _activeWorkout!.id
-          ..exerciseGroupIds.addAll(groupIds),
+          ..exercises.addAll(exercises),
       ),
     );
     unawaited(_persistLocalCache());
@@ -1540,121 +1310,74 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
 
   /// Add exercises to the active workout with the app in charge of the
-  /// numbers: one group per exercise, weight/sets/reps/rest/warmups from
-  /// its tracker — exactly what a template start would prescribe. The
-  /// user picks movements; adjusting a weight is its own flow (edit the
-  /// group, or the tracker sheet).
+  /// numbers: weight/sets/reps/rest/warmups from each exercise's tracker —
+  /// exactly what a template start would prescribe. The user picks
+  /// movements; adjusting a weight is its own flow.
   Future<void> addPrescribedExercises(List<Exercise> exercises) async {
-    for (final exercise in exercises) {
-      final tracker = trackerFor(exercise);
-      final config = ExerciseTypeConfig()
-        ..exercise = exercise
-        ..startWeight = tracker?.workingWeight ?? 0
-        ..endWeight = tracker?.workingWeight ?? 0
-        ..reps = tracker?.targetReps ?? 8
-        ..includeWarmup = tracker?.includeWarmup ?? false;
-      if (tracker != null) {
-        config.restConfig = RestConfig()
-          ..restAfterSuccess = tracker.restSeconds
-          ..restAfterFailure = tracker.restSecondsFailure;
-      }
-      await addExerciseGroup(
-        name: exerciseNames[exercise] ?? 'Exercise',
-        sets: tracker?.sets ?? 3,
-        interleaveWarmups: false,
-        exerciseConfigs: [config],
-      );
-    }
+    if (_activeWorkout == null || exercises.isEmpty) return;
+    final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
+    // Client-chosen working-set ids so an offline add's completions
+    // reconcile when the queued mutation lands. Warmups are server-only.
+    final workingSetIds = <String>[
+      for (final exercise in exercises)
+        for (var i = 0; i < (trackerFor(exercise)?.sets ?? 3).clamp(1, 10); i++)
+          _uuid.v4(),
+    ];
+    _applyLocalAddExercises(exercises, workingSetIds);
+    _queueMutation(
+      _buildMutation(
+        workoutId: _activeWorkout!.id,
+        createdAt: createdAt,
+        addExercises: AddExercisesRequest()
+          ..workoutId = _activeWorkout!.id
+          ..exercises.addAll(exercises)
+          ..clientWorkingSetIds.addAll(workingSetIds),
+      ),
+    );
+    await _persistLocalCache();
+    notifyListeners();
+    onSessionRefreshNeeded?.call();
   }
 
-  Future<void> addExerciseGroup({
-    required String name,
-    required int sets,
-    required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
-    RestConfig? restConfig,
-  }) async {
+  /// Move an exercise's remaining working sets to a new weight (lb). The
+  /// server regenerates its pending warmups for it.
+  Future<void> adjustExerciseWeight(Exercise exercise, double weightLb) async {
     if (_activeWorkout == null) return;
-    try {
-      final plannedSets = buildPlannedGroupSetsFromConfigs(
-        sets: sets,
-        interleaveWarmups: interleaveWarmups,
-        exerciseConfigs: exerciseConfigs,
-        unit: _settingsProvider.weightUnit,
-        restConfig: restConfig,
-      );
-      await _replaceExerciseGroupPlan(
-        name: name,
-        exerciseGroupId: null,
-        interleaveWarmups: interleaveWarmups,
-        sets: plannedSets,
-        restConfig: restConfig,
-        createIfMissing: true,
-        warmupPlan: warmupPlanFromConfigs(exerciseConfigs),
-      );
-    } catch (e) {
-      _handleError(e);
-    }
+    final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
+    _applyLocalAdjustExerciseWeight(exercise, weightLb);
+    _queueMutation(
+      _buildMutation(
+        workoutId: _activeWorkout!.id,
+        createdAt: createdAt,
+        adjustExerciseWeight: AdjustExerciseWeightRequest()
+          ..workoutId = _activeWorkout!.id
+          ..exercise = exercise
+          ..workingWeight = weightLb,
+      ),
+    );
+    await _persistLocalCache();
+    notifyListeners();
+    onSessionRefreshNeeded?.call();
   }
 
-  Future<void> updateGroup(
-    int groupIndex, {
-    required int sets,
-    required bool interleaveWarmups,
-    required List<ExerciseTypeConfig> exerciseConfigs,
-    RestConfig? restConfig,
-  }) async {
-    final groups = exerciseGroups;
-    if (groupIndex < 0 || groupIndex >= groups.length) return;
-    final groupData = groups[groupIndex];
-    if (groupData.group == null) return;
-
-    try {
-      final plannedSets = buildPlannedGroupSetsFromConfigs(
-        sets: sets,
-        interleaveWarmups: interleaveWarmups,
-        exerciseConfigs: exerciseConfigs,
-        unit: _settingsProvider.weightUnit,
-        restConfig: restConfig,
-      );
-      await _replaceExerciseGroupPlan(
-        name: groupData.group!.name,
-        exerciseGroupId: groupData.group!.id,
-        interleaveWarmups: interleaveWarmups,
-        sets: plannedSets,
-        restConfig: restConfig,
-        instruction: groupData.group!.instruction,
-        warmupPlan: warmupPlanFromConfigs(exerciseConfigs),
-      );
-    } catch (e) {
-      _handleError(e);
-    }
-  }
-
-  Future<void> deleteExerciseGroup(int groupIndex) async {
-    final groups = exerciseGroups;
-    if (groupIndex < 0 || groupIndex >= groups.length) return;
-    final groupData = groups[groupIndex];
-
+  /// Cancel an exercise's remaining sets. Sets already done stay.
+  Future<void> removeExercise(Exercise exercise) async {
     if (_activeWorkout == null) return;
-
-    if (groupData.group == null) {
-      return;
-    }
-
-    try {
-      await _replaceExerciseGroupPlan(
-        name: groupData.group!.name,
-        exerciseGroupId: groupData.group!.id,
-        interleaveWarmups: groupData.group!.interleaveWarmups,
-        sets: const [],
-        deleteGroupIfEmpty: true,
-      );
-    } catch (e) {
-      _handleError(e);
-    }
+    final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
+    _applyLocalRemoveExercise(exercise);
+    _queueMutation(
+      _buildMutation(
+        workoutId: _activeWorkout!.id,
+        createdAt: createdAt,
+        removeExercise: RemoveExerciseRequest()
+          ..workoutId = _activeWorkout!.id
+          ..exercise = exercise,
+      ),
+    );
+    await _persistLocalCache();
+    notifyListeners();
+    onSessionRefreshNeeded?.call();
   }
-
 
   /// What the session actually contained, compared against the template it
   /// started from. Returns the offer to make, or null when nothing

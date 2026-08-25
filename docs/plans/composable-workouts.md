@@ -561,3 +561,48 @@ Settled in review; recorded with reasons.
 `protoc-gen-swift` (macOS CI has it; the output is not committed).
 TypeScript bindings regenerate with `cd proto && buf generate` and are
 already stale — read that diff before committing it.
+
+## 12. Addendum (2026-08-25): flat sets — the exercise group is deleted
+
+Since the cutover the server has created exactly one group per
+exercise, always. The group was a fossil: a `name` duplicating the
+exercise, an `interleave_warmups` flag nothing set, a config blob
+duplicating the tracker. It is now removed entirely, along with
+superset/interleaving support, which is deliberately dropped.
+
+**Model.** A workout is an ordered list of `ProposedSet`s; each set
+carries its exercise. "The sets for one exercise" is a *derived* view
+(grouped by exercise, ordered by first appearance), computed where
+needed — never stored, never on the wire.
+
+**Wire surface.** `ExerciseGroup`, `ExerciseTypeConfig`,
+`WorkingSetSpec`, `RestConfig`, `PlannedGroupSet`, `GroupWarmupPlan`,
+`ReplaceExerciseGroupPlan` and `ReorderExerciseGroups` are deleted.
+`ProposedSet` loses `exercise_group_id` and the regime-era `is_amrap` /
+`instruction` (no producer remains). `UserMessage` loses
+`exercise_group_id` (messages attach by `exercise`).
+`ParticipantStatus` loses its group list. In their place, four
+per-exercise operations matching what the UI actually does, each
+returning the full visible plan (`WorkoutPlanResponse`):
+
+- `AddExercises(workout_id, exercises)` — server prescribes from the
+  trackers and appends one block per exercise.
+- `AdjustExerciseWeight(workout_id, exercise, working_weight)` —
+  pending working sets move to the new weight in place; pending warmups
+  regenerate for it (completed sets untouched; the count-based and
+  surpassed-weight guards carry over from the old edit logic).
+- `RemoveExercise(workout_id, exercise)` — cancels the exercise's
+  pending sets; completed sets stay.
+- `ReorderExercises(workout_id, exercises)` — reassigns block order.
+
+All four also ride `WorkoutMutation` (fields 17–20; 15–16 reserved)
+through the offline queue. `StartWorkoutRequest` takes `template_id`
+or an explicit `exercises` list (server prescribes); the group list is
+gone.
+
+**Migration `flat_workouts_v1`** (one-time, no backwards support):
+drop `exercise_groups`; drop `proposed_sets.exercise_group_id`,
+`is_amrap`, `instruction`; drop `user_message_events.exercise_group_id`.
+No data rewrite: history summaries already aggregate by exercise, and
+the derived block view groups legacy interleaved sets by exercise
+regardless of contiguity.

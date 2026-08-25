@@ -16,7 +16,6 @@ use sqlx::{Pool, Row, Sqlite};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use super::codec::decode_exercise_configs;
 use super::DbResult;
 use crate::exercise_catalog::snap_weight_lb;
 use crate::exercise_progress::{derive_trackers_from_history, TrackerState};
@@ -72,6 +71,47 @@ mod legacy_value {
         #[prost(string, tag = "4")]
         StringVal(String),
     }
+}
+
+// The deleted ExerciseTypeConfig, reduced to the one field the migration
+// reads. Blobs are a length-delimited sequence of these.
+#[derive(Clone, PartialEq, Message)]
+struct LegacyExerciseTypeConfig {
+    #[prost(int32, tag = "1")]
+    exercise: i32,
+}
+
+fn decode_legacy_exercise_configs(data: &[u8]) -> Vec<LegacyExerciseTypeConfig> {
+    let mut configs = Vec::new();
+    let mut offset = 0;
+    while offset + 4 <= data.len() {
+        let len = u32::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]) as usize;
+        offset += 4;
+        if offset + len > data.len() {
+            break;
+        }
+        if let Ok(config) = LegacyExerciseTypeConfig::decode(&data[offset..offset + len]) {
+            configs.push(config);
+        }
+        offset += len;
+    }
+    configs
+}
+
+#[cfg(test)]
+fn encode_legacy_exercise_configs(configs: &[LegacyExerciseTypeConfig]) -> Vec<u8> {
+    let mut buf = Vec::new();
+    for config in configs {
+        let encoded = config.encode_to_vec();
+        buf.extend_from_slice(&(encoded.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&encoded);
+    }
+    buf
 }
 
 fn numeric(state: &LegacyProgramState, key: &str) -> Option<f32> {
@@ -142,12 +182,60 @@ pub fn default_templates() -> Vec<(&'static str, Vec<Exercise>)> {
 }
 
 pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
+    composable_workouts(pool).await?;
+    flat_workouts(pool).await?;
+    Ok(())
+}
+
+async fn migration_applied(pool: &Pool<Sqlite>, name: &str) -> DbResult<bool> {
     let applied: Option<(String,)> =
         sqlx::query_as("SELECT name FROM schema_migrations WHERE name = ?")
-            .bind(MIGRATION_NAME)
+            .bind(name)
             .fetch_optional(pool)
             .await?;
-    if applied.is_some() {
+    Ok(applied.is_some())
+}
+
+async fn mark_migration(pool: &Pool<Sqlite>, name: &str) -> DbResult<()> {
+    sqlx::query("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)")
+        .bind(name)
+        .bind(now_unix())
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// The exercise-group concept is deleted: a workout is an ordered flat set
+/// list, blocks are derived by exercise. Drops the group table and the
+/// group/regime columns nothing reads any more. No data rewrite — history
+/// rollups already aggregate by exercise.
+async fn flat_workouts(pool: &Pool<Sqlite>) -> DbResult<()> {
+    const NAME: &str = "flat_workouts_v1";
+    if migration_applied(pool, NAME).await? {
+        return Ok(());
+    }
+
+    sqlx::query("DROP TABLE IF EXISTS exercise_groups")
+        .execute(pool)
+        .await?;
+    for (table, column) in [
+        ("proposed_sets", "exercise_group_id"),
+        ("proposed_sets", "is_amrap"),
+        ("proposed_sets", "instruction"),
+        ("user_message_events", "exercise_group_id"),
+    ] {
+        if column_exists(pool, table, column).await? {
+            sqlx::query(&format!("ALTER TABLE {table} DROP COLUMN {column}"))
+                .execute(pool)
+                .await?;
+        }
+    }
+
+    mark_migration(pool, NAME).await
+}
+
+async fn composable_workouts(pool: &Pool<Sqlite>) -> DbResult<()> {
+    if migration_applied(pool, MIGRATION_NAME).await? {
         return Ok(());
     }
 
@@ -155,11 +243,6 @@ pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
     // the tables with explicit column lists.
     if !column_exists(pool, "workouts", "template_id").await? {
         sqlx::query("ALTER TABLE workouts ADD COLUMN template_id TEXT NOT NULL DEFAULT ''")
-            .execute(pool)
-            .await?;
-    }
-    if column_exists(pool, "exercise_groups", "prescribed_by_regime").await? {
-        sqlx::query("ALTER TABLE exercise_groups DROP COLUMN prescribed_by_regime")
             .execute(pool)
             .await?;
     }
@@ -201,12 +284,7 @@ pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
     }
 
-    sqlx::query("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)")
-        .bind(MIGRATION_NAME)
-        .bind(now_unix())
-        .execute(pool)
-        .await?;
-    Ok(())
+    mark_migration(pool, MIGRATION_NAME).await
 }
 
 async fn table_exists(pool: &Pool<Sqlite>, table: &str) -> DbResult<bool> {
@@ -402,8 +480,7 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
     let mut records = Vec::with_capacity(workouts.len());
     for workout in workouts {
         let proposed_sets: Vec<ProposedSet> = sqlx::query(
-            "SELECT id, workout_order, exercise, target_reps, target_weight, warmup, cancelled,
-                    exercise_group_id
+            "SELECT id, workout_order, exercise, target_reps, target_weight, warmup, cancelled
              FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
         )
         .bind(&workout.id)
@@ -419,7 +496,6 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
             target_weight: row.get(4),
             warmup: row.get::<i64, _>(5) != 0,
             cancelled: row.get::<i64, _>(6) != 0,
-            exercise_group_id: row.get(7),
             ..Default::default()
         })
         .collect();
@@ -446,7 +522,6 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
 
         records.push(WorkoutRecord {
             workout,
-            exercise_groups: Vec::new(),
             proposed_sets,
             completed_sets,
         });
@@ -472,7 +547,7 @@ async fn load_profile_group_templates(
     Ok(rows
         .into_iter()
         .filter_map(|(name, blob)| {
-            let configs = decode_exercise_configs(&blob.unwrap_or_default());
+            let configs = decode_legacy_exercise_configs(&blob.unwrap_or_default());
             let mut exercises: Vec<i32> = Vec::new();
             for config in configs {
                 if !exercises.contains(&config.exercise) {
@@ -859,14 +934,12 @@ mod tests {
         let db = migrate_fixture(|pool| async move {
             seed_user(&pool, "u1").await;
             seed_state(&pool, "u1", legacy_state_blob(1, &[])).await;
-            let configs = crate::db::codec::encode_exercise_configs(&[
-                schlift::workout::v1::ExerciseTypeConfig {
+            let configs = encode_legacy_exercise_configs(&[
+                LegacyExerciseTypeConfig {
                     exercise: Exercise::HipThrust as i32,
-                    ..Default::default()
                 },
-                schlift::workout::v1::ExerciseTypeConfig {
+                LegacyExerciseTypeConfig {
                     exercise: Exercise::LegCurl as i32,
-                    ..Default::default()
                 },
             ]);
             sqlx::query(
@@ -956,15 +1029,40 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(template_id, "");
-        // Old columns gone.
-        let cols: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM pragma_table_info('exercise_groups')
-             WHERE name = 'prescribed_by_regime'",
+        // The group world is gone entirely: no table, no group columns.
+        let group_table: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'exercise_groups'",
         )
         .fetch_one(&db.read_pool)
         .await
         .unwrap();
-        assert_eq!(cols, 0);
+        assert_eq!(group_table, 0, "exercise_groups should be dropped");
+        for column in ["exercise_group_id", "is_amrap", "instruction", "progression_blob"] {
+            let cols: i64 = sqlx::query_scalar(
+                "SELECT COUNT(*) FROM pragma_table_info('proposed_sets') WHERE name = ?",
+            )
+            .bind(column)
+            .fetch_one(&db.read_pool)
+            .await
+            .unwrap();
+            assert_eq!(cols, 0, "proposed_sets.{column} should be dropped");
+        }
+        let msg_cols: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM pragma_table_info('user_message_events')
+             WHERE name = 'exercise_group_id'",
+        )
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+        assert_eq!(msg_cols, 0);
+        // The kept proposed_sets rows survived the column drops.
+        let sets: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM proposed_sets WHERE workout_id = 'w1'",
+        )
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+        assert_eq!(sets, 1);
 
         // Second run: the marker short-circuits; nothing re-seeds. Simulate
         // by counting templates, re-running, and counting again.

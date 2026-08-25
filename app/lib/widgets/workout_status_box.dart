@@ -280,7 +280,7 @@ class StatusSetWeightInfo extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           Text(
-            set.isAmrap ? '\u00D7 AMRAP' : '\u00D7 ${set.targetReps}',
+            '\u00D7 ${set.targetReps}',
             style: bigStyle,
           ),
           const SizedBox(width: 8),

@@ -70,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final workoutProvider = context.read<WorkoutProvider>();
       final workoutId = await workoutProvider.startWorkout(
         templateId.isEmpty ? 'Workout' : '',
-        const [],
         templateId: templateId,
       );
       if (workoutId != null && mounted) {

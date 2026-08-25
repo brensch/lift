@@ -3,12 +3,12 @@ use crate::progress::compute_next_up_set;
 use crate::state::ActiveWorkout;
 use crate::time::now_unix;
 use crate::workout::{
-    active_from_get_workout_response, active_proposed_sets, apply_cancel_proposed_set_to_active,
-    apply_complete_set_to_active, apply_delete_completed_set_to_active,
-    apply_reorder_exercise_groups, apply_replace_exercise_group_plan, apply_start_set_to_active,
-    generate_sets_for_group, get_workout_response_from_active,
-    is_final_set_in_exercise_group_after_completion, start_workout_response_from_active,
-    workout_state_snapshot_from_state, END_OF_EXERCISE_GROUP_REST_SECONDS,
+    active_from_get_workout_response, active_proposed_sets, apply_add_exercises,
+    apply_adjust_exercise_weight, apply_cancel_proposed_set_to_active,
+    apply_complete_set_to_active, apply_delete_completed_set_to_active, apply_remove_exercise,
+    apply_reorder_exercises, apply_start_set_to_active, get_workout_response_from_active,
+    is_final_set_of_exercise_after_completion, start_workout_response_from_active,
+    workout_state_snapshot_from_state, ExercisePlan, END_OF_EXERCISE_REST_SECONDS,
 };
 use schlift::workout::v1::auth_service_server::AuthService;
 use schlift::workout::v1::multiplayer_service_server::MultiplayerService;

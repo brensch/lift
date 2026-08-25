@@ -66,13 +66,12 @@ impl ServerDb {
         for message in messages {
             sqlx::query(
                 "INSERT INTO user_message_events
-                 (user_id, message_key, surface, workout_id, source_workout_id, exercise_group_id, exercise, slot_key, dismissed_at, created_at, updated_at, message_blob)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+                 (user_id, message_key, surface, workout_id, source_workout_id, exercise, slot_key, dismissed_at, created_at, updated_at, message_blob)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
                  ON CONFLICT(user_id, message_key) DO UPDATE SET
                    surface = excluded.surface,
                    workout_id = excluded.workout_id,
                    source_workout_id = excluded.source_workout_id,
-                   exercise_group_id = excluded.exercise_group_id,
                    exercise = excluded.exercise,
                    slot_key = excluded.slot_key,
                    dismissed_at = 0,
@@ -85,7 +84,6 @@ impl ServerDb {
             .bind(message.surface)
             .bind(&message.workout_id)
             .bind(&message.source_workout_id)
-            .bind(&message.exercise_group_id)
             .bind(message.exercise)
             .bind(&message.slot_key)
             .bind(message.created_at)

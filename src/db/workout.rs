@@ -1,38 +1,13 @@
 use super::*;
-use crate::db::codec::{decode_exercise_configs, encode_exercise_configs};
 
 impl ServerDb {
     // ── Workout CRUD (real tables) ──
 
-    fn exercise_group_from_row(r: &sqlx::sqlite::SqliteRow) -> ExerciseGroup {
-        let configs_blob: Option<Vec<u8>> = r.get("exercise_configs_blob");
-        let exercise_configs = configs_blob
-            .map(|b| decode_exercise_configs(&b))
-            .unwrap_or_default();
-        ExerciseGroup {
-            id: r.get("id"),
-            workout_id: r.get("workout_id"),
-            name: r.get("name"),
-            sets: r.get("sets"),
-            interleave_warmups: r.get::<i32, _>("interleave_warmups") != 0,
-            workout_order: r.get("workout_order"),
-            exercise_configs,
-            rest_config: Some(RestConfig {
-                rest_after_success: r.get("rest_success"),
-                rest_after_failure: r.get("rest_failure"),
-                rest_after_warmup: r.get("rest_warmup"),
-                rest_after_last_warmup: r.get("rest_last_warmup"),
-            }),
-            instruction: r.get("instruction"),
-        }
-    }
-
-    /// Insert a new workout with its groups and proposed sets in one transaction.
+    /// Insert a new workout with its proposed sets in one transaction.
     pub async fn insert_workout(
         &self,
         user_id: &str,
         workout: &Workout,
-        groups: &[ExerciseGroup],
         proposed_sets: &[ProposedSet],
     ) -> DbResult<()> {
         let mut tx = self.write_pool.begin().await?;
@@ -50,10 +25,6 @@ impl ServerDb {
         .bind(&workout.template_id)
         .execute(&mut *tx)
         .await?;
-
-        for group in groups {
-            Self::insert_exercise_group_tx(&mut tx, user_id, group).await?;
-        }
 
         for set in proposed_sets {
             Self::insert_proposed_set_tx(&mut tx, user_id, set).await?;
@@ -73,56 +44,20 @@ impl ServerDb {
         Ok(())
     }
 
-    async fn insert_exercise_group_tx(
-        tx: &mut sqlx::Transaction<'_, Sqlite>,
-        user_id: &str,
-        group: &ExerciseGroup,
-    ) -> DbResult<()> {
-        let rest = group.rest_config.as_ref();
-        let configs_blob = if group.exercise_configs.is_empty() {
-            None
-        } else {
-            Some(encode_exercise_configs(&group.exercise_configs))
-        };
-        sqlx::query(
-            "INSERT INTO exercise_groups (id, user_id, workout_id, name, sets, interleave_warmups,
-             workout_order, instruction, rest_success, rest_failure,
-             rest_warmup, rest_last_warmup, exercise_configs_blob)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&group.id)
-        .bind(user_id)
-        .bind(&group.workout_id)
-        .bind(&group.name)
-        .bind(group.sets)
-        .bind(group.interleave_warmups as i32)
-        .bind(group.workout_order)
-        .bind(&group.instruction)
-        .bind(rest.map(|r| r.rest_after_success).unwrap_or(0))
-        .bind(rest.map(|r| r.rest_after_failure).unwrap_or(0))
-        .bind(rest.map(|r| r.rest_after_warmup).unwrap_or(0))
-        .bind(rest.map(|r| r.rest_after_last_warmup).unwrap_or(0))
-        .bind(configs_blob)
-        .execute(&mut **tx)
-        .await?;
-        Ok(())
-    }
-
     async fn insert_proposed_set_tx(
         tx: &mut sqlx::Transaction<'_, Sqlite>,
         user_id: &str,
         set: &ProposedSet,
     ) -> DbResult<()> {
         sqlx::query(
-            "INSERT INTO proposed_sets (id, user_id, workout_id, exercise_group_id, workout_order,
+            "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order,
              exercise, target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure, is_amrap, instruction)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             rest_after_failure)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&set.id)
         .bind(user_id)
         .bind(&set.workout_id)
-        .bind(&set.exercise_group_id)
         .bind(set.workout_order)
         .bind(set.exercise)
         .bind(set.target_reps)
@@ -131,8 +66,6 @@ impl ServerDb {
         .bind(set.cancelled as i32)
         .bind(set.rest_after_success)
         .bind(set.rest_after_failure)
-        .bind(set.is_amrap as i32)
-        .bind(&set.instruction)
         .execute(&mut **tx)
         .await?;
         Ok(())
@@ -241,13 +174,12 @@ impl ServerDb {
         Ok(())
     }
 
-    /// Persist full workout state from an ActiveWorkout (used after ReplaceExerciseGroupPlan
-    /// and other structural mutations that modify groups/sets).
+    /// Persist full workout state from an ActiveWorkout (used after the
+    /// plan-shaping mutations).
     pub async fn persist_workout_state(
         &self,
         user_id: &str,
         workout: &Workout,
-        groups: &[ExerciseGroup],
         proposed_sets: &[ProposedSet],
         completed_sets: &[CompletedSet],
     ) -> DbResult<()> {
@@ -263,16 +195,6 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-
-        // Replace groups: delete old, insert new
-        sqlx::query("DELETE FROM exercise_groups WHERE workout_id = ? AND user_id = ?")
-            .bind(&workout.id)
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        for group in groups {
-            Self::insert_exercise_group_tx(&mut tx, user_id, group).await?;
-        }
 
         // Replace proposed sets: delete old, insert new
         sqlx::query("DELETE FROM proposed_sets WHERE workout_id = ? AND user_id = ?")
@@ -379,29 +301,12 @@ impl ServerDb {
         Ok(workouts)
     }
 
-    /// Load exercise groups for a workout.
-    pub async fn get_exercise_groups(&self, workout_id: &str) -> DbResult<Vec<ExerciseGroup>> {
-        let rows = sqlx::query(
-            "SELECT id, workout_id, name, sets, interleave_warmups,
-             workout_order, instruction, rest_success, rest_failure, rest_warmup,
-             rest_last_warmup, exercise_configs_blob
-             FROM exercise_groups WHERE workout_id = ? ORDER BY workout_order",
-        )
-        .bind(workout_id)
-        .fetch_all(&self.read_pool)
-        .await?;
-        Ok(rows
-            .into_iter()
-            .map(|r| Self::exercise_group_from_row(&r))
-            .collect())
-    }
-
     /// Load proposed sets for a workout.
     pub async fn get_proposed_sets(&self, workout_id: &str) -> DbResult<Vec<ProposedSet>> {
         let rows = sqlx::query(
-            "SELECT id, workout_id, exercise_group_id, workout_order, exercise,
+            "SELECT id, workout_id, workout_order, exercise,
              target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure, is_amrap, instruction
+             rest_after_failure
              FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
         )
         .bind(workout_id)
@@ -412,7 +317,6 @@ impl ServerDb {
             sets.push(ProposedSet {
                 id: r.get("id"),
                 workout_id: r.get("workout_id"),
-                exercise_group_id: r.get("exercise_group_id"),
                 workout_order: r.get("workout_order"),
                 exercise: r.get("exercise"),
                 target_reps: r.get("target_reps"),
@@ -421,8 +325,6 @@ impl ServerDb {
                 cancelled: r.get::<i32, _>("cancelled") != 0,
                 rest_after_success: r.get("rest_after_success"),
                 rest_after_failure: r.get("rest_after_failure"),
-                is_amrap: r.get::<i32, _>("is_amrap") != 0,
-                instruction: r.get("instruction"),
             });
         }
         Ok(sets)
@@ -464,7 +366,6 @@ impl ServerDb {
             Some(w) => w,
             None => return Ok(None),
         };
-        let exercise_groups = self.get_exercise_groups(workout_id).await?;
         let proposed_sets = self.get_proposed_sets(workout_id).await?;
         let completed_sets = self.get_completed_sets(workout_id).await?;
 
@@ -491,7 +392,6 @@ impl ServerDb {
 
         Ok(Some(GetWorkoutResponse {
             workout: Some(workout),
-            exercise_groups,
             proposed_sets: active_proposed,
             completed_sets,
             next_up_set,
@@ -505,9 +405,9 @@ impl ServerDb {
     /// Get a proposed set by id (for StartSet to look up target values).
     pub async fn get_proposed_set(&self, set_id: &str) -> DbResult<Option<ProposedSet>> {
         let row = sqlx::query(
-            "SELECT id, workout_id, exercise_group_id, workout_order, exercise,
+            "SELECT id, workout_id, workout_order, exercise,
              target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure, is_amrap, instruction
+             rest_after_failure
              FROM proposed_sets WHERE id = ?",
         )
         .bind(set_id)
@@ -517,7 +417,6 @@ impl ServerDb {
             ProposedSet {
                 id: r.get("id"),
                 workout_id: r.get("workout_id"),
-                exercise_group_id: r.get("exercise_group_id"),
                 workout_order: r.get("workout_order"),
                 exercise: r.get("exercise"),
                 target_reps: r.get("target_reps"),
@@ -526,8 +425,6 @@ impl ServerDb {
                 cancelled: r.get::<i32, _>("cancelled") != 0,
                 rest_after_success: r.get("rest_after_success"),
                 rest_after_failure: r.get("rest_after_failure"),
-                is_amrap: r.get::<i32, _>("is_amrap") != 0,
-                instruction: r.get("instruction"),
             }
         }))
     }

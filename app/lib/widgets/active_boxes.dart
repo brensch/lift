@@ -66,9 +66,7 @@ class _NextSetInfo extends StatelessWidget {
         Row(
           children: [
             Text(
-              set.isAmrap
-                  ? '$weightText \u00D7 AMRAP'
-                  : '$weightText \u00D7 ${set.targetReps}',
+              '$weightText \u00D7 ${set.targetReps}',
               style: TextStyle(
                 fontSize: large ? 18 : 14,
                 fontWeight: FontWeight.w900,
@@ -550,20 +548,17 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                   ),
                 ),
                 Text(
-                  widget.proposedSet.isAmrap
-                      ? 'AMRAP'
-                      : '${widget.proposedSet.targetReps}',
+                  '${widget.proposedSet.targetReps}',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     color: colorScheme.primary,
                   ),
                 ),
-                if (!widget.proposedSet.isAmrap)
-                  Text(
-                    ' reps',
-                    style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
-                  ),
+                Text(
+                  ' reps',
+                  style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -592,9 +587,7 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                     perspective: 0.003,
                     childDelegate: ListWheelChildBuilderDelegate(
                       builder: (context, index) {
-                        final maxReps = widget.proposedSet.isAmrap
-                            ? 30
-                            : widget.proposedSet.targetReps;
+                        final maxReps = widget.proposedSet.targetReps;
                         if (index < 0 || index > maxReps) {
                           return null;
                         }
@@ -609,17 +602,13 @@ class _ActiveSetBoxState extends State<ActiveSetBox> {
                           ),
                         );
                       },
-                      childCount: widget.proposedSet.isAmrap
-                          ? 31
-                          : widget.proposedSet.targetReps + 1,
+                      childCount: widget.proposedSet.targetReps + 1,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  widget.proposedSet.isAmrap
-                      ? 'AMRAP'
-                      : 'good/${widget.proposedSet.targetReps}',
+                  'good/${widget.proposedSet.targetReps}',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

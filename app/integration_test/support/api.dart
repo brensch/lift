@@ -107,27 +107,26 @@ class Peer {
     return null;
   }
 
-  /// Start a simple one-exercise workout (used to give a peer visible activity).
+  /// Start a simple one-exercise workout (used to give a peer visible
+  /// activity). The server prescribes everything from the tracker, so the
+  /// weight is planted there first.
   Future<void> startWorkout(
     String name,
     Exercise exercise,
     double weight,
     int sets,
   ) async {
-    final group = ExerciseGroup()
-      ..name = name
-      ..sets = sets
-      ..workoutOrder = 0
-      ..exerciseConfigs.add(ExerciseTypeConfig()
+    await _api.workout.setExerciseTracker(
+      SetExerciseTrackerRequest()
         ..exercise = exercise
-        ..startWeight = weight
-        ..endWeight = weight
-        ..reps = 5
-        ..includeWarmup = false);
+        ..workingWeight = weight
+        ..overrideSets = sets,
+      options: _opts,
+    );
     final resp = await _api.workout.startWorkout(
       StartWorkoutRequest()
         ..name = name
-        ..exerciseGroups.add(group),
+        ..exercises.add(exercise),
       options: _opts,
     );
     workoutId = resp.workout.id;
@@ -153,16 +152,16 @@ class Peer {
   }) async {
     final req = StartWorkoutRequest()..name = name;
     for (var i = 0; i < lifts.length; i++) {
-      req.exerciseGroups.add(ExerciseGroup()
-        ..name = name
-        ..sets = sets
-        ..workoutOrder = i
-        ..exerciseConfigs.add(ExerciseTypeConfig()
+      await _api.workout.setExerciseTracker(
+        SetExerciseTrackerRequest()
           ..exercise = lifts[i].key
-          ..startWeight = lifts[i].value
-          ..endWeight = lifts[i].value
-          ..reps = reps
-          ..includeWarmup = false));
+          ..workingWeight = lifts[i].value
+          ..overrideSets = sets
+          ..overrideRepLow = reps
+          ..overrideRepHigh = reps,
+        options: _opts,
+      );
+      req.exercises.add(lifts[i].key);
     }
     final resp = await _api.workout.startWorkout(req, options: _opts);
     workoutId = resp.workout.id;

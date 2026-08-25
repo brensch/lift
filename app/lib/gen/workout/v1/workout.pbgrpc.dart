@@ -84,20 +84,32 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getExerciseProgress, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ReplaceExerciseGroupPlanResponse>
-      replaceExerciseGroupPlan(
-    $0.ReplaceExerciseGroupPlanRequest request, {
+  $grpc.ResponseFuture<$0.WorkoutPlanResponse> addExercises(
+    $0.AddExercisesRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$replaceExerciseGroupPlan, request,
-        options: options);
+    return $createUnaryCall(_$addExercises, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ReorderExerciseGroupsResponse> reorderExerciseGroups(
-    $0.ReorderExerciseGroupsRequest request, {
+  $grpc.ResponseFuture<$0.WorkoutPlanResponse> adjustExerciseWeight(
+    $0.AdjustExerciseWeightRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$reorderExerciseGroups, request, options: options);
+    return $createUnaryCall(_$adjustExerciseWeight, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.WorkoutPlanResponse> removeExercise(
+    $0.RemoveExerciseRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$removeExercise, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.WorkoutPlanResponse> reorderExercises(
+    $0.ReorderExercisesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$reorderExercises, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.StartSetResponse> startSet(
@@ -241,17 +253,26 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetExerciseProgress',
       ($0.GetExerciseProgressRequest value) => value.writeToBuffer(),
       $0.GetExerciseProgressResponse.fromBuffer);
-  static final _$replaceExerciseGroupPlan = $grpc.ClientMethod<
-          $0.ReplaceExerciseGroupPlanRequest,
-          $0.ReplaceExerciseGroupPlanResponse>(
-      '/workout.v1.WorkoutService/ReplaceExerciseGroupPlan',
-      ($0.ReplaceExerciseGroupPlanRequest value) => value.writeToBuffer(),
-      $0.ReplaceExerciseGroupPlanResponse.fromBuffer);
-  static final _$reorderExerciseGroups = $grpc.ClientMethod<
-          $0.ReorderExerciseGroupsRequest, $0.ReorderExerciseGroupsResponse>(
-      '/workout.v1.WorkoutService/ReorderExerciseGroups',
-      ($0.ReorderExerciseGroupsRequest value) => value.writeToBuffer(),
-      $0.ReorderExerciseGroupsResponse.fromBuffer);
+  static final _$addExercises =
+      $grpc.ClientMethod<$0.AddExercisesRequest, $0.WorkoutPlanResponse>(
+          '/workout.v1.WorkoutService/AddExercises',
+          ($0.AddExercisesRequest value) => value.writeToBuffer(),
+          $0.WorkoutPlanResponse.fromBuffer);
+  static final _$adjustExerciseWeight = $grpc.ClientMethod<
+          $0.AdjustExerciseWeightRequest, $0.WorkoutPlanResponse>(
+      '/workout.v1.WorkoutService/AdjustExerciseWeight',
+      ($0.AdjustExerciseWeightRequest value) => value.writeToBuffer(),
+      $0.WorkoutPlanResponse.fromBuffer);
+  static final _$removeExercise =
+      $grpc.ClientMethod<$0.RemoveExerciseRequest, $0.WorkoutPlanResponse>(
+          '/workout.v1.WorkoutService/RemoveExercise',
+          ($0.RemoveExerciseRequest value) => value.writeToBuffer(),
+          $0.WorkoutPlanResponse.fromBuffer);
+  static final _$reorderExercises =
+      $grpc.ClientMethod<$0.ReorderExercisesRequest, $0.WorkoutPlanResponse>(
+          '/workout.v1.WorkoutService/ReorderExercises',
+          ($0.ReorderExercisesRequest value) => value.writeToBuffer(),
+          $0.WorkoutPlanResponse.fromBuffer);
   static final _$startSet =
       $grpc.ClientMethod<$0.StartSetRequest, $0.StartSetResponse>(
           '/workout.v1.WorkoutService/StartSet',
@@ -388,24 +409,42 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetExerciseProgressRequest.fromBuffer(value),
         ($0.GetExerciseProgressResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ReplaceExerciseGroupPlanRequest,
-            $0.ReplaceExerciseGroupPlanResponse>(
-        'ReplaceExerciseGroupPlan',
-        replaceExerciseGroupPlan_Pre,
+    $addMethod(
+        $grpc.ServiceMethod<$0.AddExercisesRequest, $0.WorkoutPlanResponse>(
+            'AddExercises',
+            addExercises_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.AddExercisesRequest.fromBuffer(value),
+            ($0.WorkoutPlanResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AdjustExerciseWeightRequest,
+            $0.WorkoutPlanResponse>(
+        'AdjustExerciseWeight',
+        adjustExerciseWeight_Pre,
         false,
         false,
         ($core.List<$core.int> value) =>
-            $0.ReplaceExerciseGroupPlanRequest.fromBuffer(value),
-        ($0.ReplaceExerciseGroupPlanResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ReorderExerciseGroupsRequest,
-            $0.ReorderExerciseGroupsResponse>(
-        'ReorderExerciseGroups',
-        reorderExerciseGroups_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.ReorderExerciseGroupsRequest.fromBuffer(value),
-        ($0.ReorderExerciseGroupsResponse value) => value.writeToBuffer()));
+            $0.AdjustExerciseWeightRequest.fromBuffer(value),
+        ($0.WorkoutPlanResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.RemoveExerciseRequest, $0.WorkoutPlanResponse>(
+            'RemoveExercise',
+            removeExercise_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.RemoveExerciseRequest.fromBuffer(value),
+            ($0.WorkoutPlanResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ReorderExercisesRequest, $0.WorkoutPlanResponse>(
+            'ReorderExercises',
+            reorderExercises_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ReorderExercisesRequest.fromBuffer(value),
+            ($0.WorkoutPlanResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.StartSetRequest, $0.StartSetResponse>(
         'StartSet',
         startSet_Pre,
@@ -591,23 +630,41 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress(
       $grpc.ServiceCall call, $0.GetExerciseProgressRequest request);
 
-  $async.Future<$0.ReplaceExerciseGroupPlanResponse>
-      replaceExerciseGroupPlan_Pre($grpc.ServiceCall $call,
-          $async.Future<$0.ReplaceExerciseGroupPlanRequest> $request) async {
-    return replaceExerciseGroupPlan($call, await $request);
-  }
-
-  $async.Future<$0.ReplaceExerciseGroupPlanResponse> replaceExerciseGroupPlan(
-      $grpc.ServiceCall call, $0.ReplaceExerciseGroupPlanRequest request);
-
-  $async.Future<$0.ReorderExerciseGroupsResponse> reorderExerciseGroups_Pre(
+  $async.Future<$0.WorkoutPlanResponse> addExercises_Pre(
       $grpc.ServiceCall $call,
-      $async.Future<$0.ReorderExerciseGroupsRequest> $request) async {
-    return reorderExerciseGroups($call, await $request);
+      $async.Future<$0.AddExercisesRequest> $request) async {
+    return addExercises($call, await $request);
   }
 
-  $async.Future<$0.ReorderExerciseGroupsResponse> reorderExerciseGroups(
-      $grpc.ServiceCall call, $0.ReorderExerciseGroupsRequest request);
+  $async.Future<$0.WorkoutPlanResponse> addExercises(
+      $grpc.ServiceCall call, $0.AddExercisesRequest request);
+
+  $async.Future<$0.WorkoutPlanResponse> adjustExerciseWeight_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.AdjustExerciseWeightRequest> $request) async {
+    return adjustExerciseWeight($call, await $request);
+  }
+
+  $async.Future<$0.WorkoutPlanResponse> adjustExerciseWeight(
+      $grpc.ServiceCall call, $0.AdjustExerciseWeightRequest request);
+
+  $async.Future<$0.WorkoutPlanResponse> removeExercise_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.RemoveExerciseRequest> $request) async {
+    return removeExercise($call, await $request);
+  }
+
+  $async.Future<$0.WorkoutPlanResponse> removeExercise(
+      $grpc.ServiceCall call, $0.RemoveExerciseRequest request);
+
+  $async.Future<$0.WorkoutPlanResponse> reorderExercises_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReorderExercisesRequest> $request) async {
+    return reorderExercises($call, await $request);
+  }
+
+  $async.Future<$0.WorkoutPlanResponse> reorderExercises(
+      $grpc.ServiceCall call, $0.ReorderExercisesRequest request);
 
   $async.Future<$0.StartSetResponse> startSet_Pre($grpc.ServiceCall $call,
       $async.Future<$0.StartSetRequest> $request) async {

@@ -1,7 +1,7 @@
-/// The whole edit UI for a group mid-workout: weight up, weight down,
-/// or remove the exercise. The app controls sets and reps — if the
-/// prescribed weight is wrong, tap until it isn't. Warmups regenerate
-/// for the new weight automatically.
+/// The whole edit UI for an exercise mid-workout: weight up, weight down,
+/// or remove it. The app controls sets and reps — if the prescribed
+/// weight is wrong, tap until it isn't. Warmups regenerate for the new
+/// weight automatically.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercise_groups.dart';
+import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
@@ -18,7 +18,7 @@ import '../../theme/app_theme.dart';
 
 Future<void> showWeightAdjustSheet(
   BuildContext context, {
-  required ExerciseGroupData group,
+  required ExerciseBlock block,
   required WorkoutProvider provider,
   VoidCallback? onDelete,
 }) {
@@ -29,46 +29,32 @@ Future<void> showWeightAdjustSheet(
     backgroundColor: Colors.transparent,
     builder: (_) => ChangeNotifierProvider.value(
       value: provider,
-      child: _WeightAdjustSheet(group: group, onDelete: onDelete),
+      child: _WeightAdjustSheet(block: block, onDelete: onDelete),
     ),
   );
 }
 
 class _WeightAdjustSheet extends StatefulWidget {
-  final ExerciseGroupData group;
+  final ExerciseBlock block;
   final VoidCallback? onDelete;
-  const _WeightAdjustSheet({required this.group, this.onDelete});
+  const _WeightAdjustSheet({required this.block, this.onDelete});
 
   @override
   State<_WeightAdjustSheet> createState() => _WeightAdjustSheetState();
 }
 
 class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
-  /// Per exercise: the working weight (lb) being edited.
-  late final Map<Exercise, double> _weights;
+  /// The working weight (lb) being edited.
+  late double _weight;
   bool _isSaving = false;
 
-  List<ProposedSet> _workingSets(Exercise exercise) => widget.group.sets
-      .where((s) => !s.warmup && !s.cancelled && s.exercise == exercise)
-      .toList();
+  List<ProposedSet> get _workingSets => widget.block.workingSets.toList();
 
   @override
   void initState() {
     super.initState();
-    _weights = {
-      for (final exercise in _exercises())
-        exercise: _workingSets(exercise).isEmpty
-            ? 0
-            : _workingSets(exercise).last.targetWeight.toDouble(),
-    };
-  }
-
-  List<Exercise> _exercises() {
-    final out = <Exercise>[];
-    for (final set in widget.group.sets) {
-      if (!set.warmup && !out.contains(set.exercise)) out.add(set.exercise);
-    }
-    return out;
+    final sets = _workingSets;
+    _weight = sets.isEmpty ? 0 : sets.last.targetWeight.toDouble();
   }
 
   /// One plate-pair in the display unit.
@@ -76,14 +62,8 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
       isMetricUnit(unit) ? poundsFromDisplayWeight(2.5, unit) : 5.0;
 
   bool get _dirty {
-    for (final exercise in _weights.keys) {
-      final sets = _workingSets(exercise);
-      if (sets.isNotEmpty &&
-          (sets.last.targetWeight - _weights[exercise]!).abs() > 0.01) {
-        return true;
-      }
-    }
-    return false;
+    final sets = _workingSets;
+    return sets.isNotEmpty && (sets.last.targetWeight - _weight).abs() > 0.01;
   }
 
   Future<void> _apply() async {
@@ -93,41 +73,9 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     }
     setState(() => _isSaving = true);
     try {
-      final wp = context.read<WorkoutProvider>();
-      final groupIndex = wp.exerciseGroups.indexWhere(
-        (candidate) => candidate.stableId == widget.group.stableId,
-      );
-      if (groupIndex == -1) return;
-      final groupProto = widget.group.group;
-
-      // Rebuild this group's configs with only the weights changed; sets,
-      // reps, rest and warmups stay exactly as prescribed.
-      final configs = <ExerciseTypeConfig>[];
-      for (final exercise in _exercises()) {
-        final sets = _workingSets(exercise);
-        if (sets.isEmpty) continue;
-        final config = ExerciseTypeConfig()
-          ..exercise = exercise
-          ..startWeight = _weights[exercise]!
-          ..endWeight = _weights[exercise]!
-          ..reps = sets.first.targetReps
-          ..includeWarmup = widget.group.sets.any(
-            (s) => s.warmup && s.exercise == exercise,
-          )
-          ..restConfig = (RestConfig()
-            ..restAfterSuccess = sets.first.restAfterSuccess
-            ..restAfterFailure = sets.first.restAfterFailure);
-        configs.add(config);
-      }
-      await wp.updateGroup(
-        groupIndex,
-        sets: groupProto?.sets ?? _workingSets(_exercises().first).length,
-        interleaveWarmups: groupProto?.interleaveWarmups ?? false,
-        exerciseConfigs: configs,
-        restConfig: groupProto != null && groupProto.hasRestConfig()
-            ? groupProto.restConfig
-            : null,
-      );
+      await context
+          .read<WorkoutProvider>()
+          .adjustExerciseWeight(widget.block.exercise, _weight);
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -161,10 +109,10 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
           Center(child: AppTheme.sheetHandle(context)),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Adjust weight',
-                  style: TextStyle(
+                  exerciseNames[widget.block.exercise] ?? 'Adjust weight',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
@@ -197,54 +145,37 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
               color: cs.onSurface.withValues(alpha: 0.55),
             ),
           ),
-          const SizedBox(height: 14),
-          for (final exercise in _exercises())
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      exerciseNames[exercise] ?? '?',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  _StepButton(
-                    icon: Icons.remove,
-                    onTap: () => setState(() {
-                      _weights[exercise] =
-                          (_weights[exercise]! - step).clamp(0, 2000);
-                    }),
-                  ),
-                  SizedBox(
-                    width: 92,
-                    child: Text(
-                      formatWeight(
-                        _weights[exercise]!,
-                        unit,
-                        includeUnit: true,
-                      ),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                  _StepButton(
-                    icon: Icons.add,
-                    onTap: () => setState(() {
-                      _weights[exercise] = _weights[exercise]! + step;
-                    }),
-                  ),
-                ],
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _StepButton(
+                icon: Icons.remove,
+                onTap: () => setState(() {
+                  _weight = (_weight - step).clamp(0, 2000);
+                }),
               ),
-            ),
-          const SizedBox(height: 8),
+              SizedBox(
+                width: 130,
+                child: Text(
+                  formatWeight(_weight, unit, includeUnit: true),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              _StepButton(
+                icon: Icons.add,
+                onTap: () => setState(() {
+                  _weight = (_weight + step).clamp(0, 2000);
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           SizedBox(
             height: 52,
             child: FilledButton(
@@ -285,17 +216,17 @@ class _StepButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(icon, size: 22),
+          width: 52,
+          height: 52,
+          child: Icon(icon, size: 24),
         ),
       ),
     );
   }
 }
 
-/// Confirm removing a whole exercise group from the session.
-Future<bool> showDeleteGroupDialog(
+/// Confirm removing an exercise's remaining sets from the session.
+Future<bool> showDeleteExerciseDialog(
   BuildContext context,
   String exerciseName,
 ) async {
@@ -307,7 +238,9 @@ Future<bool> showDeleteGroupDialog(
             'Remove $exerciseName?',
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
-          content: const Text('This will remove all sets for this exercise.'),
+          content: const Text(
+            'This will remove its remaining sets. Sets you already did stay.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
