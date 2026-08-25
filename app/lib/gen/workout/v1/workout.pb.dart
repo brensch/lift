@@ -5407,11 +5407,13 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     $core.double? bodyWeightKg,
     ExperienceLevel? experience,
     $1.WeightUnit? unit,
+    Gender? gender,
   }) {
     final result = create();
     if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
     if (experience != null) result.experience = experience;
     if (unit != null) result.unit = unit;
+    if (gender != null) result.gender = gender;
     return result;
   }
 
@@ -5434,6 +5436,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
         enumValues: ExperienceLevel.values)
     ..aE<$1.WeightUnit>(3, _omitFieldNames ? '' : 'unit',
         enumValues: $1.WeightUnit.values)
+    ..aE<Gender>(4, _omitFieldNames ? '' : 'gender', enumValues: Gender.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5482,6 +5485,15 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
   $core.bool hasUnit() => $_has(2);
   @$pb.TagNumber(3)
   void clearUnit() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  Gender get gender => $_getN(3);
+  @$pb.TagNumber(4)
+  set gender(Gender value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasGender() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearGender() => $_clearField(4);
 }
 
 class CompleteOnboardingResponse extends $pb.GeneratedMessage {

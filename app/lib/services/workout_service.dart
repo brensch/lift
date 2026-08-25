@@ -249,12 +249,14 @@ class WorkoutServiceWrapper {
     required double bodyWeightKg,
     required ExperienceLevel experience,
     required WeightUnit unit,
+    Gender gender = Gender.GENDER_UNSPECIFIED,
   }) async {
     final response = await _client.workoutService.completeOnboarding(
       CompleteOnboardingRequest()
         ..bodyWeightKg = bodyWeightKg
         ..experience = experience
-        ..unit = unit,
+        ..unit = unit
+        ..gender = gender,
     );
     return response.home;
   }

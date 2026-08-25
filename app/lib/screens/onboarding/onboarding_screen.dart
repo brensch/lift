@@ -12,7 +12,7 @@ import 'dart:async';
 import 'dart:math';
 
 import '../../gen/workout/v1/settings.pb.dart';
-import '../../gen/workout/v1/workout.pb.dart' show ExperienceLevel;
+import '../../gen/workout/v1/workout.pb.dart' show ExperienceLevel, Gender;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
@@ -22,6 +22,7 @@ import '../../providers/workout_provider.dart';
 import '../../services/grpc_client.dart';
 import '../../services/user_service.dart';
 import '../../services/workout_service.dart';
+import '../science_screen.dart';
 import 'steps/marker_step.dart';
 import 'steps/unit_step.dart';
 
@@ -43,6 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   WeightUnit _unit = WeightUnit.WEIGHT_UNIT_LB;
   ExperienceLevel _experience =
       ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE;
+  Gender _gender = Gender.GENDER_UNSPECIFIED;
   final TextEditingController _bodyWeightController = TextEditingController();
   late List<String> _emojiChoices;
 
@@ -148,6 +150,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ? _experience
             : ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
         unit: _unit,
+        gender: _gender,
       );
 
       if (!mounted) return;
@@ -198,6 +201,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         controller: _bodyWeightController,
         experience: _experience,
         onExperienceChanged: (level) => setState(() => _experience = level),
+        gender: _gender,
+        onGenderChanged: (gender) => setState(() => _gender = gender),
+        onOpenScience: () => Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute<void>(builder: (_) => const ScienceScreen()),
+        ),
         isSaving: _isSaving,
         onBack: () => setState(() => _step = 1),
         onFinish: _finish,
@@ -245,14 +253,17 @@ class _StepDots extends StatelessWidget {
   }
 }
 
-/// Step 3: bodyweight and experience, both skippable. With them the main
-/// lifts open at sensible fractions of bodyweight; without them, at the
-/// empty bar.
+/// Step 3: gender, bodyweight and experience — all skippable. They only
+/// scale the seeded starting weights; skip everything and the bar is the
+/// starting weight.
 class _BodyStep extends StatelessWidget {
   final WeightUnit unit;
   final TextEditingController controller;
   final ExperienceLevel experience;
   final ValueChanged<ExperienceLevel> onExperienceChanged;
+  final Gender gender;
+  final ValueChanged<Gender> onGenderChanged;
+  final VoidCallback onOpenScience;
   final bool isSaving;
   final VoidCallback onBack;
   final VoidCallback onFinish;
@@ -262,16 +273,24 @@ class _BodyStep extends StatelessWidget {
     required this.controller,
     required this.experience,
     required this.onExperienceChanged,
+    required this.gender,
+    required this.onGenderChanged,
+    required this.onOpenScience,
     required this.isSaving,
     required this.onBack,
     required this.onFinish,
   });
 
   static const _levels = [
-    (ExperienceLevel.EXPERIENCE_LEVEL_CUTE, 'Brand new', '🐣'),
+    (ExperienceLevel.EXPERIENCE_LEVEL_CUTE, 'Cute', '🐣'),
     (ExperienceLevel.EXPERIENCE_LEVEL_BEGINNER, 'A few months', '🌱'),
     (ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE, 'A while', '💪'),
     (ExperienceLevel.EXPERIENCE_LEVEL_EXPERT, 'Years', '🦍'),
+  ];
+
+  static const _genders = [
+    (Gender.GENDER_FEMALE, 'Female', '♀'),
+    (Gender.GENDER_MALE, 'Male', '♂'),
   ];
 
   @override
@@ -293,21 +312,44 @@ class _BodyStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'How much do you weigh?',
+            'A little about you',
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
-            'Optional. Sets sane opening weights for the big lifts and '
-            'powers calorie estimates. Skip it and everything starts at '
-            'the empty bar.',
+            'All optional. These only scale your starting weights — skip '
+            'everything and the big lifts open at the empty bar.',
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          Text(
+            'GENDER',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+              color: cs.tertiary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: _genders.map((entry) {
+              final selected = gender == entry.$1;
+              return ChoiceChip(
+                label: Text('${entry.$3} ${entry.$2}'),
+                selected: selected,
+                onSelected: (_) => onGenderChanged(
+                  selected ? Gender.GENDER_UNSPECIFIED : entry.$1,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(
@@ -319,7 +361,7 @@ class _BodyStep extends StatelessWidget {
               border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
             'HOW LONG HAVE YOU LIFTED?',
             style: TextStyle(
@@ -329,7 +371,7 @@ class _BodyStep extends StatelessWidget {
               color: cs.tertiary,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -341,6 +383,27 @@ class _BodyStep extends StatelessWidget {
                 onSelected: (_) => onExperienceChanged(entry.$1),
               );
             }).toList(),
+          ),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: onOpenScience,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.science_outlined, size: 15, color: cs.tertiary),
+                const SizedBox(width: 5),
+                Text(
+                  'Why these questions? Read the science',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    decoration: TextDecoration.underline,
+                    decorationColor: cs.tertiary,
+                    color: cs.onSurface.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ),
           ),
           const Spacer(),
           Row(

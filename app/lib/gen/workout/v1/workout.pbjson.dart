@@ -325,6 +325,21 @@ final $typed_data.Uint8List workoutStateDescriptor = $convert.base64Decode(
     'RfU1RBVEVfQUxMX0RPTkUQARIZChVXT1JLT1VUX1NUQVRFX0xJRlRJTkcQAhIZChVXT1JLT1VU'
     'X1NUQVRFX1JFU1RJTkcQAxIXChNXT1JLT1VUX1NUQVRFX1JFQURZEAU=');
 
+@$core.Deprecated('Use genderDescriptor instead')
+const Gender$json = {
+  '1': 'Gender',
+  '2': [
+    {'1': 'GENDER_UNSPECIFIED', '2': 0},
+    {'1': 'GENDER_FEMALE', '2': 1},
+    {'1': 'GENDER_MALE', '2': 2},
+  ],
+};
+
+/// Descriptor for `Gender`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List genderDescriptor = $convert.base64Decode(
+    'CgZHZW5kZXISFgoSR0VOREVSX1VOU1BFQ0lGSUVEEAASEQoNR0VOREVSX0ZFTUFMRRABEg8KC0'
+    'dFTkRFUl9NQUxFEAI=');
+
 @$core.Deprecated('Use experienceLevelDescriptor instead')
 const ExperienceLevel$json = {
   '1': 'ExperienceLevel',
@@ -2127,6 +2142,14 @@ const CompleteOnboardingRequest$json = {
       '6': '.workout.v1.WeightUnit',
       '10': 'unit'
     },
+    {
+      '1': 'gender',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.Gender',
+      '10': 'gender'
+    },
   ],
 };
 
@@ -2135,7 +2158,7 @@ final $typed_data.Uint8List completeOnboardingRequestDescriptor = $convert.base6
     'ChlDb21wbGV0ZU9uYm9hcmRpbmdSZXF1ZXN0EiQKDmJvZHlfd2VpZ2h0X2tnGAEgASgCUgxib2'
     'R5V2VpZ2h0S2cSOwoKZXhwZXJpZW5jZRgCIAEoDjIbLndvcmtvdXQudjEuRXhwZXJpZW5jZUxl'
     'dmVsUgpleHBlcmllbmNlEioKBHVuaXQYAyABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXRSBH'
-    'VuaXQ=');
+    'VuaXQSKgoGZ2VuZGVyGAQgASgOMhIud29ya291dC52MS5HZW5kZXJSBmdlbmRlcg==');
 
 @$core.Deprecated('Use completeOnboardingResponseDescriptor instead')
 const CompleteOnboardingResponse$json = {

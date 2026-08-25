@@ -161,6 +161,7 @@ async fn run_user(
                 } else {
                     WeightUnit::Lb as i32
                 },
+                gender: rng.gen_range(0..3),
             },
         ))
         .await
