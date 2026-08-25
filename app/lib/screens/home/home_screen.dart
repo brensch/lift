@@ -172,7 +172,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
-          _VolumeCard(volume: home.volume, highlight: highlight),
+          _VolumeCard(
+            volume: home.volume,
+            recovery: home.recovery,
+            highlight: highlight,
+          ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 6,
@@ -417,46 +421,62 @@ class _EmptyState extends StatelessWidget {
 
 // ── Weekly volume ────────────────────────────────────────────────────────────
 
-/// Ten compact bars: weighted hard sets per muscle in the last 7 days,
-/// against the 10–20 band. This is the honesty panel — the app prescribes
-/// per-exercise numbers, so weekly volume is decided by what you pick, and
-/// this is where you see it.
+/// The V10 tracker: one row per muscle carrying three signals on three
+/// channels — weekly volume (bar vs the 10–20 band), freshness (a
+/// countdown chip until the muscle is recovered), and selection (name
+/// color: green = the selected workout hits it and it's ready, amber =
+/// it hits it but the muscle isn't recovered yet; untargeted rows dim).
 class _VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
-  /// Muscles the selected template trains — their rows light up so
-  /// picking a workout shows what it will move on this chart.
+  final List<MuscleRecoveryStatus> recovery;
+  /// Primary muscles of the selected template; empty = nothing selected
+  /// (no dimming, no colored names).
   final Set<MuscleGroup> highlight;
-  const _VolumeCard({required this.volume, this.highlight = const {}});
+
+  const _VolumeCard({
+    required this.volume,
+    required this.recovery,
+    this.highlight = const {},
+  });
+
+  static const _recoveryKeys = {
+    'chest': MuscleGroup.MUSCLE_GROUP_CHEST,
+    'back': MuscleGroup.MUSCLE_GROUP_BACK,
+    'shoulders': MuscleGroup.MUSCLE_GROUP_SHOULDERS,
+    'biceps': MuscleGroup.MUSCLE_GROUP_BICEPS,
+    'triceps': MuscleGroup.MUSCLE_GROUP_TRICEPS,
+    'quads': MuscleGroup.MUSCLE_GROUP_QUADS,
+    'hamstrings': MuscleGroup.MUSCLE_GROUP_HAMSTRINGS,
+    'glutes': MuscleGroup.MUSCLE_GROUP_GLUTES,
+    'calves': MuscleGroup.MUSCLE_GROUP_CALVES,
+    'core': MuscleGroup.MUSCLE_GROUP_CORE,
+  };
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     if (volume.isEmpty) return const SizedBox.shrink();
+    final recoveryByMuscle = <MuscleGroup, MuscleRecoveryStatus>{
+      for (final entry in recovery)
+        if (_recoveryKeys[entry.muscleKey] != null)
+          _recoveryKeys[entry.muscleKey]!: entry,
+    };
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
         borderRadius: AppTheme.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'SETS THIS WEEK · AIM FOR 10–20 PER MUSCLE',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.1,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 10),
           for (final entry in volume)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(vertical: 3.5),
               child: _VolumeRow(
                 entry: entry,
-                highlighted: highlight.contains(entry.muscle),
+                recovery: recoveryByMuscle[entry.muscle],
+                targeted: highlight.contains(entry.muscle),
+                anySelected: highlight.isNotEmpty,
               ),
             ),
         ],
@@ -467,8 +487,19 @@ class _VolumeCard extends StatelessWidget {
 
 class _VolumeRow extends StatelessWidget {
   final MuscleVolume entry;
-  final bool highlighted;
-  const _VolumeRow({required this.entry, this.highlighted = false});
+  final MuscleRecoveryStatus? recovery;
+  final bool targeted;
+  final bool anySelected;
+
+  const _VolumeRow({
+    required this.entry,
+    required this.recovery,
+    required this.targeted,
+    required this.anySelected,
+  });
+
+  static const _trackMax = 24.0;
+  static const _grayFill = Color(0xFF4A4A50);
 
   @override
   Widget build(BuildContext context) {
@@ -476,98 +507,181 @@ class _VolumeRow extends StatelessWidget {
     final sets = entry.completedSets7d;
     final low = entry.targetLow.toDouble();
     final high = entry.targetHigh.toDouble();
-    // The bar spans 0..high; the band marker sits at low.
-    final fraction = (sets / high).clamp(0.0, 1.0);
     final inBand = sets >= low && sets <= high;
     final over = sets > high;
-    final color = over
-        ? cs.error
+    final fill = over
+        ? AppTheme.accentAmber
         : inBand
-        ? const Color(0xFF7CF2C0)
-        : cs.onSurface.withValues(alpha: 0.35);
+        ? AppTheme.accentGreen
+        : _grayFill;
 
-    return Row(
+    final recovering = recovery != null && !recovery!.recovered;
+    final nameColor = !targeted
+        ? cs.onSurface
+        : recovering
+        ? AppTheme.accentAmber
+        : AppTheme.accentGreen;
+
+    final row = Row(
       children: [
         SizedBox(
-          width: 56,
+          width: 92,
           child: Row(
             children: [
-              if (highlighted)
-                Padding(
-                  padding: const EdgeInsets.only(right: 3),
-                  child: Icon(
-                    Icons.circle,
-                    size: 6,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
               Flexible(
                 child: Text(
                   muscleShortLabels[entry.muscle] ?? '?',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight:
-                        highlighted ? FontWeight.w900 : FontWeight.w700,
-                    color: highlighted
-                        ? Theme.of(context).colorScheme.primary
-                        : null,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: nameColor,
                   ),
                 ),
               ),
+              if (recovering)
+                Padding(
+                  padding: const EdgeInsets.only(left: 5),
+                  child: _RecoveryChip(
+                    hours: recovery!.hoursRemaining.toInt(),
+                    urgent: targeted,
+                  ),
+                ),
             ],
           ),
         ),
+        const SizedBox(width: 8),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              return SizedBox(
-                height: 10,
-                child: Stack(
+          child: SizedBox(
+            height: 12,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                return Stack(
                   children: [
+                    // Track with the 10–20 band zone tinted.
                     Container(
                       decoration: BoxDecoration(
                         color: cs.surfaceContainerHighest.withValues(
                           alpha: 0.35,
                         ),
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                     ),
-                    FractionallySizedBox(
-                      widthFactor: fraction,
+                    Positioned(
+                      left: width * (low / _trackMax),
+                      width: width * ((high - low) / _trackMax),
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        color: AppTheme.accentGreen.withValues(alpha: 0.10),
+                      ),
+                    ),
+                    // The fill, inset like the mock's rounded pill.
+                    Positioned(
+                      left: 0,
+                      top: 2,
+                      bottom: 2,
+                      width:
+                          width * (sets / _trackMax).clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(5),
+                          color: fill,
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
-                    // The band-floor tick at 10 sets.
+                    // Tick at the band floor.
                     Positioned(
-                      left: width * (low / high) - 1,
+                      left: width * (low / _trackMax) - 1,
                       top: 0,
                       bottom: 0,
                       child: Container(
                         width: 2,
-                        color: cs.onSurface.withValues(alpha: 0.5),
+                        color: cs.onSurface.withValues(alpha: 0.28),
                       ),
                     ),
                   ],
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         SizedBox(
-          width: 34,
-          child: Text(
-            sets % 1 == 0 ? sets.toStringAsFixed(0) : sets.toStringAsFixed(1),
+          width: 44,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: sets % 1 == 0
+                      ? sets.toStringAsFixed(0)
+                      : sets.toStringAsFixed(1),
+                  style: TextStyle(
+                    color: inBand || over
+                        ? cs.onSurface
+                        : cs.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+                if (over)
+                  const TextSpan(
+                    text: '▲',
+                    style: TextStyle(color: AppTheme.accentAmber),
+                  )
+                else if (inBand)
+                  const TextSpan(
+                    text: ' ✓',
+                    style: TextStyle(color: AppTheme.accentGreen),
+                  ),
+              ],
+            ),
             textAlign: TextAlign.right,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],
+    );
+
+    // With a workout selected, untargeted muscles step back.
+    return Opacity(opacity: anySelected && !targeted ? 0.45 : 1.0, child: row);
+  }
+}
+
+/// "14h" — hours until this muscle is recovered. Amber when the selected
+/// workout is about to train it anyway.
+class _RecoveryChip extends StatelessWidget {
+  final int hours;
+  final bool urgent;
+  const _RecoveryChip({required this.hours, required this.urgent});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = urgent
+        ? AppTheme.accentAmber
+        : cs.onSurface.withValues(alpha: 0.45);
+    final border = urgent
+        ? AppTheme.accentAmber
+        : cs.outline.withValues(alpha: 0.6);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '${hours}h',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
+          color: color,
+        ),
+      ),
     );
   }
 }
