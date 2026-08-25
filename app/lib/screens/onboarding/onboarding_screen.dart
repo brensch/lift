@@ -390,10 +390,10 @@ class _BodyStep extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.science_outlined, size: 15, color: cs.tertiary),
+                const Text('🧠', style: TextStyle(fontSize: 13)),
                 const SizedBox(width: 5),
                 Text(
-                  'Why these questions? Read the science',
+                  'Why these questions? Read the papers',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,

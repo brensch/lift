@@ -135,8 +135,8 @@ class MainLayout extends StatelessWidget {
                       ),
                       Divider(height: 32, color: colorScheme.outline),
                       _MenuButton(
-                        icon: Icons.science_outlined,
-                        label: 'The science',
+                        emoji: '🧠',
+                        label: 'Papers',
                         onTap: () {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
@@ -331,14 +331,17 @@ class MainLayout extends StatelessWidget {
 }
 
 class _MenuButton extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  /// Rendered instead of [icon] when set (e.g. 🧠).
+  final String? emoji;
   final String label;
   final VoidCallback onTap;
   final bool isActive;
   final Color? color;
 
   const _MenuButton({
-    required this.icon,
+    this.icon,
+    this.emoji,
     required this.label,
     required this.onTap,
     required this.isActive,
@@ -360,11 +363,21 @@ class _MenuButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? colorScheme.onPrimary : effectiveColor,
-              ),
+              if (emoji != null)
+                SizedBox(
+                  width: 20,
+                  child: Text(
+                    emoji!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, height: 1.0),
+                  ),
+                )
+              else
+                Icon(
+                  icon,
+                  size: 20,
+                  color: isActive ? colorScheme.onPrimary : effectiveColor,
+                ),
               const SizedBox(width: 16),
               Text(
                 label,
