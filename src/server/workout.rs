@@ -1509,9 +1509,13 @@ impl WorkoutService for ServerWorkoutService {
                 .map_err(internal_error)?;
             let experience = ExperienceLevel::try_from(req.experience)
                 .unwrap_or(ExperienceLevel::Unspecified);
-            for (exercise, weight) in
-                crate::onboarding::starting_tracker_weights(req.body_weight_kg, experience, unit)
-            {
+            let gender = Gender::try_from(req.gender).unwrap_or(Gender::Unspecified);
+            for (exercise, weight) in crate::onboarding::starting_tracker_weights(
+                req.body_weight_kg,
+                experience,
+                gender,
+                unit,
+            ) {
                 if states.contains_key(&(exercise as i32)) {
                     continue;
                 }

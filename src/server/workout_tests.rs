@@ -7,7 +7,7 @@ use super::*;
 use crate::db::ServerDb;
 use schlift::workout::v1::{
     CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
-    ExperienceLevel, GetHomeRequest, ReorderTemplatesRequest, SaveTemplateRequest,
+    ExperienceLevel, Gender, GetHomeRequest, ReorderTemplatesRequest, SaveTemplateRequest,
     SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutTemplate,
 };
 
@@ -35,6 +35,7 @@ async fn onboard(svc: &ServerWorkoutService, token: &str, unit: WeightUnit) -> G
             body_weight_kg: 0.0,
             experience: ExperienceLevel::Unspecified as i32,
             unit: unit as i32,
+            gender: 0,
         },
     ))
     .await
@@ -138,6 +139,7 @@ mod home_and_onboarding {
                     body_weight_kg: 100.0,
                     experience: ExperienceLevel::Intermediate as i32,
                     unit: WeightUnit::Lb as i32,
+                    gender: Gender::Male as i32,
                 },
             ))
             .await
@@ -180,6 +182,7 @@ mod home_and_onboarding {
                     body_weight_kg: 90.0,
                     experience: ExperienceLevel::Intermediate as i32,
                     unit: WeightUnit::Kg as i32,
+                    gender: 0,
                 },
             ))
             .await

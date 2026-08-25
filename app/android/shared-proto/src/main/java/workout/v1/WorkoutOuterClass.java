@@ -1956,6 +1956,116 @@ public final class WorkoutOuterClass {
 
   /**
    * <pre>
+   * Used only to scale the seeded starting weights at onboarding.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.Gender}
+   */
+  public enum Gender
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <pre>
+     * skipped — neutral defaults
+     * </pre>
+     *
+     * <code>GENDER_UNSPECIFIED = 0;</code>
+     */
+    GENDER_UNSPECIFIED(0),
+    /**
+     * <code>GENDER_FEMALE = 1;</code>
+     */
+    GENDER_FEMALE(1),
+    /**
+     * <code>GENDER_MALE = 2;</code>
+     */
+    GENDER_MALE(2),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <pre>
+     * skipped — neutral defaults
+     * </pre>
+     *
+     * <code>GENDER_UNSPECIFIED = 0;</code>
+     */
+    public static final int GENDER_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>GENDER_FEMALE = 1;</code>
+     */
+    public static final int GENDER_FEMALE_VALUE = 1;
+    /**
+     * <code>GENDER_MALE = 2;</code>
+     */
+    public static final int GENDER_MALE_VALUE = 2;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static Gender valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static Gender forNumber(int value) {
+      switch (value) {
+        case 0: return GENDER_UNSPECIFIED;
+        case 1: return GENDER_FEMALE;
+        case 2: return GENDER_MALE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<Gender>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        Gender> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<Gender>() {
+            @java.lang.Override
+            public Gender findValueByNumber(int number) {
+              return Gender.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return GenderVerifier.INSTANCE;
+    }
+
+    private static final class GenderVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new GenderVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return Gender.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private Gender(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.Gender)
+  }
+
+  /**
+   * <pre>
    * Lifting experience, used to scale recommended starting weights.
    * </pre>
    *
@@ -40477,6 +40587,25 @@ public final class WorkoutOuterClass {
      * @return The unit.
      */
     workout.v1.Settings.WeightUnit getUnit();
+
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @return The enum numeric value on the wire for gender.
+     */
+    int getGenderValue();
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @return The gender.
+     */
+    workout.v1.WorkoutOuterClass.Gender getGender();
   }
   /**
    * <pre>
@@ -40634,6 +40763,68 @@ public final class WorkoutOuterClass {
     private void clearUnit() {
       
       unit_ = 0;
+    }
+
+    public static final int GENDER_FIELD_NUMBER = 4;
+    private int gender_;
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @return The enum numeric value on the wire for gender.
+     */
+    @java.lang.Override
+    public int getGenderValue() {
+      return gender_;
+    }
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @return The gender.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.Gender getGender() {
+      workout.v1.WorkoutOuterClass.Gender result = workout.v1.WorkoutOuterClass.Gender.forNumber(gender_);
+      return result == null ? workout.v1.WorkoutOuterClass.Gender.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @param value The enum numeric value on the wire for gender to set.
+     */
+    private void setGenderValue(int value) {
+        gender_ = value;
+    }
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     * @param value The gender to set.
+     */
+    private void setGender(workout.v1.WorkoutOuterClass.Gender value) {
+      gender_ = value.getNumber();
+      
+    }
+    /**
+     * <pre>
+     * unspecified = skipped
+     * </pre>
+     *
+     * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+     */
+    private void clearGender() {
+      
+      gender_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.CompleteOnboardingRequest parseFrom(
@@ -40889,6 +41080,72 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * unspecified = skipped
+       * </pre>
+       *
+       * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+       * @return The enum numeric value on the wire for gender.
+       */
+      @java.lang.Override
+      public int getGenderValue() {
+        return instance.getGenderValue();
+      }
+      /**
+       * <pre>
+       * unspecified = skipped
+       * </pre>
+       *
+       * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+       * @param value The gender to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGenderValue(int value) {
+        copyOnWrite();
+        instance.setGenderValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * unspecified = skipped
+       * </pre>
+       *
+       * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+       * @return The gender.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.Gender getGender() {
+        return instance.getGender();
+      }
+      /**
+       * <pre>
+       * unspecified = skipped
+       * </pre>
+       *
+       * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+       * @param value The enum numeric value on the wire for gender to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGender(workout.v1.WorkoutOuterClass.Gender value) {
+        copyOnWrite();
+        instance.setGender(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * unspecified = skipped
+       * </pre>
+       *
+       * <code>.workout.v1.Gender gender = 4 [json_name = "gender"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearGender() {
+        copyOnWrite();
+        instance.clearGender();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.CompleteOnboardingRequest)
     }
     @java.lang.Override
@@ -40908,10 +41165,11 @@ public final class WorkoutOuterClass {
               "bodyWeightKg_",
               "experience_",
               "unit_",
+              "gender_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0001\u0002\f" +
-                "\u0003\f";
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0001\u0002\f" +
+                "\u0003\f\u0004\f";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

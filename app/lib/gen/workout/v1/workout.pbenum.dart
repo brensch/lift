@@ -592,6 +592,29 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
+/// Used only to scale the seeded starting weights at onboarding.
+class Gender extends $pb.ProtobufEnum {
+  static const Gender GENDER_UNSPECIFIED =
+      Gender._(0, _omitEnumNames ? '' : 'GENDER_UNSPECIFIED');
+  static const Gender GENDER_FEMALE =
+      Gender._(1, _omitEnumNames ? '' : 'GENDER_FEMALE');
+  static const Gender GENDER_MALE =
+      Gender._(2, _omitEnumNames ? '' : 'GENDER_MALE');
+
+  static const $core.List<Gender> values = <Gender>[
+    GENDER_UNSPECIFIED,
+    GENDER_FEMALE,
+    GENDER_MALE,
+  ];
+
+  static final $core.List<Gender?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static Gender? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Gender._(super.value, super.name);
+}
+
 /// Lifting experience, used to scale recommended starting weights.
 class ExperienceLevel extends $pb.ProtobufEnum {
   static const ExperienceLevel EXPERIENCE_LEVEL_UNSPECIFIED = ExperienceLevel._(
