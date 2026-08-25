@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
@@ -23,6 +24,7 @@ import '../../providers/workout_provider.dart';
 import '../../services/health_service.dart';
 import '../../services/wearable_bridge_service.dart';
 import '../../theme/app_theme.dart';
+import '../tutorial_screen.dart';
 import 'template_editor.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,10 +35,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _tutorialSeenKey = 'tutorial_seen_v1';
   bool _isStarting = false;
+  bool _tutorialChecked = false;
   // Which template card is expanded. Defaults to the suggestion; the user
   // taps the small chips to switch.
   String? _selectedTemplateId;
+
+  /// First arrival at a working home: show the walkthrough once.
+  Future<void> _maybeShowTutorial() async {
+    if (_tutorialChecked) return;
+    _tutorialChecked = true;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_tutorialSeenKey) ?? false) return;
+    await prefs.setBool(_tutorialSeenKey, true);
+    if (!mounted) return;
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(builder: (_) => const TutorialScreen()),
+    );
+  }
 
   Future<void> _refresh() async {
     final auth = context.read<AuthProvider>();
@@ -145,6 +162,12 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    if (home.onboarded && !_tutorialChecked) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _maybeShowTutorial(),
+      );
+    }
+
     final templates = home.templates;
     final suggestedId = home.suggestedTemplateId;
 
@@ -172,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
-          _VolumeCard(
+          VolumeCard(
             volume: home.volume,
             recovery: home.recovery,
             highlight: highlight,
@@ -183,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
             runSpacing: 6,
             children: [
               for (final template in templates)
-                _TemplateChip(
+                TemplateChip(
                   template: template,
                   trackers: wp.trackers,
                   selected: template.id == selected?.id,
@@ -210,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (emptySelected)
             _EmptyWorkoutCard(isStarting: _isStarting, onStart: () => _start())
           else if (selected != null)
-            _SelectedTemplateCard(
+            SelectedTemplateCard(
               template: selected,
               trackers: wp.trackers,
               unit: unit,
@@ -426,14 +449,15 @@ class _EmptyState extends StatelessWidget {
 /// countdown chip until the muscle is recovered), and selection (name
 /// color: green = the selected workout hits it and it's ready, amber =
 /// it hits it but the muscle isn't recovered yet; untargeted rows dim).
-class _VolumeCard extends StatelessWidget {
+class VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
   final List<MuscleRecoveryStatus> recovery;
   /// Primary muscles of the selected template; empty = nothing selected
   /// (no dimming, no colored names).
   final Set<MuscleGroup> highlight;
 
-  const _VolumeCard({
+  const VolumeCard({
+    super.key,
     required this.volume,
     required this.recovery,
     this.highlight = const {},
@@ -691,14 +715,15 @@ class _RecoveryChip extends StatelessWidget {
 /// A small tappable summary of one template: name, rough duration, and a
 /// star on the volume recommendation. Deliberately dense — these wrap
 /// three-plus to a row.
-class _TemplateChip extends StatelessWidget {
+class TemplateChip extends StatelessWidget {
   final WorkoutTemplate template;
   final List<ExerciseTracker> trackers;
   final bool selected;
   final bool recommended;
   final VoidCallback onTap;
 
-  const _TemplateChip({
+  const TemplateChip({
+    super.key,
     required this.template,
     required this.trackers,
     required this.selected,
@@ -760,7 +785,7 @@ class _TemplateChip extends StatelessWidget {
 
 /// The one expanded card: every exercise with the exact numbers the workout
 /// will start with, the muscles it hits, the time it should take, and START.
-class _SelectedTemplateCard extends StatelessWidget {
+class SelectedTemplateCard extends StatelessWidget {
   final WorkoutTemplate template;
   final List<ExerciseTracker> trackers;
   final WeightUnit unit;
@@ -771,7 +796,8 @@ class _SelectedTemplateCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _SelectedTemplateCard({
+  const SelectedTemplateCard({
+    super.key,
     required this.template,
     required this.trackers,
     required this.unit,

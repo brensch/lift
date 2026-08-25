@@ -13,7 +13,7 @@ import '../../providers/workout_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../widgets/set_log.dart';
 import '../../widgets/dialogs/end_workout_dialog.dart';
-import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
+import '../../widgets/dialogs/weight_adjust_sheet.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import 'current_exercise_card.dart';
@@ -546,28 +546,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
     if (groupIndex == -1) return;
 
-    showEditExerciseDialog(
+    showWeightAdjustSheet(
       context,
       group: group,
-      groupIndex: groupIndex,
-      trackers: wp.trackers,
-      isSetDone: wp.isSetDone,
-      onSave:
-          (
-            groupIndex, {
-            required int sets,
-            required bool interleaveWarmups,
-            required List<ExerciseTypeConfig> exerciseConfigs,
-            RestConfig? restConfig,
-          }) {
-            wp.updateGroup(
-              groupIndex,
-              sets: sets,
-              interleaveWarmups: interleaveWarmups,
-              exerciseConfigs: exerciseConfigs,
-              restConfig: restConfig,
-            );
-          },
+      provider: wp,
       onDelete: () => _confirmDeleteGroup(context, wp, group),
     );
   }

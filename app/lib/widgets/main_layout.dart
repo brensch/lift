@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/science_screen.dart';
+import '../screens/tutorial_screen.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -134,6 +135,20 @@ class MainLayout extends StatelessWidget {
                         isActive: currentPath == '/history',
                       ),
                       Divider(height: 32, color: colorScheme.outline),
+                      _MenuButton(
+                        icon: Icons.school_outlined,
+                        label: 'Tutorial',
+                        onTap: () {
+                          Navigator.pop(context); // close the menu
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TutorialScreen(),
+                            ),
+                          );
+                        },
+                        isActive: false,
+                      ),
+                      const SizedBox(height: 4),
                       _MenuButton(
                         emoji: '🧠',
                         label: 'Papers',
