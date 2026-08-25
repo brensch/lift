@@ -190,18 +190,40 @@ class ScienceScreen extends StatelessWidget {
             citations: [],
           ),
           const _Section(
-            title: 'Starting weights',
+            title: 'Starting weights, and what gender changes',
             body:
                 'First-session weights are seeded from your bodyweight, '
-                'experience and gender using population strength '
-                'standards — for example, an intermediate male squats '
-                'roughly bodyweight; relative upper-body strength runs '
-                'lower for women, so those seeds scale further. These '
-                'are deliberately conservative openers, not tests: double '
-                'progression finds your real weight within a couple of '
-                'sessions, and every seed is just a starting guess you '
-                'can override.',
-            citations: [],
+                'experience and gender. The gender part follows the '
+                'measured population differences: at the same bodyweight, '
+                'women average roughly half to two-thirds of men\u2019s '
+                'upper-body strength but a clearly smaller gap in the '
+                'lower body — so Schlift scales the upper-body barbell '
+                'seeds to ~60% and the lower-body seeds to ~75%, and '
+                'skipping the question splits the difference. That is '
+                'ALL gender changes. Sets, reps, rest, the volume band '
+                'and the progression rule are identical, on purpose: '
+                'relative gains from resistance training are similar '
+                'between sexes, so the program does not need to differ — '
+                'only the starting guess does. Every seed is '
+                'conservative and temporary: double progression finds '
+                'your real weight within a couple of sessions.',
+            citations: [
+              _Citation(
+                'Miller et al. (1993) — sex differences in strength: '
+                    '~52% upper body, ~66% lower body',
+                'https://pubmed.ncbi.nlm.nih.gov/8477683/',
+              ),
+              _Citation(
+                'Nuzzo (2023) — comprehensive review of sex differences '
+                    'in muscle strength and size',
+                'https://pubmed.ncbi.nlm.nih.gov/36696264/',
+              ),
+              _Citation(
+                'Roberts et al. (2020) — sex differences in resistance '
+                    'training response, meta-analysis',
+                'https://pubmed.ncbi.nlm.nih.gov/32218059/',
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Container(
