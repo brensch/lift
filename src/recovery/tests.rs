@@ -42,7 +42,6 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
             session_id: String::new(),
             ..Default::default()
         },
-        exercise_groups: Vec::new(),
         proposed_sets: proposed,
         completed_sets: completed,
     }

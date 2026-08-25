@@ -61,7 +61,7 @@ graph TD
 | `server/user.rs` | User CRUD, profile |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/support.rs` | `.well-known` / app-association endpoints |
-| `workout/planning.rs` | Turning an `ExerciseGroup` into concrete `ProposedSet`s (warmups, plate snapping) |
+| `workout/planning.rs` | Plan shaping: prescribe an exercise's block of `ProposedSet`s (warmups, plate snapping) and the four mid-workout ops (add / adjust weight / remove / reorder) |
 | `workout/reducer.rs` | Pure state transitions on an `ActiveWorkout` |
 | `exercise_catalog.rs` | Muscles, equipment, roles and the prescription table |
 | `exercise_progress.rs` | Per-exercise trackers and the double-progression rule |
@@ -93,7 +93,7 @@ Defined in `src/db/mod.rs:251`.
   `apply_program_state_for_workout` (`src/db/cache.rs:82`) for the pattern.
 
 > **Read-modify-write is not atomic across the two pools.** The structural
-> mutation handlers (`ReplaceExerciseGroupPlan`, `ReorderExerciseGroups`,
+> mutation handlers (`AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`, `ReorderExercises`,
 > `AppendWorkoutMutations`) load a workout on the read pool, apply the change in
 > memory, then `persist_workout_state` — a full delete-and-reinsert — on the
 > write pool. Two mutations to the *same workout* that interleave read→read→

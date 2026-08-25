@@ -1,7 +1,7 @@
 use prost::Message;
 use schlift::workout::v1::{
-    CompletedSet, ExerciseGroup, ExerciseTypeConfig, GetWorkoutResponse, ParticipantStatus,
-    ProposedSet, RestConfig, UserMessage, UserSetting, Workout, WorkoutHeartRatePoint,
+    CompletedSet, GetWorkoutResponse, ParticipantStatus,
+    ProposedSet, UserMessage, UserSetting, Workout, WorkoutHeartRatePoint,
     WorkoutTemplate,
 };
 use sqlx::{
@@ -16,7 +16,6 @@ use crate::time::now_unix;
 
 mod auth;
 mod cache;
-mod codec;
 mod migration;
 mod session;
 mod workout;
@@ -59,28 +58,10 @@ CREATE TABLE IF NOT EXISTS workouts (
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
 
-CREATE TABLE IF NOT EXISTS exercise_groups (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    sets INTEGER NOT NULL DEFAULT 0,
-    interleave_warmups INTEGER NOT NULL DEFAULT 0,
-    workout_order INTEGER NOT NULL,
-    instruction TEXT NOT NULL DEFAULT '',
-    rest_success INTEGER NOT NULL DEFAULT 0,
-    rest_failure INTEGER NOT NULL DEFAULT 0,
-    rest_warmup INTEGER NOT NULL DEFAULT 0,
-    rest_last_warmup INTEGER NOT NULL DEFAULT 0,
-    exercise_configs_blob BLOB
-);
-CREATE INDEX IF NOT EXISTS idx_exercise_groups_workout ON exercise_groups(workout_id, workout_order);
-
 CREATE TABLE IF NOT EXISTS proposed_sets (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
-    exercise_group_id TEXT NOT NULL,
     workout_order INTEGER NOT NULL,
     exercise INTEGER NOT NULL,
     target_reps INTEGER NOT NULL,
@@ -88,9 +69,7 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     warmup INTEGER NOT NULL DEFAULT 0,
     cancelled INTEGER NOT NULL DEFAULT 0,
     rest_after_success INTEGER NOT NULL DEFAULT 0,
-    rest_after_failure INTEGER NOT NULL DEFAULT 0,
-    is_amrap INTEGER NOT NULL DEFAULT 0,
-    instruction TEXT NOT NULL DEFAULT ''
+    rest_after_failure INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout ON proposed_sets(workout_id, workout_order);
 
@@ -232,7 +211,6 @@ CREATE TABLE IF NOT EXISTS user_message_events (
     surface INTEGER NOT NULL DEFAULT 0,
     workout_id TEXT NOT NULL DEFAULT '',
     source_workout_id TEXT NOT NULL DEFAULT '',
-    exercise_group_id TEXT NOT NULL DEFAULT '',
     exercise INTEGER NOT NULL DEFAULT 0,
     slot_key TEXT NOT NULL DEFAULT '',
     dismissed_at INTEGER NOT NULL DEFAULT 0,

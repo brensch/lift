@@ -15,13 +15,13 @@ class WorkoutServiceWrapper {
   WorkoutServiceWrapper(this._client);
 
   Future<StartWorkoutResponse> startWorkout(
-    String name,
-    List<ExerciseGroup> exerciseGroups, {
+    String name, {
     String templateId = '',
+    List<Exercise> exercises = const [],
   }) async {
     final req = StartWorkoutRequest()
       ..name = name
-      ..exerciseGroups.addAll(exerciseGroups)
+      ..exercises.addAll(exercises)
       ..templateId = templateId;
     return await _client.workoutService.startWorkout(req);
   }
@@ -151,39 +151,6 @@ class WorkoutServiceWrapper {
   Future<EndWorkoutResponse> endWorkout(String workoutId) async {
     return await _client.workoutService.endWorkout(
       EndWorkoutRequest()..workoutId = workoutId,
-    );
-  }
-
-  Future<ReplaceExerciseGroupPlanResponse> replaceExerciseGroupPlan({
-    required String workoutId,
-    String? exerciseGroupId,
-    required String name,
-    required bool interleaveWarmups,
-    required List<PlannedGroupSet> sets,
-    RestConfig? restConfig,
-    bool deleteGroupIfEmpty = false,
-    String instruction = '',
-  }) async {
-    final req = ReplaceExerciseGroupPlanRequest()
-      ..workoutId = workoutId
-      ..exerciseGroupId = exerciseGroupId ?? ''
-      ..name = name
-      ..interleaveWarmups = interleaveWarmups
-      ..sets.addAll(sets)
-      ..deleteGroupIfEmpty = deleteGroupIfEmpty
-      ..instruction = instruction;
-    if (restConfig != null) req.restConfig = restConfig;
-    return await _client.workoutService.replaceExerciseGroupPlan(req);
-  }
-
-  Future<ReorderExerciseGroupsResponse> reorderExerciseGroups(
-    String workoutId,
-    List<String> exerciseGroupIds,
-  ) async {
-    return await _client.workoutService.reorderExerciseGroups(
-      ReorderExerciseGroupsRequest()
-        ..workoutId = workoutId
-        ..exerciseGroupIds.addAll(exerciseGroupIds),
     );
   }
 

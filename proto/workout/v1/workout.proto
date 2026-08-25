@@ -152,47 +152,6 @@ enum Exercise {
   EXERCISE_HIP_ADDUCTION = 76;
 }
 
-message ExerciseTypeConfig {
-  Exercise exercise = 1;
-  float start_weight = 2;   // first working set weight
-  float end_weight = 3;     // last working set weight (equal=flat, lower=drop, higher=ramp)
-  int32 reps = 4;
-  bool include_warmup = 5;
-  RestConfig rest_config = 6;
-  bool last_set_amrap = 7;  // regime sets this; the last working set becomes AMRAP
-  repeated WorkingSetSpec working_sets = 8; // optional explicit working-set prescription
-}
-
-message WorkingSetSpec {
-  float target_weight = 1;
-  int32 target_reps = 2;
-  bool is_amrap = 3;
-  string instruction = 4;
-  reserved 5;
-  reserved "progression_hint";
-}
-
-message RestConfig {
-  int32 rest_after_success = 1;
-  int32 rest_after_failure = 2;
-  int32 rest_after_warmup = 3;
-  int32 rest_after_last_warmup = 4;
-}
-
-message ExerciseGroup {
-  string id = 1;
-  string workout_id = 2;
-  string name = 3;
-  int32 sets = 4;                // working sets per exercise
-  bool interleave_warmups = 5;   // true=alternate warmups between exercises
-  int32 workout_order = 6;
-  repeated ExerciseTypeConfig exercise_configs = 7;
-  RestConfig rest_config = 8;
-  string instruction = 9;        // coaching note shown in the UI (not persisted to DB)
-  reserved 10, 11;
-  reserved "prescribed_by_regime", "materialized_sets";
-}
-
 message ProposedSet {
   string id = 1;
   string workout_id = 2;
@@ -201,14 +160,11 @@ message ProposedSet {
   int32 target_reps = 5;
   float target_weight = 6;
   bool warmup = 7;
-  string exercise_group_id = 8;
   int32 rest_after_success = 9;
   int32 rest_after_failure = 10;
   bool cancelled = 11;
-  bool is_amrap = 12;           // do as many reps as possible (target_reps is the minimum)
-  string instruction = 13;      // optional per-set note shown in the UI
-  reserved 14;
-  reserved "progression_hint";
+  reserved 8, 12, 13, 14;
+  reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint";
 }
 
 message CompletedSet {
@@ -294,11 +250,10 @@ message UserMessage {
   int64 created_at = 7;
   int64 updated_at = 8;
   string workout_id = 9;
-  string exercise_group_id = 10;
   Exercise exercise = 11;
   string slot_key = 12;
-  reserved 13;
-  reserved "metadata_json";
+  reserved 10, 13;
+  reserved "exercise_group_id", "metadata_json";
   UserMessageDetails details = 14;
   string source_workout_id = 15;
 }
@@ -307,17 +262,22 @@ message UserMessage {
 
 message StartWorkoutRequest {
   string name = 1;
-  repeated ExerciseGroup exercise_groups = 2;
+  reserved 2;
+  reserved "exercise_groups";
   int64 started_at = 3; // Unix seconds; if 0, server uses current time
-  // When set, the server builds the groups itself: one group per template
-  // exercise, weights from the trackers, sets/reps/rest from the
-  // prescription, warmups where prescribed. `exercise_groups` is ignored.
+  // When set, the server builds the plan itself: one block of sets per
+  // template exercise — weights from the trackers, sets/reps/rest from
+  // the prescription, warmups where prescribed.
   string template_id = 4;
+  // Explicit exercise list (server still prescribes everything). Used
+  // when template_id is empty; both empty = an empty workout.
+  repeated Exercise exercises = 5;
 }
 message StartWorkoutResponse {
   string id = 1;
   Workout workout = 2;
-  repeated ExerciseGroup exercise_groups = 3;
+  reserved 3;
+  reserved "exercise_groups";
   repeated ProposedSet proposed_sets = 4;
   repeated CompletedSet completed_sets = 5;
   ProposedSet next_up_set = 6;
@@ -354,7 +314,8 @@ message WorkoutSummary {
 
 message GetWorkoutResponse {
   Workout workout = 1;
-  repeated ExerciseGroup exercise_groups = 2;
+  reserved 2;
+  reserved "exercise_groups";
   repeated ProposedSet proposed_sets = 3;
   repeated CompletedSet completed_sets = 4;
   ProposedSet next_up_set = 5;
@@ -440,57 +401,47 @@ message GetExerciseProgressResponse {
   int64 since = 4;         // earliest workout start_time (unix seconds)
 }
 
-message PlannedGroupSet {
-  Exercise exercise = 1;
-  int32 target_reps = 2;
-  float target_weight = 3;
-  bool warmup = 4;
-  int32 rest_after_success = 5;
-  int32 rest_after_failure = 6;
-  bool is_amrap = 7;
-  string instruction = 8;
-  reserved 9;
-  reserved "progression_hint";
-  string client_set_id = 10;
+// Shared response for plan-shaping operations: the full visible plan
+// after the change, plus the recomputed pointer and state.
+message WorkoutPlanResponse {
+  repeated ProposedSet proposed_sets = 1;
+  ProposedSet next_up_set = 2;
+  WorkoutStateSnapshot state_snapshot = 3;
 }
 
-// Which exercises in a group plan should get a server-generated warmup ladder.
-// Wrapped in a message so presence is meaningful: an unset `warmup_plan` means
-// "the client didn't say" (keep whatever warmups the group already has), while a
-// set-but-empty `exercises` means "no warmups at all". A bare repeated field
-// couldn't tell those apart.
-message GroupWarmupPlan {
-  repeated Exercise exercises = 1;
-}
-
-message ReplaceExerciseGroupPlanRequest {
+// Append one block of prescribed sets per exercise (tracker weight,
+// prescription sets/reps/rest, warmups where prescribed).
+message AddExercisesRequest {
   string workout_id = 1;
-  string exercise_group_id = 2; // empty = create new group
-  string name = 3;
-  bool interleave_warmups = 4;
-  repeated PlannedGroupSet sets = 5; // explicit set order from frontend
-  RestConfig rest_config = 6;        // optional group-level metadata
-  bool delete_group_if_empty = 7;    // if true and sets empty, remove the group
-  string instruction = 8;
-  bool create_if_missing = 9;        // if true and exercise_group_id is unknown, create with that id
-  // Warmup intent. The client sends working sets only; the server materializes
-  // the ladders for the exercises named here (both when creating a group and
-  // when editing one).
-  GroupWarmupPlan warmup_plan = 10;
+  repeated Exercise exercises = 2;
+  // Client-chosen ids for the WORKING sets, consumed in block order. Lets
+  // an offline add's optimistic sets keep their ids when the queued
+  // mutation lands, so completions recorded against them reconcile.
+  // Extras are ignored; missing ids are server-generated. Warmups are
+  // always server-generated (the client never shows them optimistically).
+  repeated string client_working_set_ids = 3;
 }
 
-message ReplaceExerciseGroupPlanResponse {
-  ExerciseGroup group = 1;
-  repeated ProposedSet generated_sets = 2;
-  ProposedSet next_up_set = 3;
-  WorkoutStateSnapshot state_snapshot = 4;
+// Move an exercise's remaining working sets to a new weight, in place,
+// and regenerate its pending warmups for it. Completed sets untouched.
+message AdjustExerciseWeightRequest {
+  string workout_id = 1;
+  Exercise exercise = 2;
+  float working_weight = 3; // lb
 }
 
+// Cancel an exercise's pending sets. Completed sets stay.
+message RemoveExerciseRequest {
+  string workout_id = 1;
+  Exercise exercise = 2;
+}
 
-
-
-
-
+// Reorder the exercise blocks. Exercises not listed keep their relative
+// order after the listed ones.
+message ReorderExercisesRequest {
+  string workout_id = 1;
+  repeated Exercise exercises = 2;
+}
 
 message StartSetRequest {
 
@@ -724,17 +675,6 @@ message GetActiveWorkoutResponse {
 
 
 
-message ReorderExerciseGroupsRequest {
-  string workout_id = 1;
-  repeated string exercise_group_ids = 2;
-}
-
-message ReorderExerciseGroupsResponse {
-  ProposedSet next_up_set = 1;
-  WorkoutStateSnapshot state_snapshot = 2;
-  repeated UserMessage user_messages = 3;
-}
-
 message WorkoutHeartRatePoint {
   int64 sampled_at = 1; // Unix milliseconds
   float bpm = 2;
@@ -767,9 +707,12 @@ message WorkoutMutation {
     CancelProposedSetRequest cancel_proposed_set = 12;
     DeleteCompletedSetRequest delete_completed_set = 13;
     EndWorkoutRequest end_workout = 14;
-    ReplaceExerciseGroupPlanRequest replace_exercise_group_plan = 15;
-    ReorderExerciseGroupsRequest reorder_exercise_groups = 16;
+    AddExercisesRequest add_exercises = 17;
+    AdjustExerciseWeightRequest adjust_exercise_weight = 18;
+    RemoveExerciseRequest remove_exercise = 19;
+    ReorderExercisesRequest reorder_exercises = 20;
   }
+  reserved 15, 16;
 }
 
 message AppendWorkoutMutationsRequest {
@@ -807,8 +750,10 @@ service WorkoutService {
   // Per-exercise progress series, everything precomputed (progress + detail).
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
 
-  rpc ReplaceExerciseGroupPlan(ReplaceExerciseGroupPlanRequest) returns (ReplaceExerciseGroupPlanResponse);
-  rpc ReorderExerciseGroups(ReorderExerciseGroupsRequest) returns (ReorderExerciseGroupsResponse);
+  rpc AddExercises(AddExercisesRequest) returns (WorkoutPlanResponse);
+  rpc AdjustExerciseWeight(AdjustExerciseWeightRequest) returns (WorkoutPlanResponse);
+  rpc RemoveExercise(RemoveExerciseRequest) returns (WorkoutPlanResponse);
+  rpc ReorderExercises(ReorderExercisesRequest) returns (WorkoutPlanResponse);
 
   rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);

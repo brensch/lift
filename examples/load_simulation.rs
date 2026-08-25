@@ -5,8 +5,8 @@ use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, multiplayer_service_client::MultiplayerServiceClient,
     settings_service_client::SettingsServiceClient, workout_mutation,
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
-    AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise, ExerciseGroup,
-    ExerciseTypeConfig, GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest,
+    AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise,
+    GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest,
     GetMyInviteTokenRequest, GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest,
     StartSetRequest, StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest,
     WorkoutHeartRatePoint, WorkoutMutation,
@@ -478,14 +478,14 @@ async fn run_user_simulation(
         random_sleep(500, 1500).await;
 
         // Start from the suggested template when there is one; fall back to
-        // the first template, then to an explicit group.
+        // the first template, then to an explicit exercise list.
         let template_id = if !home.suggested_template_id.is_empty() {
             home.suggested_template_id.clone()
         } else {
             home.templates.first().map(|t| t.id.clone()).unwrap_or_default()
         };
-        let start_groups = if template_id.is_empty() {
-            build_fallback_groups()
+        let start_exercises = if template_id.is_empty() {
+            vec![Exercise::Squat as i32, Exercise::BenchPress as i32]
         } else {
             Vec::new()
         };
@@ -497,7 +497,7 @@ async fn run_user_simulation(
             |c, req| Box::pin(c.start_workout(req)),
             StartWorkoutRequest {
                 name: "Simulated Workout".to_string(),
-                exercise_groups: start_groups,
+                exercises: start_exercises,
                 started_at: 0,
                 template_id,
             },
@@ -655,51 +655,6 @@ async fn run_user_simulation(
 async fn random_sleep(min_ms: u64, max_ms: u64) {
     let ms = rand::thread_rng().gen_range(min_ms..max_ms);
     tokio::time::sleep(Duration::from_millis(ms)).await;
-}
-
-fn build_fallback_groups() -> Vec<ExerciseGroup> {
-    vec![
-        ExerciseGroup {
-            id: uuid::Uuid::new_v4().to_string(),
-            workout_id: String::new(),
-            name: "Squat".to_string(),
-            sets: 3,
-            interleave_warmups: false,
-            workout_order: 0,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::Squat as i32,
-                start_weight: 135.0,
-                end_weight: 135.0,
-                reps: 5,
-                include_warmup: true,
-                last_set_amrap: false,
-                working_sets: vec![],
-                rest_config: None,
-            }],
-            instruction: String::new(),
-            rest_config: None,
-        },
-        ExerciseGroup {
-            id: uuid::Uuid::new_v4().to_string(),
-            workout_id: String::new(),
-            name: "Bench".to_string(),
-            sets: 3,
-            interleave_warmups: false,
-            workout_order: 1,
-            exercise_configs: vec![ExerciseTypeConfig {
-                exercise: Exercise::BenchPress as i32,
-                start_weight: 95.0,
-                end_weight: 95.0,
-                reps: 5,
-                include_warmup: true,
-                last_set_amrap: false,
-                working_sets: vec![],
-                rest_config: None,
-            }],
-            instruction: String::new(),
-            rest_config: None,
-        },
-    ]
 }
 
 fn spawn_session_poll(

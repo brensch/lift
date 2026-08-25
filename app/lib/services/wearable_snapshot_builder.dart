@@ -79,9 +79,7 @@ class WearableSnapshotBuilder {
       final proposed = liftingSnapshot.displaySet;
       final activeStartedAt = liftingSnapshot.activeStartedAt.toInt();
       final elapsed = activeStartedAt > 0 ? nowUnix - activeStartedAt : 0;
-      final liftLabel = proposed.warmup
-          ? 'Warmup'
-          : (proposed.isAmrap ? 'AMRAP' : 'Lifting');
+      final liftLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       youCard = WearStatusCard(
         sideLabel: 'YOU',
         stateLabel: liftLabel,
@@ -89,7 +87,7 @@ class WearableSnapshotBuilder {
         displaySet: proposed,
       );
       _applyGroupProgress(youCard, proposed, proposedSets);
-      final maxReps = proposed.isAmrap ? 30 : proposed.targetReps;
+      final maxReps = proposed.targetReps;
       for (var reps = 0; reps <= maxReps; reps++) {
         actions.add(
           WearAction(
@@ -230,14 +228,12 @@ class WearableSnapshotBuilder {
     ProposedSet displaySet,
     List<ProposedSet> proposedSets,
   ) {
-    final groupId = displaySet.exerciseGroupId;
-    if (groupId.isEmpty) return null;
     final groupSets =
         proposedSets
             .where(
               (set) =>
                   !set.cancelled &&
-                  set.exerciseGroupId == groupId &&
+                  set.exercise == displaySet.exercise &&
                   set.warmup == displaySet.warmup,
             )
             .toList()

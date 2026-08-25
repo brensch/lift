@@ -23,24 +23,20 @@ tracker, and the next start from any template resolves the new numbers.
 ```mermaid
 graph TD
     W["Workout<br/>id, name, start_time, end_time, session_id"]
-    EG["ExerciseGroup<br/>a block you do together"]
-    ETC["ExerciseTypeConfig<br/>one exercise within the group"]
     PS["ProposedSet<br/>what you should lift"]
     CS["CompletedSet<br/>what you did lift"]
 
-    W -->|"ordered by workout_order"| EG
-    EG -->|"1..n (supersets have >1)"| ETC
-    EG -->|"generate_sets_for_group"| PS
+    W -->|"ordered by workout_order"| PS
     PS -->|"0..1"| CS
 ```
 
-An **ExerciseGroup** is a block performed together — usually one exercise, but
-more than one `ExerciseTypeConfig` makes it a superset. Warmups can be
-*interleaved* across the group's exercises or run per-exercise, controlled by
-`interleave_warmups`.
+A workout is an ordered flat list of `ProposedSet`s; each set carries its
+exercise. "The sets for one exercise" is a *derived* block (grouped by
+exercise), computed where a card or sheet needs it — never stored. There is
+no group or superset structure.
 
-`generate_sets_for_group` (`src/workout/planning.rs`) expands a group into a flat
-ordered list of `ProposedSet`s: warmup sets first (or interleaved), then working
+`generate_sets_for_exercise` (`src/workout/planning.rs`) prescribes one
+exercise's block: the warmup ladder (where prescribed) then the working
 sets.
 
 ## Set state machine
@@ -83,16 +79,17 @@ sequenceDiagram
 
     App->>WS: StartWorkout(template_id)
     WS->>DB: template + trackers
-    WS->>WS: one group per exercise:<br/>tracker weight, prescription sets/reps/rest,<br/>layoff deload at resolution time
-    WS->>WS: generate_sets_for_group per group<br/>(warmup ladders for barbell compounds)
-    WS->>DB: insert_workout (+ template_id) + groups + proposed_sets
+    WS->>WS: one plan per exercise:<br/>tracker weight, prescription sets/reps/rest,<br/>layoff deload at resolution time
+    WS->>WS: generate_sets_for_exercise per plan<br/>(warmup ladders for barbell compounds)
+    WS->>DB: insert_workout (+ template_id) + proposed_sets
     WS->>DB: stamp session_id from user_current_session
     WS-->>App: StartWorkoutResponse (full state)
 ```
 
-A start with explicit `exercise_groups` (the "empty workout" path, and
-mid-workout additions via `ReplaceExerciseGroupPlan`) still works exactly as
-before; the template path just builds those groups server-side.
+A start with an explicit `exercises` list (the "empty workout" path) runs
+through the same prescription; mid-workout changes go through the four
+per-exercise ops: `AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`,
+`ReorderExercises`.
 
 ## Optimistic mutations
 
@@ -136,19 +133,15 @@ graph LR
     m --> t3["DeleteCompletedSet → apply_delete_completed_set_to_active"]
     m --> t4["CancelProposedSet → apply_cancel_proposed_set_to_active"]
     m --> t5["EndWorkout → set end_time"]
-    m --> t6["ReplaceExerciseGroupPlan → apply_replace_exercise_group_plan"]
-    m --> t7["ReorderExerciseGroups → apply_reorder_exercise_groups"]
+    m --> t6["AddExercises → apply_add_exercises"]
+    m --> t7["AdjustExerciseWeight → apply_adjust_exercise_weight"]
+    m --> t8["RemoveExercise → apply_remove_exercise"]
+    m --> t9["ReorderExercises → apply_reorder_exercises"]
 ```
 
 Each mutation carries a client-generated `event_id` for dedupe and an optional
 `client_created_at` so a queued action keeps its original timestamp rather than
 the time it was flushed.
-
-Every mutation is written to `workout_events` with an integer `event_type`
-(`StartSet = 2` … `ReorderExerciseGroups = 8`). These are **bare magic numbers in
-the handler**, not a named enum, and nothing reads the table back —
-`RehydrateWorkoutFromEvents` is unimplemented. See
-[backend.md](backend.md#not-implemented).
 
 After applying mutations the server calls `persist_workout_state`, which writes
 the whole workout back rather than diffing. Simple, and it means a partial
@@ -200,14 +193,7 @@ looks up `active_workout_current` and reloads the full workout with
 `load_workout_full`. State survives because every mutation persists a complete
 snapshot.
 
-Fields that are **not persisted** and are therefore lost on recovery:
-
-- `ProposedSet.is_amrap` and `ProposedSet.instruction`
-- `ExerciseGroup.instruction` (coaching text)
-
-These are populated when a proposal is converted into a workout and exist only
-in memory. After a crash, AMRAP markers and coaching text disappear from an
-in-progress workout even though the sets themselves are intact.
+Every `ProposedSet` field is persisted, so recovery is lossless.
 
 ## Where the logic lives
 

@@ -318,8 +318,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: 1_000,
+                    exercises: vec![],
                     template_id: lower.id.clone(),
                 },
             ))
@@ -408,8 +408,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: 1_000,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))
@@ -457,8 +457,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: 1_000,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))
@@ -529,8 +529,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: 1_000,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))
@@ -577,8 +577,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: long_ago,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))
@@ -617,8 +617,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: ts + 40 * day,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))
@@ -657,8 +657,8 @@ mod template_workout_loop {
                 &token,
                 StartWorkoutRequest {
                     name: String::new(),
-                    exercise_groups: vec![],
                     started_at: now_unix() - 3600,
+                    exercises: vec![],
                     template_id: legs.id.clone(),
                 },
             ))

@@ -1,4 +1,4 @@
-/// The full exercise list for the workout: reorderable groups, add-exercise affordance, connectors and hints.
+/// One row in the workout's exercise list: reorderable, tappable to edit.
 library;
 
 import 'dart:math' as math;
@@ -6,7 +6,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercise_groups.dart';
+import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
@@ -15,7 +15,7 @@ import '../../theme/app_theme.dart';
 class ExerciseListCard extends StatelessWidget {
   static const double height = 62;
 
-  final ExerciseGroupData group;
+  final ExerciseBlock block;
   final List<CompletedSet> completedSets;
   final bool completed;
   final bool draggable;
@@ -27,7 +27,7 @@ class ExerciseListCard extends StatelessWidget {
 
   const ExerciseListCard({
     super.key,
-    required this.group,
+    required this.block,
     this.completedSets = const [],
     required this.completed,
     required this.draggable,
@@ -37,7 +37,7 @@ class ExerciseListCard extends StatelessWidget {
 
   ProposedSet? _topWorkingSet() {
     ProposedSet? top;
-    for (final set in group.sets.where((set) => !set.warmup)) {
+    for (final set in block.workingSets) {
       if (top == null || set.targetWeight > top.targetWeight) {
         top = set;
       }
@@ -45,35 +45,29 @@ class ExerciseListCard extends StatelessWidget {
     return top;
   }
 
-  /// Completed vs total working *rounds* (a round is one set of every exercise,
-  /// so supersets count once per pass, not per exercise).
+  /// Completed vs total working sets.
   (int, int) _workingProgress() {
-    final rounds = group.rounds.where((r) => !r.isWarmup).toList();
+    final working = block.workingSets.toList();
     var done = 0;
-    for (final round in rounds) {
-      final allDone = round.sets.every(
-        (s) => completedSets.any(
-          (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-        ),
+    for (final set in working) {
+      final isDone = completedSets.any(
+        (c) => c.proposedSetId == set.id && c.endedAt != Int64.ZERO,
       );
-      if (allDone) done++;
+      if (isDone) done++;
     }
-    return (done, rounds.length);
+    return (done, working.length);
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final title =
-        group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
+    final title = exerciseNames[block.exercise] ?? 'Exercise';
     final topSet = _topWorkingSet();
     final weightLabel = topSet == null
         ? '—'
         : formatWeight(topSet.targetWeight.toDouble(), unit, includeUnit: true);
-    final repsLabel = topSet == null
-        ? null
-        : (topSet.isAmrap ? '${topSet.targetReps}+' : '${topSet.targetReps}');
+    final repsLabel = topSet == null ? null : '${topSet.targetReps}';
     final contentColor = completed ? AppTheme.successFg : colorScheme.onSurface;
 
     final body = Column(

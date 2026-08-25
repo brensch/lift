@@ -20,8 +20,7 @@ and is upserted, so it is a `_current` table despite the name.
 ```mermaid
 erDiagram
     users_current ||--o{ workouts : "has"
-    workouts ||--o{ exercise_groups : "contains"
-    exercise_groups ||--o{ proposed_sets : "generates"
+    workouts ||--o{ proposed_sets : "plans"
     proposed_sets ||--o| completed_sets : "logged as"
     workouts ||--o{ workout_heart_rate_samples : "records"
     users_current ||--o| active_workout_current : "points at"
@@ -41,26 +40,15 @@ erDiagram
         TEXT session_id "'' = solo"
         TEXT template_id "'' = started empty"
     }
-    exercise_groups {
-        TEXT id PK
-        TEXT workout_id FK
-        TEXT name
-        INTEGER workout_order
-        INTEGER interleave_warmups
-        TEXT instruction
-        BLOB exercise_configs_blob
-    }
     proposed_sets {
         TEXT id PK
         TEXT workout_id FK
-        TEXT exercise_group_id FK
         INTEGER workout_order
         INTEGER exercise "enum"
         INTEGER target_reps
         REAL target_weight
         INTEGER warmup
         INTEGER cancelled
-        INTEGER is_amrap
     }
     completed_sets {
         TEXT id PK

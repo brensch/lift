@@ -53,7 +53,7 @@ These are hand-maintained line-by-line ports, kept in sync only by golden tests.
 |---|---|---|
 | `logic/weight_units.dart` plate math (`snapLoadable`, `simplestLoadableNear`, `platesForSide`, …) | ~106 | `src/weight_units.rs` |
 | `logic/warmup.dart` (`generateWarmupDefs`, `rebuildExerciseSets`) | ~140 | `src/workout/planning.rs:31` / `:364` |
-| `logic/workout_plan_builder.dart` (materialize sets, interleave, rest, → ProposedSets) | ~265 | `src/workout/planning.rs` (`generate_sets_for_group`, `materialized_working_sets_for_config`) |
+| `logic/workout_plan_builder.dart` (deleted with the group model) | ~265 | `src/workout/planning.rs` (`generate_sets_for_exercise` + the four plan ops) |
 | `logic/plate_calculator.dart` | ~27 | `src/weight_units.rs:82` (`plates_per_side`) |
 | `logic/session_state.dart` next-to-lift / participant ordering | ~90 | `src/progress.rs` (`compute_next_up_set`), `src/server/support.rs` (`build_participant_status`) |
 | `screens/home/group_grid.dart` set/warmup materialization for the preview | ~70 | same planner |
@@ -68,8 +68,9 @@ does plate math. Then delete every row above.
 
 `logic/workout_reducer.dart` (~139) + the reducer methods in
 `providers/workout_provider.dart` (`_computeNextUpSet` `:408`, `_computeStateSnapshot`
-`:419`, `_applyLocalReplaceExerciseGroupPlan`, `_applyLocalReorderExerciseGroups`,
-`_rebuildExerciseGroupsCache`) re-implement `src/workout/reducer.rs` to update the
+`:419`, `_applyLocalAddExercises`, `_applyLocalAdjustExerciseWeight`,
+`_applyLocalRemoveExercise`, `_applyLocalReorderExercises`,
+`_rebuildBlocksCache`) re-implement `src/workout/reducer.rs` to update the
 UI **before** the server confirms.
 
 Crucially, **the server already returns `state_snapshot` + `next_up_set` on every

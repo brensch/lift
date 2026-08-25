@@ -5,16 +5,15 @@ import 'dart:async';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import '../../gen/workout/v1/group.pb.dart';
-import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercise_groups.dart';
+import '../../logic/exercise_blocks.dart';
 import '../../theme/app_theme.dart';
-import '../exercise_group_widget.dart';
+import '../exercise_block_widget.dart';
 
 Future<void> showParticipantWorkoutModal(
   BuildContext context,
   ParticipantStatus participant,
 ) async {
-  final groups = _buildParticipantExerciseGroups(participant);
+  final blocks = _participantBlocks(participant);
   final activeSetId = _participantActiveSetId(participant);
   final workoutEnded = _isParticipantWorkoutEnded(participant);
   final displayName = participant.user.name.isNotEmpty
@@ -70,7 +69,7 @@ Future<void> showParticipantWorkoutModal(
               ),
               const SizedBox(height: 12),
 
-              if (groups.isEmpty)
+              if (blocks.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
@@ -81,14 +80,14 @@ Future<void> showParticipantWorkoutModal(
               else
                 Column(
                   children: [
-                    for (var i = 0; i < groups.length; i++) ...[
-                      ExerciseGroupWidget(
-                        group: groups[i],
+                    for (var i = 0; i < blocks.length; i++) ...[
+                      ExerciseBlockWidget(
+                        block: blocks[i],
                         completedSets: participant.completedSets,
                         activeSetId: activeSetId,
                         isWorkoutEnded: workoutEnded,
                       ),
-                      if (i < groups.length - 1) const SizedBox(height: 8),
+                      if (i < blocks.length - 1) const SizedBox(height: 8),
                     ],
                   ],
                 ),
@@ -102,58 +101,10 @@ Future<void> showParticipantWorkoutModal(
   );
 }
 
-List<ExerciseGroupData> _buildParticipantExerciseGroups(
-  ParticipantStatus participant,
-) {
+List<ExerciseBlock> _participantBlocks(ParticipantStatus participant) {
   final proposedSets = participant.proposedSets.toList()
     ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-  if (proposedSets.isEmpty) return [];
-
-  if (participant.exerciseGroups.isEmpty) {
-    return groupSetsByExercise(proposedSets);
-  }
-
-  final groups = participant.exerciseGroups.toList()
-    ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-  final usedSetIds = <String>{};
-  final result = <ExerciseGroupData>[];
-
-  for (final group in groups) {
-    final groupSets = proposedSets
-        .where((s) => s.exerciseGroupId == group.id)
-        .toList();
-    if (groupSets.isEmpty) continue;
-    groupSets.sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
-    usedSetIds.addAll(groupSets.map((set) => set.id));
-    final exercise = group.exerciseConfigs.isNotEmpty
-        ? Exercise.valueOf(group.exerciseConfigs.first.exercise.value) ??
-              Exercise.EXERCISE_UNSPECIFIED
-        : groupSets.isNotEmpty
-        ? groupSets.first.exercise
-        : Exercise.EXERCISE_UNSPECIFIED;
-    final exercises = <Exercise>[];
-    for (final config in group.exerciseConfigs) {
-      final ex = Exercise.valueOf(config.exercise.value);
-      if (ex != null && !exercises.contains(ex)) exercises.add(ex);
-    }
-    result.add(
-      ExerciseGroupData(
-        exercise: exercise,
-        sets: groupSets,
-        group: group,
-        exercises: exercises,
-      ),
-    );
-  }
-
-  final leftover = proposedSets
-      .where((set) => !usedSetIds.contains(set.id))
-      .toList();
-  if (leftover.isNotEmpty) {
-    result.addAll(groupSetsByExercise(leftover));
-  }
-
-  return result;
+  return blocksFromSets(proposedSets);
 }
 
 String? _participantActiveSetId(ParticipantStatus participant) {

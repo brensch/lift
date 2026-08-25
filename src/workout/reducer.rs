@@ -29,7 +29,7 @@ pub(crate) fn workout_plan_change_stats_from_sets(
     }
 }
 
-pub(crate) fn is_final_set_in_exercise_group_after_completion(
+pub(crate) fn is_final_set_of_exercise_after_completion(
     proposed_set_id: &str,
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
@@ -41,12 +41,12 @@ pub(crate) fn is_final_set_in_exercise_group_after_completion(
         return false;
     };
 
-    let group_id = &current.exercise_group_id;
+    let exercise = current.exercise;
 
     !proposed_sets
         .iter()
         .filter(|set| {
-            set.exercise_group_id == *group_id && !set.cancelled && set.id != proposed_set_id
+            set.exercise == exercise && !set.cancelled && set.id != proposed_set_id
         })
         .any(|set| {
             !completed_sets
@@ -150,7 +150,6 @@ pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWor
     ));
     GetWorkoutResponse {
         workout: Some(active.workout.clone()),
-        exercise_groups: active.exercise_groups.clone(),
         proposed_sets: active.proposed_sets.clone(),
         completed_sets: active.completed_sets.clone(),
         next_up_set,
@@ -166,7 +165,6 @@ pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> Star
     StartWorkoutResponse {
         id: active.workout.id.clone(),
         workout: resp.workout,
-        exercise_groups: resp.exercise_groups,
         proposed_sets: resp.proposed_sets,
         completed_sets: resp.completed_sets,
         next_up_set: resp.next_up_set,
@@ -183,7 +181,6 @@ pub(crate) fn active_from_get_workout_response(
         .ok_or_else(|| WorkoutError::internal("Checkpoint missing workout"))?;
     Ok(ActiveWorkout::new(
         workout,
-        resp.exercise_groups,
         resp.proposed_sets,
         resp.completed_sets,
     ))
@@ -258,7 +255,7 @@ pub(crate) fn apply_complete_set_to_active(
     } else {
         now_unix()
     };
-    let is_final_set_in_group = is_final_set_in_exercise_group_after_completion(
+    let is_final_set_of_exercise = is_final_set_of_exercise_after_completion(
         &req.proposed_set_id,
         &workout_ref.proposed_sets,
         &workout_ref.completed_sets,
@@ -268,8 +265,8 @@ pub(crate) fn apply_complete_set_to_active(
     } else {
         proposed.rest_after_failure as i64
     };
-    if is_final_set_in_group {
-        rest_seconds = END_OF_EXERCISE_GROUP_REST_SECONDS;
+    if is_final_set_of_exercise {
+        rest_seconds = END_OF_EXERCISE_REST_SECONDS;
     }
     let rest_until = ended_at + rest_seconds;
     if let Some(existing_idx) = workout_ref.completed_sets.iter().position(|c| {
@@ -362,12 +359,9 @@ mod tests {
             target_reps: 5,
             target_weight: 135.0,
             warmup,
-            exercise_group_id: "g1".to_string(),
             rest_after_success: 180,
             rest_after_failure: 300,
             cancelled: false,
-            is_amrap: false,
-            instruction: String::new(),
         }
     }
 
@@ -381,17 +375,6 @@ mod tests {
                 session_id: String::new(),
                 ..Default::default()
             },
-            vec![ExerciseGroup {
-                id: "g1".to_string(),
-                workout_id: "w1".to_string(),
-                name: "Squat".to_string(),
-                sets: sets.iter().filter(|s| !s.warmup).count() as i32,
-                interleave_warmups: false,
-                workout_order: 0,
-                exercise_configs: vec![],
-                rest_config: None,
-                instruction: String::new(),
-            }],
             sets,
             vec![],
         )
@@ -511,9 +494,9 @@ mod tests {
     }
 
     #[test]
-    fn the_last_set_of_a_group_gets_the_short_between_group_rest() {
+    fn the_last_set_of_an_exercise_gets_the_short_between_exercise_rest() {
         // No point resting three minutes when the next thing is a different
-        // exercise — the final set of a group rests END_OF_EXERCISE_GROUP_REST_SECONDS.
+        // exercise — the final set of an exercise rests END_OF_EXERCISE_REST_SECONDS.
         let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
         complete(&mut active, "s1", 5, 2_000);
         complete(&mut active, "s2", 5, 2_300);
@@ -525,8 +508,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             last.rest_until,
-            2_300 + END_OF_EXERCISE_GROUP_REST_SECONDS,
-            "final set in the group should use the short rest"
+            2_300 + END_OF_EXERCISE_REST_SECONDS,
+            "the exercise's final set should use the short rest"
         );
     }
 

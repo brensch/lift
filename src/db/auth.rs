@@ -306,10 +306,6 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("DELETE FROM exercise_groups WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
         sqlx::query("DELETE FROM workouts WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -400,8 +396,7 @@ mod account_deletion_tests {
             ("auth_sessions", format!("(token, user_id, expires_at) VALUES ('{u}-tok', ?, 9999999999)")),
             ("passkey_credentials", format!("(credential_id, user_id, credential_json, created_at) VALUES ('{u}-cred', ?, '{{}}', 1)")),
             ("workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-w1', ?, 'W', 1)")),
-            ("exercise_groups", format!("(id, user_id, workout_id, name, workout_order) VALUES ('{u}-g1', ?, '{u}-w1', 'G', 0)")),
-            ("proposed_sets", format!("(id, user_id, workout_id, exercise_group_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', '{u}-g1', 0, 1, 5, 100.0)")),
+            ("proposed_sets", format!("(id, user_id, workout_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', 0, 1, 5, 100.0)")),
             ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
             ("active_workout_current", format!("(user_id, workout_id) VALUES (?, '{u}-w1')")),
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),

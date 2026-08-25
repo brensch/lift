@@ -174,13 +174,12 @@ class BigButton extends StatelessWidget {
 
 class RepButtons extends StatefulWidget {
   final int targetReps;
-  final bool isAmrap;
   final void Function(int reps) onComplete;
   final VoidCallback? onSkipWarmup;
 
-  const RepButtons({super.key, 
+  const RepButtons({
+    super.key,
     required this.targetReps,
-    this.isAmrap = false,
     required this.onComplete,
     this.onSkipWarmup,
   });

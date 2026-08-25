@@ -101,7 +101,6 @@ pub(super) fn build_participant_status(
                 .map(|w| w.id.clone())
                 .unwrap_or_default(),
             active_workout: resp.workout.clone(),
-            exercise_groups: resp.exercise_groups.clone(),
             proposed_sets: resp.proposed_sets.clone(),
             completed_sets: resp.completed_sets.clone(),
             next_up_set: resp.next_up_set.clone(),
@@ -113,7 +112,6 @@ pub(super) fn build_participant_status(
             user: Some(user),
             active_workout_id: String::new(),
             active_workout: None,
-            exercise_groups: Vec::new(),
             proposed_sets: Vec::new(),
             completed_sets: Vec::new(),
             next_up_set: None,

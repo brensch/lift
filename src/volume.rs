@@ -194,7 +194,6 @@ mod tests {
                 end_time: at,
                 ..Default::default()
             },
-            exercise_groups: Vec::new(),
             proposed_sets: proposed,
             completed_sets: completed,
         }

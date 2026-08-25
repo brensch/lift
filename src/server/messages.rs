@@ -24,7 +24,6 @@ pub(super) fn build_message(
         updated_at: now,
         workout_id: String::new(),
         source_workout_id: String::new(),
-        exercise_group_id: String::new(),
         exercise: Exercise::Unspecified as i32,
         slot_key: String::new(),
         details: None,
@@ -126,91 +125,55 @@ pub(super) fn build_progression_message(params: ProgressionMessage<'_>) -> UserM
     message
 }
 
-pub(super) fn exercise_group_slot_keys(group: &ExerciseGroup) -> Vec<String> {
-    let mut out = Vec::new();
-    for config in &group.exercise_configs {
-        let key = Exercise::try_from(config.exercise)
-            .unwrap_or(Exercise::Unspecified)
-            .as_str_name()
-            .to_ascii_lowercase();
-        if !key.is_empty() && !out.contains(&key) {
-            out.push(key);
-        }
-    }
-    out
-}
-
 pub(super) fn retarget_progression_message(message: &UserMessage) -> UserMessage {
     message.clone()
 }
 
+/// Pending briefing messages whose slot matches an exercise in the workout.
 pub(super) fn attachable_briefing_messages_for_workout(
     pending_messages: &[UserMessage],
-    groups: &[ExerciseGroup],
-) -> Vec<(String, String)> {
-    let mut attachments = Vec::new();
-    let mut seen = Vec::<String>::new();
-    for group in groups {
-        let slot_keys = exercise_group_slot_keys(group);
-        for message in pending_messages {
-            if seen.contains(&message.message_key) {
-                continue;
-            }
-            if !slot_keys.contains(&message.slot_key) {
-                continue;
-            }
-            attachments.push((message.message_key.clone(), group.id.clone()));
-            seen.push(message.message_key.clone());
-        }
-    }
-    attachments
+    exercises: &[i32],
+) -> Vec<String> {
+    let slot_keys: Vec<String> = exercises
+        .iter()
+        .map(|value| {
+            Exercise::try_from(*value)
+                .unwrap_or(Exercise::Unspecified)
+                .as_str_name()
+                .to_ascii_lowercase()
+        })
+        .collect();
+    pending_messages
+        .iter()
+        .filter(|message| slot_keys.contains(&message.slot_key))
+        .map(|message| message.message_key.clone())
+        .collect()
 }
 
 pub(super) fn session_messages_for_completed_set(
     workout_id: &str,
     proposed_set: &ProposedSet,
-    group_name: &str,
     actual_reps: i32,
-    _actual_weight: f32,
     ended_at: i64,
 ) -> Vec<UserMessage> {
     let mut out = Vec::new();
-    let hit_target = actual_reps >= proposed_set.target_reps;
-    let body = if proposed_set.is_amrap && actual_reps >= proposed_set.target_reps + 2 {
-        Some(format!(
-            "{} beat the AMRAP floor with {} reps in {}.",
-            exercise_display_name(proposed_set.exercise()),
-            actual_reps,
-            group_name
-        ))
-    } else if !hit_target {
-        Some(format!(
-            "{} finished at {} of {} reps in {}.",
-            exercise_display_name(proposed_set.exercise()),
-            actual_reps,
-            proposed_set.target_reps,
-            group_name
-        ))
-    } else {
-        None
-    };
-    let Some(body) = body else {
+    if actual_reps >= proposed_set.target_reps {
         return out;
-    };
+    }
     let mut message = build_message(
         format!("workout:{workout_id}:set:{}", proposed_set.id),
         UserMessageKind::SessionUpdate,
         UserMessageSurface::WorkoutFeed,
-        if hit_target {
-            "Top set pushed"
-        } else {
-            "Target missed"
-        },
-        body,
+        "Target missed",
+        format!(
+            "{} finished at {} of {} reps.",
+            exercise_display_name(proposed_set.exercise()),
+            actual_reps,
+            proposed_set.target_reps,
+        ),
     );
     message.workout_id = workout_id.to_string();
     message.source_workout_id = workout_id.to_string();
-    message.exercise_group_id = proposed_set.exercise_group_id.clone();
     message.exercise = proposed_set.exercise;
     message.updated_at = ended_at;
     out.push(message);
