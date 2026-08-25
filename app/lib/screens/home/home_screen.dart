@@ -250,7 +250,7 @@ class _EmptyWorkoutCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Empty workout',
+            "Don't tell me what to do",
             style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w900,
@@ -259,9 +259,8 @@ class _EmptyWorkoutCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "Don't tell me what to do — I'll add exercises as I go. "
-            'The app still brings the weights, sets and reps for '
-            'whatever you pick.',
+            "I'll add exercises as I go. The app still brings the "
+            'weights, sets and reps for whatever you pick.',
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
