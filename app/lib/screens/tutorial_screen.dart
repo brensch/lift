@@ -1,6 +1,8 @@
 /// The walkthrough: a swipeable carousel of the app's key pieces, built
-/// from the real widgets with sample data — not screenshots. Shown once
-/// on first arrival at home, and replayable from the menu ("Tutorial").
+/// from the real widgets with sample data. Each page annotates its widget
+/// with short callout labels connected by hairlines — spec-sheet style —
+/// instead of paragraphs. Shown once on first arrival at home, and
+/// replayable from the menu ("Tutorial").
 library;
 
 import 'package:fixnum/fixnum.dart';
@@ -9,6 +11,8 @@ import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../theme/app_theme.dart';
+import '../widgets/workout_bar/bar_controls.dart';
+import '../widgets/workout_status_box.dart';
 import 'home/home_screen.dart';
 import 'science_screen.dart';
 
@@ -110,11 +114,13 @@ class _TutorialScreenState extends State<TutorialScreen> {
     return [
       _TutorialPage(
         title: 'Your muscles, tracked',
-        body:
-            'Every hard set you do is counted per muscle across a '
-            'rolling week. Aim for the band — 10 to 20 sets per muscle '
-            'per week is what maximises growth. The tick marks 10; a '
-            'chip like "14h" means that muscle is still recovering.',
+        above: const [
+          _Callout('HARD SETS THIS WEEK · AIM FOR THE BAND', 0.62),
+        ],
+        below: const [
+          _Callout('YELLOW = STILL RECOVERING', 0.18),
+          _Callout('✓ = ENOUGH VOLUME', 0.88),
+        ],
         child: VolumeCard(
           volume: _sampleVolume(),
           recovery: _sampleRecovery(),
@@ -126,11 +132,12 @@ class _TutorialScreenState extends State<TutorialScreen> {
       ),
       _TutorialPage(
         title: 'Pick a workout',
-        body:
-            'Your workouts are templates — just lists of exercises. Tap '
-            'a chip to see one; the ★ marks what we suggest based on '
-            'which muscles are furthest behind this week. "Empty" is for '
-            'making it up as you go, and "New" builds your own.',
+        above: const [
+          _Callout('★ = SUGGESTED TODAY', 0.14),
+        ],
+        below: const [
+          _Callout('TAP TO SELECT · TEMPLATES ARE YOURS TO EDIT', 0.5),
+        ],
         child: Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -160,12 +167,14 @@ class _TutorialScreenState extends State<TutorialScreen> {
         ),
       ),
       _TutorialPage(
-        title: 'We bring the numbers',
-        body:
-            'Weight, sets, reps, rest — all handled, for every exercise. '
-            'The 🔥 lifts get a warmup ladder. If a weight is wrong, '
-            'tap the exercise mid-workout and nudge it up or down; '
-            'everything else stays prescribed.',
+        title: 'The numbers are handled',
+        above: const [
+          _Callout('SETS × REPS @ WEIGHT — ALL PRESCRIBED', 0.6),
+        ],
+        below: const [
+          _Callout('\u{1F525} = WARMUPS INCLUDED', 0.14),
+          _Callout('START FROM HERE', 0.85),
+        ],
         child: IgnorePointer(
           child: SelectedTemplateCard(
             template: _sampleTemplate(),
@@ -182,57 +191,143 @@ class _TutorialScreenState extends State<TutorialScreen> {
       ),
       _TutorialPage(
         title: 'During the workout',
-        body:
-            'The bar at the bottom always shows your current set: the '
-            'weight to load, the reps to hit. Lift, tap done, and the '
-            'rest timer runs — go again when it says go. Stop 1–2 reps '
-            'before failure.',
-        child: _SampleSetBar(),
+        above: const [
+          _Callout('YOUR CURRENT SET — WEIGHT AND REPS TO HIT', 0.55),
+        ],
+        below: const [
+          _Callout('ELAPSED · HEART RATE', 0.16),
+          _Callout('TAP WHEN THE SET IS DONE', 0.7),
+        ],
+        child: const _RealBottomBarSample(),
       ),
       _TutorialPage(
         title: 'Progress happens by itself',
-        body:
-            'Clear every set and next time asks for one more rep. Top '
-            'the rep range and the weight goes up a notch. Struggle '
-            'twice and we back off 10% so you can build back stronger. '
-            'You lift; the app remembers.',
-        child: Center(
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ScienceScreen(),
+        above: const [
+          _Callout('CLEAR EVERY SET → +1 REP', 0.3),
+        ],
+        below: const [
+          _Callout('TOP OF THE RANGE → +WEIGHT, REPS RESET', 0.62),
+        ],
+        footer: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ScienceScreen(),
+                ),
               ),
-            ),
-            icon: const Text('🧠', style: TextStyle(fontSize: 15)),
-            label: const Text(
-              'READ THE PAPERS',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              icon: const Text('🧠', style: TextStyle(fontSize: 15)),
+              label: const Text(
+                'READ THE PAPERS',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ),
+        child: const _ProgressionDiagram(),
       ),
     ];
   }
 }
 
-class _TutorialPage extends StatelessWidget {
-  final String title;
-  final String body;
-  final Widget child;
+// ── Callout system ───────────────────────────────────────────────────────────
 
-  const _TutorialPage({
-    required this.title,
-    required this.body,
-    required this.child,
-  });
+/// A short annotation anchored at a horizontal fraction (0..1) of the
+/// page's widget, connected to it by a hairline and a dot.
+class _Callout {
+  final String label;
+  final double x;
+  const _Callout(this.label, this.x);
+}
+
+/// One layer of callouts above or below the widget: labels on the far
+/// row, a 1px connector dropping to (or rising from) the widget edge.
+class _CalloutLayer extends StatelessWidget {
+  final List<_Callout> callouts;
+  final bool below;
+  const _CalloutLayer({required this.callouts, required this.below});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final lineColor = cs.outline.withValues(alpha: 0.8);
+    return SizedBox(
+      height: 46,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          for (final callout in callouts) ...[
+            Align(
+              alignment: Alignment(callout.x * 2 - 1, below ? 1 : -1),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: Text(
+                  callout.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    height: 1.25,
+                    color: cs.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment(callout.x * 2 - 1, below ? -1 : 1),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (below)
+                    _dot()
+                  else
+                    Container(width: 1, height: 12, color: lineColor),
+                  if (below)
+                    Container(width: 1, height: 12, color: lineColor)
+                  else
+                    _dot(),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _dot() => Container(
+        width: 4,
+        height: 4,
+        decoration: const BoxDecoration(
+          color: AppTheme.accentGreen,
+          shape: BoxShape.circle,
+        ),
+      );
+}
+
+class _TutorialPage extends StatelessWidget {
+  final String title;
+  final List<_Callout> above;
+  final List<_Callout> below;
+  final Widget child;
+  final Widget? footer;
+
+  const _TutorialPage({
+    required this.title,
+    required this.child,
+    this.above = const [],
+    this.below = const [],
+    this.footer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             title,
@@ -242,101 +337,145 @@ class _TutorialPage extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: cs.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
+          if (above.isNotEmpty) _CalloutLayer(callouts: above, below: false),
           child,
+          if (below.isNotEmpty) _CalloutLayer(callouts: below, below: true),
+          ?footer,
         ],
       ),
     );
   }
 }
 
-/// A faithful miniature of the in-workout bottom bar, built from the
-/// app's own primitives (provider-free so the tutorial can render it).
-class _SampleSetBar extends StatelessWidget {
+// ── Page 4: the real bottom bar, solo layout ─────────────────────────────────
+
+/// The in-workout bottom bar, assembled from the SAME widgets the live bar
+/// uses (StatusBox, TimerHeartBox, BigButton) in its solo layout — only
+/// the data is a sample and the buttons do nothing.
+class _RealBottomBarSample extends StatelessWidget {
+  const _RealBottomBarSample();
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.panelDark,
-        borderRadius: AppTheme.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        color: cs.secondary,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border(
+          top: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+          left: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+          right: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+        ),
       ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'UP NEXT · SET 2 OF 3',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-              color: cs.tertiary,
-            ),
+          StatusBox(
+            sideLabel: 'YOU',
+            sideBadge: '🦆',
+            stateLabel: 'Next up',
+            color: Theme.of(context).colorScheme.tertiary,
+            set: _sampleSet(),
+            sideLabelWidth: 44,
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Barbell Row',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              const Text(
-                '115',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  height: 1.0,
-                ),
+            children: const [
+              TimerHeartBox(
+                elapsedText: '23:41',
+                heartRateText: '128',
+                heartRateDetected: true,
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 3),
-                child: Text(
-                  'lb × 8 reps',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface.withValues(alpha: 0.6),
-                  ),
+              SizedBox(width: 8),
+              Expanded(
+                child: IgnorePointer(
+                  child: BigButton(label: 'Start Set', onPressed: _noop),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: FilledButton(
-              onPressed: null,
-              style: FilledButton.styleFrom(
-                disabledBackgroundColor: AppTheme.accentGreen,
-                disabledForegroundColor: const Color(0xFF0A0A0A),
-              ),
-              child: const Text(
-                'DONE — LOG SET',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ),
         ],
       ),
+    );
+  }
+
+  static void _noop() {}
+}
+
+// ── Page 5: the progression rule as a diagram ────────────────────────────────
+
+class _ProgressionDiagram extends StatelessWidget {
+  const _ProgressionDiagram();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Widget step(String weight, String reps, {bool highlight = false}) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: highlight
+              ? AppTheme.accentGreen.withValues(alpha: 0.12)
+              : cs.surfaceContainerLowest,
+          borderRadius: AppTheme.brMd,
+          border: Border.all(
+            color: highlight
+                ? AppTheme.accentGreen.withValues(alpha: 0.5)
+                : cs.outline.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              weight,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              reps,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget arrow() => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Icon(
+            Icons.arrow_forward_rounded,
+            size: 16,
+            color: cs.onSurface.withValues(alpha: 0.4),
+          ),
+        );
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        step('135 lb', '3 × 6'),
+        arrow(),
+        step('135 lb', '3 × 7'),
+        arrow(),
+        step('140 lb', '3 × 6', highlight: true),
+      ],
     );
   }
 }
 
 // ── Sample data (never touches the network) ──────────────────────────────────
+
+ProposedSet _sampleSet() => ProposedSet()
+  ..id = 'sample'
+  ..exercise = Exercise.EXERCISE_BARBELL_ROW
+  ..targetReps = 6
+  ..targetWeight = 115;
 
 WorkoutTemplate _sampleTemplate({String name = 'Pull', String id = 't1'}) {
   return WorkoutTemplate()

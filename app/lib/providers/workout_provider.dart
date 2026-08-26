@@ -83,9 +83,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ProposedSet? _backendNextUpSet;
   WorkoutStateSnapshot? _stateSnapshot;
   GetHomeResponse? _home;
-  List<UserMessage> _scheduleMessages = [];
   TemplateUpdateSuggestion? _pendingTemplateUpdate;
-  List<UserMessage> _workoutMessages = [];
   final List<HeartRateSample> _wearHeartRateSamples = [];
   final Set<String> _wearHeartRateBatchIds = <String>{};
   final Set<int> _wearHeartRateSampleTimestamps = <int>{};
@@ -367,17 +365,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _applyWorkoutResponse(GetWorkoutResponse response) {
-    final isSameWorkout = _activeWorkout?.id == response.workout.id;
     _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
     _activeWorkout = response.workout;
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
-    // Keep the workout's messages sticky for the duration of a session: a
-    // mid-workout refresh that returns no messages should not wipe the ones we
-    // already have (only replace when we get a fresh set, or switch workouts).
-    if (response.userMessages.isNotEmpty || !isSameWorkout) {
-      _workoutMessages = List<UserMessage>.from(response.userMessages);
-    }
     // Authoritative state comes from the server — never recomputed locally.
     _sortState();
     _backendNextUpSet = response.hasNextUpSet() ? response.nextUpSet : null;
@@ -561,7 +552,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   GetHomeResponse? get home => _home;
   List<WorkoutTemplate> get templates => _home?.templates ?? const [];
   List<ExerciseTracker> get trackers => _home?.trackers ?? const [];
-  List<UserMessage> get scheduleMessages => _scheduleMessages;
 
   /// The resolved tracker for one exercise. GetHome returns one for every
   /// exercise, so this only misses before the first home load.
@@ -583,8 +573,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> refreshHome() async {
     try {
       _home = await _service.getHome();
-      _scheduleMessages =
-          List<UserMessage>.from(_home?.userMessages ?? const []);
       notifyListeners();
     } catch (e) {
       AppLogger.instance.warn('Workout', 'refreshHome failed', {
@@ -625,7 +613,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
-  List<UserMessage> get workoutMessages => _workoutMessages;
 
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
@@ -879,14 +866,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _activeWorkout = null;
         _activeProposedSets = [];
         _activeCompletedSets = [];
-        _workoutMessages = [];
         _backendNextUpSet = null;
         _applyStateSnapshot(null);
         _stopTimer();
       }
 
       _home = await _service.getHome();
-      _scheduleMessages = List<UserMessage>.from(_home?.userMessages ?? const []);
       _loadWorkoutRetryScheduled = false;
       await _persistLocalCache();
     } catch (e) {
@@ -971,7 +956,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         exercises: exercises,
       );
       _applyStartWorkoutResponse(response);
-      _workoutMessages = List<UserMessage>.from(response.userMessages);
       await _persistLocalCache();
       notifyListeners();
       if (response.id.isNotEmpty) return response.id;
@@ -1444,7 +1428,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final ended = response.workout;
       _pendingTemplateUpdate = _computeTemplateUpdateSuggestion(ended);
       _activeWorkout = ended;
-      _workoutMessages = List<UserMessage>.from(response.userMessages);
       _pendingMutations.clear();
       _stopTimer();
       await _persistLocalCache();
@@ -1464,20 +1447,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> dismissUserMessages(List<String> messageKeys) async {
-    if (messageKeys.isEmpty) return;
-    try {
-      final dismissed = await _service.dismissUserMessages(messageKeys);
-      if (dismissed.isEmpty) return;
-      final dismissedSet = dismissed.toSet();
-      _scheduleMessages.removeWhere((m) => dismissedSet.contains(m.messageKey));
-      _workoutMessages.removeWhere((m) => dismissedSet.contains(m.messageKey));
-      await _persistLocalCache();
-      notifyListeners();
-    } catch (e) {
-      _handleError(e);
-    }
-  }
 
   void _writeToHealthPlatform(Workout workout) async {
     try {

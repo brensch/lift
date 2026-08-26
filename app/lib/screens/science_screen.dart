@@ -23,10 +23,9 @@ class ScienceScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
           Text(
-            'Schlift trains you for muscle growth. Every number it '
-            'prescribes — sets, reps, rest, weight — comes from the '
-            'hypertrophy research below, filtered through one rule: keep '
-            'it simple enough that you actually do it.',
+            'Schlift trains you for muscle growth. Every number — sets, '
+            'reps, rest, weight — comes from the research below. One '
+            'rule filters it all: keep it simple enough that you do it.',
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
@@ -36,14 +35,11 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Weekly volume: 10–20 sets per muscle',
             body:
-                'The clearest dose-response finding in hypertrophy '
-                'research: more weekly hard sets grow more muscle, with '
-                'diminishing returns. Meta-analysis puts 10+ weekly sets '
-                'per muscle clearly ahead of fewer, and most additional '
-                'benefit fades past ~20. That is the band on the home '
-                'screen. A set counts 1.0 for the muscle that drives the '
-                'movement and 0.5 for each muscle that assists — a common '
-                'convention for counting indirect volume.',
+                'More weekly hard sets grow more muscle, up to a limit. '
+                'Ten or more sets per muscle clearly beat fewer. The '
+                'benefit fades past about twenty. That is the band on the '
+                'home screen. A set counts 1.0 for the muscle that drives '
+                'the movement and 0.5 for each helper.',
             citations: [
               _Citation(
                 'Schoenfeld, Ogborn & Krieger (2017) — dose-response of '
@@ -60,12 +56,10 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Effort: stop 1–2 reps before failure',
             body:
-                'Sets only count if they are hard. Training close to '
-                'failure produces similar growth to training to absolute '
-                'failure, with less fatigue to recover from — so the '
-                'prescription assumes you stop with about 1–2 clean reps '
-                'left. If you finish a set knowing you had 5 more, it was '
-                'a warmup.',
+                'Sets only count if they are hard. Stop each set with '
+                '1–2 clean reps left. That grows muscle like full failure '
+                'does, with less fatigue. If you had 5 more reps in you, '
+                'it was a warmup.',
             citations: [
               _Citation(
                 'Grgic et al. (2022) — training to failure vs not, '
@@ -77,13 +71,9 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Rep ranges: 6–10, 8–12, 10–15',
             body:
-                'Muscle grows across a wide load range — light and heavy '
-                'sets produce similar hypertrophy when effort is matched. '
-                'Rep ranges are therefore chosen for practicality, not '
-                'magic: 6–10 on barbell compounds (heavy enough to '
-                'progress load cleanly, light enough to keep form), 8–12 '
-                'on other compounds, 10–15 on isolation work where tiny '
-                'weight increments are impossible, and 10–20 for core.',
+                'Effort decides growth, not the exact load. The ranges '
+                'are practical: 6–10 on barbell compounds, 8–12 on other '
+                'compounds, 10–15 on isolation, 10–20 on core.',
             citations: [
               _Citation(
                 'Schoenfeld et al. (2017) — low- vs high-load training, '
@@ -95,15 +85,12 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Rest: 3:00 / 2:30 / 2:00 / 1:30 / 1:00',
             body:
-                'Longer rest beats short rest for growth — cutting rest '
-                'cuts the weight you can lift on the next set, which cuts '
-                'the stimulus. Three minutes outperformed one minute for '
-                'both size and strength. Schlift spends rest where it '
-                'pays: 3:00 on barbell lifts that load the lower body '
-                '(squats, hinges — they tax the whole system), 2:30 on '
+                'Short rest cuts your next set, which cuts growth. Three '
+                'minutes beat one minute in trials. Rest goes where it '
+                'pays: 3:00 on lower-body barbell lifts, 2:30 on '
                 'upper-body barbell lifts, 2:00 on other compounds, 1:30 '
-                'on isolation, 1:00 on core. The timer is advisory — '
-                'starting early is always allowed.',
+                'on isolation, 1:00 on core. Starting early is always '
+                'allowed.',
             citations: [
               _Citation(
                 'Schoenfeld et al. (2016) — 3 min vs 1 min rest, '
@@ -120,15 +107,11 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Progression: reps first, then load',
             body:
-                'Progressive overload is the engine of adaptation, but '
-                '"overload" includes reps, not just weight. Schlift uses '
-                'double progression: clear every set and the rep target '
-                'climbs; top the rep range on every set and the weight '
-                'takes one small equipment step while reps reset to the '
-                'bottom. Adding reps at a fixed load grows muscle about '
-                'as well as adding load — so the app progresses whichever '
-                'is available, and a mid-session weight change counts, '
-                'because progression follows what you actually lifted.',
+                'Clear every set and the rep target climbs by one. Top '
+                'the range on every set and the weight takes one small '
+                'step while reps reset. Adding reps grows muscle about as '
+                'well as adding load. Progression always follows what you '
+                'actually lifted.',
             citations: [
               _Citation(
                 'Plotkin et al. (2022) — load progression vs repetition '
@@ -144,26 +127,19 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Misses and deloads',
             body:
-                'One missed session holds the weight — everyone has bad '
-                'days. Two misses in a row on the same exercise drops it '
-                '10% and rebuilds through the rep range. This is standard '
-                'autoregulation practice rather than the finding of a '
-                'specific trial: grinding a stuck weight forever is how '
-                'progress (and enthusiasm) dies.',
+                'Miss once and the weight holds — everyone has bad days. '
+                'Miss twice in a row and the weight drops 10%, then '
+                'rebuilds through the rep range. Grinding a stuck weight '
+                'forever is how progress dies.',
             citations: [],
           ),
           const _Section(
             title: 'Recovery windows: 48 / 36 / 24 hours',
             body:
-                'Muscle protein synthesis stays elevated for roughly '
-                '24–48 hours after training, and meta-analysis finds '
-                'frequency itself matters little once weekly volume is '
-                'matched — so the windows exist to spread quality work, '
-                'not to gate you. Schlift marks big muscles (chest, back, '
-                'legs, glutes) ready after ~48 h, arms and delts after '
-                '~36 h, calves and core after ~24 h. Training a muscle '
-                'early is allowed; the amber marker just tells you it '
-                'may not be at full strength.',
+                'Muscle rebuilds for roughly 24–48 hours after training. '
+                'Big muscles show ready after ~48 h, arms and delts after '
+                '~36 h, calves and core after ~24 h. Training early is '
+                'allowed. The amber marker is information, not a gate.',
             citations: [
               _Citation(
                 'MacDougall et al. (1995) — muscle protein synthesis '
@@ -180,33 +156,23 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Warmups',
             body:
-                'Barbell compounds get a four-step ladder (roughly '
-                '40/55/70/85% of the working weight) because walking up '
-                'to a heavy squat cold is how injuries happen. Isolation '
-                'and machine work starts light enough that the first '
-                'working set is its own preparation. This is standard '
-                'practice; the exact percentages are convention, chosen '
-                'to land on plates you can actually load.',
+                'Barbell compounds get four warmup sets at roughly '
+                '40/55/70/85% of the working weight. Walking up to a '
+                'heavy bar cold is how injuries happen. Light isolation '
+                'work needs none — the first set is its own warmup.',
             citations: [],
           ),
           const _Section(
             title: 'Starting weights, and what gender changes',
             body:
-                'First-session weights are seeded from your bodyweight, '
-                'experience and gender. The gender part follows the '
-                'measured population differences: at the same bodyweight, '
-                'women average roughly half to two-thirds of men\u2019s '
-                'upper-body strength but a clearly smaller gap in the '
-                'lower body — so Schlift scales the upper-body barbell '
-                'seeds to ~60% and the lower-body seeds to ~75%, and '
-                'skipping the question splits the difference. That is '
-                'ALL gender changes. Sets, reps, rest, the volume band '
-                'and the progression rule are identical, on purpose: '
-                'relative gains from resistance training are similar '
-                'between sexes, so the program does not need to differ — '
-                'only the starting guess does. Every seed is '
-                'conservative and temporary: double progression finds '
-                'your real weight within a couple of sessions.',
+                'First weights are seeded from bodyweight, experience '
+                'and gender. At the same bodyweight, women average ~52% '
+                'of men\u2019s upper-body strength and ~66% lower-body. So '
+                'upper-body seeds scale to ~60% and lower-body to ~75%. '
+                'Gender changes nothing else — relative gains are similar '
+                'between sexes, so the program is identical. The seed is '
+                'only a guess: progression finds your real weight in 2–3 '
+                'sessions.',
             citations: [
               _Citation(
                 'Miller et al. (1993) — sex differences in strength: '
@@ -233,11 +199,10 @@ class ScienceScreen extends StatelessWidget {
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             ),
             child: Text(
-              'Honesty note: effect sizes in this literature are modest, '
-              'many studies are short, and the differences between good '
-              'programs are small. The variable that dominates every '
-              'other is whether you keep showing up — which is why '
-              'Schlift optimises for simplicity first.',
+              'Honesty note: effect sizes in this research are modest '
+              'and most studies are short. Good programs differ little. '
+              'The one variable that beats all others is showing up — '
+              'that is why Schlift optimises for simplicity.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,

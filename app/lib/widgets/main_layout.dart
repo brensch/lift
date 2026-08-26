@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/maths_screen.dart';
 import '../screens/science_screen.dart';
 import '../screens/tutorial_screen.dart';
 import 'package:fixnum/fixnum.dart';
@@ -150,13 +151,27 @@ class MainLayout extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       _MenuButton(
-                        emoji: '🧠',
+                        icon: Icons.psychology_outlined,
                         label: 'Papers',
                         onTap: () {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute<void>(
                               builder: (_) => const ScienceScreen(),
+                            ),
+                          );
+                        },
+                        isActive: false,
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
+                        icon: Icons.functions_outlined,
+                        label: 'Maths',
+                        onTap: () {
+                          Navigator.pop(context); // close the menu
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MathsScreen(),
                             ),
                           );
                         },
@@ -346,17 +361,14 @@ class MainLayout extends StatelessWidget {
 }
 
 class _MenuButton extends StatelessWidget {
-  final IconData? icon;
-  /// Rendered instead of [icon] when set (e.g. 🧠).
-  final String? emoji;
+  final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool isActive;
   final Color? color;
 
   const _MenuButton({
-    this.icon,
-    this.emoji,
+    required this.icon,
     required this.label,
     required this.onTap,
     required this.isActive,
@@ -378,21 +390,11 @@ class _MenuButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              if (emoji != null)
-                SizedBox(
-                  width: 20,
-                  child: Text(
-                    emoji!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, height: 1.0),
-                  ),
-                )
-              else
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isActive ? colorScheme.onPrimary : effectiveColor,
-                ),
+              Icon(
+                icon,
+                size: 20,
+                color: isActive ? colorScheme.onPrimary : effectiveColor,
+              ),
               const SizedBox(width: 16),
               Text(
                 label,
