@@ -15,7 +15,6 @@ Future<void> showParticipantWorkoutModal(
 ) async {
   final blocks = _participantBlocks(participant);
   final activeSetId = _participantActiveSetId(participant);
-  final workoutEnded = _isParticipantWorkoutEnded(participant);
   final displayName = participant.user.name.isNotEmpty
       ? participant.user.name
       : participant.user.id;
@@ -85,7 +84,6 @@ Future<void> showParticipantWorkoutModal(
                         block: blocks[i],
                         completedSets: participant.completedSets,
                         activeSetId: activeSetId,
-                        isWorkoutEnded: workoutEnded,
                       ),
                       if (i < blocks.length - 1) const SizedBox(height: 8),
                     ],
@@ -114,9 +112,4 @@ String? _participantActiveSetId(ParticipantStatus participant) {
     }
   }
   return null;
-}
-
-bool _isParticipantWorkoutEnded(ParticipantStatus participant) {
-  if (!participant.hasActiveWorkout()) return true;
-  return participant.activeWorkout.endTime != Int64.ZERO;
 }

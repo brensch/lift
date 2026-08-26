@@ -135,6 +135,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // The local apply gives instant feedback; the server response (with the
   // authoritative plan, warmups included) replaces it a beat later.
 
+  /// How many working sets an optimistic add plans for one exercise. The
+  /// SAME formula generates the client set ids in addPrescribedExercises —
+  /// if they diverge, the ids misalign with the sets.
+  int _prescribedSetCount(Exercise exercise) =>
+      (trackerFor(exercise)?.sets ?? 3).clamp(1, 10);
+
   void _applyLocalAddExercises(
     List<Exercise> exercises,
     List<String> workingSetIds,
@@ -148,7 +154,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     var idIndex = 0;
     for (final exercise in exercises) {
       final tracker = trackerFor(exercise);
-      final count = (tracker?.sets ?? 3).clamp(1, 10);
+      final count = _prescribedSetCount(exercise);
       for (var i = 0; i < count; i++) {
         final id = idIndex < workingSetIds.length
             ? workingSetIds[idIndex++]
@@ -162,6 +168,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             ..workoutId = workout.id
             ..workoutOrder = order++
             ..exercise = exercise
+            // Fallbacks mirror DEFAULT_*_REST_SECONDS and the 8-12 range
+            // bottom in src/workout/planning.rs / exercise_catalog.rs.
             ..targetReps = tracker?.targetReps ?? 8
             ..targetWeight = tracker?.workingWeight ?? 0
             ..restAfterSuccess =
@@ -364,7 +372,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _activeWorkout = response.workout;
     _activeProposedSets = List.from(response.proposedSets);
     _activeCompletedSets = List.from(response.completedSets);
-    // Keep the schplanner explanation sticky for the duration of a workout: a
+    // Keep the workout's messages sticky for the duration of a session: a
     // mid-workout refresh that returns no messages should not wipe the ones we
     // already have (only replace when we get a fresh set, or switch workouts).
     if (response.userMessages.isNotEmpty || !isSameWorkout) {
@@ -1142,7 +1150,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// stored target time (endedAt + rest), not a per-request server value. Mirrors
   /// `complete_set` in `src/workout/reducer.rs`: the rest *durations* are
   /// server-provided on the proposed set (`restAfterSuccess`/`restAfterFailure`);
-  /// the last set in a group uses the end-of-group rest. The server reconciles
+  /// an exercise's final set uses the short end-of-exercise rest. The server reconciles
   /// with an identical target when the mutation lands.
   static const int _endOfExerciseRestSeconds = 60; // END_OF_EXERCISE_REST_SECONDS
 
@@ -1320,8 +1328,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     // reconcile when the queued mutation lands. Warmups are server-only.
     final workingSetIds = <String>[
       for (final exercise in exercises)
-        for (var i = 0; i < (trackerFor(exercise)?.sets ?? 3).clamp(1, 10); i++)
-          _uuid.v4(),
+        for (var i = 0; i < _prescribedSetCount(exercise); i++) _uuid.v4(),
     ];
     _applyLocalAddExercises(exercises, workingSetIds);
     _queueMutation(

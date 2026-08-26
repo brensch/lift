@@ -8,22 +8,19 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 
+/// Read-only view of one exercise's block of sets — used for looking at a
+/// session partner's workout. Your own workout renders through
+/// ExerciseListCard / CurrentExerciseCard instead.
 class ExerciseBlockWidget extends StatefulWidget {
   final ExerciseBlock block;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
-  final bool isWorkoutEnded;
-  final VoidCallback? onEdit;
-  final int? dragIndex; // null = not draggable (completed block)
 
   const ExerciseBlockWidget({
     super.key,
     required this.block,
     required this.completedSets,
     this.activeSetId,
-    required this.isWorkoutEnded,
-    this.onEdit,
-    this.dragIndex,
   });
 
   @override
@@ -34,30 +31,6 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
   static const _activeLiftFg = AppTheme.workoutLiftingFg;
   static const _activeLiftBg = AppTheme.workoutLiftingBg;
   bool _isManualExpanded = false;
-
-  Widget _iconActionButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      shape: RoundedRectangleBorder(borderRadius: AppTheme.brSm),
-      child: InkWell(
-        borderRadius: AppTheme.brSm,
-        onTap: onTap,
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: Icon(
-            icon,
-            size: 18,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.9),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -244,15 +217,6 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    if (!widget.isWorkoutEnded &&
-                                        widget.onEdit != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 8),
-                                        child: _iconActionButton(
-                                          icon: Icons.edit_outlined,
-                                          onTap: widget.onEdit!,
-                                        ),
-                                      ),
                                   ],
                                 ),
                                 Text(
@@ -298,7 +262,7 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                 ),
               ),
 
-              // Right panel: collapse for completed, drag handle for others
+              // Right panel: collapse toggle for completed blocks.
               if (allCompleted)
                 GestureDetector(
                   onTap: () => setState(() => _isManualExpanded = false),
@@ -320,27 +284,6 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                     ),
                   ),
                 )
-              else if (!widget.isWorkoutEnded && widget.dragIndex != null)
-                ReorderableDragStartListener(
-                  index: widget.dragIndex!,
-                  child: Container(
-                    width: 32,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        left: BorderSide(
-                          color: colorScheme.outline.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.drag_indicator,
-                        size: 16,
-                        color: colorScheme.onSurface.withValues(alpha: 0.18),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

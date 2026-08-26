@@ -57,7 +57,8 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     _weight = sets.isEmpty ? 0 : sets.last.targetWeight.toDouble();
   }
 
-  /// One plate-pair in the display unit.
+  /// One plate-pair in the display unit. The 0..2000 clamp below mirrors
+  /// the server's range check in src/workout/planning.rs.
   double _stepLb(WeightUnit unit) =>
       isMetricUnit(unit) ? poundsFromDisplayWeight(2.5, unit) : 5.0;
 
