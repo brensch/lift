@@ -109,13 +109,7 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'View and share diagnostic logs',
               onTap: () => context.push('/debug-logs'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.functions_outlined,
-              label: 'Maths',
-              subtitle: 'How calories are calculated',
-              onTap: () => context.push('/settings/maths'),
-            ),
+
             const SizedBox(height: 8),
             _SettingsTile(
               icon: Icons.info_outline,

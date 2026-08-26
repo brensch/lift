@@ -154,13 +154,6 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<List<String>> dismissUserMessages(List<String> messageKeys) async {
-    final response = await _client.workoutService.dismissUserMessages(
-      DismissUserMessagesRequest()..messageKeys.addAll(messageKeys),
-    );
-    return response.dismissedMessageKeys;
-  }
-
   /// Everything the home screen needs in one round trip.
   Future<GetHomeResponse> getHome() async {
     return await retryReadAfterReconnect(
