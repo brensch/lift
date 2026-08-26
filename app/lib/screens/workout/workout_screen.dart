@@ -129,12 +129,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final exerciseShort = <String>[];
     for (final g in blocks) {
       final ex = g.exercise;
-      {
-        if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
-        if (seenExercises.add(ex.value)) {
-          final s = shortNames[ex] ?? exerciseNames[ex];
-          if (s != null && s.isNotEmpty) exerciseShort.add(s);
-        }
+      if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
+      if (seenExercises.add(ex.value)) {
+        final s = shortNames[ex] ?? exerciseNames[ex];
+        if (s != null && s.isNotEmpty) exerciseShort.add(s);
       }
     }
     final sessionSubtitle = exerciseShort.join(' · ');

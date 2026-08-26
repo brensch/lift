@@ -707,6 +707,23 @@ mod tests {
         updated_at INTEGER NOT NULL
     );
     CREATE TABLE t_workouts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, start_time INTEGER NOT NULL DEFAULT 0);
+    CREATE TABLE user_message_events (
+        user_id TEXT NOT NULL,
+        message_key TEXT NOT NULL,
+        surface INTEGER NOT NULL DEFAULT 0,
+        workout_id TEXT NOT NULL DEFAULT '',
+        source_workout_id TEXT NOT NULL DEFAULT '',
+        exercise_group_id TEXT NOT NULL DEFAULT '',
+        exercise INTEGER NOT NULL DEFAULT 0,
+        slot_key TEXT NOT NULL DEFAULT '',
+        dismissed_at INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        message_blob BLOB NOT NULL,
+        PRIMARY KEY(user_id, message_key)
+    );
+    CREATE INDEX idx_user_message_events_user_surface
+        ON user_message_events(user_id, surface, workout_id, dismissed_at, updated_at DESC);
     "#;
 
     /// Build an old-world sqlite file in `dir`, run `seed` against it, then
@@ -998,6 +1015,16 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
+            // An old-world message row WITH the group column: the flat
+            // migration must drop the column without losing the row.
+            sqlx::query(
+                "INSERT INTO user_message_events
+                 (user_id, message_key, exercise_group_id, created_at, updated_at, message_blob)
+                 VALUES ('u1', 'm1', 'legacy-group', 1, 1, x'00')",
+            )
+            .execute(&pool)
+            .await
+            .unwrap();
         })
         .await;
 
@@ -1055,6 +1082,13 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(msg_cols, 0);
+        let messages: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM user_message_events WHERE user_id = 'u1'",
+        )
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+        assert_eq!(messages, 1, "the message row survives the column drop");
         // The kept proposed_sets rows survived the column drops.
         let sets: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM proposed_sets WHERE workout_id = 'w1'",

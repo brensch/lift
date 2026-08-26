@@ -114,21 +114,37 @@ impl ServerDb {
         Ok(())
     }
 
-    /// Delete a completed set by id.
-    pub async fn delete_completed_set(&self, set_id: &str, workout_id: &str) -> DbResult<()> {
-        sqlx::query("DELETE FROM completed_sets WHERE id = ? AND workout_id = ?")
-            .bind(set_id)
-            .bind(workout_id)
+    /// Delete a completed set by id. User-scoped.
+    pub async fn delete_completed_set(
+        &self,
+        user_id: &str,
+        set_id: &str,
+        workout_id: &str,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "DELETE FROM completed_sets WHERE id = ? AND workout_id = ? AND user_id = ?",
+        )
+        .bind(set_id)
+        .bind(workout_id)
+        .bind(user_id)
             .execute(&self.write_pool)
             .await?;
         Ok(())
     }
 
-    /// Cancel a proposed set.
-    pub async fn cancel_proposed_set(&self, set_id: &str, workout_id: &str) -> DbResult<()> {
-        sqlx::query("UPDATE proposed_sets SET cancelled = 1 WHERE id = ? AND workout_id = ?")
-            .bind(set_id)
-            .bind(workout_id)
+    /// Cancel a proposed set. User-scoped.
+    pub async fn cancel_proposed_set(
+        &self,
+        user_id: &str,
+        set_id: &str,
+        workout_id: &str,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE proposed_sets SET cancelled = 1 WHERE id = ? AND workout_id = ? AND user_id = ?",
+        )
+        .bind(set_id)
+        .bind(workout_id)
+        .bind(user_id)
             .execute(&self.write_pool)
             .await?;
         Ok(())
@@ -390,9 +406,13 @@ impl ServerDb {
             &completed_sets,
         ));
 
+        // The FULL set list, cancelled rows included. Cancelled sets are
+        // load-bearing state (they mark a bailed exercise for progression),
+        // so a load→persist round trip must not shed them; the GetWorkout
+        // handler filters to visible sets at the RPC boundary instead.
         Ok(Some(GetWorkoutResponse {
             workout: Some(workout),
-            proposed_sets: active_proposed,
+            proposed_sets,
             completed_sets,
             next_up_set,
             plan_change_stats,
@@ -403,14 +423,20 @@ impl ServerDb {
     }
 
     /// Get a proposed set by id (for StartSet to look up target values).
-    pub async fn get_proposed_set(&self, set_id: &str) -> DbResult<Option<ProposedSet>> {
+    /// User-scoped: a set id from someone else's workout resolves to None.
+    pub async fn get_proposed_set(
+        &self,
+        user_id: &str,
+        set_id: &str,
+    ) -> DbResult<Option<ProposedSet>> {
         let row = sqlx::query(
             "SELECT id, workout_id, workout_order, exercise,
              target_reps, target_weight, warmup, cancelled, rest_after_success,
              rest_after_failure
-             FROM proposed_sets WHERE id = ?",
+             FROM proposed_sets WHERE id = ? AND user_id = ?",
         )
         .bind(set_id)
+        .bind(user_id)
         .fetch_optional(&self.read_pool)
         .await?;
         Ok(row.map(|r| {

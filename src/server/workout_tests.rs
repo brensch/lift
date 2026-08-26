@@ -6,9 +6,10 @@
 use super::*;
 use crate::db::ServerDb;
 use schlift::workout::v1::{
+    AddExercisesRequest, AdjustExerciseWeightRequest, AppendWorkoutMutationsRequest,
     CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
     ExperienceLevel, Gender, GetHomeRequest, ReorderTemplatesRequest, SaveTemplateRequest,
-    SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutTemplate,
+    SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutTemplate,
 };
 
 fn authed<T>(token: &str, msg: T) -> Request<T> {
@@ -329,7 +330,7 @@ mod template_workout_loop {
         let workout = started.workout.unwrap();
         assert_eq!(workout.name, "Lower", "named after the template");
 
-        // The squat group: tracker weight, prescription reps, a warmup
+        // The squat block: tracker weight, prescription reps, a warmup
         // ladder (barbell compound). The crunch group: no warmups.
         let squat_sets: Vec<&ProposedSet> = started
             .proposed_sets
@@ -703,5 +704,237 @@ mod template_workout_loop {
             .find(|v| v.muscle == MuscleGroup::Quads as i32)
             .unwrap();
         assert!(quads.completed_sets_7d > 0.0);
+    }
+}
+
+
+mod offline_queue {
+    use super::*;
+
+    fn mutation(m: workout_mutation::Mutation) -> WorkoutMutation {
+        WorkoutMutation {
+            event_id: Uuid::new_v4().to_string(),
+            client_created_at: 0,
+            mutation: Some(m),
+        }
+    }
+
+    /// The whole point of client_working_set_ids: an offline add followed by
+    /// completions against the optimistic ids, flushed as one batch. The
+    /// server must adopt the ids so the completion attaches.
+    #[tokio::test]
+    async fn an_offline_add_and_complete_reconcile_in_one_batch() {
+        let (svc, _user_id, token) = setup().await;
+        onboard(&svc, &token, WeightUnit::Lb).await;
+        let started = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Offline".to_string(),
+                    started_at: 1_000,
+                    exercises: vec![],
+                    template_id: String::new(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = started.workout.unwrap().id;
+
+        let client_ids: Vec<String> = (0..3).map(|_| Uuid::new_v4().to_string()).collect();
+        let response = svc
+            .append_workout_mutations(authed(
+                &token,
+                AppendWorkoutMutationsRequest {
+                    mutations: vec![
+                        mutation(Mutation::AddExercises(AddExercisesRequest {
+                            workout_id: workout_id.clone(),
+                            exercises: vec![Exercise::LateralRaise as i32],
+                            client_working_set_ids: client_ids.clone(),
+                        })),
+                        mutation(Mutation::CompleteSet(CompleteSetRequest {
+                            workout_id: workout_id.clone(),
+                            proposed_set_id: client_ids[0].clone(),
+                            actual_reps: 10,
+                            actual_weight: 20.0,
+                            completed_at: 1_100,
+                        })),
+                    ],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(response.applied_event_ids.len(), 2);
+        let state = response.workout_state.unwrap();
+        let working_ids: Vec<&str> = state
+            .proposed_sets
+            .iter()
+            .filter(|s| !s.warmup)
+            .map(|s| s.id.as_str())
+            .collect();
+        assert_eq!(
+            working_ids, client_ids,
+            "the server adopts the client's working-set ids in order"
+        );
+        assert_eq!(
+            state.completed_sets.len(),
+            1,
+            "the completion queued against a client id attached"
+        );
+        assert_eq!(state.completed_sets[0].proposed_set_id, client_ids[0]);
+    }
+
+    /// Bail-out end to end: complete one set at target, remove the
+    /// exercise, end the workout — all through the queue. The tracker must
+    /// HOLD: no rep advance (the shrunk plan wasn't cleared) and no miss.
+    /// Pins both the bail outcome and the retention of cancelled rows
+    /// through the load→persist round trip.
+    #[tokio::test]
+    async fn removing_an_exercise_mid_session_holds_the_tracker() {
+        let (svc, _user_id, token) = setup().await;
+        let before = onboard(&svc, &token, WeightUnit::Lb).await;
+        let raise_before = tracker(&before, Exercise::LateralRaise);
+
+        let started = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Bail".to_string(),
+                    started_at: 1_000,
+                    exercises: vec![Exercise::LateralRaise as i32],
+                    template_id: String::new(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = started.workout.unwrap().id;
+        let first_set = started
+            .proposed_sets
+            .iter()
+            .find(|s| !s.warmup)
+            .unwrap()
+            .clone();
+
+        svc.append_workout_mutations(authed(
+            &token,
+            AppendWorkoutMutationsRequest {
+                mutations: vec![
+                    mutation(Mutation::CompleteSet(CompleteSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: first_set.id.clone(),
+                        actual_reps: first_set.target_reps,
+                        actual_weight: first_set.target_weight,
+                        completed_at: 1_100,
+                    })),
+                    mutation(Mutation::RemoveExercise(RemoveExerciseRequest {
+                        workout_id: workout_id.clone(),
+                        exercise: Exercise::LateralRaise as i32,
+                    })),
+                ],
+            },
+        ))
+        .await
+        .unwrap();
+        // A separate batch, so the bail signal must survive its own
+        // load→persist round trip before the workout ends.
+        svc.append_workout_mutations(authed(
+            &token,
+            AppendWorkoutMutationsRequest {
+                mutations: vec![mutation(Mutation::EndWorkout(EndWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                    ended_at: 2_000,
+                }))],
+            },
+        ))
+        .await
+        .unwrap();
+
+        let after = home(&svc, &token).await;
+        let raise_after = tracker(&after, Exercise::LateralRaise);
+        assert_eq!(
+            raise_after.working_weight, raise_before.working_weight,
+            "a bail holds the weight"
+        );
+        assert_eq!(
+            raise_after.target_reps, raise_before.target_reps,
+            "a bail does not advance the rep target"
+        );
+    }
+
+    /// A mutation that can never apply must be consumed, not retried: one
+    /// poison mutation would otherwise wedge every completion queued
+    /// behind it, permanently.
+    #[tokio::test]
+    async fn a_poison_mutation_is_skipped_and_the_rest_of_the_batch_applies() {
+        let (svc, _user_id, token) = setup().await;
+        onboard(&svc, &token, WeightUnit::Lb).await;
+        let started = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Poison".to_string(),
+                    started_at: 1_000,
+                    exercises: vec![Exercise::LateralRaise as i32],
+                    template_id: String::new(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = started.workout.unwrap().id;
+        let first_set = started
+            .proposed_sets
+            .iter()
+            .find(|s| !s.warmup)
+            .unwrap()
+            .id
+            .clone();
+
+        let response = svc
+            .append_workout_mutations(authed(
+                &token,
+                AppendWorkoutMutationsRequest {
+                    mutations: vec![
+                        // Rejected by the weight range check.
+                        mutation(Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
+                            workout_id: workout_id.clone(),
+                            exercise: Exercise::LateralRaise as i32,
+                            working_weight: -50.0,
+                        })),
+                        mutation(Mutation::CompleteSet(CompleteSetRequest {
+                            workout_id: workout_id.clone(),
+                            proposed_set_id: first_set.clone(),
+                            actual_reps: 10,
+                            actual_weight: 20.0,
+                            completed_at: 1_100,
+                        })),
+                    ],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(
+            response.applied_event_ids.len(),
+            2,
+            "the poison mutation is acked so the client evicts it"
+        );
+        let state = response.workout_state.unwrap();
+        assert_eq!(
+            state.completed_sets.len(),
+            1,
+            "the completion behind the poison mutation still applied"
+        );
+        assert!(
+            state
+                .proposed_sets
+                .iter()
+                .all(|s| s.target_weight >= 0.0),
+            "the rejected weight never landed"
+        );
     }
 }

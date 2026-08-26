@@ -116,7 +116,7 @@ fn make_set(
 
 /// One exercise's block: the warmup ladder (where prescribed) followed by the
 /// working sets. Orders are assigned by the caller's renumbering pass.
-pub(crate) fn generate_sets_for_exercise(
+fn generate_sets_for_exercise(
     workout_id: &str,
     plan: &ExercisePlan,
     unit: AppWeightUnit,
@@ -153,6 +153,20 @@ pub(crate) fn generate_sets_for_exercise(
     sets
 }
 
+/// Plan ops only make sense on a live workout that the request names.
+fn require_open_workout(
+    workout_ref: &ActiveWorkout,
+    workout_id: &str,
+) -> Result<(), WorkoutError> {
+    if workout_ref.workout.id != workout_id {
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+    }
+    if workout_ref.workout.end_time > 0 {
+        return Err(WorkoutError::failed_precondition("Workout already ended"));
+    }
+    Ok(())
+}
+
 fn completed_proposed_ids(workout_ref: &ActiveWorkout) -> std::collections::HashSet<String> {
     workout_ref
         .completed_sets
@@ -173,17 +187,18 @@ pub(crate) fn apply_add_exercises(
     client_working_set_ids: &[String],
     unit: AppWeightUnit,
 ) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
-    }
-    let existing: std::collections::HashSet<String> = workout_ref
+    require_open_workout(workout_ref, workout_id)?;
+    // Ids must be fresh AND unique: a duplicate — within the request or
+    // against any existing row — would violate the proposed_sets primary
+    // key at persist time and fail the whole write.
+    let mut seen: std::collections::HashSet<String> = workout_ref
         .proposed_sets
         .iter()
         .map(|s| s.id.clone())
         .collect();
     let mut ids = client_working_set_ids
         .iter()
-        .filter(|id| !id.is_empty() && !existing.contains(*id))
+        .filter(|id| !id.is_empty() && seen.insert((*id).clone()))
         .cloned()
         .collect::<std::collections::VecDeque<String>>();
     for plan in plans {
@@ -209,9 +224,7 @@ pub(crate) fn apply_adjust_exercise_weight(
     req: &AdjustExerciseWeightRequest,
     unit: AppWeightUnit,
 ) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
-    }
+    require_open_workout(workout_ref, &req.workout_id)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
         return Err(WorkoutError::failed_precondition(
             "Weight out of range",
@@ -233,33 +246,39 @@ pub(crate) fn apply_adjust_exercise_weight(
 
     // Warmups regenerate only while some are still pending; once you're past
     // warming up there is nothing to recalculate.
-    let has_pending_warmup = workout_ref.proposed_sets.iter().any(|s| {
-        s.exercise == exercise && s.warmup && !s.cancelled && !done.contains(&s.id)
-    });
-    if !has_pending_warmup {
+    let pending_warmups = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|s| s.exercise == exercise && s.warmup && !s.cancelled && !done.contains(&s.id))
+        .count();
+    if pending_warmups == 0 {
         workout_ref.renumber_sets();
         return Ok(());
     }
 
-    let done_warmups: Vec<&ProposedSet> = workout_ref
+    // Two guards carried over from the old edit logic, both driven by what
+    // was actually lifted: the pending ladder keeps only as many rungs as
+    // are still pending (completed warmups consumed the lightest ones), and
+    // no recalculated rung sits at or below a warmup already done. The skip
+    // is derived from the pending count rather than the completed count so
+    // a re-added exercise (whose earlier block completed its whole ladder)
+    // still gets its fresh rungs recalculated instead of deleted.
+    let max_done_weight = workout_ref
         .proposed_sets
         .iter()
         .filter(|s| s.exercise == exercise && s.warmup && done.contains(&s.id))
-        .collect();
-    let done_count = done_warmups.len();
-    let max_done_weight = done_warmups
-        .iter()
         .map(|s| s.target_weight)
         .fold(f32::MIN, f32::max);
+    let has_done_warmup = max_done_weight > f32::MIN;
 
     let ladder = generate_warmup_defs(req.working_weight, unit);
     let rung_count = ladder.len();
     let fresh_rungs: Vec<ProposedSet> = ladder
         .into_iter()
         .enumerate()
-        .skip(done_count) // completed warmups consume the lightest rungs
+        .skip(rung_count.saturating_sub(pending_warmups))
         .filter(|(_, (weight, _))| {
-            done_count == 0 || *weight > max_done_weight + 1e-3
+            !has_done_warmup || *weight > max_done_weight + 1e-3
         })
         .map(|(idx, (weight, reps))| {
             let rest = if idx + 1 == rung_count {
@@ -297,9 +316,7 @@ pub(crate) fn apply_remove_exercise(
     workout_ref: &mut ActiveWorkout,
     req: &RemoveExerciseRequest,
 ) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
-    }
+    require_open_workout(workout_ref, &req.workout_id)?;
     let done = completed_proposed_ids(workout_ref);
     for set in workout_ref
         .proposed_sets
@@ -317,9 +334,7 @@ pub(crate) fn apply_reorder_exercises(
     workout_ref: &mut ActiveWorkout,
     req: &ReorderExercisesRequest,
 ) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
-    }
+    require_open_workout(workout_ref, &req.workout_id)?;
     let rank: std::collections::HashMap<i32, usize> = req
         .exercises
         .iter()
@@ -540,6 +555,73 @@ mod plan_op_tests {
     }
 
     #[test]
+    fn add_dedupes_client_ids_that_would_break_the_primary_key() {
+        // proposed_sets.id is a primary key: a duplicate id — repeated in
+        // the request or already present in the workout — must never make
+        // it into the plan, or the persist fails and (worse) wedges the
+        // offline queue behind a permanently failing mutation.
+        let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
+        let existing_id = active.proposed_sets[0].id.clone();
+        let ids = vec![
+            "dup".to_string(),
+            "dup".to_string(),
+            existing_id.clone(),
+            "fresh".to_string(),
+        ];
+        apply_add_exercises(&mut active, "w1", &[plan(BENCH, 135.0, false)], &ids, AppWeightUnit::Lb)
+            .unwrap();
+        let mut seen = std::collections::HashSet::new();
+        assert!(
+            active.proposed_sets.iter().all(|s| seen.insert(s.id.clone())),
+            "every proposed set id must be unique"
+        );
+        let bench_ids: Vec<&str> = active
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == BENCH)
+            .map(|s| s.id.as_str())
+            .collect();
+        assert_eq!(bench_ids[0], "dup", "first use of a fresh id is kept");
+        assert_eq!(bench_ids[1], "fresh");
+    }
+
+    #[test]
+    fn every_op_rejects_a_finished_workout() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, true)]);
+        active.workout.end_time = 9_999;
+        assert!(
+            apply_add_exercises(&mut active, "w1", &[plan(BENCH, 135.0, false)], &[], AppWeightUnit::Lb)
+                .is_err()
+        );
+        assert!(apply_adjust_exercise_weight(
+            &mut active,
+            &AdjustExerciseWeightRequest {
+                workout_id: "w1".to_string(),
+                exercise: SQUAT,
+                working_weight: 100.0,
+            },
+            AppWeightUnit::Lb,
+        )
+        .is_err());
+        assert!(apply_remove_exercise(
+            &mut active,
+            &RemoveExerciseRequest {
+                workout_id: "w1".to_string(),
+                exercise: SQUAT,
+            },
+        )
+        .is_err());
+        assert!(apply_reorder_exercises(
+            &mut active,
+            &ReorderExercisesRequest {
+                workout_id: "w1".to_string(),
+                exercises: vec![SQUAT],
+            },
+        )
+        .is_err());
+    }
+
+    #[test]
     fn add_adopts_client_working_set_ids_in_order() {
         let mut active = empty_workout();
         let ids = vec!["c1".to_string(), "c2".to_string(), "c3".to_string()];
@@ -636,6 +718,51 @@ mod plan_op_tests {
         assert!(
             pending.iter().all(|&w| w > heaviest_done),
             "no recalculated rung at/below one already done: {pending:?}"
+        );
+    }
+
+    /// Complete a whole ladder, remove the exercise, add it again, then
+    /// adjust the weight. The earlier block's completed warmups must not
+    /// consume the fresh block's rungs — that would delete the new ladder
+    /// outright (the skip is derived from the pending count, not the
+    /// completed count).
+    #[test]
+    fn adjust_after_remove_and_re_add_keeps_the_fresh_ladder() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, true)]);
+        let (first_warmups, max_done): (Vec<String>, f32) = {
+            let warmups: Vec<&ProposedSet> =
+                active.proposed_sets.iter().filter(|s| s.warmup).collect();
+            (
+                warmups.iter().map(|s| s.id.clone()).collect(),
+                warmups
+                    .iter()
+                    .map(|s| s.target_weight)
+                    .fold(f32::MIN, f32::max),
+            )
+        };
+        for id in &first_warmups {
+            complete(&mut active, id);
+        }
+        apply_remove_exercise(
+            &mut active,
+            &RemoveExerciseRequest {
+                workout_id: "w1".to_string(),
+                exercise: SQUAT,
+            },
+        )
+        .unwrap();
+        apply_add_exercises(&mut active, "w1", &[plan(SQUAT, 200.0, true)], &[], AppWeightUnit::Lb)
+            .unwrap();
+        adjust(&mut active, SQUAT, 400.0);
+
+        let pending = pending_warmup_weights(&active, SQUAT);
+        assert!(
+            !pending.is_empty(),
+            "the re-added block keeps a recalculated ladder"
+        );
+        assert!(
+            pending.iter().all(|&w| w > max_done),
+            "the surpassed-weight guard still applies: {pending:?}"
         );
     }
 

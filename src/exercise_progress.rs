@@ -114,6 +114,9 @@ pub struct SessionOutcome {
     pub performed_weight: f32,
     /// Heaviest completed working set (for the weight-history series).
     pub top_weight: f32,
+    /// The user removed the exercise with sets still pending: neither a
+    /// clear nor a miss — the tracker holds.
+    pub bailed: bool,
     /// Whether every planned set was completed at its target.
     pub cleared: bool,
 }
@@ -129,12 +132,24 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
         .map(|set| (set.id.as_str(), set))
         .collect();
 
-    let mut planned: HashMap<i32, usize> = HashMap::new();
-    for set in record
-        .proposed_sets
+    let completed_ids: std::collections::HashSet<&str> = record
+        .completed_sets
         .iter()
-        .filter(|set| !set.warmup && !set.cancelled)
-    {
+        .filter(|set| set.ended_at > 0)
+        .map(|set| set.proposed_set_id.as_str())
+        .collect();
+
+    let mut planned: HashMap<i32, usize> = HashMap::new();
+    let mut bailed: std::collections::HashSet<i32> = std::collections::HashSet::new();
+    for set in record.proposed_sets.iter().filter(|set| !set.warmup) {
+        if set.cancelled {
+            // A cancelled working set that was never lifted means the
+            // exercise was removed mid-session.
+            if !completed_ids.contains(set.id.as_str()) {
+                bailed.insert(set.exercise);
+            }
+            continue;
+        }
         *planned.entry(set.exercise).or_insert(0) += 1;
     }
 
@@ -184,6 +199,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
                     min_reps: if a.min_reps == i32::MAX { 0 } else { a.min_reps },
                     performed_weight: a.last_done.1,
                     top_weight: a.top_weight,
+                    bailed: bailed.contains(&exercise),
                     cleared: planned_sets > 0
                         && a.completed >= planned_sets
                         && a.successful >= planned_sets,
@@ -203,6 +219,16 @@ pub fn advance_tracker(
     let p = effective_prescription(ex, state);
     let mut next = *state;
     next.last_performed_at = outcome.at;
+
+    // A bail-out (the exercise was removed with sets still pending) is a
+    // hold: record the weight actually lifted, but neither advance nor
+    // count a miss — cutting a session short twice must not deload.
+    if outcome.bailed {
+        if outcome.performed_weight > 0.0 {
+            next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
+        }
+        return next;
+    }
 
     // Bodyweight (or a set logged with no load): reps are the only lever.
     if outcome.performed_weight <= 0.0 {
@@ -356,6 +382,33 @@ mod tests {
         let outcomes = session_outcomes(record);
         let outcome = outcomes.get(&(ex as i32)).expect("exercise in session");
         advance_tracker(ex, &state, outcome, AppWeightUnit::Lb)
+    }
+
+    /// Removing an exercise mid-session (some sets done, the rest
+    /// cancelled) is a bail-out: the tracker holds at the lifted weight —
+    /// no rep advance (the shrunk plan is not "cleared") and no miss
+    /// (cutting two sessions short must not deload).
+    #[test]
+    fn a_bailed_exercise_holds_instead_of_advancing_or_missing() {
+        // 3 planned squat sets at 200×6; the first is done at target, the
+        // other two were cancelled by RemoveExercise without completions.
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 6, &[6]);
+        for i in 1..3 {
+            let mut set = proposed(&format!("w1_x{i}"), Exercise::Squat, 200.0, 6, false);
+            set.cancelled = true;
+            record.proposed_sets.push(set);
+        }
+        let before = TrackerState {
+            working_weight: 200.0,
+            current_reps: 6,
+            consecutive_misses: 1,
+            ..Default::default()
+        };
+        let next = advance(Exercise::Squat, before, &record);
+        assert_eq!(next.working_weight, 200.0);
+        assert_eq!(next.current_reps, 6, "no rep advance on a bail");
+        assert_eq!(next.consecutive_misses, 1, "no miss counted on a bail");
+        assert_eq!(next.last_performed_at, 1000, "the session still counts as training");
     }
 
     /// The everyday case: clear the target below the top of the range and
