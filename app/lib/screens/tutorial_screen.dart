@@ -203,10 +203,10 @@ class _TutorialScreenState extends State<TutorialScreen> {
       _TutorialPage(
         title: 'Progress happens by itself',
         above: const [
-          _Callout('CLEAR EVERY SET → +1 REP', 0.3),
+          _Callout('CLEAR EVERY SET → +1 REP', 0.47),
         ],
         below: const [
-          _Callout('TOP OF THE RANGE → +WEIGHT, REPS RESET', 0.62),
+          _Callout('TOP OF THE RANGE → +WEIGHT, REPS RESET', 0.78),
         ],
         footer: Center(
           child: Padding(
@@ -252,29 +252,40 @@ class _CalloutLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final lineColor = cs.outline.withValues(alpha: 0.8);
+    // Labels live in equal-width cells (collision-proof); each connector
+    // line sits at its exact anchor fraction.
+    final ordered = List<_Callout>.from(callouts)
+      ..sort((a, b) => a.x.compareTo(b.x));
     return SizedBox(
       height: 46,
       width: double.infinity,
       child: Stack(
         children: [
-          for (final callout in callouts) ...[
-            Align(
-              alignment: Alignment(callout.x * 2 - 1, below ? 1 : -1),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: Text(
-                  callout.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                    height: 1.25,
-                    color: cs.onSurface.withValues(alpha: 0.65),
+          Align(
+            alignment: below ? Alignment.bottomCenter : Alignment.topCenter,
+            child: Row(
+              children: [
+                for (final callout in ordered)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Text(
+                        callout.label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          height: 1.25,
+                          color: cs.onSurface.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
+          ),
+          for (final callout in ordered)
             Align(
               alignment: Alignment(callout.x * 2 - 1, below ? -1 : 1),
               child: Column(
@@ -291,7 +302,6 @@ class _CalloutLayer extends StatelessWidget {
                 ],
               ),
             ),
-          ],
         ],
       ),
     );

@@ -64,7 +64,7 @@ class NotificationService {
     required int restUntilUnix,
     required String soundPresetId,
     required String body,
-  }) async {
+  }) => _bestEffort('scheduleRest', () async {
     // Clear any existing rest notifications first
     await cancelRest();
 
@@ -127,49 +127,59 @@ class NotificationService {
       matchDateTimeComponents: null,
       payload: '$restUntilUnix',
     );
-    // This is fire-and-forget (see workout_provider's unawaited call), so it must
-    // never throw into the void. Exact alarms need a permission the user may not
-    // have granted (common on Android 14+); fall back to inexact rather than
-    // dropping an uncaught async error on the floor.
+    // Exact alarms need a permission the user may not have granted
+    // (common on Android 14+); fall back to inexact. Any other failure —
+    // including the fallback's — is _bestEffort's to swallow.
     try {
       await schedule(AndroidScheduleMode.exactAllowWhileIdle);
     } catch (e) {
-      try {
-        await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
-      } catch (e2) {
-        AppLogger.instance.warn('Notification', 'scheduleRest failed', {
-          'error': e2.toString(),
-        });
-      }
+      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+    }
+  });
+
+  /// Notifications are best-effort everywhere: a plugin failure (revoked
+  /// permission, missing platform implementation, OEM quirks) must never
+  /// abort the workout flow that triggered it. scheduleRest carries its
+  /// own two-step fallback; everything else funnels through here.
+  static Future<void> _bestEffort(
+    String operation,
+    Future<void> Function() run,
+  ) async {
+    try {
+      await run();
+    } catch (e) {
+      AppLogger.instance.warn('Notification', '$operation failed', {
+        'error': e.toString(),
+      });
     }
   }
 
   /// Cancels any pending or active rest notifications.
-  static Future<void> cancelRest() async {
-    await _plugin.cancel(id: _restNotificationId);
-  }
+  static Future<void> cancelRest() =>
+      _bestEffort('cancelRest', () => _plugin.cancel(id: _restNotificationId));
 
   /// Plays an in-app haptic when rest finishes while the app is active.
   /// Background delivery is still handled by the scheduled OS notification.
-  static Future<void> playRestCompletionHaptic() async {
-    for (var i = 0; i < 5; i++) {
-      await HapticFeedback.vibrate();
-      if (i < 4) {
-        await Future<void>.delayed(const Duration(milliseconds: 220));
-      }
-    }
-  }
+  static Future<void> playRestCompletionHaptic() =>
+      _bestEffort('haptic', () async {
+        for (var i = 0; i < 5; i++) {
+          await HapticFeedback.vibrate();
+          if (i < 4) {
+            await Future<void>.delayed(const Duration(milliseconds: 220));
+          }
+        }
+      });
 
   /// Schedules a next-workout reminder notification.
   /// Cancels any pending next-workout notification.
-  static Future<void> cancelNextWorkout() async {
-    await _plugin.cancel(id: _nextWorkoutNotificationId);
-  }
+  static Future<void> cancelNextWorkout() => _bestEffort(
+        'cancelNextWorkout',
+        () => _plugin.cancel(id: _nextWorkoutNotificationId),
+      );
 
   /// Comprehensive cleanup of all notifications.
-  static Future<void> cancelAll() async {
-    await _plugin.cancelAll();
-  }
+  static Future<void> cancelAll() =>
+      _bestEffort('cancelAll', () => _plugin.cancelAll());
 
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {
