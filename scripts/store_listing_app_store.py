@@ -84,10 +84,12 @@ def editable_app_info(asc: AppStoreConnect, app_id: str) -> dict | None:
 
 
 def pick_version(asc: AppStoreConnect, app_id: str, wanted: str | None) -> dict:
-    params = {"filter[platform]": "IOS", "sort": "-createdDate", "limit": 20}
+    # This endpoint rejects `sort`; order newest-first here instead.
+    params = {"filter[platform]": "IOS", "limit": 20, "fields[appStoreVersions]": "versionString,appVersionState,appStoreState,createdDate"}
     if wanted:
         params["filter[versionString]"] = wanted
     versions = asc.get(f"/apps/{app_id}/appStoreVersions", params).get("data", [])
+    versions.sort(key=lambda v: v["attributes"].get("createdDate") or "", reverse=True)
     for v in versions:
         if version_state(v) in EDITABLE_STATES:
             print(f"Using App Store version {v['attributes']['versionString']} ({v['id']}, {version_state(v)})")

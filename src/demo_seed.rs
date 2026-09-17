@@ -31,7 +31,7 @@ use uuid::Uuid;
 const DAY: i64 = 86_400;
 /// How many weeks of history to write. Enough for sparklines and the volume
 /// tracker to look lived-in, cheap enough to seed on every dev boot.
-const WEEKS: i64 = 10;
+const WEEKS: i64 = 12;
 /// Exercises already finished in the `-live` user's in-progress session.
 const LIVE_DONE_EXERCISES: usize = 2;
 /// When the live session's last rest ends, relative to seeding. Long enough
@@ -96,12 +96,39 @@ fn opening_weight(ex: Exercise) -> f32 {
     snap_weight_lb(ex, base + step * head_start, AppWeightUnit::Lb)
 }
 
-/// The progression a user would have felt: reps climb the range, then the
-/// weight steps up and reps reset.
+/// A deterministic roll in [0, 1) from (exercise, session, salt), so the
+/// "randomness" below is the same on every seed and the screenshots are
+/// reproducible.
+fn roll(ex: Exercise, session: usize, salt: u64) -> f32 {
+    let mut x = (ex as u64)
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add((session as u64).wrapping_mul(0xD1B5_4A32_D192_ED03))
+        .wrapping_add(salt.wrapping_mul(0x94D0_49BB_1331_11EB));
+    x ^= x >> 31;
+    x = x.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x ^= x >> 29;
+    (x >> 40) as f32 / (1u64 << 24) as f32
+}
+
+/// What a session did to a lift, chosen before the sets are written so the
+/// logged reps match.
+#[derive(Clone, Copy, PartialEq)]
+enum Outcome {
+    /// Hit every target.
+    Made,
+    /// Fell short on the last set(s); the weight holds.
+    Missed,
+}
+
+/// The progression a user would have felt: reps climb the range and the
+/// weight steps up when they top out, but not every session goes to plan.
+/// Roughly one in five sessions misses reps, a second miss in a row deloads
+/// ten percent (the app's own rule), and some sessions just hold.
 #[derive(Clone, Copy)]
 struct Lift {
     weight: f32,
     reps: i32,
+    misses: i32,
 }
 
 impl Lift {
@@ -111,24 +138,70 @@ impl Lift {
         Lift {
             weight: opening_weight(ex),
             reps: (p.rep_low + (ex as i32) % 3).min(p.rep_high),
+            misses: 0,
         }
     }
 
-    /// Double progression for next time: two reps a session (a lifter a few
-    /// months in moves faster than the app's one-rep floor), weight up when
-    /// the range tops out.
-    fn advance(&mut self, ex: Exercise, p: &Prescription) {
-        if self.reps >= p.rep_high {
-            self.reps = p.rep_low;
-            if !matches!(load_style(ex), LoadStyle::Bodyweight) {
-                self.weight = snap_weight_lb(
-                    ex,
-                    self.weight + progression_increment_lb(ex, AppWeightUnit::Lb),
-                    AppWeightUnit::Lb,
-                );
-            }
+    fn outcome(ex: Exercise, session: usize) -> Outcome {
+        // A bad day hits everything; otherwise each lift rolls on its own.
+        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.08;
+        if bad_day || roll(ex, session, 2) < 0.18 {
+            Outcome::Missed
         } else {
-            self.reps = (self.reps + 2).min(p.rep_high);
+            Outcome::Made
+        }
+    }
+
+    /// Reps actually logged on a set, given the outcome. A miss loses one to
+    /// three reps on the final set and sometimes one on the set before.
+    fn logged_reps(&self, ex: Exercise, session: usize, set_no: i32, sets: i32, outcome: Outcome) -> i32 {
+        if outcome == Outcome::Made {
+            return self.reps;
+        }
+        let last = set_no == sets - 1;
+        let short = 1 + (roll(ex, session, 3) * 3.0) as i32;
+        if last {
+            (self.reps - short).max(1)
+        } else if set_no == sets - 2 && roll(ex, session, 4) < 0.4 {
+            (self.reps - 1).max(1)
+        } else {
+            self.reps
+        }
+    }
+
+    fn advance(&mut self, ex: Exercise, p: &Prescription, session: usize, outcome: Outcome) {
+        let loadable = !matches!(load_style(ex), LoadStyle::Bodyweight);
+        match outcome {
+            Outcome::Missed => {
+                self.misses += 1;
+                if self.misses >= 2 {
+                    // Two in a row: back off ten percent and rebuild.
+                    self.misses = 0;
+                    self.reps = p.rep_low;
+                    if loadable {
+                        self.weight = snap_weight_lb(ex, self.weight * 0.9, AppWeightUnit::Lb);
+                    }
+                }
+            }
+            Outcome::Made => {
+                self.misses = 0;
+                if roll(ex, session, 5) < 0.12 {
+                    return; // made it, but no more than last time: a hold
+                }
+                if self.reps >= p.rep_high {
+                    self.reps = p.rep_low;
+                    if loadable {
+                        self.weight = snap_weight_lb(
+                            ex,
+                            self.weight + progression_increment_lb(ex, AppWeightUnit::Lb),
+                            AppWeightUnit::Lb,
+                        );
+                    }
+                } else {
+                    let step = if roll(ex, session, 6) < 0.5 { 1 } else { 2 };
+                    self.reps = (self.reps + step).min(p.rep_high);
+                }
+            }
         }
     }
 }
@@ -142,15 +215,15 @@ struct Session {
 
 /// Builds one session from the template. `done_exercises` caps how many
 /// exercises have completed sets (all of them for history; a prefix for the
-/// live session). `miss_first` plants one short rep on the first exercise's
-/// last set. Advances `lifts` for every completed exercise.
+/// live session). `session` seeds the outcome rolls. Advances `lifts` for
+/// every completed exercise.
 fn build_session(
     template: &Template,
     template_id: &str,
     lifts: &mut HashMap<i32, Lift>,
     start: i64,
     done_exercises: usize,
-    miss_first: bool,
+    session: usize,
 ) -> Session {
     let workout_id = Uuid::new_v4().to_string();
     let mut proposed = Vec::new();
@@ -164,7 +237,7 @@ fn build_session(
         let lift = *lifts.entry(key).or_insert_with(|| Lift::opening(*ex, &p));
         let is_bodyweight = matches!(load_style(*ex), LoadStyle::Bodyweight);
         let done = index < done_exercises;
-        let planted_miss = miss_first && index == 0;
+        let outcome = Lift::outcome(*ex, session);
 
         if p.include_warmup && !is_bodyweight {
             for fraction in [0.5f32, 0.75] {
@@ -200,7 +273,6 @@ fn build_session(
         }
         for set_no in 0..p.sets {
             let id = Uuid::new_v4().to_string();
-            let last = set_no == p.sets - 1;
             proposed.push(ProposedSet {
                 id: id.clone(),
                 workout_id: workout_id.clone(),
@@ -214,7 +286,7 @@ fn build_session(
                 cancelled: false,
             });
             if done {
-                let reps = if planted_miss && last { lift.reps - 1 } else { lift.reps };
+                let reps = lift.logged_reps(*ex, session, set_no, p.sets, outcome);
                 completed.push(CompletedSet {
                     id: Uuid::new_v4().to_string(),
                     workout_id: workout_id.clone(),
@@ -229,9 +301,9 @@ fn build_session(
             }
             order += 1;
         }
-        if done && !planted_miss {
+        if done {
             let mut next = lift;
-            next.advance(*ex, &p);
+            next.advance(*ex, &p, session, outcome);
             lifts.insert(key, next);
         }
     }
@@ -263,7 +335,7 @@ async fn write_trackers(
             &TrackerState {
                 working_weight: lift.weight,
                 current_reps: lift.reps,
-                consecutive_misses: 0,
+                consecutive_misses: lift.misses,
                 last_performed_at: performed_at,
                 override_sets: 0,
                 override_rep_low: 0,
@@ -325,7 +397,7 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             &mut lifts,
             start,
             template.exercises.len(),
-            i == total / 3, // a planted miss a third of the way through
+            i,
         );
         let end = session
             .completed
@@ -356,7 +428,7 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             &mut scratch,
             now,
             LIVE_DONE_EXERCISES,
-            false,
+            total,
         );
         // Slide the whole session back so the last completed set's rest ends
         // LIVE_REST_ENDS_IN from now; the elapsed timer falls out of that.
