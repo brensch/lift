@@ -1,3 +1,7 @@
+// tonic's `Status` is what every gRPC handler returns; newer clippy flags it
+// as a large `Err` variant. Boxing it would touch every handler for no gain.
+#![allow(clippy::result_large_err)]
+
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
