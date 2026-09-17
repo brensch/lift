@@ -44,6 +44,7 @@ class _TutorialScreenState extends State<TutorialScreen>
   )..repeat(reverse: true);
 
   final GlobalKey _stageKey = GlobalKey();
+  static const double _skipStrip = 44;
   int _step = 0;
   Rect? _target;
   bool _busy = false;
@@ -170,12 +171,27 @@ class _TutorialScreenState extends State<TutorialScreen>
                     return Stack(
                       fit: StackFit.expand,
                       children: [
-                        IgnorePointer(
-                          child: Scaffold(
-                            body: const WorkoutTab(),
-                            bottomNavigationBar: WorkoutBottomBar(
-                              key: ValueKey(
-                                _workouts.activeWorkout?.id ?? 'none',
+                        // Below the status bar, like the real app's app bar
+                        // puts it; the tutorial's own bar handles the bottom
+                        // inset, so the sandbox must not add it again.
+                        MediaQuery.removePadding(
+                          context: context,
+                          removeBottom: true,
+                          child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              // A strip for SKIP, where the real app bar
+                              // sits, so it covers nothing.
+                              padding: const EdgeInsets.only(top: _skipStrip),
+                              child: IgnorePointer(
+                                child: Scaffold(
+                                  body: const WorkoutTab(),
+                                  bottomNavigationBar: WorkoutBottomBar(
+                                    key: ValueKey(
+                                      _workouts.activeWorkout?.id ?? 'none',
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -198,7 +214,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                           last: last,
                         ),
                         Positioned(
-                          top: MediaQuery.paddingOf(context).top + 4,
+                          top: MediaQuery.paddingOf(context).top + 2,
                           right: 8,
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
