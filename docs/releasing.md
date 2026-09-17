@@ -369,6 +369,7 @@ gh workflow run store-assets.yml -f action=push -f platforms=both -f dry_run=fal
 |---|---|
 | `platforms` | `both`, `android`, `ios` |
 | `ios_version` | App Store version to write to. Blank = the newest version still editable. Given and missing = created (text and screenshots then ride the next promotion). |
+| `ios_remove_from_review` | If `ios_version` is waiting for review, cancel that submission first (same as *Remove from Review* in App Store Connect; the build stays attached, the queue place is lost). Push, then run the promotion again to resubmit. |
 | `dry_run` | Play: does every write in an edit and discards it. App Store: prints every write. |
 
 - **Play** replaces the phone screenshots, Wear screenshots, feature graphic
@@ -398,9 +399,8 @@ counts) and saves it as the `store-listing-pull` artifact. Use it to seed
   it during review; the rest still pushes.
 - *You cannot create a new version of the App in the current state* — Apple
   will not open the next version while one is waiting for review. Either
-  wait for that review to finish, or remove the version from review in App
-  Store Connect (Distribution → the version → Remove from review), push the
-  listing onto it, and promote again.
+  wait for that review to finish, or push onto the waiting version with
+  `ios_version` set to it and `ios_remove_from_review` on, then promote again.
 - *Play: The caller does not have permission* on commit — the service
   account can publish releases but not edit the store listing. In Play
   Console → Users and permissions → the service account → App permissions,
