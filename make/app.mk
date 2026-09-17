@@ -209,6 +209,11 @@ icons:
 	python3 scripts/replace_app_icons.py $(if $(ICON_SOURCE),--source $(ICON_SOURCE))
 	@echo "Done."
 
+# copy: regenerate app/lib/gen/copy.dart from app/copy.yaml (all in-app copy
+# that has been moved to the YAML so far). CI checks it is up to date.
+copy:
+	python3 scripts/gen_copy.py
+
 # brand: render the icon and feature-graphic candidates from
 # scripts/render_brand.py into marketing/. Pick one, then
 #   make icons ICON_SOURCE=marketing/icons/candidates/<name>.png
