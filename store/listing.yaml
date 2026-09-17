@@ -51,6 +51,9 @@ description: |
 
   Built on the hypertrophy research, cited in the app.
 
+# Play feature graphic byline (drawn under the wordmark by scripts/render_brand.py)
+feature_graphic_byline: Stronger every lift
+
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
 # The title is drawn above the phone on every framed image; the subtitle
