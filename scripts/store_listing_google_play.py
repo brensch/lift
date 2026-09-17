@@ -30,7 +30,7 @@ from googleapiclient.http import MediaFileUpload
 
 import httplib2
 
-from check_store_text import LIMITS, check, load_listing, play_short_description  # noqa: E402  (sibling script)
+from check_store_text import LIMITS, check, compose_description, load_listing, play_short_description  # noqa: E402  (sibling script)
 from upload_google_play import (  # noqa: E402
     ANDROID_PUBLISHER_SCOPE,
     commit_edit,
@@ -107,7 +107,7 @@ def push(publisher, package: str, edit_id: str, listing: dict, skip_images: bool
                 "language": language,
                 "title": listing["name"].strip(),
                 "shortDescription": play_short_description(listing),
-                "fullDescription": listing["description"].strip(),
+                "fullDescription": compose_description(listing),
             },
         ).execute()
         if skip_images:
