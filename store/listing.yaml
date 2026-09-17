@@ -25,40 +25,50 @@ promotional_text: Before you know it you'll be huge.
 # App Store only — comma-separated search terms, no spaces needed after commas (100)
 keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tracker,progress
 
-# both — the full description (4000). Plain text; blank lines separate paragraphs.
-description: |
+# The store description is composed from the three pieces below, in this
+# order: about, then the testimonials under their heading, then other_features.
+# CI checks the composed result against the stores' 4000. The website uses
+# each piece directly as its own section.
+
+# both — the opening paragraphs. Blank lines separate paragraphs.
+about: |
   Schlift tracks which muscles you've worked out recently, and suggests workouts based on what hasn't been trained that week. It tracks each exercise and slowly (and scientifically) increases reps and weight until you are huge.
-  
+
   If you are trying to work in with friends, or just want to work out your butt for the fourth time this week, picking your own workout is quick and easy.
 
-  Testimonials:
+# both — the line above the testimonials in the description, and the section
+# label on the website
+testimonials_heading: "Testimonials:"
 
-  "Wow this app isn't actually crap. Good job Brend"
-  - Steph
+# both — quote and who said it
+testimonials:
+  - quote: Wow this app isn't actually crap. Good job Brend
+    name: Steph
+  - quote: This app is so nice, I'm so proud of you cutie
+    name: Alyssa
+  - quote: Brendan. Now I can finally become as huge as you are.
+    name: Rishabh
 
-  "This app is so nice, I'm so proud of you cutie"
-  - Alyssa
-
-  "Brendan. Now I can finally become as huge as you are."
-  - Rishabh
-
-  If that wasn't enough reason to use it, it also has:
-  - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
-  - History (the people yearn for progress graphs)
-  - Save your own workouts to easily do that sick workout your friend showed you again later
-  - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
+# both — the bullet list that closes the description; its own section on the
+# website, with the heading above the bullets
+other_features:
+  heading: "If that wasn't enough reason to use it, it also has:"
+  items:
+    - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
+    - History (the people yearn for progress graphs)
+    - Save your own workouts to easily do that sick workout your friend showed you again later
+    - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
 # schlift.com — the only lines on the landing page that are not already a
-# store field above. Everything else on the site (tagline, promotional_text,
-# description, the slides and their captions, the latest release notes) is
-# read from this file at build time. Store links are functional labels.
+# store field above. The hero is the tagline with promotional_text under it;
+# everything else on the site (about, testimonials, other_features, the slides
+# and their captions, the latest release notes) is read from this file at
+# build time. Store links are functional labels.
 website:
-  hero: Yap with friends, we tell you what weight to lift next.
   under_buttons: Free. No ads. No subscription.
   app_store_button: Download on the App Store
   play_store_button: Get it on Google Play
   screenshots_heading: What it looks like
-  testimonials_heading: Testimonials
   companion_heading: Your progress. On the big screen.
   companion_text: The phone runs your workout — schlift.com tells the story. Estimated 1RM trends, weekly volume, and an honest accounting of how much gym time was actually yapping. Sign in with the same passkey as the app.
   companion_demo_button: View sample dashboard

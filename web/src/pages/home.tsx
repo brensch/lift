@@ -83,7 +83,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function HomePage() {
-  const { about, screenshots, whatsNew } = CONTENT;
+  const { about, testimonials, otherFeatures, screenshots, whatsNew } = CONTENT;
 
   return (
     <div className="flex flex-col overflow-hidden">
@@ -115,7 +115,7 @@ export function HomePage() {
             className="mt-4 text-lg md:text-xl text-muted max-w-md leading-relaxed opacity-0"
             style={{ animation: "fade-in 0.8s ease-out 0.45s forwards" }}
           >
-            {site("hero")}
+            {CONTENT.promotionalText}
           </p>
 
           <div
@@ -146,9 +146,8 @@ export function HomePage() {
         <section className="border-y border-border/50 bg-surface/30 py-20">
           <div className="max-w-5xl mx-auto px-5">
             <Reveal>
-              <Eyebrow>{site("screenshots_heading")}</Eyebrow>
               <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight m-0 mb-10">
-                {CONTENT.promotionalText}
+                {site("screenshots_heading")}
               </h2>
             </Reveal>
           </div>
@@ -187,55 +186,36 @@ export function HomePage() {
         </section>
       )}
 
-      {/* About — the store description, grouped, word for word */}
+      {/* About — the opening of the store description */}
       <section className="max-w-5xl mx-auto px-5 py-24 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12">
-          <Reveal className="md:col-span-3">
-            {about.paragraphs.map((p, i) => (
-              <p
-                key={i}
-                className={cn(
-                  "leading-relaxed m-0",
-                  i === 0
-                    ? "font-display text-2xl md:text-3xl font-bold tracking-tight"
-                    : "mt-6 text-lg text-muted",
-                )}
-              >
-                {p}
-              </p>
-            ))}
-          </Reveal>
-
-          {about.features && (
-            <Reveal delay={120} className="md:col-span-2">
-              <p className="text-muted leading-relaxed m-0 mb-4">
-                {about.features.intro}
-              </p>
-              <ul className="m-0 p-0 list-none space-y-3">
-                {about.features.items.map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-3 text-sm leading-relaxed border border-border rounded-xl bg-surface px-4 py-3"
-                  >
-                    <span className="mt-[0.45rem] w-1.5 h-1.5 rounded-full bg-ok shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          )}
-        </div>
+        <Reveal className="max-w-3xl">
+          {about.map((p, i) => (
+            <p
+              key={i}
+              className={cn(
+                "leading-relaxed m-0",
+                i === 0
+                  ? "font-display text-2xl md:text-3xl font-bold tracking-tight"
+                  : "mt-6 text-lg text-muted",
+              )}
+            >
+              {p}
+            </p>
+          ))}
+        </Reveal>
       </section>
 
       {/* Testimonials */}
-      {about.testimonials.length > 0 && (
+      {testimonials.length > 0 && (
         <section className="border-t border-border/50 bg-surface/30 py-24 px-5">
           <div className="max-w-5xl mx-auto">
             <Reveal>
-              <Eyebrow>{site("testimonials_heading")}</Eyebrow>
+              <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight m-0 mb-10">
+                {CONTENT.testimonialsHeading}
+              </h2>
             </Reveal>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-              {about.testimonials.map((t, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {testimonials.map((t, i) => (
                 <Reveal key={t.name} delay={i * 100}>
                   <blockquote className="m-0 h-full border border-border rounded-2xl bg-surface p-7 flex flex-col">
                     <p className="font-display text-xl font-bold tracking-tight leading-snug m-0 flex-1">
@@ -243,6 +223,29 @@ export function HomePage() {
                     </p>
                     <footer className="mt-6 text-sm text-muted">— {t.name}</footer>
                   </blockquote>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Other features — its own section */}
+      {otherFeatures.items.length > 0 && (
+        <section className="border-t border-border/50 py-24 px-5">
+          <div className="max-w-5xl mx-auto">
+            <Reveal>
+              <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight m-0 mb-10 max-w-2xl">
+                {otherFeatures.heading}
+              </h2>
+            </Reveal>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {otherFeatures.items.map((item, i) => (
+                <Reveal key={i} delay={i * 80}>
+                  <div className="h-full flex items-start gap-3 border border-border rounded-2xl bg-surface p-6 leading-relaxed">
+                    <span className="mt-[0.6rem] w-2 h-2 rounded-full bg-ok shrink-0" />
+                    <span>{item}</span>
+                  </div>
                 </Reveal>
               ))}
             </div>

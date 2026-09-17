@@ -316,9 +316,13 @@ API, from two committed sources:
 - **`store/listing.yaml`** — the single source of listing text: `name`,
   `tagline` (App Store subtitle, feature graphic byline, and the first half
   of Play's one-liner), `promotional_text` (App Store promo; Play's one-liner
-  is tagline + promo, 80 max), `keywords` (App Store), `description` (both).
-  The same text goes to every language the listing has. Screenshot captions
-  live here too.
+  is tagline + promo, 80 max), `keywords` (App Store), and the description
+  as typed pieces: `about` (paragraphs), `testimonials_heading` +
+  `testimonials` (quote, name), `other_features` (heading, items). The
+  stores get those composed into one description in that order
+  (`compose_description` in `scripts/check_store_text.py`); the website
+  uses each piece as its own section. The same text goes to every language
+  the listing has. Screenshot captions live here too.
 - **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
   (1080×2400, dark mode), `wear_*.png` Wear OS captures (384×384),
   `apple_watch_*.png` Apple Watch captures (396×484).
@@ -350,9 +354,9 @@ should carry them.
 
 schlift.com's landing page has no copy of its own. At build time
 `web/scripts/sync-content.mjs` reads `store/listing.yaml` (tagline,
-promotional text, description split into paragraphs / testimonials /
-bullets, the slides and their captions, the `website:` section for the few
-site-only lines), the latest `release-notes/<version>.md`, the raw
+promotional text, `about`, `testimonials`, `other_features`, the slides and
+their captions, the `website:` section for the few site-only lines), the
+latest `release-notes/<version>.md`, the raw
 screenshots, the app icon (favicon) and the feature graphic (link preview),
 and writes them under `web/src/generated/` and `web/public/generated/`
 (gitignored). `npm run dev` and `npm run build` run it automatically. The

@@ -10,11 +10,11 @@ export type Content = {
   name: string;
   tagline: string;
   promotionalText: string;
-  about: {
-    paragraphs: string[];
-    testimonials: Testimonial[];
-    features: { intro: string; items: string[] } | null;
-  };
+  /** Opening paragraphs of the store description. */
+  about: string[];
+  testimonialsHeading: string;
+  testimonials: Testimonial[];
+  otherFeatures: { heading: string; items: string[] };
   website: Record<string, string>;
   screenshots: Screenshot[];
   whatsNew: { version: string; lines: string[] } | null;
