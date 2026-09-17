@@ -181,10 +181,40 @@ pub fn default_templates() -> Vec<(&'static str, Vec<Exercise>)> {
     ]
 }
 
+const FLAT_MIGRATION_NAME: &str = "flat_workouts_v1";
+
 pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
+    let pending = !migration_applied(pool, MIGRATION_NAME).await?
+        || !migration_applied(pool, FLAT_MIGRATION_NAME).await?;
+    if pending {
+        // The migrations drop tables and are not transactional. Take an
+        // online copy of the file first so a failed or regretted run can
+        // be restored by hand.
+        backup_database(pool).await?;
+    }
     composable_workouts(pool).await?;
     flat_workouts(pool).await?;
     Ok(())
+}
+
+/// Copies the live database to `<path>.pre-migration-<unix>.sqlite` next to
+/// it via `VACUUM INTO`, which is safe under WAL with other connections
+/// open. In-memory and unnamed databases are skipped.
+async fn backup_database(pool: &Pool<Sqlite>) -> DbResult<Option<String>> {
+    let rows = sqlx::query("PRAGMA database_list").fetch_all(pool).await?;
+    let Some(path) = rows.iter().find_map(|row| {
+        let name: String = row.get("name");
+        let file: String = row.get("file");
+        (name == "main" && !file.is_empty()).then_some(file)
+    }) else {
+        return Ok(None);
+    };
+    let backup = format!("{path}.pre-migration-{}.sqlite", now_unix());
+    sqlx::query(&format!("VACUUM INTO '{}'", backup.replace('\'', "''")))
+        .execute(pool)
+        .await?;
+    tracing::info!(%backup, "database backed up before schema migration");
+    Ok(Some(backup))
 }
 
 async fn migration_applied(pool: &Pool<Sqlite>, name: &str) -> DbResult<bool> {
@@ -210,7 +240,7 @@ async fn mark_migration(pool: &Pool<Sqlite>, name: &str) -> DbResult<()> {
 /// group/regime columns nothing reads any more. No data rewrite — history
 /// rollups already aggregate by exercise.
 async fn flat_workouts(pool: &Pool<Sqlite>) -> DbResult<()> {
-    const NAME: &str = "flat_workouts_v1";
+    const NAME: &str = FLAT_MIGRATION_NAME;
     if migration_applied(pool, NAME).await? {
         return Ok(());
     }
@@ -746,6 +776,53 @@ mod tests {
         seed(pool.clone()).await;
         pool.close().await;
         ServerDb::new_in_dir(&dir).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_pending_migration_backs_up_the_database_first() {
+        let dir = std::env::temp_dir().join(format!("lift-migration-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = format!("sqlite://{}/server.sqlite?mode=rwc", dir.display());
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(&path)
+            .await
+            .unwrap();
+        sqlx::query(OLD_SCHEMA).execute(&pool).await.unwrap();
+        seed_user(&pool, "u1").await;
+        pool.close().await;
+
+        let backups = |dir: &std::path::Path| -> Vec<String> {
+            std::fs::read_dir(dir)
+                .unwrap()
+                .filter_map(|e| e.ok())
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .filter(|n| n.contains(".pre-migration-"))
+                .collect()
+        };
+
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let first = backups(&dir);
+        assert_eq!(first.len(), 1, "one backup for the pending migration: {first:?}");
+        // The backup is a readable database holding the pre-migration data.
+        let backup_pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect(&format!("sqlite://{}/{}?mode=ro", dir.display(), first[0]))
+            .await
+            .unwrap();
+        let has_old_table: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'training_program_state_latest'",
+        )
+        .fetch_one(&backup_pool)
+        .await
+        .unwrap();
+        assert_eq!(has_old_table, 1);
+        backup_pool.close().await;
+        drop(db);
+
+        // A second start with nothing pending takes no backup.
+        let _db = ServerDb::new_in_dir(&dir).await.unwrap();
+        assert_eq!(backups(&dir).len(), 1);
     }
 
     fn legacy_state_blob(regime_type: i32, fields: &[(&str, f64)]) -> Vec<u8> {
