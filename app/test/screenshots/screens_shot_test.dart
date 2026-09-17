@@ -14,6 +14,7 @@ import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
+import 'package:schlift/providers/theme_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
 import 'package:schlift/screens/onboarding/steps/templates_step.dart';
@@ -46,6 +47,7 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => SettingsProvider(grpc)),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(
             create: (_) => AuthProvider(
               authService: AuthService(grpcClient: grpc),
@@ -105,6 +107,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     expect(find.textContaining('Papers'), findsWidgets);
+    // The header's shaking multiplayer button sleeps in a loop; tear the
+    // tree down and let its last sleep elapse so no timer is left pending.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 6));
   });
 
   testWidgets('onboarding templates step: tick, untick, finish gating', (
