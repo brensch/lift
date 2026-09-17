@@ -206,7 +206,9 @@ def barbell(x: float, top: float, height: float, fill: str) -> str:
     k = height / 42.0  # plates run from unit 33 to 75
     def r(u0, v0, u1, v1, rx=0.0):
         return f'<rect x="{x + (u0 - 14) * k:.1f}" y="{top + (v0 - 33) * k:.1f}" width="{(u1 - u0) * k:.1f}" height="{(v1 - v0) * k:.1f}" rx="{rx * k:.1f}" fill="{fill}"/>'
-    parts = [r(14, 33, 20, 75, 1.2), r(21, 33, 27, 75, 1.2), r(28, 33, 34, 75, 1.2), r(34, 50, 74, 58), r(74, 33, 80, 75, 1.2), r(81, 33, 87, 75, 1.2), r(88, 33, 94, 75, 1.2)]
+    # The bar runs on under the inner plates so the joins are solid ink, not
+    # two anti-aliased edges meeting.
+    parts = [r(30, 50, 78, 58), r(14, 33, 20, 75, 1.2), r(21, 33, 27, 75, 1.2), r(28, 33, 34, 75, 1.2), r(74, 33, 80, 75, 1.2), r(81, 33, 87, 75, 1.2), r(88, 33, 94, 75, 1.2)]
     return "".join(parts)
 
 
@@ -224,7 +226,7 @@ def feature_staircase() -> str:
     cap_h, baseline = 78, 160
     bar_w = 80 * (cap_h / 42.0)
     text_x = 64 + bar_w + 30
-    byline = listing_text("feature_graphic_byline", "Stronger every lift")
+    byline = listing_text("tagline", "The best way to Schlift.")
     return f"""
 <defs>
   <linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{GREEN}" stop-opacity="0.28"/><stop offset="1" stop-color="{GREEN}" stop-opacity="0"/></linearGradient>

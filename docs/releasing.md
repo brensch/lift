@@ -313,11 +313,12 @@ Workflow file: `.github/workflows/store-assets.yml`. It never builds the app.
 It frames committed screenshots and pushes text + images to both stores by
 API, from two committed sources:
 
-- **`store/listing.yaml`** — the single source of listing text. Fields that
-  both stores read (`name`, `description`) appear once; a field only one store
-  has (`subtitle`, `promotional_text`, `keywords` for the App Store;
-  `short_description` for Play) says so in its comment. The same text goes to
-  every language the listing has. Screenshot captions live here too.
+- **`store/listing.yaml`** — the single source of listing text: `name`,
+  `tagline` (App Store subtitle, feature graphic byline, and the first half
+  of Play's one-liner), `promotional_text` (App Store promo; Play's one-liner
+  is tagline + promo, 80 max), `keywords` (App Store), `description` (both).
+  The same text goes to every language the listing has. Screenshot captions
+  live here too.
 - **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
   (1080×2400, dark mode), `wear_*.png` Wear OS captures (384×384),
   `apple_watch_*.png` Apple Watch captures (396×484).
