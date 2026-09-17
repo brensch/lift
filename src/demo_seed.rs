@@ -144,8 +144,8 @@ impl Lift {
 
     fn outcome(ex: Exercise, session: usize) -> Outcome {
         // A bad day hits everything; otherwise each lift rolls on its own.
-        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.08;
-        if bad_day || roll(ex, session, 2) < 0.18 {
+        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.10;
+        if bad_day || roll(ex, session, 2) < 0.22 {
             Outcome::Missed
         } else {
             Outcome::Made
@@ -185,6 +185,13 @@ impl Lift {
             }
             Outcome::Made => {
                 self.misses = 0;
+                if roll(ex, session, 7) < 0.06 && loadable {
+                    // A setback that is not a miss: a week off, a tweak, a
+                    // change of gym. Drop a notch and rebuild from there.
+                    self.reps = p.rep_low;
+                    self.weight = snap_weight_lb(ex, self.weight * 0.9, AppWeightUnit::Lb);
+                    return;
+                }
                 if roll(ex, session, 5) < 0.12 {
                     return; // made it, but no more than last time: a hold
                 }
