@@ -336,7 +336,7 @@ async fn run_user_simulation(
                 GetSettingsRequest {},
             )
             .await?;
-            Ok::<(), Status>(())
+            Ok::<(), Box<Status>>(())
         })
     };
 
@@ -378,7 +378,7 @@ async fn run_user_simulation(
                 GetHomeRequest {},
             )
             .await?;
-            Ok::<_, Status>(home)
+            Ok::<_, Box<Status>>(home)
         })
     };
 
@@ -686,7 +686,7 @@ async fn timed_call<C, Req, Res, F>(
     method_name: &str,
     call_fn: F,
     request: Req,
-) -> Result<Res, Status>
+) -> Result<Res, Box<Status>>
 where
     for<'a> F: FnOnce(
         &'a mut C,
@@ -700,5 +700,5 @@ where
     req.metadata_mut().insert("x-session-token", token.clone());
     let res = call_fn(client, req).await;
     stats.record(method_name, req_start.elapsed(), res.is_err());
-    res.map(|r| r.into_inner())
+    res.map(|r| r.into_inner()).map_err(Box::new)
 }

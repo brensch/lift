@@ -1,7 +1,36 @@
 use super::*;
 
-pub(super) fn internal_error(error: impl std::fmt::Display) -> Status {
-    Status::internal(error.to_string())
+/// Error for the hand-written helpers behind the RPC handlers.
+///
+/// tonic's `Status` is 176 bytes, so `Result<T, Status>` carries that on
+/// every Ok path (clippy's `result_large_err`). Helpers return this boxed
+/// form instead; `?` converts either way, so a helper can raise a `Status`
+/// and a handler can propagate a `ServerError` unchanged.
+#[derive(Debug)]
+pub(super) struct ServerError(Box<Status>);
+
+pub(super) type ServerResult<T> = Result<T, ServerError>;
+
+impl From<Status> for ServerError {
+    fn from(status: Status) -> Self {
+        Self(Box::new(status))
+    }
+}
+
+impl From<crate::workout::WorkoutError> for ServerError {
+    fn from(error: crate::workout::WorkoutError) -> Self {
+        Status::from(error).into()
+    }
+}
+
+impl From<ServerError> for Status {
+    fn from(error: ServerError) -> Self {
+        *error.0
+    }
+}
+
+pub(super) fn internal_error(error: impl std::fmt::Display) -> ServerError {
+    Status::internal(error.to_string()).into()
 }
 
 /// The version gate. When `MIN_APP_VERSION` is set (e.g. "1.2.0"), any
@@ -11,7 +40,7 @@ pub(super) fn internal_error(error: impl std::fmt::Display) -> Status {
 /// old apps that predate the header are the ones the gate cannot help, and
 /// the deploy order (ship the header first, set the env second) handles
 /// them.
-fn check_app_version<T>(request: &Request<T>) -> Result<(), Status> {
+fn check_app_version<T>(request: &Request<T>) -> ServerResult<()> {
     let Ok(min) = std::env::var("MIN_APP_VERSION") else {
         return Ok(());
     };
@@ -24,7 +53,7 @@ fn check_app_version<T>(request: &Request<T>) -> Result<(), Status> {
     };
     if version_below(version, &min) {
         tracing::warn!(rpc_auth = "app_too_old", %version, %min, "rejected old app");
-        return Err(Status::failed_precondition("app_update_required"));
+        return Err(Status::failed_precondition("app_update_required").into());
     }
     Ok(())
 }
@@ -48,10 +77,7 @@ fn version_below(version: &str, min: &str) -> bool {
     false
 }
 
-pub(super) async fn authed_user_id<T>(
-    request: &Request<T>,
-    db: &ServerDb,
-) -> Result<String, Status> {
+pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> ServerResult<String> {
     check_app_version(request)?;
     let token = request
         .metadata()
@@ -69,7 +95,7 @@ pub(super) async fn authed_user_id<T>(
                 rpc_auth = "invalid_token",
                 "auth failed: invalid session token"
             );
-            Status::unauthenticated("Invalid session token")
+            Status::unauthenticated("Invalid session token").into()
         })
 }
 
@@ -129,7 +155,7 @@ pub(super) async fn refresh_participant_for_user(
     user_id: &str,
     session_id: &str,
     workout_id: Option<&str>,
-) -> Result<(), Status> {
+) -> ServerResult<()> {
     let user = db
         .get_user(user_id)
         .await
