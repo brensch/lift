@@ -1,5 +1,6 @@
 // Pulls everything the landing page says and shows out of the repo, so the
-// site can never drift from the store listing:
+// site can never drift from the store listing. Nothing is parsed out of
+// prose: the YAML holds typed pieces and this passes them through.
 //   store/listing.yaml           -> src/generated/content.json
 //   release-notes/<latest>.md    -> content.json (whatsNew)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
@@ -17,35 +18,6 @@ const repo = resolve(here, "..", "..");
 const web = resolve(here, "..");
 
 const listing = parse(readFileSync(resolve(repo, "store/listing.yaml"), "utf8"));
-
-// The description is plain store text. Split it into what it is: paragraphs,
-// a testimonials block ("quote" then "- name"), and a bullet list with an
-// intro line. Nothing is rewritten; only grouped.
-function parseDescription(text) {
-  const blocks = text.trim().split(/\n\s*\n/).map((b) => b.trim());
-  const out = { paragraphs: [], testimonials: [], features: null };
-  for (const block of blocks) {
-    const lines = block.split("\n").map((l) => l.trim());
-    if (/^testimonials:$/i.test(block)) continue;
-    if (lines[0].startsWith('"') && lines.length >= 2 && lines[lines.length - 1].startsWith("- ")) {
-      out.testimonials.push({
-        quote: lines.slice(0, -1).join(" ").replace(/^"|"$/g, ""),
-        name: lines[lines.length - 1].replace(/^-\s*/, ""),
-      });
-      continue;
-    }
-    const bullets = lines.filter((l) => l.startsWith("- "));
-    if (bullets.length >= 2) {
-      out.features = {
-        intro: lines.filter((l) => !l.startsWith("- ")).join(" "),
-        items: bullets.map((l) => l.replace(/^-\s*/, "")),
-      };
-      continue;
-    }
-    out.paragraphs.push(lines.join(" "));
-  }
-  return out;
-}
 
 // Latest release notes by version number.
 const notesDir = resolve(repo, "release-notes");
@@ -66,7 +38,12 @@ const content = {
   name: listing.name,
   tagline: listing.tagline,
   promotionalText: listing.promotional_text,
-  about: parseDescription(listing.description),
+  // Typed pieces, straight from the YAML. The stores get them composed into
+  // one description (scripts/check_store_text.py); the site gets them as is.
+  about: String(listing.about ?? "").trim().split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+  testimonialsHeading: listing.testimonials_heading ?? "",
+  testimonials: (listing.testimonials ?? []).map((t) => ({ quote: String(t.quote), name: String(t.name) })),
+  otherFeatures: listing.other_features ?? { heading: "", items: [] },
   website: listing.website ?? {},
   screenshots: (listing.screenshots ?? []).map((s) => ({
     src: `/generated/screens/${s.file}`,
