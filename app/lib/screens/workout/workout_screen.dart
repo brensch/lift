@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
+
+import '../../tutorial/tutorial_target.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
@@ -160,13 +162,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
         const SizedBox(height: 8),
         // ── Named, swipeable page tabs ──
-        PageTabs(
-          tabs: pageTabs,
-          index: _page,
-          onTap: (i) => _pageController.animateToPage(
-            i,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
+        TutorialTarget(
+          id: 'workout_tabs',
+          child: PageTabs(
+            tabs: pageTabs,
+            index: _page,
+            onTap: (i) => _pageController.animateToPage(
+              i,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            ),
           ),
         ),
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
@@ -211,15 +216,18 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       const ColumnLabel('Current'),
                                       const SizedBox(height: 8),
                                       if (focusedBlock != null)
-                                        CurrentExerciseCard(
-                                          block: focusedBlock,
-                                          completedSets: wp.completedSets,
-                                          activeSetId: activeSetId,
-                                          onEdit: () => _editBlock(
-                                            context,
-                                            wp,
-                                            focusedBlock,
-                                          ),
+                                        TutorialTarget(
+                                          id: 'workout_current',
+                                          child: CurrentExerciseCard(
+                                            block: focusedBlock,
+                                            completedSets: wp.completedSets,
+                                            activeSetId: activeSetId,
+                                            onEdit: () => _editBlock(
+                                              context,
+                                              wp,
+                                              focusedBlock,
+                                            ),
+                                          )
                                         )
                                       else
                                         const EmptyPanel(
