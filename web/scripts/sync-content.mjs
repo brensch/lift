@@ -2,6 +2,7 @@
 // site can never drift from the store listing. Nothing is parsed out of
 // prose: the YAML holds typed pieces and this passes them through.
 //   store/listing.yaml           -> src/generated/content.json
+//   templates/library.yaml       -> content.json (library, the /templates page)
 //   release-notes/<latest>.md    -> content.json (whatsNew)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
 //   marketing/schlift-square-512 -> public/generated/icon-512.png (favicon)
@@ -18,6 +19,21 @@ const repo = resolve(here, "..", "..");
 const web = resolve(here, "..");
 
 const listing = parse(readFileSync(resolve(repo, "store/listing.yaml"), "utf8"));
+
+// The template library, as the backend embeds it. Exercises stay as the
+// enum names written in the YAML; the page maps them to display names.
+const libraryYaml = parse(readFileSync(resolve(repo, "templates/library.yaml"), "utf8"));
+const library = {
+  groups: (libraryYaml.groups ?? []).map((g) => ({ key: String(g.key), label: String(g.label) })),
+  templates: (libraryYaml.templates ?? []).map((t) => ({
+    id: String(t.id),
+    name: String(t.name),
+    group: String(t.group),
+    blurb: String(t.blurb ?? ""),
+    isDefault: t.default === true,
+    exercises: (t.exercises ?? []).map(String),
+  })),
+};
 
 // Latest release notes by version number.
 const notesDir = resolve(repo, "release-notes");
@@ -56,6 +72,7 @@ const content = {
     subtitle: s.subtitle ?? "",
   })),
   whatsNew,
+  library,
 };
 
 mkdirSync(resolve(web, "src/generated"), { recursive: true });
@@ -80,4 +97,4 @@ ${bar(30, 50, 78, 58)}${bar(14, 33, 20, 75, 1.2)}${bar(21, 33, 27, 75, 1.2)}${ba
 `;
 writeFileSync(resolve(gen, "favicon.svg"), favicon);
 copyFileSync(resolve(repo, "marketing/feature_graphic.png"), resolve(gen, "og.png"));
-console.log(`synced listing (${content.screenshots.length} slides, notes ${latest ?? "none"}) into web/src/generated + web/public/generated`);
+console.log(`synced listing (${content.screenshots.length} slides, notes ${latest ?? "none"}, ${library.templates.length} library templates) into web/src/generated + web/public/generated`);

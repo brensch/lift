@@ -1528,26 +1528,77 @@ impl WorkoutService for ServerWorkoutService {
                     .map_err(internal_error)?;
             }
 
-            let now = now_unix();
-            for (order, (name, exercises)) in
-                crate::db::default_templates().into_iter().enumerate()
-            {
-                let template = WorkoutTemplate {
-                    id: String::new(),
-                    name: name.to_string(),
-                    order: order as i32,
-                    exercises: exercises.into_iter().map(|e| e as i32).collect(),
-                    created_at: now,
-                    updated_at: now,
-                };
+            // The library entries the user ticked; the defaults when the
+            // request names none (older clients never do).
+            let entries = if req.library_ids.is_empty() {
+                crate::template_library::defaults()
+            } else {
+                let mut entries = Vec::with_capacity(req.library_ids.len());
+                for id in &req.library_ids {
+                    entries.push(crate::template_library::find(id).ok_or_else(|| {
+                        Status::invalid_argument(format!("unknown library template {id:?}"))
+                    })?);
+                }
+                entries
+            };
+            for entry in entries {
                 self.db
-                    .save_template(&user_id, &template)
+                    .save_template(&user_id, &library_copy(entry))
                     .await
                     .map_err(internal_error)?;
             }
         }
 
         Ok(Response::new(CompleteOnboardingResponse {
+            home: Some(self.build_home(&user_id).await?),
+        }))
+    }
+
+    /// Public by design: the library is the same for everyone and holds
+    /// nothing about anyone, so this is the one handler without
+    /// `authed_user_id`. Don't copy it for anything per-user.
+    async fn list_template_library(
+        &self,
+        _request: Request<ListTemplateLibraryRequest>,
+    ) -> Result<Response<ListTemplateLibraryResponse>, Status> {
+        let templates = self
+            .db
+            .list_template_library()
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(ListTemplateLibraryResponse { templates }))
+    }
+
+    async fn add_library_templates(
+        &self,
+        request: Request<AddLibraryTemplatesRequest>,
+    ) -> Result<Response<AddLibraryTemplatesResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "AddLibraryTemplates", %user_id, ids = ?req.library_ids, "request");
+        let existing = self
+            .db
+            .list_templates(&user_id)
+            .await
+            .map_err(internal_error)?;
+        let mut have: std::collections::HashSet<String> = existing
+            .into_iter()
+            .filter(|t| !t.library_id.is_empty())
+            .map(|t| t.library_id)
+            .collect();
+        for id in &req.library_ids {
+            let entry = crate::template_library::find(id).ok_or_else(|| {
+                Status::invalid_argument(format!("unknown library template {id:?}"))
+            })?;
+            if !have.insert(entry.id.clone()) {
+                continue; // already in the user's list
+            }
+            self.db
+                .save_template(&user_id, &library_copy(entry))
+                .await
+                .map_err(internal_error)?;
+        }
+        Ok(Response::new(AddLibraryTemplatesResponse {
             home: Some(self.build_home(&user_id).await?),
         }))
     }
@@ -1643,4 +1694,19 @@ fn progression_message_for_change(
         reason_kind,
         reason_text: None,
     }))
+}
+
+/// A user's copy of a library entry: a new template (empty id, order
+/// assigned on save) that remembers where it came from.
+fn library_copy(entry: &LibraryTemplate) -> WorkoutTemplate {
+    let now = now_unix();
+    WorkoutTemplate {
+        id: String::new(),
+        name: entry.name.clone(),
+        order: 0,
+        exercises: entry.exercises.clone(),
+        created_at: now,
+        updated_at: now,
+        library_id: entry.id.clone(),
+    }
 }

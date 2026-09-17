@@ -5977,20 +5977,6 @@ public final class Group {
     workout.v1.WorkoutOuterClass.Workout getActiveWorkout();
 
     /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> 
-        getExerciseGroupsList();
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index);
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    int getExerciseGroupsCount();
-
-    /**
      * <code>repeated .workout.v1.ProposedSet proposed_sets = 5 [json_name = "proposedSets"];</code>
      */
     java.util.List<workout.v1.WorkoutOuterClass.ProposedSet> 
@@ -6051,7 +6037,6 @@ public final class Group {
       ParticipantStatusOrBuilder {
     private ParticipantStatus() {
       activeWorkoutId_ = "";
-      exerciseGroups_ = emptyProtobufList();
       proposedSets_ = emptyProtobufList();
       completedSets_ = emptyProtobufList();
     }
@@ -6192,100 +6177,6 @@ public final class Group {
      */
     private void clearActiveWorkout() {  activeWorkout_ = null;
       
-    }
-
-    public static final int EXERCISE_GROUPS_FIELD_NUMBER = 4;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> exerciseGroups_;
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getExerciseGroupsList() {
-      return exerciseGroups_;
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder> 
-        getExerciseGroupsOrBuilderList() {
-      return exerciseGroups_;
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    @java.lang.Override
-    public int getExerciseGroupsCount() {
-      return exerciseGroups_.size();
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index) {
-      return exerciseGroups_.get(index);
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.ExerciseGroupOrBuilder getExerciseGroupsOrBuilder(
-        int index) {
-      return exerciseGroups_.get(index);
-    }
-    private void ensureExerciseGroupsIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseGroup> tmp = exerciseGroups_;
-      if (!tmp.isModifiable()) {
-        exerciseGroups_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void setExerciseGroups(
-        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-      value.getClass();
-  ensureExerciseGroupsIsMutable();
-      exerciseGroups_.set(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void addExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-      value.getClass();
-  ensureExerciseGroupsIsMutable();
-      exerciseGroups_.add(value);
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void addExerciseGroups(
-        int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-      value.getClass();
-  ensureExerciseGroupsIsMutable();
-      exerciseGroups_.add(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void addAllExerciseGroups(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
-      ensureExerciseGroupsIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, exerciseGroups_);
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void clearExerciseGroups() {
-      exerciseGroups_ = emptyProtobufList();
-    }
-    /**
-     * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-     */
-    private void removeExerciseGroups(int index) {
-      ensureExerciseGroupsIsMutable();
-      exerciseGroups_.remove(index);
     }
 
     public static final int PROPOSED_SETS_FIELD_NUMBER = 5;
@@ -6813,108 +6704,6 @@ public final class Group {
       }
 
       /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseGroup> getExerciseGroupsList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExerciseGroupsList());
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      @java.lang.Override
-      public int getExerciseGroupsCount() {
-        return instance.getExerciseGroupsCount();
-      }/**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.ExerciseGroup getExerciseGroups(int index) {
-        return instance.getExerciseGroups(index);
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder setExerciseGroups(
-          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-        copyOnWrite();
-        instance.setExerciseGroups(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder setExerciseGroups(
-          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
-        copyOnWrite();
-        instance.setExerciseGroups(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder addExerciseGroups(workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-        copyOnWrite();
-        instance.addExerciseGroups(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder addExerciseGroups(
-          int index, workout.v1.WorkoutOuterClass.ExerciseGroup value) {
-        copyOnWrite();
-        instance.addExerciseGroups(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder addExerciseGroups(
-          workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
-        copyOnWrite();
-        instance.addExerciseGroups(builderForValue.build());
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder addExerciseGroups(
-          int index, workout.v1.WorkoutOuterClass.ExerciseGroup.Builder builderForValue) {
-        copyOnWrite();
-        instance.addExerciseGroups(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder addAllExerciseGroups(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseGroup> values) {
-        copyOnWrite();
-        instance.addAllExerciseGroups(values);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder clearExerciseGroups() {
-        copyOnWrite();
-        instance.clearExerciseGroups();
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.ExerciseGroup exercise_groups = 4 [json_name = "exerciseGroups"];</code>
-       */
-      public Builder removeExerciseGroups(int index) {
-        copyOnWrite();
-        instance.removeExerciseGroups(index);
-        return this;
-      }
-
-      /**
        * <code>repeated .workout.v1.ProposedSet proposed_sets = 5 [json_name = "proposedSets"];</code>
        */
       @java.lang.Override
@@ -7240,8 +7029,6 @@ public final class Group {
               "user_",
               "activeWorkoutId_",
               "activeWorkout_",
-              "exerciseGroups_",
-              workout.v1.WorkoutOuterClass.ExerciseGroup.class,
               "proposedSets_",
               workout.v1.WorkoutOuterClass.ProposedSet.class,
               "completedSets_",
@@ -7251,8 +7038,8 @@ public final class Group {
               "hasActiveSet_",
             };
             java.lang.String info =
-                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0003\u0000\u0001\t\u0002\u0208\u0003\t\u0004" +
-                "\u001b\u0005\u001b\u0006\u001b\u0007\t\b\u0002\t\u0007";
+                "\u0000\b\u0000\u0000\u0001\t\b\u0000\u0002\u0000\u0001\t\u0002\u0208\u0003\t\u0005" +
+                "\u001b\u0006\u001b\u0007\t\b\u0002\t\u0007";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

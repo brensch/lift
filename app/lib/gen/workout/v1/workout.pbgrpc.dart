@@ -209,6 +209,21 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$completeOnboarding, request, options: options);
   }
 
+  /// The template library everyone picks from. Public, no auth.
+  $grpc.ResponseFuture<$0.ListTemplateLibraryResponse> listTemplateLibrary(
+    $0.ListTemplateLibraryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listTemplateLibrary, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.AddLibraryTemplatesResponse> addLibraryTemplates(
+    $0.AddLibraryTemplatesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$addLibraryTemplates, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.DismissUserMessagesResponse> dismissUserMessages(
     $0.DismissUserMessagesRequest request, {
     $grpc.CallOptions? options,
@@ -338,6 +353,16 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/CompleteOnboarding',
       ($0.CompleteOnboardingRequest value) => value.writeToBuffer(),
       $0.CompleteOnboardingResponse.fromBuffer);
+  static final _$listTemplateLibrary = $grpc.ClientMethod<
+          $0.ListTemplateLibraryRequest, $0.ListTemplateLibraryResponse>(
+      '/workout.v1.WorkoutService/ListTemplateLibrary',
+      ($0.ListTemplateLibraryRequest value) => value.writeToBuffer(),
+      $0.ListTemplateLibraryResponse.fromBuffer);
+  static final _$addLibraryTemplates = $grpc.ClientMethod<
+          $0.AddLibraryTemplatesRequest, $0.AddLibraryTemplatesResponse>(
+      '/workout.v1.WorkoutService/AddLibraryTemplates',
+      ($0.AddLibraryTemplatesRequest value) => value.writeToBuffer(),
+      $0.AddLibraryTemplatesResponse.fromBuffer);
   static final _$dismissUserMessages = $grpc.ClientMethod<
           $0.DismissUserMessagesRequest, $0.DismissUserMessagesResponse>(
       '/workout.v1.WorkoutService/DismissUserMessages',
@@ -558,6 +583,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.CompleteOnboardingRequest.fromBuffer(value),
         ($0.CompleteOnboardingResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListTemplateLibraryRequest,
+            $0.ListTemplateLibraryResponse>(
+        'ListTemplateLibrary',
+        listTemplateLibrary_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ListTemplateLibraryRequest.fromBuffer(value),
+        ($0.ListTemplateLibraryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.AddLibraryTemplatesRequest,
+            $0.AddLibraryTemplatesResponse>(
+        'AddLibraryTemplates',
+        addLibraryTemplates_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.AddLibraryTemplatesRequest.fromBuffer(value),
+        ($0.AddLibraryTemplatesResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.DismissUserMessagesRequest,
             $0.DismissUserMessagesResponse>(
         'DismissUserMessages',
@@ -779,6 +822,24 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.CompleteOnboardingResponse> completeOnboarding(
       $grpc.ServiceCall call, $0.CompleteOnboardingRequest request);
+
+  $async.Future<$0.ListTemplateLibraryResponse> listTemplateLibrary_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ListTemplateLibraryRequest> $request) async {
+    return listTemplateLibrary($call, await $request);
+  }
+
+  $async.Future<$0.ListTemplateLibraryResponse> listTemplateLibrary(
+      $grpc.ServiceCall call, $0.ListTemplateLibraryRequest request);
+
+  $async.Future<$0.AddLibraryTemplatesResponse> addLibraryTemplates_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.AddLibraryTemplatesRequest> $request) async {
+    return addLibraryTemplates($call, await $request);
+  }
+
+  $async.Future<$0.AddLibraryTemplatesResponse> addLibraryTemplates(
+      $grpc.ServiceCall call, $0.AddLibraryTemplatesRequest request);
 
   $async.Future<$0.DismissUserMessagesResponse> dismissUserMessages_Pre(
       $grpc.ServiceCall $call,

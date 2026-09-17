@@ -552,6 +552,36 @@ message WorkoutTemplate {
   repeated Exercise exercises = 4;
   int64 created_at = 5;
   int64 updated_at = 6;
+  // The library entry this was copied from (templates/library.yaml id),
+  // empty for one the user made. Only used to show what is already added.
+  string library_id = 7;
+}
+
+// One entry of the template library (templates/library.yaml): a workout
+// anyone can copy into their own list. Copies are ordinary templates.
+message LibraryTemplate {
+  string id = 1;
+  string name = 2;
+  string blurb = 3;
+  string group_key = 4;
+  string group_label = 5;
+  repeated Exercise exercises = 6;
+  bool is_default = 7;             // ticked by default during onboarding
+}
+
+// Public: the library is the same for everyone.
+message ListTemplateLibraryRequest {}
+message ListTemplateLibraryResponse {
+  repeated LibraryTemplate templates = 1;
+}
+
+// Copies library entries into the caller's templates, skipping any whose
+// library_id is already present. Returns the refreshed home.
+message AddLibraryTemplatesRequest {
+  repeated string library_ids = 1;
+}
+message AddLibraryTemplatesResponse {
+  GetHomeResponse home = 1;
 }
 
 // The resolved state of one exercise for one user: the weight and the
@@ -654,6 +684,9 @@ message CompleteOnboardingRequest {
   ExperienceLevel experience = 2;  // unspecified = skipped
   WeightUnit unit = 3;
   Gender gender = 4;               // unspecified = skipped
+  // The library entries to copy in. Empty means the library's defaults
+  // (also what clients from before the library send).
+  repeated string library_ids = 5;
 }
 message CompleteOnboardingResponse {
   GetHomeResponse home = 1;
@@ -771,6 +804,9 @@ service WorkoutService {
   rpc ReorderTemplates(ReorderTemplatesRequest) returns (ReorderTemplatesResponse);
   rpc SetExerciseTracker(SetExerciseTrackerRequest) returns (SetExerciseTrackerResponse);
   rpc CompleteOnboarding(CompleteOnboardingRequest) returns (CompleteOnboardingResponse);
+  // The template library everyone picks from. Public, no auth.
+  rpc ListTemplateLibrary(ListTemplateLibraryRequest) returns (ListTemplateLibraryResponse);
+  rpc AddLibraryTemplates(AddLibraryTemplatesRequest) returns (AddLibraryTemplatesResponse);
 
   rpc DismissUserMessages(DismissUserMessagesRequest) returns (DismissUserMessagesResponse);
 }

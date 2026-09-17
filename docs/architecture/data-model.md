@@ -177,6 +177,30 @@ erDiagram
   (`composable_workouts_v1` converted the old program-state world; see
   `src/db/migration.rs`).
 
+### Template library
+
+`templates/library.yaml` is the source of truth for the templates everyone
+can pick from: `groups` (key + label, in display order) and `templates`
+(stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
+exercises as `Exercise` enum names without the `EXERCISE_` prefix). The
+backend embeds the file at build time (`src/template_library.rs`; `cargo
+test` fails on an unknown exercise name) and mirrors it into the
+`template_library` table on startup (`src/db/library.rs`), so the table is
+never edited by hand and the YAML wins on every restart.
+
+- `ListTemplateLibrary` serves that table. It is public — no auth — so the
+  sign-up flow can show it before an account exists.
+- `AddLibraryTemplates` copies the requested ids into the caller's
+  `workout_templates`, skipping ids the user already has.
+- `CompleteOnboarding` takes `library_ids`; an empty list means the
+  `default: true` entries.
+- A user's copy is an ordinary `workout_templates` row with `library_id`
+  set to the entry it came from. It is editable like any other template
+  (rename, reorder, change exercises); `library_id` only marks what is
+  already added. Never reuse or rename an id in the YAML.
+- The website's `/templates` page is rendered from the same YAML at build
+  time (`web/scripts/sync-content.mjs`), not from the RPC.
+
 ## Everything else
 
 | Table | Purpose |

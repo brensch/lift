@@ -1,0 +1,128 @@
+# The template library: the workouts everyone can pick from. New users tick
+# the ones they want during setup (the `default: true` ones start ticked),
+# and anyone can add more later from the Add chip on the home screen.
+# Adding one copies it into the user's own list, where they can rename it,
+# reorder it or change its exercises without touching this file.
+#
+# The backend embeds this file at build time and mirrors it into the
+# template_library table on startup (ListTemplateLibrary serves that table).
+# The website's /templates page is rendered from it at build time. Exercises
+# are the Exercise enum names from proto/workout/v1/workout.proto without
+# the EXERCISE_ prefix; `cargo test` fails on an unknown one. Ids are
+# stable keys: users' copies remember which entry they came from, so rename
+# names and blurbs freely but never ids.
+#
+# A template is only an ordered list of exercises. Sets, reps, rest and
+# weight come from the app's prescription for each exercise and the user's
+# tracker, so "5×5" here is a name, not a rule the app enforces.
+
+groups:
+  - key: programs
+    label: Programs
+  - key: splits
+    label: Splits
+  - key: parts
+    label: Body parts
+  - key: gear
+    label: By equipment
+
+templates:
+  - id: stronglifts_a
+    name: StrongLifts 5×5 A
+    group: programs
+    blurb: Squat, bench, row. The famous one.
+    exercises: [SQUAT, BENCH_PRESS, BARBELL_ROW]
+  - id: stronglifts_b
+    name: StrongLifts 5×5 B
+    group: programs
+    blurb: Squat, press, deadlift. Alternate with A.
+    exercises: [SQUAT, OVERHEAD_PRESS, DEADLIFT]
+  - id: big_three
+    name: Big Three
+    group: programs
+    blurb: Squat, bench, deadlift. Nothing else, no excuses.
+    exercises: [SQUAT, BENCH_PRESS, DEADLIFT]
+
+  - id: full_body
+    name: Full Body
+    group: splits
+    blurb: Everything, once, in under an hour.
+    default: true
+    exercises: [SQUAT, BENCH_PRESS, BARBELL_ROW, DUMBBELL_SHOULDER_PRESS, BARBELL_CURL]
+  - id: upper
+    name: Upper
+    group: splits
+    blurb: Half of an upper/lower split.
+    default: true
+    exercises: [BENCH_PRESS, BARBELL_ROW, OVERHEAD_PRESS, CHIN_UP, DUMBBELL_CURL, SKULL_CRUSHER]
+  - id: lower
+    name: Lower
+    group: splits
+    blurb: The other half.
+    default: true
+    exercises: [SQUAT, ROMANIAN_DEADLIFT, HIP_THRUST, CALF_RAISE, CRUNCH]
+  - id: push
+    name: Push
+    group: splits
+    blurb: Chest, shoulders, triceps.
+    default: true
+    exercises: [BENCH_PRESS, OVERHEAD_PRESS, INCLINE_DUMBBELL_PRESS, LATERAL_RAISE, SKULL_CRUSHER]
+  - id: pull
+    name: Pull
+    group: splits
+    blurb: Back and biceps.
+    default: true
+    exercises: [BARBELL_ROW, PULL_UP, DUMBBELL_ROW, REAR_DELT_FLY, BARBELL_CURL]
+  - id: legs
+    name: Legs
+    group: splits
+    blurb: Don't skip it.
+    default: true
+    exercises: [SQUAT, ROMANIAN_DEADLIFT, LUNGE, CALF_RAISE, HANGING_LEG_RAISE]
+
+  - id: butt_stuff
+    name: Butt Stuff
+    group: parts
+    blurb: Hip thrusts and friends. Glutes, hamstrings, the works.
+    exercises: [HIP_THRUST, ROMANIAN_DEADLIFT, BULGARIAN_SPLIT_SQUAT, GLUTE_BRIDGE, CABLE_PULL_THROUGH, GLUTE_KICKBACK, HIP_ABDUCTION]
+  - id: arms
+    name: Arms
+    group: parts
+    blurb: Biceps, triceps, the mirror.
+    exercises: [BARBELL_CURL, SKULL_CRUSHER, HAMMER_CURL, TRICEP_PUSHDOWN, PREACHER_CURL, OVERHEAD_TRICEP_EXTENSION]
+  - id: chest
+    name: Chest
+    group: parts
+    blurb: It's Monday somewhere.
+    exercises: [BENCH_PRESS, INCLINE_DUMBBELL_PRESS, CABLE_FLY, CHEST_DIP, PUSH_UP]
+  - id: back
+    name: Back
+    group: parts
+    blurb: Deadlifts, pull-ups, rows.
+    exercises: [DEADLIFT, PULL_UP, T_BAR_ROW, SEATED_CABLE_ROW, FACE_PULL, SHRUG]
+  - id: shoulders
+    name: Shoulders
+    group: parts
+    blurb: Press, then raise in every direction.
+    exercises: [OVERHEAD_PRESS, ARNOLD_PRESS, LATERAL_RAISE, REAR_DELT_FLY, FRONT_RAISE]
+  - id: core
+    name: Core
+    group: parts
+    blurb: Abs and everything holding you upright.
+    exercises: [PLANK, HANGING_LEG_RAISE, CABLE_CRUNCH, AB_WHEEL_ROLLOUT, RUSSIAN_TWIST]
+
+  - id: dumbbells_only
+    name: Dumbbells Only
+    group: gear
+    blurb: Full body from a rack of dumbbells.
+    exercises: [GOBLET_SQUAT, DUMBBELL_BENCH_PRESS, DUMBBELL_ROW, DUMBBELL_SHOULDER_PRESS, LUNGE, DUMBBELL_CURL]
+  - id: bodyweight
+    name: Bodyweight
+    group: gear
+    blurb: No gym, no problem, no excuses.
+    exercises: [PUSH_UP, PULL_UP, LUNGE, GLUTE_BRIDGE, PLANK, HANGING_LEG_RAISE]
+  - id: machines_only
+    name: Machines Only
+    group: gear
+    blurb: Pins and stacks. Busy-gym proof.
+    exercises: [LEG_PRESS, MACHINE_CHEST_PRESS, LAT_PULLDOWN, LEG_EXTENSION, LEG_CURL, PEC_DECK, SEATED_CALF_RAISE]
