@@ -84,10 +84,12 @@ def page_html(target: Target, raw_png: Path, title: str, subtitle: str, index: i
     sub_px = int(36 * u)
     caption_top = int(150 * u)
     phone_top = caption_top + title_px + int(sub_px * 1.35 * 2) + int(70 * u)
-    # The phone fills the height left under the caption, bleeding 2% off the
-    # bottom so its lower corners are hidden, and never wider than 84%.
+    # The phone fills the height left under the caption and sits fully inside
+    # the canvas (the bottom bar is the point of the workout slides), never
+    # wider than 84%.
+    bottom_margin = int(56 * u)
     visible_aspect = (raw_h - CROP_TOP) / raw_w
-    phone_w = min(int(w * 0.84), int((h * 1.02 - phone_top) / visible_aspect))
+    phone_w = min(int(w * 0.84), int((h - bottom_margin - phone_top) / visible_aspect))
     scale = phone_w / raw_w
     radius = int(88 * u * (phone_w / (1080 * 0.80)))
     accent = GREEN if index % 2 == 0 else BLUE
