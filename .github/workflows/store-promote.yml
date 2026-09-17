@@ -1,0 +1,151 @@
+name: Store Promote
+
+# Promote an already-built, already-uploaded `vX.Y.Z` release to production.
+# Nothing is rebuilt: the jobs only call the Play and App Store Connect APIs.
+#
+#   git tag prod-v0.10.1 origin/main && git push origin prod-v0.10.1
+#
+# or Actions -> Store Promote -> Run workflow. See docs/releasing.md.
+#
+# Release notes are read from release-notes/<version>.md at the ref this
+# workflow runs on, so tag the *current* main, not the build's commit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to promote, e.g. 0.10.1 (must already be built by a v* tag)"
+        required: true
+        type: string
+      platforms:
+        description: "Which stores"
+        required: true
+        default: both
+        type: choice
+        options: [both, android, ios]
+      play_rollout:
+        description: "Google Play rollout fraction, 0 < x <= 1 (1 = everyone)"
+        required: true
+        default: "1"
+        type: string
+      ios_phased_release:
+        description: "App Store phased release over 7 days after approval"
+        required: true
+        default: false
+        type: boolean
+      dry_run:
+        description: "Look everything up and print the plan without committing"
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "prod-v*"
+
+concurrency:
+  group: store-promote
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      android: ${{ steps.resolve.outputs.android }}
+      ios: ${{ steps.resolve.outputs.ios }}
+      play_rollout: ${{ steps.resolve.outputs.play_rollout }}
+      ios_phased_release: ${{ steps.resolve.outputs.ios_phased_release }}
+      dry_run: ${{ steps.resolve.outputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve inputs from tag or dispatch
+        id: resolve
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME#prod-v}"
+            PLATFORMS=both
+            PLAY_ROLLOUT=1
+            IOS_PHASED=false
+            DRY_RUN=false
+          else
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+            PLATFORMS="${{ inputs.platforms }}"
+            PLAY_ROLLOUT="${{ inputs.play_rollout }}"
+            IOS_PHASED="${{ inputs.ios_phased_release }}"
+            DRY_RUN="${{ inputs.dry_run }}"
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must look like 0.10.1, got '$VERSION'"; exit 1
+          fi
+          if [ ! -s "release-notes/${VERSION}.md" ]; then
+            echo "Missing release-notes/${VERSION}.md — write the store release notes first."; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "android=$([ "$PLATFORMS" != ios ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "ios=$([ "$PLATFORMS" != android ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "play_rollout=$PLAY_ROLLOUT" >> "$GITHUB_OUTPUT"
+          echo "ios_phased_release=$IOS_PHASED" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+          echo "Promoting $VERSION (platforms=$PLATFORMS, play_rollout=$PLAY_ROLLOUT, ios_phased=$IOS_PHASED, dry_run=$DRY_RUN)"
+          echo "--- release notes ---"; cat "release-notes/${VERSION}.md"
+
+  android:
+    needs: resolve
+    if: needs.resolve.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Google Play API client
+        run: pip3 install --quiet httplib2 google-api-python-client google-auth google-auth-httplib2
+
+      - name: Promote phone + wear to production
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"; exit 1
+          fi
+          DRY_RUN=""
+          [ "${{ needs.resolve.outputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          python3 scripts/promote_google_play.py \
+            --package-name com.brensch.schlift \
+            --version "${{ needs.resolve.outputs.version }}" \
+            --release-notes-file "release-notes/${{ needs.resolve.outputs.version }}.md" \
+            --user-fraction "${{ needs.resolve.outputs.play_rollout }}" \
+            --promote beta=production \
+            --promote "wear:beta watch=wear:production" \
+            $DRY_RUN
+
+  ios:
+    needs: resolve
+    if: needs.resolve.outputs.ios == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install App Store Connect client
+        run: pip3 install --quiet "pyjwt[crypto]"
+
+      - name: Submit to App Store review
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+        run: |
+          DRY_RUN=""
+          [ "${{ needs.resolve.outputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          PHASED=""
+          [ "${{ needs.resolve.outputs.ios_phased_release }}" = "true" ] && PHASED="--phased-release"
+          python3 scripts/promote_app_store.py \
+            --bundle-id com.brensch.schlift \
+            --version "${{ needs.resolve.outputs.version }}" \
+            --release-notes-file "release-notes/${{ needs.resolve.outputs.version }}.md" \
+            $PHASED $DRY_RUN

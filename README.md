@@ -81,10 +81,13 @@ each layer catches.
 ## Release
 
 Push to `main` to deploy the backend. Push a `v*` tag to build the signed
-Android, Wear OS and iOS artifacts.
+Android, Wear OS and iOS apps onto the store testing tracks. Push a `prod-v*`
+tag to promote that version to production (no rebuild; needs
+`release-notes/<version>.md`).
 
 ```bash
-git tag v0.9.6 origin/main && git push origin v0.9.6
+git tag v0.9.6 origin/main && git push origin v0.9.6          # build + testing tracks
+git tag prod-v0.9.6 origin/main && git push origin prod-v0.9.6  # Play production + App Store review
 ```
 
 The version comes from the tag. Do not edit `app/pubspec.yaml`; it stays at
