@@ -1,0 +1,141 @@
+name: Store Assets
+
+# Store listing text + screenshots, from the repo to both stores. Nothing is
+# built or captured here: raw screenshots are committed under
+# store/screenshots/raw/ (see `make store-capture`), the text lives in
+# store/listing.yaml. This workflow frames the screenshots and pushes
+# everything by API. See docs/releasing.md → "Store listing and screenshots".
+#
+#   render  frame the screenshots and publish them as a workflow artifact to look at
+#   push    render, then update the listing on the chosen stores
+#   pull    print what each store currently has (text + image counts)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do"
+        required: true
+        default: render
+        type: choice
+        options: [render, push, pull]
+      platforms:
+        description: "Which stores (push/pull)"
+        required: true
+        default: both
+        type: choice
+        options: [both, android, ios]
+      ios_version:
+        description: "App Store version to write to (blank = newest editable; created if given and missing)"
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "push: validate against the store APIs without committing"
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: store-assets
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check listing text against store limits
+        run: pip3 install --quiet pyyaml && python3 scripts/check_store_text.py
+
+  render:
+    needs: check
+    if: inputs.action != 'pull'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer
+        run: |
+          pip3 install --quiet playwright pyyaml
+          python3 -m playwright install --with-deps chromium
+      - name: Frame screenshots
+        run: python3 scripts/frame_store_screenshots.py
+      - name: Publish framed screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots
+          path: store/screenshots/out/
+          if-no-files-found: error
+
+  android:
+    needs: render
+    if: inputs.action == 'push' && inputs.platforms != 'ios'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-screenshots
+          path: store/screenshots/out/
+      - name: Install Google Play API client
+        run: pip3 install --quiet pyyaml httplib2 google-api-python-client google-auth google-auth-httplib2
+      - name: Push Play listing
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          python3 scripts/store_listing_google_play.py push --package-name com.brensch.schlift $DRY_RUN
+
+  ios:
+    needs: render
+    if: inputs.action == 'push' && inputs.platforms != 'android'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-screenshots
+          path: store/screenshots/out/
+      - name: Install App Store Connect client
+        run: pip3 install --quiet pyyaml "pyjwt[crypto]"
+      - name: Push App Store listing
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+        run: |
+          DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
+          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $DRY_RUN
+
+  pull:
+    needs: check
+    if: inputs.action == 'pull'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install store clients
+        run: pip3 install --quiet pyyaml httplib2 google-api-python-client google-auth google-auth-httplib2 "pyjwt[crypto]"
+      - name: Pull Play listing
+        if: inputs.platforms != 'ios'
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          mkdir -p pulled
+          python3 scripts/store_listing_google_play.py pull --package-name com.brensch.schlift | tee pulled/google-play.yaml
+      - name: Pull App Store listing
+        if: inputs.platforms != 'android'
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+        run: |
+          mkdir -p pulled
+          VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
+          python3 scripts/store_listing_app_store.py pull --bundle-id com.brensch.schlift $VERSION | tee pulled/app-store.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-listing-pull
+          path: pulled/
