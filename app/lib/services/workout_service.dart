@@ -125,7 +125,6 @@ class WorkoutServiceWrapper {
     );
   }
 
-
   Future<DeleteCompletedSetResponse> deleteCompletedSet(
     String workoutId,
     String completedSetId,
@@ -204,19 +203,39 @@ class WorkoutServiceWrapper {
     return response.tracker;
   }
 
-  /// Finishes setup: saves the unit, seeds trackers and default templates.
+  /// Finishes setup: saves the unit, seeds trackers, and copies the chosen
+  /// library templates (the library's defaults when none are named).
   Future<GetHomeResponse> completeOnboarding({
     required double bodyWeightKg,
     required ExperienceLevel experience,
     required WeightUnit unit,
     Gender gender = Gender.GENDER_UNSPECIFIED,
+    List<String> libraryIds = const [],
   }) async {
     final response = await _client.workoutService.completeOnboarding(
       CompleteOnboardingRequest()
         ..bodyWeightKg = bodyWeightKg
         ..experience = experience
         ..unit = unit
-        ..gender = gender,
+        ..gender = gender
+        ..libraryIds.addAll(libraryIds),
+    );
+    return response.home;
+  }
+
+  /// The template library everyone picks from. Public, no auth needed.
+  Future<List<LibraryTemplate>> listTemplateLibrary() async {
+    final response = await _client.workoutService.listTemplateLibrary(
+      ListTemplateLibraryRequest(),
+    );
+    return response.templates;
+  }
+
+  /// Copies library entries into the user's templates; ones already there
+  /// are skipped. Returns the refreshed home.
+  Future<GetHomeResponse> addLibraryTemplates(List<String> libraryIds) async {
+    final response = await _client.workoutService.addLibraryTemplates(
+      AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
     );
     return response.home;
   }

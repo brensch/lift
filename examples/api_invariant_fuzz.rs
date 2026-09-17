@@ -163,6 +163,7 @@ async fn run_user(
                     WeightUnit::Lb as i32
                 },
                 gender: rng.gen_range(0..3),
+                library_ids: vec![],
             },
         ))
         .await

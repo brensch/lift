@@ -28,6 +28,7 @@ import '../../services/wearable_bridge_service.dart';
 import '../../theme/app_theme.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
+import 'template_library_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -101,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('Auto watch launch failed: $e');
     }
   }
+
+  /// The Add sheet: the library, or a blank template.
+  Future<void> _addTemplate() =>
+      showTemplateLibrary(context, provider: context.read<WorkoutProvider>());
 
   Future<void> _editTemplate(WorkoutTemplate? template) async {
     final wp = context.read<WorkoutProvider>();
@@ -226,11 +231,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () =>
                       setState(() => _selectedTemplateId = _emptyWorkoutId),
                 ),
-                _ActionChip(
-                  icon: Icons.add,
-                  label: 'New',
-                  selected: false,
-                  onTap: () => _editTemplate(null),
+                TutorialTarget(
+                  id: 'home_add',
+                  child: _ActionChip(
+                    icon: Icons.add,
+                    label: 'Add',
+                    selected: false,
+                    onTap: _addTemplate,
+                  ),
                 ),
               ],
             ),

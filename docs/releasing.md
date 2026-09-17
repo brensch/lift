@@ -356,7 +356,8 @@ schlift.com's landing page has no copy of its own. At build time
 `web/scripts/sync-content.mjs` reads `store/listing.yaml` (tagline,
 promotional text, `about`, `testimonials`, `other_features`, the slides and
 their captions, the `website:` section for the few site-only lines), the
-latest `release-notes/<version>.md`, the raw
+latest `release-notes/<version>.md`, `templates/library.yaml` (the
+`/templates` page), the raw
 screenshots, the app icon (favicon) and the feature graphic (link preview),
 and writes them under `web/src/generated/` and `web/public/generated/`
 (gitignored). `npm run dev` and `npm run build` run it automatically. The
