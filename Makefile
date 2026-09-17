@@ -41,6 +41,7 @@ DEBUG_STOREPASS = android
 include make/backend.mk
 include make/app.mk
 include make/android-emulator.mk
+include make/store.mk
 include make/wear.mk
 include make/watch.mk
 include make/release.mk

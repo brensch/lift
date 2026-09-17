@@ -1,0 +1,91 @@
+# Store listing — the single source of truth for BOTH stores.
+#
+# Edit this file, commit to main, then run the Store Assets workflow
+# (docs/releasing.md → "Store listing and screenshots"). The same text goes to
+# every language the listing has on each store. CI checks every limit below
+# on each pull request (scripts/check_store_text.py), so a too-long field
+# fails the PR, not the upload.
+#
+# Fields marked "both" feed both stores. Where a store has a box the other
+# lacks, the field says which. Release notes are NOT here — they live in
+# release-notes/<version>.md.
+
+# both — App Store name (30) and Play app name (30)
+name: Schlift
+
+# App Store only — the line under the name on the product page (30)
+subtitle: Workouts that grow with you
+
+# Play only — the one-liner on the listing card (80)
+short_description: Compose your own workouts. The app sets the weights and progresses every lift.
+
+# App Store only — editable without a new version, shown above the description (170)
+promotional_text: Build a workout from any exercises. Schlift prescribes the sets, reps, rest and weight, then moves each lift up on its own.
+
+# App Store only — comma-separated search terms, no spaces needed after commas (100)
+keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tracker,progress
+
+# both — the full description (4000). Plain text; blank lines separate paragraphs.
+description: |
+  Schlift trains you for muscle growth with workouts you compose yourself.
+
+  Pick the exercises. Schlift prescribes the sets, reps, rest and working weight for each one, then progresses every lift on its own: reps climb through a range, the weight steps up, and a stall triggers a deload. No programs to follow, no cycles to plan.
+
+  Save templates and let the app suggest which one to run next, based on which muscles are furthest below their weekly volume band.
+
+  IN THE GYM
+  • Every set laid out before you start, warmups included
+  • One tap to start a set, one to finish it, and a rest timer that gets you back under the bar
+  • Adjust a weight mid-workout and the plan follows
+
+  PROGRESS
+  • A weekly volume tracker showing hard sets per muscle
+  • Weight over time and estimated one-rep max for every exercise
+  • Full history of every session
+
+  TRAINING PARTNERS
+  • Share a session and see each other's sets land in real time
+
+  ON YOUR WRIST
+  • Apple Watch and Wear OS apps run the set and rest timers with live heart rate
+
+  Built on the hypertrophy research, cited in the app.
+
+# Screenshot slides in STORE order. File numbers are capture order
+# (app/integration_test/store_shots_test.dart), so they need not be sequential.
+# The title is drawn above the phone on every framed image; the subtitle
+# underneath it in smaller type. Keep titles to a few words.
+screenshots:
+  - file: store_00.png
+    title: Start a workout
+    subtitle: Your templates, and a suggestion when you want one
+  - file: store_04.png
+    title: Every set, prescribed
+    subtitle: Sets, reps, rest and weight, worked out for you
+  - file: store_05.png
+    title: Just lift
+    subtitle: One tap to start a set, one to finish it
+  - file: store_06.png
+    title: Rest, then go again
+    subtitle: A timer that knows how long you need
+  - file: store_07.png
+    title: Heart rate, live
+    subtitle: From your Apple Watch or Wear OS watch, set by set
+  - file: store_01.png
+    title: Watch it climb
+    subtitle: Every lift progresses on its own
+  - file: store_02.png
+    title: Every lift, tracked
+    subtitle: Weight over time and estimated one-rep max
+  - file: store_03.png
+    title: Your whole history
+    subtitle: Every session, every set
+
+# Watch slides. Play needs square Wear OS captures; the App Store needs Apple
+# Watch captures. Both are placed on a plain dark background, no caption.
+wear_screenshots:
+  - file: wear_01_active_set.png
+  - file: wear_02_rest_timer.png
+apple_watch_screenshots:
+  - file: apple_watch_01_active_set.png
+  - file: apple_watch_02_rest_timer.png

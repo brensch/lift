@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""Pull or push the App Store listing: text and screenshots.
+
+    push: store/listing.yaml + store/screenshots/out/appstore/** -> every locale
+          on the app. Name and subtitle go on the app-level record (only when it
+          is editable); promotional text, keywords, description and the iPhone
+          + Apple Watch screenshot sets go on one App Store version.
+    pull: print the current text for every locale as YAML.
+
+    scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift [--version 0.10.2] [--dry-run]
+    scripts/store_listing_app_store.py pull --bundle-id com.brensch.schlift
+
+Which version: `--version X.Y.Z` picks (or creates) that version; without it
+the newest version still in an editable state is used, and the script stops
+if there is none (a version waiting for review cannot be changed — pull it
+from review or wait for the next one).
+
+Same API key secrets as the upload/promote scripts. `--dry-run` prints every
+write instead of sending it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+import urllib.request
+from pathlib import Path
+
+import yaml
+
+from check_store_text import check, load_listing  # noqa: E402  (sibling script)
+from promote_app_store import (  # noqa: E402
+    EDITABLE_STATES,
+    AppStoreConnect,
+    load_credentials,
+    version_state,
+)
+
+ROOT = Path(__file__).resolve().parent.parent
+IMAGES = ROOT / "store" / "screenshots" / "out" / "appstore"
+
+# Display type -> (folder, pixel size the files must be)
+SCREENSHOT_SETS = {
+    "APP_IPHONE_67": ("iphone", (1320, 2868)),
+    "APP_WATCH_SERIES_7": ("watch", (396, 484)),
+}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("action", choices=["pull", "push"])
+    parser.add_argument("--bundle-id", required=True)
+    parser.add_argument("--listing", type=Path, default=ROOT / "store" / "listing.yaml")
+    parser.add_argument("--version", default=None, help="App Store version to write to (created if missing)")
+    parser.add_argument("--skip-images", action="store_true", help="Text only")
+    parser.add_argument("--dry-run", action="store_true")
+    return parser.parse_args()
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    with path.open("rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        raise SystemExit(f"{path} is not a PNG")
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+def find_app(asc: AppStoreConnect, bundle_id: str) -> str:
+    apps = asc.get("/apps", {"filter[bundleId]": bundle_id, "fields[apps]": "bundleId,name"}).get("data", [])
+    if len(apps) != 1:
+        raise SystemExit(f"Expected one app with bundle id {bundle_id}, found {len(apps)}")
+    return apps[0]["id"]
+
+
+def editable_app_info(asc: AppStoreConnect, app_id: str) -> dict | None:
+    infos = asc.get(f"/apps/{app_id}/appInfos", {"fields[appInfos]": "state,appStoreState", "limit": 10}).get("data", [])
+    for info in infos:
+        state = info["attributes"].get("state") or info["attributes"].get("appStoreState")
+        if state in EDITABLE_STATES:
+            return info
+    return None
+
+
+def pick_version(asc: AppStoreConnect, app_id: str, wanted: str | None) -> dict:
+    params = {"filter[platform]": "IOS", "sort": "-createdDate", "limit": 20}
+    if wanted:
+        params["filter[versionString]"] = wanted
+    versions = asc.get(f"/apps/{app_id}/appStoreVersions", params).get("data", [])
+    for v in versions:
+        if version_state(v) in EDITABLE_STATES:
+            print(f"Using App Store version {v['attributes']['versionString']} ({v['id']}, {version_state(v)})")
+            return v
+    if wanted:
+        print(f"Creating App Store version {wanted}")
+        created = asc.post(
+            "/appStoreVersions",
+            {
+                "data": {
+                    "type": "appStoreVersions",
+                    "attributes": {"platform": "IOS", "versionString": wanted, "releaseType": "AFTER_APPROVAL"},
+                    "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
+                }
+            },
+        )
+        return created.get("data") or {"id": "<new>", "attributes": {"versionString": wanted}}
+    states = ", ".join(f"{v['attributes']['versionString']}={version_state(v)}" for v in versions[:5])
+    raise SystemExit(
+        "No App Store version is editable right now "
+        f"({states or 'none'}). Pass --version X.Y.Z to create the next one, or pull the current one from review."
+    )
+
+
+def pull(asc: AppStoreConnect, app_id: str, version: dict | None) -> None:
+    out: dict = {}
+    info = editable_app_info(asc, app_id)
+    infos = [info] if info else asc.get(f"/apps/{app_id}/appInfos", {"limit": 10}).get("data", [])[:1]
+    for info in infos:
+        for loc in asc.get(f"/appInfos/{info['id']}/appInfoLocalizations", {"limit": 50}).get("data", []):
+            a = loc["attributes"]
+            out.setdefault(a["locale"], {}).update({"name": a.get("name", ""), "subtitle": a.get("subtitle") or ""})
+    if version and version["id"] != "<new>":
+        for loc in asc.get(f"/appStoreVersions/{version['id']}/appStoreVersionLocalizations", {"limit": 50}).get("data", []):
+            a = loc["attributes"]
+            out.setdefault(a["locale"], {}).update(
+                {
+                    "promotional_text": a.get("promotionalText") or "",
+                    "keywords": a.get("keywords") or "",
+                    "description": a.get("description") or "",
+                    "whats_new": a.get("whatsNew") or "",
+                }
+            )
+            sets = asc.get(f"/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets", {"limit": 50}).get("data", [])
+            out[a["locale"]]["screenshot_sets"] = {
+                s["attributes"]["screenshotDisplayType"]: len(
+                    asc.get(f"/appScreenshotSets/{s['id']}/appScreenshots", {"limit": 50}).get("data", [])
+                )
+                for s in sets
+            }
+    print(yaml.safe_dump(out, allow_unicode=True, sort_keys=False, width=100))
+
+
+def push_text(asc: AppStoreConnect, app_id: str, version: dict, listing: dict) -> list[dict]:
+    info = editable_app_info(asc, app_id)
+    if info is None:
+        print("App-level record (name, subtitle) is not editable right now; leaving it")
+    else:
+        for loc in asc.get(f"/appInfos/{info['id']}/appInfoLocalizations", {"limit": 50}).get("data", []):
+            print(f"[{loc['attributes']['locale']}] name / subtitle")
+            asc.patch(
+                f"/appInfoLocalizations/{loc['id']}",
+                {
+                    "data": {
+                        "type": "appInfoLocalizations",
+                        "id": loc["id"],
+                        "attributes": {"name": listing["name"].strip(), "subtitle": listing["subtitle"].strip()},
+                    }
+                },
+            )
+    localizations = []
+    if version["id"] != "<new>":
+        localizations = asc.get(
+            f"/appStoreVersions/{version['id']}/appStoreVersionLocalizations", {"limit": 50}
+        ).get("data", [])
+    if not localizations:
+        print("Version has no localizations yet; creating en-US")
+        created = asc.post(
+            "/appStoreVersionLocalizations",
+            {
+                "data": {
+                    "type": "appStoreVersionLocalizations",
+                    "attributes": {"locale": "en-US"},
+                    "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": version["id"]}}},
+                }
+            },
+        )
+        localizations = [created.get("data") or {"id": "<new-loc>", "attributes": {"locale": "en-US"}}]
+    for loc in localizations:
+        print(f"[{loc['attributes']['locale']}] promotional text / keywords / description")
+        asc.patch(
+            f"/appStoreVersionLocalizations/{loc['id']}",
+            {
+                "data": {
+                    "type": "appStoreVersionLocalizations",
+                    "id": loc["id"],
+                    "attributes": {
+                        "promotionalText": listing["promotional_text"].strip(),
+                        "keywords": listing["keywords"].strip(),
+                        "description": listing["description"].strip(),
+                    },
+                }
+            },
+        )
+    return localizations
+
+
+def upload_screenshot(asc: AppStoreConnect, set_id: str, path: Path) -> str | None:
+    data = path.read_bytes()
+    reserved = asc.post(
+        "/appScreenshots",
+        {
+            "data": {
+                "type": "appScreenshots",
+                "attributes": {"fileName": path.name, "fileSize": len(data)},
+                "relationships": {"appScreenshotSet": {"data": {"type": "appScreenshotSets", "id": set_id}}},
+            }
+        },
+    ).get("data")
+    if not reserved:  # dry run
+        return None
+    for op in reserved["attributes"]["uploadOperations"]:
+        chunk = data[op["offset"] : op["offset"] + op["length"]]
+        req = urllib.request.Request(op["url"], data=chunk, method=op["method"])
+        for header in op.get("requestHeaders", []):
+            req.add_header(header["name"], header["value"])
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            resp.read()
+    asc.patch(
+        f"/appScreenshots/{reserved['id']}",
+        {
+            "data": {
+                "type": "appScreenshots",
+                "id": reserved["id"],
+                "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()},
+            }
+        },
+    )
+    return reserved["id"]
+
+
+def push_images(asc: AppStoreConnect, localizations: list[dict]) -> None:
+    for display_type, (folder, expected) in SCREENSHOT_SETS.items():
+        files = sorted((IMAGES / folder).glob("*.png"))
+        if not files:
+            print(f"{display_type}: no files in {IMAGES / folder}, leaving the store's as is")
+            continue
+        for f in files:
+            size = png_size(f)
+            if size != expected:
+                raise SystemExit(f"{f.relative_to(ROOT)} is {size[0]}x{size[1]}; {display_type} needs {expected[0]}x{expected[1]}")
+        for loc in localizations:
+            locale = loc["attributes"]["locale"]
+            sets = []
+            if loc["id"] not in ("<new-loc>",):
+                sets = asc.get(f"/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets", {"limit": 50}).get("data", [])
+            existing = next((s for s in sets if s["attributes"]["screenshotDisplayType"] == display_type), None)
+            if existing is None:
+                print(f"[{locale}] {display_type}: creating screenshot set")
+                existing = asc.post(
+                    "/appScreenshotSets",
+                    {
+                        "data": {
+                            "type": "appScreenshotSets",
+                            "attributes": {"screenshotDisplayType": display_type},
+                            "relationships": {
+                                "appStoreVersionLocalization": {"data": {"type": "appStoreVersionLocalizations", "id": loc["id"]}}
+                            },
+                        }
+                    },
+                ).get("data") or {"id": "<new-set>"}
+            else:
+                for shot in asc.get(f"/appScreenshotSets/{existing['id']}/appScreenshots", {"limit": 50}).get("data", []):
+                    asc.request("DELETE", f"/appScreenshots/{shot['id']}")
+            ids = []
+            for f in files:
+                print(f"[{locale}] {display_type}: uploading {f.relative_to(ROOT)}")
+                shot_id = upload_screenshot(asc, existing["id"], f)
+                if shot_id:
+                    ids.append(shot_id)
+            if ids:
+                asc.patch(
+                    f"/appScreenshotSets/{existing['id']}/relationships/appScreenshots",
+                    {"data": [{"type": "appScreenshots", "id": i} for i in ids]},
+                )
+
+
+def main() -> int:
+    args = parse_args()
+    listing = load_listing(args.listing)
+    if args.action == "push":
+        problems = check(listing)
+        if problems:
+            for p in problems:
+                print(f"FAIL {p}")
+            return 1
+    asc = AppStoreConnect(load_credentials(), dry_run=args.dry_run)
+    app_id = find_app(asc, args.bundle_id)
+    if args.action == "pull":
+        version = None
+        try:
+            version = pick_version(asc, app_id, args.version)
+        except SystemExit as e:
+            print(f"(no editable version: {e})")
+        pull(asc, app_id, version)
+        return 0
+    version = pick_version(asc, app_id, args.version)
+    localizations = push_text(asc, app_id, version, listing)
+    if not args.skip_images:
+        push_images(asc, localizations)
+    print("Dry run: nothing was written" if args.dry_run else "App Store listing updated")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
