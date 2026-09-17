@@ -13,46 +13,40 @@
 # both — App Store name (30) and Play app name (30)
 name: Schlift
 
-# App Store only — the line under the name on the product page (30)
-subtitle: Workouts that grow with you
+# both — one line, used three ways: the App Store subtitle under the name (30),
+# the byline under the wordmark on the Play feature graphic, and the first
+# half of Play's one-liner
+tagline: The best way to Schlift.
 
-# Play only — the one-liner on the listing card (80)
-short_description: Compose your own workouts. The app sets the weights and progresses every lift.
-
-# App Store only — editable without a new version, shown above the description (170)
-promotional_text: Build a workout from any exercises. Schlift prescribes the sets, reps, rest and weight, then moves each lift up on its own.
+# both — App Store promotional text above the description (170). Play's
+# one-liner on the listing card is tagline + a space + this, and must fit 80.
+promotional_text: Before you know it you'll be huge.
 
 # App Store only — comma-separated search terms, no spaces needed after commas (100)
 keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tracker,progress
 
 # both — the full description (4000). Plain text; blank lines separate paragraphs.
 description: |
-  Schlift trains you for muscle growth with workouts you compose yourself.
+  Schlift tracks which muscles you've worked out recently, and suggests workouts based on what hasn't been trained that week. It tracks each exercise and slowly (and scientifically) increases reps and weight until you are huge.
+  
+  If you are trying to work in with friends, or just want to work out your butt for the fourth time this week, picking your own workout is quick and easy.
 
-  Pick the exercises. Schlift prescribes the sets, reps, rest and working weight for each one, then progresses every lift on its own: reps climb through a range, the weight steps up, and a stall triggers a deload. No programs to follow, no cycles to plan.
+  Testimonials:
 
-  Save templates and let the app suggest which one to run next, based on which muscles are furthest below their weekly volume band.
+  "Wow this app isn't actually crap. Good job Brend"
+  - Steph
 
-  IN THE GYM
-  • Every set laid out before you start, warmups included
-  • One tap to start a set, one to finish it, and a rest timer that gets you back under the bar
-  • Adjust a weight mid-workout and the plan follows
+  "This app is so nice, I'm so proud of you cutie"
+  - Alyssa
 
-  PROGRESS
-  • A weekly volume tracker showing hard sets per muscle
-  • Weight over time and estimated one-rep max for every exercise
-  • Full history of every session
+  "Brendan. Now I can finally become as huge as you are."
+  - Rishabh
 
-  TRAINING PARTNERS
-  • Share a session and see each other's sets land in real time
-
-  ON YOUR WRIST
-  • Apple Watch and Wear OS apps run the set and rest timers with live heart rate
-
-  Built on the hypertrophy research, cited in the app.
-
-# Play feature graphic byline (drawn under the wordmark by scripts/render_brand.py)
-feature_graphic_byline: Stronger every lift
+  If that wasn't enough reason to use it, it also has:
+  - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
+  - History (the people yearn for progress graphs)
+  - Save your own workouts to easily do that sick workout your friend showed you again later
+  - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
@@ -61,28 +55,28 @@ feature_graphic_byline: Stronger every lift
 screenshots:
   - file: store_00.png
     title: Start a workout
-    subtitle: Your templates, and a suggestion when you want one
+    subtitle: Go with the suggestion, or just do butt again
   - file: store_04.png
     title: Every set, prescribed
-    subtitle: Sets, reps, rest and weight, worked out for you
+    subtitle: Sets, reps, rest and weight, worked out for you (with science)
   - file: store_05.png
-    title: Just lift
+    title: Schlift
     subtitle: One tap to start a set, one to finish it
   - file: store_06.png
-    title: Rest, then go again
-    subtitle: A timer that knows how long you need
+    title: Rest, then schlift again
+    subtitle: Timers make sure you know when to stop yapping
   - file: store_07.png
-    title: Heart rate, live
-    subtitle: From your Apple Watch or Wear OS watch, set by set
+    title: Heart rate
+    subtitle: Straight from your watch, proof you are going hard
   - file: store_01.png
-    title: Watch it climb
-    subtitle: Every lift progresses on its own
+    title: Get Huge
+    subtitle: Or toned, whatever. We increase the weight for you as you succeed
   - file: store_02.png
-    title: Every lift, tracked
-    subtitle: Weight over time and estimated one-rep max
+    title: Every schlift, tracked
+    subtitle: The people yearn for progress charts
   - file: store_03.png
     title: Your whole history
-    subtitle: Every session, every set
+    subtitle: Brag to friends or whatever
 
 # Watch slides. Play needs square Wear OS captures; the App Store needs Apple
 # Watch captures. Both are placed on a plain dark background, no caption.

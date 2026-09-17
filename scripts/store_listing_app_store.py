@@ -213,7 +213,7 @@ def push_text(asc: AppStoreConnect, app_id: str, version: dict, listing: dict) -
                     "data": {
                         "type": "appInfoLocalizations",
                         "id": loc["id"],
-                        "attributes": {"name": listing["name"].strip(), "subtitle": listing["subtitle"].strip()},
+                        "attributes": {"name": listing["name"].strip(), "subtitle": listing["tagline"].strip()},
                     }
                 },
             )

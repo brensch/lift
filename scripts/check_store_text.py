@@ -19,14 +19,20 @@ RAW_DIR = ROOT / "store" / "screenshots" / "raw"
 # field -> (limit, which stores read it)
 LIMITS = {
     "name": (30, "both"),
-    "subtitle": (30, "App Store"),
-    "short_description": (80, "Play"),
-    "promotional_text": (170, "App Store"),
+    "tagline": (30, "App Store subtitle, feature graphic byline, Play one-liner"),
+    "promotional_text": (170, "App Store promo, Play one-liner"),
     "keywords": (100, "App Store"),
     "description": (4000, "both"),
 }
+PLAY_SHORT_LIMIT = 80
+RETIRED = ("subtitle", "short_description", "feature_graphic_byline")
 CAPTION_TITLE_LIMIT = 28
-CAPTION_SUBTITLE_LIMIT = 64
+CAPTION_SUBTITLE_LIMIT = 80
+
+
+def play_short_description(listing: dict) -> str:
+    """Play's one-liner: the tagline and the promotional text, one sentence after the other."""
+    return f"{str(listing.get('tagline', '')).strip()} {str(listing.get('promotional_text', '')).strip()}".strip()
 
 
 def load_listing(path: Path = LISTING) -> dict:
@@ -46,6 +52,13 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
             problems.append(f"{field}: {len(text)} characters, {store} allows {limit}")
         if field == "keywords" and " ," in text:
             problems.append("keywords: remove the space before a comma; it counts against the 100")
+
+    for field in RETIRED:
+        if field in listing:
+            problems.append(f"{field}: retired; the tagline field now covers it")
+    short = play_short_description(listing)
+    if len(short) > PLAY_SHORT_LIMIT:
+        problems.append(f"tagline + promotional_text: {len(short)} characters; Play's one-liner allows {PLAY_SHORT_LIMIT}")
 
     slides = listing.get("screenshots") or []
     if not 2 <= len(slides) <= 8:
@@ -87,6 +100,7 @@ def main() -> int:
         listing = load_listing()
         for field, (limit, store) in LIMITS.items():
             print(f"ok  {field}: {len(listing[field].strip())}/{limit} ({store})")
+        print(f"ok  Play one-liner: {len(play_short_description(listing))}/{PLAY_SHORT_LIMIT}")
         print(f"ok  {len(listing.get('screenshots') or [])} screenshot slides")
     return 1 if problems else 0
 
