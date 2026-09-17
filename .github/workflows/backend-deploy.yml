@@ -28,6 +28,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # The release build is ~2 min from cold; with the cache a merge that
+      # touches no Rust rebuilds almost nothing.
+      - name: Cache cargo (release profile)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: deploy-release
+
       - name: Build backend release binary
         run: cargo build --release --bin schlift
 
