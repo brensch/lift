@@ -27,6 +27,28 @@ export function useMeasuredWidth<T extends HTMLElement>() {
   return { ref, width };
 }
 
+/** Measure a container's content box (width and height) via ResizeObserver. */
+export function useMeasuredSize<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect;
+      if (!r) return;
+      setSize((prev) =>
+        Math.abs(prev.width - r.width) < 1 && Math.abs(prev.height - r.height) < 1
+          ? prev
+          : { width: r.width, height: r.height }
+      );
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, ...size };
+}
+
 /** Round tick steps: 1/2/2.5/5 × 10^n covering [min, max] in ~count steps. */
 export function niceTicks(min: number, max: number, count = 4): number[] {
   if (!isFinite(min) || !isFinite(max)) return [];

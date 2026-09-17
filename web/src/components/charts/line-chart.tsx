@@ -5,7 +5,7 @@ import {
   niceTicks,
   scaleLinear,
   timeTicks,
-  useMeasuredWidth,
+  useMeasuredSize,
 } from "./chart-utils";
 
 export interface LineSeries {
@@ -34,15 +34,18 @@ export function LineChart({
   series,
   yFormat,
   tooltipExtra,
-  height: HEIGHT = DEFAULT_HEIGHT,
+  height = DEFAULT_HEIGHT,
 }: {
   series: LineSeries[];
   yFormat: (v: number) => string;
   /** Extra tooltip line for a given x (e.g. "5 reps @ 225 lb") */
   tooltipExtra?: (x: number) => string | null;
-  height?: number;
+  /** Pixel height, or "fill" to take the parent's height (parent must size it). */
+  height?: number | "fill";
 }) {
-  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+  const { ref, width, height: measuredH } = useMeasuredSize<HTMLDivElement>();
+  const HEIGHT = height === "fill" ? Math.max(measuredH, 120) : height;
+  const boxStyle = height === "fill" ? { height: "100%" } : { height: HEIGHT };
   const [hoverX, setHoverX] = useState<number | null>(null);
 
   const allPoints = useMemo(() => series.flatMap((s) => s.points), [series]);
@@ -72,12 +75,12 @@ export function LineChart({
     };
   }, [allPoints, xValues, plotW, plotH]);
 
-  if (width === 0) return <div ref={ref} style={{ height: HEIGHT }} />;
+  if (width === 0) return <div ref={ref} style={boxStyle} />;
   if (xValues.length === 0) {
     return (
       <div
         ref={ref}
-        style={{ height: HEIGHT }}
+        style={boxStyle}
         className="flex items-center justify-center text-sm text-muted"
       >
         No sessions yet
@@ -121,7 +124,7 @@ export function LineChart({
     : 0;
 
   return (
-    <div ref={ref} className="relative" style={{ height: HEIGHT }}>
+    <div ref={ref} className="relative" style={boxStyle}>
       <svg width={width} height={HEIGHT} className="block">
         {/* Grid — solid hairlines, one step off the surface */}
         {yTicks.map((t) => (
