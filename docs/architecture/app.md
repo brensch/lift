@@ -184,3 +184,17 @@ fixture pins them together; if you change one, change both and regenerate.
 cd app && flutter test
 flutter analyze
 ```
+
+## Copy in YAML
+
+User-facing text is moving out of the Dart files and into `app/copy.yaml`,
+one key per string, grouped by screen. `make copy` runs
+`scripts/gen_copy.py`, which generates `app/lib/gen/copy.dart`: one
+`const copy = Copy(...)` tree of classes with a field per key, so a string
+the code uses but the YAML lost is a compile error, and a stale generated
+file fails CI (`gen_copy.py --check` in the tests workflow). Lists of maps
+(the tutorial's `pages`) become a list of a generated item class.
+
+Migrated so far: the tutorial (`tutorial:`), whose pages are driven entirely
+by the YAML list. Rename nothing in the YAML; reword anything.
+

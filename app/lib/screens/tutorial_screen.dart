@@ -1,13 +1,14 @@
-/// The walkthrough: a swipeable carousel of the app's key pieces, built
-/// from the real widgets with sample data. Each page annotates its widget
-/// with short callout labels connected by hairlines — spec-sheet style —
-/// instead of paragraphs. Shown once on first arrival at home, and
-/// replayable from the menu ("Tutorial").
+/// The walkthrough: one page per thing worth pointing at, each built from
+/// the real widget with sample data. The piece being explained throbs with
+/// a red outline; the title and explanation sit underneath it. Copy comes
+/// from app/copy.yaml (see gen/copy.dart). Shown once on first arrival at
+/// home, and replayable from the menu ("Tutorial").
 library;
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../theme/app_theme.dart';
@@ -36,7 +37,8 @@ class _TutorialScreenState extends State<TutorialScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final pages = _buildPages(context);
+    final t = copy.tutorial;
+    final pages = t.pages;
 
     return Scaffold(
       body: SafeArea(
@@ -47,7 +49,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
-                  'SKIP',
+                  t.skip,
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: cs.onSurface.withValues(alpha: 0.5),
@@ -56,10 +58,15 @@ class _TutorialScreenState extends State<TutorialScreen> {
               ),
             ),
             Expanded(
-              child: PageView(
+              child: PageView.builder(
                 controller: _controller,
                 onPageChanged: (index) => setState(() => _page = index),
-                children: pages,
+                itemCount: pages.length,
+                itemBuilder: (context, i) => _TutorialPage(
+                  page: pages[i],
+                  demo: _demoFor(context, pages[i].key),
+                  last: i == pages.length - 1,
+                ),
               ),
             ),
             Row(
@@ -95,7 +102,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                     }
                   },
                   child: Text(
-                    _page == pages.length - 1 ? "LET'S LIFT" : 'NEXT',
+                    _page == pages.length - 1 ? t.finish : t.next,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
@@ -110,44 +117,37 @@ class _TutorialScreenState extends State<TutorialScreen> {
     );
   }
 
-  List<Widget> _buildPages(BuildContext context) {
-    return [
-      _TutorialPage(
-        title: 'Your muscles, tracked',
-        above: const [
-          _Callout('HARD SETS THIS WEEK · AIM FOR THE BAND', 0.62),
-        ],
-        below: const [
-          _Callout('YELLOW = STILL RECOVERING', 0.18),
-          _Callout('✓ = ENOUGH VOLUME', 0.88),
-        ],
-        child: VolumeCard(
-          volume: _sampleVolume(),
-          recovery: _sampleRecovery(),
-          highlight: const {
-            MuscleGroup.MUSCLE_GROUP_BACK,
-            MuscleGroup.MUSCLE_GROUP_BICEPS,
-          },
-        ),
-      ),
-      _TutorialPage(
-        title: 'Pick a workout',
-        above: const [
-          _Callout('★ = SUGGESTED TODAY', 0.14),
-        ],
-        below: const [
-          _Callout('TAP TO SELECT · TEMPLATES ARE YOURS TO EDIT', 0.5),
-        ],
-        child: Wrap(
+  /// The sample widget for a page, with the piece being explained wrapped in
+  /// [Throb]. Keys match app/copy.yaml; an unknown key shows nothing rather
+  /// than crashing, so the copy file can gain a page before the widget does.
+  Widget _demoFor(BuildContext context, String key) {
+    switch (key) {
+      case 'volume':
+        return Throb(
+          radius: AppTheme.brLg,
+          child: VolumeCard(
+            volume: _sampleVolume(),
+            recovery: _sampleRecovery(),
+            highlight: const {
+              MuscleGroup.MUSCLE_GROUP_BACK,
+              MuscleGroup.MUSCLE_GROUP_BICEPS,
+            },
+          ),
+        );
+      case 'suggested':
+        return Wrap(
           spacing: 6,
           runSpacing: 6,
           children: [
-            TemplateChip(
-              template: _sampleTemplate(),
-              trackers: _sampleTrackers(),
-              selected: true,
-              recommended: true,
-              onTap: () {},
+            Throb(
+              radius: BorderRadius.circular(999),
+              child: TemplateChip(
+                template: _sampleTemplate(),
+                trackers: _sampleTrackers(),
+                selected: true,
+                recommended: true,
+                onTap: () {},
+              ),
             ),
             TemplateChip(
               template: _sampleTemplate(name: 'Legs', id: 't2'),
@@ -164,207 +164,192 @@ class _TutorialScreenState extends State<TutorialScreen> {
               onTap: () {},
             ),
           ],
-        ),
-      ),
-      _TutorialPage(
-        title: 'The numbers are handled',
-        above: const [
-          _Callout('SETS × REPS @ WEIGHT — ALL PRESCRIBED', 0.6),
-        ],
-        below: const [
-          _Callout('\u{1F525} = WARMUPS INCLUDED', 0.14),
-          _Callout('START FROM HERE', 0.85),
-        ],
-        child: IgnorePointer(
-          child: SelectedTemplateCard(
-            template: _sampleTemplate(),
-            trackers: _sampleTrackers(),
-            unit: WeightUnit.WEIGHT_UNIT_LB,
-            recommended: true,
-            suggestionReason: 'Back and biceps are behind',
-            isStarting: false,
-            onStart: () {},
-            onEdit: () {},
-            onDelete: () {},
+        );
+      case 'plan':
+        return Throb(
+          radius: AppTheme.brLg,
+          child: IgnorePointer(
+            child: SelectedTemplateCard(
+              template: _sampleTemplate(),
+              trackers: _sampleTrackers(),
+              unit: WeightUnit.WEIGHT_UNIT_LB,
+              recommended: true,
+              suggestionReason: 'Back and biceps are behind',
+              isStarting: false,
+              onStart: () {},
+              onEdit: () {},
+              onDelete: () {},
+            ),
           ),
-        ),
-      ),
-      _TutorialPage(
-        title: 'During the workout',
-        above: const [
-          _Callout('YOUR CURRENT SET — WEIGHT AND REPS TO HIT', 0.55),
-        ],
-        below: const [
-          _Callout('ELAPSED · HEART RATE', 0.16),
-          _Callout('TAP WHEN THE SET IS DONE', 0.7),
-        ],
-        child: const _RealBottomBarSample(),
-      ),
-      _TutorialPage(
-        title: 'Progress happens by itself',
-        above: const [
-          _Callout('CLEAR EVERY SET → +1 REP', 0.47),
-        ],
-        below: const [
-          _Callout('TOP OF THE RANGE → +WEIGHT, REPS RESET', 0.78),
-        ],
-        footer: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ScienceScreen(),
-                ),
-              ),
-              icon: const Text('🧠', style: TextStyle(fontSize: 15)),
-              label: const Text(
-                'READ THE PAPERS',
-                style: TextStyle(fontWeight: FontWeight.w800),
+        );
+      case 'start':
+        return Throb(
+          radius: AppTheme.brMd,
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: FilledButton(
+              onPressed: () {},
+              child: const Text(
+                'START',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
               ),
             ),
           ),
-        ),
-        child: const _ProgressionDiagram(),
-      ),
-    ];
+        );
+      case 'current_set':
+        return _BottomBarSample(highlight: _BarPart.status);
+      case 'timer':
+        return _BottomBarSample(highlight: _BarPart.timer);
+      case 'complete':
+        return _BottomBarSample(highlight: _BarPart.button);
+      case 'progression':
+        return const _ProgressionDiagram();
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 
-// ── Callout system ───────────────────────────────────────────────────────────
-
-/// A short annotation anchored at a horizontal fraction (0..1) of the
-/// page's widget, connected to it by a hairline and a dot.
-class _Callout {
-  final String label;
-  final double x;
-  const _Callout(this.label, this.x);
-}
-
-/// One layer of callouts above or below the widget: labels on the far
-/// row, a 1px connector dropping to (or rising from) the widget edge.
-class _CalloutLayer extends StatelessWidget {
-  final List<_Callout> callouts;
-  final bool below;
-  const _CalloutLayer({required this.callouts, required this.below});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final lineColor = cs.outline.withValues(alpha: 0.8);
-    // Labels live in equal-width cells (collision-proof); each connector
-    // line sits at its exact anchor fraction.
-    final ordered = List<_Callout>.from(callouts)
-      ..sort((a, b) => a.x.compareTo(b.x));
-    return SizedBox(
-      height: 46,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          Align(
-            alignment: below ? Alignment.bottomCenter : Alignment.topCenter,
-            child: Row(
-              children: [
-                for (final callout in ordered)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Text(
-                        callout.label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
-                          height: 1.25,
-                          color: cs.onSurface.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          for (final callout in ordered)
-            Align(
-              alignment: Alignment(callout.x * 2 - 1, below ? -1 : 1),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (below)
-                    _dot()
-                  else
-                    Container(width: 1, height: 12, color: lineColor),
-                  if (below)
-                    Container(width: 1, height: 12, color: lineColor)
-                  else
-                    _dot(),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dot() => Container(
-        width: 4,
-        height: 4,
-        decoration: const BoxDecoration(
-          color: AppTheme.accentGreen,
-          shape: BoxShape.circle,
-        ),
-      );
-}
-
+/// A page: the demo up top, centred, then the title and the explanation.
 class _TutorialPage extends StatelessWidget {
-  final String title;
-  final List<_Callout> above;
-  final List<_Callout> below;
-  final Widget child;
-  final Widget? footer;
+  final CopyTutorialPagesItem page;
+  final Widget demo;
+  final bool last;
 
   const _TutorialPage({
-    required this.title,
-    required this.child,
-    this.above = const [],
-    this.below = const [],
-    this.footer,
+    required this.page,
+    required this.demo,
+    required this.last,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Room for the glow; it draws outside the widget's box.
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: demo,
+          ),
+          const SizedBox(height: 8),
           Text(
-            title,
+            page.title,
             style: const TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 14),
-          if (above.isNotEmpty) _CalloutLayer(callouts: above, below: false),
-          child,
-          if (below.isNotEmpty) _CalloutLayer(callouts: below, below: true),
-          ?footer,
+          const SizedBox(height: 10),
+          Text(
+            page.body,
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.45,
+              color: cs.onSurface.withValues(alpha: 0.72),
+            ),
+          ),
+          if (last)
+            Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ScienceScreen(),
+                    ),
+                  ),
+                  icon: const Text('🧠', style: TextStyle(fontSize: 15)),
+                  label: Text(
+                    copy.tutorial.papersButton,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-// ── Page 4: the real bottom bar, solo layout ─────────────────────────────────
+/// A glowing, throbbing red outline around the thing being explained.
+class Throb extends StatefulWidget {
+  final Widget child;
+  final BorderRadius radius;
 
-/// The in-workout bottom bar, assembled from the SAME widgets the live bar
-/// uses (StatusBox, TimerHeartBox, BigButton) in its solo layout — only
-/// the data is a sample and the buttons do nothing.
-class _RealBottomBarSample extends StatelessWidget {
-  const _RealBottomBarSample();
+  const Throb({super.key, required this.child, required this.radius});
+
+  @override
+  State<Throb> createState() => _ThrobState();
+}
+
+class _ThrobState extends State<Throb> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = Theme.of(context).scaffoldBackgroundColor;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = Curves.easeInOut.transform(_controller.value);
+        return Container(
+          // Opaque ground so the glow shows only around the widget, never
+          // through it; the outline is painted over the child's edges.
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: widget.radius,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.accentRed.withValues(alpha: 0.35 + 0.35 * t),
+                blurRadius: 10 + 18 * t,
+                spreadRadius: 1 + 5 * t,
+              ),
+            ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: widget.radius,
+            border: Border.all(
+              color: AppTheme.accentRed.withValues(alpha: 0.75 + 0.25 * t),
+              width: 2.5,
+            ),
+          ),
+          child: child,
+        );
+      },
+      child: ClipRRect(borderRadius: widget.radius, child: widget.child),
+    );
+  }
+}
+
+// ── The live bar, with one part lit up per page ──────────────────────────────
+
+enum _BarPart { status, timer, button }
+
+class _BottomBarSample extends StatelessWidget {
+  final _BarPart highlight;
+
+  const _BottomBarSample({required this.highlight});
+
+  Widget _maybe(_BarPart part, BorderRadius radius, Widget child) =>
+      highlight == part ? Throb(radius: radius, child: child) : child;
 
   @override
   Widget build(BuildContext context) {
@@ -383,27 +368,39 @@ class _RealBottomBarSample extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          StatusBox(
-            sideLabel: 'YOU',
-            sideBadge: '🦆',
-            stateLabel: 'Next up',
-            color: Theme.of(context).colorScheme.tertiary,
-            set: _sampleSet(),
-            sideLabelWidth: 44,
+          _maybe(
+            _BarPart.status,
+            AppTheme.brMd,
+            StatusBox(
+              sideLabel: 'YOU',
+              sideBadge: '🦆',
+              stateLabel: 'Next up',
+              color: cs.tertiary,
+              set: _sampleSet(),
+              sideLabelWidth: 44,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: const [
-              TimerHeartBox(
-                elapsedText: '23:41',
-                heartRateText: '128',
-                heartRateDetected: true,
+            children: [
+              _maybe(
+                _BarPart.timer,
+                AppTheme.brMd,
+                const TimerHeartBox(
+                  elapsedText: '23:41',
+                  heartRateText: '128',
+                  heartRateDetected: true,
+                ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
-                child: IgnorePointer(
-                  child: BigButton(label: 'Start Set', onPressed: _noop),
+                child: _maybe(
+                  _BarPart.button,
+                  AppTheme.brMd,
+                  const IgnorePointer(
+                    child: BigButton(label: 'Complete Set', onPressed: _noop),
+                  ),
                 ),
               ),
             ],
@@ -416,7 +413,7 @@ class _RealBottomBarSample extends StatelessWidget {
   static void _noop() {}
 }
 
-// ── Page 5: the progression rule as a diagram ────────────────────────────────
+// ── The progression rule as a diagram ────────────────────────────────────────
 
 class _ProgressionDiagram extends StatelessWidget {
   const _ProgressionDiagram();
@@ -424,16 +421,17 @@ class _ProgressionDiagram extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    Widget step(String weight, String reps, {bool highlight = false}) {
+
+    Widget step(String weight, String reps, {bool up = false}) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: highlight
+          color: up
               ? AppTheme.accentGreen.withValues(alpha: 0.12)
               : cs.surfaceContainerLowest,
           borderRadius: AppTheme.brMd,
           border: Border.all(
-            color: highlight
+            color: up
                 ? AppTheme.accentGreen.withValues(alpha: 0.5)
                 : cs.outline.withValues(alpha: 0.45),
           ),
@@ -473,7 +471,7 @@ class _ProgressionDiagram extends StatelessWidget {
         arrow(),
         step('135 lb', '3 × 7'),
         arrow(),
-        step('140 lb', '3 × 6', highlight: true),
+        Throb(radius: AppTheme.brMd, child: step('140 lb', '3 × 6', up: true)),
       ],
     );
   }

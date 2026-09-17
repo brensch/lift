@@ -1,0 +1,40 @@
+# In-app copy. Edit this, then run `make copy` to regenerate
+# app/lib/gen/copy.dart (CI fails if the generated file is stale). The app
+# reads the generated constants; it never reads this file at runtime.
+#
+# Strings are used as written. Keys are the only thing the code depends on,
+# so rename nothing, reword anything.
+
+tutorial:
+  skip: SKIP
+  next: NEXT
+  finish: LET'S LIFT
+  papers_button: READ THE PAPERS
+
+  # One page per thing worth pointing at. The highlighted piece throbs red;
+  # the title and body sit underneath it.
+  pages:
+    - key: volume
+      title: Your muscles, tracked
+      body: Hard sets this week, per muscle. Aim for the band. Yellow means still recovering, a tick means you've done enough.
+    - key: suggested
+      title: Pick a workout
+      body: The star is today's suggestion, picked from whatever is furthest behind. Tap any template to pick it instead. They're yours to edit.
+    - key: plan
+      title: The numbers are handled
+      body: Sets × reps @ weight, all prescribed. The flame means warmups are included.
+    - key: start
+      title: Start from here
+      body: One tap and the session is on. You can add, remove or reorder exercises once you're in.
+    - key: current_set
+      title: Your current set
+      body: The weight and the reps to hit. Change the weight from here if the bar feels wrong.
+    - key: timer
+      title: Elapsed · heart rate
+      body: How long you've been going, and your heart rate from the watch if you're wearing one.
+    - key: complete
+      title: Tap when the set is done
+      body: The rest timer starts on its own and tells you when to stop yapping.
+    - key: progression
+      title: Progress happens by itself
+      body: Clear every set and next time it's one more rep. Top of the range and the weight goes up, reps reset. Miss twice and it backs off ten percent.
