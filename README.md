@@ -95,7 +95,8 @@ the `0.0.0+1` placeholder.
 
 Store listing text lives in `store/listing.yaml`, screenshots in
 `store/screenshots/raw/` (`make store-capture`), pushed by the Store Assets
-workflow.
+workflow. schlift.com is built from the same file, so the site, Play and the
+App Store always say the same thing.
 
 [`docs/releasing.md`](docs/releasing.md) is the runbook for all of it:
 deploys, builds, promotion, store listing, signing and secrets.
