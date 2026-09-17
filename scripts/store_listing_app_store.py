@@ -109,13 +109,19 @@ def remove_from_review(asc: AppStoreConnect, app_id: str, version: dict) -> None
         {"filter[platform]": "IOS", "filter[state]": "WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES", "limit": 10},
     ).get("data", [])
     for submission in submissions:
-        items = asc.get(f"/reviewSubmissions/{submission['id']}/items", {"limit": 10}).get("data", [])
-        holds_version = any(
-            (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") == version["id"]
-            for item in items
-        )
-        if not holds_version:
+        # The relationship's data only comes back when asked for explicitly.
+        items = asc.get(
+            f"/reviewSubmissions/{submission['id']}/items",
+            {"limit": 10, "fields[reviewSubmissionItems]": "appStoreVersion", "include": "appStoreVersion"},
+        ).get("data", [])
+        ids = [(item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") for item in items]
+        holds_version = version["id"] in ids
+        if not holds_version and any(ids):
             continue
+        if not holds_version:
+            # Apple allows one in-flight submission per platform, so with no
+            # item data to go on, the open one is the one holding this version.
+            print(f"Submission {submission['id']} has no item detail; assuming it holds {version['attributes']['versionString']}")
         print(f"Removing {version['attributes']['versionString']} from review (submission {submission['id']}, {submission['attributes']['state']})")
         asc.patch(
             f"/reviewSubmissions/{submission['id']}",
