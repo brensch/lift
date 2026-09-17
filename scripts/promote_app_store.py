@@ -321,7 +321,10 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
     submission_id = submission["id"]
     already_attached = False
     if submission_id != "<new-submission>":
-        items = asc.get(f"/reviewSubmissions/{submission_id}/items", {"limit": 10}).get("data", [])
+        items = asc.get(
+            f"/reviewSubmissions/{submission_id}/items",
+            {"limit": 10, "fields[reviewSubmissionItems]": "appStoreVersion", "include": "appStoreVersion"},
+        ).get("data", [])
         already_attached = any(
             (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") == version_id
             for item in items
