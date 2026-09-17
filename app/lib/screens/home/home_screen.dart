@@ -10,6 +10,8 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../tutorial/tutorial_target.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,9 +52,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (prefs.getBool(_tutorialSeenKey) ?? false) return;
     await prefs.setBool(_tutorialSeenKey, true);
     if (!mounted) return;
-    await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(builder: (_) => const TutorialScreen()),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TutorialScreen()));
   }
 
   Future<void> _refresh() async {
@@ -162,9 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (home.onboarded && !_tutorialChecked) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _maybeShowTutorial(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTutorial());
     }
 
     final templates = home.templates;
@@ -194,56 +195,65 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         children: [
-          VolumeCard(
-            volume: home.volume,
-            recovery: home.recovery,
-            highlight: highlight,
+          TutorialTarget(
+            id: 'home_volume',
+            child: VolumeCard(
+              volume: home.volume,
+              recovery: home.recovery,
+              highlight: highlight,
+            ),
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final template in templates)
-                TemplateChip(
-                  template: template,
-                  trackers: wp.trackers,
-                  selected: template.id == selected?.id,
-                  recommended: template.id == suggestedId,
+          TutorialTarget(
+            id: 'home_templates',
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final template in templates)
+                  TemplateChip(
+                    template: template,
+                    trackers: wp.trackers,
+                    selected: template.id == selected?.id,
+                    recommended: template.id == suggestedId,
+                    onTap: () =>
+                        setState(() => _selectedTemplateId = template.id),
+                  ),
+                _ActionChip(
+                  icon: Icons.bolt,
+                  label: 'Empty',
+                  selected: emptySelected,
                   onTap: () =>
-                      setState(() => _selectedTemplateId = template.id),
+                      setState(() => _selectedTemplateId = _emptyWorkoutId),
                 ),
-              _ActionChip(
-                icon: Icons.bolt,
-                label: 'Empty',
-                selected: emptySelected,
-                onTap: () =>
-                    setState(() => _selectedTemplateId = _emptyWorkoutId),
-              ),
-              _ActionChip(
-                icon: Icons.add,
-                label: 'New',
-                selected: false,
-                onTap: () => _editTemplate(null),
-              ),
-            ],
+                _ActionChip(
+                  icon: Icons.add,
+                  label: 'New',
+                  selected: false,
+                  onTap: () => _editTemplate(null),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           if (emptySelected)
             _EmptyWorkoutCard(isStarting: _isStarting, onStart: () => _start())
           else if (selected != null)
-            SelectedTemplateCard(
-              template: selected,
-              trackers: wp.trackers,
-              unit: unit,
-              recommended: selected.id == suggestedId,
-              suggestionReason: selected.id == suggestedId
-                  ? home.suggestionReason
-                  : '',
-              isStarting: _isStarting,
-              onStart: () => _start(templateId: selected!.id),
-              onEdit: () => _editTemplate(selected),
-              onDelete: () => _confirmDeleteTemplate(selected!),
+            TutorialTarget(
+              id: 'home_plan',
+              child: SelectedTemplateCard(
+                template: selected,
+                trackers: wp.trackers,
+                unit: unit,
+                recommended: selected.id == suggestedId,
+                suggestionReason: selected.id == suggestedId
+                    ? home.suggestionReason
+                    : '',
+                isStarting: _isStarting,
+                onStart: () => _start(templateId: selected!.id),
+                onEdit: () => _editTemplate(selected),
+                onDelete: () => _confirmDeleteTemplate(selected!),
+              ),
             )
           else
             _EmptyState(onCreate: () => _editTemplate(null)),
@@ -356,10 +366,7 @@ class _ActionChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -431,10 +438,7 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 16),
-          FilledButton(
-            onPressed: onCreate,
-            child: const Text('CREATE ONE'),
-          ),
+          FilledButton(onPressed: onCreate, child: const Text('CREATE ONE')),
         ],
       ),
     );
@@ -451,6 +455,7 @@ class _EmptyState extends StatelessWidget {
 class VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
   final List<MuscleRecoveryStatus> recovery;
+
   /// Primary muscles of the selected template; empty = nothing selected
   /// (no dimming, no colored names).
   final Set<MuscleGroup> highlight;
@@ -605,8 +610,7 @@ class _VolumeRow extends StatelessWidget {
                       left: 0,
                       top: 2,
                       bottom: 2,
-                      width:
-                          width * (sets / _trackMax).clamp(0.0, 1.0),
+                      width: width * (sets / _trackMax).clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
@@ -942,24 +946,27 @@ class SelectedTemplateCard extends StatelessWidget {
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: isStarting ? null : onStart,
-                child: isStarting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'START',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
+            child: TutorialTarget(
+              id: 'home_start',
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: isStarting ? null : onStart,
+                  child: isStarting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'START',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ),

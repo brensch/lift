@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/auth_provider.dart';
@@ -34,6 +35,7 @@ void main() {
     Widget home, {
     bool settle = true, // false for screens with a repeating animation
   }) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(1080, 2280);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -71,23 +73,33 @@ void main() {
     );
   }
 
-  testWidgets('tutorial: every page from copy.yaml', (tester) async {
+  testWidgets('tutorial: every step from copy.yaml', (tester) async {
     await pumpAtPhoneSize(tester, const TutorialScreen(), settle: false);
-    final pages = copy.tutorial.pages.length;
-    // The highlight throbs forever, so never pumpAndSettle on this screen.
-    for (var page = 1; page <= pages; page++) {
-      await tester.pump(const Duration(milliseconds: 400));
-      await shoot(tester, 'tutorial_p$page');
-      if (page < pages) {
+    final steps = copy.tutorial.steps.length;
+    // The outline throbs forever, so never pumpAndSettle on this screen.
+    for (var step = 1; step <= steps; step++) {
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      await shoot(tester, 'tutorial_s$step');
+      // Every step points at something the screen actually has.
+      expect(find.text(copy.tutorial.steps[step - 1].title), findsOneWidget);
+      if (step < steps) {
         await tester.tap(find.text(copy.tutorial.next));
-        await tester.pump(const Duration(milliseconds: 400));
       }
     }
-    // The last page's papers link must navigate.
-    final papers = find.text(copy.tutorial.papersButton);
-    await tester.ensureVisible(papers);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(papers);
+    // Back works too.
+    await tester.tap(find.text(copy.tutorial.previous));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    expect(find.text(copy.tutorial.steps[steps - 2].title), findsOneWidget);
+    await tester.tap(find.text(copy.tutorial.next));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    // The last step's papers link must navigate.
+    await tester.tap(find.text(copy.tutorial.papersButton));
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }

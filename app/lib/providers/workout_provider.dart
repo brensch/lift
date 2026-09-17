@@ -105,11 +105,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   late final UnmodifiableListView<HeartRateSample> _wearHeartRateSamplesView =
       UnmodifiableListView(_wearHeartRateSamples);
 
-  WorkoutProvider(this._service, this._settingsProvider) {
+  /// [persistLocally] false keeps this provider out of the on-device cache
+  /// (the tutorial's sandbox provider must never be "restored" as the
+  /// user's real workout on the next launch).
+  WorkoutProvider(
+    this._service,
+    this._settingsProvider, {
+    bool persistLocally = true,
+  }) : _persistLocally = persistLocally {
     WidgetsBinding.instance.addObserver(this);
     NotificationService.onStartNextSet = _onStartNextSet;
-    _restoreLocalCacheFuture = _restoreLocalCache();
+    _restoreLocalCacheFuture =
+        persistLocally ? _restoreLocalCache() : Future<void>.value();
   }
+
+  final bool _persistLocally;
 
   void _onStartNextSet() {
     final next = nextPendingSet;
@@ -451,6 +461,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _persistLocalCache() async {
+    if (!_persistLocally) return;
     final prefs = await SharedPreferences.getInstance();
     if (_activeWorkout == null) {
       await prefs.remove(_localWorkoutCacheKey);
