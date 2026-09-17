@@ -20,6 +20,7 @@ mod progress;
 mod recovery;
 mod server;
 mod state;
+mod template_library;
 mod time;
 mod volume;
 mod weight_units;
@@ -65,6 +66,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let server_db = ServerDb::new_in_dir(data_dir).await?;
+    // The template library is part of the build; refuse to boot on a bad
+    // file rather than serve a stale table.
+    let library = template_library::load()?;
+    server_db.sync_template_library(&library).await?;
     // Dev/demo only: SEED_DEMO_USER=<name> writes a lifter with weeks of
     // history (store screenshots, local demos). Compiled out of prod.
     #[cfg(feature = "test-auth")]

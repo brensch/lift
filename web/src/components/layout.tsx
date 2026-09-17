@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/use-auth";
 
 const navItems = [
   { to: "/", label: "Home" },
+  { to: "/templates", label: "Templates" },
   { to: "/privacy", label: "Privacy" },
   { to: "/delete-account", label: "Delete Account" },
 ];

@@ -1,8 +1,9 @@
-/// Setup, three questions long: your marker, your unit, and (optionally)
-/// your bodyweight and experience so the first weights aren't the empty
-/// bar. Finishing calls CompleteOnboarding, which seeds the trackers and
-/// copies the six default templates — after that the app is usable and
-/// nothing else is required, ever.
+/// Setup, four steps long: your marker, your unit, (optionally) your
+/// bodyweight and experience so the first weights aren't the empty bar,
+/// and the library templates you want to start with. Finishing calls
+/// CompleteOnboarding, which seeds the trackers and copies the chosen
+/// templates — after that the app is usable and nothing else is required,
+/// ever.
 library;
 
 import 'package:flutter/material.dart';
@@ -12,7 +13,8 @@ import 'dart:async';
 import 'dart:math';
 
 import '../../gen/workout/v1/settings.pb.dart';
-import '../../gen/workout/v1/workout.pb.dart' show ExperienceLevel, Gender;
+import '../../gen/workout/v1/workout.pb.dart'
+    show ExperienceLevel, Gender, LibraryTemplate;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
@@ -24,6 +26,7 @@ import '../../services/user_service.dart';
 import '../../services/workout_service.dart';
 import '../science_screen.dart';
 import 'steps/marker_step.dart';
+import 'steps/templates_step.dart';
 import 'steps/unit_step.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -42,11 +45,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late String _selectedEmoji;
   late String _selectedColorHex;
   WeightUnit _unit = WeightUnit.WEIGHT_UNIT_LB;
-  ExperienceLevel _experience =
-      ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE;
+  ExperienceLevel _experience = ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE;
   Gender _gender = Gender.GENDER_UNSPECIFIED;
   final TextEditingController _bodyWeightController = TextEditingController();
   late List<String> _emojiChoices;
+  List<LibraryTemplate>? _library;
+  Object? _libraryError;
+  final Set<String> _selectedLibraryIds = {};
 
   @override
   void initState() {
@@ -58,6 +63,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _selectedColorHex =
         profileColorHexOptions[rng.nextInt(profileColorHexOptions.length)];
     unawaited(_loadProfile());
+    unawaited(_loadLibrary());
+  }
+
+  /// The library, fetched up front so the last step is instant. Defaults
+  /// come ticked.
+  Future<void> _loadLibrary() async {
+    try {
+      final library = await WorkoutServiceWrapper(
+        context.read<GrpcClient>(),
+      ).listTemplateLibrary();
+      if (!mounted) return;
+      setState(() {
+        _library = library;
+        _libraryError = null;
+        if (_selectedLibraryIds.isEmpty) {
+          _selectedLibraryIds.addAll(
+            library.where((t) => t.isDefault).map((t) => t.id),
+          );
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _libraryError = e);
+    }
   }
 
   @override
@@ -151,6 +179,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             : ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
         unit: _unit,
         gender: _gender,
+        libraryIds: _selectedLibraryIds.toList(),
       );
 
       if (!mounted) return;
@@ -203,11 +232,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         onExperienceChanged: (level) => setState(() => _experience = level),
         gender: _gender,
         onGenderChanged: (gender) => setState(() => _gender = gender),
-        onOpenScience: () => Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute<void>(builder: (_) => const ScienceScreen()),
-        ),
-        isSaving: _isSaving,
+        onOpenScience: () => Navigator.of(
+          context,
+          rootNavigator: true,
+        ).push(MaterialPageRoute<void>(builder: (_) => const ScienceScreen())),
+        isSaving: false,
         onBack: () => setState(() => _step = 1),
+        onFinish: () {
+          if (_library == null && _libraryError == null) {
+            unawaited(_loadLibrary());
+          }
+          setState(() => _step = 3);
+        },
+      ),
+      TemplatesStep(
+        library: _library,
+        error: _libraryError,
+        selected: _selectedLibraryIds,
+        onToggle: (id) => setState(() {
+          if (!_selectedLibraryIds.remove(id)) _selectedLibraryIds.add(id);
+        }),
+        isSaving: _isSaving,
+        onBack: () => setState(() => _step = 2),
         onFinish: _finish,
       ),
     ];
@@ -242,9 +288,7 @@ class _StepDots extends StatelessWidget {
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
-            color: i == step
-                ? cs.primary
-                : cs.onSurface.withValues(alpha: 0.2),
+            color: i == step ? cs.primary : cs.onSurface.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -352,9 +396,7 @@ class _BodyStep extends StatelessWidget {
           const SizedBox(height: 14),
           TextField(
             controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Bodyweight',
               suffixText: weightUnitSuffix(unit),
@@ -431,7 +473,7 @@ class _BodyStep extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Text(
-                            'START LIFTING',
+                            'NEXT',
                             style: TextStyle(fontWeight: FontWeight.w900),
                           ),
                   ),

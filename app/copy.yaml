@@ -27,6 +27,10 @@ tutorial:
       title: Pick a workout
       body: The star is today's suggestion, picked from whatever is furthest behind. Tap any template to pick it instead. They're yours to edit.
     - screen: home
+      target: home_add
+      title: Need more workouts?
+      body: The library has StrongLifts, splits, body parts, Butt Stuff. Add one and it's yours. Or make your own from scratch.
+    - screen: home
       target: home_plan
       title: The numbers are handled
       body: Sets × reps @ weight, all prescribed. The flame means warmups are included.
@@ -56,3 +60,23 @@ tutorial:
       target: workout_tabs
       title: Log and heart
       body: Everything you've lifted this session, and your heart rate over time.
+
+# The template library: templates/library.yaml, offered during setup and
+# from the Add chip on the home screen.
+library:
+  sheet_title: Add a workout
+  make_your_own: Make your own
+  make_your_own_hint: Pick the exercises, name it whatever.
+  add: ADD
+  added: ADDED
+  loading_failed: Couldn't load the library. Check your connection.
+  empty: The library is empty. Someone deleted the internet.
+
+onboarding:
+  templates:
+    kicker: YOUR WORKOUTS
+    title: Pick your workouts
+    body: Tick the ones you want on your home screen. You can add more later, and edit any of them.
+    none_selected: Pick at least one. Or one hundred.
+    back: BACK
+    finish: START LIFTING

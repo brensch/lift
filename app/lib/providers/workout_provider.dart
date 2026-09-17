@@ -23,7 +23,6 @@ import '../logic/utils.dart';
 import '../services/grpc_client.dart' show isAppUpdateRequiredError;
 import '../services/app_logger.dart';
 
-
 /// Offered after a session whose exercises diverged from its template (or
 /// that started empty): "save this as/into a template?". Computed at
 /// EndWorkout, consumed once by the UI.
@@ -31,6 +30,7 @@ class TemplateUpdateSuggestion {
   /// '' = the workout started empty; saving creates a new template.
   final String templateId;
   final String templateName;
+
   /// The exercises actually performed, in workout order.
   final List<Exercise> exercises;
 
@@ -44,7 +44,6 @@ class TemplateUpdateSuggestion {
 }
 
 class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
-
   static const int _maxWearHeartRateSamplesInMemory = 50000;
   static const _localWorkoutCacheKey =
       'workout_provider.local_workout_state.v1';
@@ -115,8 +114,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) : _persistLocally = persistLocally {
     WidgetsBinding.instance.addObserver(this);
     NotificationService.onStartNextSet = _onStartNextSet;
-    _restoreLocalCacheFuture =
-        persistLocally ? _restoreLocalCache() : Future<void>.value();
+    _restoreLocalCacheFuture = persistLocally
+        ? _restoreLocalCache()
+        : Future<void>.value();
   }
 
   final bool _persistLocally;
@@ -132,12 +132,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _now = value;
     _clock.value = value;
   }
-
-
-
-
-
-
 
   // ── Plan-shaping ops: optimistic local apply + queued mutation ──
   // The local apply gives instant feedback; the server response (with the
@@ -180,8 +174,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             // bottom in src/workout/planning.rs / exercise_catalog.rs.
             ..targetReps = tracker?.targetReps ?? 8
             ..targetWeight = tracker?.workingWeight ?? 0
-            ..restAfterSuccess =
-                (tracker != null && tracker.restSeconds > 0)
+            ..restAfterSuccess = (tracker != null && tracker.restSeconds > 0)
                 ? tracker.restSeconds
                 : 180
             ..restAfterFailure =
@@ -316,13 +309,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (active != null) {
       final displaySet = _visibleProposedSetsSorted()
           .cast<ProposedSet?>()
-          .firstWhere((p) => p?.id == active!.proposedSetId,
-              orElse: () => null);
-      _applyStateSnapshot(WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_LIFTING,
-        displaySet: displaySet,
-        activeStartedAt: active.startedAt,
-      ));
+          .firstWhere(
+            (p) => p?.id == active!.proposedSetId,
+            orElse: () => null,
+          );
+      _applyStateSnapshot(
+        WorkoutStateSnapshot(
+          state: WorkoutState.WORKOUT_STATE_LIFTING,
+          displaySet: displaySet,
+          activeStartedAt: active.startedAt,
+        ),
+      );
       _rebuildBlocksCache();
       return;
     }
@@ -344,11 +341,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (nextUp != null &&
         lastDone != null &&
         lastDone.restUntil > Int64(_nowSecs)) {
-      _applyStateSnapshot(WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_RESTING,
-        displaySet: nextUp,
-        restUntil: lastDone.restUntil,
-      ));
+      _applyStateSnapshot(
+        WorkoutStateSnapshot(
+          state: WorkoutState.WORKOUT_STATE_RESTING,
+          displaySet: nextUp,
+          restUntil: lastDone.restUntil,
+        ),
+      );
       _rebuildBlocksCache();
       return;
     }
@@ -356,15 +355,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Ready for the next set, or all done. When a set is up next, carry the
     // previous rest's end (its restUntil) as lastRestEnd so the "yapping" count-up
     // survives a re-derive — mirrors the READY branch in reducer.rs.
-    _applyStateSnapshot(WorkoutStateSnapshot(
-      state: nextUp == null
-          ? WorkoutState.WORKOUT_STATE_ALL_DONE
-          : WorkoutState.WORKOUT_STATE_READY,
-      displaySet: nextUp,
-      lastRestEnd: nextUp != null && lastDone != null
-          ? lastDone.restUntil
-          : Int64.ZERO,
-    ));
+    _applyStateSnapshot(
+      WorkoutStateSnapshot(
+        state: nextUp == null
+            ? WorkoutState.WORKOUT_STATE_ALL_DONE
+            : WorkoutState.WORKOUT_STATE_READY,
+        displaySet: nextUp,
+        lastRestEnd: nextUp != null && lastDone != null
+            ? lastDone.restUntil
+            : Int64.ZERO,
+      ),
+    );
     _rebuildBlocksCache();
   }
 
@@ -558,6 +559,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Workout? get workout => _activeWorkout;
   List<ProposedSet> get proposedSets => _activeProposedSets;
   List<CompletedSet> get completedSets => _activeCompletedSets;
+
   /// The last GetHome response: templates, trackers, volume, recovery,
   /// the suggestion. Null until the first load succeeds.
   GetHomeResponse? get home => _home;
@@ -580,6 +582,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _pendingTemplateUpdate = null;
     return suggestion;
   }
+
+  /// The backend this provider talks to; the Add sheet reads the template
+  /// library through it so a sandboxed provider (the tutorial) stays
+  /// sandboxed.
+  WorkoutServiceWrapper get service => _service;
 
   Future<void> refreshHome() async {
     try {
@@ -607,6 +614,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
+  /// Copies library entries into the user's templates (see
+  /// templates/library.yaml). The response carries the refreshed home.
+  Future<void> addLibraryTemplates(List<String> libraryIds) async {
+    _home = await _service.addLibraryTemplates(libraryIds);
+    notifyListeners();
+  }
+
   Future<void> setExerciseTracker({
     required Exercise exercise,
     required double workingWeightLb,
@@ -623,7 +637,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
     await refreshHome();
   }
-
 
   Workout? get activeWorkout => _activeWorkout;
   List<ProposedSet> get activeProposedSets => _activeProposedSets;
@@ -1072,10 +1085,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return mutation;
   }
 
-
-
-
-
   int get _nowSecs => _now.millisecondsSinceEpoch ~/ 1000;
 
   // Tiny optimistic set edits: mutate the local lists so the tap registers
@@ -1147,13 +1156,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// server-provided on the proposed set (`restAfterSuccess`/`restAfterFailure`);
   /// an exercise's final set uses the short end-of-exercise rest. The server reconciles
   /// with an identical target when the mutation lands.
-  static const int _endOfExerciseRestSeconds = 60; // END_OF_EXERCISE_REST_SECONDS
+  static const int _endOfExerciseRestSeconds =
+      60; // END_OF_EXERCISE_REST_SECONDS
 
   Int64 _localRestUntil(String proposedSetId, int actualReps, Int64 endedAt) {
-    final proposed = _activeProposedSets
-        .cast<ProposedSet?>()
-        .firstWhere((p) => p?.id == proposedSetId && !p!.cancelled,
-            orElse: () => null);
+    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
+      (p) => p?.id == proposedSetId && !p!.cancelled,
+      orElse: () => null,
+    );
     if (proposed == null) return Int64.ZERO;
     var restSeconds = actualReps >= proposed.targetReps
         ? proposed.restAfterSuccess
@@ -1311,7 +1321,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
-
   /// Add exercises to the active workout with the app in charge of the
   /// numbers: weight/sets/reps/rest/warmups from each exercise's tracker —
   /// exactly what a template start would prescribe. The user picks
@@ -1408,9 +1417,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         exercises: performed,
       );
     }
-    final template = templates
-        .cast<WorkoutTemplate?>()
-        .firstWhere((t) => t!.id == ended.templateId, orElse: () => null);
+    final template = templates.cast<WorkoutTemplate?>().firstWhere(
+      (t) => t!.id == ended.templateId,
+      orElse: () => null,
+    );
     if (template == null) return null;
     final planned = template.exercises.toSet();
     final same =
@@ -1457,7 +1467,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _handleError(e);
     }
   }
-
 
   void _writeToHealthPlatform(Workout workout) async {
     try {

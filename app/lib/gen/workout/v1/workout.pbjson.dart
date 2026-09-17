@@ -1551,6 +1551,7 @@ const WorkoutTemplate$json = {
     },
     {'1': 'created_at', '3': 5, '4': 1, '5': 3, '10': 'createdAt'},
     {'1': 'updated_at', '3': 6, '4': 1, '5': 3, '10': 'updatedAt'},
+    {'1': 'library_id', '3': 7, '4': 1, '5': 9, '10': 'libraryId'},
   ],
 };
 
@@ -1559,7 +1560,100 @@ final $typed_data.Uint8List workoutTemplateDescriptor = $convert.base64Decode(
     'Cg9Xb3Jrb3V0VGVtcGxhdGUSDgoCaWQYASABKAlSAmlkEhIKBG5hbWUYAiABKAlSBG5hbWUSFA'
     'oFb3JkZXIYAyABKAVSBW9yZGVyEjIKCWV4ZXJjaXNlcxgEIAMoDjIULndvcmtvdXQudjEuRXhl'
     'cmNpc2VSCWV4ZXJjaXNlcxIdCgpjcmVhdGVkX2F0GAUgASgDUgljcmVhdGVkQXQSHQoKdXBkYX'
-    'RlZF9hdBgGIAEoA1IJdXBkYXRlZEF0');
+    'RlZF9hdBgGIAEoA1IJdXBkYXRlZEF0Eh0KCmxpYnJhcnlfaWQYByABKAlSCWxpYnJhcnlJZA==');
+
+@$core.Deprecated('Use libraryTemplateDescriptor instead')
+const LibraryTemplate$json = {
+  '1': 'LibraryTemplate',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'blurb', '3': 3, '4': 1, '5': 9, '10': 'blurb'},
+    {'1': 'group_key', '3': 4, '4': 1, '5': 9, '10': 'groupKey'},
+    {'1': 'group_label', '3': 5, '4': 1, '5': 9, '10': 'groupLabel'},
+    {
+      '1': 'exercises',
+      '3': 6,
+      '4': 3,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercises'
+    },
+    {'1': 'is_default', '3': 7, '4': 1, '5': 8, '10': 'isDefault'},
+  ],
+};
+
+/// Descriptor for `LibraryTemplate`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List libraryTemplateDescriptor = $convert.base64Decode(
+    'Cg9MaWJyYXJ5VGVtcGxhdGUSDgoCaWQYASABKAlSAmlkEhIKBG5hbWUYAiABKAlSBG5hbWUSFA'
+    'oFYmx1cmIYAyABKAlSBWJsdXJiEhsKCWdyb3VwX2tleRgEIAEoCVIIZ3JvdXBLZXkSHwoLZ3Jv'
+    'dXBfbGFiZWwYBSABKAlSCmdyb3VwTGFiZWwSMgoJZXhlcmNpc2VzGAYgAygOMhQud29ya291dC'
+    '52MS5FeGVyY2lzZVIJZXhlcmNpc2VzEh0KCmlzX2RlZmF1bHQYByABKAhSCWlzRGVmYXVsdA==');
+
+@$core.Deprecated('Use listTemplateLibraryRequestDescriptor instead')
+const ListTemplateLibraryRequest$json = {
+  '1': 'ListTemplateLibraryRequest',
+};
+
+/// Descriptor for `ListTemplateLibraryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTemplateLibraryRequestDescriptor =
+    $convert.base64Decode('ChpMaXN0VGVtcGxhdGVMaWJyYXJ5UmVxdWVzdA==');
+
+@$core.Deprecated('Use listTemplateLibraryResponseDescriptor instead')
+const ListTemplateLibraryResponse$json = {
+  '1': 'ListTemplateLibraryResponse',
+  '2': [
+    {
+      '1': 'templates',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.LibraryTemplate',
+      '10': 'templates'
+    },
+  ],
+};
+
+/// Descriptor for `ListTemplateLibraryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTemplateLibraryResponseDescriptor =
+    $convert.base64Decode(
+        'ChtMaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2USOQoJdGVtcGxhdGVzGAEgAygLMhsud29ya2'
+        '91dC52MS5MaWJyYXJ5VGVtcGxhdGVSCXRlbXBsYXRlcw==');
+
+@$core.Deprecated('Use addLibraryTemplatesRequestDescriptor instead')
+const AddLibraryTemplatesRequest$json = {
+  '1': 'AddLibraryTemplatesRequest',
+  '2': [
+    {'1': 'library_ids', '3': 1, '4': 3, '5': 9, '10': 'libraryIds'},
+  ],
+};
+
+/// Descriptor for `AddLibraryTemplatesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List addLibraryTemplatesRequestDescriptor =
+    $convert.base64Decode(
+        'ChpBZGRMaWJyYXJ5VGVtcGxhdGVzUmVxdWVzdBIfCgtsaWJyYXJ5X2lkcxgBIAMoCVIKbGlicm'
+        'FyeUlkcw==');
+
+@$core.Deprecated('Use addLibraryTemplatesResponseDescriptor instead')
+const AddLibraryTemplatesResponse$json = {
+  '1': 'AddLibraryTemplatesResponse',
+  '2': [
+    {
+      '1': 'home',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.GetHomeResponse',
+      '10': 'home'
+    },
+  ],
+};
+
+/// Descriptor for `AddLibraryTemplatesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List addLibraryTemplatesResponseDescriptor =
+    $convert.base64Decode(
+        'ChtBZGRMaWJyYXJ5VGVtcGxhdGVzUmVzcG9uc2USLwoEaG9tZRgBIAEoCzIbLndvcmtvdXQudj'
+        'EuR2V0SG9tZVJlc3BvbnNlUgRob21l');
 
 @$core.Deprecated('Use exerciseTrackerDescriptor instead')
 const ExerciseTracker$json = {
@@ -1935,6 +2029,7 @@ const CompleteOnboardingRequest$json = {
       '6': '.workout.v1.Gender',
       '10': 'gender'
     },
+    {'1': 'library_ids', '3': 5, '4': 3, '5': 9, '10': 'libraryIds'},
   ],
 };
 
@@ -1943,7 +2038,8 @@ final $typed_data.Uint8List completeOnboardingRequestDescriptor = $convert.base6
     'ChlDb21wbGV0ZU9uYm9hcmRpbmdSZXF1ZXN0EiQKDmJvZHlfd2VpZ2h0X2tnGAEgASgCUgxib2'
     'R5V2VpZ2h0S2cSOwoKZXhwZXJpZW5jZRgCIAEoDjIbLndvcmtvdXQudjEuRXhwZXJpZW5jZUxl'
     'dmVsUgpleHBlcmllbmNlEioKBHVuaXQYAyABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXRSBH'
-    'VuaXQSKgoGZ2VuZGVyGAQgASgOMhIud29ya291dC52MS5HZW5kZXJSBmdlbmRlcg==');
+    'VuaXQSKgoGZ2VuZGVyGAQgASgOMhIud29ya291dC52MS5HZW5kZXJSBmdlbmRlchIfCgtsaWJy'
+    'YXJ5X2lkcxgFIAMoCVIKbGlicmFyeUlkcw==');
 
 @$core.Deprecated('Use completeOnboardingResponseDescriptor instead')
 const CompleteOnboardingResponse$json = {

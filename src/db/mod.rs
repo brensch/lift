@@ -16,11 +16,11 @@ use crate::time::now_unix;
 
 mod auth;
 mod cache;
+mod library;
 mod migration;
 mod session;
 mod workout;
 
-pub use migration::default_templates;
 
 const SERVER_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users_current (
@@ -227,6 +227,18 @@ CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
     ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
     ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS template_library (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    blurb TEXT NOT NULL DEFAULT '',
+    group_key TEXT NOT NULL DEFAULT '',
+    group_label TEXT NOT NULL DEFAULT '',
+    is_default INTEGER NOT NULL DEFAULT 0,
+    library_order INTEGER NOT NULL DEFAULT 0,
+    template_blob BLOB NOT NULL,
+    updated_at INTEGER NOT NULL
+);
 "#;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;

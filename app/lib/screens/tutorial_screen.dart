@@ -479,21 +479,25 @@ class _BottomBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(count, (i) {
-                return Container(
-                  width: i == step ? 18 : 6,
-                  height: 6,
-                  margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                  decoration: BoxDecoration(
-                    color: i == step
-                        ? cs.primary
-                        : cs.onSurface.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
+            // Any number of steps fits: the dots scale down, never overflow.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(count, (i) {
+                  return Container(
+                    width: i == step ? 18 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    decoration: BoxDecoration(
+                      color: i == step
+                          ? cs.primary
+                          : cs.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
           SizedBox(

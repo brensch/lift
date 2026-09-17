@@ -16,6 +16,7 @@ import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
+import 'package:schlift/screens/onboarding/steps/templates_step.dart';
 import 'package:schlift/screens/tutorial_screen.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
@@ -106,8 +107,79 @@ void main() {
     expect(find.textContaining('Papers'), findsWidgets);
   });
 
-  testWidgets('papers screen renders and scrolls to the bottom',
-      (tester) async {
+  testWidgets('onboarding templates step: tick, untick, finish gating', (
+    tester,
+  ) async {
+    final library = [
+      LibraryTemplate(
+        id: 'stronglifts_a',
+        name: 'StrongLifts 5×5 A',
+        blurb: 'Squat, bench, row.',
+        groupKey: 'programs',
+        groupLabel: 'Programs',
+        exercises: [Exercise.EXERCISE_SQUAT, Exercise.EXERCISE_BENCH_PRESS],
+      ),
+      LibraryTemplate(
+        id: 'butt_stuff',
+        name: 'Butt Stuff',
+        blurb: 'Hip thrusts and friends.',
+        groupKey: 'parts',
+        groupLabel: 'Body parts',
+        exercises: [Exercise.EXERCISE_HIP_THRUST],
+        isDefault: true,
+      ),
+    ];
+    final selected = <String>{'butt_stuff'};
+    var finished = 0;
+    late StateSetter rebuild;
+    await pumpAtPhoneSize(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) {
+          rebuild = setState;
+          return Scaffold(
+            body: TemplatesStep(
+              library: library,
+              error: null,
+              selected: selected,
+              onToggle: (id) => setState(() {
+                if (!selected.remove(id)) selected.add(id);
+              }),
+              isSaving: false,
+              onBack: () {},
+              onFinish: () => finished++,
+            ),
+          );
+        },
+      ),
+    );
+    await shoot(tester, 'onboarding_templates');
+    expect(find.text('PROGRAMS'), findsOneWidget);
+    expect(find.text('BODY PARTS'), findsOneWidget);
+    final finish = find.text(copy.onboarding.templates.finish);
+
+    // Untick the only pick: finish disables and the nudge appears.
+    await tester.tap(find.text('Butt Stuff'));
+    await tester.pumpAndSettle();
+    expect(selected, isEmpty);
+    expect(find.text(copy.onboarding.templates.noneSelected), findsOneWidget);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(finished, 0);
+
+    // Tick one back: finish works.
+    await tester.tap(find.text('StrongLifts 5×5 A'));
+    await tester.pumpAndSettle();
+    expect(selected, {'stronglifts_a'});
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(finished, 1);
+    rebuild(() {});
+  });
+
+  testWidgets('papers screen renders and scrolls to the bottom', (
+    tester,
+  ) async {
     await pumpAtPhoneSize(tester, const ScienceScreen());
     await shoot(tester, 'papers_top');
     await tester.fling(find.byType(ListView), const Offset(0, -8000), 12000);
