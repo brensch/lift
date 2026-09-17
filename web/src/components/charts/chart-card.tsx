@@ -25,25 +25,37 @@ export function ChartCard({
   legend,
   table,
   children,
+  fill = false,
+  actions,
 }: {
   title: string;
   subtitle?: string;
   legend?: LegendItem[];
   table: TableSpec;
   children: ReactNode;
+  /** Take the parent's full height; the chart area becomes the flexible part. */
+  fill?: boolean;
+  /** Extra controls in the title row (a tab switch, a select). */
+  actions?: ReactNode;
 }) {
   const [showTable, setShowTable] = useState(false);
 
   return (
-    <div className="border border-border rounded-xl bg-surface p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <div
+      className={cn(
+        "border border-border rounded-xl bg-surface p-4 sm:p-5",
+        fill && "h-full min-h-0 flex flex-col"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="font-display font-bold text-base tracking-tight m-0">
             {title}
           </h3>
           {subtitle && <p className="text-sm text-muted mt-0.5 m-0">{subtitle}</p>}
         </div>
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          {actions}
           {legend && legend.length > 1 && !showTable && (
             <div className="hidden sm:flex items-center gap-4">
               {legend.map((item) => (
@@ -104,7 +116,7 @@ export function ChartCard({
       )}
 
       {showTable ? (
-        <div className="overflow-auto max-h-72">
+        <div className={cn("overflow-auto", fill ? "flex-1 min-h-0" : "max-h-72")}>
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
@@ -142,6 +154,8 @@ export function ChartCard({
             </tbody>
           </table>
         </div>
+      ) : fill ? (
+        <div className="flex-1 min-h-0">{children}</div>
       ) : (
         children
       )}

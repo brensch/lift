@@ -34,10 +34,10 @@ export interface ExerciseInRange {
   lastDateS: number;
 }
 
-export function exercisesInRange(data: DashboardData, startS: number): ExerciseInRange[] {
+export function exercisesInRange(data: DashboardData, startS: number, endS = Infinity): ExerciseInRange[] {
   const out: ExerciseInRange[] = [];
   for (const series of data.exercises) {
-    const points = series.points.filter((p) => p.dateS >= startS);
+    const points = series.points.filter((p) => p.dateS >= startS && p.dateS <= endS);
     if (points.length === 0) continue;
     const before = series.points.filter((p) => p.dateS < startS);
     const bestBefore = before.length ? Math.max(...before.map((p) => p.e1rmLb)) : 0;
@@ -57,12 +57,24 @@ export function exercisesInRange(data: DashboardData, startS: number): ExerciseI
   return out.sort((a, b) => b.deltaLb - a.deltaLb || b.lastDateS - a.lastDateS);
 }
 
-export function workoutsInRange(data: DashboardData, startS: number): WorkoutRow[] {
-  return data.workouts.filter((w) => w.startS >= startS);
+export function workoutsInRange(data: DashboardData, startS: number, endS = Infinity): WorkoutRow[] {
+  return data.workouts.filter((w) => w.startS >= startS && w.startS <= endS);
+}
+
+/** A preset or a custom window; resolved against now and the first workout. */
+export type RangeState = { preset: RangeKey } | { preset: "custom"; fromS: number; toS: number };
+
+export function resolveRange(state: RangeState, nowS: number, sinceS: number): { startS: number; endS: number; label: string } {
+  if (state.preset === "custom") {
+    return { startS: state.fromS, endS: state.toS + DAY_S - 1, label: "custom" };
+  }
+  const r = RANGES.find((x) => x.key === state.preset)!;
+  return { startS: rangeStart(state.preset, nowS, sinceS), endS: nowS, label: r.label };
 }
 
 /** Bucket working-set volume by week (Monday start), zero-filling gaps. */
-export function weeklyVolume(workouts: WorkoutRow[], startS: number, nowS: number) {
+export function weeklyVolume(workouts: WorkoutRow[], startS: number, endS: number) {
+  const nowS = endS;
   const weekOf = (s: number) => {
     const d = new Date(s * 1000);
     const day = (d.getDay() + 6) % 7; // Monday = 0

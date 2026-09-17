@@ -3,7 +3,7 @@ import {
   GRID,
   niceTicks,
   scaleLinear,
-  useMeasuredWidth,
+  useMeasuredSize,
 } from "./chart-utils";
 
 export interface Column {
@@ -24,15 +24,17 @@ export function ColumnChart({
   color,
   yFormat,
   tooltipValue,
-  height: HEIGHT = DEFAULT_HEIGHT,
+  height = DEFAULT_HEIGHT,
 }: {
   data: Column[];
   color: string;
   yFormat: (v: number) => string;
   tooltipValue: (c: Column) => string;
-  height?: number;
+  height?: number | "fill";
 }) {
-  const { ref, width } = useMeasuredWidth<HTMLDivElement>();
+  const { ref, width, height: measuredH } = useMeasuredSize<HTMLDivElement>();
+  const HEIGHT = height === "fill" ? Math.max(measuredH, 120) : height;
+  const boxStyle = height === "fill" ? { height: "100%" } : { height: HEIGHT };
   const [hover, setHover] = useState<number | null>(null);
 
   const plotW = Math.max(width - PAD.left - PAD.right, 0);
@@ -48,12 +50,12 @@ export function ColumnChart({
     };
   }, [data, plotH]);
 
-  if (width === 0) return <div ref={ref} style={{ height: HEIGHT }} />;
+  if (width === 0) return <div ref={ref} style={boxStyle} />;
   if (data.length === 0) {
     return (
       <div
         ref={ref}
-        style={{ height: HEIGHT }}
+        style={boxStyle}
         className="flex items-center justify-center text-sm text-muted"
       >
         No sessions yet
@@ -73,7 +75,7 @@ export function ColumnChart({
       : 0;
 
   return (
-    <div ref={ref} className="relative" style={{ height: HEIGHT }}>
+    <div ref={ref} className="relative" style={boxStyle}>
       <svg width={width} height={HEIGHT} className="block">
         {yTicks.map((t) => (
           <line
