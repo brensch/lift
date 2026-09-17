@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -33,6 +34,7 @@ import yaml
 from check_store_text import check, load_listing  # noqa: E402  (sibling script)
 from promote_app_store import (  # noqa: E402
     EDITABLE_STATES,
+    IN_FLIGHT_STATES,
     AppStoreConnect,
     load_credentials,
     version_state,
@@ -55,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--listing", type=Path, default=ROOT / "store" / "listing.yaml")
     parser.add_argument("--version", default=None, help="App Store version to write to (created if missing)")
     parser.add_argument("--skip-images", action="store_true", help="Text only")
+    parser.add_argument(
+        "--remove-from-review",
+        action="store_true",
+        help="If --version is waiting for review, cancel that submission first so it can be edited",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -83,13 +90,57 @@ def editable_app_info(asc: AppStoreConnect, app_id: str) -> dict | None:
     return None
 
 
-def pick_version(asc: AppStoreConnect, app_id: str, wanted: str | None) -> dict:
+def list_versions(asc: AppStoreConnect, app_id: str, wanted: str | None) -> list[dict]:
     # This endpoint rejects `sort`; order newest-first here instead.
     params = {"filter[platform]": "IOS", "limit": 20, "fields[appStoreVersions]": "versionString,appVersionState,appStoreState,createdDate"}
     if wanted:
         params["filter[versionString]"] = wanted
     versions = asc.get(f"/apps/{app_id}/appStoreVersions", params).get("data", [])
     versions.sort(key=lambda v: v["attributes"].get("createdDate") or "", reverse=True)
+    return versions
+
+
+def remove_from_review(asc: AppStoreConnect, app_id: str, version: dict) -> None:
+    """Cancel the review submission holding `version`, then wait for the
+    version to become editable again. Same as "Remove from Review" in App
+    Store Connect: the build stays attached, the queue place is lost."""
+    submissions = asc.get(
+        f"/apps/{app_id}/reviewSubmissions",
+        {"filter[platform]": "IOS", "filter[state]": "WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES", "limit": 10},
+    ).get("data", [])
+    for submission in submissions:
+        items = asc.get(f"/reviewSubmissions/{submission['id']}/items", {"limit": 10}).get("data", [])
+        holds_version = any(
+            (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") == version["id"]
+            for item in items
+        )
+        if not holds_version:
+            continue
+        print(f"Removing {version['attributes']['versionString']} from review (submission {submission['id']}, {submission['attributes']['state']})")
+        asc.patch(
+            f"/reviewSubmissions/{submission['id']}",
+            {"data": {"type": "reviewSubmissions", "id": submission["id"], "attributes": {"canceled": True}}},
+        )
+        if asc.dry_run:
+            return
+        for _ in range(12):
+            time.sleep(5)
+            fresh = asc.get(f"/appStoreVersions/{version['id']}", {"fields[appStoreVersions]": "versionString,appVersionState,appStoreState"}).get("data")
+            if fresh and version_state(fresh) in EDITABLE_STATES:
+                print(f"Version is now {version_state(fresh)}")
+                return
+        raise SystemExit("Cancelled the review submission but the version did not become editable within a minute")
+    raise SystemExit(f"No open review submission holds version {version['attributes']['versionString']}")
+
+
+def pick_version(asc: AppStoreConnect, app_id: str, wanted: str | None, remove: bool = False) -> dict:
+    versions = list_versions(asc, app_id, wanted)
+    if wanted and remove:
+        for v in versions:
+            if version_state(v) in IN_FLIGHT_STATES:
+                remove_from_review(asc, app_id, v)
+                versions = list_versions(asc, app_id, wanted)
+                break
     for v in versions:
         if version_state(v) in EDITABLE_STATES:
             print(f"Using App Store version {v['attributes']['versionString']} ({v['id']}, {version_state(v)})")
@@ -296,7 +347,7 @@ def main() -> int:
             print(f"(no editable version: {e})")
         pull(asc, app_id, version)
         return 0
-    version = pick_version(asc, app_id, args.version)
+    version = pick_version(asc, app_id, args.version, remove=args.remove_from_review)
     localizations = push_text(asc, app_id, version, listing)
     if not args.skip_images:
         push_images(asc, localizations)
