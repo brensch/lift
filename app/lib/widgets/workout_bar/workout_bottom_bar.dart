@@ -18,6 +18,7 @@ import '../common/horizontal_shaker.dart';
 import '../common/rainbow_shimmer_text.dart';
 import 'bar_controls.dart';
 import 'session_cards.dart';
+import '../../tutorial/tutorial_target.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -205,7 +206,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   stateColor = isYapping
                       ? AppTheme.workoutYappingFg
                       : colorScheme.tertiary;
-                  timerText = isYapping ? formatRestClock(nowUnix - lastRestEnd) : null;
+                  timerText = isYapping
+                      ? formatRestClock(nowUnix - lastRestEnd)
+                      : null;
                   timerColor = isYapping ? AppTheme.workoutYappingFg : null;
                   displaySet = stateSnapshot?.hasDisplaySet() == true
                       ? stateSnapshot!.displaySet
@@ -370,7 +373,11 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             ? '${latestHeartRate.bpm.round()}'
             : '--';
 
-        final currentUri = GoRouterState.of(context).uri.toString();
+        // Outside the router (the tutorial's sandbox) the bar is on the
+        // workout page by construction.
+        final currentUri = GoRouter.maybeOf(context) == null
+            ? '/'
+            : GoRouterState.of(context).uri.toString();
         final isOnWorkoutPage = currentUri == '/';
 
         // ── Current-user state ────────────────────────────────────────────────────
@@ -700,34 +707,45 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                       sideLabelWidth: 44,
                                     ),
                                   )
-                                : StatusBox(
-                                    sideLabel: 'YOU',
-                                    sideBadge: auth.profileEmoji,
-                                    stateLabel: stateLabel,
-                                    color: stateColor,
-                                    sideColor: profileColorFromHex(
-                                      auth.profileColorHex,
+                                : TutorialTarget(
+                                    id: 'bar_status',
+                                    child: StatusBox(
+                                      sideLabel: 'YOU',
+                                      sideBadge: auth.profileEmoji,
+                                      stateLabel: stateLabel,
+                                      color: stateColor,
+                                      sideColor: profileColorFromHex(
+                                        auth.profileColorHex,
+                                      ),
+                                      timerText: timerText,
+                                      timerColor: timerColor,
+                                      set: displaySet,
+                                      isComplete: isAllDoneState(stateValue),
+                                      sideLabelWidth: 44,
                                     ),
-                                    timerText: timerText,
-                                    timerColor: timerColor,
-                                    set: displaySet,
-                                    isComplete: isAllDoneState(stateValue),
-                                    sideLabelWidth: 44,
                                   ),
                           ),
                           const SizedBox(height: 12),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              TimerHeartBox(
-                                elapsedText: elapsedText,
-                                heartRateText: heartRateText,
-                                heartRateDetected:
-                                    latestHeartRate != null &&
-                                    latestHeartRate.bpm > 0,
+                              TutorialTarget(
+                                id: 'bar_timer',
+                                child: TimerHeartBox(
+                                  elapsedText: elapsedText,
+                                  heartRateText: heartRateText,
+                                  heartRateDetected:
+                                      latestHeartRate != null &&
+                                      latestHeartRate.bpm > 0,
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              Expanded(child: actionButton),
+                              Expanded(
+                                child: TutorialTarget(
+                                  id: 'bar_button',
+                                  child: actionButton,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -745,4 +763,3 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
 }
 
 // ─── Drag handle ──────────────────────────────────────────────────────────────
-

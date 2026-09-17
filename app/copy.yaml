@@ -8,33 +8,51 @@
 tutorial:
   skip: SKIP
   next: NEXT
+  previous: BACK
   finish: LET'S LIFT
   papers_button: READ THE PAPERS
 
-  # One page per thing worth pointing at. The highlighted piece throbs red;
-  # the title and body sit underneath it.
-  pages:
-    - key: volume
+  # The walkthrough runs over the real screens with a sample account behind
+  # them. Each step points at one `target` (an id the screens know: see
+  # TutorialTarget in the code) on a `screen` (home, then workout), with the
+  # explanation in a popover beside it. `action` runs before the step:
+  # start_workout opens the sample session, start_set starts its first set.
+  steps:
+    - screen: home
+      target: home_volume
       title: Your muscles, tracked
       body: Hard sets this week, per muscle. Aim for the band. Yellow means still recovering, a tick means you've done enough.
-    - key: suggested
+    - screen: home
+      target: home_templates
       title: Pick a workout
       body: The star is today's suggestion, picked from whatever is furthest behind. Tap any template to pick it instead. They're yours to edit.
-    - key: plan
+    - screen: home
+      target: home_plan
       title: The numbers are handled
       body: Sets × reps @ weight, all prescribed. The flame means warmups are included.
-    - key: start
+    - screen: home
+      target: home_start
       title: Start from here
-      body: One tap and the session is on. You can add, remove or reorder exercises once you're in.
-    - key: current_set
+      body: One tap and the session is on.
+    - screen: workout
+      action: start_workout
+      target: workout_current
+      title: What you're doing now
+      body: The current exercise with its warmups and working sets. Tap a set to change it, or the pencil to change the weight.
+    - screen: workout
+      target: bar_status
       title: Your current set
-      body: The weight and the reps to hit. Change the weight from here if the bar feels wrong.
-    - key: timer
+      body: The weight and the reps to hit, always at the bottom.
+    - screen: workout
+      target: bar_timer
       title: Elapsed · heart rate
       body: How long you've been going, and your heart rate from the watch if you're wearing one.
-    - key: complete
+    - screen: workout
+      action: start_set
+      target: bar_button
       title: Tap when the set is done
       body: The rest timer starts on its own and tells you when to stop yapping.
-    - key: progression
-      title: Progress happens by itself
-      body: Clear every set and next time it's one more rep. Top of the range and the weight goes up, reps reset. Miss twice and it backs off ten percent.
+    - screen: workout
+      target: workout_tabs
+      title: Log and heart
+      body: Everything you've lifted this session, and your heart rate over time.
