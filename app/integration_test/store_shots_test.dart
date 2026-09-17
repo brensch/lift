@@ -79,8 +79,10 @@ void main() {
       await s.settle(seconds: 3);
       await s.shot('Progress');
 
-      // 02 — one exercise in detail.
-      await s.tapText('Bench Press');
+      // 02 — one exercise in detail: whichever big lift is on screen first
+      // (the list is ordered by recent progress, so it varies with the seed).
+      const lifts = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Lat Pulldown'];
+      await s.tapText(lifts.firstWhere(s.isVisible, orElse: () => s.visibleTexts().firstWhere((t) => t.contains('Press'))));
       await s.settle(seconds: 3);
       await s.shot('Exercise detail');
 
