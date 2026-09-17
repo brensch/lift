@@ -68,6 +68,9 @@ screenshots:
   - file: store_06.png
     title: Rest, then go again
     subtitle: A timer that knows how long you need
+  - file: store_07.png
+    title: Heart rate, live
+    subtitle: From your Apple Watch or Wear OS watch, set by set
   - file: store_01.png
     title: Watch it climb
     subtitle: Every lift progresses on its own
