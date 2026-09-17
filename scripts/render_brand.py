@@ -193,21 +193,57 @@ document.fonts.ready.then(() => {{
 </script>"""
 
 
+def app_icon_data_uri() -> str:
+    return "data:image/png;base64," + base64.b64encode((ROOT / "marketing" / "schlift-square-1024.png").read_bytes()).decode()
+
+
 def feature_staircase() -> str:
-    """The progress chart as the identity: a staircase climbing across the frame."""
+    """The progress chart as the identity: a staircase climbing across the
+    frame, the app icon, and the wordmark set the way the app sets it: each
+    letter nudged and tilted by a seeded random (WobblyText), a touch more
+    than on screen so it reads in a still image."""
     pts = [(0, 400), (150, 400), (190, 350), (330, 350), (370, 300), (540, 300), (580, 245), (720, 245), (760, 180), (900, 180), (940, 120), (1024, 120)]
     d = "M " + " L ".join(f"{x} {y}" for x, y in pts)
     area = d + " L 1024 500 L 0 500 Z"
     return f"""
-<defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{GREEN}" stop-opacity="0.28"/><stop offset="1" stop-color="{GREEN}" stop-opacity="0"/></linearGradient></defs>
+<defs>
+  <linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{GREEN}" stop-opacity="0.28"/><stop offset="1" stop-color="{GREEN}" stop-opacity="0"/></linearGradient>
+  <clipPath id="icon-clip"><rect x="64" y="64" width="128" height="128" rx="29"/></clipPath>
+</defs>
 <path d="{area}" fill="url(#a)"/>
 <path d="{d}" fill="none" stroke="{GREEN}" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="940" cy="120" r="14" fill="{GREEN}"/>
-{wordmark(64, 150, 120)}
-<text x="66" y="212" style="{MANROPE};font-size:30px" fill="{MUTED}">Every lift, up.</text>
-<g style="{GROTESK};font-size:26px" fill="{GREEN}">
-  <text x="200" y="332">+5</text><text x="380" y="282">+5</text><text x="590" y="227">+5</text><text x="770" y="162">+5</text>
-</g>"""
+<image href="{app_icon_data_uri()}" x="64" y="64" width="128" height="128" clip-path="url(#icon-clip)"/>
+<rect x="64.5" y="64.5" width="127" height="127" rx="29" fill="none" stroke="#2A2A30" stroke-width="1"/>
+<text id="measure" x="218" y="160" style="{GROTESK};font-size:112px;letter-spacing:-0.03em" fill="none">SCHLIFT</text>
+<g id="wordmark"></g>
+<text x="222" y="216" style="{MANROPE};font-size:30px" fill="{MUTED}">Stronger every lift</text>
+<script>
+document.fonts.ready.then(() => {{
+  // Same idea as the app's WobblyText: one seeded random, one nudge and one
+  // tilt per letter. Amplitudes scaled for a 112px wordmark in a still.
+  let seed = 42;
+  const rnd = () => {{ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }};
+  const m = document.getElementById('measure');
+  const g = document.getElementById('wordmark');
+  const word = 'SCHLIFT';
+  const ns = 'http://www.w3.org/2000/svg';
+  for (let i = 0; i < word.length; i++) {{
+    const p = m.getStartPositionOfChar(i);
+    const dx = (rnd() * 2 - 1) * 3.5, dy = (rnd() * 2 - 1) * 4;
+    const deg = (rnd() * 2 - 1) * 2.4;
+    const ext = m.getExtentOfChar(i);
+    const cx = ext.x + ext.width / 2, cy = 160 - 40;
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', p.x); t.setAttribute('y', 160);
+    t.setAttribute('style', "{GROTESK};font-size:112px;letter-spacing:-0.03em");
+    t.setAttribute('fill', '{INK}');
+    t.setAttribute('transform', `translate(${{dx}} ${{dy}}) rotate(${{deg}} ${{cx}} ${{cy}})`);
+    t.textContent = word[i];
+    g.appendChild(t);
+  }}
+  window.__laid_out = true;
+}});
+</script>"""
 
 
 def feature_dont_tell_me() -> str:
