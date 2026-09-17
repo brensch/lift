@@ -19,17 +19,23 @@ class WobblyText extends StatelessWidget {
     final rng = Random(seed);
     final letters = text.split('');
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for (final ch in letters)
-          _WobblyLetter(
-            char: ch,
-            fontSize: fontSize,
-            rng: rng,
-          ),
-      ],
+    // Shrinks rather than overflows when the slot is narrow (large font
+    // scaling, a crowded app bar); never scales up.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          for (final ch in letters)
+            _WobblyLetter(
+              char: ch,
+              fontSize: fontSize,
+              rng: rng,
+            ),
+        ],
+      ),
     );
   }
 }

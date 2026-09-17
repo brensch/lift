@@ -1,8 +1,9 @@
-/// The walkthrough: the real home and workout screens, running on a sample
-/// account inside a sandbox, with one piece at a time picked out by a
-/// throbbing red outline and explained in a popover beside it. Steps and
-/// every word come from app/copy.yaml (gen/copy.dart). Shown once on first
-/// arrival at home, and replayable from the menu ("Tutorial").
+/// The walkthrough: the real app (header, home, active workout, bottom
+/// bar) running on a sample account inside a sandbox, with one piece at a
+/// time picked out by a throbbing red outline and explained in a popover
+/// beside it. The popover carries BACK / NEXT / SKIP. Steps and every word
+/// come from app/copy.yaml (gen/copy.dart). Shown once on first arrival at
+/// home, and replayable from the menu ("Tutorial").
 library;
 
 import 'dart:async';
@@ -17,9 +18,9 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/workout_bar/workout_bottom_bar.dart';
 import '../tutorial/tutorial_service.dart';
 import '../tutorial/tutorial_target.dart';
+import '../widgets/main_layout.dart';
 import 'science_screen.dart';
 import 'workout_tab.dart';
 
@@ -44,7 +45,6 @@ class _TutorialScreenState extends State<TutorialScreen>
   )..repeat(reverse: true);
 
   final GlobalKey _stageKey = GlobalKey();
-  static const double _skipStrip = 44;
   int _step = 0;
   Rect? _target;
   bool _busy = false;
@@ -148,9 +148,7 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   @override
   Widget build(BuildContext context) {
-    final t = copy.tutorial;
     final step = _steps[_step];
-    final last = _step == _steps.length - 1;
 
     return MultiProvider(
       providers: [
@@ -159,88 +157,49 @@ class _TutorialScreenState extends State<TutorialScreen>
       ],
       child: TutorialScope(
         registry: _registry,
-        child: Scaffold(
-          body: Column(
-            children: [
-              // The stage: the real screens on the sandbox account, not
-              // tappable, with the dim layer and the popover over them.
-              Expanded(
-                child: LayoutBuilder(
-                  key: _stageKey,
-                  builder: (context, constraints) {
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Below the status bar, like the real app's app bar
-                        // puts it; the tutorial's own bar handles the bottom
-                        // inset, so the sandbox must not add it again.
-                        MediaQuery.removePadding(
-                          context: context,
-                          removeBottom: true,
-                          child: SafeArea(
-                            bottom: false,
-                            child: Padding(
-                              // A strip for SKIP, where the real app bar
-                              // sits, so it covers nothing.
-                              padding: const EdgeInsets.only(top: _skipStrip),
-                              child: IgnorePointer(
-                                child: Scaffold(
-                                  body: const WorkoutTab(),
-                                  bottomNavigationBar: WorkoutBottomBar(
-                                    key: ValueKey(
-                                      _workouts.activeWorkout?.id ?? 'none',
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        IgnorePointer(
-                          child: AnimatedBuilder(
-                            animation: _throb,
-                            builder: (context, _) => CustomPaint(
-                              painter: _SpotlightPainter(
-                                target: _target,
-                                throb: Curves.easeInOut.transform(_throb.value),
-                              ),
-                            ),
-                          ),
-                        ),
-                        _Popover(
-                          step: step,
+        // The sandbox's layout guards the back button for the real app;
+        // here back means leave the tutorial.
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && mounted) Navigator.pop(context);
+          },
+          child: LayoutBuilder(
+            key: _stageKey,
+            builder: (context, constraints) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  // The real app on the sandbox account, not tappable:
+                  // header, home or workout, and the bottom bar.
+                  const IgnorePointer(
+                    child: MainLayout(currentPath: '/', child: WorkoutTab()),
+                  ),
+                  // Everything else dims; the target shows through.
+                  IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: _throb,
+                      builder: (context, _) => CustomPaint(
+                        painter: _SpotlightPainter(
                           target: _target,
-                          bounds: Offset.zero & constraints.biggest,
-                          last: last,
+                          throb: Curves.easeInOut.transform(_throb.value),
                         ),
-                        Positioned(
-                          top: MediaQuery.paddingOf(context).top + 2,
-                          right: 8,
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              t.skip,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              _BottomBar(
-                step: _step,
-                count: _steps.length,
-                onPrevious: _step > 0 ? _previous : null,
-                onNext: _next,
-                nextLabel: last ? t.finish : t.next,
-                previousLabel: t.previous,
-              ),
-            ],
+                      ),
+                    ),
+                  ),
+                  _Popover(
+                    step: step,
+                    index: _step,
+                    count: _steps.length,
+                    target: _target,
+                    bounds: Offset.zero & constraints.biggest,
+                    onPrevious: _step > 0 ? _previous : null,
+                    onNext: _next,
+                    onSkip: () => Navigator.pop(context),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -295,28 +254,41 @@ class _SpotlightPainter extends CustomPainter {
       old.target != target || old.throb != throb;
 }
 
-/// The explanation, placed below the target when there is room, otherwise
-/// above, never over it; centred when there is no target to point at.
+/// The explanation with the controls: placed below the target when there
+/// is room, otherwise above, never over it; centred when there is no
+/// target to point at.
 class _Popover extends StatelessWidget {
   final CopyTutorialStepsItem step;
+  final int index;
+  final int count;
   final Rect? target;
   final Rect bounds;
-  final bool last;
+  final VoidCallback? onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onSkip;
 
   const _Popover({
     required this.step,
+    required this.index,
+    required this.count,
     required this.target,
     required this.bounds,
-    required this.last,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onSkip,
   });
 
-  static const _margin = 16.0;
-  static const _gap = 18.0;
+  static const _margin = 12.0;
+  static const _gap = 16.0;
+
+  bool get _last => index == count - 1;
 
   @override
   Widget build(BuildContext context) {
     final card = _card(context);
     final t = target;
+    final topSafe = MediaQuery.paddingOf(context).top + _margin;
+    final bottomSafe = MediaQuery.paddingOf(context).bottom + _margin;
     if (t == null) {
       return Positioned(
         left: _margin,
@@ -325,8 +297,7 @@ class _Popover extends StatelessWidget {
         child: card,
       );
     }
-    final topSafe = MediaQuery.paddingOf(context).top + 48;
-    final roomBelow = bounds.bottom - _margin - (t.bottom + _gap);
+    final roomBelow = bounds.bottom - bottomSafe - (t.bottom + _gap);
     final roomAbove = t.top - _gap - topSafe;
     final below = roomBelow >= roomAbove;
     return Positioned(
@@ -336,14 +307,14 @@ class _Popover extends StatelessWidget {
       bottom: below ? null : bounds.height - (t.top - _gap),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: (below ? roomBelow : roomAbove).clamp(120.0, 420.0),
+          maxHeight: (below ? roomBelow : roomAbove).clamp(160.0, 460.0),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (below) _Arrow(up: true),
+            if (below) const _Arrow(up: true),
             Flexible(child: card),
-            if (!below) _Arrow(up: false),
+            if (!below) const _Arrow(up: false),
           ],
         ),
       ),
@@ -352,54 +323,127 @@ class _Popover extends StatelessWidget {
 
   Widget _card(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = copy.tutorial;
+    final muted = cs.onSurface.withValues(alpha: 0.55);
     return Material(
       color: cs.surface,
       elevation: 16,
       shadowColor: Colors.black,
-      borderRadius: AppTheme.brLg,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppTheme.brLg,
+        side: BorderSide(color: cs.onSurface.withValues(alpha: 0.35), width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                step.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.4,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                step.body,
-                style: TextStyle(
-                  fontSize: 15,
-                  height: 1.4,
-                  color: cs.onSurface.withValues(alpha: 0.75),
-                ),
-              ),
-              if (last)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ScienceScreen(),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      step.title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
+                        height: 1.15,
                       ),
                     ),
-                    icon: const Text('🧠', style: TextStyle(fontSize: 15)),
-                    label: Text(
-                      copy.tutorial.papersButton,
+                    const SizedBox(height: 6),
+                    Text(
+                      step.body,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: cs.onSurface.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    if (_last)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ScienceScreen(),
+                            ),
+                          ),
+                          icon: const Text(
+                            '🧠',
+                            style: TextStyle(fontSize: 15),
+                          ),
+                          label: Text(
+                            t.papersButton,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (!_last)
+                  TextButton(
+                    onPressed: onSkip,
+                    style: TextButton.styleFrom(
+                      foregroundColor: muted,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 40),
+                    ),
+                    child: Text(
+                      t.skip,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    '${index + 1} / $count',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: muted,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 40,
+                  child: OutlinedButton(
+                    onPressed: onPrevious,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                    ),
+                    child: Text(
+                      t.previous,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                 ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 40,
+                  child: FilledButton(
+                    onPressed: onNext,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                    ),
+                    child: Text(
+                      _last ? t.finish : t.next,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -413,122 +457,51 @@ class _Arrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.center,
-      child: CustomPaint(
-        size: const Size(22, 11),
-        painter: _ArrowPainter(color: cs.surface, up: up),
+    return CustomPaint(
+      size: const Size(24, 12),
+      painter: _ArrowPainter(
+        fill: cs.surface,
+        edge: cs.onSurface.withValues(alpha: 0.35),
+        up: up,
       ),
     );
   }
 }
 
+/// The popover's pointer, outlined on its two exposed sides so it reads as
+/// part of the card.
 class _ArrowPainter extends CustomPainter {
-  final Color color;
+  final Color fill;
+  final Color edge;
   final bool up;
-  _ArrowPainter({required this.color, required this.up});
+  _ArrowPainter({required this.fill, required this.edge, required this.up});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = up
-        ? (Path()
-            ..moveTo(0, size.height)
-            ..lineTo(size.width / 2, 0)
-            ..lineTo(size.width, size.height)
-            ..close())
-        : (Path()
-            ..moveTo(0, 0)
-            ..lineTo(size.width / 2, size.height)
-            ..lineTo(size.width, 0)
-            ..close());
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_ArrowPainter old) => old.color != color || old.up != up;
-}
-
-class _BottomBar extends StatelessWidget {
-  final int step;
-  final int count;
-  final VoidCallback? onPrevious;
-  final VoidCallback onNext;
-  final String nextLabel;
-  final String previousLabel;
-
-  const _BottomBar({
-    required this.step,
-    required this.count,
-    required this.onPrevious,
-    required this.onNext,
-    required this.nextLabel,
-    required this.previousLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        12 + MediaQuery.paddingOf(context).bottom,
-      ),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(
-          top: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            height: 48,
-            child: OutlinedButton(
-              onPressed: onPrevious,
-              child: Text(
-                previousLabel,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-          Expanded(
-            // Any number of steps fits: the dots scale down, never overflow.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(count, (i) {
-                  return Container(
-                    width: i == step ? 18 : 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                    decoration: BoxDecoration(
-                      color: i == step
-                          ? cs.primary
-                          : cs.onSurface.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 124,
-            height: 48,
-            child: FilledButton(
-              onPressed: onNext,
-              child: Text(
-                nextLabel,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-          ),
-        ],
-      ),
+    final tip = Offset(size.width / 2, up ? 0 : size.height);
+    final left = Offset(0, up ? size.height : 0);
+    final right = Offset(size.width, up ? size.height : 0);
+    canvas.drawPath(
+      Path()
+        ..moveTo(left.dx, left.dy)
+        ..lineTo(tip.dx, tip.dy)
+        ..lineTo(right.dx, right.dy)
+        ..close(),
+      Paint()..color = fill,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(left.dx, left.dy)
+        ..lineTo(tip.dx, tip.dy)
+        ..lineTo(right.dx, right.dy),
+      Paint()
+        ..color = edge
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
     );
   }
+
+  @override
+  bool shouldRepaint(_ArrowPainter old) =>
+      old.fill != fill || old.edge != edge || old.up != up;
 }
