@@ -93,6 +93,8 @@ git tag prod-v0.9.6 origin/main && git push origin prod-v0.9.6  # Play productio
 The version comes from the tag. Do not edit `app/pubspec.yaml`; it stays at
 the `0.0.0+1` placeholder.
 
+In-app copy that has been moved to YAML lives in `app/copy.yaml`; `make copy`
+regenerates the Dart constants the app reads (CI checks they match).
 Store listing text lives in `store/listing.yaml`, screenshots in
 `store/screenshots/raw/` (`make store-capture`), pushed by the Store Assets
 workflow. schlift.com is built from the same file, so the site, Play and the

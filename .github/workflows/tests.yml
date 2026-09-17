@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/check_release_notes.py
       - name: Check store listing text (store/listing.yaml against both stores' limits)
         run: pip3 install --quiet pyyaml && python3 scripts/check_store_text.py
+      - name: Check generated app copy is up to date (app/copy.yaml → app/lib/gen/copy.dart)
+        run: python3 scripts/gen_copy.py --check
 
   changes:
     runs-on: ubuntu-latest
@@ -51,6 +53,7 @@ jobs:
               - '.github/workflows/tests.yml'
             flutter:
               - 'app/**'
+              - 'scripts/gen_copy.py'
               - 'proto/**'
               - '.github/workflows/tests.yml'
 

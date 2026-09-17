@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
@@ -28,7 +29,11 @@ void main() {
   // google_fonts resolves offline and text renders legibly in goldens.
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  Future<void> pumpAtPhoneSize(WidgetTester tester, Widget home) async {
+  Future<void> pumpAtPhoneSize(
+    WidgetTester tester,
+    Widget home, {
+    bool settle = true, // false for screens with a repeating animation
+  }) async {
     tester.view.physicalSize = const Size(1080, 2280);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -48,7 +53,11 @@ void main() {
         child: MaterialApp(theme: AppTheme.light, home: home),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump(const Duration(milliseconds: 400));
+    }
   }
 
   // Goldens are written (and only then compared) under --update-goldens.
@@ -62,18 +71,26 @@ void main() {
     );
   }
 
-  testWidgets('tutorial: all five pages', (tester) async {
-    await pumpAtPhoneSize(tester, const TutorialScreen());
-    for (var page = 1; page <= 5; page++) {
+  testWidgets('tutorial: every page from copy.yaml', (tester) async {
+    await pumpAtPhoneSize(tester, const TutorialScreen(), settle: false);
+    final pages = copy.tutorial.pages.length;
+    // The highlight throbs forever, so never pumpAndSettle on this screen.
+    for (var page = 1; page <= pages; page++) {
+      await tester.pump(const Duration(milliseconds: 400));
       await shoot(tester, 'tutorial_p$page');
-      if (page < 5) {
-        await tester.tap(find.text('NEXT'));
-        await tester.pumpAndSettle();
+      if (page < pages) {
+        await tester.tap(find.text(copy.tutorial.next));
+        await tester.pump(const Duration(milliseconds: 400));
       }
     }
     // The last page's papers link must navigate.
-    await tester.tap(find.text('READ THE PAPERS'));
-    await tester.pumpAndSettle();
+    final papers = find.text(copy.tutorial.papersButton);
+    await tester.ensureVisible(papers);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(papers);
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     expect(find.textContaining('Papers'), findsWidgets);
   });
 
