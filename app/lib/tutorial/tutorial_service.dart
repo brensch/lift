@@ -123,6 +123,38 @@ class TutorialWorkoutService extends WorkoutServiceWrapper {
 
   @override
   Future<void> reorderTemplates(List<String> templateIds) async {}
+
+  @override
+  Future<List<LibraryTemplate>> listTemplateLibrary() async => [
+    LibraryTemplate(
+      id: 'stronglifts_a',
+      name: 'StrongLifts 5×5 A',
+      blurb: 'Squat, bench, row. The famous one.',
+      groupKey: 'programs',
+      groupLabel: 'Programs',
+      exercises: [
+        Exercise.EXERCISE_SQUAT,
+        Exercise.EXERCISE_BENCH_PRESS,
+        Exercise.EXERCISE_BARBELL_ROW,
+      ],
+    ),
+    LibraryTemplate(
+      id: 'butt_stuff',
+      name: 'Butt Stuff',
+      blurb: 'Hip thrusts and friends.',
+      groupKey: 'parts',
+      groupLabel: 'Body parts',
+      exercises: [
+        Exercise.EXERCISE_HIP_THRUST,
+        Exercise.EXERCISE_ROMANIAN_DEADLIFT,
+        Exercise.EXERCISE_GLUTE_BRIDGE,
+      ],
+    ),
+  ];
+
+  @override
+  Future<GetHomeResponse> addLibraryTemplates(List<String> libraryIds) =>
+      getHome();
 }
 
 // ── Sample data ──────────────────────────────────────────────────────────────

@@ -6,9 +6,10 @@
 use super::*;
 use crate::db::ServerDb;
 use schlift::workout::v1::{
-    AddExercisesRequest, AdjustExerciseWeightRequest, AppendWorkoutMutationsRequest,
-    CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
-    ExperienceLevel, Gender, GetHomeRequest, ReorderTemplatesRequest, SaveTemplateRequest,
+    AddExercisesRequest, AddLibraryTemplatesRequest, AdjustExerciseWeightRequest,
+    AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
+    ExperienceLevel, Gender, GetHomeRequest, ListTemplateLibraryRequest, ReorderTemplatesRequest,
+    SaveTemplateRequest,
     SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutTemplate,
 };
 
@@ -37,6 +38,7 @@ async fn onboard(svc: &ServerWorkoutService, token: &str, unit: WeightUnit) -> G
             experience: ExperienceLevel::Unspecified as i32,
             unit: unit as i32,
             gender: 0,
+            library_ids: vec![],
         },
     ))
     .await
@@ -131,6 +133,142 @@ mod home_and_onboarding {
     /// Onboarding seeds the six defaults and bodyweight-scaled main lifts,
     /// and does nothing on a second call.
     #[tokio::test]
+    async fn onboarding_copies_the_chosen_library_entries() {
+        let (svc, _user_id, token) = setup().await;
+        svc.db
+            .sync_template_library(&crate::template_library::load().unwrap())
+            .await
+            .unwrap();
+        let home = svc
+            .complete_onboarding(authed(
+                &token,
+                CompleteOnboardingRequest {
+                    body_weight_kg: 0.0,
+                    experience: ExperienceLevel::Unspecified as i32,
+                    unit: WeightUnit::Lb as i32,
+                    gender: 0,
+                    library_ids: vec!["stronglifts_a".into(), "butt_stuff".into()],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .home
+            .unwrap();
+        assert!(home.onboarded);
+        let ids: Vec<&str> = home.templates.iter().map(|t| t.library_id.as_str()).collect();
+        assert_eq!(ids, vec!["stronglifts_a", "butt_stuff"]);
+        assert_eq!(home.templates[0].name, "StrongLifts 5×5 A");
+        assert_eq!(
+            home.templates[0].exercises,
+            vec![
+                Exercise::Squat as i32,
+                Exercise::BenchPress as i32,
+                Exercise::BarbellRow as i32
+            ]
+        );
+
+        // An unknown id is refused outright.
+        let (svc2, _, token2) = setup().await;
+        let err = svc2
+            .complete_onboarding(authed(
+                &token2,
+                CompleteOnboardingRequest {
+                    body_weight_kg: 0.0,
+                    experience: 0,
+                    unit: WeightUnit::Lb as i32,
+                    gender: 0,
+                    library_ids: vec!["nope".into()],
+                },
+            ))
+            .await
+            .unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[tokio::test]
+    async fn library_lists_and_adds_without_duplicating() {
+        let (svc, _user_id, token) = setup().await;
+        let library = crate::template_library::load().unwrap();
+        svc.db.sync_template_library(&library).await.unwrap();
+
+        // Public listing mirrors the file, in order.
+        let listed = svc
+            .list_template_library(Request::new(ListTemplateLibraryRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .templates;
+        assert_eq!(listed.len(), library.len());
+        assert_eq!(listed[0].id, library[0].id);
+        assert!(listed.iter().any(|t| t.name == "Butt Stuff"));
+
+        let home = onboard(&svc, &token, WeightUnit::Lb).await;
+        let before = home.templates.len();
+        assert!(home.templates.iter().all(|t| !t.library_id.is_empty()));
+
+        // Adding one new and one already present adds exactly one.
+        let already = home.templates[0].library_id.clone();
+        let home = svc
+            .add_library_templates(authed(
+                &token,
+                AddLibraryTemplatesRequest {
+                    library_ids: vec!["butt_stuff".into(), already.clone()],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .home
+            .unwrap();
+        assert_eq!(home.templates.len(), before + 1);
+        let added = home.templates.last().unwrap();
+        assert_eq!(added.library_id, "butt_stuff");
+        assert_eq!(added.name, "Butt Stuff");
+
+        // The copy is the user's: rename it, and it stays theirs.
+        let mut mine = added.clone();
+        mine.name = "Cake Day".into();
+        svc.save_template(authed(&token, SaveTemplateRequest { template: Some(mine) }))
+            .await
+            .unwrap();
+        let home = self::home(&svc, &token).await;
+        let renamed = home.templates.iter().find(|t| t.library_id == "butt_stuff").unwrap();
+        assert_eq!(renamed.name, "Cake Day");
+        // Still counts as present, so adding again does nothing.
+        let home = svc
+            .add_library_templates(authed(
+                &token,
+                AddLibraryTemplatesRequest {
+                    library_ids: vec!["butt_stuff".into()],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .home
+            .unwrap();
+        assert_eq!(home.templates.len(), before + 1);
+
+        // Deletion of the copy leaves the library untouched.
+        svc.delete_template(authed(
+            &token,
+            DeleteTemplateRequest {
+                template_id: renamed.id.clone(),
+            },
+        ))
+        .await
+        .unwrap();
+        let listed = svc
+            .list_template_library(Request::new(ListTemplateLibraryRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .templates;
+        assert_eq!(listed.len(), library.len());
+    }
+
+    #[tokio::test]
     async fn onboarding_seeds_defaults_once() {
         let (svc, _user_id, token) = setup().await;
         let response = svc
@@ -141,6 +279,7 @@ mod home_and_onboarding {
                     experience: ExperienceLevel::Intermediate as i32,
                     unit: WeightUnit::Lb as i32,
                     gender: Gender::Male as i32,
+                    library_ids: vec![],
                 },
             ))
             .await
@@ -184,6 +323,7 @@ mod home_and_onboarding {
                     experience: ExperienceLevel::Intermediate as i32,
                     unit: WeightUnit::Kg as i32,
                     gender: 0,
+                    library_ids: vec![],
                 },
             ))
             .await

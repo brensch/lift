@@ -5,6 +5,16 @@ import content from "./generated/content.json";
 
 export type Testimonial = { quote: string; name: string };
 export type Screenshot = { src: string; title: string; subtitle: string };
+export type LibraryGroup = { key: string; label: string };
+export type LibraryTemplate = {
+  id: string;
+  name: string;
+  group: string;
+  blurb: string;
+  isDefault: boolean;
+  /** Exercise enum names without the EXERCISE_ prefix, as written in the YAML. */
+  exercises: string[];
+};
 
 export type Content = {
   name: string;
@@ -18,6 +28,8 @@ export type Content = {
   website: Record<string, string>;
   screenshots: Screenshot[];
   whatsNew: { version: string; lines: string[] } | null;
+  /** templates/library.yaml, for the /templates page. */
+  library: { groups: LibraryGroup[]; templates: LibraryTemplate[] };
 };
 
 export const CONTENT = content as Content;

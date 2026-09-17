@@ -149,37 +149,7 @@ const MAIN_LIFTS: [(Exercise, &str); 5] = [
     (Exercise::BarbellRow, "barbell_row"),
 ];
 
-/// The six default templates, exercises only. Barbell, dumbbell and
-/// bodyweight moves — startable at a rack without hunting for machines.
-pub fn default_templates() -> Vec<(&'static str, Vec<Exercise>)> {
-    use Exercise as E;
-    vec![
-        (
-            "Full Body",
-            vec![E::Squat, E::BenchPress, E::BarbellRow, E::DumbbellShoulderPress, E::BarbellCurl],
-        ),
-        (
-            "Upper",
-            vec![E::BenchPress, E::BarbellRow, E::OverheadPress, E::ChinUp, E::DumbbellCurl, E::SkullCrusher],
-        ),
-        (
-            "Lower",
-            vec![E::Squat, E::RomanianDeadlift, E::HipThrust, E::CalfRaise, E::Crunch],
-        ),
-        (
-            "Push",
-            vec![E::BenchPress, E::OverheadPress, E::InclineDumbbellPress, E::LateralRaise, E::SkullCrusher],
-        ),
-        (
-            "Pull",
-            vec![E::BarbellRow, E::PullUp, E::DumbbellRow, E::RearDeltFly, E::BarbellCurl],
-        ),
-        (
-            "Legs",
-            vec![E::Squat, E::RomanianDeadlift, E::Lunge, E::CalfRaise, E::HangingLegRaise],
-        ),
-    ]
-}
+use crate::template_library::default_templates;
 
 const FLAT_MIGRATION_NAME: &str = "flat_workouts_v1";
 
@@ -411,7 +381,7 @@ async fn migrate_one_user(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<()> {
             continue;
         }
         let exercises: Vec<i32> = exercises.into_iter().map(|e| e as i32).collect();
-        insert_template(pool, user_id, name, &exercises, order, now).await?;
+        insert_template(pool, user_id, &name, &exercises, order, now).await?;
         names.push(name.to_lowercase());
         order += 1;
     }
@@ -435,6 +405,7 @@ async fn insert_template(
         exercises: exercises.to_vec(),
         created_at: now,
         updated_at: now,
+        library_id: String::new(),
     };
     sqlx::query(
         "INSERT INTO workout_templates
