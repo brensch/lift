@@ -14,7 +14,7 @@ export type Content = {
   about: string[];
   testimonialsHeading: string;
   testimonials: Testimonial[];
-  otherFeatures: { heading: string; items: string[] };
+  otherFeatures: { heading: string; items: { emoji: string; text: string }[] };
   website: Record<string, string>;
   screenshots: Screenshot[];
   whatsNew: { version: string; lines: string[] } | null;

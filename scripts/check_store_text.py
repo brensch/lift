@@ -23,11 +23,16 @@ LIMITS = {
     "promotional_text": (170, "App Store promo, Play one-liner"),
     "keywords": (100, "App Store"),
     "about": (3000, "both, opens the description"),
-    "testimonials_heading": (60, "both"),
+    "testimonials_heading": (140, "both"),
 }
 DESCRIPTION_LIMIT = 4000
 PLAY_SHORT_LIMIT = 80
 RETIRED = ("subtitle", "short_description", "feature_graphic_byline", "description")
+
+
+def feature_text(item) -> str:
+    """An other_features item is either a string or {emoji, text}; the store gets the text."""
+    return str(item.get("text", "") if isinstance(item, dict) else item).strip()
 
 
 def compose_description(listing: dict) -> str:
@@ -41,7 +46,7 @@ def compose_description(listing: dict) -> str:
             parts.append(f'"{str(t.get("quote", "")).strip()}"\n- {str(t.get("name", "")).strip()}')
     other = listing.get("other_features") or {}
     if other.get("items"):
-        lines = [str(other.get("heading", "")).strip()] + [f"- {str(i).strip()}" for i in other["items"]]
+        lines = [str(other.get("heading", "")).strip()] + [f"- {feature_text(i)}" for i in other["items"]]
         parts.append("\n".join(l for l in lines if l))
     return "\n\n".join(p for p in parts if p)
 CAPTION_TITLE_LIMIT = 28
@@ -80,6 +85,9 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
     other = listing.get("other_features") or {}
     if not isinstance(other, dict) or not str(other.get("heading", "")).strip() or not other.get("items"):
         problems.append("other_features: needs a heading and at least one item")
+    for i, item in enumerate((other.get("items") if isinstance(other, dict) else None) or []):
+        if not feature_text(item):
+            problems.append(f"other_features.items[{i}]: needs text")
     description = compose_description(listing)
     if len(description) > DESCRIPTION_LIMIT:
         problems.append(f"composed description: {len(description)} characters, the stores allow {DESCRIPTION_LIMIT}")

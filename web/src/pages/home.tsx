@@ -245,12 +245,20 @@ export function HomePage() {
                 {otherFeatures.heading}
               </h2>
             </Reveal>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Each tile sizes to its own text; rows don't stretch to match. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
               {otherFeatures.items.map((item, i) => (
                 <Reveal key={i} delay={i * 80}>
-                  <div className="h-full flex items-start gap-3 border border-border rounded-2xl bg-surface p-6 leading-relaxed">
-                    <span className="mt-[0.6rem] w-2 h-2 rounded-full bg-ok shrink-0" />
-                    <span>{item}</span>
+                  <div className="flex items-start gap-4 border border-border rounded-2xl bg-surface p-6 leading-relaxed">
+                    {item.emoji && (
+                      <span
+                        aria-hidden="true"
+                        className="shrink-0 w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl"
+                      >
+                        {item.emoji}
+                      </span>
+                    )}
+                    <span className="pt-2">{item.text}</span>
                   </div>
                 </Reveal>
               ))}
