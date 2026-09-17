@@ -46,3 +46,7 @@ apple-signing/
 
 # Framed store screenshots are rendered by scripts/frame_store_screenshots.py
 store/screenshots/out/
+
+# Generated from store/listing.yaml at web build time (web/scripts/sync-content.mjs)
+web/src/generated/
+web/public/generated/
