@@ -30,6 +30,11 @@ on:
         required: false
         default: ""
         type: string
+      ios_remove_from_review:
+        description: "push: if ios_version is waiting for review, remove it from review first (loses the queue place; re-promote afterwards)"
+        required: true
+        default: false
+        type: boolean
       dry_run:
         description: "push: validate against the store APIs without committing"
         required: true
@@ -108,7 +113,8 @@ jobs:
         run: |
           DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
           VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
-          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $DRY_RUN
+          REMOVE=""; [ "${{ inputs.ios_remove_from_review }}" = "true" ] && REMOVE="--remove-from-review"
+          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $REMOVE $DRY_RUN
 
   pull:
     needs: check
