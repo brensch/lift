@@ -133,13 +133,9 @@ struct ContentView: View {
         isLiftingCompleteMode: Bool,
         primaryAction: Workout_V1_WearAction?
     ) -> some View {
-        let isAmrap = currentSet?.isAmrap ?? false
         let exerciseName = formatExerciseName(currentSet?.exercise)
         let repsWeightText: String = {
             guard let set = currentSet else { return "" }
-            if isAmrap {
-                return "AMRAPx\(Int(set.targetWeight))"
-            }
             return "\(set.targetReps)x\(Int(set.targetWeight))"
         }()
         let weightOnlyText: String = {

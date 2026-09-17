@@ -29,7 +29,7 @@ impl ServerWorkoutService {
     async fn load_recent_history(
         &self,
         user_id: &str,
-    ) -> Result<Vec<WorkoutRecord>, Status> {
+    ) -> ServerResult<Vec<WorkoutRecord>> {
         let workouts = self
             .db
             .list_recent_workouts(user_id, Self::RECENT_HISTORY_LIMIT)
@@ -41,7 +41,7 @@ impl ServerWorkoutService {
     async fn hydrate_workout_records(
         &self,
         workouts: Vec<Workout>,
-    ) -> Result<Vec<WorkoutRecord>, Status> {
+    ) -> ServerResult<Vec<WorkoutRecord>> {
         let mut history = Vec::with_capacity(workouts.len());
         for workout in workouts {
             let proposed_sets = self
@@ -67,7 +67,7 @@ impl ServerWorkoutService {
         &self,
         user_id: &str,
         workout_id: &str,
-    ) -> Result<Vec<UserMessage>, Status> {
+    ) -> ServerResult<Vec<UserMessage>> {
         self.db
             .get_workout_user_messages(user_id, workout_id, false)
             .await
@@ -76,7 +76,7 @@ impl ServerWorkoutService {
 
     /// The unit the user picked in settings. Every warmup snap and
     /// progression step rounds in this unit.
-    async fn get_weight_unit(&self, user_id: &str) -> Result<AppWeightUnit, Status> {
+    async fn get_weight_unit(&self, user_id: &str) -> ServerResult<AppWeightUnit> {
         let settings = self
             .db
             .get_settings(user_id)
@@ -100,7 +100,7 @@ impl ServerWorkoutService {
         &self,
         user_id: &str,
         record: &WorkoutRecord,
-    ) -> Result<Vec<UserMessage>, Status> {
+    ) -> ServerResult<Vec<UserMessage>> {
         if record.workout.end_time <= 0 {
             return Ok(Vec::new());
         }
@@ -166,7 +166,7 @@ impl ServerWorkoutService {
         user_id: &str,
         exercises: &[i32],
         now: i64,
-    ) -> Result<Vec<ExercisePlan>, Status> {
+    ) -> ServerResult<Vec<ExercisePlan>> {
         let unit = self.get_weight_unit(user_id).await?;
         let states = self
             .db
@@ -210,7 +210,7 @@ impl ServerWorkoutService {
         user_id: &str,
         workout_id: &str,
         apply: impl FnOnce(&mut ActiveWorkout) -> Result<(), crate::workout::WorkoutError>,
-    ) -> Result<WorkoutPlanResponse, Status> {
+    ) -> ServerResult<WorkoutPlanResponse> {
         let resp = self
             .db
             .load_workout_full(user_id, workout_id)
@@ -253,7 +253,7 @@ impl ServerWorkoutService {
     }
 
     /// Everything the home screen needs, in one response.
-    async fn build_home(&self, user_id: &str) -> Result<GetHomeResponse, Status> {
+    async fn build_home(&self, user_id: &str) -> ServerResult<GetHomeResponse> {
         let now = now_unix();
         let unit = self.get_weight_unit(user_id).await?;
         let history = self.load_recent_history(user_id).await?;
@@ -349,15 +349,12 @@ impl ServerWorkoutService {
         &self,
         user_id: &str,
         workout_id: &str,
-    ) -> Result<
-        (
-            Vec<ProposedSet>,
-            Vec<CompletedSet>,
-            Option<ProposedSet>,
-            Option<WorkoutStateSnapshot>,
-        ),
-        Status,
-    > {
+    ) -> ServerResult<(
+        Vec<ProposedSet>,
+        Vec<CompletedSet>,
+        Option<ProposedSet>,
+        Option<WorkoutStateSnapshot>,
+    )> {
         // Ownership gate: everything below is keyed by workout_id alone.
         self.db
             .get_workout(user_id, workout_id)
@@ -385,7 +382,7 @@ impl ServerWorkoutService {
     }
 
     /// Read the caller's current session id (the single source of truth for group membership).
-    async fn get_session_id_for_user(&self, user_id: &str) -> Result<String, Status> {
+    async fn get_session_id_for_user(&self, user_id: &str) -> ServerResult<String> {
         Ok(self
             .db
             .get_user_current_session(user_id)
