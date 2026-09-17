@@ -634,12 +634,14 @@ mod plan_op_tests {
             .map(|s| s.id.as_str())
             .collect();
         assert_eq!(working, vec!["c1", "c2", "c3"]);
-        // Warmups never take client ids.
+        // Warmups never take client ids. (Their ids are UUIDs, which can
+        // legitimately begin with the hex digit 'c', so compare against the
+        // list rather than the prefix.)
         assert!(active
             .proposed_sets
             .iter()
             .filter(|s| s.warmup)
-            .all(|s| !s.id.starts_with('c')));
+            .all(|s| !ids.contains(&s.id)));
     }
 
     // ── AdjustExerciseWeight ────────────────────────────────────────────────
