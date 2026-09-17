@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
-"""Generate and replace app icons plus marketing branding assets."""
+"""Generate and replace app icons plus marketing branding assets.
+
+Two modes:
+  python3 scripts/replace_app_icons.py
+      the original procedural barbell (kept for reference)
+  python3 scripts/replace_app_icons.py --source marketing/icons/candidates/plate.png
+      a rendered 1024x1024 master (see scripts/render_brand.py) becomes the icon on
+      every platform: iOS, macOS, watchOS, Android legacy + adaptive, Wear OS, web,
+      Windows, and the Play store icon in marketing/.
+
+With --source the Android adaptive foreground becomes a raster layer (the
+master scaled to 88 of the 108dp canvas so its subject stays inside the 66dp
+safe zone) over a solid background of the master's own ground colour.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 import glob
 import json
 import math
@@ -204,10 +218,38 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
     return sorted(targets)
 
 
+ADAPTIVE_DENSITIES = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
+ADAPTIVE_CONTENT_DP = 88  # of the 108dp canvas; keeps a 72%-wide subject inside the 66dp safe zone
+
+
+def adaptive_foreground(master: Image.Image, px: int) -> Image.Image:
+    """The master scaled into the middle of a transparent 108dp canvas."""
+    canvas = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+    inner = round(px * ADAPTIVE_CONTENT_DP / 108)
+    scaled = master.resize((inner, inner), Image.Resampling.LANCZOS)
+    canvas.alpha_composite(scaled, ((px - inner) // 2, (px - inner) // 2))
+    return canvas
+
+
+def ground_colour(master: Image.Image) -> str:
+    r, g, b, *_ = master.convert("RGBA").getpixel((4, 4))
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--source", type=Path, default=None, help="1024x1024 PNG master to use instead of the drawn barbell")
+    args = ap.parse_args()
     repo_root = Path(__file__).resolve().parent.parent
-    icon_master = draw_master_icon(1024)
-    apple_icon_master = draw_marketing_icon(1024)
+    if args.source:
+        source = Image.open(args.source).convert("RGBA")
+        if source.size != (1024, 1024):
+            raise SystemExit(f"{args.source} is {source.size[0]}x{source.size[1]}; need 1024x1024")
+        icon_master = source
+        apple_icon_master = source
+    else:
+        icon_master = draw_master_icon(1024)
+        apple_icon_master = draw_marketing_icon(1024)
 
     png_targets = collect_png_targets(repo_root)
     updated_files: set[Path] = set()
@@ -233,7 +275,8 @@ def main() -> None:
     }
     for filename, px in generic_output_specs.items():
         out_path = marketing_dir / filename
-        draw_marketing_icon(px).convert("RGB").save(
+        marketing_icon = apple_icon_master.resize((px, px), Image.Resampling.LANCZOS) if args.source else draw_marketing_icon(px)
+        marketing_icon.convert("RGB").save(
             out_path,
             format="PNG",
             optimize=True,
@@ -300,12 +343,38 @@ def main() -> None:
 </vector>
 """
 
-    text_updates = {
-        Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
-        Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
-        Path("app/android/app/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
-        Path("app/android/wear/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
-    }
+    if args.source:
+        # Raster adaptive foreground per density, solid background in the
+        # master's ground colour, and the old vector foreground removed so
+        # the density drawables are what Android resolves.
+        colour = ground_colour(icon_master)
+        background_xml = f"""<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">{colour}</color>
+</resources>
+"""
+        text_updates = {
+            Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
+            Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
+        }
+        for module in ("app", "wear"):
+            res = repo_root / "app" / "android" / module / "src" / "main" / "res"
+            vector = res / "drawable" / "ic_launcher_foreground.xml"
+            if vector.exists():
+                vector.unlink()
+                updated_files.add(vector.relative_to(repo_root))
+            for density, px in ADAPTIVE_DENSITIES.items():
+                out = res / f"drawable-{density}" / "ic_launcher_foreground.png"
+                out.parent.mkdir(parents=True, exist_ok=True)
+                adaptive_foreground(icon_master, px).save(out, format="PNG", optimize=True)
+                updated_files.add(out.relative_to(repo_root))
+    else:
+        text_updates = {
+            Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
+            Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
+            Path("app/android/app/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
+            Path("app/android/wear/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
+        }
 
     for rel_path, content in text_updates.items():
         overwrite_text(repo_root / rel_path, content)

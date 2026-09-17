@@ -201,11 +201,22 @@ check-android-java:
 		"$$JAVAC_HOME_REAL/bin/javac" -version; \
 	'
 
+# icons: regenerate every platform icon. With ICON_SOURCE=<1024 png> the
+# rendered master (see `make brand`) becomes the icon everywhere; without it
+# the old procedural barbell is drawn.
 icons:
-	@echo "=== Regenerating app icons and marketing assets ==="
-	python3 scripts/replace_app_icons.py
-	python3 scripts/replace_app_icons2.py
+	@echo "=== Regenerating app icons ==="
+	python3 scripts/replace_app_icons.py $(if $(ICON_SOURCE),--source $(ICON_SOURCE))
 	@echo "Done."
+
+# brand: render the icon and feature-graphic candidates from
+# scripts/render_brand.py into marketing/. Pick one, then
+#   make icons ICON_SOURCE=marketing/icons/candidates/<name>.png
+#   cp marketing/feature_graphic_candidates/<name>.png marketing/feature_graphic.png
+STORE_VENV ?= .tmp/store-venv
+brand:
+	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }
+	"$(STORE_VENV)/bin/python" scripts/render_brand.py
 
 # ── Apple Watch (SchliftWatch) ───────────────────────────────────────────
 
