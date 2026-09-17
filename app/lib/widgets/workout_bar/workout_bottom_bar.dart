@@ -373,11 +373,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             ? '${latestHeartRate.bpm.round()}'
             : '--';
 
-        // Outside the router (the tutorial's sandbox) the bar is on the
-        // workout page by construction.
-        final currentUri = GoRouter.maybeOf(context) == null
-            ? '/'
-            : GoRouterState.of(context).uri.toString();
+        // Outside a routed subtree (the tutorial's sandbox is a plain pushed
+        // page) the bar is on the workout page by construction.
+        String currentUri;
+        try {
+          currentUri = GoRouterState.of(context).uri.toString();
+        } on GoError {
+          currentUri = '/';
+        }
         final isOnWorkoutPage = currentUri == '/';
 
         // ── Current-user state ────────────────────────────────────────────────────
