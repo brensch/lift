@@ -346,6 +346,20 @@ Both are pushed to Play by the Store Assets workflow (the App Store icon
 ships inside the build). Commit the results with the `v*` release that
 should carry them.
 
+### The website says the same thing
+
+schlift.com's landing page has no copy of its own. At build time
+`web/scripts/sync-content.mjs` reads `store/listing.yaml` (tagline,
+promotional text, description split into paragraphs / testimonials /
+bullets, the slides and their captions, the `website:` section for the few
+site-only lines), the latest `release-notes/<version>.md`, the raw
+screenshots, the app icon (favicon) and the feature graphic (link preview),
+and writes them under `web/src/generated/` and `web/public/generated/`
+(gitignored). `npm run dev` and `npm run build` run it automatically. The
+site deploys with the backend on every push to `main`, so a listing edit is
+live on schlift.com as soon as it merges, before either store has reviewed
+it.
+
 ### Refresh the screenshots
 
 ```bash

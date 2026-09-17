@@ -48,6 +48,25 @@ description: |
   - Save your own workouts to easily do that sick workout your friend showed you again later
   - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
+# schlift.com — the only lines on the landing page that are not already a
+# store field above. Everything else on the site (tagline, promotional_text,
+# description, the slides and their captions, the latest release notes) is
+# read from this file at build time. Store links are functional labels.
+website:
+  hero: Yap with friends, we tell you what weight to lift next.
+  under_buttons: Free. No ads. No subscription.
+  app_store_button: Download on the App Store
+  play_store_button: Get it on Google Play
+  screenshots_heading: What it looks like
+  testimonials_heading: Testimonials
+  companion_heading: Your progress. On the big screen.
+  companion_text: The phone runs your workout — schlift.com tells the story. Estimated 1RM trends, weekly volume, and an honest accounting of how much gym time was actually yapping. Sign in with the same passkey as the app.
+  companion_demo_button: View sample dashboard
+  companion_signin_button: Sign in
+  whats_new_heading: What's new
+  cta_heading: Ready to lift?
+  cta_text: Download Schlift and start your first session in under a minute.
+
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
 # The title is drawn above the phone on every framed image; the subtitle
