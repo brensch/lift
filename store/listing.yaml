@@ -38,7 +38,7 @@ about: |
 
 # both — the line above the testimonials in the description, and the section
 # label on the website
-testimonials_heading: "Testimonials:"
+testimonials_heading: "Don't believe me? Here's what my three satisfied customers have said:"
 
 # both — quote and who said it
 testimonials:
@@ -48,16 +48,24 @@ testimonials:
     name: Alyssa
   - quote: Brendan. Now I can finally become as huge as you are.
     name: Rishabh
+  - quote: How do I use my phone?
+    name: Kenneth
 
 # both — the bullet list that closes the description; its own section on the
 # website, with the heading above the bullets
 other_features:
   heading: "If that wasn't enough reason to use it, it also has:"
+  # text goes in the store description as a bullet; the emoji is only for
+  # the website tile. Change either freely.
   items:
-    - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
-    - History (the people yearn for progress graphs)
-    - Save your own workouts to easily do that sick workout your friend showed you again later
-    - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
+    - emoji: 🗣️
+      text: Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
+    - emoji: 📈
+      text: History (the people yearn for progress charts)
+    - emoji: 💾
+      text: Save your own workouts to easily do that sick workout your friend showed you again later
+    - emoji: ❤️‍🔥
+      text: Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
 # schlift.com — the only lines on the landing page that are not already a
 # store field above. The hero is the tagline with promotional_text under it;
@@ -65,17 +73,17 @@ other_features:
 # and their captions, the latest release notes) is read from this file at
 # build time. Store links are functional labels.
 website:
-  under_buttons: Free. No ads. No subscription.
-  app_store_button: Download on the App Store
-  play_store_button: Get it on Google Play
+  under_buttons: Free. I don't have stripe set up so you couldn't pay me if you wanted to.
+  app_store_button: App Store
+  play_store_button: Google Play
   screenshots_heading: What it looks like
-  companion_heading: Your progress. On the big screen.
-  companion_text: The phone runs your workout — schlift.com tells the story. Estimated 1RM trends, weekly volume, and an honest accounting of how much gym time was actually yapping. Sign in with the same passkey as the app.
+  companion_heading: It has web too.
+  companion_text: Your phone runs your workout, but you can view workout history online as well since dashboards on websites are cool.
   companion_demo_button: View sample dashboard
   companion_signin_button: Sign in
   whats_new_heading: What's new
-  cta_heading: Ready to lift?
-  cta_text: Download Schlift and start your first session in under a minute.
+  cta_heading: Ready to schlift?
+  cta_text: Download Schlift and start your first session in under a minute (I timed it).
 
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
