@@ -56,6 +56,21 @@ builds. Leave it alone.
    Give the user the run URLs (`gh run view <id> --web`). Do not block waiting
    for completion unless asked.
 
+4. **Promote to production** (only when asked — this is what users get):
+   write `release-notes/<version>.md` (≤ 500 chars, plain text), commit it to
+   `main`, then tag the current main:
+   ```bash
+   git tag prod-v0.9.6 origin/main && git push origin prod-v0.9.6
+   ```
+   This runs `store-promote.yml`: Play beta → production for phone and wear,
+   and App Store submit-for-review for iOS. No rebuild. For a staged rollout,
+   a single platform, or a dry run, dispatch it instead:
+   ```bash
+   gh workflow run store-promote.yml -f version=0.9.6 -f platforms=both \
+     -f play_rollout=1 -f ios_phased_release=false -f dry_run=true
+   ```
+   Full detail: `docs/releasing.md` → "Promote to production".
+
 ## Notes
 
 - Workflows: `.github/workflows/ios-build.yml`, `android-release.yml`. Both
