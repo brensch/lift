@@ -326,6 +326,25 @@ CI checks `listing.yaml` on every pull request against both stores' limits
 (`scripts/check_store_text.py`), including that each referenced screenshot
 file exists.
 
+### Icon and feature graphic
+
+`make brand` renders the app icon concepts and Play feature graphic
+directions (`scripts/render_brand.py`, SVG in the app's own typeface) into
+`marketing/icons/candidates/` and `marketing/feature_graphic_candidates/`.
+Edit shapes or copy there; a change is a diff, not a design-tool export.
+
+To adopt an icon on every platform (iOS, watchOS, macOS, Android legacy +
+adaptive, Wear OS, web, Windows, and the Play store icon):
+
+```bash
+make icons ICON_SOURCE=marketing/icons/candidates/<name>.png
+```
+
+To adopt a feature graphic: copy it to `marketing/feature_graphic.png`.
+Both are pushed to Play by the Store Assets workflow (the App Store icon
+ships inside the build). Commit the results with the `v*` release that
+should carry them.
+
 ### Refresh the screenshots
 
 ```bash
