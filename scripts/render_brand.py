@@ -25,6 +25,7 @@ import base64
 import sys
 from pathlib import Path
 
+import yaml
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -193,30 +194,47 @@ document.fonts.ready.then(() => {{
 </script>"""
 
 
-def app_icon_data_uri() -> str:
-    return "data:image/png;base64," + base64.b64encode((ROOT / "marketing" / "schlift-square-1024.png").read_bytes()).decode()
+def listing_text(key: str, default: str) -> str:
+    """Copy comes from store/listing.yaml so every word on a store asset is edited in one file."""
+    listing = yaml.safe_load((ROOT / "store" / "listing.yaml").read_text(encoding="utf-8")) or {}
+    return str(listing.get(key) or default).strip()
+
+
+def barbell(x: float, top: float, height: float, fill: str) -> str:
+    """The app icon's barbell, drawn on its own 108-unit grid (see
+    scripts/replace_app_icons.py) and scaled so the plates span `height`."""
+    k = height / 42.0  # plates run from unit 33 to 75
+    def r(u0, v0, u1, v1, rx=0.0):
+        return f'<rect x="{x + (u0 - 14) * k:.1f}" y="{top + (v0 - 33) * k:.1f}" width="{(u1 - u0) * k:.1f}" height="{(v1 - v0) * k:.1f}" rx="{rx * k:.1f}" fill="{fill}"/>'
+    parts = [r(14, 33, 20, 75, 1.2), r(21, 33, 27, 75, 1.2), r(28, 33, 34, 75, 1.2), r(34, 50, 74, 58), r(74, 33, 80, 75, 1.2), r(81, 33, 87, 75, 1.2), r(88, 33, 94, 75, 1.2)]
+    return "".join(parts)
 
 
 def feature_staircase() -> str:
     """The progress chart as the identity: a staircase climbing across the
-    frame, the app icon, and the wordmark set the way the app sets it: each
-    letter nudged and tilted by a seeded random (WobblyText), a touch more
-    than on screen so it reads in a still image."""
+    frame, the icon's barbell, and the wordmark set the way the app sets it:
+    each letter nudged and tilted by a seeded random (WobblyText), a touch
+    more than on screen so it reads in a still image."""
     pts = [(0, 400), (150, 400), (190, 350), (330, 350), (370, 300), (540, 300), (580, 245), (720, 245), (760, 180), (900, 180), (940, 120), (1024, 120)]
     d = "M " + " L ".join(f"{x} {y}" for x, y in pts)
     area = d + " L 1024 500 L 0 500 Z"
+    # Wordmark: 112px Space Grotesk Bold, baseline 160, caps ~78px tall. The
+    # barbell is sized to the cap height and sits on the same baseline, so
+    # glyph and letters read as one line.
+    cap_h, baseline = 78, 160
+    bar_w = 80 * (cap_h / 42.0)
+    text_x = 64 + bar_w + 30
+    byline = listing_text("feature_graphic_byline", "Stronger every lift")
     return f"""
 <defs>
   <linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{GREEN}" stop-opacity="0.28"/><stop offset="1" stop-color="{GREEN}" stop-opacity="0"/></linearGradient>
-  <clipPath id="icon-clip"><rect x="64" y="64" width="128" height="128" rx="29"/></clipPath>
 </defs>
 <path d="{area}" fill="url(#a)"/>
 <path d="{d}" fill="none" stroke="{GREEN}" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
-<image href="{app_icon_data_uri()}" x="64" y="64" width="128" height="128" clip-path="url(#icon-clip)"/>
-<rect x="64.5" y="64.5" width="127" height="127" rx="29" fill="none" stroke="#2A2A30" stroke-width="1"/>
-<text id="measure" x="218" y="160" style="{GROTESK};font-size:112px;letter-spacing:-0.03em" fill="none">SCHLIFT</text>
+{barbell(64, baseline - cap_h, cap_h, INK)}
+<text id="measure" x="{text_x:.0f}" y="{baseline}" style="{GROTESK};font-size:112px;letter-spacing:-0.03em" fill="none">SCHLIFT</text>
 <g id="wordmark"></g>
-<text x="222" y="216" style="{MANROPE};font-size:30px" fill="{MUTED}">Stronger every lift</text>
+<text x="{text_x + 4:.0f}" y="{baseline + 56}" style="{MANROPE};font-size:30px" fill="{MUTED}">{byline}</text>
 <script>
 document.fonts.ready.then(() => {{
   // Same idea as the app's WobblyText: one seeded random, one nudge and one
@@ -232,9 +250,9 @@ document.fonts.ready.then(() => {{
     const dx = (rnd() * 2 - 1) * 3.5, dy = (rnd() * 2 - 1) * 4;
     const deg = (rnd() * 2 - 1) * 2.4;
     const ext = m.getExtentOfChar(i);
-    const cx = ext.x + ext.width / 2, cy = 160 - 40;
+    const cx = ext.x + ext.width / 2, cy = {baseline} - {cap_h} / 2;
     const t = document.createElementNS(ns, 'text');
-    t.setAttribute('x', p.x); t.setAttribute('y', 160);
+    t.setAttribute('x', p.x); t.setAttribute('y', {baseline});
     t.setAttribute('style', "{GROTESK};font-size:112px;letter-spacing:-0.03em");
     t.setAttribute('fill', '{INK}');
     t.setAttribute('transform', `translate(${{dx}} ${{dy}}) rotate(${{deg}} ${{cx}} ${{cy}})`);
