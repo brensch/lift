@@ -7,9 +7,14 @@ on:
     branches:
       - main
 
+# Jobs run in parallel; wall time is the slowest one (the fuzz harness).
+# Rust and Flutter only run when their inputs changed, so a docs-only or
+# release-notes-only change finishes in seconds.
+
 jobs:
   # Store release notes are committed as release-notes/<version>.md and read
-  # by store-promote.yml. Catch a bad one here, not when promoting.
+  # by store-promote.yml. Catch a bad one here, not when promoting. Always
+  # runs: it is the one check a notes-only PR needs.
   release-notes:
     runs-on: ubuntu-latest
     steps:
@@ -18,9 +23,39 @@ jobs:
       - name: Check release notes (name, non-empty, Play's 500-char limit)
         run: python3 scripts/check_release_notes.py
 
-  tests:
+  changes:
     runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      flutter: ${{ steps.filter.outputs.flutter }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect what changed
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - 'src/**'
+              - 'proto/**'
+              - 'examples/**'
+              - 'testdata/**'
+              - 'build.rs'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'Makefile'
+              - 'make/**'
+              - '.github/workflows/tests.yml'
+            flutter:
+              - 'app/**'
+              - 'proto/**'
+              - '.github/workflows/tests.yml'
 
+  rust:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,16 +68,51 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cache cargo (dev profile)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-dev
+
       - name: Clippy (deny warnings)
         run: cargo clippy --all-targets -- -D warnings
 
       - name: Run Rust tests
         run: cargo test --all-targets
 
-      # Randomised API sequences against a throwaway backend, checking state
-      # invariants after every mutation. Fixed seed so a failure is reproducible.
+  # Randomised API sequences against a throwaway backend, checking state
+  # invariants after every mutation. Fixed seed so a failure is reproducible.
+  # Release profile, so it gets its own cache.
+  fuzz:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache cargo (release profile)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-release
+
       - name: Run API invariant harness
         run: make fuzz-api-ci
+
+  flutter:
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
