@@ -31,7 +31,7 @@ from pathlib import Path
 
 import yaml
 
-from check_store_text import check, load_listing  # noqa: E402  (sibling script)
+from check_store_text import check, compose_description, load_listing  # noqa: E402  (sibling script)
 from promote_app_store import (  # noqa: E402
     EDITABLE_STATES,
     IN_FLIGHT_STATES,
@@ -246,7 +246,7 @@ def push_text(asc: AppStoreConnect, app_id: str, version: dict, listing: dict) -
                     "attributes": {
                         "promotionalText": listing["promotional_text"].strip(),
                         "keywords": listing["keywords"].strip(),
-                        "description": listing["description"].strip(),
+                        "description": compose_description(listing),
                     },
                 }
             },

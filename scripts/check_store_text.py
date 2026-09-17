@@ -22,10 +22,28 @@ LIMITS = {
     "tagline": (30, "App Store subtitle, feature graphic byline, Play one-liner"),
     "promotional_text": (170, "App Store promo, Play one-liner"),
     "keywords": (100, "App Store"),
-    "description": (4000, "both"),
+    "about": (3000, "both, opens the description"),
+    "testimonials_heading": (60, "both"),
 }
+DESCRIPTION_LIMIT = 4000
 PLAY_SHORT_LIMIT = 80
-RETIRED = ("subtitle", "short_description", "feature_graphic_byline")
+RETIRED = ("subtitle", "short_description", "feature_graphic_byline", "description")
+
+
+def compose_description(listing: dict) -> str:
+    """The store description, built from the typed pieces in a fixed order:
+    about, the testimonials under their heading, then other_features."""
+    parts = [str(listing.get("about", "")).strip()]
+    testimonials = listing.get("testimonials") or []
+    if testimonials:
+        parts.append(str(listing.get("testimonials_heading", "Testimonials:")).strip())
+        for t in testimonials:
+            parts.append(f'"{str(t.get("quote", "")).strip()}"\n- {str(t.get("name", "")).strip()}')
+    other = listing.get("other_features") or {}
+    if other.get("items"):
+        lines = [str(other.get("heading", "")).strip()] + [f"- {str(i).strip()}" for i in other["items"]]
+        parts.append("\n".join(l for l in lines if l))
+    return "\n\n".join(p for p in parts if p)
 CAPTION_TITLE_LIMIT = 28
 CAPTION_SUBTITLE_LIMIT = 80
 
@@ -55,7 +73,16 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
 
     for field in RETIRED:
         if field in listing:
-            problems.append(f"{field}: retired; the tagline field now covers it")
+            problems.append(f"{field}: retired; see the comments in store/listing.yaml for what replaced it")
+    for i, t in enumerate(listing.get("testimonials") or []):
+        if not isinstance(t, dict) or not str(t.get("quote", "")).strip() or not str(t.get("name", "")).strip():
+            problems.append(f"testimonials[{i}]: needs a quote and a name")
+    other = listing.get("other_features") or {}
+    if not isinstance(other, dict) or not str(other.get("heading", "")).strip() or not other.get("items"):
+        problems.append("other_features: needs a heading and at least one item")
+    description = compose_description(listing)
+    if len(description) > DESCRIPTION_LIMIT:
+        problems.append(f"composed description: {len(description)} characters, the stores allow {DESCRIPTION_LIMIT}")
     short = play_short_description(listing)
     if len(short) > PLAY_SHORT_LIMIT:
         problems.append(f"tagline + promotional_text: {len(short)} characters; Play's one-liner allows {PLAY_SHORT_LIMIT}")
@@ -101,6 +128,7 @@ def main() -> int:
         for field, (limit, store) in LIMITS.items():
             print(f"ok  {field}: {len(listing[field].strip())}/{limit} ({store})")
         print(f"ok  Play one-liner: {len(play_short_description(listing))}/{PLAY_SHORT_LIMIT}")
+        print(f"ok  composed description: {len(compose_description(listing))}/{DESCRIPTION_LIMIT} ({len(listing.get('testimonials') or [])} testimonials, {len((listing.get('other_features') or {}).get('items') or [])} other features)")
         print(f"ok  {len(listing.get('screenshots') or [])} screenshot slides")
     return 1 if problems else 0
 
