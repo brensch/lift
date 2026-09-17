@@ -8,6 +8,16 @@ on:
       - main
 
 jobs:
+  # Store release notes are committed as release-notes/<version>.md and read
+  # by store-promote.yml. Catch a bad one here, not when promoting.
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check release notes (name, non-empty, Play's 500-char limit)
+        run: python3 scripts/check_release_notes.py
+
   tests:
     runs-on: ubuntu-latest
 

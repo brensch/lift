@@ -222,8 +222,11 @@ wait timers configured there apply.
 ### 1. Write the release notes
 
 Create `release-notes/<version>.md` (plain text; Play allows 500 characters,
-the App Store 4000). The workflow refuses to run without it. This is what
-users read in the store.
+the App Store 4000) and commit it to `main`. This is what users read in the
+store. CI validates every file in that directory on each pull request
+(`scripts/check_release_notes.py`: name is `X.Y.Z.md`, not empty, 500
+characters or under), so a bad note fails the PR rather than the promotion.
+The promote workflow refuses to run without the file.
 
 ### 2. Trigger
 
