@@ -6,6 +6,7 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../logic/exercises.dart';
 import 'plate_visualization.dart';
+import '../tutorial/tutorial_target.dart';
 
 class StatusBox extends StatelessWidget {
   final String sideLabel;
@@ -62,10 +63,7 @@ class StatusBox extends StatelessWidget {
         : (timerColor ?? contentColor);
 
     return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: AppTheme.brMd,
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: AppTheme.brMd),
       child: ClipRRect(
         borderRadius: AppTheme.brMd,
         child: IntrinsicHeight(
@@ -279,33 +277,33 @@ class StatusSetWeightInfo extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 5),
-          Text(
-            '\u00D7 ${set.targetReps}',
-            style: bigStyle,
-          ),
+          Text('\u00D7 ${set.targetReps}', style: bigStyle),
           const SizedBox(width: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: detailTrigger,
-              borderRadius: BorderRadius.circular(999),
-              child: Ink(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: secondaryTextColor.withValues(alpha: 0.85),
-                    width: 1.2,
+          TutorialTarget(
+            id: 'bar_plates',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: detailTrigger,
+                borderRadius: BorderRadius.circular(999),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: secondaryTextColor.withValues(alpha: 0.85),
+                      width: 1.2,
+                    ),
                   ),
-                ),
-                child: SizedBox(
-                  width: 92,
-                  height: 32,
-                  child: Center(
-                    child: PlateVisualization(
-                      weight: set.targetWeight.toDouble(),
-                      scale: 0.72,
-                      isInteractive: false,
+                  child: SizedBox(
+                    width: 92,
+                    height: 32,
+                    child: Center(
+                      child: PlateVisualization(
+                        weight: set.targetWeight.toDouble(),
+                        scale: 0.72,
+                        isInteractive: false,
+                      ),
                     ),
                   ),
                 ),

@@ -152,7 +152,7 @@ class MainLayout extends StatelessWidget {
                       const SizedBox(height: 4),
                       _MenuButton(
                         icon: Icons.psychology_outlined,
-                        label: 'Papers',
+                        label: 'Workout science',
                         onTap: () {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
@@ -166,7 +166,7 @@ class MainLayout extends StatelessWidget {
                       const SizedBox(height: 4),
                       _MenuButton(
                         icon: Icons.functions_outlined,
-                        label: 'Maths',
+                        label: 'Calorie maths',
                         onTap: () {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
