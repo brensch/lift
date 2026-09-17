@@ -31,7 +31,7 @@ use uuid::Uuid;
 const DAY: i64 = 86_400;
 /// How many weeks of history to write. Enough for sparklines and the volume
 /// tracker to look lived-in, cheap enough to seed on every dev boot.
-const WEEKS: i64 = 12;
+const WEEKS: i64 = 16;
 /// Exercises already finished in the `-live` user's in-progress session.
 const LIVE_DONE_EXERCISES: usize = 2;
 /// When the live session's last rest ends, relative to seeding. Long enough
@@ -83,15 +83,15 @@ fn opening_weight(ex: Exercise) -> f32 {
     let base = starting_weight_lb(ex, AppWeightUnit::Lb);
     let step = progression_increment_lb(ex, AppWeightUnit::Lb);
     let head_start = match ex {
-        Exercise::Squat => 18.0,
-        Exercise::Deadlift => 24.0,
-        Exercise::BenchPress => 12.0,
-        Exercise::BarbellRow => 10.0,
-        Exercise::OverheadPress => 6.0,
-        Exercise::RomanianDeadlift => 14.0,
-        Exercise::HipThrust => 16.0,
-        Exercise::LegPress => 20.0,
-        _ => 4.0,
+        Exercise::Squat => 12.0,
+        Exercise::Deadlift => 16.0,
+        Exercise::BenchPress => 8.0,
+        Exercise::BarbellRow => 7.0,
+        Exercise::OverheadPress => 4.0,
+        Exercise::RomanianDeadlift => 9.0,
+        Exercise::HipThrust => 10.0,
+        Exercise::LegPress => 14.0,
+        _ => 2.0,
     };
     snap_weight_lb(ex, base + step * head_start, AppWeightUnit::Lb)
 }
@@ -122,30 +122,36 @@ enum Outcome {
 
 /// The progression a user would have felt: reps climb the range and the
 /// weight steps up when they top out, but not every session goes to plan.
-/// Roughly one in five sessions misses reps, a second miss in a row deloads
-/// ten percent (the app's own rule), and some sessions just hold.
+/// Roughly one in six sessions misses reps, a second miss in a row deloads
+/// ten percent (the app's own rule), some sessions just hold, and after a
+/// deload the lift rebuilds quickly back to where it was. Over sixteen
+/// weeks the trend is up; the dips are detours.
 #[derive(Clone, Copy)]
 struct Lift {
     weight: f32,
     reps: i32,
     misses: i32,
+    /// Highest working weight reached so far; below it the lift rebuilds fast.
+    peak: f32,
 }
 
 impl Lift {
     fn opening(ex: Exercise, p: &Prescription) -> Self {
         // Each lift starts somewhere different in its rep range so the weight
         // steps land on different sessions across exercises.
+        let weight = opening_weight(ex);
         Lift {
-            weight: opening_weight(ex),
+            weight,
             reps: (p.rep_low + (ex as i32) % 3).min(p.rep_high),
             misses: 0,
+            peak: weight,
         }
     }
 
     fn outcome(ex: Exercise, session: usize) -> Outcome {
         // A bad day hits everything; otherwise each lift rolls on its own.
-        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.10;
-        if bad_day || roll(ex, session, 2) < 0.22 {
+        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.07;
+        if bad_day || roll(ex, session, 2) < 0.16 {
             Outcome::Missed
         } else {
             Outcome::Made
@@ -185,14 +191,15 @@ impl Lift {
             }
             Outcome::Made => {
                 self.misses = 0;
-                if roll(ex, session, 7) < 0.06 && loadable {
+                let rebuilding = self.weight < self.peak;
+                if !rebuilding && roll(ex, session, 7) < 0.03 && loadable {
                     // A setback that is not a miss: a week off, a tweak, a
                     // change of gym. Drop a notch and rebuild from there.
                     self.reps = p.rep_low;
                     self.weight = snap_weight_lb(ex, self.weight * 0.9, AppWeightUnit::Lb);
                     return;
                 }
-                if roll(ex, session, 5) < 0.12 {
+                if !rebuilding && roll(ex, session, 5) < 0.10 {
                     return; // made it, but no more than last time: a hold
                 }
                 if self.reps >= p.rep_high {
@@ -203,9 +210,17 @@ impl Lift {
                             self.weight + progression_increment_lb(ex, AppWeightUnit::Lb),
                             AppWeightUnit::Lb,
                         );
+                        self.peak = self.peak.max(self.weight);
                     }
                 } else {
-                    let step = if roll(ex, session, 6) < 0.5 { 1 } else { 2 };
+                    // Familiar ground comes back fast; new ground is slower.
+                    let step = if rebuilding {
+                        3
+                    } else if roll(ex, session, 6) < 0.5 {
+                        1
+                    } else {
+                        2
+                    };
                     self.reps = (self.reps + step).min(p.rep_high);
                 }
             }
