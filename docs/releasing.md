@@ -2,9 +2,23 @@
 
 Releases are triggered by pushing a `v*` tag (e.g. `git tag v0.9.6 origin/main &&
 git push origin v0.9.6`), which runs the signed Android/Wear and iOS build
-workflows. This document covers signing setup, required secrets, and the store
-checklists. The backend deploys separately on push to `main`
-(`.github/workflows/backend-deploy.yml`).
+workflows and uploads the results to the **testing** tracks (Play internal /
+alpha / beta and TestFlight). Pushing a `prod-v*` tag then promotes that
+version to **production** without rebuilding (see
+[Promote to production](#promote-to-production)). This document covers signing
+setup, required secrets, and the store checklists. The backend deploys
+separately on push to `main` (`.github/workflows/backend-deploy.yml`).
+
+## Release flow at a glance
+
+| Step | Trigger | Workflow | Result |
+|---|---|---|---|
+| 1. Ship the backend | merge to `main` | `backend-deploy.yml` | prod server |
+| 2. Build the apps | push `vX.Y.Z` | `android-release.yml`, `ios-build.yml` | Play internal/alpha/beta + TestFlight |
+| 3. Promote | push `prod-vX.Y.Z` | `store-promote.yml` | Play production + App Store review |
+
+Nothing is versioned by hand: the name comes from the tag, the build number
+from the run number.
 
 ## Android / Wear (Play Store)
 
@@ -103,13 +117,13 @@ Output:
 
 ## 6) Upload and Rollout
 
-In Play Console Internal testing release:
-1. Upload both `.aab` files.
-2. Add release notes.
-3. Resolve warnings/errors.
-4. Roll out to testers.
+CI does this: a `v*` tag uploads both `.aab` files to the `internal`, `alpha`
+and `beta` tracks (phone) and `wear:internal` / `wear:beta watch` (watch),
+rolled out to testers immediately. A `prod-v*` tag then promotes the `beta`
+release to `production` — see [Promote to production](#promote-to-production).
 
-After validation, promote to Closed/Production.
+For a one-off manual upload, use Play Console → Testing → Internal testing,
+upload both bundles, add notes, resolve warnings, roll out.
 
 ## 7) WebAuthn / Passkey Production Values
 
@@ -130,7 +144,7 @@ make print-cert-hashes DEBUG_KEYSTORE=/path/to/upload-keystore.jks DEBUG_ALIAS=u
 Workflow file:
 - `.github/workflows/android-release.yml`
 
-It builds signed release AABs for both phone and wear, uploads them as workflow artifacts, and then uploads both bundles to the Google Play `internal` track.
+It builds signed release AABs for both phone and wear, uploads them as workflow artifacts, and then uploads both bundles to the Google Play testing tracks (`internal`, `alpha`, `beta` for the phone; `wear:internal`, `wear:beta watch` for the watch) via `scripts/upload_google_play.py`.
 
 Create these GitHub repository secrets before running:
 - `RELEASE_KEYSTORE_BASE64`: base64 of your JKS keystore file
@@ -150,7 +164,7 @@ Run options:
   versioned `0.0.0-dev`)
 - Tag trigger: push a `v*` tag (e.g. `git tag v0.9.6 origin/main && git push
   origin v0.9.6`)
-  - This builds artifacts and uploads both AABs to the Play Console internal track.
+  - This builds artifacts and uploads both AABs to the Play testing tracks.
 
 ## iOS (App Store)
 
@@ -164,14 +178,16 @@ then:
 - **If they are missing:** builds an unsigned app with `--no-codesign` and
   uploads `Runner.app.zip`.
 
-It does not upload to App Store Connect automatically.
+When the App Store Connect API key secrets are also present, the signed IPA
+is uploaded with `altool`, which lands it in TestFlight once Apple has
+processed it (usually 5–15 minutes).
 
 Required for real iOS distribution (Apple Developer Program needed):
 - Distribution certificate (`.p12`) and password
 - iPhone app provisioning profile
 - watch app provisioning profile
 - Apple Team ID
-- (Later) App Store Connect API key for automated upload
+- App Store Connect API key (App Manager role) for upload and promotion
 
 Required GitHub Actions secrets:
 - `IOS_CERT_P12_BASE64`
@@ -179,3 +195,92 @@ Required GitHub Actions secrets:
 - `IOS_APP_PROVISION_PROFILE_BASE64`
 - `IOS_WATCH_PROVISION_PROFILE_BASE64`
 - `APPLE_TEAM_ID`
+- `APP_STORE_CONNECT_KEY_ID`
+- `APP_STORE_CONNECT_ISSUER_ID`
+- `APP_STORE_CONNECT_PRIVATE_KEY_BASE64` (base64 of the `.p8` file)
+
+## Promote to production
+
+Workflow file: `.github/workflows/store-promote.yml`. It **does not build
+anything**. It takes a version that a `v*` tag already built and uploaded,
+and moves it to production on both stores by API:
+
+- **Google Play:** reads the `beta` track (phone) and the `wear:beta watch`
+  track (watch), finds the release for that version, and writes its version
+  codes to `production` / `wear:production` with release notes, optionally as
+  a staged rollout. Same service account as the upload.
+  Script: `scripts/promote_google_play.py`.
+- **App Store:** finds the processed TestFlight build for that version,
+  creates (or reuses) the App Store version record, attaches the build, sets
+  "What's New", optionally enables phased release, and submits it for review.
+  Apple still reviews it; the app goes live after approval (`AFTER_APPROVAL`).
+  Script: `scripts/promote_app_store.py`.
+
+Both jobs run in the `production` GitHub environment, so any reviewers or
+wait timers configured there apply.
+
+### 1. Write the release notes
+
+Create `release-notes/<version>.md` (plain text; Play allows 500 characters,
+the App Store 4000) and commit it to `main`. This is what users read in the
+store. CI validates every file in that directory on each pull request
+(`scripts/check_release_notes.py`: name is `X.Y.Z.md`, not empty, 500
+characters or under), so a bad note fails the PR rather than the promotion.
+The promote workflow refuses to run without the file.
+
+### 2. Trigger
+
+Tag flow, the normal path — promotes both stores, full rollout:
+
+```bash
+git fetch origin
+git tag prod-v0.10.1 origin/main && git push origin prod-v0.10.1
+```
+
+Tag the **current** `main` (which must contain the release-notes file and
+this workflow), not the commit the `v0.10.1` build came from. The version is
+parsed from the tag name.
+
+Manual flow — Actions → **Store Promote** → *Run workflow* — adds options:
+
+| Input | Meaning |
+|---|---|
+| `version` | e.g. `0.10.1`; must already be on the testing tracks |
+| `platforms` | `both`, `android` or `ios` |
+| `play_rollout` | Play rollout fraction, `0.1` = 10 % of users; `1` = everyone |
+| `ios_phased_release` | App Store 7-day phased release after approval |
+| `dry_run` | Do every lookup and print the plan without committing |
+
+Or from the terminal:
+
+```bash
+gh workflow run store-promote.yml -f version=0.10.1 -f platforms=both \
+  -f play_rollout=1 -f ios_phased_release=false -f dry_run=true
+gh run list --workflow store-promote.yml --limit 1
+```
+
+Run it with `dry_run=true` first if you are unsure: it validates the plan
+against both stores' APIs and writes nothing.
+
+### 3. Afterwards
+
+- **Play:** the release is live (or rolling out) as soon as the edit
+  commits. If the account has managed publishing on, it waits for you in the
+  console. To widen a staged rollout, rerun with a larger `play_rollout`.
+- **App Store:** the version sits in *Waiting for Review*. Apple's review
+  takes hours to days; you get the usual emails. Rejections come back to
+  App Store Connect and the workflow can be rerun once fixed.
+
+### What can go wrong
+
+- *No release named vX.Y.Z-\* on track 'beta'* — the `v*` build has not
+  finished uploading, or that tag never built. Check the Android Release run.
+- *No build for version X.Y.Z in App Store Connect* — the iOS Release run
+  failed or the upload was skipped. The script waits up to 30 minutes for
+  Apple to finish processing a build that did upload.
+- *App Store version X.Y.Z is already WAITING_FOR_REVIEW* — it was already
+  submitted; nothing to do.
+- *A review submission is already IN_REVIEW* — resolve or cancel it in App
+  Store Connect first.
+- Export compliance never blocks: `ITSAppUsesNonExemptEncryption` is `false`
+  in `app/ios/Runner/Info.plist`.
