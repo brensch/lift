@@ -11,7 +11,6 @@ pub(super) fn internal_error(error: impl std::fmt::Display) -> Status {
 /// old apps that predate the header are the ones the gate cannot help, and
 /// the deploy order (ship the header first, set the env second) handles
 /// them.
-#[allow(clippy::result_large_err)] // Status is what every handler returns
 fn check_app_version<T>(request: &Request<T>) -> Result<(), Status> {
     let Ok(min) = std::env::var("MIN_APP_VERSION") else {
         return Ok(());

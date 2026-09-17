@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)] // tonic `Status` errors, see main.rs
 use clap::Parser;
 use dashmap::DashMap;
 use rand::Rng;
