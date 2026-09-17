@@ -93,8 +93,12 @@ git tag prod-v0.9.6 origin/main && git push origin prod-v0.9.6  # Play productio
 The version comes from the tag. Do not edit `app/pubspec.yaml`; it stays at
 the `0.0.0+1` placeholder.
 
-See [`docs/releasing.md`](docs/releasing.md) for signing, secrets and the
-store checklists.
+Store listing text lives in `store/listing.yaml`, screenshots in
+`store/screenshots/raw/` (`make store-capture`), pushed by the Store Assets
+workflow.
+
+[`docs/releasing.md`](docs/releasing.md) is the runbook for all of it:
+deploys, builds, promotion, store listing, signing and secrets.
 
 ## Layout
 

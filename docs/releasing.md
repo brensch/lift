@@ -1,24 +1,46 @@
-# Release Guide (Android, Wear & iOS)
+# Operations runbook: deploy, release, promote, store listing
 
-Releases are triggered by pushing a `v*` tag (e.g. `git tag v0.9.6 origin/main &&
-git push origin v0.9.6`), which runs the signed Android/Wear and iOS build
-workflows and uploads the results to the **testing** tracks (Play internal /
-alpha / beta and TestFlight). Pushing a `prod-v*` tag then promotes that
-version to **production** without rebuilding (see
-[Promote to production](#promote-to-production)). This document covers signing
-setup, required secrets, and the store checklists. The backend deploys
-separately on push to `main` (`.github/workflows/backend-deploy.yml`).
+This is the one place for everything that moves code or content out of the
+repo: backend deploys, app builds, production promotion, and the store
+listings. Each step is a tag push or a workflow dispatch; nothing is versioned
+or uploaded by hand.
 
-## Release flow at a glance
+## Everything at a glance
 
-| Step | Trigger | Workflow | Result |
+| What | Trigger | Workflow | Result |
 |---|---|---|---|
-| 1. Ship the backend | merge to `main` | `backend-deploy.yml` | prod server |
-| 2. Build the apps | push `vX.Y.Z` | `android-release.yml`, `ios-build.yml` | Play internal/alpha/beta + TestFlight |
-| 3. Promote | push `prod-vX.Y.Z` | `store-promote.yml` | Play production + App Store review |
+| Deploy the prod backend | merge to `main` | `backend-deploy.yml` | `schlift.com`, migration runs at boot |
+| Deploy the dev backend + dev app | push `dev-<anything>` | `dev-backend-deploy.yml`, `android-dev-release.yml` | `dev.schlift.com`, side-by-side APK ([dev channel](dev-channel.md)) |
+| Build the apps | push `vX.Y.Z` | `android-release.yml`, `ios-build.yml` | Play internal/alpha/beta + TestFlight |
+| Promote to production | push `prod-vX.Y.Z` | `store-promote.yml` | Play production + App Store review |
+| Update the store listing | dispatch `store-assets.yml` | `store-assets.yml` | text + screenshots on both stores |
+| Refresh raw screenshots | `make store-capture` (local) | — | `store/screenshots/raw/` to commit |
 
-Nothing is versioned by hand: the name comes from the tag, the build number
-from the run number.
+Files you edit, all checked in CI on every pull request:
+
+| File | What it is | Limit check |
+|---|---|---|
+| `release-notes/<version>.md` | "What's new" for one release | `scripts/check_release_notes.py` (500 chars) |
+| `store/listing.yaml` | Listing text for both stores + screenshot captions | `scripts/check_store_text.py` (every field) |
+| `store/screenshots/raw/*.png` | Raw app captures the framed slides are made from | referenced by `listing.yaml` |
+| `marketing/` | Icon and Play feature graphic | — |
+
+A normal release, start to finish:
+
+```bash
+# 1. code lands on main → prod backend deploys itself
+# 2. build the apps onto the testing tracks
+git tag v0.10.2 origin/main && git push origin v0.10.2
+# 3. write release-notes/0.10.2.md, merge it, then promote
+git tag prod-v0.10.2 origin/main && git push origin prod-v0.10.2
+# 4. (only when the listing changed) push text + screenshots
+gh workflow run store-assets.yml -f action=push -f dry_run=true   # then dry_run=false
+```
+
+The version comes from the tag (`v0.10.2` ships as `0.10.2`, build number
+`1000 + run number`). `app/pubspec.yaml` stays at its `0.0.0+1` placeholder.
+
+---
 
 ## Android / Wear (Play Store)
 
@@ -284,3 +306,93 @@ against both stores' APIs and writes nothing.
   Store Connect first.
 - Export compliance never blocks: `ITSAppUsesNonExemptEncryption` is `false`
   in `app/ios/Runner/Info.plist`.
+
+## Store listing and screenshots
+
+Workflow file: `.github/workflows/store-assets.yml`. It never builds the app.
+It frames committed screenshots and pushes text + images to both stores by
+API, from two committed sources:
+
+- **`store/listing.yaml`** — the single source of listing text. Fields that
+  both stores read (`name`, `description`) appear once; a field only one store
+  has (`subtitle`, `promotional_text`, `keywords` for the App Store;
+  `short_description` for Play) says so in its comment. The same text goes to
+  every language the listing has. Screenshot captions live here too.
+- **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
+  (1080×2400, dark mode), `wear_*.png` Wear OS captures (384×384),
+  `apple_watch_*.png` Apple Watch captures (396×484).
+
+CI checks `listing.yaml` on every pull request against both stores' limits
+(`scripts/check_store_text.py`), including that each referenced screenshot
+file exists.
+
+### Refresh the screenshots
+
+```bash
+make store-capture      # emulator + seeded backend → store/screenshots/raw/store_NN.png
+make store-frame        # optional: render the framed slides locally to store/screenshots/out/
+```
+
+`store-capture` boots the `lift_api34` emulator (dark mode, animations off),
+starts a throwaway backend on `:50051` with dev login and the seeded `demo`
+account (`SEED_DEMO_USER=demo`; nine weeks of progressing history, compiled
+only with `--features test-auth`, see `src/demo_seed.rs`), then drives
+`app/integration_test/store_shots_test.dart`, which takes one shot per slide.
+Add, remove or reorder slides there and in `listing.yaml` together. Commit the
+new PNGs.
+
+Watch captures are not automated (two emulators cannot be paired from the
+CLI); the committed ones are reused. To redo them see the Wear OS notes in
+`docs/android_dev.md` and the watch notes in `docs/architecture/wearable.md`.
+
+### Render and review
+
+Actions → **Store Assets** → *Run workflow* with `action = render`, or:
+
+```bash
+gh workflow run store-assets.yml -f action=render
+gh run download --name store-screenshots   # framed PNGs + contact-sheet.html
+```
+
+`scripts/frame_store_screenshots.py` renders each slide with its caption above
+a phone frame at every size the stores need: Play 1080×1920, App Store 6.9"
+1320×2868. Watch captures go up at their native sizes.
+
+### Push
+
+```bash
+gh workflow run store-assets.yml -f action=push -f platforms=both -f dry_run=true
+gh workflow run store-assets.yml -f action=push -f platforms=both -f dry_run=false
+```
+
+| Input | Meaning |
+|---|---|
+| `platforms` | `both`, `android`, `ios` |
+| `ios_version` | App Store version to write to. Blank = the newest version still editable. Given and missing = created (text and screenshots then ride the next promotion). |
+| `dry_run` | Play: does every write in an edit and discards it. App Store: prints every write. |
+
+- **Play** replaces the phone screenshots, Wear screenshots, feature graphic
+  and icon wholesale, and sets title, short and full description, in one
+  committed edit. Live immediately (or after review if the account uses
+  managed publishing).
+- **App Store** sets name and subtitle on the app record (only when it is not
+  locked by a review), and promotional text, keywords, description and the
+  iPhone + Apple Watch screenshot sets on the version. A version waiting for
+  review cannot be edited: pull it from review, or target the next version.
+
+### Pull
+
+`action = pull` prints what each store currently has (text per language, image
+counts) and saves it as the `store-listing-pull` artifact. Use it to seed
+`listing.yaml` from the live listing or to check the two are in sync.
+
+### What can go wrong
+
+- *FAIL description: 4123 characters, both allows 4000* — the checker; fix the
+  file.
+- *store_03.png is not in store/screenshots/raw* — a slide in `listing.yaml`
+  without a capture; run `make store-capture`.
+- *No App Store version is editable right now* — every version is in review or
+  live; pass `ios_version` for the next one.
+- *App-level record (name, subtitle) is not editable right now* — Apple locks
+  it during review; the rest still pushes.

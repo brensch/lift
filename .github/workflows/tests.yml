@@ -12,16 +12,18 @@ on:
 # release-notes-only change finishes in seconds.
 
 jobs:
-  # Store release notes are committed as release-notes/<version>.md and read
-  # by store-promote.yml. Catch a bad one here, not when promoting. Always
-  # runs: it is the one check a notes-only PR needs.
-  release-notes:
+  # Store text is committed: release-notes/<version>.md (read by
+  # store-promote.yml) and store/listing.yaml (read by store-assets.yml).
+  # Catch a bad one here, not at upload time. Always runs.
+  store-text:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check release notes (name, non-empty, Play's 500-char limit)
         run: python3 scripts/check_release_notes.py
+      - name: Check store listing text (store/listing.yaml against both stores' limits)
+        run: pip3 install --quiet pyyaml && python3 scripts/check_store_text.py
 
   changes:
     runs-on: ubuntu-latest
