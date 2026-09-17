@@ -396,3 +396,13 @@ counts) and saves it as the `store-listing-pull` artifact. Use it to seed
   live; pass `ios_version` for the next one.
 - *App-level record (name, subtitle) is not editable right now* — Apple locks
   it during review; the rest still pushes.
+- *You cannot create a new version of the App in the current state* — Apple
+  will not open the next version while one is waiting for review. Either
+  wait for that review to finish, or remove the version from review in App
+  Store Connect (Distribution → the version → Remove from review), push the
+  listing onto it, and promote again.
+- *Play: The caller does not have permission* on commit — the service
+  account can publish releases but not edit the store listing. In Play
+  Console → Users and permissions → the service account → App permissions,
+  grant **Manage store presence** (edit store listing, store settings).
+  The dry run cannot catch this: Play only checks it at commit.
