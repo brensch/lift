@@ -20,42 +20,46 @@ tutorial:
   steps:
     - screen: home
       target: home_volume
-      title: Your muscles, tracked
-      body: Hard sets this week, per muscle. Aim for the band. Yellow means still recovering, a tick means you've done enough.
+      title: I'm tracking your muscles.
+      body: Not in a creepy way though. I'll let you know which muscle groups need more work and which have rested enough.
     - screen: home
       target: home_templates
-      title: Pick a workout
-      body: The star is today's suggestion, picked from whatever is furthest behind. Tap any template to pick it instead. They're yours to edit.
+      title: Pick your workout
+      body: The star is today's suggestion, picked from whatever covers the most unworked muscles. You can pick whatever you want though, ie butt again.
     - screen: home
       target: home_add
-      title: Need more workouts?
-      body: The library has StrongLifts, splits, body parts, Butt Stuff. Add one and it's yours. Or make your own from scratch.
+      title: Need more options?
+      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your favourites, or make your own.
     - screen: home
       target: home_plan
-      title: The numbers are handled
-      body: Sets × reps @ weight, all prescribed. The flame means warmups are included.
+      title: I got your numbers
+      body: The last thing I want is for you to have to worry about numbers. I track them for you - sets × reps @ weight. Just decide what you want to work on.
     - screen: home
       target: home_start
-      title: Start from here
-      body: One tap and the session is on.
+      title: Start 
+      body: Pressing Start is how you Start. Cool.
     - screen: workout
       action: start_workout
       target: workout_current
-      title: What you're doing now
-      body: The current exercise with its warmups and working sets. Tap a set to change it, or the pencil to change the weight.
+      title: Whatcha up to
+      body: Summary of what you're up to if someone asks how many sets you have left. It's also shown on the watch app.
     - screen: workout
       target: bar_status
       title: Your current set
-      body: The weight and the reps to hit, always at the bottom.
+      body: The weight and the reps to hit, plus time left resting/time spent yapping etc. Beautifully colour coded for maximum aesthetics.
+    - screen: workout
+      target: bar_plates
+      title: Plate maths
+      body: i calculate how many plates to use to make up the weight. this feature costs money in other apps, i give it to you for free since i'm such a nice guy.
     - screen: workout
       target: bar_timer
-      title: Elapsed · heart rate
+      title: Elapsed / heart rate
       body: How long you've been going, and your heart rate from the watch if you're wearing one.
     - screen: workout
       action: start_set
       target: bar_button
-      title: Tap when the set is done
-      body: The rest timer starts on its own and tells you when to stop yapping.
+      title: Tap to start/finish sets
+      body: You can also do that from your watch.
     - screen: workout
       target: workout_tabs
       title: Log and heart
