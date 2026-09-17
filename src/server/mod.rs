@@ -42,5 +42,5 @@ pub use workout::ServerWorkoutService;
 
 use support::{
     authed_user_id, build_participant_status, internal_error, refresh_participant_for_user,
-    setting_type_key,
+    setting_type_key, ServerResult,
 };

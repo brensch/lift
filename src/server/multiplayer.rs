@@ -36,7 +36,7 @@ impl ServerMultiplayerService {
     /// Place `user_id` into `session_id` (upsert), backfill their active workout's
     /// historical session stamp if any, and refresh their participant blob so peers see
     /// them immediately on the next poll.
-    async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> Result<(), Status> {
+    async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> ServerResult<()> {
         self.db
             .set_user_current_session(user_id, session_id)
             .await
@@ -63,7 +63,7 @@ impl ServerMultiplayerService {
 
     /// If `user_id` is currently in a session other than `target`, cleanly leave
     /// it (prune the live blob + stamp left_at) so its roster doesn't strand them.
-    async fn leave_other_session(&self, user_id: &str, target: &str) -> Result<(), Status> {
+    async fn leave_other_session(&self, user_id: &str, target: &str) -> ServerResult<()> {
         if let Some(current) = self
             .db
             .get_user_current_session(user_id)
@@ -91,7 +91,7 @@ impl ServerMultiplayerService {
     /// pulling in several people forms one group — not a chain of 1:1s. Serialised
     /// behind a global lock so two people joining the same anchor at once can't
     /// each mint a separate session and orphan one of them.
-    async fn gather_into_session(&self, anchor: &str, joiner: &str) -> Result<String, Status> {
+    async fn gather_into_session(&self, anchor: &str, joiner: &str) -> ServerResult<String> {
         let _guard = JOIN_LOCK.lock().await;
         let session_id = self
             .db
