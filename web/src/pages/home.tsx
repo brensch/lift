@@ -153,8 +153,14 @@ export function HomePage() {
           </div>
           <Reveal delay={100}>
             <div
-              className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 px-5 sm:px-[max(1.25rem,calc((100vw-64rem)/2))]"
-              style={{ scrollbarWidth: "none" }}
+              className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4"
+              style={{
+                scrollbarWidth: "none",
+                // Line the first slide up with the heading's left edge (the
+                // 64rem content column) and let the rest run off to the right.
+                paddingInline: "max(1.25rem, calc((100vw - 64rem) / 2 + 1.25rem))",
+                scrollPaddingInline: "max(1.25rem, calc((100vw - 64rem) / 2 + 1.25rem))",
+              }}
             >
               {screenshots.map((s) => (
                 <figure
